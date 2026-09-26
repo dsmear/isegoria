@@ -5,7 +5,7 @@
 | **Purpose** | Measure how much of the code the tests actually *verify*, not just execute, and record every mutant that survives with the reason it is acceptable. |
 | **Tool** | `cargo-mutants` 26.0.0 (the newest release that builds on the pinned rustc 1.86). |
 | **Date** | 2026-09-24, branch `test/t41-mutation-survivors`. |
-| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon). |
+| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order). |
 
 ## Why this was needed
 
@@ -112,7 +112,7 @@ numbers are those of this branch.
 | `collusion.rs:64` `s > 0.0` → `>=` | At `s = 0` the product is `0 · min(NaN, 1) = 0 · 1 = 0` (`f64::min` ignores NaN): same result. |
 | `collusion.rs:81` (×2) `(a[i] − ma)` or `(b[i] − mb)` → `+` in the covariance term | Centring one factor is enough: `Σ(a + ma)(b − mb) = Σ(a − ma)(b − mb) + 2ma·Σ(b − mb)` and `Σ(b − mb) = 0` (same for the other factor). The variance terms, which are not equivalent, are pinned by `hand_computed.rs`. |
 | `governance.rs:74` `.max(lo + 1)` → `.max(lo * 1)`; `review.rs:56` same | The guard only matters for an empty stratum, and `strata ≤ seats ≤ n` (resp. `k ≤ n`) rules that out. |
-| `governance.rs:85` `count < seats` → `<=` | At equality the fill loop breaks before changing anything. |
+| `governance.rs:85` (`:76` since T72) `count < seats` → `<=` | At equality the fill loop breaks before changing anything. |
 | `review.rs:44` `n == 0 \|\| k == 0` → `&&` | Either zero makes `k = min(k, n) = 0`, and the loop draws nothing. |
 | `optim.rs:60` `yy > 0` → `>=` (was line 61) | `yy = 0` means `y = 0`, so `sᵀy = 0` and the pair was never stored (`sᵀy > 1e-12`). |
 | `optim.rs:85` `gd >= 0` → `<` (second check, after the steepest-descent fallback; was line 86) | The fallback direction is `−g`, whose slope `−‖g‖²` is negative unless `g = 0`, which the gradient test has already stopped on. The fallback itself is unreachable while stored pairs keep the Hessian estimate positive definite. |
@@ -213,6 +213,15 @@ the config's profile and `calibration`, `--cargo-test-arg=--test=…` with `inv1
 4 unviable, none missed. cargo-mutants deletes no statement, so the `sort_unstable` and
 `dedup` that make the lottery a function of the set are not mutated; the lottery test of
 `inv10_beacon_seed.rs` pins them (every order and a repeat draw the same vector).
+
+## Run 10 — T72: the draws' canonical candidate order
+
+`cargo mutants --in-diff` on the T72 diff (`review.rs`, `governance.rs`; the config's
+profile and `calibration`, `--cargo-test-arg=--test=…` with `draw_order`, `exact_outcomes`,
+`properties`, `lifecycle`, `panel_diversification`, `inv10_beacon_seed` and
+`reviewer_floor`): 12 mutants — 7 caught, 4 unviable, 1 missed. The survivor is
+`governance.rs:76` `count < seats` → `<=`, the equivalent mutant of the table above
+(`:85` before T72): at equality the fill loop stops before changing anything.
 
 ## Keeping it this way
 

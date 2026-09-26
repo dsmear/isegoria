@@ -70,7 +70,9 @@ reveal) draws nothing; its deposits wait for the next epoch.
 > among consortium members ([3] above; a threshold signature after T19).
 
 - **Random assignment** of the `k` reviewers (odd, 7–11), stratified on the position
-  `f_u` → the batch mirrors all positions of the axis. Prevents **brigading**: nobody
+  `f_u` → the batch mirrors all positions of the axis. Candidates at the same position are
+  ordered by pseudonym, so the panel depends on who the candidates are and on the beacon,
+  never on the order a list gives them (T72; the same for the sortition). Prevents **brigading**: nobody
   chooses what to review, and the item is not searchable before the verdict. A newcomer
   — fewer than `n_min = 30` reviews on record (`02` §A.4, T39) — has the position the
   fit projects for it on the axis it does not define (the origin, with no ratings yet)

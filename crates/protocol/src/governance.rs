@@ -6,8 +6,6 @@ use crate::randomness::{Beacon, SORTITION};
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
-use std::collections::HashSet;
-use std::hash::Hash;
 
 pub const SUPERMAJORITY: f64 = 2.0 / 3.0;
 pub const CHANGE_DELAY_DAYS: u32 = 30;
@@ -22,7 +20,7 @@ pub struct Candidate<Id> {
 pub struct DuplicateCandidate;
 
 /// [`stratified_sortition`] seeded from the epoch's beacon (INV-10).
-pub fn sortition_from_beacon<Id: Clone + Eq + Hash>(
+pub fn sortition_from_beacon<Id: Clone + Ord>(
     candidates: &[Candidate<Id>],
     seats: usize,
     n_strata: usize,
@@ -33,15 +31,17 @@ pub fn sortition_from_beacon<Id: Clone + Eq + Hash>(
 }
 
 /// Draws `seats` members by stratified sortition on `f_u` across `n_strata` strata, so
-/// every position is represented. Deterministic per `seed`; refuses a repeated id.
-pub fn stratified_sortition<Id: Clone + Eq + Hash>(
+/// every position is represented. A function of the candidate set and `seed` (T72), returned
+/// in canonical order (position, then id); refuses a repeated id.
+pub fn stratified_sortition<Id: Clone + Ord>(
     candidates: &[Candidate<Id>],
     seats: usize,
     n_strata: usize,
     seed: u64,
 ) -> Result<Vec<Id>, DuplicateCandidate> {
-    let mut seen = HashSet::with_capacity(candidates.len());
-    if !candidates.iter().all(|c| seen.insert(&c.id)) {
+    let mut ids: Vec<&Id> = candidates.iter().map(|c| &c.id).collect();
+    ids.sort_unstable();
+    if ids.windows(2).any(|w| w[0] == w[1]) {
         return Err(DuplicateCandidate);
     }
     let n = candidates.len();
@@ -53,7 +53,10 @@ pub fn stratified_sortition<Id: Clone + Eq + Hash>(
 
     let mut order: Vec<usize> = (0..n).collect();
     // `total_cmp`: a NaN position sorts last instead of panicking (docs/08 IQ-2).
-    order.sort_by(|&a, &b| candidates[a].f_u.total_cmp(&candidates[b].f_u));
+    order.sort_by(|&a, &b| {
+        let (a, b) = (&candidates[a], &candidates[b]);
+        a.f_u.total_cmp(&b.f_u).then_with(|| a.id.cmp(&b.id))
+    });
 
     let mut rng = ChaCha8Rng::seed_from_u64(seed);
     let mut picked = vec![false; n];
@@ -71,7 +74,7 @@ pub fn stratified_sortition<Id: Clone + Eq + Hash>(
     // Fill any deficit from strata that were smaller than their seat allotment.
     let mut count = picked.iter().filter(|&&b| b).count();
     if count < seats {
-        let mut rest: Vec<usize> = (0..n).filter(|&i| !picked[i]).collect();
+        let mut rest: Vec<usize> = order.iter().copied().filter(|&i| !picked[i]).collect();
         rest.shuffle(&mut rng);
         for oi in rest {
             if count >= seats {
@@ -82,11 +85,10 @@ pub fn stratified_sortition<Id: Clone + Eq + Hash>(
         }
     }
 
-    Ok(candidates
-        .iter()
-        .enumerate()
-        .filter(|(i, _)| picked[*i])
-        .map(|(_, c)| c.id.clone())
+    Ok(order
+        .into_iter()
+        .filter(|&i| picked[i])
+        .map(|i| candidates[i].id.clone())
         .collect())
 }
 

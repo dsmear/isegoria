@@ -11,11 +11,18 @@ use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 use sha2::{Digest, Sha256};
+use std::cmp::Ordering;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Reviewer {
     pub nym: Nym,
     pub f_u: f64,
+}
+
+/// The canonical candidate order: position on the axis, ties by nym (T72); `total_cmp`, so
+/// a NaN position sorts last instead of panicking (`docs/08` IQ-2).
+fn by_position(a: &Reviewer, b: &Reviewer) -> Ordering {
+    a.f_u.total_cmp(&b.f_u).then_with(|| a.nym.0.cmp(&b.nym.0))
 }
 
 /// Reviewer assignment seeded from the epoch's beacon (INV-10), keyed on the item's
@@ -74,8 +81,7 @@ pub fn assign_diverse(
         return Vec::new();
     }
     let mut order: Vec<usize> = (0..n).collect();
-    // `total_cmp`: a NaN position sorts last instead of panicking (docs/08 IQ-2).
-    order.sort_by(|&a, &b| reviewers[a].f_u.total_cmp(&reviewers[b].f_u));
+    order.sort_by(|&a, &b| by_position(&reviewers[a], &reviewers[b]));
 
     let mut used_clusters: Vec<usize> = reviewers
         .iter()
@@ -163,8 +169,7 @@ pub fn assign_reviewers(reviewers: &[Reviewer], k: usize, item_seed: u64) -> Vec
     }
     let k = k.min(n);
     let mut sorted: Vec<Reviewer> = reviewers.to_vec();
-    // `total_cmp`: a NaN position sorts last instead of panicking (docs/08 IQ-2).
-    sorted.sort_by(|a, b| a.f_u.total_cmp(&b.f_u));
+    sorted.sort_by(by_position);
 
     let mut rng = ChaCha8Rng::seed_from_u64(item_seed);
     let mut chosen = Vec::with_capacity(k);
