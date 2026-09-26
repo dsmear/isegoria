@@ -242,6 +242,7 @@ dependency on identity or network** — it runs offline and is reproducible
 | [`identity`](crates/identity) | Anonymous enrollment: source adapters, threshold-issued credential, role nullifiers | Scaffold + real mechanisms (single-server + threshold OPRF label, single + threshold BBS+ blind credential, ZK nullifier) |
 | [`network`](crates/network) | Content addressing, Merkle, transparency log, consortium checkpoints, the epoch's beacon round, erasure coding, anchoring | Scaffold + real integrity primitives (incl. OpenTimestamps proofs) |
 | [`protocol`](crates/protocol) | Lifecycle orchestration: deposit, lottery, blind review, gate + appeal, pilot, honeypot | Scaffold, wires the three layers together |
+| [`characterization`](crates/characterization) | The T24 harness: seeded simulation studies of the detectors and gates — a tool, not part of a node | Harness built; the full run pending ([`docs/13`](docs/13-characterization.md)) |
 
 The uniqueness label runs on a real single-server **VOPRF** (RFC 9497, via `voprf`)
 *and* on a real **threshold** t-of-n OPRF (Shamir shares + per-share DLEQ over
@@ -271,7 +272,11 @@ For how the design maps onto the code, module by module, see
 cargo test --workspace                 # acceptance + property (proptest) + reproducibility + end-to-end
 cargo clippy --workspace --all-targets
 cargo llvm-cov --workspace --summary-only   # line coverage (~97%); needs cargo-llvm-cov
+cargo run --release -p characterization -- run --grid smoke   # the T24 studies, one tiny cell each
 ```
+
+The full characterization (T24) is 54,412 seeded runs, about a day on 16 cores; it is
+resumable and runs on demand, never in CI ([`docs/13`](docs/13-characterization.md) §2).
 
 CI runs the comment budget (`scripts/comment_budget.py`, see `docs/CLAUDE.md`), fmt,
 clippy (`-D warnings`), the full test suite, and coverage on every push and pull request
@@ -300,6 +305,7 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
   - [`08-formal-specification.md`](docs/08-formal-specification.md) — independent audit: what is implemented, tested, still open
   - [`10-roadmap.md`](docs/10-roadmap.md) — **the development plan, by priority**
   - [`11-mutation-testing.md`](docs/11-mutation-testing.md), [`12-panic-audit.md`](docs/12-panic-audit.md) — test-quality reports
+  - [`13-characterization.md`](docs/13-characterization.md) — T24: the characterization studies, their harness, and (after the run) their results
   - [`99-glossary.md`](docs/99-glossary.md) — glossary, from scratch
 - **[`sim/`](sim/)** — the executable specification (research prototypes).
 - **[`paper/`](paper/)** — working paper on the mathematics of the mechanism: formal statement,
@@ -331,7 +337,8 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
    T56/T57), live outcomes with randomized exploration (D35, T52), the latent DIF
    target model with θ inside the likelihood (D37, T54) and the contested-facts pool,
    drawn into a test only in sets whose differential test functioning stays within a
-   tolerance (D38, T55); next, the characterization of the thresholds (T24/T25).
+   tolerance (D38, T55); next, the characterization of the thresholds (T24/T25), whose
+   first pass found and fixed a defect in the bridge score's sides (D42, T71).
 2. **P2P network** — done so far: the consortium's configuration check (T63) and a
    randomness beacon nobody can grind, by commit-reveal among the consortium members (D41,
    T37, in process); next persistence, transport and replication, live anchoring.

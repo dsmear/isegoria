@@ -18,9 +18,10 @@ End-to-end simulation over 10 civic questions, 200 reviewers (a 60/40 unbalanced
 network), 1500 respondents with 30 anchor items. Covers:
 
 - **Level A** — bridging with asymmetric regularization; the side-balanced score `S_j`
-  (two sides by 2-means on `f_u`, the model's predicted approval averaged per side, the
-  two averaged again; `docs/02` §A.3, D32) with its bootstrap-min and side gap; latent
-  axis recovery
+  (two sides by the exact 2-means of `f_u`, each at least 5% of the reviewers; the
+  model's predicted approval, clipped to [0, 1], averaged per side, the two averaged
+  again; `docs/02` §A.3, D32, D42) with its bootstrap-min and side gap; latent axis
+  recovery
 - **Level B** — IRT, point-biserial, DIF via logistic regression, purified via
   anchors
 - **Combined verdict** of the two filters
@@ -43,7 +44,7 @@ Expected results (indicative, seed-dependent):
 - "follows the peer average" → negative BSS; "psychometric expert" → BSS ~0.95
 - elite consensus: political DIF ≈ 0, education DIF ≈ 0.66
 - bipartisan corruption: ~55/80 nodes of the opposing camp are needed to pass the item
-  (`S_j` 0.76 with 40, 0.83 with 55)
+  (`S_j` 0.75 with 40, 0.83 with 55)
 
 ### `latent_dif_and_capacity.py`
 

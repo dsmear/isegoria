@@ -81,7 +81,14 @@ fn at_pro_03_the_band_is_re_decided_by_bridging_not_by_a_vote() {
     let band: Vec<usize> = (0..ratings.m)
         .filter(|&j| {
             matches!(
-                bridging_gate(bridge.robust[j], bridge.full.gap[j], TAU, EPS, APPEAL_GAP),
+                bridging_gate(
+                    bridge.robust[j],
+                    bridge.full.gap[j],
+                    bridge.coverage[j],
+                    TAU,
+                    EPS,
+                    APPEAL_GAP,
+                ),
                 GateOutcome::SupplementaryReview
             )
         })

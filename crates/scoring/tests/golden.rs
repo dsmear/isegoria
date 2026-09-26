@@ -117,6 +117,8 @@ fn current() -> Vec<String> {
     record(&mut rows, "bridge.side_b", &bridge.full.side_b);
     let sides: Vec<f64> = bridge.full.side.iter().map(|s| *s as u8 as f64).collect();
     record(&mut rows, "bridge.side", &sides);
+    let coverage: Vec<f64> = bridge.coverage.iter().map(|&c| c as f64).collect();
+    record(&mut rows, "bridge.coverage", &coverage);
 
     for set in ["batch", "single"] {
         let theta = read_vector(&format!("mixture_{set}_theta.csv"));

@@ -14,6 +14,7 @@ it neutralizes).
  [4] Review         k reviewers assigned AT RANDOM, blind, commit-reveal
       ↓
  [5] Bridging       S_j ≥ τ → passes;  S_j in band → k_extra more reviewers, re-decision
+      │                 (so is an item one side never rated, whatever S_j: `02` §A.3, D42)
       ↓                 │
       │                 └──→ [5b] APPEAL TO EVIDENCE
       ↓                          if discarded for polarization (wide side gap), not for

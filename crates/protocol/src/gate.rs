@@ -1,6 +1,6 @@
 //! Bridging gate and appeal (`docs/05` [5]/[5b], `docs/02` §A.3).
 
-use scoring::bridging::{fit, side_balanced, BridgingParams, Ratings, RatingsError};
+use scoring::bridging::{coverage, fit, side_balanced, BridgingParams, Ratings, RatingsError};
 
 /// Provisional gate parameters (`docs/02` §A.3 "Initial parameters", calibrated by T25):
 /// the threshold on the side-balanced score, the half-width of its uncertainty band, and
@@ -8,6 +8,8 @@ use scoring::bridging::{fit, side_balanced, BridgingParams, Ratings, RatingsErro
 pub const TAU: f64 = 0.80;
 pub const EPS: f64 = 0.02;
 pub const APPEAL_GAP: f64 = 0.25;
+/// Provisional floor on an item's `coverage` (D42, T25): below it the score is an extrapolation.
+pub const MIN_COVERAGE: usize = 1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GateOutcome {
@@ -19,10 +21,19 @@ pub enum GateOutcome {
     Reject,
 }
 
-/// Pass at or above `tau + eps`, supplementary review inside the band, below it appealable
-/// iff `gap >= appeal_gap` (`docs/05` [5b]).
-pub fn bridging_gate(score: f64, gap: f64, tau: f64, eps: f64, appeal_gap: f64) -> GateOutcome {
-    if score >= tau + eps {
+/// Supplementary review below `MIN_COVERAGE` whatever the score (D42); otherwise pass at or
+/// above `tau + eps`, review inside the band, below it appealable iff `gap >= appeal_gap`.
+pub fn bridging_gate(
+    score: f64,
+    gap: f64,
+    coverage: usize,
+    tau: f64,
+    eps: f64,
+    appeal_gap: f64,
+) -> GateOutcome {
+    if coverage < MIN_COVERAGE {
+        GateOutcome::SupplementaryReview
+    } else if score >= tau + eps {
         GateOutcome::Pass
     } else if score >= tau - eps {
         GateOutcome::SupplementaryReview
@@ -33,9 +44,9 @@ pub fn bridging_gate(score: f64, gap: f64, tau: f64, eps: f64, appeal_gap: f64) 
     }
 }
 
-/// D26 re-decision of a band item: a fresh bridging fit over the panel expanded with the
-/// extra reviewers, its score read against the plain `tau`; a failing item follows the
-/// below-band rule of [`bridging_gate`]. Malformed ratings or an item past the batch error.
+/// D26 re-decision of a band item: a fresh fit over the expanded panel, its score read against
+/// the plain `tau` if `MIN_COVERAGE` holds (D42); a failing item follows the below-band rule of
+/// [`bridging_gate`]. Malformed ratings or an item past the batch error.
 pub fn supplementary_review(
     ratings: &Ratings,
     params: &BridgingParams,
@@ -50,7 +61,8 @@ pub fn supplementary_review(
         });
     }
     let sides = side_balanced(&fit(ratings, params)?);
-    Ok(if sides.score[item] >= tau {
+    let covered = coverage(ratings, &sides)[item] >= MIN_COVERAGE;
+    Ok(if covered && sides.score[item] >= tau {
         GateOutcome::Pass
     } else if sides.gap[item] >= appeal_gap {
         GateOutcome::AppealEligible

@@ -12,6 +12,7 @@ between the conceptual specification and the Rust implementation. Read
 - [`identity` — anonymous enrollment](#identity--anonymous-enrollment)
 - [`network` — tamper-evident storage](#network--tamper-evident-storage)
 - [`protocol` — lifecycle orchestration](#protocol--lifecycle-orchestration)
+- [`characterization` — the T24 harness](#characterization--the-t24-harness)
 - [Invariants and where they are enforced](#invariants-and-where-they-are-enforced)
 - [Reproducibility](#reproducibility)
 - [Testing strategy](#testing-strategy)
@@ -47,6 +48,8 @@ protocol ──► scoring
         ├──► identity
         └──► network
 
+characterization ──► protocol, scoring   (the T24 harness: a tool, not part of a node)
+
 scoring   (no internal deps; only rand, rand_chacha)
 identity  (sha2, voprf, curve25519-dalek, bbs_plus, schnorr_pok, arkworks,
            oblivious_transfer_protocols, secret_sharing_and_dkg, dock_crypto_utils)
@@ -63,7 +66,7 @@ executable specification; the Rust implementation must reproduce their results.
 
 | Module | Spec | Key items |
 |---|---|---|
-| `bridging` | §A | `Ratings` (`with_weights`, `with_axis` — the reviewer floor's mask, T39), `BridgingParams`, `Fit`, `fit`, `bridge_scores`, `side_balanced` (sides from the axis reviewers) |
+| `bridging` | §A | `Ratings` (`with_weights`, `with_axis` — the reviewer floor's mask, T39), `BridgingParams`, `Fit`, `fit`, `bridge_scores`, `side_balanced` (sides from the axis reviewers), `two_means` (the exact cut, each side at least `side_floor`, D42), `coverage` (the ratings of an item's less-rated side, D42) |
 | `irt` | §B.1–B.2, B.4 | `theta_from_anchors`, `kr20` (anchor reliability, D37), `point_biserial`, `fit_2pl_item`, `A_MIN`, `R_PBIS_MIN`, `KR20_MIN` |
 | `dif` | §B.3 | `logistic_dif`, `mantel_haenszel` (`EtsClass`), `mixture_dif` (the proxy-θ model, retired from the production path by T54, kept for the fixtures; `MixtureDif::differential` is a diagnostic, D37), `BETA2_MAX`, `MIXTURE_DIF_MAX` |
 | `latent` | §B.3 (D37) | `latent_dif`, `latent_dif_with`, `LatentParams`, `LatentDif::flags` — the target model: the anchors inside the likelihood, θ integrated on a grid, classes by BIC, an analytic gradient from the EM artificial data (T54) |
@@ -168,7 +171,7 @@ steps are seeded for reproducibility.
 | `randomness` | INV-10 | `Beacon::{from_outcome, seed}` — every draw seeds from the epoch's commit-reveal beacon (D41, T37; checkpoint-derived until then, T8) | `network::beacon` |
 | `lottery` | [3] | `admit`, `admit_from_beacon` (beacon-seeded; the deposits read as a set, in content-id order, T37) | `randomness` |
 | `review` | [4] | `Reviewer`, `assign_reviewers`, `commit`, `reveal`, `submit_review` (identity-gated), `assign_extra_from_beacon`, `K_EXTRA` (the band's extra panel, T60); `assign_diverse`, `assign_diverse_from_beacon`, `assign_extra_diverse_from_beacon` (at most one member of a coordination cluster per panel, D40/T57) | `admission`, `identity`, `network::cid` |
-| `gate` | [5]/[5b] | `GateOutcome`, `bridging_gate`, `supplementary_review` (D26 re-decision, T10/T30/T59) | `scoring::bridging` |
+| `gate` | [5]/[5b] | `GateOutcome`, `bridging_gate`, `supplementary_review` (D26 re-decision, T10/T30/T59), `MIN_COVERAGE` (an item one side never rated goes to review, D42) | `scoring::bridging` |
 | `appeal` | [5b] | `AuthorHistory::{record, reputation, covers_stake, file_appeal, settle}`, `appeal_floor`, `STAKE_QUALITY` — the stake as a pseudo-observation inside `C_a` (D27, T61) | `scoring::reputation` |
 | `pilot` | [6]/[7] | `stage1_screen`, `stage2_dif`; batch/sample gates `screen`, `dif_batch`, `admit_dif_batch`, `admit_anchors` (KR-20 floor, D37/T53) (INV-8, T9) | `scoring::irt`, `scoring::dif` |
 | `honeypot` | Golden items | `inject`, `reviewer_skill`, `HONEYPOT_RATE` | `scoring::reputation` |
@@ -182,6 +185,22 @@ steps are seeded for reproducibility.
 Each module's doc comment names the attack the stage neutralizes (brigading,
 information cascades, queue explosion, the true-but-divisive false negative, block
 voting).
+
+## `characterization` — the T24 harness
+
+Not part of a node: nothing depends on it. It runs the seeded simulation studies of
+[`docs/13`](docs/13-characterization.md) on the production estimators and gates — in
+parallel, resumable after an interruption, every run reproducible from its seed on any
+machine — and summarizes them with intervals and the threshold tables T25 reads.
+
+| Module | Role |
+|---|---|
+| `grid` | the ten studies, their cells (`Cell::key`, `Cell::parse`), replicates and each run's seed |
+| `generate` | the populations: latent-DIF batches (the paper's `dif_generate`, extended), the Level A mirror design, the reference fixture |
+| `run` | one run: `latent_dif` read by `revalidation::target_flags`, the gates recorded as `admitted`; `bridge_scores` read by `gate::bridging_gate`; `ClassCurves` fitted and true |
+| `record` | a run's CSV record and the store that appends to it and resumes |
+| `runner` | worker threads, progress and ETA, `errors.log` |
+| `stats`, `summary` | Wilson and design-effect intervals, quantiles; `summary.md` and the CSV tables |
 
 ## Invariants and where they are enforced
 
@@ -222,7 +241,7 @@ optimizer differ. The Python sims are an oracle of
 
 ## Testing strategy
 
-Eight kinds of test (the per-crate counts change often; `cargo test --workspace` reports them):
+Nine kinds of test (the per-crate counts change often; `cargo test --workspace` reports them):
 
 1. **Oracle acceptance tests** run the Rust engine on the *same dataset* as the
    Python sims (exported by `sim/export_fixtures.py` into
@@ -277,6 +296,11 @@ Eight kinds of test (the per-crate counts change often; `cargo test --workspace`
    fixtures from the Python sims and diffs them against the committed ones (catches
    sim/fixture drift; needs numpy/scipy); `power` is a Monte-Carlo check of the
    §B.6 sample-size claim (latent-class DIF detection rate at N≈1500 vs 3000).
+9. **Characterization** (T24, `docs/13`): the studies run on demand through
+   `crates/characterization`; its own tests pin the grid to `docs/13` §4, the generators
+   to the paper's populations (the KR-20 table), the records to their tasks whatever the
+   number of workers, the resumption after a torn line, the production verdict
+   (`revalidate_batch_latent`) and the summary's statistics on hand-built records.
 
 Run them:
 

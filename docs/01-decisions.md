@@ -487,7 +487,9 @@ BRIDGE-001.
 > *side gap* `|A_j − B_j|`, not `|f_j|` — the third review showed `|f_j|` falls as the
 > camps become unequal (`docs/08` BRIDGE-009), the gap does not. Measured limits: a
 > residual leak of 0.1–0.2 with 50–100 reviewers, and noisy side means with a minority
-> side of about ten reviewers (`docs/02` §A.3).
+> side of about ten reviewers (`docs/02` §A.3). **Amended by D42** (T71, 2026-09-26): the
+> sides are the exact 2-means cut with a floor on each side, the predictions are clipped
+> to [0, 1], and an item one side never rated is not decided by its score.
 
 **Choice.** The gate no longer reads the item intercept `b_j`. The weighted fit is
 unchanged. After it, the reviewers are split into two sides by a deterministic 1-D
@@ -853,3 +855,51 @@ predict every draw.
 
 **Rejected.** Keeping the checkpoint-derived seed: it can be ground. A threshold
 signature before T19: the dealer can predict it.
+
+---
+
+## D42 — The bridge score's sides: an exact cut with a floor, predictions on the scale, coverage
+
+> **Implemented** (T71, 2026-09-26): `scoring::bridging::{two_means, side_floor,
+> MIN_SIDE_PER_MILLE, coverage}`, `BridgeScores::coverage`, `protocol::gate::MIN_COVERAGE`
+> in `bridging_gate` and `supplementary_review`; `sim/`, the Level A oracle and the golden
+> outputs regenerated. Amends D32; the constants are provisional (T25).
+
+**Choice.** Three amendments to D32.
+- **The split.** The sides are the exact 1-D 2-means of the axis reviewers' `f_u`: among
+  the cuts of the sorted positions that split no run of equal values and leave each side
+  at least 5% of the reviewers (rounded up, at least one), the one with the largest
+  between-side sum of squares. It replaces the iteration started from the extremes of
+  `f_u`.
+- **The scale.** Predicted ratings are clipped to [0, 1], the scale of the declared
+  probability, before the side means.
+- **Coverage.** An item's coverage is the number of ratings its less-rated side gave it,
+  counting the axis reviewers with a positive weight. Below `MIN_COVERAGE = 1` the gate
+  sends the item to the band's extra round (D26) whatever its score, and the re-decision
+  cannot pass it; a failing item follows the below-band rule.
+
+**Why.** The first pass of the characterization (T24, 5,132 runs) found three failures,
+each confirmed on the engine's own fits (`docs/02` §A.3).
+- The iteration from the extremes stops at a local optimum when a few reviewers sit far
+  out. With 800 reviewers in camps of 80/20 it formed sides of 2 and 5 reviewers, the
+  other side mixing both camps. In a bootstrap subsample it formed a side of 1 of 200,
+  and the item's robust score fell to 0.56 while its full fit stayed at 0.91.
+- With no ratings from a side, that side's mean is the model's extrapolation. A partisan
+  item, camp-balanced value 0.54, that no minority reviewer had rated passed at 0.972: the
+  only partisan pass in 720 runs.
+- Unclipped predictions put scores at −0.28 and 1.31, off the scale on which `τ` is
+  defined.
+
+The three are independent: clipping alone would still have passed that partisan item at
+about 0.93. The exact cut keeps the invariance D32 relies on — no dependence on the
+axis' origin or scale, a sign flip swaps the sides — and separates two camps of distinct
+positions whenever each holds at least 5% of the reviewers. The floor bounds the weight
+of a side a few reviewers could form, since each side counts once.
+
+**Rejected.**
+- Starting the iteration at quantiles instead of the extremes: still a local optimum, and
+  the quantile becomes a parameter.
+- A floor on the sides alone, keeping the iteration: it bounds the damage, the exact cut
+  removes the cause.
+- Rejecting an uncovered item: the missing ratings are the panel's, not a defect of the
+  item; the band's extra round, stratified on the axis (D40), is where they are added.

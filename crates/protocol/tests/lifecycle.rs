@@ -143,22 +143,27 @@ fn commit_reveal_binds_the_judgment() {
 fn bridging_gate_covers_pass_band_reject_and_appeal() {
     // clearly above the band → pass
     assert_eq!(
-        bridging_gate(0.90, 0.0, TAU, EPS, APPEAL_GAP),
+        bridging_gate(0.90, 0.0, 1, TAU, EPS, APPEAL_GAP),
         GateOutcome::Pass
+    );
+    // no rating from one side → supplementary review, whatever the score (D42)
+    assert_eq!(
+        bridging_gate(0.90, 0.0, 0, TAU, EPS, APPEAL_GAP),
+        GateOutcome::SupplementaryReview
     );
     // inside the band → supplementary review
     assert_eq!(
-        bridging_gate(TAU, 0.0, TAU, EPS, APPEAL_GAP),
+        bridging_gate(TAU, 0.0, 1, TAU, EPS, APPEAL_GAP),
         GateOutcome::SupplementaryReview
     );
     // below band, the two sides agree → plain reject (defect)
     assert_eq!(
-        bridging_gate(0.30, 0.1, TAU, EPS, APPEAL_GAP),
+        bridging_gate(0.30, 0.1, 1, TAU, EPS, APPEAL_GAP),
         GateOutcome::Reject
     );
     // below band, the two sides disagree → appeal eligible (true-but-divisive)
     assert_eq!(
-        bridging_gate(0.30, 0.6, TAU, EPS, APPEAL_GAP),
+        bridging_gate(0.30, 0.6, 1, TAU, EPS, APPEAL_GAP),
         GateOutcome::AppealEligible
     );
 }
