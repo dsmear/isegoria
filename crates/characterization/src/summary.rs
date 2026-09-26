@@ -1220,7 +1220,8 @@ pub fn summarize(out: &Path) -> io::Result<String> {
         .filter(|o| is_admitted_null(o))
         .collect();
     let power = power_cells(Study::DifPower, &all[&Study::DifPower], |d| {
-        (d.k == 8 && d.pi == 0.5 && d.layout == crate::grid::Layout::Campaign(2) && d.n >= 3000)
+        let default = d.k == 8 && d.pi == 0.5 && d.anchors == DifDesign::default().anchors;
+        (default && d.layout == crate::grid::Layout::Campaign(2) && d.n >= 3000)
             .then(|| format!("N={} δ={}", d.n, d.delta))
     });
     let dif_cut = cut_table(
@@ -1230,7 +1231,10 @@ pub fn summarize(out: &Path) -> io::Result<String> {
         |o| &o.dif,
     );
     let nonuniform = power_cells(Study::DifNonuniform, &all[&Study::DifNonuniform], |d| {
-        (d.delta == 0.0).then(|| format!("N={} α={}", d.n, d.alpha))
+        let crate::grid::Layout::Campaign(count) = d.layout else {
+            return None;
+        };
+        (d.delta == 0.0).then(|| format!("N={} α={}, {count} items", d.n, d.alpha))
     });
     let a_cut = cut_table(
         &[0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],

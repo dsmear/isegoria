@@ -190,16 +190,16 @@ item *passes* at the first opposing count at which its robust score reaches `τ 
 
 ## 4. The studies
 
-Two hundred replicates per cell, three for `dif-pool-scale`; 51,212 runs. Unless a row
+Two hundred replicates per cell, three for `dif-pool-scale`; 54,412 runs. Unless a row
 says otherwise a DIF batch has `N = 3,000`, 60 anchors (KR-20 ≈ 0.93), `K = 8`, `π = 0.5`,
 no impact, no guessing, no attack.
 
 | Study | Cells | Factors |
 |---|---|---|
 | `dif-null` | 27 | `N ∈ {1500, 3000, 6000}` × `K ∈ {4, 8, 16}` × anchors `∈ {20, 40, 60}`; no leaning item |
-| `dif-power` | 132 | at `K = 8`: `N ∈ {1500, 3000, 6000}` × `δ ∈ {0.3, 0.5, 0.7, 0.9}` × biased items `∈ {1, 2, 3}` × `π ∈ {0.5, 0.3, 0.1}`; at `N = 3000`: `K ∈ {4, 16}` × `δ ∈ {0.5, 0.9}` × biased `∈ {1, 2, 3}` × `π ∈ {0.5, 0.3}` |
+| `dif-power` | 140 | at `K = 8`: `N ∈ {1500, 3000, 6000}` × `δ ∈ {0.3, 0.5, 0.7, 0.9}` × biased items `∈ {1, 2, 3}` × `π ∈ {0.5, 0.3, 0.1}`; at `N = 3000`: `K ∈ {4, 16}` × `δ ∈ {0.5, 0.9}` × biased `∈ {1, 2, 3}` × `π ∈ {0.5, 0.3}`; added after the first pass, at `N = 3000`, `π = 0.5`: anchors `∈ {20, 40}` × `δ ∈ {0.7, 0.9}` × biased `∈ {2, 3}` — the power the KR-20 floor would cost, since no null batch flagged a clean item at 20 anchors |
 | `dif-misspec` | 22 | impact `∈ {0, 0.5, 1.0}` × guessing `∈ {0, 0.2}` × biased items `∈ {0, 2}` (`δ = 0.9`) × `π ∈ {0.5, 0.2}`, `π` varied only where it matters |
-| `dif-nonuniform` | 8 | `N ∈ {3000, 6000}` × `α ∈ {0.4, 0.8}` × `δ ∈ {0, 0.5}`, two leaning items |
+| `dif-nonuniform` | 16 | `N ∈ {3000, 6000}` × `α ∈ {0.4, 0.8}` × `δ ∈ {0, 0.5}`, two leaning items; added after the first pass, where no cell selected a mixture: three leaning items, `α ∈ {0.8, 1.6}` × `δ ∈ {0, 0.9}` — with `δ = 0.9` the mixture is found and `a_gap` can be read |
 | `dif-two-axes` | 4 | `N ∈ {3000, 6000}` × `δ ∈ {0.5, 0.9}`, two items on each axis |
 | `dif-poisoning` | 15 | injecting: `fraction ∈ {0, 1, 2, 5, 10%}` × targets `∈ {1, 2}` on a clean batch; masking: `fraction ∈ {0, 1, 2, 5, 10%}` on two items with `δ = 0.9` |
 | `dif-pool-scale` | 4 | `K ∈ {32, 100}`, no leaning item or a tenth of the items leaning with `δ = 0.9` |
@@ -236,9 +236,9 @@ and robust scores, and the item's plain mean rating.
 - **Threshold tables.** The flags at other cuts follow the production rule — a converged
   fit with two or more classes, a gap above the cut: `thresholds-dif-cut.csv` gives, for
   cuts 0.5–1.5 on `DIF_j`, the clean-item rate on admitted null batches and the power of
-  every `dif-power` cell with two biased items of eight, `π = 0.5`, `N ≥ 3000`;
+  every `dif-power` cell with two biased items of eight, `π = 0.5`, 60 anchors, `N ≥ 3000`;
   `thresholds-a-gap.csv` the same for cuts 0.2–1.0 on `a_gap`, with the pure non-uniform
-  cells of `dif-nonuniform`; `bridging-sweep/tau.csv`, for `τ` from 0.70 to 0.90, the
+  cells of `dif-nonuniform`, labelled by their number of leaning items; `bridging-sweep/tau.csv`, for `τ` from 0.70 to 0.90, the
   share of the items whose truth is below `τ − 0.05` that the robust score passes and of
   those whose truth is above `τ + 0.05` that it fails, per reviewer count.
 - **DTF.** Over the runs whose fit converged with two or more classes — the fits whose
@@ -261,7 +261,7 @@ and robust scores, and the item's plain mean rating.
 
 ## 6. Done when
 
-1. The full grid ran on one commit of the harness — every one of the 51,212 runs
+1. The full grid ran on one commit of the harness — every one of the 54,412 runs
    recorded, the last `run` with no `errors.log` — and `summarize` ran on the records.
    A study whose code a later commit changes is re-run on that commit and the others
    are shown to reproduce on it: after T71 (D42) the two bridging studies are re-run,

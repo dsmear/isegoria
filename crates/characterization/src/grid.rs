@@ -337,6 +337,16 @@ fn full(study: Study) -> Vec<Cell> {
                     }
                 }
             }
+            for anchors in [20, 40] {
+                for delta in [0.7, 0.9] {
+                    for count in [2, 3] {
+                        out.push(dif(DifDesign {
+                            anchors,
+                            ..biased(3000, 8, count, delta, 0.5)
+                        }));
+                    }
+                }
+            }
         }
         Study::DifMisspec => {
             for impact in [0.0, 0.5, 1.0] {
@@ -358,13 +368,17 @@ fn full(study: Study) -> Vec<Cell> {
             }
         }
         Study::DifNonuniform => {
-            for n in [3000, 6000] {
-                for alpha in [0.4, 0.8] {
-                    for delta in [0.0, 0.5] {
-                        out.push(dif(DifDesign {
-                            alpha,
-                            ..biased(n, 8, 2, delta, 0.5)
-                        }));
+            for (count, alphas, deltas) in
+                [(2, [0.4, 0.8], [0.0, 0.5]), (3, [0.8, 1.6], [0.0, 0.9])]
+            {
+                for n in [3000, 6000] {
+                    for alpha in alphas {
+                        for delta in deltas {
+                            out.push(dif(DifDesign {
+                                alpha,
+                                ..biased(n, 8, count, delta, 0.5)
+                            }));
+                        }
                     }
                 }
             }

@@ -9,9 +9,9 @@ use std::collections::BTreeSet;
 fn the_full_grid_has_the_cells_the_specification_lists() {
     let expect = [
         (Study::DifNull, 27, 200),
-        (Study::DifPower, 132, 200),
+        (Study::DifPower, 140, 200),
         (Study::DifMisspec, 22, 200),
-        (Study::DifNonuniform, 8, 200),
+        (Study::DifNonuniform, 16, 200),
         (Study::DifTwoAxes, 4, 200),
         (Study::DifPoisoning, 15, 200),
         (Study::DifPoolScale, 4, 3),
@@ -26,7 +26,24 @@ fn the_full_grid_has_the_cells_the_specification_lists() {
         assert!(!cells(study, Grid::Smoke).is_empty(), "{}", study.name());
     }
     let runs = tasks(&STUDIES, Grid::Full, None, None).len();
-    assert_eq!(runs, 51_212);
+    assert_eq!(runs, 54_412);
+}
+
+/// The first pass's additions: power with 20 and 40 anchors, non-uniform DIF on three items.
+#[test]
+fn the_grid_holds_the_cells_the_first_pass_added() {
+    let keys =
+        |study| -> BTreeSet<String> { cells(study, Grid::Full).iter().map(Cell::key).collect() };
+    let power = keys(Study::DifPower);
+    for (a, lay, d) in [(20, 2, 0.7), (40, 3, 0.9)] {
+        let key = format!("n=3000 a={a} k=8 lay=c{lay} d={d} al=0 pi=0.5 im=0 g=0 atk=none");
+        assert!(power.contains(&key), "{key}");
+    }
+    let nonuniform = keys(Study::DifNonuniform);
+    for (n, d, al) in [(3000, 0.0, 1.6), (6000, 0.9, 0.8)] {
+        let key = format!("n={n} a=60 k=8 lay=c3 d={d} al={al} pi=0.5 im=0 g=0 atk=none");
+        assert!(nonuniform.contains(&key), "{key}");
+    }
 }
 
 /// A cell's key names it uniquely and parses back to it, in both grids.
@@ -70,7 +87,7 @@ fn every_run_has_its_own_seed_and_runs_come_replicate_first() {
 fn a_larger_replicate_count_extends_a_smaller_one() {
     let few = tasks(&[Study::DifPower], Grid::Full, Some(20), None);
     let many = tasks(&[Study::DifPower], Grid::Full, Some(200), None);
-    assert_eq!(few.len(), 132 * 20);
+    assert_eq!(few.len(), 140 * 20);
     let many: BTreeSet<(String, u32, u64)> = many
         .iter()
         .map(|t| (t.cell.key(), t.replicate, t.seed()))

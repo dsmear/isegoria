@@ -275,7 +275,7 @@ cargo llvm-cov --workspace --summary-only   # line coverage (~97%); needs cargo-
 cargo run --release -p characterization -- run --grid smoke   # the T24 studies, one tiny cell each
 ```
 
-The full characterization (T24) is 51,212 seeded runs, about a day on 16 cores; it is
+The full characterization (T24) is 54,412 seeded runs, about a day on 16 cores; it is
 resumable and runs on demand, never in CI ([`docs/13`](docs/13-characterization.md) §2).
 
 CI runs the comment budget (`scripts/comment_budget.py`, see `docs/CLAUDE.md`), fmt,

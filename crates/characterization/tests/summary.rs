@@ -363,3 +363,71 @@ fn the_sweep_summary_counts_uncovered_items_and_dashes_a_missing_leak() {
     assert!(line.ends_with("| — |") && !line.contains("±"), "{line}");
     let _ = fs::remove_dir_all(out);
 }
+
+/// Threshold tables: the DIF cut reads the 60-anchor cells, the a-gap cut labels each layout.
+#[test]
+fn the_threshold_tables_label_every_cell_once() {
+    let out = scratch("threshold-labels");
+    let f = false;
+    let power = |anchors| {
+        Cell::Dif(DifDesign {
+            anchors,
+            layout: Layout::Campaign(2),
+            delta: 0.9,
+            ..DifDesign::default()
+        })
+        .key()
+    };
+    let nonuniform = |count| {
+        Cell::Dif(DifDesign {
+            layout: Layout::Campaign(count),
+            alpha: 0.8,
+            ..DifDesign::default()
+        })
+        .key()
+    };
+    let one = || {
+        vec![outcome(
+            [true, f, f, f],
+            [1.2, 0.1, 0.1, 0.1],
+            2,
+            true,
+            "+ccc",
+        )]
+    };
+    for (study, cell) in [
+        (Study::DifPower, power(60)),
+        (Study::DifPower, power(20)),
+        (Study::DifNonuniform, nonuniform(2)),
+        (Study::DifNonuniform, nonuniform(3)),
+    ] {
+        let dir = out.join(study.name());
+        let existing = fs::read_to_string(dir.join("records.csv")).unwrap_or_default();
+        write(&out, study, &cell, one());
+        let added = fs::read_to_string(dir.join("records.csv")).unwrap();
+        let rows = added
+            .lines()
+            .skip(usize::from(!existing.is_empty()))
+            .collect::<Vec<_>>();
+        fs::write(dir.join("records.csv"), existing + &rows.join("\n") + "\n").unwrap();
+    }
+    let markdown = summarize(&out).unwrap();
+    let header = |title: &str| {
+        let at = markdown.find(title).unwrap();
+        markdown[at..]
+            .lines()
+            .find(|l| l.starts_with("| cut |"))
+            .unwrap()
+            .to_string()
+    };
+    let dif_cut = header("### The DIF cut");
+    assert_eq!(
+        dif_cut.matches("power N=3000 δ=0.9").count(),
+        1,
+        "{dif_cut}"
+    );
+    let a_cut = header("### A cut on the discrimination gap");
+    assert!(a_cut.contains("power N=3000 α=0.8, 2 items"), "{a_cut}");
+    assert!(a_cut.contains("power N=3000 α=0.8, 3 items"), "{a_cut}");
+    let _ = fs::remove_dir_all(out);
+}
