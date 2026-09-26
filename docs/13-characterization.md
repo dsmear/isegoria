@@ -111,9 +111,12 @@ profile on this repository's 4-core development container (one run per cell):
 | `bridging-sweep`, 800 reviewers | 2 s |
 | `bridging-capture`, item 09 (25 steps) | 5 s |
 | `dif-pool-scale`, K = 32 / K = 100, no leaning item | 32 s / 27 s |
+| `dif-power`, N = 3,000, 20 or 40 anchors (added after the first pass; mean of 8 cells) | 25 s |
+| `dif-nonuniform`, three leaning items (added; mean of 8 cells, 70 s at N = 6,000, δ = 0.9, α = 1.6) | 33 s |
 
-The full grid is 51,212 runs and about 400 CPU-hours, more than half of it in `dif-power`
-and most of that in its cells at N = 6,000: about a day on 16 cores. A first pass with `--replicates 20` takes a tenth of that and
+The full grid is 54,412 runs and about 425 CPU-hours — the sixteen cells added after the
+first pass are about 25 of them — more than half of it in `dif-power` and most of that in
+its cells at N = 6,000: about a day on 16 cores. A first pass with `--replicates 20` takes a tenth of that and
 already gives every cell's point estimates; the intervals of §7 need the full count.
 
 **On the owner's machine.**
