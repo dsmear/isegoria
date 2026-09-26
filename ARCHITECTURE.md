@@ -66,7 +66,7 @@ executable specification; the Rust implementation must reproduce their results.
 
 | Module | Spec | Key items |
 |---|---|---|
-| `bridging` | §A | `Ratings` (`with_weights`, `with_axis` — the reviewer floor's mask, T39), `BridgingParams`, `Fit`, `fit`, `bridge_scores`, `side_balanced` (sides from the axis reviewers) |
+| `bridging` | §A | `Ratings` (`with_weights`, `with_axis` — the reviewer floor's mask, T39), `BridgingParams`, `Fit`, `fit`, `bridge_scores`, `side_balanced` (sides from the axis reviewers), `two_means` (the exact cut, each side at least `side_floor`, D42), `coverage` (the ratings of an item's less-rated side, D42) |
 | `irt` | §B.1–B.2, B.4 | `theta_from_anchors`, `kr20` (anchor reliability, D37), `point_biserial`, `fit_2pl_item`, `A_MIN`, `R_PBIS_MIN`, `KR20_MIN` |
 | `dif` | §B.3 | `logistic_dif`, `mantel_haenszel` (`EtsClass`), `mixture_dif` (the proxy-θ model, retired from the production path by T54, kept for the fixtures; `MixtureDif::differential` is a diagnostic, D37), `BETA2_MAX`, `MIXTURE_DIF_MAX` |
 | `latent` | §B.3 (D37) | `latent_dif`, `latent_dif_with`, `LatentParams`, `LatentDif::flags` — the target model: the anchors inside the likelihood, θ integrated on a grid, classes by BIC, an analytic gradient from the EM artificial data (T54) |
@@ -169,7 +169,7 @@ steps are seeded for reproducibility.
 | `randomness` | INV-10 | `Beacon::{from_checkpoint, seed}` — checkpoint-derived seeds for every draw (T8) | `network::consortium` |
 | `lottery` | [3] | `admit`, `admit_from_beacon` (checkpoint-seeded) | `randomness` |
 | `review` | [4] | `Reviewer`, `assign_reviewers`, `commit`, `reveal`, `submit_review` (identity-gated), `assign_extra_from_beacon`, `K_EXTRA` (the band's extra panel, T60); `assign_diverse`, `assign_diverse_from_beacon`, `assign_extra_diverse_from_beacon` (at most one member of a coordination cluster per panel, D40/T57) | `admission`, `identity`, `network::cid` |
-| `gate` | [5]/[5b] | `GateOutcome`, `bridging_gate`, `supplementary_review` (D26 re-decision, T10/T30/T59) | `scoring::bridging` |
+| `gate` | [5]/[5b] | `GateOutcome`, `bridging_gate`, `supplementary_review` (D26 re-decision, T10/T30/T59), `MIN_COVERAGE` (an item one side never rated goes to review, D42) | `scoring::bridging` |
 | `appeal` | [5b] | `AuthorHistory::{record, reputation, covers_stake, file_appeal, settle}`, `appeal_floor`, `STAKE_QUALITY` — the stake as a pseudo-observation inside `C_a` (D27, T61) | `scoring::reputation` |
 | `pilot` | [6]/[7] | `stage1_screen`, `stage2_dif`; batch/sample gates `screen`, `dif_batch`, `admit_dif_batch`, `admit_anchors` (KR-20 floor, D37/T53) (INV-8, T9) | `scoring::irt`, `scoring::dif` |
 | `honeypot` | Golden items | `inject`, `reviewer_skill`, `HONEYPOT_RATE` | `scoring::reputation` |

@@ -5,6 +5,7 @@ use characterization::grid::{tasks, Grid, Study, Task, STUDIES};
 use characterization::record::{header, read, Record};
 use characterization::run::run;
 use characterization::runner::{execute, Options};
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -110,4 +111,36 @@ fn records_of_another_schema_are_refused() {
     assert!(execute(&only, &options(&out, 1)).is_err());
     assert!(header(Study::DifNull).starts_with("study,cell,replicate,seed,elapsed_ms,"));
     let _ = fs::remove_dir_all(out);
+}
+
+/// One record per kind is pinned, time aside: a change to what a study measures shows here.
+#[test]
+fn a_record_of_each_kind_is_pinned() {
+    let pins = [
+        (
+            Study::DifPower,
+            "9a829eaa86d78ae0cc473d1d3481051de8f47ef57557859ff3745e14d11ef056",
+        ),
+        (
+            Study::DtfError,
+            "5fb32673f7ad9d049ad8492d910e61f1259b5c01c9ed8d7a76f0007bd91fe58e",
+        ),
+        (
+            Study::BridgingSweep,
+            "e026c1759e184f67d495dbc3dc3d0aaec2687cd90858932cebc7e18f700cec5a",
+        ),
+        (
+            Study::BridgingCapture,
+            "a54dc4c4a4f453d8727c8618def851b67d72d62978c113d470901df99e451778",
+        ),
+    ];
+    for (study, pin) in pins {
+        let task = tasks(&[study], Grid::Smoke, Some(1), None).remove(0);
+        let line = Record::new(&task, 0, run(&task)).line();
+        let digest: String = Sha256::digest(line.as_bytes())
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
+        assert_eq!(digest, pin, "{}: {line}", study.name());
+    }
 }

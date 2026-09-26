@@ -3,7 +3,7 @@
 
 use crate::generate::{dif_batch, fixture, sweep_data, DifBatch, FIXTURE_LEAN};
 use crate::grid::{engine_seed, CaptureDesign, Cell, DifDesign, Kind, SweepDesign, Task};
-use protocol::gate::{bridging_gate, GateOutcome, APPEAL_GAP, EPS, TAU};
+use protocol::gate::{bridging_gate, GateOutcome, APPEAL_GAP, EPS, MIN_COVERAGE, TAU};
 use protocol::lifecycle::K_MIN;
 use protocol::revalidation::{target_flags, N_LATENT_MIN};
 use rand::seq::SliceRandom;
@@ -68,7 +68,8 @@ pub struct DtfOutcome {
     pub truth: Vec<f64>,
 }
 
-/// Per item its quality, lean and truth, full and robust scores, side gap and gate outcome.
+/// Per item its quality, lean and truth, full and robust scores, side gap and gate outcome:
+/// `P`, `S`, `A`, `R`, or `U` for the review an item below `MIN_COVERAGE` goes to (D42).
 #[derive(Clone, Debug, PartialEq)]
 pub struct SweepOutcome {
     pub converged: bool,
@@ -197,11 +198,14 @@ pub fn sweep(d: &SweepDesign, seed: u64) -> SweepOutcome {
     let full_fit = fit(&data.ratings, &params).expect("generated ratings are well formed");
     let scores = bridge_scores(&data.ratings, &params, BOOTSTRAPS, KEEP)
         .expect("generated ratings are well formed");
-    let gate = scores
-        .robust
-        .iter()
-        .zip(&scores.full.gap)
-        .map(|(&s, &g)| gate_code(bridging_gate(s, g, TAU, EPS, APPEAL_GAP)))
+    let gate = (0..scores.robust.len())
+        .map(|j| {
+            let (s, g, c) = (scores.robust[j], scores.full.gap[j], scores.coverage[j]);
+            match bridging_gate(s, g, c, TAU, EPS, APPEAL_GAP) {
+                GateOutcome::SupplementaryReview if c < MIN_COVERAGE => 'U',
+                outcome => gate_code(outcome),
+            }
+        })
         .collect();
     SweepOutcome {
         converged: full_fit.status == Convergence::Converged,

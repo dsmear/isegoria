@@ -69,9 +69,11 @@ contributions".
 
 `b_u` serves to avoid rewarding an item just because it landed with generous
 reviewers. The final score is the *side-balanced approval* (`02` §A.3): the reviewers
-are split into two sides along `f`, the model's predicted votes are averaged on each
-side, and the two averages are averaged again — so each side counts once, whatever its
-size, and the score lives on the same scale as the votes.
+are split into two sides along `f` (each at least 5% of them), the model's predicted
+votes, kept within [0, 1], are averaged on each side, and the two averages are averaged
+again — so each side counts once, whatever its size, and the score lives on the same
+scale as the votes. An item that nobody on one side rated is not scored but sent to
+more reviewers (`01` D42).
 
 **Dot product `⟨ , ⟩`.** If the vectors have a single dimension it is simply
 multiplication: `f_u × f_j`. With more dimensions, you multiply component by component

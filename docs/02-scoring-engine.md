@@ -59,11 +59,14 @@ explained as "my faction likes it" survives in `b_j`.
 
 ### A.3 Score and threshold
 
-**Bridge score (D32, T49): the side-balanced predicted approval.** After the fit, the
-reviewers are split into two sides by a deterministic one-dimensional 2-means on `f_u`,
-initialized at its minimum and maximum. For each question the model's predicted ratings
-`r̂_uj` — every reviewer's, whether or not they rated it — are averaged within each
-side, `A_j` and `B_j`, and the score is
+**Bridge score (D32, T49; D42, T71): the side-balanced predicted approval.** After the
+fit, the reviewers are split into two sides by the exact one-dimensional 2-means of
+`f_u`: of the cuts of the sorted positions that split no run of equal values and leave
+each side at least 5% of the reviewers (rounded up; `MIN_SIDE_PER_MILLE = 50`,
+provisional, T25), the one with the largest between-side sum of squares. For each
+question the model's predicted ratings `r̂_uj` — every reviewer's, whether or not they
+rated it — are clipped to [0, 1] and averaged within each side, `A_j` and `B_j`, and the
+score is
 
 ```
 S_j = (A_j + B_j) / 2
@@ -86,6 +89,24 @@ residual leak of 0.1–0.2 remains, a fraction of the intercept's. With a minori
 about ten reviewers the side means are noisy: on the review's dataset at 95/5 one
 consensus item in eight fell to 0.78. A floor on the minority side is a calibration
 item (T25).
+
+*The sides and the coverage (D42, T71).* The first pass of the characterization (`13`)
+found three weaknesses in the score as T49 first built it, each confirmed on the engine's
+own fits. The 2-means iteration started from the extremes of `f_u` stopped at a local
+optimum when a few reviewers sat far out, and made them a side of their own: sides of 2
+and 5 reviewers of 800, and in a bootstrap subsample 1 of 200, which dropped an item's
+robust score from 0.91 to 0.56 while its full fit stayed at 0.91. An item that no
+reviewer of one side had rated got that side's mean by extrapolation: a partisan item,
+camp-balanced value 0.54, passed at 0.972 with no minority rating. Unclipped
+predictions put scores outside [0, 1] (−0.28 to 1.31). The exact cut replaces the
+iteration: it does not depend on the axis' origin or scale, a sign flip swaps the sides,
+and two camps of distinct positions are separated whenever each holds at least 5% of the
+reviewers. The predictions are clipped. And an item's **coverage** — the ratings its
+less-rated side gave it, counting the axis reviewers with a positive weight — must reach
+`MIN_COVERAGE = 1` (provisional, T25): below it the gate sends the item to the band's
+extra round whatever its score, and the re-decision cannot pass it (`05` [5]). The panels
+of `05` [4] are stratified on `f_u`, so an item one side never rated is rare; the floor
+keeps it from being decided on an extrapolation when it happens.
 
 **Polarization.** The gap `|A_j − B_j|` between the two sides is the question's
 polarization. It feeds the appeal rule of `docs/05` [5b] — a question rejected with a
@@ -738,6 +759,8 @@ detector no longer confuses with a cartel.
 | `ε` (uncertainty band) | ~0.02 (provisional) | questions in the band → supplementary review; ≈ 3× the bootstrap spread of `S_j` |
 | `k_extra` (extra panel) | 4 (provisional) | reviewers drawn outside the first panel for a band item; their ratings join the first panel's before the re-decision (D26, T60) |
 | `γ_appeal` (side gap for appeal) | 0.25 (provisional) | a rejected question with a wider gap was rejected for polarization: appealable (`05` [5b]) |
+| side floor | 5% of the reviewers, rounded up (provisional) | the fewest reviewers a side of the split holds (`MIN_SIDE_PER_MILLE = 50`, D42) |
+| `MIN_COVERAGE` | 1 rating (provisional) | an item with fewer from either side goes to supplementary review whatever its score (D42) |
 | `d` (factors) | 1 → 2 | start from 1 |
 | `k` (reviewers/item) | 7–11 | odd, random assignment stratified on `f_u` |
 | `N` pilot stage 1 | ~300 | cheap classical screen (see §B.6) |

@@ -337,7 +337,8 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
    T56/T57), live outcomes with randomized exploration (D35, T52), the latent DIF
    target model with θ inside the likelihood (D37, T54) and the contested-facts pool,
    drawn into a test only in sets whose differential test functioning stays within a
-   tolerance (D38, T55); next, the characterization of the thresholds (T24/T25).
+   tolerance (D38, T55); next, the characterization of the thresholds (T24/T25), whose
+   first pass found and fixed a defect in the bridge score's sides (D42, T71).
 2. **P2P network** — persistence, transport and replication, a randomness beacon nobody
    can grind, live anchoring.
 3. **The rest** — the protocol boundary (no-show reviewers, validated panels, honeypot

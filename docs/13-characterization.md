@@ -129,6 +129,13 @@ already gives every cell's point estimates; the intervals of §7 need the full c
    `curve.csv`, with the commit (`git rev-parse HEAD`) and the machine. The records stay
    with the owner: every one of them reproduces from its seed.
 
+**After an engine change.** Records are keyed by study, cell and replicate, not by
+commit, so a `run` skips what is recorded even if the code changed. A study whose code
+changed is re-run by moving its directory aside — `mv <out>/<study> <out>-before/` keeps
+the old records as a baseline — and running it again with `--study`; the summary then
+reads the new records with the others. After T71: `bridging-sweep` and
+`bridging-capture`.
+
 ## 3. The populations
 
 ### 3.1 Latent-DIF batches
@@ -207,7 +214,8 @@ leaner of the first pair, the two mirror pairs, a same-side pair, the four leane
 four clean items, a pair with two clean items — the DTF of the fitted curves
 (`ClassCurves::of`) and of the true ones on the same 41-node grid. A sweep run: the axis
 recovery `|corr(f_u, true position)|`, convergence, and per item `q`, the lean, the
-truth, the full and robust scores, the side gap and the gate's outcome. A capture run: per step the opposing count, the full
+truth, the full and robust scores, the side gap and the gate's outcome — `P`, `S`, `A`,
+`R`, or `U` for an item below `MIN_COVERAGE` that the gate sends to review (D42). A capture run: per step the opposing count, the full
 and robust scores, and the item's plain mean rating.
 
 ## 5. Statistics
@@ -244,6 +252,11 @@ and robust scores, and the item's plain mean rating.
 
 1. The full grid ran on one commit of the harness — every one of the 51,212 runs
    recorded, the last `run` with no `errors.log` — and `summarize` ran on the records.
+   A study whose code a later commit changes is re-run on that commit and the others
+   are shown to reproduce on it: after T71 (D42) the two bridging studies are re-run,
+   while the DIF and DTF records of the first pass's commit (`e8dcc7d`) reproduce bit for
+   bit on T71's. `tests/harness.rs` pins one record of each kind, so a change to what a
+   study measures shows in the tests.
 2. §7 holds the summary's tables with the commit, the date, the machine and the wall
    time; the CSV tables are committed under `verification/reports/t24/` (`docs/07` §24);
    the records stay with whoever ran them, reproducible from their seeds.
@@ -260,3 +273,13 @@ and robust scores, and the item's plain mean rating.
 ## 7. Results
 
 Pending the full run (§2, "On the owner's machine").
+
+**First pass (2026-09-26).** `--replicates 20` — 5,132 runs, a tenth of every cell —
+ran on the owner's machine; four of its cells re-run on the development container
+reproduced its rows exactly. It found a defect in the side-balanced score, fixed before
+the full run as T71 (`docs/01` D42, `docs/08` BRIDGE-010): its bridging tables describe
+the engine before the fix and are re-run. Its DIF tables are point estimates the full run
+refines; what they already show is a question for T25, not a defect: guessing (`c = 0.2`)
+makes the 2PL target model flag 8–19% of the clean items (D25), and the null batches
+flag no clean item even with 20 anchors (KR-20 ≈ 0.83), the case the KR-20 floor was
+set for with the proxy model (T53).
