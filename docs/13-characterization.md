@@ -184,7 +184,8 @@ An item should pass when its truth is above `τ` and fail when it is below.
 partisan item (08 favours the majority camp, 09 the minority one), `own` reviewers drawn
 from the camp the item favours and then the reviewers of the other camp, in a drawn
 order, rate it 1.0; the gate's score is read at every `step` of the opposing count. The
-item *passes* at the first opposing count at which its robust score reaches `τ + ε`, and
+item *passes* at the first opposing count at which its robust score reaches `τ + ε`,
+*passes from then on* at the first count after which it never falls back below it, and
 *reaches the band* — supplementary review — at the first at which it reaches `τ − ε`.
 
 ## 4. The studies
@@ -247,6 +248,16 @@ and robust scores, and the item's plain mean rating.
   over the tolerance that the fitted value admits.
 - **Quantiles** are type 7 (linear); an item that never passes counts as infinite, and a
   quantile that reaches it reads "never".
+- **Estimated gaps.** An item's `DIF_j` or `a_gap` is summarized by its median over the
+  runs whose fit selected two or more classes (the mean is kept in `summary.csv`): a
+  class-specific difficulty can diverge on a leaning item (quasi-separation — 5 of 32
+  estimates above 10 logits in one first-pass cell, the verdict right), and a mean then
+  says nothing about the size of the gap.
+- **DTF refusals.** The mirror of a false admission: a set whose fitted DTF is over
+  `DTF_MAX` while its true one is within, as a share of the fitted runs and of the sets
+  truly within.
+- **Coverage.** The sweep table gives the share of items the gate sends to review because
+  a side never rated them (`U`, D42), apart from the band.
 
 ## 6. Done when
 

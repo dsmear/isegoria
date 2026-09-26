@@ -27,6 +27,9 @@ pub fn mean(v: &[f64]) -> f64 {
 
 /// The sample standard deviation; NaN for fewer than two values.
 pub fn sd(v: &[f64]) -> f64 {
+    if v.len() < 2 {
+        return f64::NAN;
+    }
     let m = mean(v);
     (v.iter().map(|x| (x - m) * (x - m)).sum::<f64>() / (v.len() as f64 - 1.0)).sqrt()
 }

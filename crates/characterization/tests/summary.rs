@@ -1,11 +1,13 @@
 //! The summaries compute what `docs/13` §5 defines, checked on hand-built records, and every
 //! study of the smoke grid runs and is summarized (`docs/13` §2).
 
-use characterization::grid::{tasks, CaptureDesign, Cell, DifDesign, Grid, Layout, Study, STUDIES};
+use characterization::grid::{
+    tasks, CaptureDesign, Cell, DifDesign, Grid, Layout, Study, SweepDesign, STUDIES,
+};
 use characterization::record::{header, Record};
-use characterization::run::{CaptureOutcome, DifOutcome, Outcome};
+use characterization::run::{CaptureOutcome, DifOutcome, DtfOutcome, Outcome, SweepOutcome};
 use characterization::runner::{execute, Options};
-use characterization::stats::{clustered_rate, quantile, wilson};
+use characterization::stats::{clustered_rate, quantile, sd, wilson};
 use characterization::summary::summarize;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -176,6 +178,9 @@ fn the_power_summary_counts_detections_per_item_and_per_batch() {
         (1.8 + 1.6 + 1.4 + 0.8) / 6.0
     ));
     assert!(close(value(&r, "true_gap"), 1.8));
+    assert!(close(value(&r, "biased_gap_median"), 1.5));
+    let markdown = fs::read_to_string(out.join("summary.md")).unwrap();
+    assert!(markdown.contains("| 1.50 (1.80) |"), "{markdown}");
     let _ = fs::remove_dir_all(out);
 }
 
@@ -242,5 +247,119 @@ fn every_study_of_the_smoke_grid_runs_and_is_summarized() {
         );
     }
     assert!(out.join("summary.md").exists());
+    let _ = fs::remove_dir_all(out);
+}
+
+/// The standard deviation is NaN for fewer than two values, none included.
+#[test]
+fn the_deviation_of_fewer_than_two_values_is_nan() {
+    assert!(sd(&[]).is_nan() && sd(&[1.0]).is_nan());
+    assert!(close(sd(&[1.0, 3.0]), 2f64.sqrt()));
+}
+
+/// Capture runs: a pass the score falls back from is not stable; the stable pass is read too.
+#[test]
+fn the_capture_summary_reads_the_stable_pass() {
+    let out = scratch("capture-stable");
+    let cell = Cell::Capture(CaptureDesign {
+        item: 8,
+        own: 0,
+        step: 5,
+    })
+    .key();
+    let run = |robust: [f64; 4]| {
+        Outcome::Capture(CaptureOutcome {
+            opposing: vec![0, 5, 10, 15],
+            full: robust.to_vec(),
+            robust: robust.to_vec(),
+            plain: vec![0.6, 0.7, 0.8, 0.9],
+        })
+    };
+    let runs = vec![
+        run([0.5, 0.83, 0.9, 0.95]),
+        run([0.5, 0.83, 0.79, 0.85]),
+        run([0.5, 0.6, 0.7, 0.75]),
+        run([0.5, 0.9, 0.95, 0.7]),
+        run([0.5, 0.6, 0.85, 0.9]),
+    ];
+    write(&out, Study::BridgingCapture, &cell, runs);
+    summarize(&out).unwrap();
+    let r = row(&out, Study::BridgingCapture);
+    assert_eq!(value(&r, "pass_median"), 5.0);
+    assert_eq!(value(&r, "stable_median"), 15.0);
+    assert!(close(value(&r, "stable_never"), 0.4));
+    let _ = fs::remove_dir_all(out);
+}
+
+/// DTF runs: a set fitted over the tolerance while truly within it is a false refusal.
+#[test]
+fn the_dtf_summary_counts_false_refusals_as_well_as_false_admissions() {
+    let out = scratch("dtf-refusals");
+    let cell = Cell::Dif(DifDesign {
+        layout: Layout::Mirror,
+        delta: 0.9,
+        ..DifDesign::default()
+    })
+    .key();
+    let run = |fitted: f64, truth: f64| {
+        let mut f = vec![f64::NAN; 8];
+        let mut t = vec![f64::NAN; 8];
+        (f[0], t[0]) = (fitted, truth);
+        Outcome::Dtf(DtfOutcome {
+            classes: 2,
+            converged: true,
+            flags: vec![false; 8],
+            roles: "++++cccc".to_string(),
+            fitted: f,
+            truth: t,
+        })
+    };
+    let runs = vec![
+        run(0.12, 0.05),
+        run(0.05, 0.12),
+        run(0.05, 0.05),
+        run(0.2, 0.2),
+    ];
+    write(&out, Study::DtfError, &cell, runs);
+    summarize(&out).unwrap();
+    let r = row(&out, Study::DtfError);
+    assert!(close(value(&r, "false_admission"), 0.25));
+    assert!(close(value(&r, "false_refusal"), 0.25));
+    assert_eq!(value(&r, "within"), 2.0);
+    assert!(close(value(&r, "refused_within"), 0.5));
+    let _ = fs::remove_dir_all(out);
+}
+
+/// Sweep runs: items the gate sends to review for coverage are counted, and no leak is a dash.
+#[test]
+fn the_sweep_summary_counts_uncovered_items_and_dashes_a_missing_leak() {
+    let out = scratch("sweep-uncovered");
+    let cell = Cell::Sweep(SweepDesign {
+        n: 100,
+        share: 0.5,
+        per_reviewer: 5,
+        noise: 0.07,
+    })
+    .key();
+    let run = Outcome::Sweep(SweepOutcome {
+        converged: true,
+        axis_corr: 0.9,
+        q: vec![0.9, 0.9, 0.55, 0.55],
+        lean: vec![0.0, 0.0, 0.8, -0.8],
+        truth: vec![0.9, 0.9, 0.55, 0.55],
+        full: vec![0.9, 0.9, 0.6, 0.5],
+        robust: vec![0.88, 0.9, 0.6, 0.5],
+        gap: vec![0.0, 0.0, 0.7, 0.7],
+        gate: "PUAU".to_string(),
+    });
+    write(&out, Study::BridgingSweep, &cell, vec![run]);
+    let markdown = summarize(&out).unwrap();
+    let r = row(&out, Study::BridgingSweep);
+    assert!(close(value(&r, "uncovered"), 0.5));
+    let line = markdown
+        .lines()
+        .find(|l| l.starts_with(&format!("| {cell} |")))
+        .unwrap();
+    assert!(line.ends_with("| — |") && !line.contains("±"), "{line}");
     let _ = fs::remove_dir_all(out);
 }
