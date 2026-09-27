@@ -398,6 +398,8 @@ fn at_pro_12_results_round_trip_and_bad_bytes_are_refused() {
         }],
     )
     .encode();
+    let failed = NodeEvent::decode(&settle).expect("a failed appeal decodes");
+    assert_eq!(failed.encode(), settle);
     let mut bad_flag = settle.clone();
     *bad_flag.last_mut().unwrap() = 2;
     assert!(NodeEvent::decode(&bad_flag).is_none());

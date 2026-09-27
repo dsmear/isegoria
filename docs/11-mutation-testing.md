@@ -258,6 +258,17 @@ config's profile and `calibration`, `--cargo-test-arg=--test=…` with `lifecycl
 lifecycle event and the round-trip test pins each event's number and the refusal of every
 out-of-range byte, so the encoder's and decoder's arms leave no survivor.
 
+## Run 14 — T73, third step: epoch results as events
+
+`cargo mutants --in-diff` on the step's diff (`protocol/src/results.rs`, `events.rs`,
+`node.rs`, `exposure.rs`, `appeal.rs`, `contested.rs`; the config's profile and
+`calibration`, `--cargo-test-arg=--test=…` with `results_replay`, `lifecycle_replay`,
+`node_replay`, `contested_facts`, `appeal_stake`, `exploration` and `lifecycle`): 94
+mutants — 85 caught, 8 unviable, 1 missed. The survivor deleted the decoder's arm for a
+failed appeal's settlement (`promoted` 0): the round trip encoded only a promotion, and the
+failed settlement was checked only for its refused flag. Killed: that settlement now also
+decodes and re-encodes to the same bytes.
+
 ## Keeping it this way
 
 - New decision logic gets a hand-computed or exact-outcome test, not only a range or
