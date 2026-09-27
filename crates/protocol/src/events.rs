@@ -4,6 +4,7 @@
 use crate::deposit::Draft;
 use crate::gate::GateOutcome;
 use crate::lifecycle::Event;
+use crate::results::{read_results, write_results, EpochResults};
 use crate::review::Commit as Commitment;
 use identity::nullifier::NullifierProof;
 use identity::nym::Nym;
@@ -31,6 +32,7 @@ pub enum NodeEvent {
         item: Cid,
         event: Event,
     },
+    Results(EpochResults),
 }
 
 const VERSION: u8 = 1;
@@ -38,6 +40,7 @@ const DEPOSIT: u8 = 1;
 const ADMIT_REVIEWER: u8 = 2;
 const ADMIT_RESPONDENT: u8 = 3;
 const STEP: u8 = 4;
+const RESULTS: u8 = 5;
 
 impl NodeEvent {
     pub fn encode(&self) -> Vec<u8> {
@@ -70,6 +73,11 @@ impl NodeEvent {
                 .fixed(&batch.0)
                 .u64(*epoch)
                 .field(&proof.encode()),
+            NodeEvent::Results(results) => {
+                w.u8(RESULTS);
+                write_results(&mut w, results);
+                &mut w
+            }
             NodeEvent::Step { item, event } => {
                 w.u8(STEP).fixed(&item.0);
                 write_step(&mut w, event);
@@ -115,6 +123,7 @@ impl NodeEvent {
                 item: Cid(r.fixed().ok()?),
                 event: read_step(&mut r)?,
             },
+            RESULTS => NodeEvent::Results(read_results(&mut r)?),
             _ => return None,
         };
         r.finish().ok()?;

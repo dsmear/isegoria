@@ -16,7 +16,7 @@ fn units(dtf: f64) -> u64 {
     (dtf * SCALE).ceil() as u64
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct Fit {
     curves: ClassCurves,
     members: Vec<(Cid, usize)>,
@@ -30,7 +30,7 @@ struct Candidate {
 
 /// Contested facts grouped by the latent fit that last measured them, in canonical order:
 /// members by content id within a fit, fits by their least member (`docs/02` §B.7).
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ContestedPool {
     fits: Vec<Fit>,
 }

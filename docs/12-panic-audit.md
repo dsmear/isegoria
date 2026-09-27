@@ -36,7 +36,8 @@ network 4, protocol 2, scoring 1. After this audit: 30, none of them reachable f
 external input. T48, merged afterwards, adds one internal-invariant site in `scoring`
 (§2.3), for 31; T63 (2026-09-26) two configuration sites in `network` (§2.2), for 33; T13
 (2026-09-27) three internal-invariant sites in `network::store` (§2.2), for 36; T73 four
-more — `NullifierProof::encode` (§2.1) and `codec::Reader::fixed` (§2.2) — for 40; its second step one in `protocol::events` (§2.3), for 41. Sites
+more — `NullifierProof::encode` (§2.1) and `codec::Reader::fixed` (§2.2) — for 40; its second step one in `protocol::events` (§2.3), for 41; its third four in
+`protocol::results` (§2.3), for 45. Sites
 are named by function; line numbers drift.
 
 ### 2.1 `identity`
@@ -79,6 +80,9 @@ are named by function; line numbers drift.
 | `protocol::randomness::Beacon::seed` | `d[..8].try_into().expect` | internal: SHA-256 yields 32 bytes | — |
 | `protocol::review::assign_reviewers` | `stratum.choose(..).unwrap()` | internal: every stratum is non-empty (`lo < n`, `hi >= lo + 1`) | — |
 | `protocol::events::read_nyms` (T73) | `try_into().expect` | internal: a `chunks_exact(32)` chunk of a field whose length was checked to be a multiple of 32 | kept |
+| `protocol::results::read_floats` (T73) | `try_into().expect` | internal: a `chunks_exact(8)` chunk | kept |
+| `protocol::results::read_record` (T73) | 2 × `try_into().expect` | internal: the two parts of a `chunks_exact(40)` chunk, 32 and 8 bytes | kept |
+| `protocol::results::ResultsState::apply` (T73) | `.expect("an escrow has a history")` | internal: an open escrow is recorded only with its author's history | kept |
 | `scoring::bridging::Ratings::with_weights` | `assert_eq!(weights.len(), self.n)` | was a caller precondition; **gone** (T62): `Ratings::validate` reports the mismatch as `RatingsError::WeightCount` at `fit`/`bridge_scores` | RESOLVED (T62) |
 | `scoring::bridging::fit` (T48) | `best.expect("at least one start")` | internal: the loop runs `n_starts.max(1)` times, and the first start always sets `best` | — |
 | `scoring::bridging` objective and gradient | slice indexing by `Obs { u, j }` | external input: `Ratings` has public fields, and an observation with `u ≥ n` or `j ≥ m` panicked on the bounds check (third review, 2026-09-24). **RESOLVED** (T62): `Ratings::validate` runs first in `fit` and `bridge_scores`, which return `Result<_, RatingsError>` — out-of-range index, wrong weight count, non-finite rating, non-finite or negative weight, duplicate `(u, j)` pair; `scoring/tests/malformed_ratings.rs` pins each case and a property over arbitrary `Ratings`; `scoring/fuzz/bridging` (§4) | RESOLVED (T62) |
@@ -180,6 +184,8 @@ AddressSanitizer, 4 cores, 2 GiB RSS limit):
 | `protocol/event` (T73, 2026-09-27; 4 min unseeded, then 5 min seeded after the F10 fix) | 2 276 305 | 488 280 | 1 (F10, fixed) |
 | `identity/nullifier_proof` (T73: the wire format, 4 min) | — | 17 462 | 0 |
 | `protocol/event` (T73 step 2: lifecycle steps, seeded, 5 min) | — | 700 821 | 0 |
+| `protocol/event` (T73 step 3: epoch results, seeded, 5 min) | — | 1 264 857 | 0 |
+| `protocol/event` (T73 step 3: decoded results also applied, 5 min) | — | 1 657 170 | 0 |
 
 `scoring/bridging` was added with T62 (2026-09-24) and has not been run yet: that session
 had no nightly toolchain. `scoring/tests/malformed_ratings.rs` covers the same entry points
@@ -229,8 +235,9 @@ entry points:
   (the table in §2.3), and the `protocol` entry points were not fuzzed: both are T46's,
   whose validated types make the mismatches unrepresentable.
 - **Network codecs**: the node's own files are the first (T13, `network/store`, fuzzed).
-  Transport (T18) and the replay of typed events (T73) will add wire formats for
-  checkpoints, signatures, receipts, shards, nullifier proofs and OPRF partials; each needs
+  The node's events (T73, `protocol/event`) and nullifier proofs (`identity/nullifier_proof`)
+  followed; transport (T18) will add wire formats for checkpoints, signatures, receipts,
+  shards and OPRF partials; each needs
   a fuzz target of the same kind, and the `credential` sites marked "becomes external"
   above turn into errors when the committee goes remote.
 - **Fuzzing in CI**: the targets are not built by CI (they need nightly). A scheduled job

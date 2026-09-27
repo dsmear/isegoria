@@ -247,6 +247,7 @@ version byte (1), a kind byte, then its fields:
 | 2 | reviewer admitted | item CID, epoch, the `Judge` proof | the item's panel for the epoch |
 | 3 | respondent admitted | batch CID, epoch, the `Respond` proof | the batch's respondents for the epoch |
 | 4 | lifecycle step | the item's CID, then one lifecycle event: its number (1 `Admit` … 16 `ExposureLimit`, in the order of `lifecycle::Event`) and its fields | the item's state (`08` §9.1) |
+| 5 | epoch results | epoch, the Merkle root of the epoch's inputs, then the records of the engine's outputs (below) | reviewer tracks, author histories and appeal escrows, exposure, residual histories, the contested pool |
 
 A boolean is one byte, 0 or 1; a probability the eight bytes of its IEEE 754 bits; a panel
 its nyms as one field whose length is a multiple of 32; a gate outcome one byte (0 pass,
@@ -269,9 +270,34 @@ event until it is reopened, which rebuilds the state from what the disk holds.
 decode, or is rejected on replay refuses the node — the files say an accepted event
 happened that this node cannot accept, and quietly skipping it would give another state.
 
-This covers the admission state and the item lifecycle (the four kinds above). The
-engine's outputs — reputation tracks, histories, pools, exposure — become events the same
-way in the last step of `10` T73.
+**Results and their inputs.** The engine's outputs for an epoch enter the node as one
+results event, whose records are, by number: 1 a reviewer's observed score (reviewer,
+score, inclusion probability: `SkillTrack::record_observed`), 2 a reviewer's unobserved item,
+3 an author's quality (author, quality, age in months: `AuthorHistory::record`), 4 an appeal
+filed (author: `file_appeal`, which escrows a zero observation), 5 an appeal settled (author,
+the escrow's position, and failed, or promoted with the measured quality), 6 exposure (item,
+administrations), 7 a residual (reviewer, the item's global id, `r − r̂`), 8 a contested fit
+(each class's share, ability mean and item parameters — `ClassCurves::new` recomputes the
+curves from them — and the members with their index in the fit: `ContestedPool::record`),
+9 a contested fact removed. Reviewers and authors are their proven ids (INV-9); the CUSUM
+parameters and the author prior are the node's configuration. The event is applied whole or
+not at all, and refused for a second results event of the same epoch, an inclusion outside
+`(0, 1]`, a value that is not finite, an appeal the author's reputation does not cover, a
+settlement of an escrow that is not open, and a contested fit whose classes describe no fit
+or whose members repeat or fall outside it.
+
+The node applies these results as written: it does not recompute them, and the inputs —
+every reviewer's ratings and every respondent's answers — are not on its log, since they are
+the voting patterns that must not be published (`08` PRIV-004). The event binds the results
+to their inputs instead: it carries the RFC 6962 Merkle root (`network::merkle`) of one leaf
+per input — a rating (the judge's id, the item, the probability's bits) or an answer (the
+respondent's id, the batch, the item's index in it, the answer) — the leaves sorted, so the
+root is a function of the set of inputs. Whoever holds the inputs recomputes the engine and
+the root and checks both; a reviewer or respondent holding its own leaf and an inclusion
+proof checks that its input was counted, without seeing anyone else's.
+
+With the four kinds before it, this is a node's whole protocol state (`10` T73); the
+issuing committee's registries are the committee's, not a node's.
 
 ## Durability: erasure coding
 

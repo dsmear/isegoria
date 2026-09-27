@@ -342,8 +342,8 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
 2. **P2P network** — done so far: the consortium's configuration check (T63), a
    randomness beacon nobody can grind, by commit-reveal among the consortium members (D41,
    T37, in process), draws that read their candidates as a set (T72), and a node's log and
-   objects on disk, surviving a restart (T13), and the admission state and item lifecycles
-   rebuilt from the log (T73, steps 1–2); next the engine's outputs as events (T73),
+   objects on disk, surviving a restart (T13), and the whole protocol state rebuilt from
+   the log, the engine's outputs bound to the Merkle root of their inputs (T73); next
    transport and replication, live anchoring.
 3. **The rest** — the protocol boundary (no-show reviewers, validated panels, honeypot
    sampling), distributed identity and the external cryptographic review, statistical

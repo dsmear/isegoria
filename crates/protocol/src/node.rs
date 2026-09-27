@@ -6,6 +6,7 @@ use crate::deposit::{deposit_with_identity, DepositRejected};
 use crate::events::NodeEvent;
 use crate::lifecycle::{step, Event, Invalid, State};
 use crate::pilot::{submit_response, ResponseRejected};
+use crate::results::{ResultsRejected, ResultsState};
 use crate::review::{submit_review, ReviewRejected};
 use identity::credential::IssuerPublic;
 use identity::nym::Nym;
@@ -27,6 +28,7 @@ pub enum Rejection {
     UnknownItem,
     /// An assignment that names another item than the one it moves.
     ItemMismatch,
+    Results(ResultsRejected),
 }
 
 /// What an accepted event did: admitted a proven id, or moved an item.
@@ -66,6 +68,7 @@ pub struct NodeState {
     panels: BTreeMap<(Cid, u64), NullifierSet>,
     respondents: BTreeMap<(Cid, u64), NullifierSet>,
     items: BTreeMap<Cid, State>,
+    results: ResultsState,
 }
 
 impl NodeState {
@@ -105,6 +108,13 @@ impl NodeState {
             })
             .map_err(Rejection::Response),
             NodeEvent::Step { item, event } => return self.step(*item, event),
+            NodeEvent::Results(results) => {
+                return self
+                    .results
+                    .apply(results)
+                    .map(|()| Outcome::Moved)
+                    .map_err(Rejection::Results)
+            }
         };
         if let (Ok(_), NodeEvent::Deposit { draft, .. }) = (&admitted, event) {
             self.items.insert(draft.content_id(), State::Deposited);
@@ -124,6 +134,10 @@ impl NodeState {
 
     pub fn item(&self, item: &Cid) -> Option<&State> {
         self.items.get(item)
+    }
+
+    pub fn results(&self) -> &ResultsState {
+        &self.results
     }
 
     pub fn drafts(&self) -> &TransparencyLog {
