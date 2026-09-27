@@ -339,9 +339,11 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
    drawn into a test only in sets whose differential test functioning stays within a
    tolerance (D38, T55); next, the characterization of the thresholds (T24/T25), whose
    first pass found and fixed a defect in the bridge score's sides (D42, T71).
-2. **P2P network** — done so far: the consortium's configuration check (T63) and a
+2. **P2P network** — done so far: the consortium's configuration check (T63), a
    randomness beacon nobody can grind, by commit-reveal among the consortium members (D41,
-   T37, in process); next persistence, transport and replication, live anchoring.
+   T37, in process), draws that read their candidates as a set (T72), and a node's log and
+   objects on disk, surviving a restart (T13); next the protocol state rebuilt from the log
+   (T73), transport and replication, live anchoring.
 3. **The rest** — the protocol boundary (no-show reviewers, validated panels, honeypot
    sampling), distributed identity and the external cryptographic review, statistical
    privacy, real-world pilots.

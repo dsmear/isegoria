@@ -46,3 +46,10 @@ path = "fuzz_targets/merkle.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "store"
+path = "fuzz_targets/store.rs"
+test = false
+doc = false
+bench = false

@@ -183,6 +183,52 @@ real checkpoints, is the transport's (`10` T18).
 
 ---
 
+## A node's own disk: surviving a restart
+
+Before any of the above can hold, a single node must survive its own restart: today the
+log lives only in memory. The **log is the source of truth**, and the node keeps two
+append-only files; everything else a node holds — nullifier sets, quotas, reputation
+histories, pools — is a deterministic function of the log's contents, rebuilt by replaying
+it (`10` T73), never saved as a second copy that could drift from it.
+
+- **`log`** — a 16-byte header, `isegoria-log-v1` and a newline, then one 104-byte record
+  per entry: `seq` (8 bytes, little-endian), `prev`, `payload` (the CID) and `hash`
+  (32 bytes each), the entry exactly as the log chains it.
+- **`objects`** — a 16-byte header, `isegoria-obj-v1` and a newline, then one record per
+  object: its length (8 bytes, little-endian, at most 16 MiB) and its bytes. The store is
+  content-addressed: an object's key is the CID of its bytes, recomputed when the file is
+  opened and again when an object is read, so the file cannot hand back other bytes under
+  a CID.
+
+**Write order.** An append is written in full and synced to the disk before it is
+acknowledged and before the node's memory changes; an object is stored before the log
+entry that names it. So an acknowledged entry is on the disk, and an entry never names an
+object a crash lost.
+
+**Recovery.** Opening the files checks all of them:
+
+1. A header that is not the expected one refuses the file: it is another file or another
+   version. A file shorter than the header whose bytes begin it is a creation a crash tore:
+   the header is written again.
+2. Every log record must chain from the start — `seq` its position, `prev` the hash before
+   it, `hash` recomputed. A tail shorter than a record, or a final record that fails the
+   check, is a write a crash tore before it was acknowledged: it is cut off and the cut is
+   reported. A record that fails *before* the last refuses the file: a crash does not
+   produce it, and dropping acknowledged history quietly would hide the damage; the node
+   then recovers its history from its peers (`10` T18) and checks it against its signed
+   checkpoint (`log::verify_extends`).
+3. In `objects`, a final record that declares more bytes than the file still holds is torn
+   and cut, reported the same way; a declared length above the bound refuses the file
+   before anything is sized from it. A torn object whose length survived is only an
+   orphan under another CID: the log entry it was written for was never written.
+
+The reopened log is, entry for entry, the log that was acknowledged: its head, its
+`contains` and its consistency with a signed checkpoint are those of the log before the
+restart.
+
+In code: `network::store` (`10` T13). Rebuilding the rest of a node's state by replaying the
+log waits for typed events and the wire formats of the proofs they carry (`10` T73).
+
 ## Durability: erasure coding
 
 The intuition "more reliable = more copies = more expensive" is wrong. With erasure

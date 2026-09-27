@@ -34,7 +34,8 @@ other nodes, and a quorum's answers come from committee members.
 35 sites outside `#[cfg(test)]` at `6c61263` (86 counting test modules): identity 28,
 network 4, protocol 2, scoring 1. After this audit: 30, none of them reachable from
 external input. T48, merged afterwards, adds one internal-invariant site in `scoring`
-(§2.3), for 31; T63 (2026-09-26) two configuration sites in `network` (§2.2), for 33. Sites
+(§2.3), for 31; T63 (2026-09-26) two configuration sites in `network` (§2.2), for 33; T13
+(2026-09-27) three internal-invariant sites in `network::store` (§2.2), for 36. Sites
 are named by function; line numbers drift.
 
 ### 2.1 `identity`
@@ -66,6 +67,7 @@ are named by function; line numbers drift.
 | `erasure::encode` | `ReedSolomon::new(..).expect` | configuration: the encoder picks the layout of its own data | kept, `# Panics` |
 | same | `r.encode(..).expect` | internal: equal-length shards built just above | kept |
 | `log::TransparencyLog::append` | `last().unwrap()` | internal: an entry was just pushed | kept |
+| `store::DurableLog::open` (T13) | 3 × `try_into().expect` on a record's fields | internal: slices of fixed width inside a `chunks_exact(104)` record; the file's bytes decide only whether the record chains | kept |
 
 ### 2.3 `protocol` and `scoring` (classified only)
 
@@ -143,6 +145,7 @@ no abort, bounded memory", each asserts a property of its entry point:
 | `network/erasure` | `reconstruct`, `reconstruct_verified`: hostile shards and layouts; genuine encodings with losses and corruptions | a genuine encoding recovers exactly when `data_shards` authentic shards survive, to the original bytes |
 | `network/checkpoint` | `CheckpointClient::ingest` / `ingest_with_log` over sequences of honest and forged checkpoints | the trusted height never decreases; only `Accepted` changes the trusted checkpoint; acceptance needs a threshold of distinct member signatures |
 | `network/merkle` | `merkle_proof`, `verify_proof` | a proof exists exactly for an in-range leaf, and verifies |
+| `network/store` (T13) | `DurableLog::open`, `ObjectStore::open` on arbitrary file bytes, with and without a genuine header | an opened log verifies and takes an append that survives a reopen; a stored object reads back under its CID after a reopen |
 | `identity/oprf_quorum` | the threshold OPRF with any committee shape, anchor and claimed quorum | a label exactly for `≥ t` distinct committee members, equal for every valid quorum |
 | `identity/enrollment` | `EnrollmentRegistry::enroll` through the reference, VOPRF and threshold oracles | the same person via the other source is a duplicate |
 | `identity/voprf_wire` | RFC 9497 messages decoded from arbitrary bytes, at the server and at the client | no decoded evaluation verifies without the server key |
@@ -166,6 +169,7 @@ AddressSanitizer, 4 cores, 2 GiB RSS limit):
 | `identity/enrollment` (`-max_len=70000`) | 77 016 | 16 198 | 0 |
 | `identity/voprf_wire` | 5 529 289 | 1 224 479 | 0 |
 | `identity/nullifier_proof` | 91 962 | 18 663 | 0 |
+| `network/store` (T13, 2026-09-27; 5 min during the work, 3 min on the committed code) | 309 898 | 110 450 | 0 |
 
 `scoring/bridging` was added with T62 (2026-09-24) and has not been run yet: that session
 had no nightly toolchain. `scoring/tests/malformed_ratings.rs` covers the same entry points
@@ -189,6 +193,9 @@ ones are checked).
 The fuzz targets run on demand; CI runs the stable property tests that cover the same
 entry points:
 
+- `network/tests/durable_store.rs` (T13): arbitrary bytes after a genuine log prefix and
+  after an object header (256 cases each), a crash at every byte of a log, damage in every
+  field of every earlier record.
 - `network/tests/hostile_input.rs`: arbitrary bytes and edited genuine proofs through
   `verify` (4096 cases each: with the pre-scan disabled, most runs abort); hostile shard
   sets and layouts; recovery exactly when enough authentic shards survive; forged
@@ -211,7 +218,8 @@ entry points:
   other `scoring` entry points keep shape preconditions on their slices and matrices
   (the table in §2.3), and the `protocol` entry points were not fuzzed: both are T46's,
   whose validated types make the mismatches unrepresentable.
-- **Network codecs**: none exist yet. Transport (T18) will add wire formats for
+- **Network codecs**: the node's own files are the first (T13, `network/store`, fuzzed).
+  Transport (T18) and the replay of typed events (T73) will add wire formats for
   checkpoints, signatures, receipts, shards, nullifier proofs and OPRF partials; each needs
   a fuzz target of the same kind, and the `credential` sites marked "becomes external"
   above turn into errors when the committee goes remote.

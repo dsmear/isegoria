@@ -5,7 +5,7 @@
 | **Purpose** | Measure how much of the code the tests actually *verify*, not just execute, and record every mutant that survives with the reason it is acceptable. |
 | **Tool** | `cargo-mutants` 26.0.0 (the newest release that builds on the pinned rustc 1.86). |
 | **Date** | 2026-09-24, branch `test/t41-mutation-survivors`. |
-| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order). |
+| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store). |
 
 ## Why this was needed
 
@@ -222,6 +222,19 @@ profile and `calibration`, `--cargo-test-arg=--test=…` with `draw_order`, `exa
 `reviewer_floor`): 12 mutants — 7 caught, 4 unviable, 1 missed. The survivor is
 `governance.rs:76` `count < seats` → `<=`, the equivalent mutant of the table above
 (`:85` before T72): at equality the fill loop stops before changing anything.
+
+## Run 11 — T13: the durable log and object store
+
+`cargo mutants --in-diff` on the T13 diff (`network/src/store.rs`, `log.rs`; `--no-config`
+as in run 8): 92 mutants — 75 caught, 7 unviable, 10 missed, all taken up. Four were real
+test gaps and are killed: `put` at exactly `MAX_OBJECT` bytes (`>` → `>=`), the offset of an
+object read right after its `put` without a reopen (`self.end + 8`, two mutants), and
+`is_empty` after a `put`. Five went with the code: the torn-tail cut of both files was
+guarded by `torn > 0` (four mutants, one of them real: with `==` an object file kept its torn
+tail on disk, which the test now checks), and the directory sync by a `created` flag; the
+cut now always runs (a no-op without a tear) and the directory is synced whenever a header
+is written. The tenth is the one left below. Re-run: 85 mutants, 77 caught, 7 unviable, 1 missed — `sync_dir` → `()`, whose
+effect shows only on power loss, which no test can produce.
 
 ## Keeping it this way
 

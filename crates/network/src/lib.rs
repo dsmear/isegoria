@@ -9,6 +9,7 @@ pub mod consortium;
 pub mod erasure;
 pub mod log;
 pub mod merkle;
+pub mod store;
 
 mod hash;
 

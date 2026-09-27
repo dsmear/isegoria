@@ -750,6 +750,10 @@ Each critical claim carries the full block required by `docs/07` §4. Secondary 
 #### NET-009 — Anchoring liveness and linkage
 - No calendar submission, no Bitcoin block source, no scheduler ("hourly"), and nothing anchors a consortium checkpoint head (the only caller of `submit` is a test). **Evidence status.** NOT IMPLEMENTED beyond the proof format.
 
+#### NET-011 — Durability and crash recovery of a node's log
+- **Claim (`docs/04` §A node's own disk).** After a restart a node holds exactly the log entries it acknowledged, and every object it stored under its CID; a crash costs at most the write it tore, which was never acknowledged; damage a crash cannot produce is refused, not repaired.
+- **Evidence status.** IMPLEMENTED, TESTED (T13). `network::store::{DurableLog, ObjectStore}`: two append-only files behind a 16-byte versioned header, a write synced before it is acknowledged; on open every log record is re-chained, a torn tail (a short record, or a final record that fails its check) is cut on disk and reported (`Recovery`), an earlier bad record is `Corrupt`, a length above `MAX_OBJECT` (16 MiB) is `TooLarge` before anything is sized from it, and an object is re-hashed on every read. `durable_store.rs` (AT-NET-11): a crash at every byte of a five-entry log keeps exactly the complete entries; a damaged byte in any field of any earlier record refuses the file; properties over hostile bytes; fuzz target `network/fuzz/store`. The derived protocol state is not yet rebuilt from the log: T73 (typed events and replay, with the proof codecs). Power-loss durability rests on `fsync` (`sync_data`, and the directory on creation), which a test cannot observe.
+
 #### NET-010 — Transport, replication, convergence
 - Gossip, DHT, CRDT: not implemented; no type in the workspace represents a peer, a message, or a replica. `docs/07` §17's convergence invariant cannot be stated for code that does not exist. **Evidence status.** HYPOTHESIS.
 
@@ -1040,7 +1044,7 @@ them to real checkpoints, and carrying commits and reveals between nodes, is T18
 ## 10. Distributed-systems semantics
 
 ### 10.1 Append-only log
-- **State.** `Vec<Entry{seq, prev, payload: Cid, hash}>`; `head = last.hash` or `0³²`.
+- **State.** `Vec<Entry{seq, prev, payload: Cid, hash}>`; `head = last.hash` or `0³²`. Durable since T13: `store::DurableLog` keeps the entries in an append-only file and rebuilds the log from it on open (NET-011).
 - **Append.** `hash = SHA-256(tag, seq_le, prev, payload)`; `seq = len`. Prior entries are never mutated by the API (`tamper_payload` is `#[cfg(test)]`).
 - **Verify.** `verify()` recomputes from genesis (inconsistent edits); `verify_extends(&prior)` (T14) detects consistent suffix rewrites (`ForkedHistory`) and truncation (`Truncated`) against a consortium-signed prior head (NET-004 RESOLVED@T14).
 - **Required semantics.** `verify_extends(old_head, old_len) → bool` (consistency); signed heads (per-writer or consortium); a definition of *who* may append (currently anyone holding the `&mut`).
@@ -1059,7 +1063,7 @@ them to real checkpoints, and carrying commits and reveals between nodes, is T18
 - Format-level only. Required: submit `checkpoint.message()` (not the raw log head) hourly; store receipts in the log; verifier reads Bitcoin headers via SPV; define behaviour when the calendar is unavailable (Pending indefinitely).
 
 ### 10.6 Crash recovery, partitions, operator compromise
-- No persistent state exists (everything is in-memory `Vec`/`HashMap`), so crash recovery is undefined. Partition behaviour is undefined (no network). Operator compromise: a compromised signer with `< t` allies can only refuse or sign truthfully; with `≥ t` it can sign anything (NET-006); the "reproducible computation unmasks it" defense requires re-runners to have the input (PRIV-004) and a published mapping from checkpoint → engine input hash → outputs, which does not exist.
+- The log and the objects it names are durable (T13, NET-011): an acknowledged append survives a crash, a torn tail is cut on open, other damage refuses the file. The rest of a node's state (nullifier sets, quotas, histories, pools) is still in memory; it is to be rebuilt by replaying the log (T73), so crash recovery of the protocol state is defined only once T73 is done. Partition behaviour is undefined (no network). Operator compromise: a compromised signer with `< t` allies can only refuse or sign truthfully; with `≥ t` it can sign anything (NET-006); the "reproducible computation unmasks it" defense requires re-runners to have the input (PRIV-004) and a published mapping from checkpoint → engine input hash → outputs, which does not exist.
 
 ---
 
@@ -1216,6 +1220,7 @@ Each entry names the test that MUST exist, its oracle, and the claim it falsifie
 | AT-NET-07 ✓ | hostile `.ots` | fuzz `verify` | no panic, bounded time | NET-008 |
 | AT-NET-08 ✓ | threshold counting | 2-of-5, duplicates | rejected | NET-005 |
 | AT-NET-09 ✓ | consortium configuration (T63) | `Consortium::new` with `t = 0`, `t > n`, no members, a key listed twice; `t` real members sign a checkpoint declaring another member set | refused at construction; `verify` fails — `consortium_config.rs` | NET-005 |
+| AT-NET-11 ✓ | crash and damage on a node's disk (T13) | cut the log file at every byte; zero the final record; flip a byte in any field of an earlier record; foreign headers; torn, oversized and altered objects; hostile file bytes | every complete entry kept and only the torn tail cut, on disk; earlier damage refused (`Corrupt`); no length above the bound sized; an altered object never returned — `durable_store.rs`, fuzz `network/store` | NET-011 |
 | AT-NET-10 ✓ | beacon round (D41, T37) | the §9.4 round: commits in any order, a withholder, fewer than `t` reveals, a late commit, a commit for another network, member set or epoch, a stranger's or tampered signature, a second commit, a reveal that does not open, early or twice, a copied commitment, deadlines out of order | the beacon is a function of the reveals and the round; a withholder is recorded and its signature does not count for the epoch; no beacon below `t`; every invalid row refused — `beacon_round.rs` | CRYPTO-008 |
 | AT-PRO-01 | unproven nym | submit a review with a random 32-byte `Nym` | rejected | PROTO-007 |
 | AT-PRO-02 | batch of one | `stage2` / mixture with 1 item | rejected | INV-8 |
@@ -1471,6 +1476,7 @@ Status is the lowest justified. "Missing evidence" names what would raise it one
 | NET-008 | OTS verify | `anchoring.rs` (`within_bounds`), `integrity.rs`, `hostile_input.rs`, `fuzz/ots_verify` | RESOLVED@T44 — bounded pre-scan before the library parser; fuzzed (AT-NET-07) | — | AT-NET-07 |
 | NET-009 | anchoring liveness | — | NOT IMPLEMENTED | — | roadmap |
 | NET-010 | transport/CRDT | — | HYPOTHESIS | — | roadmap |
+| NET-011 | durability and crash recovery | `store.rs` (`DurableLog`, `ObjectStore`), `durable_store.rs` (AT-NET-11), `fuzz/store` | TESTED (T13) — the acknowledged log and its objects survive a restart; a torn tail is cut, other damage refused | the protocol state rebuilt by replay; power loss not observable in a test | T73 |
 | PROTO-001 | deposit needs source | `lifecycle.rs` | TESTED | structured citation | docs/03 |
 | PROTO-002 | lottery | `lifecycle.rs`, proptest, `inv10_beacon_seed.rs` | TESTED — seeded from the beacon (T37); a function of the set of deposits, in content-id order | — | — |
 | PROTO-003 | stratified assignment | `lifecycle.rs`, `review.rs`, `reviewer_floor.rs` | TESTED; new-reviewer path defined (T39: the projected position, weight 0, a candidate like any other); a function of the candidate set — ties broken by nym (T72, AT-BR-12) | a separate draw for newcomers | T25 |
@@ -1632,6 +1638,7 @@ The following cannot be established from the repository, from simulation, or fro
 | Credential | §7.1, CRYPTO-003/004 | `crates/identity/src/credential.rs`: `Credential`, `IssuanceRequest`, `PendingIssuance`, `BlindSignature`, `AnonymousCredential`, `Issuer`, `ThresholdIssuer`, `IssuerPublic`, `setup_base_ot`, `verify_request` | `bbs_credential.rs`, `threshold_bbs.rs`, unit tests | — |
 | Nullifier | §7.1, CRYPTO-005/006 | `crates/identity/src/nullifier.rs`: `NullifierProof`, `prove`, `verify`, `context_generator` | `tests/nullifier.rs`, unit test | — |
 | CID, Merkle, log | §10.1–10.2 | `crates/network/src/{cid,merkle,log}.rs`: `Cid`, `cid`, `leaf_hash`, `merkle_root`, `merkle_proof`, `verify_proof`, `TransparencyLog`, `Entry` | `integrity.rs`, `properties.rs` | — |
+| Durable log and objects | §10.1, §10.6 | `crates/network/src/store.rs`: `DurableLog`, `ObjectStore`, `Recovery`, `StoreError`, `MAX_OBJECT` | `durable_store.rs`, `fuzz/store` | — |
 | Checkpoints | §9.4 | `crates/network/src/consortium.rs`: `Checkpoint`, `Member`, `Consortium` | `integrity.rs`, `consortium_config.rs` | — |
 | Beacon round (D41) | §9.4 | `crates/network/src/beacon.rs`: `RoundId`, `BeaconCommit`, `BeaconReveal`, `BeaconRound`, `BeaconOutcome`, `RoundError`, `Member::beacon_commit`; `Consortium::verify_excluding`; `crates/protocol/src/randomness.rs`: `Beacon::from_outcome`, `seed` | `beacon_round.rs`, `inv10_beacon_seed.rs` | `paper/scripts/revisions_collusion.py` (the withholding figure) |
 | Erasure | §10.4 | `crates/network/src/erasure.rs`: `encode`, `reconstruct`, `Encoded` | `integrity.rs`, `properties.rs` | — |

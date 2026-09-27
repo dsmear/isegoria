@@ -142,6 +142,7 @@ Integrity without permissionless consensus (`docs/04`).
 | `log` | §Signed append-only logs | `TransparencyLog` (hash-chained; `verify` detects tampering; `checkpoint` + `verify_extends` prove consistency/truncation against a signed prior head, T14) |
 | `consortium` | §The consortium as backbone | `Member` (ed25519), `Checkpoint` (net-id + member-set bound, T15), `Consortium::new` (`1 ≤ t ≤ n` distinct keys, T63), `Consortium::verify` (t-of-n over its own member set, T63), `verify_excluding` (the beacon's withholders, T37), `CheckpointClient` (monotonic-height, equivocation, T15) |
 | `beacon` | §The epoch's beacon (D41) | `BeaconRound` (`open`, `commit`, `close_commits`, `close_deposits`, `reveal`, `finish`), `Member::beacon_commit`, `BeaconCommit`, `BeaconReveal`, `BeaconOutcome` (`value`, `revealed`, `withheld`, `record`), `RoundError` — commit-reveal among the members, in process (T37) |
+| `store` | §A node's own disk | `DurableLog`, `ObjectStore` (content-addressed), `Recovery`, `StoreError`, `MAX_OBJECT` — append-only files synced before acknowledging; a torn tail cut, other damage refused (T13) |
 | `anchoring` | §Anchoring | `Anchor` trait, `OtsAnchor`, `Receipt`, `AnchorState` |
 | `erasure` | §Durability | `encode`, `reconstruct`, `reconstruct_verified` (real Reed–Solomon; per-shard manifest, corrupt-shard authentication before decode, T16) |
 
