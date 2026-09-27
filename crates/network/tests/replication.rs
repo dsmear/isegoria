@@ -202,6 +202,8 @@ fn at_net_13_bad_entries_are_refused() {
     let ws = writers(2);
     let (e, o) = feed(&ws[0], 1, "a").remove(0);
     let mut r = Replica::new(set(&ws[1..]));
+    assert!(!r.writers().contains(&ws[0].public()) && r.writers().contains(&ws[1].public()));
+    assert_eq!(r.writers().network_id(), NET);
     assert_eq!(r.insert(e.clone(), o.clone()), Err(Refused::UnknownWriter));
     let mut r = Replica::new(set(&ws));
     let mut forged = e.clone();
