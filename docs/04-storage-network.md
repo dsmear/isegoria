@@ -246,6 +246,14 @@ version byte (1), a kind byte, then its fields:
 | 1 | deposit | epoch, quota, the draft's item and primary source, the `Propose` proof | the drafts on record, the proposer's quota for the epoch (`05` [2]) |
 | 2 | reviewer admitted | item CID, epoch, the `Judge` proof | the item's panel for the epoch |
 | 3 | respondent admitted | batch CID, epoch, the `Respond` proof | the batch's respondents for the epoch |
+| 4 | lifecycle step | the item's CID, then one lifecycle event: its number (1 `Admit` … 16 `ExposureLimit`, in the order of `lifecycle::Event`) and its fields | the item's state (`08` §9.1) |
+
+A boolean is one byte, 0 or 1; a probability the eight bytes of its IEEE 754 bits; a panel
+its nyms as one field whose length is a multiple of 32; a gate outcome one byte (0 pass,
+1 supplementary review, 2 appeal-eligible, 3 reject). A deposit the node accepts starts its
+item in `Deposited`; a lifecycle step applies `lifecycle::step` to the item's state and is
+refused for an unknown item, for an assignment naming another item than the one it moves,
+and wherever the §9.1 table refuses it.
 
 A nullifier proof travels as its role (one byte: 0 propose, 1 judge, 2 respond), the
 nullifier and the Schnorr commitment (compressed G1 points, 48 bytes each) and the BBS+
@@ -261,9 +269,9 @@ event until it is reopened, which rebuilds the state from what the disk holds.
 decode, or is rejected on replay refuses the node — the files say an accepted event
 happened that this node cannot accept, and quietly skipping it would give another state.
 
-This covers the admission state (the three kinds above). The item lifecycle and the
+This covers the admission state and the item lifecycle (the four kinds above). The
 engine's outputs — reputation tracks, histories, pools, exposure — become events the same
-way in later steps of `10` T73.
+way in the last step of `10` T73.
 
 ## Durability: erasure coding
 

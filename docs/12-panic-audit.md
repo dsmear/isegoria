@@ -36,7 +36,7 @@ network 4, protocol 2, scoring 1. After this audit: 30, none of them reachable f
 external input. T48, merged afterwards, adds one internal-invariant site in `scoring`
 (§2.3), for 31; T63 (2026-09-26) two configuration sites in `network` (§2.2), for 33; T13
 (2026-09-27) three internal-invariant sites in `network::store` (§2.2), for 36; T73 four
-more — `NullifierProof::encode` (§2.1) and `codec::Reader::fixed` (§2.2) — for 40. Sites
+more — `NullifierProof::encode` (§2.1) and `codec::Reader::fixed` (§2.2) — for 40; its second step one in `protocol::events` (§2.3), for 41. Sites
 are named by function; line numbers drift.
 
 ### 2.1 `identity`
@@ -78,6 +78,7 @@ are named by function; line numbers drift.
 |---|---|---|---|
 | `protocol::randomness::Beacon::seed` | `d[..8].try_into().expect` | internal: SHA-256 yields 32 bytes | — |
 | `protocol::review::assign_reviewers` | `stratum.choose(..).unwrap()` | internal: every stratum is non-empty (`lo < n`, `hi >= lo + 1`) | — |
+| `protocol::events::read_nyms` (T73) | `try_into().expect` | internal: a `chunks_exact(32)` chunk of a field whose length was checked to be a multiple of 32 | kept |
 | `scoring::bridging::Ratings::with_weights` | `assert_eq!(weights.len(), self.n)` | was a caller precondition; **gone** (T62): `Ratings::validate` reports the mismatch as `RatingsError::WeightCount` at `fit`/`bridge_scores` | RESOLVED (T62) |
 | `scoring::bridging::fit` (T48) | `best.expect("at least one start")` | internal: the loop runs `n_starts.max(1)` times, and the first start always sets `best` | — |
 | `scoring::bridging` objective and gradient | slice indexing by `Obs { u, j }` | external input: `Ratings` has public fields, and an observation with `u ≥ n` or `j ≥ m` panicked on the bounds check (third review, 2026-09-24). **RESOLVED** (T62): `Ratings::validate` runs first in `fit` and `bridge_scores`, which return `Result<_, RatingsError>` — out-of-range index, wrong weight count, non-finite rating, non-finite or negative weight, duplicate `(u, j)` pair; `scoring/tests/malformed_ratings.rs` pins each case and a property over arbitrary `Ratings`; `scoring/fuzz/bridging` (§4) | RESOLVED (T62) |
@@ -178,6 +179,7 @@ AddressSanitizer, 4 cores, 2 GiB RSS limit):
 | `network/store` (T13, 2026-09-27; 5 min during the work, 3 min on the committed code) | 309 898 | 110 450 | 0 |
 | `protocol/event` (T73, 2026-09-27; 4 min unseeded, then 5 min seeded after the F10 fix) | 2 276 305 | 488 280 | 1 (F10, fixed) |
 | `identity/nullifier_proof` (T73: the wire format, 4 min) | — | 17 462 | 0 |
+| `protocol/event` (T73 step 2: lifecycle steps, seeded, 5 min) | — | 700 821 | 0 |
 
 `scoring/bridging` was added with T62 (2026-09-24) and has not been run yet: that session
 had no nightly toolchain. `scoring/tests/malformed_ratings.rs` covers the same entry points

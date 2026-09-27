@@ -5,7 +5,7 @@
 | **Purpose** | Measure how much of the code the tests actually *verify*, not just execute, and record every mutant that survives with the reason it is acceptable. |
 | **Tool** | `cargo-mutants` 26.0.0 (the newest release that builds on the pinned rustc 1.86). |
 | **Date** | 2026-09-24, branch `test/t41-mutation-survivors`. |
-| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, run 12 for T73's first step). |
+| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, run 12 for T73's first step, run 13 for its second). |
 
 ## Why this was needed
 
@@ -249,6 +249,14 @@ config's profile and `calibration`, `--cargo-test-arg=--test=…` with `node_rep
 `id008_proposal_quota`): 25 mutants — 19 caught, 6 unviable, none missed. The node's
 poisoned state after a failed write has no test: it needs an I/O error after a successful
 open, which the tests cannot provoke.
+
+## Run 13 — T73, second step: item lifecycles as events
+
+`cargo mutants --in-diff` on the step's diff (`protocol/src/events.rs`, `node.rs`; the
+config's profile and `calibration`, `--cargo-test-arg=--test=…` with `lifecycle_replay` and
+`node_replay`): 52 mutants — 44 caught, 8 unviable, none missed. The walks use every
+lifecycle event and the round-trip test pins each event's number and the refusal of every
+out-of-range byte, so the encoder's and decoder's arms leave no survivor.
 
 ## Keeping it this way
 

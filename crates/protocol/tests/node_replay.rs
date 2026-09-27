@@ -10,7 +10,7 @@ use network::store::{DurableLog, ObjectStore};
 use protocol::admission::Unproven;
 use protocol::deposit::{deposit_context, DepositRejected, Draft};
 use protocol::events::NodeEvent;
-use protocol::node::{AdmissionState, Node, NodeError, Rejection};
+use protocol::node::{Node, NodeError, NodeState, Rejection};
 use protocol::pilot::{response_context, ResponseRejected};
 use protocol::review::{review_context, ReviewRejected};
 use std::fs;
@@ -205,7 +205,7 @@ fn at_pro_10_events_are_checked_like_the_entry_points() {
         )))
     );
     assert_eq!(node.log_len(), 0);
-    assert_eq!(node.state(), &AdmissionState::default(), "nor in memory");
+    assert_eq!(node.state(), &NodeState::default(), "nor in memory");
 }
 
 /// AT-PRO-10: a log that names a missing object, a non-event, or an event this node rejects

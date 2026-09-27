@@ -165,8 +165,8 @@ steps are seeded for reproducibility.
 
 | Module | Stage | Key items | Uses |
 |---|---|---|---|
-| `events` | §Events and replay (`docs/04`) | `NodeEvent` (deposit, reviewer admitted, respondent admitted), `encode`, `decode` (T73) | `network::codec`, `identity::nullifier` |
-| `node` | §Events and replay (`docs/04`) | `Node::{open, submit, state}`, `AdmissionState::apply`, `NodeError`, `Rejection` — the admission state rebuilt by replaying the durable log (T73, first step) | `events`, `deposit`, `review`, `pilot`, `network::store` |
+| `events` | §Events and replay (`docs/04`) | `NodeEvent` (deposit, reviewer admitted, respondent admitted, lifecycle step), `encode`, `decode` (T73) | `network::codec`, `identity::nullifier` |
+| `node` | §Events and replay (`docs/04`) | `Node::{open, submit, state}`, `NodeState::{apply, item}`, `Outcome`, `NodeError`, `Rejection` — the admission state and the item lifecycles rebuilt by replaying the durable log (T73, steps 1–2) | `events`, `deposit`, `review`, `pilot`, `network::store` |
 | `admission` | INV-9/ID-008 | `admit`, `NullifierSet` (T6); `QuotaLedger` — per-credential proposal quota (T11) | `identity::nullifier`, `identity::ratelimit` |
 | `blueprint` | [8]/L2 | `Blueprint`, `quotas`, `coverage_deviation`, `assemble_test` | — |
 | `contested` | [7b] (D38) | `ContestedPool` (`record`, `remove`, `dtf`, `draw`, `draw_from_beacon`), `NoBalancedDraw`, `RecordError` — contested facts by the fit that last measured them, drawn into a test only in selections whose DTF bound (the sum of per-fit DTFs) is within `DTF_MAX`; the draw exact and seeded from the beacon (T55) | `randomness`, `scoring::dtf` |

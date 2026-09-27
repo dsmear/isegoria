@@ -4,6 +4,7 @@
 use crate::admission::{NullifierSet, QuotaLedger};
 use crate::deposit::{deposit_with_identity, DepositRejected};
 use crate::events::NodeEvent;
+use crate::lifecycle::{step, Event, Invalid, State};
 use crate::pilot::{submit_response, ResponseRejected};
 use crate::review::{submit_review, ReviewRejected};
 use identity::credential::IssuerPublic;
@@ -20,6 +21,19 @@ pub enum Rejection {
     Deposit(DepositRejected),
     Review(ReviewRejected),
     Response(ResponseRejected),
+    /// The §9.1 table refuses the step.
+    Lifecycle(Invalid),
+    /// A step for an item no accepted deposit started.
+    UnknownItem,
+    /// An assignment that names another item than the one it moves.
+    ItemMismatch,
+}
+
+/// What an accepted event did: admitted a proven id, or moved an item.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Outcome {
+    Admitted(Nym),
+    Moved,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -43,21 +57,26 @@ pub enum NodeError {
     Poisoned,
 }
 
-/// The admission state: drafts on record, quotas per epoch, panels and respondents per
-/// `(item or batch, epoch)`.
-#[derive(Debug, Default, PartialEq, Eq)]
-pub struct AdmissionState {
+/// Drafts on record, quotas per epoch, panels and respondents per `(item or batch, epoch)`,
+/// and each item's lifecycle state.
+#[derive(Debug, Default, PartialEq)]
+pub struct NodeState {
     drafts: TransparencyLog,
     quotas: BTreeMap<u64, QuotaLedger>,
     panels: BTreeMap<(Cid, u64), NullifierSet>,
     respondents: BTreeMap<(Cid, u64), NullifierSet>,
+    items: BTreeMap<Cid, State>,
 }
 
-impl AdmissionState {
+impl NodeState {
     /// Checks and applies one event, as the entry points do (`deposit_with_identity`,
     /// `submit_review`, `submit_response`); the proven id on success.
-    pub fn apply(&mut self, event: &NodeEvent, issuer: &IssuerPublic) -> Result<Nym, Rejection> {
-        match event {
+    pub fn apply(
+        &mut self,
+        event: &NodeEvent,
+        issuer: &IssuerPublic,
+    ) -> Result<Outcome, Rejection> {
+        let admitted = match event {
             NodeEvent::Deposit {
                 epoch,
                 quota,
@@ -85,7 +104,26 @@ impl AdmissionState {
                 submit_response(proof, issuer, *batch, *epoch, set)
             })
             .map_err(Rejection::Response),
+            NodeEvent::Step { item, event } => return self.step(*item, event),
+        };
+        if let (Ok(_), NodeEvent::Deposit { draft, .. }) = (&admitted, event) {
+            self.items.insert(draft.content_id(), State::Deposited);
         }
+        admitted.map(Outcome::Admitted)
+    }
+
+    fn step(&mut self, item: Cid, event: &Event) -> Result<Outcome, Rejection> {
+        let state = self.items.get(&item).ok_or(Rejection::UnknownItem)?;
+        if matches!(event, Event::AssignReviewers { item: named, .. } if *named != item) {
+            return Err(Rejection::ItemMismatch);
+        }
+        let next = step(state.clone(), event.clone()).map_err(Rejection::Lifecycle)?;
+        self.items.insert(item, next);
+        Ok(Outcome::Moved)
+    }
+
+    pub fn item(&self, item: &Cid) -> Option<&State> {
+        self.items.get(item)
     }
 
     pub fn drafts(&self) -> &TransparencyLog {
@@ -130,7 +168,7 @@ pub struct Node {
     log: DurableLog,
     objects: ObjectStore,
     issuer: IssuerPublic,
-    state: AdmissionState,
+    state: NodeState,
     poisoned: bool,
 }
 
@@ -140,7 +178,7 @@ impl Node {
         fs::create_dir_all(dir).map_err(|e| StoreError::Io(e.kind()))?;
         let (objects, _) = ObjectStore::open(&dir.join("objects"))?;
         let (log, _) = DurableLog::open(&dir.join("log"))?;
-        let mut state = AdmissionState::default();
+        let mut state = NodeState::default();
         for (i, entry) in log.log().entries().iter().enumerate() {
             let entry_no = i as u64;
             let bytes = objects
@@ -165,7 +203,7 @@ impl Node {
     }
 
     /// Checks and applies `event`, then writes it; the proven id on success.
-    pub fn submit(&mut self, event: NodeEvent) -> Result<Nym, NodeError> {
+    pub fn submit(&mut self, event: NodeEvent) -> Result<Outcome, NodeError> {
         if self.poisoned {
             return Err(NodeError::Poisoned);
         }
@@ -184,7 +222,7 @@ impl Node {
         Ok(id)
     }
 
-    pub fn state(&self) -> &AdmissionState {
+    pub fn state(&self) -> &NodeState {
         &self.state
     }
 
