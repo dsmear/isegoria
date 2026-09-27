@@ -12,6 +12,7 @@ The audit they belong to is recorded in `docs/12-panic-audit.md`.
 | `checkpoint` | `CheckpointClient::ingest` / `ingest_with_log` over sequences of honest and forged checkpoints | trusted height never decreases; only `Accepted` changes the trusted checkpoint; acceptance needs a threshold of distinct member signatures; a threshold of honest signatures is never `InsufficientSignatures` |
 | `merkle` | `merkle_proof`, `verify_proof` with arbitrary leaves, indices and proofs | a proof exists exactly for an in-range leaf, and verifies |
 | `store` | `DurableLog::open`, `ObjectStore::open` on arbitrary file bytes (T13) | an opened log verifies and takes an append that survives a reopen; a stored object reads back under its CID |
+| `replica` | `Message::decode` on arbitrary bytes; replicas fed honest, forked and raw entries, pulling from each other (T18) | one encoding per message; every held entry valid; equivocations verify; two pulls each way converge |
 
 ## Running
 

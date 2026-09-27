@@ -12,6 +12,7 @@ between the conceptual specification and the Rust implementation. Read
 - [`identity` — anonymous enrollment](#identity--anonymous-enrollment)
 - [`network` — tamper-evident storage](#network--tamper-evident-storage)
 - [`protocol` — lifecycle orchestration](#protocol--lifecycle-orchestration)
+- [`p2p` — the libp2p transport](#p2p--the-libp2p-transport)
 - [`characterization` — the T24 harness](#characterization--the-t24-harness)
 - [Invariants and where they are enforced](#invariants-and-where-they-are-enforced)
 - [Reproducibility](#reproducibility)
@@ -49,11 +50,13 @@ protocol ──► scoring
         └──► network
 
 characterization ──► protocol, scoring   (the T24 harness: a tool, not part of a node)
+p2p              ──► network             (the libp2p transport for replication, T18)
 
 scoring   (no internal deps; only rand, rand_chacha)
 identity  (sha2, voprf, curve25519-dalek, bbs_plus, schnorr_pok, arkworks,
            oblivious_transfer_protocols, secret_sharing_and_dkg, dock_crypto_utils)
 network   (sha2, ed25519-dalek, reed-solomon-erasure, opentimestamps)
+p2p       (libp2p 0.56, tokio, futures, async-trait)
 ```
 
 `scoring` sits at the bottom on purpose. `protocol` is the only crate that composes
@@ -144,6 +147,7 @@ Integrity without permissionless consensus (`docs/04`).
 | `beacon` | §The epoch's beacon (D41) | `BeaconRound` (`open`, `commit`, `close_commits`, `close_deposits`, `reveal`, `finish`), `Member::beacon_commit`, `BeaconCommit`, `BeaconReveal`, `BeaconOutcome` (`value`, `revealed`, `withheld`, `record`), `RoundError` — commit-reveal among the members, in process (T37) |
 | `codec` | §Events and replay | `Writer`, `Reader`, `DecodeError` — our encoding: little-endian integers, length-prefixed fields checked before sizing (T73) |
 | `store` | §A node's own disk | `DurableLog`, `ObjectStore` (content-addressed), `Recovery`, `StoreError`, `MAX_OBJECT` — append-only files synced before acknowledging; a torn tail cut, other damage refused (T13) |
+| `replica` | §Replication between nodes | `WriterSet`, `FeedWriter`, `SignedEntry`, `EntryId`, `Replica` (`insert`, `feed`, `equivocations`, `digest`, `summary`, `have_for`, `want`, `entries_for`), `Equivocation`, `Message` — the grow-only set of writers' signed entries and the pull sync's messages (T18) |
 | `anchoring` | §Anchoring | `Anchor` trait, `OtsAnchor`, `Receipt`, `AnchorState` |
 | `erasure` | §Durability | `encode`, `reconstruct`, `reconstruct_verified` (real Reed–Solomon; per-shard manifest, corrupt-shard authentication before decode, T16) |
 
@@ -156,7 +160,9 @@ and checks a Bitcoin attestation against a block Merkle root. **Still modeled** 
 anchoring: the live network parts — POSTing to a calendar server and reading block
 roots from a Bitcoin node/SPV; here an injected block source stands in and
 `OtsAnchor::upgrade` models the calendar's confirm-and-upgrade with one hashing step.
-**Not yet implemented:** gossip/DHT transport (libp2p) and CRDT convergence.
+**Replication** of the signed set is real (`replica`, over libp2p in `p2p`, T18). **Not
+yet implemented:** the protocol state as a function of the replicated set and its merge
+rules (T74), the DHT (T75).
 
 ## `protocol` — lifecycle orchestration
 
@@ -190,6 +196,15 @@ steps are seeded for reproducibility.
 Each module's doc comment names the attack the stage neutralizes (brigading,
 information cascades, queue explosion, the true-but-divisive false negative, block
 voting).
+
+## `p2p` — the libp2p transport
+
+Replication between nodes over libp2p (`docs/04` §Replication between nodes): `Handle`
+(`spawn`, `listen`, `dial`, `publish`, `insert`, `replica`, `peers`), `Config`, `Own` — a
+node's task drives a swarm with gossipsub (announcements of new entries) and
+request-response (`/isegoria/sync/1`: Summary→Have, Want→Entries). A writer's own feed is
+its `network::store` log, signed again on restart. Only `network` is a dependency: the
+engine and the protocol state stay free of I/O and of an async runtime (T18).
 
 ## `characterization` — the T24 harness
 
@@ -325,7 +340,8 @@ cargo clippy --workspace --all-targets
 | Uniqueness label | **Real** (single-server VOPRF RFC 9497; **threshold** t-of-n OPRF, Shamir + DLEQ) | Real DKG ceremony + network transport for the committee |
 | Credential issuance | **Real** (BBS+ blind; single-issuer **and** threshold t-of-n MPC) | Real DKG ceremony + network transport; selective-disclosure presentation |
 | Public-chain anchoring | **Real** (OpenTimestamps proof format + verification) | Live calendar POST + Bitcoin node/SPV block source |
-| Gossip/DHT transport, CRDT | Documented, not implemented | libp2p, Automerge/Yjs |
+| Gossip transport, replication of the signed set | **Real** — libp2p gossipsub + request-response, a grow-only set with equivocation evidence (T18) | — |
+| Protocol state from the replicated set, merge rules; DHT | Documented, not implemented (T74, T75) | libp2p Kademlia |
 
 Reference implementations are clearly marked and provide **no** security; they exist
 to make the pipeline testable end-to-end.

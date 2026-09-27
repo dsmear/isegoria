@@ -37,7 +37,8 @@ external input. T48, merged afterwards, adds one internal-invariant site in `sco
 (§2.3), for 31; T63 (2026-09-26) two configuration sites in `network` (§2.2), for 33; T13
 (2026-09-27) three internal-invariant sites in `network::store` (§2.2), for 36; T73 four
 more — `NullifierProof::encode` (§2.1) and `codec::Reader::fixed` (§2.2) — for 40; its second step one in `protocol::events` (§2.3), for 41; its third four in
-`protocol::results` (§2.3), for 45. Sites
+`protocol::results` (§2.3), for 45; T18 one in `network::replica` (§2.2) and two in
+`p2p` (§2.2), for 48. Sites
 are named by function; line numbers drift.
 
 ### 2.1 `identity`
@@ -71,6 +72,8 @@ are named by function; line numbers drift.
 | same | `r.encode(..).expect` | internal: equal-length shards built just above | kept |
 | `log::TransparencyLog::append` | `last().unwrap()` | internal: an entry was just pushed | kept |
 | `codec::Reader::fixed` (T73) | `try_into().expect` | internal: `take(N)` returned exactly `N` bytes | kept |
+| `replica::Replica::entries_for` (T18) | index `self.entries[id]` | internal: `id` was kept only if `contains(id)` | kept |
+| `p2p::Handle::ask` (T18) | 2 × `.expect` on the command channel and its answer | internal: the node's task runs while its handle lives (dropping the handle aborts it) and answers every command | kept |
 | `store::DurableLog::open` (T13) | 3 × `try_into().expect` on a record's fields | internal: slices of fixed width inside a `chunks_exact(104)` record; the file's bytes decide only whether the record chains | kept |
 
 ### 2.3 `protocol` and `scoring` (classified only)
@@ -144,7 +147,7 @@ F1–F4 are worth reporting upstream.
 
 ## 4. Fuzz targets
 
-Eleven `cargo fuzz` targets, in `crates/{network,identity,scoring,protocol}/fuzz/` (outside the
+Twelve `cargo fuzz` targets, in `crates/{network,identity,scoring,protocol}/fuzz/` (outside the
 workspace: libFuzzer needs nightly). Each README says how to run them. Besides "no panic,
 no abort, bounded memory", each asserts a property of its entry point:
 
@@ -155,6 +158,7 @@ no abort, bounded memory", each asserts a property of its entry point:
 | `network/checkpoint` | `CheckpointClient::ingest` / `ingest_with_log` over sequences of honest and forged checkpoints | the trusted height never decreases; only `Accepted` changes the trusted checkpoint; acceptance needs a threshold of distinct member signatures |
 | `network/merkle` | `merkle_proof`, `verify_proof` | a proof exists exactly for an in-range leaf, and verifies |
 | `protocol/event` (T73) | `NodeEvent::decode` on arbitrary bytes, seeded with genuine events | a decoded event re-encodes to the same bytes (it found F10) |
+| `network/replica` (T18) | `Message::decode` on arbitrary bytes; replicas fed honest, forked and outsider entries and raw Entries messages, pulling from each other within any cap | a decoded message re-encodes to the same bytes; a wanted entry the peer holds is sent; every entry a replica holds is valid; equivocations verify; two pulls each way converge |
 | `network/store` (T13) | `DurableLog::open`, `ObjectStore::open` on arbitrary file bytes, with and without a genuine header | an opened log verifies and takes an append that survives a reopen; a stored object reads back under its CID after a reopen |
 | `identity/oprf_quorum` | the threshold OPRF with any committee shape, anchor and claimed quorum | a label exactly for `≥ t` distinct committee members, equal for every valid quorum |
 | `identity/enrollment` | `EnrollmentRegistry::enroll` through the reference, VOPRF and threshold oracles | the same person via the other source is a duplicate |
@@ -186,6 +190,7 @@ AddressSanitizer, 4 cores, 2 GiB RSS limit):
 | `protocol/event` (T73 step 2: lifecycle steps, seeded, 5 min) | — | 700 821 | 0 |
 | `protocol/event` (T73 step 3: epoch results, seeded, 5 min) | — | 1 264 857 | 0 |
 | `protocol/event` (T73 step 3: decoded results also applied, 5 min) | — | 1 657 170 | 0 |
+| `network/replica` (T18, 2026-09-27, 5 min) | — | 195 796 | 0 |
 
 `scoring/bridging` was added with T62 (2026-09-24) and has not been run yet: that session
 had no nightly toolchain. `scoring/tests/malformed_ratings.rs` covers the same entry points
@@ -236,8 +241,8 @@ entry points:
   whose validated types make the mismatches unrepresentable.
 - **Network codecs**: the node's own files are the first (T13, `network/store`, fuzzed).
   The node's events (T73, `protocol/event`) and nullifier proofs (`identity/nullifier_proof`)
-  followed; transport (T18) will add wire formats for checkpoints, signatures, receipts,
-  shards and OPRF partials; each needs
+  followed, then the replication messages (T18, `network/replica`); T74 will add wire
+  formats for checkpoints, signatures, receipts, shards and OPRF partials; each needs
   a fuzz target of the same kind, and the `credential` sites marked "becomes external"
   above turn into errors when the committee goes remote.
 - **Fuzzing in CI**: the targets are not built by CI (they need nightly). A scheduled job

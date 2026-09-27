@@ -5,6 +5,7 @@ members = [
     "crates/identity",
     "crates/network",
     "crates/protocol",
+    "crates/p2p",
     "crates/characterization",
 ]
 
@@ -45,4 +46,9 @@ opt-level = 3
 # proof costs ~100 ms — an end-to-end epoch that admits every respondent through the
 # identity gate (T65) would take minutes. Optimize `identity` in dev/test builds too.
 [profile.dev.package.identity]
+opt-level = 3
+
+# Every replicated entry is an ed25519 signature check (T18); unoptimized each costs
+# ~10 ms, and the replication property tests check thousands.
+[profile.dev.package.curve25519-dalek]
 opt-level = 3

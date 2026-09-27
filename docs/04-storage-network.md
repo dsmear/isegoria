@@ -179,7 +179,7 @@ key could predict every draw.
 
 The round runs in process today (`10` T37: `network::beacon`, the draws in
 `protocol::randomness`); carrying commits and reveals between nodes, and the deadlines on
-real checkpoints, is the transport's (`10` T18).
+real checkpoints, is `10` T74's, on the replication of T18.
 
 ---
 
@@ -215,7 +215,7 @@ object a crash lost.
    check, is a write a crash tore before it was acknowledged: it is cut off and the cut is
    reported. A record that fails *before* the last refuses the file: a crash does not
    produce it, and dropping acknowledged history quietly would hide the damage; the node
-   then recovers its history from its peers (`10` T18) and checks it against its signed
+   then recovers its history from its peers (`10` T74) and checks it against its signed
    checkpoint (`log::verify_extends`).
 3. In `objects`, a final record that declares more bytes than the file still holds is torn
    and cut, reported the same way; a declared length above the bound refuses the file
@@ -298,6 +298,91 @@ proof checks that its input was counted, without seeing anyone else's.
 
 With the four kinds before it, this is a node's whole protocol state (`10` T73); the
 issuing committee's registries are the committee's, not a node's.
+
+## Replication between nodes
+
+A node's log is its own; replication makes every infrastructure node hold the same **set**
+of signed entries, whatever order they arrive in, over whatever path (`10` T18).
+
+**Who writes.** Only infrastructure nodes sign entries: the consortium members and the
+relays, whose ed25519 keys form the network's **writer set** (configuration; how a relay
+joins it is the consortium's decision). A person never signs an entry: one key under a
+person's deposits and reviews would link its author and evaluator pseudonyms (`00`
+invariant 4). A person hands its event to a relay; the event carries its own nullifier
+proof, and the relay's signature says only that this relay logged it.
+
+**A signed entry** is a writer's log entry (`seq`, `prev`, `payload`, recomputed `hash`,
+exactly as the log chains it) and the writer's signature over
+`H("isegoria/feed/entry/v1" ‖ network id ‖ writer ‖ hash)`. On the wire: the writer's key
+(32 bytes), `seq` (8), `prev` and `payload` (32 each), the signature (64). An entry travels
+with its object, whose CID must be the payload. An entry is identified by
+`(writer, seq, hash)`; another signature over the same entry is a duplicate.
+
+**The replica** is the set of entries it accepted, each with its object. It refuses an
+entry from a key outside the writer set, with a signature that does not verify
+(`verify_strict`), or whose object is above 16 MiB or is not its payload. It keeps every
+other entry, so it is a grow-only set and a function of what it received, not of the order.
+From the set it reads:
+
+- a writer's **feed**: its entries from `seq` 0 while each position holds one entry and
+  chains from the one before (`prev` of `seq` 0 is zeros), stopping at the first gap, fork
+  or break;
+- **equivocations**: two entries of one writer at one `seq`. The pair, both signatures in
+  it, is evidence anyone checks against the writer set; the writer's feed stops before it.
+  A replica reports, per position, the two entries with the smallest hashes, so replicas
+  holding the same set report the same pairs;
+- a **digest** of the set, the hash of its sorted identifiers, equal on two replicas exactly
+  when they hold the same set.
+
+**Synchronisation (pull).** A node asks a peer for what it lacks, in two round trips:
+
+1. **Summary → Have.** The node sends, per writer it holds, the number of its entries, the
+   digest of them, its feed's length `p` and head. The peer answers with the identifiers of
+   its entries of every writer whose digest differs (or that the node lacks), leaving out
+   the first `p` entries of its own feed when its feed's `p`-th entry is the node's head:
+   the chain commits the node to them.
+2. **Want → Entries.** The node asks for the identifiers it lacks; the peer answers with
+   those entries and their objects, in identifier order, as many as fit in 32 MiB and at
+   least one; the rest are asked for again in the next round.
+
+A sync round with a peer that holds more always brings at least one new entry, so repeated
+rounds between two nodes end with both holding the union of their sets. **Gossip** (the
+push) announces the identifier of every newly accepted entry to the node's neighbours; a
+neighbour that lacks it asks the announcer for it with a Want. Gossip is the fast path;
+the pull rounds are what guarantees convergence when gossip drops, reorders or duplicates a
+message, or a partition heals.
+
+**Convergence invariant** (`08` §10.3). Two replicas that accepted the same set of entries,
+in any order, have the same digest, the same feeds and the same equivocations; two nodes
+that complete a sync round in each direction with nothing in between hold the same set.
+
+**Messages.** A version byte (1), a kind byte, the fields: 1 Summary — its records as one
+field, 112 bytes each (writer, count, digest, feed length, head), sorted by writer, no
+writer twice; 2 Have and 3 Want — identifiers as one field, 72 bytes each (writer, `seq`,
+hash), strictly increasing; 4 Entries — the count, then each signed entry and its object as
+a field, in strictly increasing identifier order. Anything else is refused, so each message
+has one encoding.
+
+**A writer's own feed** is its log on its own disk (§A node's own disk): to publish, it
+stores the object, appends the entry, then signs it. A restarted writer replays its log and
+signs every entry again — ed25519 signatures are deterministic, so they are the same — and
+continues at the next `seq`; signing a fresh feed after losing its files would be an
+equivocation. A node whose writer key is not in the writer set does not start.
+
+**Transport.** libp2p 0.56 over TCP, with Noise and Yamux: gossipsub (signed, strict
+validation) carries the announcements, at most 512 identifiers per message, on the topic
+`isegoria/<network id in hex>/entries`; request-response (`/isegoria/sync/1`, at most
+64 MiB a message) carries Summary→Have and Want→Entries. A node pulls from a peer when they
+connect, on a fixed period, and again after an Entries response that brought something new.
+A node's libp2p key is its transport identity, distinct from its writer key. A message that
+does not decode is dropped.
+
+Not yet: the protocol state as a function of the replicated set, the merge rules for
+conflicting events and a replica's own durability (`10` T74) — a restarted node syncs its
+replica again from its peers; finding an object by its CID without a full replica, the DHT
+(`10` T75). In code: `network::replica`, the `p2p` crate.
+
+---
 
 ## Durability: erasure coding
 
