@@ -292,6 +292,20 @@ were killed by checks in `replication.rs`.
   killed by `at_net_14_pulled_entries_are_announced_on` (checked by hand: without the
   announcement the third node never converges).
 
+## Run 16 — T74, first step: cuts, the ledger, the replica on disk
+
+`cargo mutants --no-config` (the `mutants` profile, `--timeout-multiplier 3
+--minimum-test-timeout 60`, `-j 2`) on the step's diff, one run per crate:
+
+- `network/src` (`--cargo-test-arg=--test=cuts`, `--test=replication`): 59 mutants — 43
+  caught, 12 unviable, 4 missed: `Consortium::is_member` (→ `true`, → `false`, `==` → `!=`),
+  checked only by `protocol`'s tests, which a mutant in `network` does not run; and
+  `Cut::of`'s `> 0` → `>= 0`, since no test had a writer whose feed is empty (its first
+  entry missing). Both killed in `cuts.rs`; the re-run gives 47 caught, 12 unviable, none
+  missed.
+- `protocol/src/ledger.rs` (`--test=ledger`): 10 mutants — 8 caught, 2 unviable.
+- `p2p/src` (the replica on disk): 14 mutants — 8 caught, 6 unviable.
+
 ## Keeping it this way
 
 - New decision logic gets a hand-computed or exact-outcome test, not only a range or

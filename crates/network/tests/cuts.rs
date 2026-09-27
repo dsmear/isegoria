@@ -1,7 +1,7 @@
 //! Cuts and the replica on disk (`docs/04` §Cuts, §A replica on disk, `docs/08` §10.3, T74).
 
 use network::cid::cid;
-use network::consortium::Checkpoint;
+use network::consortium::{Checkpoint, Consortium, Member};
 use network::cut::{added, Cut, CutError, Mark};
 use network::log::TransparencyLog;
 use network::replica::{
@@ -273,4 +273,21 @@ fn at_net_15_a_malformed_previous_cut_is_refused() {
         added(&r, Some(&prev), &Cut::of(&r, 1)),
         Err(CutError::Retracts { writer })
     );
+}
+
+/// AT-NET-15: a writer whose feed is empty (its first entry missing) gets no mark, and the
+/// consortium answers which writer keys are its members'.
+#[test]
+fn at_net_15_empty_feeds_get_no_mark_and_members_are_known() {
+    let ws = writers();
+    let mut items = corpus();
+    items.extend(feed(&ws[2], 2, "c").into_iter().skip(1));
+    let cut = Cut::of(&replica(&items), 0);
+    assert_eq!(cut.marks.len(), 2);
+    assert!(cut.is_well_formed());
+    let members: Vec<Member> = (1..=2).map(|i| Member::from_seed([i; 32])).collect();
+    let c = Consortium::new(members.iter().map(|m| m.public()).collect(), 1);
+    assert!(c.is_member(&ws[0].public().to_bytes()));
+    assert!(c.is_member(&ws[1].public().to_bytes()));
+    assert!(!c.is_member(&ws[2].public().to_bytes()));
 }
