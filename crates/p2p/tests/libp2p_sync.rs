@@ -6,7 +6,7 @@ use libp2p::Multiaddr;
 use network::cid::cid;
 use network::log::TransparencyLog;
 use network::replica::{Accepted, FeedWriter, WriterSet};
-use p2p::{Config, Handle, Own, PublishError, StartError};
+use p2p::{read_limited, topic, Config, Handle, Own, PublishError, StartError};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
@@ -54,9 +54,22 @@ async fn node_every(own: Option<(u8, PathBuf)>, every: Duration) -> (Handle, Mul
     (handle, addr)
 }
 
+/// Waits, at most 15 s, until `done` holds.
+async fn until<F, Fut>(done: F)
+where
+    F: Fn() -> Fut,
+    Fut: std::future::Future<Output = bool>,
+{
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
+    while !done().await {
+        assert!(tokio::time::Instant::now() < deadline, "timed out");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+}
+
 /// Waits until every node has the same digest and holds `n` entries.
 async fn converged(nodes: &[&Handle], n: usize) {
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
     loop {
         let mut digests = Vec::new();
         let mut lens = Vec::new();
@@ -160,6 +173,7 @@ async fn at_net_14_a_restarted_writer_does_not_fork() {
         a.publish(b"two".to_vec()).await.unwrap();
         converged(&[&a, &b], 2).await;
     }
+    until(|| async { b.peers().await == 0 }).await;
     let (a, _) = node(Some((1, dir))).await;
     assert_eq!(a.replica().await.digest(), b.replica().await.digest());
     let third = a.publish(b"three".to_vec()).await.unwrap();
@@ -193,6 +207,7 @@ async fn at_net_14_gossip_carries_new_entries() {
     let hour = Duration::from_secs(3600);
     let (a, a_addr) = node_every(Some((1, scratch("gossip"))), hour).await;
     let (b, _) = node_every(None, hour).await;
+    assert_eq!(a.peers().await, 0);
     b.dial(a_addr).await.unwrap();
     while a.peers().await == 0 {
         tokio::time::sleep(Duration::from_millis(20)).await;
@@ -201,4 +216,39 @@ async fn at_net_14_gossip_carries_new_entries() {
     assert_eq!(b.replica().await.len(), 0);
     a.publish(b"news".to_vec()).await.unwrap();
     converged(&[&a, &b], 1).await;
+}
+
+/// AT-NET-14: with no periodic pull, a node that connects pulls what the other holds, and
+/// a relay announces what it received so the next hop fetches it from the relay.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn at_net_14_connecting_pulls_and_relays_announce() {
+    let hour = Duration::from_secs(3600);
+    let (a, a_addr) = node_every(Some((1, scratch("early"))), hour).await;
+    a.publish(b"early".to_vec()).await.unwrap();
+    let (b, b_addr) = node_every(None, hour).await;
+    let (c, _) = node_every(None, hour).await;
+    b.dial(a_addr).await.unwrap();
+    converged(&[&a, &b], 1).await;
+    c.dial(b_addr).await.unwrap();
+    converged(&[&a, &b, &c], 1).await;
+    until(|| async { c.peers().await == 1 && a.peers().await == 1 }).await;
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    for i in 0..3 {
+        a.publish(format!("late-{i}").into_bytes()).await.unwrap();
+    }
+    converged(&[&a, &b, &c], 4).await;
+}
+
+/// AT-NET-14: a sync message is read whole up to the limit and refused beyond it; the
+/// gossip topic is the network's.
+#[tokio::test]
+async fn at_net_14_the_limit_and_the_topic() {
+    let read = |n: usize| async move {
+        read_limited(&mut futures::io::Cursor::new(vec![7u8; n]), 5).await
+    };
+    assert_eq!(read(4).await.unwrap(), vec![7; 4]);
+    assert_eq!(read(5).await.unwrap(), vec![7; 5]);
+    assert!(read(6).await.is_err());
+    assert!(read(64).await.is_err());
+    assert_eq!(topic(&NET), format!("isegoria/{}/entries", "03".repeat(32)));
 }

@@ -24,10 +24,14 @@ const ANNOUNCE_CHUNK: usize = 512;
 #[derive(Clone, Default)]
 struct SyncCodec;
 
-async fn read_limited<T: AsyncRead + Unpin + Send>(io: &mut T) -> io::Result<Vec<u8>> {
+/// The whole stream, refused beyond `limit` bytes.
+pub async fn read_limited<T: AsyncRead + Unpin + Send>(
+    io: &mut T,
+    limit: u64,
+) -> io::Result<Vec<u8>> {
     let mut bytes = Vec::new();
-    io.take(MESSAGE_LIMIT + 1).read_to_end(&mut bytes).await?;
-    if bytes.len() as u64 > MESSAGE_LIMIT {
+    io.take(limit + 1).read_to_end(&mut bytes).await?;
+    if bytes.len() as u64 > limit {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "message too large",
@@ -51,14 +55,14 @@ impl request_response::Codec for SyncCodec {
     where
         T: AsyncRead + Unpin + Send,
     {
-        read_limited(io).await
+        read_limited(io, MESSAGE_LIMIT).await
     }
 
     async fn read_response<T>(&mut self, _: &StreamProtocol, io: &mut T) -> io::Result<Vec<u8>>
     where
         T: AsyncRead + Unpin + Send,
     {
-        read_limited(io).await
+        read_limited(io, MESSAGE_LIMIT).await
     }
 
     async fn write_request<T>(
@@ -159,8 +163,10 @@ struct Node {
     listening: Vec<oneshot::Sender<Result<Multiaddr, String>>>,
 }
 
-fn hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
+/// The gossip topic of a network's announcements.
+pub fn topic(network_id: &[u8; 32]) -> String {
+    let hex: String = network_id.iter().map(|b| format!("{b:02x}")).collect();
+    format!("isegoria/{hex}/entries")
 }
 
 fn open_own(own: Own, replica: &mut Replica) -> Result<Writing, StartError> {
@@ -223,10 +229,7 @@ impl Handle {
             .map(|own| open_own(own, &mut replica))
             .transpose()?;
         let mut swarm = build_swarm(key).map_err(StartError::Transport)?;
-        let topic = IdentTopic::new(format!(
-            "isegoria/{}/entries",
-            hex(&config.writers.network_id())
-        ));
+        let topic = IdentTopic::new(topic(&config.writers.network_id()));
         swarm
             .behaviour_mut()
             .gossip

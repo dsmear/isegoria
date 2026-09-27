@@ -186,6 +186,7 @@ fn at_net_13_a_prefix_is_not_offered_again() {
         .iter()
         .all(|id| id.writer == ws[1].public().to_bytes()));
     let empty = Replica::new(set(&ws));
+    assert!(empty.is_empty() && !full.is_empty());
     assert_eq!(full.have_for(&empty.summary()).len(), 6);
     let stranger = replica(&ws, &feed(&ws[0], 4, "x"));
     assert_eq!(
