@@ -241,6 +241,14 @@ impl ObjectStore {
         Ok(Some(bytes))
     }
 
+    /// The CIDs stored, in the order they were written.
+    pub fn cids(&self) -> Vec<Cid> {
+        let mut by_record: Vec<(u64, Cid)> =
+            self.index.iter().map(|(c, &(_, _, r))| (r, *c)).collect();
+        by_record.sort();
+        by_record.into_iter().map(|(_, c)| c).collect()
+    }
+
     pub fn len(&self) -> usize {
         self.index.len()
     }

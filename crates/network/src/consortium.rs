@@ -96,6 +96,10 @@ impl Consortium {
         self.member_set_hash
     }
 
+    pub fn is_member(&self, key: &[u8; 32]) -> bool {
+        self.members.iter().any(|m| m.as_bytes() == key)
+    }
+
     pub(crate) fn keys(&self) -> &[VerifyingKey] {
         &self.members
     }

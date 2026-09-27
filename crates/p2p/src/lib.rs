@@ -7,7 +7,8 @@ use libp2p::request_response::{self, ProtocolSupport};
 use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
 use libp2p::{identity, noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm};
 use network::replica::{
-    Accepted, EntryId, FeedWriter, Message, Refused, Replica, SignedEntry, WriterSet, MAX_RESPONSE,
+    Accepted, DiskError, DurableReplica, EntryId, FeedWriter, Message, Replica, SignedEntry,
+    WriterSet, MAX_RESPONSE,
 };
 use network::store::{DurableLog, ObjectStore, StoreError};
 use std::io;
@@ -107,6 +108,8 @@ pub struct Config {
     /// How often the node pulls from every connected peer.
     pub sync_every: Duration,
     pub own: Option<Own>,
+    /// Where the replica is kept (`docs/04` §A replica on disk); in memory when `None`.
+    pub store: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -117,7 +120,7 @@ pub enum StartError {
     /// The own log names an object the object store lacks.
     MissingObject(u64),
     /// The own feed was refused by the writer set (the key is not a writer).
-    Refused(Refused),
+    Replica(DiskError),
     Transport(String),
 }
 
@@ -125,7 +128,7 @@ pub enum StartError {
 pub enum PublishError {
     NotAWriter,
     Store(String),
-    Refused(Refused),
+    Replica(DiskError),
 }
 
 enum Command {
@@ -135,7 +138,7 @@ enum Command {
     Insert(
         SignedEntry,
         Vec<u8>,
-        oneshot::Sender<Result<Accepted, Refused>>,
+        oneshot::Sender<Result<Accepted, DiskError>>,
     ),
     Replica(oneshot::Sender<Replica>),
     Peers(oneshot::Sender<usize>),
@@ -155,7 +158,7 @@ struct Writing {
 
 struct Node {
     swarm: Swarm<Behaviour>,
-    replica: Replica,
+    store: Store,
     topic: IdentTopic,
     writing: Option<Writing>,
     listening: Vec<oneshot::Sender<Result<Multiaddr, String>>>,
@@ -167,8 +170,8 @@ pub fn topic(network_id: &[u8; 32]) -> String {
     format!("isegoria/{hex}/entries")
 }
 
-fn open_own(own: Own, replica: &mut Replica) -> Result<Writing, StartError> {
-    if !replica.writers().contains(&own.writer.public()) {
+fn open_own(own: Own, replica: &mut Store) -> Result<Writing, StartError> {
+    if !replica.replica().writers().contains(&own.writer.public()) {
         return Err(StartError::NotAWriter);
     }
     std::fs::create_dir_all(&own.dir).map_err(|e| StartError::Store(StoreError::Io(e.kind())))?;
@@ -181,7 +184,7 @@ fn open_own(own: Own, replica: &mut Replica) -> Result<Writing, StartError> {
             .ok_or(StartError::MissingObject(entry.seq))?;
         replica
             .insert(own.writer.sign(entry), object)
-            .map_err(StartError::Refused)?;
+            .map_err(StartError::Replica)?;
     }
     Ok(Writing {
         writer: own.writer,
@@ -221,7 +224,12 @@ fn build_swarm(key: identity::Keypair) -> Result<Swarm<Behaviour>, String> {
 impl Handle {
     /// Starts a node on the current tokio runtime; a writer's own feed is replayed first.
     pub fn spawn(key: identity::Keypair, config: Config) -> Result<Handle, StartError> {
-        let mut replica = Replica::new(config.writers.clone());
+        let mut replica = match config.store {
+            Some(dir) => Store::Disk(
+                DurableReplica::open(&dir, config.writers.clone()).map_err(StartError::Replica)?,
+            ),
+            None => Store::Memory(Replica::new(config.writers.clone())),
+        };
         let writing = config
             .own
             .map(|own| open_own(own, &mut replica))
@@ -237,7 +245,7 @@ impl Handle {
         let (commands, rx) = mpsc::unbounded_channel();
         let node = Node {
             swarm,
-            replica,
+            store: replica,
             topic,
             writing,
             listening: Vec::new(),
@@ -273,7 +281,7 @@ impl Handle {
     }
 
     /// Inserts an entry received out of band, announcing it if new.
-    pub async fn insert(&self, entry: SignedEntry, object: Vec<u8>) -> Result<Accepted, Refused> {
+    pub async fn insert(&self, entry: SignedEntry, object: Vec<u8>) -> Result<Accepted, DiskError> {
         self.ask(|tx| Command::Insert(entry, object, tx)).await
     }
 
@@ -308,7 +316,7 @@ impl Node {
     }
 
     fn pull(&mut self, peer: PeerId) {
-        let summary = Message::Summary(self.replica.summary()).encode();
+        let summary = Message::Summary(self.store.replica().summary()).encode();
         self.swarm.behaviour_mut().sync.send_request(&peer, summary);
     }
 
@@ -320,9 +328,9 @@ impl Node {
         }
     }
 
-    fn accept(&mut self, entry: SignedEntry, object: Vec<u8>) -> Result<Accepted, Refused> {
+    fn accept(&mut self, entry: SignedEntry, object: Vec<u8>) -> Result<Accepted, DiskError> {
         let id = entry.id();
-        let accepted = self.replica.insert(entry, object)?;
+        let accepted = self.store.insert(entry, object)?;
         if accepted != Accepted::Duplicate {
             self.announce(&[id]);
         }
@@ -336,7 +344,7 @@ impl Node {
         let entry = w.log.append(payload).map_err(store)?;
         let signed = w.writer.sign(&entry);
         self.accept(signed.clone(), object)
-            .map_err(PublishError::Refused)?;
+            .map_err(PublishError::Replica)?;
         Ok(signed)
     }
 
@@ -358,7 +366,7 @@ impl Node {
                 let _ = tx.send(self.accept(entry, object));
             }
             Command::Replica(tx) => {
-                let _ = tx.send(self.replica.clone());
+                let _ = tx.send(self.store.replica().clone());
             }
             Command::Peers(tx) => {
                 let _ = tx.send(self.swarm.connected_peers().count());
@@ -397,7 +405,7 @@ impl Node {
     }
 
     fn want(&mut self, peer: PeerId, offered: &[EntryId]) {
-        let want = self.replica.want(offered);
+        let want = self.store.replica().want(offered);
         if !want.is_empty() {
             let bytes = Message::Want(want).encode();
             self.swarm.behaviour_mut().sync.send_request(&peer, bytes);
@@ -410,9 +418,9 @@ impl Node {
                 request, channel, ..
             } => {
                 let reply = match Message::decode(&request) {
-                    Some(Message::Summary(s)) => Message::Have(self.replica.have_for(&s)),
+                    Some(Message::Summary(s)) => Message::Have(self.store.replica().have_for(&s)),
                     Some(Message::Want(ids)) => {
-                        Message::Entries(self.replica.entries_for(&ids, MAX_RESPONSE))
+                        Message::Entries(self.store.replica().entries_for(&ids, MAX_RESPONSE))
                     }
                     _ => return,
                 };
@@ -430,7 +438,7 @@ impl Node {
                         for (entry, object) in list {
                             let id = entry.id();
                             if matches!(
-                                self.replica.insert(entry, object),
+                                self.store.insert(entry, object),
                                 Ok(Accepted::New | Accepted::Equivocation)
                             ) {
                                 new.push(id);
@@ -444,6 +452,27 @@ impl Node {
                     _ => {}
                 }
             }
+        }
+    }
+}
+
+enum Store {
+    Memory(Replica),
+    Disk(DurableReplica),
+}
+
+impl Store {
+    fn replica(&self) -> &Replica {
+        match self {
+            Store::Memory(r) => r,
+            Store::Disk(d) => d.replica(),
+        }
+    }
+
+    fn insert(&mut self, entry: SignedEntry, object: Vec<u8>) -> Result<Accepted, DiskError> {
+        match self {
+            Store::Memory(r) => r.insert(entry, object).map_err(DiskError::Refused),
+            Store::Disk(d) => d.insert(entry, object),
         }
     }
 }

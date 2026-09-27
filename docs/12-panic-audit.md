@@ -38,7 +38,7 @@ external input. T48, merged afterwards, adds one internal-invariant site in `sco
 (2026-09-27) three internal-invariant sites in `network::store` (§2.2), for 36; T73 four
 more — `NullifierProof::encode` (§2.1) and `codec::Reader::fixed` (§2.2) — for 40; its second step one in `protocol::events` (§2.3), for 41; its third four in
 `protocol::results` (§2.3), for 45; T18 one in `network::replica` (§2.2) and two in
-`p2p` (§2.2), for 48. Sites
+`p2p` (§2.2), for 48; T74 one in `protocol::ledger` (§2.3), for 49. Sites
 are named by function; line numbers drift.
 
 ### 2.1 `identity`
@@ -82,6 +82,7 @@ are named by function; line numbers drift.
 |---|---|---|---|
 | `protocol::randomness::Beacon::seed` | `d[..8].try_into().expect` | internal: SHA-256 yields 32 bytes | — |
 | `protocol::review::assign_reviewers` | `stratum.choose(..).unwrap()` | internal: every stratum is non-empty (`lo < n`, `hi >= lo + 1`) | — |
+| `protocol::ledger::Ledger::apply` (T74) | `replica.get(..).expect` | internal: `cut::added` names only entries the replica holds | kept |
 | `protocol::events::read_nyms` (T73) | `try_into().expect` | internal: a `chunks_exact(32)` chunk of a field whose length was checked to be a multiple of 32 | kept |
 | `protocol::results::read_floats` (T73) | `try_into().expect` | internal: a `chunks_exact(8)` chunk | kept |
 | `protocol::results::read_record` (T73) | 2 × `try_into().expect` | internal: the two parts of a `chunks_exact(40)` chunk, 32 and 8 bytes | kept |
@@ -131,6 +132,7 @@ then fixed, then pinned by a regression test.
 | F8 | an anchor longer than 65535 bytes | **panic** in `VoprfOracle::label` | RFC 9497's input limit, reached through an `expect` | a longer anchor is hashed to 64 bytes first and its label carries its own tag, so the oracle is total and cannot collide a long anchor with a short one; anchors up to the limit get the same label as before | `voprf_oracle.rs::an_anchor_beyond_the_rfc_9497_limit_still_gets_a_stable_label` |
 | F9 | a received nullifier proof or issuance request | would panic if serializing the transcript ever failed (it cannot today) | `nullifier::challenge`, `credential::pok_challenge` | fallible; the verifier answers `false` / `InvalidProofOfKnowledge` | covered by the no-panic properties (§5) |
 | F10 | a nullifier proof whose BBS+ part repeats an entry (found by `protocol/event`, T73) | no panic: the library decodes it to the same proof, so one proof — and one event — had several encodings and CIDs | `bbs_plus` 0.25.0 deserialization accepts a repeated entry | `NullifierProof::decode` keeps only a proof's own encoding (it re-encodes and compares) | `identity/tests/proof_encoding.rs`, `protocol/tests/node_replay.rs::at_pro_10_a_non_canonical_encoding_is_refused` (fixtures from the crash) |
+| F11 | a previous cut with a mark of length 0 (found by `network/cut`, T74) | arithmetic overflow, a panic in debug builds | `cut::added` took `len - 1` on the previous cut's mark, assuming it well formed | `checked_sub`: such a cut is refused as `Retracts` | `cuts.rs` `at_net_15_a_malformed_previous_cut_is_refused` |
 
 **The OTS pre-scan.** `anchoring::within_bounds` walks the same grammar as the library's
 parser — header, digest, step tree, attestations, no trailing bytes — without executing
@@ -147,7 +149,7 @@ F1–F4 are worth reporting upstream.
 
 ## 4. Fuzz targets
 
-Twelve `cargo fuzz` targets, in `crates/{network,identity,scoring,protocol}/fuzz/` (outside the
+Thirteen `cargo fuzz` targets, in `crates/{network,identity,scoring,protocol}/fuzz/` (outside the
 workspace: libFuzzer needs nightly). Each README says how to run them. Besides "no panic,
 no abort, bounded memory", each asserts a property of its entry point:
 
@@ -158,6 +160,7 @@ no abort, bounded memory", each asserts a property of its entry point:
 | `network/checkpoint` | `CheckpointClient::ingest` / `ingest_with_log` over sequences of honest and forged checkpoints | the trusted height never decreases; only `Accepted` changes the trusted checkpoint; acceptance needs a threshold of distinct member signatures |
 | `network/merkle` | `merkle_proof`, `verify_proof` | a proof exists exactly for an in-range leaf, and verifies |
 | `protocol/event` (T73) | `NodeEvent::decode` on arbitrary bytes, seeded with genuine events | a decoded event re-encodes to the same bytes (it found F10) |
+| `network/cut` (T74) | `Cut::decode`, `SignedEntry::decode` on arbitrary bytes; `added` on arbitrary previous and next cuts over a replica with forked and partial feeds | one encoding each; `added` names only held entries, each once (it found F11) |
 | `network/replica` (T18) | `Message::decode` on arbitrary bytes; replicas fed honest, forked and outsider entries and raw Entries messages, pulling from each other within any cap | a decoded message re-encodes to the same bytes; a wanted entry the peer holds is sent; every entry a replica holds is valid; equivocations verify; two pulls each way converge |
 | `network/store` (T13) | `DurableLog::open`, `ObjectStore::open` on arbitrary file bytes, with and without a genuine header | an opened log verifies and takes an append that survives a reopen; a stored object reads back under its CID after a reopen |
 | `identity/oprf_quorum` | the threshold OPRF with any committee shape, anchor and claimed quorum | a label exactly for `≥ t` distinct committee members, equal for every valid quorum |
@@ -191,6 +194,7 @@ AddressSanitizer, 4 cores, 2 GiB RSS limit):
 | `protocol/event` (T73 step 3: epoch results, seeded, 5 min) | — | 1 264 857 | 0 |
 | `protocol/event` (T73 step 3: decoded results also applied, 5 min) | — | 1 657 170 | 0 |
 | `network/replica` (T18, 2026-09-27, 5 min) | — | 195 796 | 0 |
+| `network/cut` (T74, 2026-09-27; 5 min, then 5 min after the F11 fix) | 5 min to F11 | 66 374 | 1 (F11, fixed) |
 
 `scoring/bridging` was added with T62 (2026-09-24) and has not been run yet: that session
 had no nightly toolchain. `scoring/tests/malformed_ratings.rs` covers the same entry points

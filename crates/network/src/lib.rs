@@ -7,6 +7,7 @@ pub mod beacon;
 pub mod cid;
 pub mod codec;
 pub mod consortium;
+pub mod cut;
 pub mod erasure;
 pub mod log;
 pub mod merkle;

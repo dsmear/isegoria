@@ -377,10 +377,49 @@ connect, on a fixed period, and again after an Entries response that brought som
 A node's libp2p key is its transport identity, distinct from its writer key. A message that
 does not decode is dropped.
 
-Not yet: the protocol state as a function of the replicated set, the merge rules for
-conflicting events and a replica's own durability (`10` T74) — a restarted node syncs its
-replica again from its peers; finding an object by its CID without a full replica, the DHT
-(`10` T75). In code: `network::replica`, the `p2p` crate.
+**A replica on disk.** A node given a directory keeps its replica in two content-addressed
+object files (§A node's own disk): `objects`, the entries' objects, and `entries`, each
+accepted signed entry's 168-byte encoding. An entry is written after its object and before
+the node's memory changes; opening re-inserts every stored entry, checked again against the
+writer set, so a restarted node holds the set it had.
+
+### Cuts: the protocol state from the replicated set
+
+Replicas converge on a set, but the protocol state is the result of applying events in an
+order, and conflicting events (two deposits of one CID through two relays, one quota spent
+on two relays, a second results event for an epoch) resolve by which comes first. The order
+is fixed by **cuts** the consortium signs, never by arrival.
+
+- **A cut** is its number (0, 1, 2, … with no gap) and, per writer it covers, a **mark**:
+  the length of that writer's feed and the hash of its last entry — the chain the mark ends
+  with is the one counted, even when the writer forked. The marks are sorted by writer, with
+  no writer twice and no length 0. Its digest is
+  `H("isegoria/cut/v1" ‖ number ‖ marks)`; the consortium signs it as a checkpoint whose
+  height is the number and whose head is the digest, so `t` of the `n` members must sign it
+  and a member signing two cuts with one number is caught by the checkpoint rules (NET-006).
+- **Extending.** Cut `k + 1` keeps every writer of cut `k`, at a length at least as long,
+  and its chain passes through cut `k`'s head. A new writer may appear.
+- **The order.** The entries a cut adds are, per writer, those past the previous cut's
+  length. The writers are ranked by `H("isegoria/cut/order/v1" ‖ previous cut's digest ‖
+  writer)` (the previous digest of cut 0 is zeros), and the entries taken one per writer in
+  that rank, round after round, each writer's in `seq` order. So no writer key comes first
+  in every cut, and each writer's own order is kept.
+- **Applying.** A node applies a cut once it holds every entry it names; until then the cut
+  waits and the state does not move. Each entry's object is decoded as an event (§Events and
+  replay) and applied to the protocol state in that order. **The first wins**: an event the
+  state refuses — a duplicate deposit, a spent quota, a second results event — is recorded as
+  refused, with its reason, and the state is left as it was; so is an object that is not an
+  event, and an event of a kind only the consortium may log (a lifecycle step, epoch
+  results) from a writer outside it. Nothing refused stops the cut. Persons' events
+  (deposits, reviewers and respondents admitted) may come from any writer.
+- **Stable.** A state computed from cuts `0…k` does not change when entries arrive late:
+  they wait for cut `k + 1`. Two nodes holding the same cuts compute the same state, whatever
+  order their replicas received the entries in.
+
+Not yet (`10` T74, step 2): cuts and the beacon's commits and reveals carried as entries
+between nodes, and the deadlines tied to cuts. Finding an object by its CID without a full
+replica, the DHT, is `10` T75. In code: `network::replica`, `network::cut`,
+`protocol::ledger`, the `p2p` crate.
 
 ---
 

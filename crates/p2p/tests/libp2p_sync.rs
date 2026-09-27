@@ -38,6 +38,14 @@ async fn node(own: Option<(u8, PathBuf)>) -> (Handle, Multiaddr) {
 }
 
 async fn node_every(own: Option<(u8, PathBuf)>, every: Duration) -> (Handle, Multiaddr) {
+    node_stored(own, every, None).await
+}
+
+async fn node_stored(
+    own: Option<(u8, PathBuf)>,
+    every: Duration,
+    store: Option<PathBuf>,
+) -> (Handle, Multiaddr) {
     let config = Config {
         writers: writer_set(),
         sync_every: every,
@@ -45,6 +53,7 @@ async fn node_every(own: Option<(u8, PathBuf)>, every: Duration) -> (Handle, Mul
             writer: writer(i),
             dir,
         }),
+        store,
     };
     let handle = Handle::spawn(Keypair::generate_ed25519(), config).expect("a node starts");
     let addr = handle
@@ -195,6 +204,7 @@ async fn at_net_14_only_writers_publish() {
             writer: writer(9),
             dir: scratch("outsider"),
         }),
+        store: None,
     };
     let outsider = Handle::spawn(Keypair::generate_ed25519(), config);
     assert!(matches!(outsider.err(), Some(StartError::NotAWriter)));
@@ -269,4 +279,26 @@ async fn at_net_14_pulled_entries_are_announced_on() {
     tokio::time::sleep(Duration::from_secs(1)).await;
     b.dial(a_addr).await.unwrap();
     converged(&[&a, &b, &c], 3).await;
+}
+
+/// AT-NET-15: a node keeping its replica on disk holds, after a restart and with no peer,
+/// the set it had.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn at_net_15_a_stored_replica_survives_a_restart() {
+    let every = Duration::from_millis(300);
+    let store = scratch("store");
+    let (a, a_addr) = node(Some((1, scratch("writer")))).await;
+    let digest = {
+        let (b, _) = node_stored(None, every, Some(store.clone())).await;
+        b.dial(a_addr).await.unwrap();
+        for i in 0..3 {
+            a.publish(format!("kept-{i}").into_bytes()).await.unwrap();
+        }
+        converged(&[&a, &b], 3).await;
+        b.replica().await.digest()
+    };
+    drop(a);
+    let (b, _) = node_stored(None, every, Some(store)).await;
+    assert_eq!(b.peers().await, 0);
+    assert_eq!(b.replica().await.digest(), digest);
 }

@@ -147,7 +147,8 @@ Integrity without permissionless consensus (`docs/04`).
 | `beacon` | §The epoch's beacon (D41) | `BeaconRound` (`open`, `commit`, `close_commits`, `close_deposits`, `reveal`, `finish`), `Member::beacon_commit`, `BeaconCommit`, `BeaconReveal`, `BeaconOutcome` (`value`, `revealed`, `withheld`, `record`), `RoundError` — commit-reveal among the members, in process (T37) |
 | `codec` | §Events and replay | `Writer`, `Reader`, `DecodeError` — our encoding: little-endian integers, length-prefixed fields checked before sizing (T73) |
 | `store` | §A node's own disk | `DurableLog`, `ObjectStore` (content-addressed), `Recovery`, `StoreError`, `MAX_OBJECT` — append-only files synced before acknowledging; a torn tail cut, other damage refused (T13) |
-| `replica` | §Replication between nodes | `WriterSet`, `FeedWriter`, `SignedEntry`, `EntryId`, `Replica` (`insert`, `feed`, `equivocations`, `digest`, `summary`, `have_for`, `want`, `entries_for`), `Equivocation`, `Message` — the grow-only set of writers' signed entries and the pull sync's messages (T18) |
+| `replica` | §Replication between nodes | `WriterSet`, `FeedWriter`, `SignedEntry`, `EntryId`, `Replica` (`insert`, `feed`, `equivocations`, `digest`, `summary`, `have_for`, `want`, `entries_for`), `Equivocation`, `Message`, `DurableReplica` (on disk, T74) — the grow-only set of writers' signed entries and the pull sync's messages (T18) |
+| `cut` | §Cuts | `Cut` (`of`, `digest`, `checkpoint`, `encode`, `decode`), `Mark`, `added`, `CutError` — the consortium-signed marks that fix which entries count and their order (T74) |
 | `anchoring` | §Anchoring | `Anchor` trait, `OtsAnchor`, `Receipt`, `AnchorState` |
 | `erasure` | §Durability | `encode`, `reconstruct`, `reconstruct_verified` (real Reed–Solomon; per-shard manifest, corrupt-shard authentication before decode, T16) |
 
@@ -162,7 +163,8 @@ roots from a Bitcoin node/SPV; here an injected block source stands in and
 `OtsAnchor::upgrade` models the calendar's confirm-and-upgrade with one hashing step.
 **Replication** of the signed set is real (`replica`, over libp2p in `p2p`, T18). **Not
 yet implemented:** the protocol state as a function of the replicated set and its merge
-rules (T74), the DHT (T75).
+rules is `protocol::ledger` over signed cuts (T74, step 1); cuts and the beacon carried as
+entries are T74's step 2, the DHT T75.
 
 ## `protocol` — lifecycle orchestration
 
@@ -173,6 +175,7 @@ steps are seeded for reproducibility.
 |---|---|---|---|
 | `events` | §Events and replay (`docs/04`) | `NodeEvent` (deposit, reviewer admitted, respondent admitted, lifecycle step, epoch results), `encode`, `decode` (T73) | `network::codec`, `identity::nullifier` |
 | `node` | §Events and replay (`docs/04`) | `Node::{open, submit, state}`, `NodeState::{apply, item, results}`, `Outcome`, `NodeError`, `Rejection` — the protocol state rebuilt by replaying the durable log (T73) | `events`, `results`, `deposit`, `review`, `pilot`, `network::store` |
+| `ledger` | §Cuts (`docs/04`), PROTO-015 | `Ledger` (`apply`, `state`, `last`, `refused`), `Refusal`, `CutReport`, `LedgerError` — the protocol state from signed cuts over the replicated set, the first of conflicting events winning (T74) | `node`, `events`, `network::cut`, `network::replica` |
 | `results` | §Events and replay (`docs/04`), PRIV-004 | `EpochResults`, `ResultRecord`, `ResultsState`, `ResultsRejected`; `rating_leaf`, `answer_leaf`, `inputs_root`, `inclusion_proof`, `verify_inclusion` — an epoch's engine outputs as one event, bound to the Merkle root of its inputs (T73) | `reputation`, `appeal`, `exposure`, `contested`, `network::merkle` |
 | `admission` | INV-9/ID-008 | `admit`, `NullifierSet` (T6); `QuotaLedger` — per-credential proposal quota (T11) | `identity::nullifier`, `identity::ratelimit` |
 | `blueprint` | [8]/L2 | `Blueprint`, `quotas`, `coverage_deviation`, `assemble_test` | — |
@@ -203,7 +206,8 @@ Replication between nodes over libp2p (`docs/04` §Replication between nodes): `
 (`spawn`, `listen`, `dial`, `publish`, `insert`, `replica`, `peers`), `Config`, `Own` — a
 node's task drives a swarm with gossipsub (announcements of new entries) and
 request-response (`/isegoria/sync/1`: Summary→Have, Want→Entries). A writer's own feed is
-its `network::store` log, signed again on restart. Only `network` is a dependency: the
+its `network::store` log, signed again on restart; given a directory, the node keeps its
+replica on disk (`DurableReplica`, T74). Only `network` is a dependency: the
 engine and the protocol state stay free of I/O and of an async runtime (T18).
 
 ## `characterization` — the T24 harness
@@ -341,7 +345,8 @@ cargo clippy --workspace --all-targets
 | Credential issuance | **Real** (BBS+ blind; single-issuer **and** threshold t-of-n MPC) | Real DKG ceremony + network transport; selective-disclosure presentation |
 | Public-chain anchoring | **Real** (OpenTimestamps proof format + verification) | Live calendar POST + Bitcoin node/SPV block source |
 | Gossip transport, replication of the signed set | **Real** — libp2p gossipsub + request-response, a grow-only set with equivocation evidence (T18) | — |
-| Protocol state from the replicated set, merge rules; DHT | Documented, not implemented (T74, T75) | libp2p Kademlia |
+| Protocol state from the replicated set, merge rules | **Real** — signed cuts fix the order, the first of conflicting events wins (T74, step 1); cuts carried as entries: step 2 | — |
+| DHT | Documented, not implemented (T75) | libp2p Kademlia |
 
 Reference implementations are clearly marked and provide **no** security; they exist
 to make the pipeline testable end-to-end.

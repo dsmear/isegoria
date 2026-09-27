@@ -5,9 +5,10 @@ use crate::cid::{cid, Cid};
 use crate::codec::{Reader, Writer};
 use crate::hash::tagged;
 use crate::log::{entry_hash, Entry};
-use crate::store::MAX_OBJECT;
+use crate::store::{ObjectStore, StoreError, MAX_OBJECT};
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use std::collections::BTreeMap;
+use std::path::Path;
 
 /// The most entry and object bytes one Entries message carries (at least one entry).
 pub const MAX_RESPONSE: usize = 32 << 20;
@@ -49,6 +50,21 @@ fn entry_message(network_id: &[u8; 32], writer: &[u8; 32], hash: &[u8; 32]) -> [
 }
 
 impl SignedEntry {
+    /// The 168-byte encoding: writer, `seq`, `prev`, payload, signature.
+    pub fn encode(&self) -> Vec<u8> {
+        let mut w = Writer::new();
+        self.write(&mut w);
+        w.finish()
+    }
+
+    /// The entry of [`encode`](Self::encode)'s bytes, its hash recomputed.
+    pub fn decode(bytes: &[u8]) -> Option<Self> {
+        let mut r = Reader::new(bytes);
+        let e = Self::read(&mut r)?;
+        r.finish().ok()?;
+        Some(e)
+    }
+
     pub fn id(&self) -> EntryId {
         EntryId {
             writer: self.writer,
@@ -229,25 +245,31 @@ impl Replica {
         &self.writers
     }
 
-    pub fn insert(&mut self, entry: SignedEntry, object: Vec<u8>) -> Result<Accepted, Refused> {
-        self.writers.check(&entry)?;
+    /// What [`insert`](Self::insert) would answer, without inserting.
+    pub fn check(&self, entry: &SignedEntry, object: &[u8]) -> Result<Accepted, Refused> {
+        self.writers.check(entry)?;
         if object.len() > MAX_OBJECT {
             return Err(Refused::ObjectTooLarge);
         }
-        if cid(&object) != entry.entry.payload {
+        if cid(object) != entry.entry.payload {
             return Err(Refused::ObjectMismatch);
         }
         let id = entry.id();
-        if self.entries.contains_key(&id) {
-            return Ok(Accepted::Duplicate);
-        }
-        let taken = self.at(&id.writer, id.seq).next().is_some();
-        self.entries.insert(id, (entry, object));
-        Ok(if taken {
+        Ok(if self.entries.contains_key(&id) {
+            Accepted::Duplicate
+        } else if self.at(&id.writer, id.seq).next().is_some() {
             Accepted::Equivocation
         } else {
             Accepted::New
         })
+    }
+
+    pub fn insert(&mut self, entry: SignedEntry, object: Vec<u8>) -> Result<Accepted, Refused> {
+        let accepted = self.check(&entry, &object)?;
+        if accepted != Accepted::Duplicate {
+            self.entries.insert(entry.id(), (entry, object));
+        }
+        Ok(accepted)
     }
 
     pub fn len(&self) -> usize {
@@ -286,6 +308,27 @@ impl Replica {
 
     fn at(&self, writer: &[u8; 32], seq: u64) -> impl Iterator<Item = &SignedEntry> + '_ {
         self.of(writer).filter(move |e| e.entry.seq == seq)
+    }
+
+    /// `writer`'s chain of `len` entries ending with `head`, from `seq` 0; `None` while an
+    /// entry of it is missing.
+    pub fn chain(&self, writer: &[u8; 32], len: u64, head: [u8; 32]) -> Option<Vec<&SignedEntry>> {
+        let mut chain = Vec::new();
+        let mut hash = head;
+        for seq in (0..len).rev() {
+            let id = EntryId {
+                writer: *writer,
+                seq,
+                hash,
+            };
+            let (e, _) = self.entries.get(&id)?;
+            hash = e.entry.prev;
+            chain.push(e);
+        }
+        (hash == [0; 32]).then(|| {
+            chain.reverse();
+            chain
+        })
     }
 
     /// The digest of the whole set: equal on two replicas exactly when their sets are.
@@ -503,5 +546,69 @@ impl Message {
         };
         r.finish().ok()?;
         Some(message)
+    }
+}
+
+/// Why a replica on disk did not take an entry, or did not open.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DiskError {
+    Refused(Refused),
+    Store(StoreError),
+    /// A stored entry does not decode or its object is missing: the files were damaged.
+    Damaged,
+}
+
+/// A replica kept in `entries` and `objects` under one directory (`docs/04` §A replica on
+/// disk).
+pub struct DurableReplica {
+    replica: Replica,
+    entries: ObjectStore,
+    objects: ObjectStore,
+}
+
+impl DurableReplica {
+    /// Opens or creates the files and re-inserts every stored entry.
+    pub fn open(dir: &Path, writers: WriterSet) -> Result<Self, DiskError> {
+        let store = |e| DiskError::Store(e);
+        std::fs::create_dir_all(dir).map_err(|e| DiskError::Store(StoreError::Io(e.kind())))?;
+        let (entries, _) = ObjectStore::open(&dir.join("entries")).map_err(store)?;
+        let (objects, _) = ObjectStore::open(&dir.join("objects")).map_err(store)?;
+        let mut replica = Replica::new(writers);
+        for id in entries.cids() {
+            let bytes = entries.get(&id).map_err(store)?.ok_or(DiskError::Damaged)?;
+            let entry = SignedEntry::decode(&bytes).ok_or(DiskError::Damaged)?;
+            let object = objects
+                .get(&entry.entry.payload)
+                .map_err(store)?
+                .ok_or(DiskError::Damaged)?;
+            replica.insert(entry, object).map_err(DiskError::Refused)?;
+        }
+        Ok(DurableReplica {
+            replica,
+            entries,
+            objects,
+        })
+    }
+
+    /// Checks the entry, writes its object then the entry, then inserts it.
+    pub fn insert(&mut self, entry: SignedEntry, object: Vec<u8>) -> Result<Accepted, DiskError> {
+        let accepted = self
+            .replica
+            .check(&entry, &object)
+            .map_err(DiskError::Refused)?;
+        if accepted != Accepted::Duplicate {
+            self.objects.put(&object).map_err(DiskError::Store)?;
+            self.entries
+                .put(&entry.encode())
+                .map_err(DiskError::Store)?;
+            self.replica
+                .insert(entry, object)
+                .map_err(DiskError::Refused)?;
+        }
+        Ok(accepted)
+    }
+
+    pub fn replica(&self) -> &Replica {
+        &self.replica
     }
 }

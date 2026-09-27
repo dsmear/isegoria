@@ -60,3 +60,10 @@ path = "fuzz_targets/replica.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "cut"
+path = "fuzz_targets/cut.rs"
+test = false
+doc = false
+bench = false

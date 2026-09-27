@@ -13,6 +13,7 @@ pub mod exposure;
 pub mod gate;
 pub mod governance;
 pub mod honeypot;
+pub mod ledger;
 pub mod lifecycle;
 pub mod lottery;
 pub mod node;
