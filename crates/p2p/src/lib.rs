@@ -14,7 +14,6 @@ use std::io;
 use std::path::PathBuf;
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
-use tokio::task::JoinHandle;
 
 /// The most bytes a sync request or response may carry.
 pub const MESSAGE_LIMIT: u64 = 64 << 20;
@@ -142,11 +141,10 @@ enum Command {
     Peers(oneshot::Sender<usize>),
 }
 
-/// A running node; dropping it stops the node.
+/// A running node; dropping it closes its command channel, which ends the node's task.
 pub struct Handle {
     peer_id: PeerId,
     commands: mpsc::UnboundedSender<Command>,
-    task: JoinHandle<()>,
 }
 
 struct Writing {
@@ -244,12 +242,8 @@ impl Handle {
             writing,
             listening: Vec::new(),
         };
-        let task = tokio::spawn(node.run(rx, config.sync_every));
-        Ok(Handle {
-            peer_id,
-            commands,
-            task,
-        })
+        tokio::spawn(node.run(rx, config.sync_every));
+        Ok(Handle { peer_id, commands })
     }
 
     pub fn peer_id(&self) -> PeerId {
@@ -290,12 +284,6 @@ impl Handle {
 
     pub async fn peers(&self) -> usize {
         self.ask(Command::Peers).await
-    }
-}
-
-impl Drop for Handle {
-    fn drop(&mut self) {
-        self.task.abort();
     }
 }
 

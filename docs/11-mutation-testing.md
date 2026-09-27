@@ -269,6 +269,29 @@ failed appeal's settlement (`promoted` 0): the round trip encoded only a promoti
 failed settlement was checked only for its refused flag. Killed: that settlement now also
 decodes and re-encodes to the same bytes.
 
+## Run 15 — T18: replication and the libp2p transport
+
+`cargo mutants --no-config` (the `mutants` profile, `--timeout-multiplier 3
+--minimum-test-timeout 60`, `-j 2`) on T18's diff, one run per crate. A first run with
+three jobs filled the disk after 15 mutants; its three survivors — `WriterSet::contains`
+and `network_id`, used only by `p2p`'s tests, which a mutant in `network` does not run —
+were killed by checks in `replication.rs`.
+
+- `network/src/replica.rs` (`--cargo-test-arg=--test=replication`): 122 mutants — 98
+  caught, 22 unviable, 2 missed: `Replica::is_empty` → `true`/`false`. Killed; the re-run
+  gives 100 caught, 22 unviable, none missed.
+- `p2p/src/lib.rs`: 57 mutants — 9 caught, 23 timeouts, 15 unviable, 10 missed. A timeout
+  is a mutant that stops sync: the tests wait for convergence until their deadline. The
+  survivors: the sync message limit, never reached (`read_limited` now takes the limit and
+  is tested at 5 bytes); the topic name (`topic()`, pinned to `docs/04`); `peers`; and
+  three paths the periodic pull masked — the pull on connect, a relay's announcement of
+  entries it pulled, and the handle's `Drop`. With the deadline cut to 15 s and tests that
+  run with no periodic pull, the re-run gives 36 caught, 4 timeouts, 15 unviable, 2
+  missed. `Drop` was dead code — dropping the handle closes the command channel, which
+  already ends the node's task — and is removed; the announcement of pulled entries is
+  killed by `at_net_14_pulled_entries_are_announced_on` (checked by hand: without the
+  announcement the third node never converges).
+
 ## Keeping it this way
 
 - New decision logic gets a hand-computed or exact-outcome test, not only a range or

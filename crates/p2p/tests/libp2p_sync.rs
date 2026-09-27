@@ -252,3 +252,21 @@ async fn at_net_14_the_limit_and_the_topic() {
     assert!(read(64).await.is_err());
     assert_eq!(topic(&NET), format!("isegoria/{}/entries", "03".repeat(32)));
 }
+
+/// AT-NET-14: with no periodic pull, entries a relay pulled when it connected are
+/// announced on, reaching a node that only the relay is connected to.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn at_net_14_pulled_entries_are_announced_on() {
+    let hour = Duration::from_secs(3600);
+    let (a, a_addr) = node_every(Some((1, scratch("pulled"))), hour).await;
+    for i in 0..3 {
+        a.publish(format!("old-{i}").into_bytes()).await.unwrap();
+    }
+    let (b, b_addr) = node_every(None, hour).await;
+    let (c, _) = node_every(None, hour).await;
+    c.dial(b_addr).await.unwrap();
+    until(|| async { b.peers().await == 1 }).await;
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    b.dial(a_addr).await.unwrap();
+    converged(&[&a, &b, &c], 3).await;
+}
