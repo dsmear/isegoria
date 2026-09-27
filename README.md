@@ -342,8 +342,9 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
 2. **P2P network** — done so far: the consortium's configuration check (T63), a
    randomness beacon nobody can grind, by commit-reveal among the consortium members (D41,
    T37, in process), draws that read their candidates as a set (T72), and a node's log and
-   objects on disk, surviving a restart (T13); next the protocol state rebuilt from the log
-   (T73), transport and replication, live anchoring.
+   objects on disk, surviving a restart (T13), and the admission state rebuilt from the log
+   (T73, first step); next the rest of the protocol state as events (T73), transport and
+   replication, live anchoring.
 3. **The rest** — the protocol boundary (no-show reviewers, validated panels, honeypot
    sampling), distributed identity and the external cryptographic review, statistical
    privacy, real-world pilots.

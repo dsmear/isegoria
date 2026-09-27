@@ -34,7 +34,7 @@ pub fn admit(
 pub struct DuplicateNullifier;
 
 /// Role nullifiers that already acted in one context, keyed on the verified id (INV-9).
-#[derive(Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct NullifierSet {
     seen: HashSet<Nym>,
 }
@@ -71,7 +71,7 @@ pub struct OverQuota;
 
 /// Per-credential proposal quota for one epoch (`docs/08` ID-008): counts by proposer
 /// nullifier id (INV-9), set by the caller from `C_a` (`scoring::reputation::proposal_rate`).
-#[derive(Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct QuotaLedger {
     used: HashMap<Nym, u32>,
 }

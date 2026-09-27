@@ -35,7 +35,8 @@ other nodes, and a quorum's answers come from committee members.
 network 4, protocol 2, scoring 1. After this audit: 30, none of them reachable from
 external input. T48, merged afterwards, adds one internal-invariant site in `scoring`
 (§2.3), for 31; T63 (2026-09-26) two configuration sites in `network` (§2.2), for 33; T13
-(2026-09-27) three internal-invariant sites in `network::store` (§2.2), for 36. Sites
+(2026-09-27) three internal-invariant sites in `network::store` (§2.2), for 36; T73 four
+more — `NullifierProof::encode` (§2.1) and `codec::Reader::fixed` (§2.2) — for 40. Sites
 are named by function; line numbers drift.
 
 ### 2.1 `identity`
@@ -52,6 +53,7 @@ are named by function; line numbers drift.
 | `enrollment::VoprfOracle::new` | `new_from_seed(..).expect` | internal: a 32-byte seed with a fixed info string always derives a key (failure has negligible probability) | kept |
 | `enrollment::VoprfOracle::label` | `blind(..).expect`, `finalize(..).expect` | **external**: the anchor's bytes come from the enrollment adapter. RFC 9497 caps an input at `u16::MAX` bytes, and a longer anchor made `finalize` fail — a panic, under a message claiming the proof failed | **fixed (F8)**: the oracle is total; both `expect`s are now internal and say why |
 | `nullifier::context_generator` | 2 × `.expect` on hash-to-curve | internal: constant domain tag and curve configuration | kept |
+| `nullifier::NullifierProof::encode` (T73) | 3 × `serialize_compressed(..).unwrap()` | internal: writing the proof's own points and BBS+ proof to a `Vec`; `decode` calls it on a proof that already decoded | kept |
 | `nullifier::NullifierProof::id` | `serialize_compressed(..).unwrap()` | internal: writing a verified point to a `Vec` | kept |
 | `nullifier::challenge` | `contribute(..).expect` and 3 × `serialize_compressed(..).unwrap()` | **external**: `verify` computes it over a proof it received | **made fallible (F9)**; `verify` answers `false`, `prove` keeps one `expect` on its own proof |
 | `nullifier::prove` | `PoKOfSignatureG1Protocol::init(..).expect`, `gen_proof(..).expect` | internal: the holder's own credential, and `IssuerPublic` is opaque and always carries two message generators | kept |
@@ -67,6 +69,7 @@ are named by function; line numbers drift.
 | `erasure::encode` | `ReedSolomon::new(..).expect` | configuration: the encoder picks the layout of its own data | kept, `# Panics` |
 | same | `r.encode(..).expect` | internal: equal-length shards built just above | kept |
 | `log::TransparencyLog::append` | `last().unwrap()` | internal: an entry was just pushed | kept |
+| `codec::Reader::fixed` (T73) | `try_into().expect` | internal: `take(N)` returned exactly `N` bytes | kept |
 | `store::DurableLog::open` (T13) | 3 × `try_into().expect` on a record's fields | internal: slices of fixed width inside a `chunks_exact(104)` record; the file's bytes decide only whether the record chains | kept |
 
 ### 2.3 `protocol` and `scoring` (classified only)
@@ -119,6 +122,7 @@ then fixed, then pinned by a regression test.
 | F7 | `merkle_proof` with an index ≥ the leaf count | **panic** (index out of bounds), or for some indices a silent proof of no leaf | `merkle::merkle_proof` | returns `Option`; `None` for an out-of-range index | `integrity.rs::merkle_inclusion_proof_verifies` |
 | F8 | an anchor longer than 65535 bytes | **panic** in `VoprfOracle::label` | RFC 9497's input limit, reached through an `expect` | a longer anchor is hashed to 64 bytes first and its label carries its own tag, so the oracle is total and cannot collide a long anchor with a short one; anchors up to the limit get the same label as before | `voprf_oracle.rs::an_anchor_beyond_the_rfc_9497_limit_still_gets_a_stable_label` |
 | F9 | a received nullifier proof or issuance request | would panic if serializing the transcript ever failed (it cannot today) | `nullifier::challenge`, `credential::pok_challenge` | fallible; the verifier answers `false` / `InvalidProofOfKnowledge` | covered by the no-panic properties (§5) |
+| F10 | a nullifier proof whose BBS+ part repeats an entry (found by `protocol/event`, T73) | no panic: the library decodes it to the same proof, so one proof — and one event — had several encodings and CIDs | `bbs_plus` 0.25.0 deserialization accepts a repeated entry | `NullifierProof::decode` keeps only a proof's own encoding (it re-encodes and compares) | `identity/tests/proof_encoding.rs`, `protocol/tests/node_replay.rs::at_pro_10_a_non_canonical_encoding_is_refused` (fixtures from the crash) |
 
 **The OTS pre-scan.** `anchoring::within_bounds` walks the same grammar as the library's
 parser — header, digest, step tree, attestations, no trailing bytes — without executing
@@ -135,7 +139,7 @@ F1–F4 are worth reporting upstream.
 
 ## 4. Fuzz targets
 
-Nine `cargo fuzz` targets, in `crates/{network,identity,scoring}/fuzz/` (outside the
+Eleven `cargo fuzz` targets, in `crates/{network,identity,scoring,protocol}/fuzz/` (outside the
 workspace: libFuzzer needs nightly). Each README says how to run them. Besides "no panic,
 no abort, bounded memory", each asserts a property of its entry point:
 
@@ -145,6 +149,7 @@ no abort, bounded memory", each asserts a property of its entry point:
 | `network/erasure` | `reconstruct`, `reconstruct_verified`: hostile shards and layouts; genuine encodings with losses and corruptions | a genuine encoding recovers exactly when `data_shards` authentic shards survive, to the original bytes |
 | `network/checkpoint` | `CheckpointClient::ingest` / `ingest_with_log` over sequences of honest and forged checkpoints | the trusted height never decreases; only `Accepted` changes the trusted checkpoint; acceptance needs a threshold of distinct member signatures |
 | `network/merkle` | `merkle_proof`, `verify_proof` | a proof exists exactly for an in-range leaf, and verifies |
+| `protocol/event` (T73) | `NodeEvent::decode` on arbitrary bytes, seeded with genuine events | a decoded event re-encodes to the same bytes (it found F10) |
 | `network/store` (T13) | `DurableLog::open`, `ObjectStore::open` on arbitrary file bytes, with and without a genuine header | an opened log verifies and takes an append that survives a reopen; a stored object reads back under its CID after a reopen |
 | `identity/oprf_quorum` | the threshold OPRF with any committee shape, anchor and claimed quorum | a label exactly for `≥ t` distinct committee members, equal for every valid quorum |
 | `identity/enrollment` | `EnrollmentRegistry::enroll` through the reference, VOPRF and threshold oracles | the same person via the other source is a duplicate |
@@ -152,9 +157,10 @@ no abort, bounded memory", each asserts a property of its entry point:
 | `identity/nullifier_proof` | `nullifier::verify` of proofs decoded from arbitrary bytes or spliced into a genuine one | only the untouched genuine proof verifies, for its own role and context |
 | `scoring/bridging` (T62) | `bridging::fit`, `bridging::bridge_scores` on a `Ratings` assembled field by field: indices past `n`/`m`, any rating, any number of weights of any value | an error exactly when `Ratings::validate` refuses the input; a validated input always fits |
 
-Two targets reach private code through `--cfg fuzzing` (set by cargo-fuzz):
-`ThresholdOprfOracle::fuzz_label_with_quorum` and `NullifierProof::{to_bytes, from_bytes}`,
-a test encoding and not a wire format. Normal builds do not contain them.
+One target reaches private code through `--cfg fuzzing` (set by cargo-fuzz):
+`ThresholdOprfOracle::fuzz_label_with_quorum`; normal builds do not contain it.
+`identity/nullifier_proof` used a test encoding under the same flag until T73, and now
+fuzzes the wire format v1 (`NullifierProof::{encode, decode}`).
 
 **Runs recorded for this audit** (nightly `cargo-fuzz` 0.13.2, libFuzzer with
 AddressSanitizer, 4 cores, 2 GiB RSS limit):
@@ -170,6 +176,8 @@ AddressSanitizer, 4 cores, 2 GiB RSS limit):
 | `identity/voprf_wire` | 5 529 289 | 1 224 479 | 0 |
 | `identity/nullifier_proof` | 91 962 | 18 663 | 0 |
 | `network/store` (T13, 2026-09-27; 5 min during the work, 3 min on the committed code) | 309 898 | 110 450 | 0 |
+| `protocol/event` (T73, 2026-09-27; 4 min unseeded, then 5 min seeded after the F10 fix) | 2 276 305 | 488 280 | 1 (F10, fixed) |
+| `identity/nullifier_proof` (T73: the wire format, 4 min) | — | 17 462 | 0 |
 
 `scoring/bridging` was added with T62 (2026-09-24) and has not been run yet: that session
 had no nightly toolchain. `scoring/tests/malformed_ratings.rs` covers the same entry points

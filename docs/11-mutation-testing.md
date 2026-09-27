@@ -5,7 +5,7 @@
 | **Purpose** | Measure how much of the code the tests actually *verify*, not just execute, and record every mutant that survives with the reason it is acceptable. |
 | **Tool** | `cargo-mutants` 26.0.0 (the newest release that builds on the pinned rustc 1.86). |
 | **Date** | 2026-09-24, branch `test/t41-mutation-survivors`. |
-| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store). |
+| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, run 12 for T73's first step). |
 
 ## Why this was needed
 
@@ -235,6 +235,20 @@ tail on disk, which the test now checks), and the directory sync by a `created` 
 cut now always runs (a no-op without a tear) and the directory is synced whenever a header
 is written. The tenth is the one left below. Re-run: 85 mutants, 77 caught, 7 unviable, 1 missed — `sync_dir` → `()`, whose
 effect shows only on power loss, which no test can produce.
+
+## Run 12 — T73, first step: the encoding, the proof's wire format, the node's replay
+
+`cargo mutants --in-diff` on the step's diff, in two halves. `network` and `identity`
+(`codec.rs`, `log.rs`'s derives, `nullifier.rs`'s `encode`/`decode`; `--no-config`):
+33 mutants — 31 caught, 1 unviable, 1 missed. The survivor was real: `&&` → `||` in
+`NullifierProof::decode` accepted a non-canonical encoding again, and only the `protocol`
+suite held the case fuzzing had found; `identity/tests/proof_encoding.rs` now holds it too
+(re-run: caught). `protocol` (`events.rs`, `node.rs`, the derives in `admission.rs`; the
+config's profile and `calibration`, `--cargo-test-arg=--test=…` with `node_replay`,
+`proto007_deposit_replay`, `proto013_respondent_gate`, `inv9_nym_proof` and
+`id008_proposal_quota`): 25 mutants — 19 caught, 6 unviable, none missed. The node's
+poisoned state after a failed write has no test: it needs an I/O error after a successful
+open, which the tests cannot provoke.
 
 ## Keeping it this way
 

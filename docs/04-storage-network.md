@@ -226,8 +226,44 @@ The reopened log is, entry for entry, the log that was acknowledged: its head, i
 `contains` and its consistency with a signed checkpoint are those of the log before the
 restart.
 
-In code: `network::store` (`10` T13). Rebuilding the rest of a node's state by replaying the
-log waits for typed events and the wire formats of the proofs they carry (`10` T73).
+In code: `network::store` (`10` T13).
+
+### Events and replay
+
+Every change to a node's state is an **event**: an object in `objects`, named by one log
+entry. The node's state is what replaying its log produces, event by event, from nothing —
+on this node after a restart, or on any node given the same files and the issuer's public
+key. Replay re-checks everything the first acceptance checked, proofs included: the log is
+trusted to say *what* happened, never that it was valid.
+
+**Encoding (ours, `network::codec`).** Little-endian fixed-width integers; a variable field
+is its length (8 bytes) and its bytes, and a length above what the input still holds is
+refused before anything is allocated; a decoder must consume the whole input. An event is a
+version byte (1), a kind byte, then its fields:
+
+| Kind | Event | Fields | State it changes |
+|---|---|---|---|
+| 1 | deposit | epoch, quota, the draft's item and primary source, the `Propose` proof | the drafts on record, the proposer's quota for the epoch (`05` [2]) |
+| 2 | reviewer admitted | item CID, epoch, the `Judge` proof | the item's panel for the epoch |
+| 3 | respondent admitted | batch CID, epoch, the `Respond` proof | the batch's respondents for the epoch |
+
+A nullifier proof travels as its role (one byte: 0 propose, 1 judge, 2 respond), the
+nullifier and the Schnorr commitment (compressed G1 points, 48 bytes each) and the BBS+
+proof (the library's canonical compressed encoding); decoding validates every point and
+refuses trailing bytes.
+
+**Writing.** A submitted event is checked and applied to the state in memory; only an
+accepted event is written — the object, then the log entry, each synced. A rejected event
+leaves no trace. If writing fails after the state changed, the node refuses every further
+event until it is reopened, which rebuilds the state from what the disk holds.
+
+**Replay.** Opening a node replays its log: an entry whose object is missing, does not
+decode, or is rejected on replay refuses the node — the files say an accepted event
+happened that this node cannot accept, and quietly skipping it would give another state.
+
+This covers the admission state (the three kinds above). The item lifecycle and the
+engine's outputs — reputation tracks, histories, pools, exposure — become events the same
+way in later steps of `10` T73.
 
 ## Durability: erasure coding
 

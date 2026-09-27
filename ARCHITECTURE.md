@@ -96,7 +96,7 @@ The state authenticates but does not issue (`docs/03`).
 | Module | Spec | Key items |
 |---|---|---|
 | `nym` | §M3 | `Role`, `Nym`, `derive_nym` = `H(secret, role)` (lightweight address) |
-| `nullifier` | §M3 | `NullifierProof`, `prove`, `verify` (ZK nullifier bound to the BBS+ credential) |
+| `nullifier` | §M3 | `NullifierProof` (`encode`, `decode`: the wire format v1, canonical, T73), `prove`, `verify` (ZK nullifier bound to the BBS+ credential) |
 | `ratelimit` | §Cost of proposing | `rln_token`, `within_quota`, `SlotLedger` |
 | `enrollment` | §M1 | `IdentityDocument` (+ `Cie`, `Spid`), `UniquenessOracle` (`VoprfOracle` real + `ReferenceOracle` test-only), `EnrollmentRegistry` |
 | `oprf` | §M1 | `ThresholdOprfOracle` (Shamir + DLEQ), `KeyShare`, `PublicShare`, `PartialEval`, `DleqProof` |
@@ -142,6 +142,7 @@ Integrity without permissionless consensus (`docs/04`).
 | `log` | §Signed append-only logs | `TransparencyLog` (hash-chained; `verify` detects tampering; `checkpoint` + `verify_extends` prove consistency/truncation against a signed prior head, T14) |
 | `consortium` | §The consortium as backbone | `Member` (ed25519), `Checkpoint` (net-id + member-set bound, T15), `Consortium::new` (`1 ≤ t ≤ n` distinct keys, T63), `Consortium::verify` (t-of-n over its own member set, T63), `verify_excluding` (the beacon's withholders, T37), `CheckpointClient` (monotonic-height, equivocation, T15) |
 | `beacon` | §The epoch's beacon (D41) | `BeaconRound` (`open`, `commit`, `close_commits`, `close_deposits`, `reveal`, `finish`), `Member::beacon_commit`, `BeaconCommit`, `BeaconReveal`, `BeaconOutcome` (`value`, `revealed`, `withheld`, `record`), `RoundError` — commit-reveal among the members, in process (T37) |
+| `codec` | §Events and replay | `Writer`, `Reader`, `DecodeError` — our encoding: little-endian integers, length-prefixed fields checked before sizing (T73) |
 | `store` | §A node's own disk | `DurableLog`, `ObjectStore` (content-addressed), `Recovery`, `StoreError`, `MAX_OBJECT` — append-only files synced before acknowledging; a torn tail cut, other damage refused (T13) |
 | `anchoring` | §Anchoring | `Anchor` trait, `OtsAnchor`, `Receipt`, `AnchorState` |
 | `erasure` | §Durability | `encode`, `reconstruct`, `reconstruct_verified` (real Reed–Solomon; per-shard manifest, corrupt-shard authentication before decode, T16) |
@@ -164,6 +165,8 @@ steps are seeded for reproducibility.
 
 | Module | Stage | Key items | Uses |
 |---|---|---|---|
+| `events` | §Events and replay (`docs/04`) | `NodeEvent` (deposit, reviewer admitted, respondent admitted), `encode`, `decode` (T73) | `network::codec`, `identity::nullifier` |
+| `node` | §Events and replay (`docs/04`) | `Node::{open, submit, state}`, `AdmissionState::apply`, `NodeError`, `Rejection` — the admission state rebuilt by replaying the durable log (T73, first step) | `events`, `deposit`, `review`, `pilot`, `network::store` |
 | `admission` | INV-9/ID-008 | `admit`, `NullifierSet` (T6); `QuotaLedger` — per-credential proposal quota (T11) | `identity::nullifier`, `identity::ratelimit` |
 | `blueprint` | [8]/L2 | `Blueprint`, `quotas`, `coverage_deviation`, `assemble_test` | — |
 | `contested` | [7b] (D38) | `ContestedPool` (`record`, `remove`, `dtf`, `draw`, `draw_from_beacon`), `NoBalancedDraw`, `RecordError` — contested facts by the fit that last measured them, drawn into a test only in selections whose DTF bound (the sum of per-fit DTFs) is within `DTF_MAX`; the draw exact and seeded from the beacon (T55) | `randomness`, `scoring::dtf` |

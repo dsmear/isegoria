@@ -22,7 +22,7 @@ pub(crate) fn entry_hash(seq: u64, prev: &[u8; 32], payload: &Cid) -> [u8; 32] {
     )
 }
 
-#[derive(Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct TransparencyLog {
     entries: Vec<Entry>,
     /// Every payload appended so far: lets an entry point refuse a duplicate first
