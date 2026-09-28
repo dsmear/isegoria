@@ -190,4 +190,10 @@ fn formats_must_describe_the_batch() {
     let mut one_option = Formats::open(60, K);
     one_option.items[3] = Format::Choice(1);
     assert!(refused(&one_option));
+    let (unreliable, responses) = null_batch(1300, 20);
+    assert_eq!(
+        revalidate_batch_latent(&people, &unreliable, &responses, &Formats::open(19, K), 0),
+        Err(PilotError::BadFormats),
+        "the formats are checked before the anchors' reliability"
+    );
 }
