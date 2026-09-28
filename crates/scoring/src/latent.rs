@@ -1196,6 +1196,35 @@ mod tests {
         }
     }
 
+    /// The floor's helpers stay finite and exact at extreme arguments, where one branch overflows.
+    #[test]
+    fn the_floor_helpers_are_stable_at_extreme_arguments() {
+        assert_eq!(softplus(800.0), 800.0);
+        assert_eq!(softplus(-800.0), 0.0);
+        assert_eq!(softplus(0.0), ln(2.0));
+        assert!((softplus(1.5) - ln_1p(exp(1.5))).abs() < 1e-15);
+        assert!((softplus(-1.5) - ln_1p(exp(-1.5))).abs() < 1e-15);
+        assert_eq!(sigmoid(800.0), 1.0);
+        assert_eq!(sigmoid(-800.0), 0.0);
+        assert_eq!(sigmoid(0.0), 0.5);
+        let mid = cell(1.2, 0.5, 0.0);
+        let (floor, s) = (sigmoid(-1.4), mid.sigma);
+        let want = ln(floor + (1.0 - floor) * s) - ln((1.0 - floor) * (1.0 - s));
+        assert!((log_odds(&mid, -1.4) - want).abs() < 1e-12);
+        let limits = [
+            (40.0, -1.4, 48.0 + ln_1p(exp(-1.4))),
+            (-40.0, -1.4, -1.4),
+            (0.0, 30.0, 30.0 + ln(2.0)),
+        ];
+        for (theta, gamma, want) in limits {
+            let got = log_odds(&cell(1.2, theta, 0.0), gamma);
+            assert!(
+                (got - want).abs() < 1e-9,
+                "θ {theta}, γ {gamma}: {got} vs {want}"
+            );
+        }
+    }
+
     /// Formats are refused unless one per anchor and item, each open or with two options or more.
     #[test]
     fn formats_that_do_not_describe_the_batch_are_refused() {
