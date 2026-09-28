@@ -166,6 +166,8 @@ fn current() -> Vec<String> {
     record(&mut rows, "latent.anchor_b", &res.anchor_b);
     record(&mut rows, "latent.item_b", &res.item_b.concat());
     record(&mut rows, "latent.bic_gain", &[res.bic_gain]);
+    let bics: Vec<f64> = res.candidates.iter().map(|c| c.2).collect();
+    record(&mut rows, "latent.candidates", &bics);
     record(&mut rows, "latent.posterior", &res.posterior.concat());
 
     let curves = ClassCurves::of(&res).unwrap();
@@ -195,6 +197,8 @@ fn current() -> Vec<String> {
     record(&mut rows, "floor.item_b", &res.item_b.concat());
     record(&mut rows, "floor.item_c", &res.item_c);
     record(&mut rows, "floor.bic_gain", &[res.bic_gain]);
+    let bics: Vec<f64> = res.candidates.iter().map(|c| c.2).collect();
+    record(&mut rows, "floor.candidates", &bics);
     record(&mut rows, "floor.posterior", &res.posterior.concat());
     let curves = ClassCurves::of(&res).unwrap();
     let dtf: Vec<f64> = sets.iter().map(|s| curves.dtf(s).unwrap()).collect();

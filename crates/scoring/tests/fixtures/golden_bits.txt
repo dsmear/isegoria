@@ -183,6 +183,9 @@ latent.item_b,13,3fe9b70de89bfce7
 latent.item_b,14,bfd68f178663bf29
 latent.item_b,15,bfe472c718a89125
 latent.bic_gain,0,400380eb76288000
+latent.candidates,0,40e6624ad2ee2f4a
+latent.candidates,1,40e661fccf4056a8
+latent.candidates,2,40e66813f0bc5367
 latent.posterior,digest,d62b52a5b661550e
 dtf,0,3feff26983de3a52
 dtf,1,3fcd876005cd8d6e
@@ -227,6 +230,9 @@ floor.item_c,5,3fd154ad64dddbc7
 floor.item_c,6,3fd4a48d8c019148
 floor.item_c,7,3fcd93b4a381491b
 floor.bic_gain,0,403b7ddbb34d7000
+floor.candidates,0,40e82da55a8a1bd2
+floor.candidates,1,40e82a359f13b224
+floor.candidates,2,40e830609bc65d87
 floor.posterior,digest,7d9782106cacf8db
 floor.dtf,0,3fe1f17d62f55bab
 floor.dtf,1,3fd65bffb135c236
