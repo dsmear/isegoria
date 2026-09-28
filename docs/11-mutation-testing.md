@@ -306,6 +306,23 @@ were killed by checks in `replication.rs`.
 - `protocol/src/ledger.rs` (`--test=ledger`): 10 mutants — 8 caught, 2 unviable.
 - `p2p/src` (the replica on disk): 14 mutants — 8 caught, 6 unviable.
 
+## Run 17 — T74, second step: members' cuts and the beacon between nodes
+
+Same settings as run 16, on the step's diff:
+
+- `network/src` (`--test=cuts`, `--test=cut_signing`): 69 mutants — 58 caught, 8 unviable,
+  3 missed: `Cut::next` accepting a longer feed on another branch as extending the last mark
+  (`&&` → `||`), `should_sign` counting a commit that sits right at the mark's end (`>` →
+  `>=`), and requiring a commit in a cut that does not close (`&&` → `||`). Killed in
+  `cut_signing.rs`; the re-run gives 61 caught, 8 unviable.
+- `protocol/src/ledger.rs` (`--test=ledger`, `--test=beacon_on_cuts`): 10 mutants — 8
+  caught, 2 unviable.
+- `p2p/src`: 38 mutants — 28 caught, 4 unviable, 6 missed, all in `MemberRole::duties`: when
+  the proposer closes, its waits for commits and for reveals, and its patience — masked in
+  `beacon_between_nodes.rs`, where the patience eventually proposes anyway. Killed by
+  `member_duties.rs`, which calls the duties directly; the re-run gives 34 caught, 4
+  unviable.
+
 ## Keeping it this way
 
 - New decision logic gets a hand-computed or exact-outcome test, not only a range or
