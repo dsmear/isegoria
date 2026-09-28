@@ -737,10 +737,8 @@ fn fit_from(
                 return (*f, g.clone());
             }
         }
-        let (mut f, mut g, _) = evaluate(model, p, data, grid, floors, false);
-        if floors.count > 0 {
-            f += penalty(model, floors, p, &mut g);
-        }
+        let (f, mut g, _) = evaluate(model, p, data, grid, floors, false);
+        let f = f + penalty(model, floors, p, &mut g);
         for v in g.iter_mut() {
             *v *= scale;
         }
