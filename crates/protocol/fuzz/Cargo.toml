@@ -1,0 +1,25 @@
+# cargo-fuzz targets for the protocol decoders (T73). Outside the main workspace on
+# purpose: fuzzing needs a nightly toolchain and libFuzzer. See README.md.
+[package]
+name = "protocol-fuzz"
+version = "0.0.0"
+edition = "2021"
+license = "EUPL-1.2"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+protocol = { path = ".." }
+
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "event"
+path = "fuzz_targets/event.rs"
+test = false
+doc = false
+bench = false

@@ -12,6 +12,7 @@ between the conceptual specification and the Rust implementation. Read
 - [`identity` — anonymous enrollment](#identity--anonymous-enrollment)
 - [`network` — tamper-evident storage](#network--tamper-evident-storage)
 - [`protocol` — lifecycle orchestration](#protocol--lifecycle-orchestration)
+- [`p2p` — the libp2p transport](#p2p--the-libp2p-transport)
 - [`characterization` — the T24 harness](#characterization--the-t24-harness)
 - [Invariants and where they are enforced](#invariants-and-where-they-are-enforced)
 - [Reproducibility](#reproducibility)
@@ -49,11 +50,13 @@ protocol ──► scoring
         └──► network
 
 characterization ──► protocol, scoring   (the T24 harness: a tool, not part of a node)
+p2p              ──► network             (the libp2p transport for replication, T18)
 
 scoring   (no internal deps; only rand, rand_chacha)
 identity  (sha2, voprf, curve25519-dalek, bbs_plus, schnorr_pok, arkworks,
            oblivious_transfer_protocols, secret_sharing_and_dkg, dock_crypto_utils)
 network   (sha2, ed25519-dalek, reed-solomon-erasure, opentimestamps)
+p2p       (libp2p 0.56, tokio, futures, async-trait)
 ```
 
 `scoring` sits at the bottom on purpose. `protocol` is the only crate that composes
@@ -96,7 +99,7 @@ The state authenticates but does not issue (`docs/03`).
 | Module | Spec | Key items |
 |---|---|---|
 | `nym` | §M3 | `Role`, `Nym`, `derive_nym` = `H(secret, role)` (lightweight address) |
-| `nullifier` | §M3 | `NullifierProof`, `prove`, `verify` (ZK nullifier bound to the BBS+ credential) |
+| `nullifier` | §M3 | `NullifierProof` (`encode`, `decode`: the wire format v1, canonical, T73), `prove`, `verify` (ZK nullifier bound to the BBS+ credential) |
 | `ratelimit` | §Cost of proposing | `rln_token`, `within_quota`, `SlotLedger` |
 | `enrollment` | §M1 | `IdentityDocument` (+ `Cie`, `Spid`), `UniquenessOracle` (`VoprfOracle` real + `ReferenceOracle` test-only), `EnrollmentRegistry` |
 | `oprf` | §M1 | `ThresholdOprfOracle` (Shamir + DLEQ), `KeyShare`, `PublicShare`, `PartialEval`, `DleqProof` |
@@ -140,19 +143,28 @@ Integrity without permissionless consensus (`docs/04`).
 | `cid` | §Content-addressed storage | `Cid`, `cid` |
 | `merkle` | §Merkle tree | `leaf_hash`, `merkle_root`, `merkle_proof`, `verify_proof` |
 | `log` | §Signed append-only logs | `TransparencyLog` (hash-chained; `verify` detects tampering; `checkpoint` + `verify_extends` prove consistency/truncation against a signed prior head, T14) |
-| `consortium` | §The consortium as backbone | `Member` (ed25519), `Checkpoint` (net-id + member-set bound, T15), `Consortium::verify` (t-of-n), `CheckpointClient` (monotonic-height, equivocation, T15) |
+| `consortium` | §The consortium as backbone | `Member` (ed25519), `Checkpoint` (net-id + member-set bound, T15), `Consortium::new` (`1 ≤ t ≤ n` distinct keys, T63), `Consortium::verify` (t-of-n over its own member set, T63), `verify_excluding` (the beacon's withholders, T37), `CheckpointClient` (monotonic-height, equivocation, T15) |
+| `beacon` | §The epoch's beacon (D41) | `BeaconRound` (`open`, `commit`, `close_commits`, `close_deposits`, `reveal`, `finish`), `Member::beacon_commit`, `BeaconCommit`, `BeaconReveal`, `BeaconOutcome` (`value`, `revealed`, `withheld`, `record`), `RoundError` — commit-reveal among the members, in process (T37) |
+| `codec` | §Events and replay | `Writer`, `Reader`, `DecodeError` — our encoding: little-endian integers, length-prefixed fields checked before sizing (T73) |
+| `store` | §A node's own disk | `DurableLog`, `ObjectStore` (content-addressed), `Recovery`, `StoreError`, `MAX_OBJECT` — append-only files synced before acknowledging; a torn tail cut, other damage refused (T13) |
+| `replica` | §Replication between nodes | `WriterSet`, `FeedWriter`, `SignedEntry`, `EntryId`, `Replica` (`insert`, `feed`, `equivocations`, `digest`, `summary`, `have_for`, `want`, `entries_for`), `Equivocation`, `Message`, `DurableReplica` (on disk, T74) — the grow-only set of writers' signed entries and the pull sync's messages (T18) |
+| `cut` | §Cuts | `Cut` (`of`, `next`, `digest`, `checkpoint`, `encode`, `decode`), `Mark`, `added`, `CutError`, `MemberObject`, `collect`, `Collected`, `proposer`, `sign_cut`, `should_sign`, `member_objects` — the consortium-signed marks that fix which entries count and their order; the members' objects that sign them and run the beacon (T74) |
 | `anchoring` | §Anchoring | `Anchor` trait, `OtsAnchor`, `Receipt`, `AnchorState` |
 | `erasure` | §Durability | `encode`, `reconstruct`, `reconstruct_verified` (real Reed–Solomon; per-shard manifest, corrupt-shard authentication before decode, T16) |
 
 **Real:** content addressing, Merkle trees, the hash-chained append-only log,
-ed25519 consortium checkpoints, erasure coding, and the anchoring proof format —
+ed25519 consortium checkpoints, the commit-reveal beacon round (in process), erasure
+coding, and the anchoring proof format —
 `OtsAnchor` builds, serialises and verifies real **OpenTimestamps** `.ots` proofs (via
 `opentimestamps`): `verify` runs the actual OTS walk (`Op::execute` over the step tree)
 and checks a Bitcoin attestation against a block Merkle root. **Still modeled** for
 anchoring: the live network parts — POSTing to a calendar server and reading block
 roots from a Bitcoin node/SPV; here an injected block source stands in and
 `OtsAnchor::upgrade` models the calendar's confirm-and-upgrade with one hashing step.
-**Not yet implemented:** gossip/DHT transport (libp2p) and CRDT convergence.
+**Replication** of the signed set is real (`replica`, over libp2p in `p2p`, T18). **Not
+yet implemented:** the protocol state as a function of the replicated set and its merge
+rules is `protocol::ledger` over signed cuts, and the members' cuts and beacon run between
+nodes (T74); a silent proposer's replacement is T76, the DHT T75.
 
 ## `protocol` — lifecycle orchestration
 
@@ -161,20 +173,24 @@ steps are seeded for reproducibility.
 
 | Module | Stage | Key items | Uses |
 |---|---|---|---|
+| `events` | §Events and replay (`docs/04`) | `NodeEvent` (deposit, reviewer admitted, respondent admitted, lifecycle step, epoch results), `encode`, `decode` (T73) | `network::codec`, `identity::nullifier` |
+| `node` | §Events and replay (`docs/04`) | `Node::{open, submit, state}`, `NodeState::{apply, item, results}`, `Outcome`, `NodeError`, `Rejection` — the protocol state rebuilt by replaying the durable log (T73) | `events`, `results`, `deposit`, `review`, `pilot`, `network::store` |
+| `ledger` | §Cuts (`docs/04`), PROTO-015 | `Ledger` (`apply`, `state`, `last`, `refused`, `beacon`), `Refusal`, `CutReport`, `LedgerError` — the protocol state from signed cuts over the replicated set, the first of conflicting events winning; the epoch's beacon on cuts (T74) | `node`, `events`, `network::cut`, `network::replica` |
+| `results` | §Events and replay (`docs/04`), PRIV-004 | `EpochResults`, `ResultRecord`, `ResultsState`, `ResultsRejected`; `rating_leaf`, `answer_leaf`, `inputs_root`, `inclusion_proof`, `verify_inclusion` — an epoch's engine outputs as one event, bound to the Merkle root of its inputs (T73) | `reputation`, `appeal`, `exposure`, `contested`, `network::merkle` |
 | `admission` | INV-9/ID-008 | `admit`, `NullifierSet` (T6); `QuotaLedger` — per-credential proposal quota (T11) | `identity::nullifier`, `identity::ratelimit` |
 | `blueprint` | [8]/L2 | `Blueprint`, `quotas`, `coverage_deviation`, `assemble_test` | — |
 | `contested` | [7b] (D38) | `ContestedPool` (`record`, `remove`, `dtf`, `draw`, `draw_from_beacon`), `NoBalancedDraw`, `RecordError` — contested facts by the fit that last measured them, drawn into a test only in selections whose DTF bound (the sum of per-fit DTFs) is within `DTF_MAX`; the draw exact and seeded from the beacon (T55) | `randomness`, `scoring::dtf` |
 | `deposit` | [2] | `Draft`, `deposit`, `deposit_with_identity` (identity-gated) | `admission`, `identity`, `network::{log,cid}` |
 | `exposure` | [9] | `ExposureLedger`, `should_retire`, `Template`, `least_exposed_variant` | `network::cid` |
-| `randomness` | INV-10 | `Beacon::{from_checkpoint, seed}` — checkpoint-derived seeds for every draw (T8) | `network::consortium` |
-| `lottery` | [3] | `admit`, `admit_from_beacon` (checkpoint-seeded) | `randomness` |
+| `randomness` | INV-10 | `Beacon::{from_outcome, seed}` — every draw seeds from the epoch's commit-reveal beacon (D41, T37; checkpoint-derived until then, T8) | `network::beacon` |
+| `lottery` | [3] | `admit`, `admit_from_beacon` (beacon-seeded; the deposits read as a set, in content-id order, T37) | `randomness` |
 | `review` | [4] | `Reviewer`, `assign_reviewers`, `commit`, `reveal`, `submit_review` (identity-gated), `assign_extra_from_beacon`, `K_EXTRA` (the band's extra panel, T60); `assign_diverse`, `assign_diverse_from_beacon`, `assign_extra_diverse_from_beacon` (at most one member of a coordination cluster per panel, D40/T57) | `admission`, `identity`, `network::cid` |
 | `gate` | [5]/[5b] | `GateOutcome`, `bridging_gate`, `supplementary_review` (D26 re-decision, T10/T30/T59), `MIN_COVERAGE` (an item one side never rated goes to review, D42) | `scoring::bridging` |
 | `appeal` | [5b] | `AuthorHistory::{record, reputation, covers_stake, file_appeal, settle}`, `appeal_floor`, `STAKE_QUALITY` — the stake as a pseudo-observation inside `C_a` (D27, T61) | `scoring::reputation` |
 | `pilot` | [6]/[7] | `stage1_screen`, `stage2_dif`; batch/sample gates `screen`, `dif_batch`, `admit_dif_batch`, `admit_anchors` (KR-20 floor, D37/T53) (INV-8, T9) | `scoring::irt`, `scoring::dif` |
 | `honeypot` | Golden items | `inject`, `reviewer_skill`, `HONEYPOT_RATE` | `scoring::reputation` |
 | `exploration` | §C.2 exploration (D35) | `explore`, `explore_from_beacon`, `EXPLORATION_RATE`, `Observation`, `Scored`, `outcome_of`, `record_outcome`, `FalseNegatives` — the beacon's draw of gate rejections piloted for measurement only, their outcomes into the reviewers' tracks at weight `1/ε`, the gate's false-negative rate (T52) | `lifecycle`, `probation`, `randomness`, `scoring::reputation` |
-| `governance` | Meta-level | `stratified_sortition`, `change_approved` | — |
+| `governance` | Meta-level | `stratified_sortition` (a function of the candidate set, T72), `change_approved` | — |
 | `probation` | Cold start / P2 | `status`, `review_weight`, `effective_review_weight` (the capped odds weight, D33), `SkillTrack` (the mean, the count and the CUSUM; an alarm → probation, D34; `record_observed` at `1/π`, `record_unobserved`, `reference` — the inverse-probability mean over every reviewed item, the detector on the unweighted scores, D35/T52), `FounderSet`, `N_PROBATION` (30, D36) | `identity::nym`, `scoring::reputation` |
 | `revalidation` | [8] | `revalidate_pool` (multi-axis), `revalidate_batch_latent` (the gated production entry: items, respondents, anchor reliability — T9/T65/T53 — then the target model, T54), `latent_batch` (the admitted fit itself, whose curves the contested pool records, T55), `target_flags`, `revalidate_pool_latent`/`latent_flags` (the retired proxy path, fixtures only), `items_to_retire` | `scoring::latent`, `scoring::dif`, `exposure` |
 | `lifecycle` | §9.1 | `State`, `Event`, `step`, `deposit`, `K_MIN` — rejects every invalid transition (T12); `Event::Resolve` re-decides the band (T10/T30); `SupplementaryReview` carries the extra round, `AssignExtraReviewers` then commit-reveal, `K_EXTRA_MAX` (T60); `Event::Explore` takes a gate rejection to `Explored` and `Measured`, never the pool (D35, T52); `State::Contested` — a DIF item with a verified source, from `Pilot2` or the pool, re-validated into either pool (D38, T55) | `gate`, `review`, `exposure`, `identity::nym` |
@@ -183,6 +199,20 @@ steps are seeded for reproducibility.
 Each module's doc comment names the attack the stage neutralizes (brigading,
 information cascades, queue explosion, the true-but-divisive false negative, block
 voting).
+
+## `p2p` — the libp2p transport
+
+Replication between nodes over libp2p (`docs/04` §Replication between nodes): `Handle`
+(`spawn`, `listen`, `dial`, `publish`, `insert`, `replica`, `peers`), `Config`, `Own` — a
+node's task drives a swarm with gossipsub (announcements of new entries) and
+request-response (`/isegoria/sync/1`: Summary→Have, Want→Entries). A writer's own feed is
+its `network::store` log, signed again on restart; given a directory, the node keeps its
+replica on disk (`DurableReplica`, T74). `member`: `MemberRole`, `collected` — a consortium
+member node's duties on a timer: commit, reveal, propose cut `k` when `k mod n` is its
+index, co-sign (T74). Only `network` is a dependency: the
+engine and the protocol state stay free of I/O and of an async runtime (T18). The sync
+answers any peer, so whoever connects reads the whole set (T77); a node is started only by
+a test (T78), and a member's duties are the cuts and the beacon, not an epoch's work (T79).
 
 ## `characterization` — the T24 harness
 
@@ -320,7 +350,13 @@ cargo clippy --workspace --all-targets
 | Uniqueness label | **Real** (single-server VOPRF RFC 9497; **threshold** t-of-n OPRF, Shamir + DLEQ) | Real DKG ceremony + network transport for the committee |
 | Credential issuance | **Real** (BBS+ blind; single-issuer **and** threshold t-of-n MPC) | Real DKG ceremony + network transport; selective-disclosure presentation |
 | Public-chain anchoring | **Real** (OpenTimestamps proof format + verification) | Live calendar POST + Bitcoin node/SPV block source |
-| Gossip/DHT transport, CRDT | Documented, not implemented | libp2p, Automerge/Yjs |
+| Gossip transport, replication of the signed set | **Real** — libp2p gossipsub + request-response, a grow-only set with equivocation evidence (T18) | — |
+| Protocol state from the replicated set, merge rules; cuts and beacon between nodes | **Real** — signed cuts fix the order, the first of conflicting events wins; members propose in turn, co-sign, commit and reveal on their feeds (T74) | a silent proposer's replacement (T76) |
+| DHT | Documented, not implemented (T75) | libp2p Kademlia |
+| Who may read the replicated set | **None** — a node serves its whole set to any peer that connects, the drafts under review and the reveals included, against D17 (T77) | the mechanism the owner picks for T77: closed replication, confidential objects, or the voting patterns off the log |
+| A node process | **None** — nodes are started by tests (`Handle::spawn`) (T78) | a binary started from a configuration file |
+| An epoch run between nodes | **None** — the draws, reviews, engine run and results are driven by tests (`end_to_end.rs::run_epoch`) (T79) | a member's epoch duties, specified first |
+| A writer's recovery | **None** — a damaged log does not start; lost files mean an equivocation at the next publish (T80) | the feed rebuilt from the replicas before writing |
 
 Reference implementations are clearly marked and provide **no** security; they exist
 to make the pipeline testable end-to-end.

@@ -67,32 +67,39 @@ impl NullifierProof {
     }
 }
 
-/// A byte encoding of a proof, for tests and fuzz targets: compressed nullifier,
-/// commitment and BBS+ proof — not a wire format; the role travels separately.
-#[cfg(any(test, fuzzing))]
 impl NullifierProof {
-    #[doc(hidden)]
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
+    /// The wire format v1 (`docs/04` §Events and replay): role, compressed nullifier and
+    /// commitment, compressed BBS+ proof.
+    pub fn encode(&self) -> Vec<u8> {
+        let mut bytes = vec![self.role as u8];
         self.nullifier.serialize_compressed(&mut bytes).unwrap();
         self.commitment.serialize_compressed(&mut bytes).unwrap();
         self.sig_proof.serialize_compressed(&mut bytes).unwrap();
         bytes
     }
 
-    /// Decodes with full validation; `None` when the bytes are not a well-formed proof.
-    #[doc(hidden)]
-    pub fn from_bytes(role: Role, mut bytes: &[u8]) -> Option<Self> {
+    /// Decodes with full validation; `None` unless the bytes are a proof's one encoding.
+    pub fn decode(bytes: &[u8]) -> Option<Self> {
         use ark_serialize::CanonicalDeserialize;
+        let whole = bytes;
+        let (&role, mut bytes) = bytes.split_first()?;
+        let role = match role {
+            0 => Role::Propose,
+            1 => Role::Judge,
+            2 => Role::Respond,
+            _ => return None,
+        };
         let nullifier = G1Affine::deserialize_compressed(&mut bytes).ok()?;
         let commitment = G1Affine::deserialize_compressed(&mut bytes).ok()?;
         let sig_proof = PoKOfSignatureG1Proof::<E>::deserialize_compressed(&mut bytes).ok()?;
-        bytes.is_empty().then_some(NullifierProof {
+        let proof = NullifierProof {
             role,
             nullifier,
             commitment,
             sig_proof,
-        })
+        };
+        // The library also decodes some other encodings of one proof: only its own is kept.
+        (bytes.is_empty() && proof.encode() == whole).then_some(proof)
     }
 }
 
@@ -270,11 +277,11 @@ mod proptests {
     }
 
     fn encode(proof: &NullifierProof) -> Vec<u8> {
-        proof.to_bytes()
+        proof.encode()
     }
 
-    fn decode(role: Role, bytes: &[u8]) -> Option<NullifierProof> {
-        NullifierProof::from_bytes(role, bytes)
+    fn decode(bytes: &[u8]) -> Option<NullifierProof> {
+        NullifierProof::decode(bytes)
     }
 
     proptest! {
@@ -291,7 +298,7 @@ mod proptests {
             let (issuer, cred) = issued(secret, label);
             let proof = prove(&cred, &issuer, role, &context);
             prop_assert!(verify(&proof, &issuer, &context));
-            let decoded = decode(role, &encode(&proof)).expect("canonical encoding decodes");
+            let decoded = decode(&encode(&proof)).expect("canonical encoding decodes");
             prop_assert!(verify(&decoded, &issuer, &context));
         }
 
@@ -345,7 +352,7 @@ mod proptests {
             let mut bytes = encode(&proof);
             let i = at.index(bytes.len());
             bytes[i] ^= mask;
-            if let Some(tampered) = decode(role, &bytes) {
+            if let Some(tampered) = decode(&bytes) {
                 prop_assert!(!verify(&tampered, &issuer, b"ctx"), "byte {i} ^ {mask:#04x} accepted");
             }
         }
@@ -370,7 +377,7 @@ mod proptests {
             } else {
                 bytes
             };
-            if let Some(proof) = decode(Role::Judge, &candidate) {
+            if let Some(proof) = decode(&candidate) {
                 if verify(&proof, &issuer, b"ctx") {
                     prop_assert_eq!(&candidate, &genuine);
                 }

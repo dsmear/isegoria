@@ -5,7 +5,7 @@
 | **Purpose** | Measure how much of the code the tests actually *verify*, not just execute, and record every mutant that survives with the reason it is acceptable. |
 | **Tool** | `cargo-mutants` 26.0.0 (the newest release that builds on the pinned rustc 1.86). |
 | **Date** | 2026-09-24, branch `test/t41-mutation-survivors`. |
-| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up). |
+| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, run 12 for T73's first step, run 13 for its second). |
 
 ## Why this was needed
 
@@ -36,6 +36,10 @@ from a baseline that runs alone and parallel jobs otherwise produced false timeo
 Each mutant runs the tests of the crate that contains it. It is too slow for every push:
 run it after changing decision logic (`--in-diff` for a branch), and before a release.
 Output goes to `mutants.out/` (ignored by git).
+
+A diff whose changed `src/` lines are all in `network` or `identity` fails the baseline under
+the config (`the package 'network' does not contain this feature: calibration`): run it with
+`--no-config --profile mutants --timeout-multiplier 3 --minimum-test-timeout 60` instead.
 
 ## Results
 
@@ -108,7 +112,7 @@ numbers are those of this branch.
 | `collusion.rs:64` `s > 0.0` → `>=` | At `s = 0` the product is `0 · min(NaN, 1) = 0 · 1 = 0` (`f64::min` ignores NaN): same result. |
 | `collusion.rs:81` (×2) `(a[i] − ma)` or `(b[i] − mb)` → `+` in the covariance term | Centring one factor is enough: `Σ(a + ma)(b − mb) = Σ(a − ma)(b − mb) + 2ma·Σ(b − mb)` and `Σ(b − mb) = 0` (same for the other factor). The variance terms, which are not equivalent, are pinned by `hand_computed.rs`. |
 | `governance.rs:74` `.max(lo + 1)` → `.max(lo * 1)`; `review.rs:56` same | The guard only matters for an empty stratum, and `strata ≤ seats ≤ n` (resp. `k ≤ n`) rules that out. |
-| `governance.rs:85` `count < seats` → `<=` | At equality the fill loop breaks before changing anything. |
+| `governance.rs:85` (`:76` since T72) `count < seats` → `<=` | At equality the fill loop breaks before changing anything. |
 | `review.rs:44` `n == 0 \|\| k == 0` → `&&` | Either zero makes `k = min(k, n) = 0`, and the loop draws nothing. |
 | `optim.rs:60` `yy > 0` → `>=` (was line 61) | `yy = 0` means `y = 0`, so `sᵀy = 0` and the pair was never stored (`sᵀy > 1e-12`). |
 | `optim.rs:85` `gd >= 0` → `<` (second check, after the steepest-descent fallback; was line 86) | The fallback direction is `−g`, whose slope `−‖g‖²` is negative unless `g = 0`, which the gradient test has already stopped on. The fallback itself is unreachable while stored pairs keep the Hessian estimate positive definite. |
@@ -181,6 +185,143 @@ scenario skipped): 4 mutants — `record` to `Ok(())`, `remove` to `true` and to
 follow-up adds, killed by the history test of `contested_facts.rs` (`docs/08` AT-PRO-08):
 without the canonical order the same fits recorded last to first draw another test on 46
 of 50 seeds (another set on 43).
+
+## Run 8 — T63: the consortium's configuration and member-set check
+
+`cargo mutants --in-diff` on the T63 diff (`network/src/consortium.rs`; `--no-config` with
+the config's profile and timeouts, since `network` has no `calibration` feature): 5 mutants
+— `member_set_hash` to `[0; 32]` and to `[1; 32]`, `verify` to `true` and to `false`, and
+the new member-set comparison `!=` → `==` — 5 caught, none missed, none unviable. The two
+checks of `Consortium::new` sit inside `assert!`, whose arguments cargo-mutants does not
+mutate; `consortium_config.rs` pins them instead: every bound (`t = 0`, `t = n + 1`, no
+members) and a duplicate apart from its twin panic, and every `t` in `1..=n` is accepted.
+
+## Run 9 — T37: the commit-reveal beacon and the lottery's canonical order
+
+`cargo mutants --in-diff` on the T37 diff, in two halves. `network` (`beacon.rs`, the
+`consortium.rs` accessors and `verify_excluding`; `--no-config` as in run 8): 53 mutants —
+42 caught, 8 unviable (a `Default` for a type that has none: `BeaconCommit`, `Signature`,
+`RoundId`, `Cid`, `BeaconRound`, `BeaconOutcome`), 3 missed. The three were real and are killed:
+`indices` — the encoding of who revealed and who withheld in the outcome's record — could
+return anything, because every test that compared two records also compared two different
+beacon values; `beacon_round.rs::at_net_10_the_record_binds_who_revealed_and_who_withheld`
+compares five outcomes without a beacon that differ only in those lists (re-run: 3 caught).
+`protocol` (`lottery.rs`, `randomness.rs`, and the renamed `lifecycle`/`orchestrator` lines;
+the config's profile and `calibration`, `--cargo-test-arg=--test=…` with `inv10_beacon_seed`,
+`exploration`, `lifecycle`, `properties`, `exact_outcomes`, `orchestrator`,
+`lifecycle_model`, `orchestrator_model` and `panel_diversification`): 13 mutants — 9 caught,
+4 unviable, none missed. cargo-mutants deletes no statement, so the `sort_unstable` and
+`dedup` that make the lottery a function of the set are not mutated; the lottery test of
+`inv10_beacon_seed.rs` pins them (every order and a repeat draw the same vector).
+
+## Run 10 — T72: the draws' canonical candidate order
+
+`cargo mutants --in-diff` on the T72 diff (`review.rs`, `governance.rs`; the config's
+profile and `calibration`, `--cargo-test-arg=--test=…` with `draw_order`, `exact_outcomes`,
+`properties`, `lifecycle`, `panel_diversification`, `inv10_beacon_seed` and
+`reviewer_floor`): 12 mutants — 7 caught, 4 unviable, 1 missed. The survivor is
+`governance.rs:76` `count < seats` → `<=`, the equivalent mutant of the table above
+(`:85` before T72): at equality the fill loop stops before changing anything.
+
+## Run 11 — T13: the durable log and object store
+
+`cargo mutants --in-diff` on the T13 diff (`network/src/store.rs`, `log.rs`; `--no-config`
+as in run 8): 92 mutants — 75 caught, 7 unviable, 10 missed, all taken up. Four were real
+test gaps and are killed: `put` at exactly `MAX_OBJECT` bytes (`>` → `>=`), the offset of an
+object read right after its `put` without a reopen (`self.end + 8`, two mutants), and
+`is_empty` after a `put`. Five went with the code: the torn-tail cut of both files was
+guarded by `torn > 0` (four mutants, one of them real: with `==` an object file kept its torn
+tail on disk, which the test now checks), and the directory sync by a `created` flag; the
+cut now always runs (a no-op without a tear) and the directory is synced whenever a header
+is written. The tenth is the one left below. Re-run: 85 mutants, 77 caught, 7 unviable, 1 missed — `sync_dir` → `()`, whose
+effect shows only on power loss, which no test can produce.
+
+## Run 12 — T73, first step: the encoding, the proof's wire format, the node's replay
+
+`cargo mutants --in-diff` on the step's diff, in two halves. `network` and `identity`
+(`codec.rs`, `log.rs`'s derives, `nullifier.rs`'s `encode`/`decode`; `--no-config`):
+33 mutants — 31 caught, 1 unviable, 1 missed. The survivor was real: `&&` → `||` in
+`NullifierProof::decode` accepted a non-canonical encoding again, and only the `protocol`
+suite held the case fuzzing had found; `identity/tests/proof_encoding.rs` now holds it too
+(re-run: caught). `protocol` (`events.rs`, `node.rs`, the derives in `admission.rs`; the
+config's profile and `calibration`, `--cargo-test-arg=--test=…` with `node_replay`,
+`proto007_deposit_replay`, `proto013_respondent_gate`, `inv9_nym_proof` and
+`id008_proposal_quota`): 25 mutants — 19 caught, 6 unviable, none missed. The node's
+poisoned state after a failed write has no test: it needs an I/O error after a successful
+open, which the tests cannot provoke.
+
+## Run 13 — T73, second step: item lifecycles as events
+
+`cargo mutants --in-diff` on the step's diff (`protocol/src/events.rs`, `node.rs`; the
+config's profile and `calibration`, `--cargo-test-arg=--test=…` with `lifecycle_replay` and
+`node_replay`): 52 mutants — 44 caught, 8 unviable, none missed. The walks use every
+lifecycle event and the round-trip test pins each event's number and the refusal of every
+out-of-range byte, so the encoder's and decoder's arms leave no survivor.
+
+## Run 14 — T73, third step: epoch results as events
+
+`cargo mutants --in-diff` on the step's diff (`protocol/src/results.rs`, `events.rs`,
+`node.rs`, `exposure.rs`, `appeal.rs`, `contested.rs`; the config's profile and
+`calibration`, `--cargo-test-arg=--test=…` with `results_replay`, `lifecycle_replay`,
+`node_replay`, `contested_facts`, `appeal_stake`, `exploration` and `lifecycle`): 94
+mutants — 85 caught, 8 unviable, 1 missed. The survivor deleted the decoder's arm for a
+failed appeal's settlement (`promoted` 0): the round trip encoded only a promotion, and the
+failed settlement was checked only for its refused flag. Killed: that settlement now also
+decodes and re-encodes to the same bytes.
+
+## Run 15 — T18: replication and the libp2p transport
+
+`cargo mutants --no-config` (the `mutants` profile, `--timeout-multiplier 3
+--minimum-test-timeout 60`, `-j 2`) on T18's diff, one run per crate. A first run with
+three jobs filled the disk after 15 mutants; its three survivors — `WriterSet::contains`
+and `network_id`, used only by `p2p`'s tests, which a mutant in `network` does not run —
+were killed by checks in `replication.rs`.
+
+- `network/src/replica.rs` (`--cargo-test-arg=--test=replication`): 122 mutants — 98
+  caught, 22 unviable, 2 missed: `Replica::is_empty` → `true`/`false`. Killed; the re-run
+  gives 100 caught, 22 unviable, none missed.
+- `p2p/src/lib.rs`: 57 mutants — 9 caught, 23 timeouts, 15 unviable, 10 missed. A timeout
+  is a mutant that stops sync: the tests wait for convergence until their deadline. The
+  survivors: the sync message limit, never reached (`read_limited` now takes the limit and
+  is tested at 5 bytes); the topic name (`topic()`, pinned to `docs/04`); `peers`; and
+  three paths the periodic pull masked — the pull on connect, a relay's announcement of
+  entries it pulled, and the handle's `Drop`. With the deadline cut to 15 s and tests that
+  run with no periodic pull, the re-run gives 36 caught, 4 timeouts, 15 unviable, 2
+  missed. `Drop` was dead code — dropping the handle closes the command channel, which
+  already ends the node's task — and is removed; the announcement of pulled entries is
+  killed by `at_net_14_pulled_entries_are_announced_on` (checked by hand: without the
+  announcement the third node never converges).
+
+## Run 16 — T74, first step: cuts, the ledger, the replica on disk
+
+`cargo mutants --no-config` (the `mutants` profile, `--timeout-multiplier 3
+--minimum-test-timeout 60`, `-j 2`) on the step's diff, one run per crate:
+
+- `network/src` (`--cargo-test-arg=--test=cuts`, `--test=replication`): 59 mutants — 43
+  caught, 12 unviable, 4 missed: `Consortium::is_member` (→ `true`, → `false`, `==` → `!=`),
+  checked only by `protocol`'s tests, which a mutant in `network` does not run; and
+  `Cut::of`'s `> 0` → `>= 0`, since no test had a writer whose feed is empty (its first
+  entry missing). Both killed in `cuts.rs`; the re-run gives 47 caught, 12 unviable, none
+  missed.
+- `protocol/src/ledger.rs` (`--test=ledger`): 10 mutants — 8 caught, 2 unviable.
+- `p2p/src` (the replica on disk): 14 mutants — 8 caught, 6 unviable.
+
+## Run 17 — T74, second step: members' cuts and the beacon between nodes
+
+Same settings as run 16, on the step's diff:
+
+- `network/src` (`--test=cuts`, `--test=cut_signing`): 69 mutants — 58 caught, 8 unviable,
+  3 missed: `Cut::next` accepting a longer feed on another branch as extending the last mark
+  (`&&` → `||`), `should_sign` counting a commit that sits right at the mark's end (`>` →
+  `>=`), and requiring a commit in a cut that does not close (`&&` → `||`). Killed in
+  `cut_signing.rs`; the re-run gives 61 caught, 8 unviable.
+- `protocol/src/ledger.rs` (`--test=ledger`, `--test=beacon_on_cuts`): 10 mutants — 8
+  caught, 2 unviable.
+- `p2p/src`: 38 mutants — 28 caught, 4 unviable, 6 missed, all in `MemberRole::duties`: when
+  the proposer closes, its waits for commits and for reveals, and its patience — masked in
+  `beacon_between_nodes.rs`, where the patience eventually proposes anyway. Killed by
+  `member_duties.rs`, which calls the duties directly; the re-run gives 34 caught, 4
+  unviable.
 
 ## Keeping it this way
 

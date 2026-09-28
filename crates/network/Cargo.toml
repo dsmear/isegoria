@@ -6,9 +6,9 @@ license.workspace = true
 rust-version.workspace = true
 description = "Signed append-only logs, content addressing, Merkle anchoring, consortium checkpoints, erasure coding. See docs/04."
 
-# Self-contained integrity primitives are real. Transport (gossip/DHT via libp2p),
-# convergent state (CRDT), and external anchoring (OpenTimestamps) enter behind
-# traits; prefer mature libraries, bespoke crypto only as a tested, documented exception.
+# Self-contained integrity primitives and the replicated set are real; the libp2p
+# transport lives in the `p2p` crate, so this one stays free of I/O runtimes. Prefer
+# mature libraries, bespoke crypto only as a tested, documented exception.
 [dependencies]
 sha2 = "0.10"
 ed25519-dalek = "2"

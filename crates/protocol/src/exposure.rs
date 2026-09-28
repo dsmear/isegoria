@@ -46,7 +46,7 @@ pub fn should_retire(
 }
 
 /// Counts how many times each item has been administered.
-#[derive(Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ExposureLedger {
     counts: HashMap<Cid, usize>,
 }
@@ -57,7 +57,13 @@ impl ExposureLedger {
     }
 
     pub fn record(&mut self, item: Cid) {
-        *self.counts.entry(item).or_insert(0) += 1;
+        self.record_n(item, 1);
+    }
+
+    /// `times` administrations at once, saturating.
+    pub fn record_n(&mut self, item: Cid, times: usize) {
+        let count = self.counts.entry(item).or_insert(0);
+        *count = count.saturating_add(times);
     }
 
     pub fn count(&self, item: &Cid) -> usize {

@@ -4,6 +4,7 @@
 use crate::hash::tagged;
 use crate::log::{ConsistencyError, TransparencyLog};
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use std::collections::HashSet;
 
 /// A signed log head bound to its network and signing member set (NET-006).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -45,7 +46,7 @@ impl Checkpoint {
 }
 
 pub struct Member {
-    key: SigningKey,
+    pub(crate) key: SigningKey,
 }
 
 impl Member {
@@ -67,22 +68,71 @@ impl Member {
 pub struct Consortium {
     members: Vec<VerifyingKey>,
     threshold: usize,
+    member_set_hash: [u8; 32],
 }
 
 impl Consortium {
+    /// # Panics
+    /// Unless `1 <= threshold <= n` with distinct keys: operator configuration (`docs/12` §2.2).
     pub fn new(members: Vec<VerifyingKey>, threshold: usize) -> Self {
-        Consortium { members, threshold }
+        assert!(
+            (1..=members.len()).contains(&threshold),
+            "need 1 <= threshold <= members, got {threshold} of {}",
+            members.len()
+        );
+        let keys: Vec<[u8; 32]> = members.iter().map(|k| k.to_bytes()).collect();
+        let distinct: HashSet<&[u8; 32]> = keys.iter().collect();
+        assert_eq!(distinct.len(), keys.len(), "need distinct member keys");
+        let refs: Vec<&[u8]> = keys.iter().map(|k| k.as_slice()).collect();
+        Consortium {
+            members,
+            threshold,
+            member_set_hash: tagged("isegoria/consortium/member-set/v1", &refs),
+        }
     }
 
     /// Hash of the ordered member public keys: commits a checkpoint to *which* set signed it.
     pub fn member_set_hash(&self) -> [u8; 32] {
-        let keys: Vec<[u8; 32]> = self.members.iter().map(|k| k.to_bytes()).collect();
-        let refs: Vec<&[u8]> = keys.iter().map(|k| k.as_slice()).collect();
-        tagged("isegoria/consortium/member-set/v1", &refs)
+        self.member_set_hash
     }
 
-    /// Accepts a checkpoint signed by at least `threshold` distinct members.
+    pub fn is_member(&self, key: &[u8; 32]) -> bool {
+        self.members.iter().any(|m| m.as_bytes() == key)
+    }
+
+    pub fn keys(&self) -> &[VerifyingKey] {
+        &self.members
+    }
+
+    /// Whether member `idx` signed `cp`.
+    pub(crate) fn signed_by(&self, cp: &Checkpoint, idx: usize, sig: &Signature) -> bool {
+        cp.member_set_hash == self.member_set_hash
+            && self
+                .members
+                .get(idx)
+                .is_some_and(|pk| pk.verify(&cp.message(), sig).is_ok())
+    }
+
+    pub(crate) fn threshold(&self) -> usize {
+        self.threshold
+    }
+
+    /// Accepts a checkpoint declaring this member set, signed by `threshold` distinct members.
     pub fn verify(&self, cp: &Checkpoint, sigs: &[(usize, Signature)]) -> bool {
+        self.verify_excluding(cp, sigs, &[])
+    }
+
+    /// As [`Self::verify`], counting no signature of an `excluded` member (the withholders of
+    /// the epoch's beacon round, `docs/04` §The epoch's beacon).
+    pub fn verify_excluding(
+        &self,
+        cp: &Checkpoint,
+        sigs: &[(usize, Signature)],
+        excluded: &[usize],
+    ) -> bool {
+        if cp.member_set_hash != self.member_set_hash {
+            return false;
+        }
         let msg = cp.message();
         let mut seen = vec![false; self.members.len()];
         let mut valid = 0;
@@ -90,7 +140,7 @@ impl Consortium {
             let Some(pk) = self.members.get(*idx) else {
                 continue;
             };
-            if seen[*idx] {
+            if seen[*idx] || excluded.contains(idx) {
                 continue;
             }
             if pk.verify(&msg, sig).is_ok() {

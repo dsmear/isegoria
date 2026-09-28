@@ -34,7 +34,12 @@ other nodes, and a quorum's answers come from committee members.
 35 sites outside `#[cfg(test)]` at `6c61263` (86 counting test modules): identity 28,
 network 4, protocol 2, scoring 1. After this audit: 30, none of them reachable from
 external input. T48, merged afterwards, adds one internal-invariant site in `scoring`
-(§2.3), for 31. Sites are named by function; line numbers drift.
+(§2.3), for 31; T63 (2026-09-26) two configuration sites in `network` (§2.2), for 33; T13
+(2026-09-27) three internal-invariant sites in `network::store` (§2.2), for 36; T73 four
+more — `NullifierProof::encode` (§2.1) and `codec::Reader::fixed` (§2.2) — for 40; its second step one in `protocol::events` (§2.3), for 41; its third four in
+`protocol::results` (§2.3), for 45; T18 one in `network::replica` (§2.2) and two in
+`p2p` (§2.2), for 48; T74 one in `protocol::ledger` (§2.3), for 49. Sites
+are named by function; line numbers drift.
 
 ### 2.1 `identity`
 
@@ -50,6 +55,7 @@ external input. T48, merged afterwards, adds one internal-invariant site in `sco
 | `enrollment::VoprfOracle::new` | `new_from_seed(..).expect` | internal: a 32-byte seed with a fixed info string always derives a key (failure has negligible probability) | kept |
 | `enrollment::VoprfOracle::label` | `blind(..).expect`, `finalize(..).expect` | **external**: the anchor's bytes come from the enrollment adapter. RFC 9497 caps an input at `u16::MAX` bytes, and a longer anchor made `finalize` fail — a panic, under a message claiming the proof failed | **fixed (F8)**: the oracle is total; both `expect`s are now internal and say why |
 | `nullifier::context_generator` | 2 × `.expect` on hash-to-curve | internal: constant domain tag and curve configuration | kept |
+| `nullifier::NullifierProof::encode` (T73) | 3 × `serialize_compressed(..).unwrap()` | internal: writing the proof's own points and BBS+ proof to a `Vec`; `decode` calls it on a proof that already decoded | kept |
 | `nullifier::NullifierProof::id` | `serialize_compressed(..).unwrap()` | internal: writing a verified point to a `Vec` | kept |
 | `nullifier::challenge` | `contribute(..).expect` and 3 × `serialize_compressed(..).unwrap()` | **external**: `verify` computes it over a proof it received | **made fallible (F9)**; `verify` answers `false`, `prove` keeps one `expect` on its own proof |
 | `nullifier::prove` | `PoKOfSignatureG1Protocol::init(..).expect`, `gen_proof(..).expect` | internal: the holder's own credential, and `IssuerPublic` is opaque and always carries two message generators | kept |
@@ -61,9 +67,14 @@ external input. T48, merged afterwards, adds one internal-invariant site in `sco
 | Where | Site | Class | Status |
 |---|---|---|---|
 | `anchoring::serialize` | `to_writer(..).expect` | internal: a timestamp this module built, written to a `Vec` | kept |
+| `consortium::Consortium::new` (T63) | `assert!(1 <= threshold <= n)`, `assert_eq!` on the count of distinct keys | configuration: the operator sets up the consortium's member keys and threshold; `t = 0` accepted a checkpoint with no signature, `t > n` never verified | kept, `# Panics` |
 | `erasure::encode` | `ReedSolomon::new(..).expect` | configuration: the encoder picks the layout of its own data | kept, `# Panics` |
 | same | `r.encode(..).expect` | internal: equal-length shards built just above | kept |
 | `log::TransparencyLog::append` | `last().unwrap()` | internal: an entry was just pushed | kept |
+| `codec::Reader::fixed` (T73) | `try_into().expect` | internal: `take(N)` returned exactly `N` bytes | kept |
+| `replica::Replica::entries_for` (T18) | index `self.entries[id]` | internal: `id` was kept only if `contains(id)` | kept |
+| `p2p::Handle::ask` (T18) | 2 × `.expect` on the command channel and its answer | internal: the node's task runs while its handle lives (dropping the handle aborts it) and answers every command | kept |
+| `store::DurableLog::open` (T13) | 3 × `try_into().expect` on a record's fields | internal: slices of fixed width inside a `chunks_exact(104)` record; the file's bytes decide only whether the record chains | kept |
 
 ### 2.3 `protocol` and `scoring` (classified only)
 
@@ -71,6 +82,11 @@ external input. T48, merged afterwards, adds one internal-invariant site in `sco
 |---|---|---|---|
 | `protocol::randomness::Beacon::seed` | `d[..8].try_into().expect` | internal: SHA-256 yields 32 bytes | — |
 | `protocol::review::assign_reviewers` | `stratum.choose(..).unwrap()` | internal: every stratum is non-empty (`lo < n`, `hi >= lo + 1`) | — |
+| `protocol::ledger::Ledger::apply` (T74) | `replica.get(..).expect` | internal: `cut::added` names only entries the replica holds | kept |
+| `protocol::events::read_nyms` (T73) | `try_into().expect` | internal: a `chunks_exact(32)` chunk of a field whose length was checked to be a multiple of 32 | kept |
+| `protocol::results::read_floats` (T73) | `try_into().expect` | internal: a `chunks_exact(8)` chunk | kept |
+| `protocol::results::read_record` (T73) | 2 × `try_into().expect` | internal: the two parts of a `chunks_exact(40)` chunk, 32 and 8 bytes | kept |
+| `protocol::results::ResultsState::apply` (T73) | `.expect("an escrow has a history")` | internal: an open escrow is recorded only with its author's history | kept |
 | `scoring::bridging::Ratings::with_weights` | `assert_eq!(weights.len(), self.n)` | was a caller precondition; **gone** (T62): `Ratings::validate` reports the mismatch as `RatingsError::WeightCount` at `fit`/`bridge_scores` | RESOLVED (T62) |
 | `scoring::bridging::fit` (T48) | `best.expect("at least one start")` | internal: the loop runs `n_starts.max(1)` times, and the first start always sets `best` | — |
 | `scoring::bridging` objective and gradient | slice indexing by `Obs { u, j }` | external input: `Ratings` has public fields, and an observation with `u ≥ n` or `j ≥ m` panicked on the bounds check (third review, 2026-09-24). **RESOLVED** (T62): `Ratings::validate` runs first in `fit` and `bridge_scores`, which return `Result<_, RatingsError>` — out-of-range index, wrong weight count, non-finite rating, non-finite or negative weight, duplicate `(u, j)` pair; `scoring/tests/malformed_ratings.rs` pins each case and a property over arbitrary `Ratings`; `scoring/fuzz/bridging` (§4) | RESOLVED (T62) |
@@ -115,6 +131,8 @@ then fixed, then pinned by a regression test.
 | F7 | `merkle_proof` with an index ≥ the leaf count | **panic** (index out of bounds), or for some indices a silent proof of no leaf | `merkle::merkle_proof` | returns `Option`; `None` for an out-of-range index | `integrity.rs::merkle_inclusion_proof_verifies` |
 | F8 | an anchor longer than 65535 bytes | **panic** in `VoprfOracle::label` | RFC 9497's input limit, reached through an `expect` | a longer anchor is hashed to 64 bytes first and its label carries its own tag, so the oracle is total and cannot collide a long anchor with a short one; anchors up to the limit get the same label as before | `voprf_oracle.rs::an_anchor_beyond_the_rfc_9497_limit_still_gets_a_stable_label` |
 | F9 | a received nullifier proof or issuance request | would panic if serializing the transcript ever failed (it cannot today) | `nullifier::challenge`, `credential::pok_challenge` | fallible; the verifier answers `false` / `InvalidProofOfKnowledge` | covered by the no-panic properties (§5) |
+| F10 | a nullifier proof whose BBS+ part repeats an entry (found by `protocol/event`, T73) | no panic: the library decodes it to the same proof, so one proof — and one event — had several encodings and CIDs | `bbs_plus` 0.25.0 deserialization accepts a repeated entry | `NullifierProof::decode` keeps only a proof's own encoding (it re-encodes and compares) | `identity/tests/proof_encoding.rs`, `protocol/tests/node_replay.rs::at_pro_10_a_non_canonical_encoding_is_refused` (fixtures from the crash) |
+| F11 | a previous cut with a mark of length 0 (found by `network/cut`, T74) | arithmetic overflow, a panic in debug builds | `cut::added` took `len - 1` on the previous cut's mark, assuming it well formed | `checked_sub`: such a cut is refused as `Retracts` | `cuts.rs` `at_net_15_a_malformed_previous_cut_is_refused` |
 
 **The OTS pre-scan.** `anchoring::within_bounds` walks the same grammar as the library's
 parser — header, digest, step tree, attestations, no trailing bytes — without executing
@@ -131,7 +149,7 @@ F1–F4 are worth reporting upstream.
 
 ## 4. Fuzz targets
 
-Nine `cargo fuzz` targets, in `crates/{network,identity,scoring}/fuzz/` (outside the
+Thirteen `cargo fuzz` targets, in `crates/{network,identity,scoring,protocol}/fuzz/` (outside the
 workspace: libFuzzer needs nightly). Each README says how to run them. Besides "no panic,
 no abort, bounded memory", each asserts a property of its entry point:
 
@@ -141,15 +159,20 @@ no abort, bounded memory", each asserts a property of its entry point:
 | `network/erasure` | `reconstruct`, `reconstruct_verified`: hostile shards and layouts; genuine encodings with losses and corruptions | a genuine encoding recovers exactly when `data_shards` authentic shards survive, to the original bytes |
 | `network/checkpoint` | `CheckpointClient::ingest` / `ingest_with_log` over sequences of honest and forged checkpoints | the trusted height never decreases; only `Accepted` changes the trusted checkpoint; acceptance needs a threshold of distinct member signatures |
 | `network/merkle` | `merkle_proof`, `verify_proof` | a proof exists exactly for an in-range leaf, and verifies |
+| `protocol/event` (T73) | `NodeEvent::decode` on arbitrary bytes, seeded with genuine events | a decoded event re-encodes to the same bytes (it found F10) |
+| `network/cut` (T74) | `Cut::decode`, `SignedEntry::decode`, `MemberObject::decode` on arbitrary bytes; `added` on arbitrary previous and next cuts, with epochs, over a replica with forked and partial feeds; `Cut::next` | one encoding each; `added` names only held entries, each once, and keeps the epoch rule; a proposal extends an applied cut (it found F11) |
+| `network/replica` (T18) | `Message::decode` on arbitrary bytes; replicas fed honest, forked and outsider entries and raw Entries messages, pulling from each other within any cap | a decoded message re-encodes to the same bytes; a wanted entry the peer holds is sent; every entry a replica holds is valid; equivocations verify; two pulls each way converge |
+| `network/store` (T13) | `DurableLog::open`, `ObjectStore::open` on arbitrary file bytes, with and without a genuine header | an opened log verifies and takes an append that survives a reopen; a stored object reads back under its CID after a reopen |
 | `identity/oprf_quorum` | the threshold OPRF with any committee shape, anchor and claimed quorum | a label exactly for `≥ t` distinct committee members, equal for every valid quorum |
 | `identity/enrollment` | `EnrollmentRegistry::enroll` through the reference, VOPRF and threshold oracles | the same person via the other source is a duplicate |
 | `identity/voprf_wire` | RFC 9497 messages decoded from arbitrary bytes, at the server and at the client | no decoded evaluation verifies without the server key |
 | `identity/nullifier_proof` | `nullifier::verify` of proofs decoded from arbitrary bytes or spliced into a genuine one | only the untouched genuine proof verifies, for its own role and context |
 | `scoring/bridging` (T62) | `bridging::fit`, `bridging::bridge_scores` on a `Ratings` assembled field by field: indices past `n`/`m`, any rating, any number of weights of any value | an error exactly when `Ratings::validate` refuses the input; a validated input always fits |
 
-Two targets reach private code through `--cfg fuzzing` (set by cargo-fuzz):
-`ThresholdOprfOracle::fuzz_label_with_quorum` and `NullifierProof::{to_bytes, from_bytes}`,
-a test encoding and not a wire format. Normal builds do not contain them.
+One target reaches private code through `--cfg fuzzing` (set by cargo-fuzz):
+`ThresholdOprfOracle::fuzz_label_with_quorum`; normal builds do not contain it.
+`identity/nullifier_proof` used a test encoding under the same flag until T73, and now
+fuzzes the wire format v1 (`NullifierProof::{encode, decode}`).
 
 **Runs recorded for this audit** (nightly `cargo-fuzz` 0.13.2, libFuzzer with
 AddressSanitizer, 4 cores, 2 GiB RSS limit):
@@ -164,6 +187,15 @@ AddressSanitizer, 4 cores, 2 GiB RSS limit):
 | `identity/enrollment` (`-max_len=70000`) | 77 016 | 16 198 | 0 |
 | `identity/voprf_wire` | 5 529 289 | 1 224 479 | 0 |
 | `identity/nullifier_proof` | 91 962 | 18 663 | 0 |
+| `network/store` (T13, 2026-09-27; 5 min during the work, 3 min on the committed code) | 309 898 | 110 450 | 0 |
+| `protocol/event` (T73, 2026-09-27; 4 min unseeded, then 5 min seeded after the F10 fix) | 2 276 305 | 488 280 | 1 (F10, fixed) |
+| `identity/nullifier_proof` (T73: the wire format, 4 min) | — | 17 462 | 0 |
+| `protocol/event` (T73 step 2: lifecycle steps, seeded, 5 min) | — | 700 821 | 0 |
+| `protocol/event` (T73 step 3: epoch results, seeded, 5 min) | — | 1 264 857 | 0 |
+| `protocol/event` (T73 step 3: decoded results also applied, 5 min) | — | 1 657 170 | 0 |
+| `network/replica` (T18, 2026-09-27, 5 min) | — | 195 796 | 0 |
+| `network/cut` (T74, 2026-09-27; 5 min, then 5 min after the F11 fix) | 5 min to F11 | 66 374 | 1 (F11, fixed) |
+| `network/cut` (T74 step 2: members' objects and proposals, 5 min) | — | 40 445 | 0 |
 
 `scoring/bridging` was added with T62 (2026-09-24) and has not been run yet: that session
 had no nightly toolchain. `scoring/tests/malformed_ratings.rs` covers the same entry points
@@ -187,6 +219,9 @@ ones are checked).
 The fuzz targets run on demand; CI runs the stable property tests that cover the same
 entry points:
 
+- `network/tests/durable_store.rs` (T13): arbitrary bytes after a genuine log prefix and
+  after an object header (256 cases each), a crash at every byte of a log, damage in every
+  field of every earlier record.
 - `network/tests/hostile_input.rs`: arbitrary bytes and edited genuine proofs through
   `verify` (4096 cases each: with the pre-scan disabled, most runs abort); hostile shard
   sets and layouts; recovery exactly when enough authentic shards survive; forged
@@ -209,15 +244,17 @@ entry points:
   other `scoring` entry points keep shape preconditions on their slices and matrices
   (the table in §2.3), and the `protocol` entry points were not fuzzed: both are T46's,
   whose validated types make the mismatches unrepresentable.
-- **Network codecs**: none exist yet. Transport (T18) will add wire formats for
-  checkpoints, signatures, receipts, shards, nullifier proofs and OPRF partials; each needs
+- **Network codecs**: the node's own files are the first (T13, `network/store`, fuzzed).
+  The node's events (T73, `protocol/event`) and nullifier proofs (`identity/nullifier_proof`)
+  followed, then the replication messages (T18, `network/replica`); T74 will add wire
+  formats for checkpoints, signatures, receipts, shards and OPRF partials; each needs
   a fuzz target of the same kind, and the `credential` sites marked "becomes external"
   above turn into errors when the committee goes remote.
 - **Fuzzing in CI**: the targets are not built by CI (they need nightly). A scheduled job
   running each for a few minutes would keep them from rotting.
-- **Noticed, not panics**: `Consortium::new` accepts a threshold of 0, which accepts any
-  checkpoint with no signature (a configuration footgun; with `verify` ignoring the
-  member-set hash, now T63); `ingest_with_log` trusts the first
+- **Noticed, not panics**: `Consortium::new` accepted a threshold of 0, which accepts any
+  checkpoint with no signature — resolved by T63: it panics unless `1 ≤ t ≤ n` with
+  distinct keys (§2.2), and `verify` checks the member-set hash; `ingest_with_log` trusts the first
   checkpoint on first use, so a local log that does not extend it is reported only at the
   next checkpoint: as `LocalLogDiverged` once it is long enough to show the divergence, as
   `LogBehind` before that (T43).

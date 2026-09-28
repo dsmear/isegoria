@@ -214,7 +214,7 @@ fn band_ready() -> State {
     let admitted = step(
         deposit(true, true, true, true).unwrap(),
         Event::Admit {
-            seed_from_checkpoint: true,
+            seed_from_beacon: true,
         },
     )
     .unwrap();
@@ -397,7 +397,7 @@ fn a_band_item_whose_extra_reviewers_disapprove_is_rejected() {
         let admitted = step(
             deposit(true, true, true, true).unwrap(),
             Event::Admit {
-                seed_from_checkpoint: true,
+                seed_from_beacon: true,
             },
         )
         .unwrap();

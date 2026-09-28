@@ -28,6 +28,16 @@ pub struct InsufficientReputation {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Escrow(usize);
 
+impl Escrow {
+    pub(crate) fn at(index: usize) -> Self {
+        Escrow(index)
+    }
+
+    pub(crate) fn index(&self) -> usize {
+        self.0
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AppealOutcome {
     Promoted { quality: f64 },

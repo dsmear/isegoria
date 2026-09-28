@@ -21,7 +21,7 @@ impl Role {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Nym(pub [u8; 32]);
 
 /// Deterministic pseudonym for one role. In production this is a Semaphore-style
