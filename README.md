@@ -321,8 +321,8 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
 | Layer | State |
 |---|---|
 | Scoring engine (A + B + C + anti-collusion) | Implemented, reproducible bit-for-bit across platforms and build profiles (CI), matches the sims; the gate reads the side-balanced bridge score (D32, T49; thresholds provisional until T25) |
-| Design revisions from the working paper ([`paper/`](paper/)): side-balanced bridge score, proper evaluator score with exploration, DIF anchor precondition and target model, contested facts in a balanced pool, residual-based coordination detection (`docs/01` D32–D41) | D32–D40 done (T49–T57); D41, the commit-reveal beacon, done in process (T37); thresholds provisional until T24/T25 |
-| Findings of the third review (2026-09-24): deposit replay, respondents not identity-gated, consortium threshold, appeal stake, band items without appeal (`docs/08` §0-quinquies) | Deposit replay (T64), respondent gate (T65), band items without appeal (T59), the appeal stake (T61) and the consortium threshold (T63) fixed; the rest confirmed by tests on master and planned (`docs/10` T58–T67) |
+| Design revisions from the working paper ([`paper/`](paper/)): side-balanced bridge score, proper evaluator score with exploration, DIF anchor precondition and target model, contested facts in a balanced pool, residual-based coordination detection (`docs/01` D32–D41) | D32–D40 done (T49–T57); D41, the commit-reveal beacon, done in process (T37); thresholds provisional until T25 |
+| Findings of the third review (2026-09-24): deposit replay, respondents not identity-gated, consortium threshold, appeal stake, band items without appeal (`docs/08` §0-quinquies) | Deposit replay (T64), respondent gate (T65), band items without appeal (T59), the band's re-decision on the same panel (T60), the appeal stake (T61) and the consortium threshold (T63) fixed; the rest — no-show reviewers, a hand-built empty panel, the honeypot's fixed draw — confirmed by tests on master and planned in Phase 3 (`docs/10` T58, T66, T67) |
 | Identity, network, protocol | Working scaffolds; deterministic mechanisms + single-server & threshold OPRF label + single & threshold BBS+ credential + ZK nullifier + OpenTimestamps anchoring proofs real, remaining heavy crypto/transport behind traits |
 | Real crypto/transport integration (committee DKG/transport, libp2p, live OpenTimestamps calendar/Bitcoin) | Future work |
 | Meta-level governance (stratified sortition) | Future work |
@@ -342,7 +342,11 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
    drawn into a test only in sets whose differential test functioning stays within a
    tolerance (D38, T55), and the characterization of the detectors and gates (T24,
    54,412 runs), whose first pass found and fixed a defect in the bridge score's sides
-   (D42, T71); next, the calibration of the thresholds from its results (T25).
+   (D42, T71). Next, T25: the characterization showed that the latent re-check flags
+   clean items when respondents can guess — as they always can on true/false and
+   multiple-choice items — so the model gets its guessing correction first (D25), in the
+   re-check and then in the pilot screen, is measured again, and only then are the
+   thresholds set; and the mutation testing of the mechanism (T81).
 2. **P2P network** — done so far: the consortium's configuration check (T63), a
    randomness beacon nobody can grind, by commit-reveal among the consortium members (D41,
    T37, in process), draws that read their candidates as a set (T72), and a node's log and

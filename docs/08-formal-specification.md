@@ -1359,6 +1359,7 @@ Only gaps supported by evidence in the repository are listed. Each gives: locati
 *Ambiguity.* Whether `a ≥ 0.6`, `|b| ≤ 2.5` refer to the IRT metric or the standardized-total metric.
 *Minimum spec.* Declare the metric; either re-derive thresholds for it or estimate an IRT-scaled θ. Decide 3PL.
 *Test.* AT-DIF-02 extended with a 3PL generator; verdict_agreement.rs.
+*Status.* DECIDED (`docs/01` D25, 2026-09-28): a guessing floor per item in the target model, whose metric the pilot screen reads too; built by `docs/10` T25, steps 1–2, its thresholds set by step 4. T24 measured the need: with a floor of 0.2 in the population the 2PL target model flags 12–17% of the clean items (`docs/13` §7.2).
 
 **G-08 — Mixture DIF cut-off inconsistent (docs 0.5 on b-gap; sim 0.35 on |δ|; code 0.5 on |δ|).**
 *Location.* `docs/02` §B.3, `sim/latent_dif_and_capacity.py:63`, `dif.rs::MIXTURE_DIF_MAX`, `revalidation.rs:58`.
@@ -1557,12 +1558,12 @@ No claim in this matrix is at INDEPENDENTLY_REVIEWED, PRODUCTION_CANDIDATE, or P
 Completion is **not** "all TODOs removed". Isegoria MAY claim completeness only when every critical claim has proportionate evidence, every threat assumption is explicit, every unimplemented production dependency is named, and every residual risk is documented. The gate is split by discipline; each criterion names the minimum evidence level.
 
 ### 16.1 Scientific correctness
-- SC-1 Every threshold in `docs/02`'s parameter table has: reason, calibration procedure, sensitivity analysis, failure description, versioned location (`docs/07` §13). *Today: none has all five.*
-- SC-2 DIF Variant 2 has FP and power tables (AT-DIF-01/02) with CIs, covering unbalanced classes, δ ≥ 0.5, K ∈ {4..16}, NT ∈ {1500, 3000, 6000}; verdict thresholds are chosen from those tables. Status target: SCIENTIFICALLY_CHARACTERIZED. *Tables done for the target model (T24, `docs/13` §7.1, 2026-09-28): SCIENTIFICALLY_CHARACTERIZED on 2PL populations; the thresholds are T25's.*
-- SC-3 Bridging: seed and parameter sweeps (BRIDGE-002/003/005) with reported variance; capture-cost curves replace the single "87 %" figure. *Seed sweeps and capture-cost curves done (T24, `docs/13` §7.4); `docs/06` states 75%; the sweeps over `(λ_b, λ_f)` are not done.*
-- SC-4 The θ metric is declared and thresholds re-derived (G-07); 3PL decision documented.
+- SC-1 Every threshold in `docs/02`'s parameter table has: reason, calibration procedure, sensitivity analysis, failure description, versioned location (`docs/07` §13). *Today: none has all five; `docs/10` T25, step 4.*
+- SC-2 DIF Variant 2 has FP and power tables (AT-DIF-01/02) with CIs, covering unbalanced classes, δ ≥ 0.5, K ∈ {4..16}, NT ∈ {1500, 3000, 6000}; verdict thresholds are chosen from those tables. Status target: SCIENTIFICALLY_CHARACTERIZED. *Tables done for the target model (T24, `docs/13` §7.1, 2026-09-28): SCIENTIFICALLY_CHARACTERIZED on 2PL populations. On populations that guess — every true/false or multiple-choice batch — the model flags clean items (`docs/13` §7.2): corrected and measured again by T25, steps 1–3; the thresholds are its step 4.*
+- SC-3 Bridging: seed and parameter sweeps (BRIDGE-002/003/005) with reported variance; capture-cost curves replace the single "87 %" figure. *Seed sweeps and capture-cost curves done (T24, `docs/13` §7.4); `docs/06` states 75%; the sweeps over `(λ_b, λ_f)` are not done (T25, step 3).*
+- SC-4 The θ metric is declared and thresholds re-derived (G-07); 3PL decision documented. *3PL decided (`docs/01` D25, 2026-09-28): T25 step 1 declares the metric with the model, step 2 moves the pilot screen onto it, step 4 sets its thresholds.*
 - SC-5 Sample sizes (STAT-001) derived from SC-2, not from prose. *The latent re-check's floor can now be (T24, `docs/13` §7.1; T25 sets `N_LATENT_MIN`); the pilots' 300 and 1500 cannot yet.*
-- SC-6 The mixture metric is unified (G-08); BSS baseline chosen and the incentive argument re-derived (G-09).
+- SC-6 The mixture metric is unified (G-08); BSS baseline chosen and the incentive argument re-derived (G-09). *The metric unified (T35), the crowd baseline chosen (T31, D23) and the evaluator score made proper (D33, T50); the cut's value is T25's, step 4.*
 - SC-7 Sample-poisoning curves exist (AT-DIF-07). *Done (T24, `docs/13` §7.2).*
 - SC-8 External psychometric review of §6.4–6.6 by a qualified reviewer, recorded in `reports/`.
 
@@ -1626,7 +1627,7 @@ Each question preserves an ambiguity found in the repository and offers precise 
 - **Q-3 (G-02).** Binding mechanism: IdP-signed commitment + ZK opening; IdP-side blinding; or committee-side evaluation on a cleartext anchor (giving up obliviousness against the committee). Each has a different trust table (§3.1).
 - **Q-4 (G-09).** BSS baseline: crowd prediction or outcome base rate?
 - **Q-5 (G-08).** Mixture DIF metric: `|δ|` or `2|δ|`; value?
-- **Q-6 (G-07).** θ metric: standardized total, or IRT EAP? 2PL or 3PL?
+- **Q-6 (G-07).** θ metric: standardized total, or IRT EAP? 2PL or 3PL? **Answered** by D25 (2026-09-28): neither a total nor a point estimate — θ is integrated inside the target model's likelihood, for the latent re-check and the pilot screen alike; a guessing floor for every item with options, 0 for an open answer (`docs/10` T25, steps 1–2).
 - **Q-7 (G-15).** Supplementary review: (a) `k` more reviewers then re-gate at `τ` without band; (b) escalate to the pilot directly; (c) hold until next epoch.
 - **Q-8 (REPUTATION-007).** Appeal cost representation: pseudo-observation with escrow, or a separate ledger outside `C_a`?
 - **Q-9 (G-16).** Golden-item ground truth: Level-B history only, or committee judgment?

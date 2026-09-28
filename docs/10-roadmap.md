@@ -4,22 +4,22 @@
 |---|---|
 | **Purpose** | The ordered plan of work: what is left to fix or build, in priority order, and what each step must show to count as done. |
 | **Derived from** | `docs/08` §14 (gaps), §12 (adversarial tests AT-*), §16 (acceptance gate); `docs/01` D17–D42; the working paper in `paper/`; three reviews — the `docs/08` audit, the second review (2026-09-23), the third review (2026-09-24, `docs/08` §0-quinquies). |
-| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). |
+| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)), and Phase 1's remaining work was re-planned on 2026-09-28 from T24's results (T25 in four steps, T81). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). |
 
 ## Priorities
 
 Three phases, in this order:
 
-1. **[Phase 1 — Mathematics](#phase-1--mathematics).** The two severe defects of the
-   protocol boundary (T64, T65) are done; then the scoring mechanism and the decisions
-   built on it. The mechanism is the new part of the system, and on master it does not
-   yet do all it claims: the bridge score was batch-relative and partly majoritarian
-   (D32, fixed by T49); the evaluator score is
-   improper (D33), the latent DIF check raises false flags when the ability proxy is
-   noisy (D37), and two of the paths that follow the gate (the band and the appeal) are
-   thinner than specified. Every other layer consumes these numbers, and fixing them
-   changes the golden outputs, the fixtures and `sim/` on purpose: building the rest
-   first would mean validating it twice.
+1. **[Phase 1 — Mathematics](#phase-1--mathematics).** The scoring mechanism and the
+   decisions built on it. The mechanism is built — every decision D32–D42 is implemented,
+   and T24 characterized the detectors and gates it runs on (`docs/13` §7) — and two
+   things are left: the thresholds (T25) and the mutation testing the plan scheduled and
+   never ran (T81). T24 changed what T25 is: on a population that guesses, the latent
+   re-check flags 12–17% of the clean items, and the system's items (true/false or
+   multiple-choice) always guess, so T25 corrects the model first (D25), measures it
+   again, and only then sets the thresholds. Every other layer consumes these numbers,
+   and changing them changes the golden outputs, the fixtures and `sim/` on purpose:
+   building the rest first would mean validating it twice.
 2. **[Phase 2 — P2P network](#phase-2--p2p-network).** Nodes that persist, talk, agree,
    and draw randomness nobody can grind. A node's log survives a restart, nodes replicate
    the signed set over libp2p and agree on its order through consortium-signed cuts, and
@@ -77,14 +77,17 @@ reference implementation / testnet.
   replication of the signed set over libp2p (T18) and the protocol state from
   consortium-signed cuts, with the beacon run between nodes (T74). Details and
   evidence: [Completed work](#completed-work).
-- **Open:** the calibration of the thresholds (T25), unblocked by T24's results (`docs/13` §7.5); the defects found by the
-  third review (2026-09-24), all but T64, T65, T62, T59, T61 and T63; the rest of the
-  network runtime — the DHT (T75), a silent proposer's replacement (T76), live anchoring
-  (T17) — and the four gaps of the Phase 2 check (2026-09-28): a replicated set any peer
-  reads, against D17 (T77), a node process (T78), an epoch run between nodes (T79), a
-  writer that rebuilds its feed (T80); distributed identity; privacy hardening;
-  everything external; the [open problems](#open-problems) that wait on an owner decision
-  (T69, and T77's mechanism).
+- **Open:** the thresholds (T25), in four steps from T24's results (`docs/13` §7.5) — the
+  guessing correction (D25) in the latent re-check, then in the pilot screen, a supplement
+  of the DIF studies on the corrected model, then the thresholds with their calibration
+  procedures ([1.4](#14--characterize-the-parameters)); the mutation testing of Phase 1's
+  mechanism (T81); the third review's remaining findings, all in Phase 3 (T58, T66, T67,
+  T46); the rest of the network runtime — the DHT (T75), a silent proposer's replacement
+  (T76), live anchoring (T17) — and the four gaps of the Phase 2 check (2026-09-28): a
+  replicated set any peer reads, against D17 (T77), a node process (T78), an epoch run
+  between nodes (T79), a writer that rebuilds its feed (T80); distributed identity;
+  privacy hardening; everything external; the [open problems](#open-problems) that wait
+  on an owner decision (T69, and T77's mechanism).
 
 ---
 
@@ -118,11 +121,17 @@ review found that the paths after two of them are thinner than specified, and on
 the caller's word (the appeal, T61). All three are done — T59, T61 and the extra round of
 the band re-decision, T60 — and sit in [Completed work](#phase-12--the-decisions-built-on-the-score-band-and-appeal).
 
-
 ### 1.3 · Engine robustness and the rest of the specification
+
+The engine's input validation (T62) and its cross-platform reproducibility (`AT-BR-04`)
+are done and sit in [Completed work](#phase-13--engine-robustness). One item is left: the
+mutation testing [1.5](#15--order-of-execution-and-milestones) scheduled after T49 and
+after T50/T51 never ran, and no run of `docs/11` since run 7 covers the decision logic
+Phase 1 changed.
 
 | Task | What it means (plain) | Refs | Done when | Size |
 |---|---|---|---|---|
+| T81 | **Mutation testing of Phase 1's mechanism** (found 2026-09-28). `cargo mutants` on the files whose decision logic Phase 1 changed and T25 does not: `bridging` (T49, T62, T71, T39), `reputation`, `probation` and `exploration` (T50–T52), `collusion` and `review` (T56, T57), `gate`, `appeal`, `lifecycle` and `orchestrator` (T59–T62). The files T25 changes — `latent`, `dtf`, `irt`, `pilot`, `revalidation` — are run by its steps 1 and 2, on their new code | `docs/11`; [Continuous work](#continuous-work) | a run of each of these files recorded in `docs/11`, every survivor killed by a test or justified | M |
 
 ### 1.4 · Characterize the parameters
 
@@ -138,15 +147,29 @@ never rated was scored on an extrapolation, and scores left [0, 1] — fixed as 
 the full run, 54,412 runs, measured the detectors and gates on the fixed engine. What it
 gives T25 is in `docs/13` §7.5.
 
+It also changed T25. The latent re-check was characterized on populations that do not
+guess, and there it flags no clean item; on a population with a guessing floor of 0.2 it
+flags 12–17% of them, and the KR-20 floor is no protection (`docs/13` §7.2). The system's
+items are true/false or multiple-choice with one keyed option (`docs/README.md`), so every
+real batch guesses: a floor near `1/m` for `m` options, 0.5 for true/false — a case no
+study tried. The DIF values of `docs/13` §7.5 hold for items with nothing to guess; for the
+others the model is corrected first (D25) and measured again, and only then are the
+thresholds set. T25 is four steps, in this order.
+
 | Task | What it means (plain) | Refs | Done when | Size |
 |---|---|---|---|---|
-| T25 | **Unblocked (2026-09-28) by T24.** Declare the ability metric and add the guessing correction (D25); fix the bias threshold from the studies (D24); a calibration procedure for every operational threshold (τ, ε, λ, …). The inputs are `docs/13` §7.5: the guessing correction first — on a population that guesses the 2PL target model flags 12–17% of the clean items; the DIF cut, which flags no clean item anywhere from 0.5 to 1.5 on 2PL populations and no longer binds at 0.6 and below; `KR20_MIN`, which 20 anchors (KR-20 0.83) did not need; a cut on `a_gap`, or none; `DTF_MAX`, whose fitted bound is biased upward and noisy within about 0.05 of it; `N_LATENT_MIN`; `τ` and `ε`, with no false pass from 200 reviewers up | SC-1/4/6 | SC-1, SC-4 and SC-6 (`docs/08` §16.1): every threshold of `docs/02`'s table set from `docs/13` §7 with its calibration procedure; one DIF rule (D24); the θ metric declared and the 3PL decided (D25) | M |
+| T25 | **The operational thresholds, calibrated** (re-planned on 2026-09-28 into the four steps below). Declare the ability metric and add the guessing correction (D25); fix the bias threshold from the studies (D24); a calibration procedure for every operational threshold | SC-1/4/6 | SC-1, SC-4 and SC-6 (`docs/08` §16.1): every threshold of `docs/02`'s table with its calibration procedure, set from `docs/13` or marked provisional with the pilot that will set it; one DIF rule (D24); the θ metric declared and the 3PL decided (D25) | L |
+| T25, step 1 | **The guessing floor in the latent re-check (D25).** The target model gets a lower asymptote per item, `P = c_j + (1 − c_j) σ(a_jg (θ − b_jg))`, on the anchors and the trial items: `c_j` the same in every class, fixed at 0 for an item with nothing to guess (an open answer), otherwise estimated under a Beta prior centred on the chance level `1/m_j` of its declared number of options (true/false: `m = 2`) — the form decided on 2026-09-28 (`docs/01` D25). The formats are an input of the re-check; binding them to the draft goes with T68's structured draft. With every `c_j` at 0 the fit is today's, bit for bit. The contested pool's curves (`scoring::dtf`) carry the asymptote, and `docs/02` declares the metric: logistic, `D = 1`, θ ~ N(0, 1) in the batch's reference class | D25, G-07, DIF-008, `docs/13` §7.2 | specified first (`docs/02` §B.1, §B.3, §B.7); a null batch with a floor of 0.2 on every item (N = 3,000, 60 anchors, K = 8, five options declared) selects one class and flags no item, where today's model selects a mixture (in 78.5% of such batches in T24); two leaning items at δ = 0.9 on such a batch are flagged, their gaps near the true 1.8 (read at 0.81 today); the gradient pinned against central differences; with every `c_j` at 0 the golden rows and T24's pinned records unchanged; the fit's time on a guessing batch recorded; the mutation run of the changed files in `docs/11` | L |
+| T25, step 2 | **The pilot screen on the same model and metric (D25, G-07).** Stage 1 reads the one-class fit of step 1's model on the pilot's anchors and items — `a ≥ A_MIN` and `\|b\| ≤ B_ABS_MAX` on the declared metric, and a ceiling on `c` relative to the chance level of the item's format (`docs/02` §B.2's `c ≤ 0.35` assumes four options: every true/false item would fail it) — instead of a 2PL slope on the standardized anchor total; the point-biserial stays, for inverted keys | IRT-001, IRT-003, G-07, PROTO-005 | the fixture's item 02, generated with `a = 1.6`, `b = 0.9` and a floor of 0.25 like every item of the reference sim, passes the screen where it fails today on a 2PL slope of 0.47 (`end_to_end.rs` asserts the failure), and item 05 (`a = 0.15`) still fails; the pool, `sim/`, the fixtures and the golden outputs change on purpose where the screen's verdict does; the mutation run of the changed files in `docs/11` | M |
+| T25, step 3 | **The guessing supplement:** T24's DIF studies on the corrected model, on populations that guess — null and power batches with a floor of 0.2 (five options), 0.25 (four) and 0.5 (true/false), a floor that varies across items around the declared one, impact, the DTF error and the anchors' reliability under guessing, and the screen at N = 300; two misspecifications no study has tried, since the BIC reads any misfit as classes: a skewed ability distribution, and items of one template answered alike (`docs/05` [9]); and, cheap beside them, the sweep over `(λ_b, λ_f)` that SC-3 still asks for and the band's extra round (`k_extra`), which T24's design does not measure. Specified in `docs/13` first, the harness extended; a smoke pass in the container, then the first pass (`--replicates 20`) and the full run on the owner's machine — the container's 4 cores take three to four times as long as its 8 cores and 16 threads | SC-2/3/5, DIF-008, DIF-011, STAT-001, `docs/07` §14 | as T24 (`docs/13` §6): every run recorded and summarized, the results stated inside their regime in `docs/13`, the tables under `verification/reports/`, `docs/08` §12 and §15 restated | M |
+| T25, step 4 | **The thresholds and their register.** Every threshold of `docs/02`'s parameter table gets the five items of `docs/07` §13: its reason, its calibration procedure, its sensitivity, what breaks if it moves, its versioned location. Level B from `docs/13` §7 and step 3: `MIXTURE_DIF_MAX` (D24), `KR20_MIN` or a minimum number of anchors (the KR-20 falls with guessing — 0.936 to 0.893 at 60 anchors — and reads it as unreliability), a cut on `a_gap` or none, `DTF_MAX` with a margin or a bias correction, `N_LATENT_MIN`, and the screen's thresholds. Level A from `docs/13` §7.4 — `τ`, `ε`, `γ_appeal`, the side floor and `MIN_COVERAGE`, which wait on none of the steps before — and from step 3, `k_extra` and `λ_b/λ_f`. Level C — `γ`, `k₀`, the CUSUM `k`/`h`, `w_max`, `N_PROBATION`, the exploration and honeypot rates, the coordination thresholds — gets its procedure, its values provisional until the pilots (T27) | SC-1/4/6, D24, `docs/07` §13 | T25's row | M |
 | T26 | **External psychometric review** of the statistical method | SC-8 | SC-8: the review recorded in `reports/` | *external* |
 
 ### 1.5 · Order of execution and milestones
 
-Fixed on 2026-09-24, after the reordering. The sections above are thematic; this is the
-order the work is done in. Sizes are the ones in the rows.
+Fixed on 2026-09-24, after the reordering; steps 15–18 re-planned on 2026-09-28 from T24's
+results. The sections above are thematic; this is the order the work is done in. Sizes
+are the ones in the rows.
 
 1. T65 (M) — done (2026-09-24), as T64 before it.
 2. T62 (S) — done (2026-09-24): `fit` and `bridge_scores` return a `Result`; T49 is
@@ -167,31 +190,37 @@ order the work is done in. Sizes are the ones in the rows.
 13. T55 (L) — contested facts: the specification, then the pool and the balanced draw —
     done (2026-09-25).
 14. T24 (L) — done (2026-09-28, `docs/13` §7): 54,412 runs on the owner's machine; its
-    first pass found T71 (M), done on 2026-09-26 — then T25 (M), now unblocked; T26 is
-    external.
+    first pass found T71 (M), done on 2026-09-26.
+15. T25, step 1 (L) — the guessing floor in the latent re-check.
+16. T25, step 2 (M) — the pilot screen on the same model.
+17. T25, step 3 (M) — the guessing supplement: specified and smoke-tested in the
+    container, run on the owner's machine; meanwhile T81 (M) in the container.
+18. T25, step 4 (M) — the thresholds and their register. T26 is external.
 
-**Two streams.** Steps 2–5 and 8 touch `bridging`, `gate`, `lifecycle` and the
-orchestrator; steps 6, 7 and 9–11 touch `reputation`, `dif`, `collusion`, `honeypot` and
-`probation`. The two sets of files are disjoint, so with two people (or two sessions)
-the streams run in parallel and meet only in `docs/08` §15 and this roadmap. Mutation
-testing (`docs/11`) is re-run after step 3 and after step 7, the two blocks that change
-tested logic most.
+**While the owner's machine runs.** Step 3 takes the owner's machine a day or more, and
+meanwhile the container runs T81 and writes the Level A part of step 4's register:
+neither touches a file of steps 1–3. (Until T24 the plan ran in two streams of disjoint
+files, and scheduled mutation testing after steps 3 and 7; the testing never ran, hence
+T81.)
 
 **Milestone 1a — "the defects are fixed".** Steps 1–7: every task S or M, every one a
 defect in code that exists. At this point the README no longer needs its "partly
 majoritarian" warning, the band and appeal paths are decided by the gate, and the engine
 returns errors instead of panicking.
 
-**Milestone 1b — "the mechanism is complete".** Steps 8–14: the features the decisions
+**Milestone 1b — "the mechanism is complete".** Steps 8–18: the features the decisions
 add (a second panel, exploration, the target DIF model, panel diversification, the
-contested-facts pool — all done) and the characterization of every threshold (T24 done,
-T25 open).
+contested-facts pool — all done), the characterization of the detectors and gates (T24,
+done), and the thresholds set on a model that accounts for the guessing of the items the
+system asks (T25, four steps).
 
-**Milestone 1 — "the mechanism is sound"** is 1a and 1b together. Every verdict is
-computed as D32–D42 specify; the band and appeal paths are decided by the gate, not by
-the caller; the engine returns errors instead of panicking on malformed input; `sim/`,
-the fixtures and the golden outputs are regenerated on purpose; every threshold is either
-characterized (T24/T25) or marked provisional.
+**Milestone 1 — "the mechanism is sound"** is 1a and 1b together, with T81. Every verdict
+is computed as D32–D42 specify, on a model that accounts for guessing (D25); the band and
+appeal paths are decided by the gate, not by the caller; the engine returns errors
+instead of panicking on malformed input; `sim/`, the fixtures and the golden outputs are
+regenerated on purpose; every threshold is either characterized (T24, T25) or marked
+provisional with the pilot that will set it; the mechanism's decision logic is
+mutation-tested (T81).
 
 ---
 
@@ -317,15 +346,12 @@ Not a phase; done alongside every task.
 
 ## Dependency notes
 
-- **Phase 1.** T64 and T65, the two severe defects, are done, and so are T62 and T49
-  (the side-balanced score, which changed the golden outputs, the fixtures and `sim/` on
-  purpose), and `AT-BR-04` right after it. T59 followed T49 (it measures polarization
-  by T49's side gap) and is done, and so is T60, the band's extra round. T61
-  followed the D27 decision and is done. T50, T51 and T52 are done. T53 and T54 are done. T55
-  is done: its specification (the source check, the DTF bound) first, then the pool. T56
-  and T57 are done. T24 is done (2026-09-28); T25 closes the phase: the thresholds of
-  T35 and T49–T55 are final only after it. The full
-  order and the milestone split: [1.5](#15--order-of-execution-and-milestones).
+- **Phase 1.** Every task up to T24 is done (the order they followed is in
+  [1.5](#15--order-of-execution-and-milestones)). T25 closes the phase, its steps in
+  order: the model first (step 1), the screen on it (step 2), the supplement measures both
+  (step 3), the thresholds are read from it (step 4); the part of step 4 that reads T24
+  alone — the Level A thresholds — can be written at any time. The thresholds of T35 and
+  T49–T55 are final only after it. T81 needs nothing and touches no file of T25.
 - **Phase 1 → 2.** T52's exploration draw (done) is grind-free since T37 (done), like every
   other draw.
 - **Phase 2.** T63 and T37 (both done) before T18 (done, as T38 was); T74 follows T18 and
@@ -375,7 +401,7 @@ other documents and commit messages refer to these ids and block names.
 
 | Task | What it means (plain) | Decision / refs | Done when | Size |
 |---|---|---|---|---|
-| T49 | **Side-balanced bridge score. Done (2026-09-24):** `bridging::two_means` (deterministic 1-D 2-means on `f_u`, initialized at its extremes, as the paper's script), `bridging::side_balanced(&Fit) -> SideScores` (per-side mean predictions, `score = (A + B)/2`, `gap = \|A − B\|`), `bridge_scores -> BridgeScores { robust: bootstrap-min of the score, full }`; `gate::bridging_gate(score, gap, τ, ε, appeal_gap)` with the provisional constants `TAU = 0.80`, `EPS = 0.02`, `APPEAL_GAP = 0.25` (`docs/02` §A.3); `supplementary_review` re-decides on the full fit's `S_j`. `sim/bridging_irt_dif.py` and `sim/export_fixtures.py` compute the same score; `expected_levelA.csv` gained `side_a_full, side_b_full, side_full, gap_full`, `expected_meta.csv` has `tau = 0.80`, `levelc_p/bss.csv` follow the new verdicts, `golden_bits.txt` regenerated; the README warning is gone. *Evidence:* `level_a.rs` matches the oracle (`S_j` to 0.004, the gap to 0.008, sides of 80 and 120); `side_balanced.rs` — AT-BR-08: leak ≤ 0.1 with 60/40 and 80/20 camps from 200 to 3,200 reviewers where the intercept leaks 0.5–0.9, and on the review's mirror-item dataset the camp-size effect on `S_j` stays within 0.1 at every ratio from 50/50 to 95/5 in both orientations while the intercept's is 0.7–0.9, neither mirror item passes and both stay polarized; AT-BR-09: ten decoys move no item by more than 0.02 and change no verdict, the consensus items alone stay within 0.02, the intercept moves by more than 0.1. `end_to_end.rs`: the pool is unchanged ({01, 07}: item 02 passes Level A on `S_j` and dies in the pilot screen with a 2PL slope of 0.47), and the appeal still recovers the true-but-divisive item on its gap (0.67). *Measured limits, recorded in `docs/02` §A.3:* a residual leak of 0.1–0.2 with 50–100 reviewers (a fraction of the intercept's), and noisy side means with a minority side of about ten reviewers (at 95/5 one consensus item in eight fell to 0.78). *Deviation from this row's target:* the leak bound holds from 200 reviewers, not from 50. *Pending:* the mutation-testing re-run the plan schedules after this step (`docs/11`, [1.5](#15--order-of-execution-and-milestones)) | D32; paper §3.3–3.4, §7.1; BRIDGE-008/009 | `AT-BR-08` and `AT-BR-09` pass — both fail on the intercept | M |
+| T49 | **Side-balanced bridge score. Done (2026-09-24):** `bridging::two_means` (deterministic 1-D 2-means on `f_u`, initialized at its extremes, as the paper's script), `bridging::side_balanced(&Fit) -> SideScores` (per-side mean predictions, `score = (A + B)/2`, `gap = \|A − B\|`), `bridge_scores -> BridgeScores { robust: bootstrap-min of the score, full }`; `gate::bridging_gate(score, gap, τ, ε, appeal_gap)` with the provisional constants `TAU = 0.80`, `EPS = 0.02`, `APPEAL_GAP = 0.25` (`docs/02` §A.3); `supplementary_review` re-decides on the full fit's `S_j`. `sim/bridging_irt_dif.py` and `sim/export_fixtures.py` compute the same score; `expected_levelA.csv` gained `side_a_full, side_b_full, side_full, gap_full`, `expected_meta.csv` has `tau = 0.80`, `levelc_p/bss.csv` follow the new verdicts, `golden_bits.txt` regenerated; the README warning is gone. *Evidence:* `level_a.rs` matches the oracle (`S_j` to 0.004, the gap to 0.008, sides of 80 and 120); `side_balanced.rs` — AT-BR-08: leak ≤ 0.1 with 60/40 and 80/20 camps from 200 to 3,200 reviewers where the intercept leaks 0.5–0.9, and on the review's mirror-item dataset the camp-size effect on `S_j` stays within 0.1 at every ratio from 50/50 to 95/5 in both orientations while the intercept's is 0.7–0.9, neither mirror item passes and both stay polarized; AT-BR-09: ten decoys move no item by more than 0.02 and change no verdict, the consensus items alone stay within 0.02, the intercept moves by more than 0.1. `end_to_end.rs`: the pool is unchanged ({01, 07}: item 02 passes Level A on `S_j` and dies in the pilot screen with a 2PL slope of 0.47), and the appeal still recovers the true-but-divisive item on its gap (0.67). *Measured limits, recorded in `docs/02` §A.3:* a residual leak of 0.1–0.2 with 50–100 reviewers (a fraction of the intercept's), and noisy side means with a minority side of about ten reviewers (at 95/5 one consensus item in eight fell to 0.78). *Deviation from this row's target:* the leak bound holds from 200 reviewers, not from 50. *Pending:* the mutation-testing re-run the plan scheduled after this step (`docs/11`, [1.5](#15--order-of-execution-and-milestones)), never run: T81 | D32; paper §3.3–3.4, §7.1; BRIDGE-008/009 | `AT-BR-08` and `AT-BR-09` pass — both fail on the intercept | M |
 | T53 | **Anchor-reliability gate for latent DIF. Done (2026-09-25):** `irt::kr20(anchors)` — KR-20 of the anchor total on the batch's respondents (population variances, as the paper's `revisions_dif.py`; 0, not NaN, with fewer than two anchors or no spread) — and `irt::KR20_MIN = 0.90` (provisional, T25); `pilot::admit_anchors` refuses below the floor (`PilotError::UnreliableAnchors { kr20, need }`, NaN-safe); `revalidate_batch_latent(respondents, anchors, responses, seed)` takes the anchors instead of θ, checks items, respondents, rows and anchors in that order, and computes θ itself (`theta_from_anchors`), so a caller cannot vouch for a proxy the gate has not measured; `MixtureDif::differential` reports the differential gap — the signed shift between the two most populous counted classes less its median over the batch — as a diagnostic only, pinned in the golden bits, never read by `latent_flags`. `anchor_reliability.rs` (AT-DIF-11): null batches drawn as the paper's `dif_generate` (N = 6,000, K = 8) give KR-20 within 0.03 of the paper's table for 10, 20, 30 and 60 anchors; 20 anchors → `UnreliableAnchors` before any fit, while the bare engine on the same batch selects a spurious two-class model; 60 anchors → accepted, no flag; an undefined reliability (one anchor, no spread, a NaN) is refused; anchor rows are the respondents' (`RowCountMismatch`). `latent_classes.rs`: with 6 of 8 items shifted the same way the raw gap flags exactly the shifted items (θ known) and the differential gap inverts. *Note:* the reference fixtures' 30 anchors (KR-20 ≈ 0.87) are below the floor; they exercise the engine (`revalidate_pool_latent`), not the gate | D37; paper Prop 10, Table 6, §7.3; DIF-010 | `AT-DIF-11`: the paper's null batches with 20 anchors are refused, those with 60 are accepted and raise no flag | S |
 | T50 | **Proper evaluator score, odds weights, short probation. Done (2026-09-25):** `reputation::difference_score` (`(p̄_{−u,j} − o_j)² − (p_uj − o_j)²`), `loo_baseline` (the weight-adjusted mean of the *other* panelists; a reviewer with no weighted others is scored against their own forecast, 0), `loo_scores`, `mean_score` (`S_u`), `odds_weight(S_u, k_u)` = `exp(γ·S_u·k_u/(k_u+k₀))` with `EvaluatorParams { gamma: 35, k0: 100 }` (provisional, T25); `evaluator_score` (`σ(γ·BSS)`) removed, `brier_skill_score` kept as the sim oracle; `honeypot::reviewer_skills` returns `S_u` on the golden items; `probation::N_PROBATION` 200 → 30 (D36), `effective_review_weight(is_founder, k_u, skill, w_max)` = the capped odds weight once established; `ReviewerStanding.skill` replaces `e_u`; `orchestrator::epoch_weight_cap` = `3 × median` over the reviewers who carry weight (founders and established, not probationers), `+∞` with none. `evaluator_score.rs`: AT-REP-05 — for random beliefs and baselines (`m ≤ 4`, all `2^m` outcomes enumerated) the truthful report beats any other by exactly `Σ_j (p_j − q_j)²`; the retired ratio-form score reproduces the paper's dissenter (belief 0.30, crowd 0.65 → report 0.60); AT-REP-02 — a copier of the others scores exactly 0 and weighs exactly 1 (also on the fixture, `level_c.rs`); AT-REP-04 — a reviewer reliably 0.1 better than nine crowd-level ones weighs 16 uncapped, 3 capped; D33's arithmetic (×2 for a reliable 0.02; luck after 16 items ×2.4 → ×1.13). `properties.rs`: scores bounded by 1, the copier at 0, the weight finite and positive, 1 with nothing scored. `lifecycle.rs`, `orchestrator_driver.rs` follow the new scale (the discounted bloc of the T5 test is now `S_u = −0.5`, weight ≈ 0.02) | D33, D36; paper Props 12, 14, 15; REPUTATION-005/008, G-12 | `AT-REP-05`, `AT-REP-02` and `AT-REP-04` pass; probation ends at 30 scored outcomes | M |
 | T51 | **Change detector instead of the asymmetric update. Done (2026-09-25):** `reputation::{Cusum, CusumParams}` — a one-sided CUSUM on a reviewer's per-item scores against their own mean, `s ← max(0, s + (S_u − S_uj) − k)`, alarm at `s > h`, then restart (`k = 0.03`, `h = 1.5`, provisional, T25); `probation::SkillTrack` — the running mean (the weight's `S_u`), the count (`k_u`, which decides probation) and the statistic; the detector runs only out of probation (a mean over few items is no reference) and an alarm restarts the track, so the reviewer is on probation (weight 0) until 30 new scored outcomes; `standing()` hands the next epoch's `ReviewerStanding` to `bridging_weights`. `asymmetric_ema` removed with its tests; `adversarial.rs::a_long_con_is_unprofitable` reworked on the detector. `change_detector.rs` (AT-REP-07): honest per-item scores drawn as the paper's `panel_bias` (10,000 items, seed 7) raise at most one alarm; a reviewer honest for 300 items who then flips 20% of forecasts is caught within 100 items on nine of ten seeds — median 25 (the paper's 36), the tenth after 356: at `k = 0.03` the drift is about 0.01 per item, detection is noise-driven and the tail is long (a T25 calibration item; the paper's `k = 0.02`, `h = 1.0` halves the median at 2.3 false alarms per 1,000) — is on probation with weight 0, and is established again after 30 honest outcomes; no alarm during probation. `level_c.rs`: alternating ±0.3 never alarms, a drop of 0.1 alarms at item 22; `properties.rs`: the statistic stays in `[0, h]` and a score at or above the reference never alarms | D34; paper §5.5, §7.2; REPUTATION-004 | `AT-REP-07` passes (the game-theoretic `AT-REP-01` stays open) | M |

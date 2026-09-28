@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | The specification of T24: the simulation studies that measure how the production detectors and gates behave, how to run them, and what counts as done. |
 | **Derived from** | `docs/10` T24 and §1.4; `docs/08` §5.3, §12 (AT-DIF-01..09, AT-BR-02), §16.1 (SC-2, SC-3, SC-5, SC-7); `docs/07` §12–§14; the working paper's designs (`paper/scripts/common.py`). |
-| **Status** | Done (2026-09-28). Specified and harness built on 2026-09-26 (`crates/characterization`); the full run, 54,412 runs on the owner's machine, ended on 2026-09-28 and §7 states its results. The thresholds are set from §7 by T25. |
+| **Status** | Done (2026-09-28). Specified and harness built on 2026-09-26 (`crates/characterization`); the full run, 54,412 runs on the owner's machine, ended on 2026-09-28 and §7 states its results. T25 sets the thresholds from §7, the DIF ones once the model accounts for guessing (D25) and a supplement of these studies has measured it (`docs/10` T25, steps 1–3, §7.5). |
 
 ## 1. What T24 measures, and what it does not
 
@@ -118,7 +118,10 @@ The full grid is 54,412 runs and about 425 CPU-hours — the sixteen cells added
 first pass are about 25 of them — more than half of it in `dif-power` and most of that in
 its cells at N = 6,000: about a day on 16 cores, and about 30 hours on the owner's 8 cores
 and 16 threads (§7). A first pass with `--replicates 20` takes a tenth of that and
-already gives every cell's point estimates; the intervals of §7 need the full count.
+already gives every cell's point estimates; the intervals of §7 need the full count. The
+cloud development container has 4 cores and takes three to four times as long as the
+owner's machine: the first pass and the full run go to the owner's machine, the container
+runs the smoke grid and single cells.
 
 **On the owner's machine.**
 
@@ -283,7 +286,8 @@ and robust scores, and the item's plain mean rating.
    their regime only.
 4. T25 is then unblocked: it sets the DIF cut, a cut on `a_gap` or none, `KR20_MIN`, the
    sample floors, `DTF_MAX`, `τ` and `ε` from §7, with the calibration procedure
-   `docs/07` §13 requires.
+   `docs/07` §13 requires — the DIF ones after the guessing correction and a supplement
+   of these studies on the corrected model (§7.5).
 
 ## 7. Results
 
@@ -447,7 +451,13 @@ same median and range: once it passes, it stays passed.
 ### 7.5 What T25 takes from it
 
 - **Guessing first (D25).** On a population that guesses, 12–17% of the clean items are
-  flagged; no DIF threshold should be lowered before the model accounts for it.
+  flagged; no DIF threshold should be lowered before the model accounts for it. And
+  guessing is the rule, not a corner case: the system's items are true/false or
+  multiple-choice with one keyed option (`docs/README.md`), so a real batch has a floor
+  near `1/m` for `m` options — and 0.5 for true/false, which no study here tried. The DIF
+  values below hold for items with nothing to guess; for the others T25 measures them
+  again on the corrected model (`docs/10` T25, steps 1–3). The bridging values (`τ`, `ε`,
+  `MIN_COVERAGE`) do not depend on it.
 - **The DIF cut** (`MIXTURE_DIF_MAX` = 1.0). On 2PL populations no clean item is flagged
   at any cut from 0.5 to 1.5. At 0.6 and below the cut no longer binds — every leaning
   item of a mixture fit is flagged — and power is the share of fits that select a
