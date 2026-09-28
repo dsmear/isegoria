@@ -100,8 +100,17 @@ impl Consortium {
         self.members.iter().any(|m| m.as_bytes() == key)
     }
 
-    pub(crate) fn keys(&self) -> &[VerifyingKey] {
+    pub fn keys(&self) -> &[VerifyingKey] {
         &self.members
+    }
+
+    /// Whether member `idx` signed `cp`.
+    pub(crate) fn signed_by(&self, cp: &Checkpoint, idx: usize, sig: &Signature) -> bool {
+        cp.member_set_hash == self.member_set_hash
+            && self
+                .members
+                .get(idx)
+                .is_some_and(|pk| pk.verify(&cp.message(), sig).is_ok())
     }
 
     pub(crate) fn threshold(&self) -> usize {

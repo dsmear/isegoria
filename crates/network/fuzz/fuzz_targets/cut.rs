@@ -6,7 +6,7 @@
 use arbitrary::Arbitrary;
 use libfuzzer_sys::fuzz_target;
 use network::cid::cid;
-use network::cut::{added, Cut, Mark};
+use network::cut::{added, Cut, Mark, MemberObject};
 use network::log::TransparencyLog;
 use network::replica::{FeedWriter, Replica, SignedEntry, WriterSet};
 use std::collections::BTreeSet;
@@ -22,6 +22,7 @@ struct Input {
     marks: Vec<(u8, u8, bool, u8)>,
     number: u8,
     prev_marks: Vec<(u8, u8, bool, u8)>,
+    epochs: (u8, bool, u8, bool),
 }
 
 fuzz_target!(|input: Input| {
@@ -66,12 +67,27 @@ fuzz_target!(|input: Input| {
     };
     let prev = Cut {
         number: u64::from(input.number),
+        epoch: u64::from(input.epochs.0 % 4),
+        closes: input.epochs.1,
         marks: input.prev_marks.into_iter().map(mark).collect(),
     };
     let next = Cut {
         number: u64::from(input.number) + 1,
+        epoch: u64::from(input.epochs.2 % 4),
+        closes: input.epochs.3,
         marks: input.marks.into_iter().map(mark).collect(),
     };
+    if let Ok(ids) = added(&replica, Some(&prev), &next) {
+        assert!(next.epoch >= prev.epoch && !(prev.closes && next.epoch == prev.epoch));
+        let _ = ids;
+    }
+    let proposal = Cut::next(&replica, Some(&prev), next.epoch, next.closes);
+    if prev.is_well_formed() && added(&replica, None, &prev).is_ok() && next.epoch > prev.epoch {
+        assert!(added(&replica, Some(&prev), &proposal).is_ok(), "a proposal extends");
+    }
+    if let Some(o) = MemberObject::decode(&input.cut_bytes) {
+        assert_eq!(o.encode(), input.cut_bytes);
+    }
     for (p, n) in [(None, &prev), (Some(&prev), &next)] {
         if let Ok(ids) = added(&replica, p, n) {
             let distinct: BTreeSet<_> = ids.iter().collect();

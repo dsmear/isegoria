@@ -83,10 +83,20 @@ fn at_net_15_a_cut_binds_its_marks() {
     let mut version = bytes.clone();
     version[0] = 2;
     assert!(Cut::decode(&version).is_none());
-    let mut changed = vec![Cut {
-        number: 4,
-        ..cut.clone()
-    }];
+    let mut changed = vec![
+        Cut {
+            number: 4,
+            ..cut.clone()
+        },
+        Cut {
+            epoch: 1,
+            ..cut.clone()
+        },
+        Cut {
+            closes: true,
+            ..cut.clone()
+        },
+    ];
     for i in 0..2 {
         let mut c = cut.clone();
         c.marks[i].len += 1;
@@ -111,9 +121,18 @@ fn at_net_15_a_cut_binds_its_marks() {
     assert!(Cut::decode(&empty.encode()).is_none());
     let mut ragged = cut.encode();
     ragged.pop();
-    let len = (ragged.len() - 17) as u64;
-    ragged[9..17].copy_from_slice(&len.to_le_bytes());
+    let len = (ragged.len() - 26) as u64;
+    ragged[18..26].copy_from_slice(&len.to_le_bytes());
     assert!(Cut::decode(&ragged).is_none());
+    let closing = Cut {
+        epoch: 7,
+        closes: true,
+        ..cut.clone()
+    };
+    assert_eq!(Cut::decode(&closing.encode()), Some(closing.clone()));
+    let mut flag = closing.encode();
+    flag[17] = 2;
+    assert!(Cut::decode(&flag).is_none(), "a closing flag of 2");
 }
 
 /// AT-NET-15: a chain is found only whole, by its head, including a forked writer's branch.
@@ -173,8 +192,8 @@ fn at_net_15_added_checks_the_cut() {
     bad.marks.swap(0, 1);
     assert_eq!(added(&r, None, &bad), Err(CutError::Malformed));
     let gone = Cut {
-        number: 1,
         marks: vec![cut1.marks[0]],
+        ..cut1.clone()
     };
     let dropped = cut0.marks[1].writer;
     assert_eq!(

@@ -2418,8 +2418,10 @@ version = "0.0.0"
 dependencies = [
  "async-trait",
  "futures",
+ "identity",
  "libp2p",
  "network",
+ "protocol",
  "tokio",
 ]
 

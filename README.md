@@ -242,7 +242,7 @@ dependency on identity or network** — it runs offline and is reproducible
 | [`identity`](crates/identity) | Anonymous enrollment: source adapters, threshold-issued credential, role nullifiers | Scaffold + real mechanisms (single-server + threshold OPRF label, single + threshold BBS+ blind credential, ZK nullifier) |
 | [`network`](crates/network) | Content addressing, Merkle, transparency log, consortium checkpoints, the epoch's beacon round, erasure coding, anchoring | Scaffold + real integrity primitives (incl. OpenTimestamps proofs) |
 | [`protocol`](crates/protocol) | Lifecycle orchestration: deposit, lottery, blind review, gate + appeal, pilot, honeypot | Scaffold, wires the three layers together |
-| [`p2p`](crates/p2p) | The libp2p transport: gossip announcements and pull sync of the replicated signed set | Real (T18); a replica kept on disk (T74) |
+| [`p2p`](crates/p2p) | The libp2p transport: gossip announcements and pull sync of the replicated signed set; a consortium member's duties | Real (T18); a replica on disk, members cutting and running the beacon (T74) |
 | [`characterization`](crates/characterization) | The T24 harness: seeded simulation studies of the detectors and gates — a tool, not part of a node | Harness built; the full run pending ([`docs/13`](docs/13-characterization.md)) |
 
 The uniqueness label runs on a real single-server **VOPRF** (RFC 9497, via `voprf`)
@@ -347,8 +347,8 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
    the log, the engine's outputs bound to the Merkle root of their inputs (T73), and
    replication between nodes over libp2p, the same signed set on every node (T18), and
    the protocol state computed from consortium-signed cuts over it, the first of
-   conflicting events winning (T74, step 1); next the cuts and the beacon carried between
-   nodes (T74, step 2), live anchoring.
+   conflicting events winning, the members proposing and signing cuts and running the
+   beacon between nodes (T74); next live anchoring, a silent proposer's replacement (T76).
 3. **The rest** — the protocol boundary (no-show reviewers, validated panels, honeypot
    sampling), distributed identity and the external cryptographic review, statistical
    privacy, real-world pilots.

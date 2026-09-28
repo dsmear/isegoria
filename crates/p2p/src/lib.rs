@@ -1,11 +1,14 @@
 //! libp2p transport for replication (`docs/04` §Replication between nodes, `docs/08`
 //! NET-010): gossipsub announces new entries, request-response pulls what a node lacks.
 
+pub mod member;
+
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, StreamExt};
 use libp2p::gossipsub::{self, IdentTopic, MessageAuthenticity, ValidationMode};
 use libp2p::request_response::{self, ProtocolSupport};
 use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
 use libp2p::{identity, noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm};
+use member::MemberRole;
 use network::replica::{
     Accepted, DiskError, DurableReplica, EntryId, FeedWriter, Message, Replica, SignedEntry,
     WriterSet, MAX_RESPONSE,
@@ -110,6 +113,8 @@ pub struct Config {
     pub own: Option<Own>,
     /// Where the replica is kept (`docs/04` §A replica on disk); in memory when `None`.
     pub store: Option<PathBuf>,
+    /// A consortium member's duties; its writer key must be the member's.
+    pub member: Option<MemberRole>,
 }
 
 #[derive(Debug)]
@@ -117,6 +122,8 @@ pub enum StartError {
     Store(StoreError),
     /// The own key is not in the writer set.
     NotAWriter,
+    /// A member role without an own feed under the member's key.
+    NotTheMember,
     /// The own log names an object the object store lacks.
     MissingObject(u64),
     /// The own feed was refused by the writer set (the key is not a writer).
@@ -162,6 +169,9 @@ struct Node {
     topic: IdentTopic,
     writing: Option<Writing>,
     listening: Vec<oneshot::Sender<Result<Multiaddr, String>>>,
+    member: Option<MemberRole>,
+    network_id: [u8; 32],
+    waited: u32,
 }
 
 /// The gossip topic of a network's announcements.
@@ -234,6 +244,13 @@ impl Handle {
             .own
             .map(|own| open_own(own, &mut replica))
             .transpose()?;
+        if let Some(role) = &config.member {
+            let key = role.member.public();
+            let mine = role.consortium.keys().get(role.index) == Some(&key);
+            if !mine || writing.as_ref().is_none_or(|w| w.writer.public() != key) {
+                return Err(StartError::NotTheMember);
+            }
+        }
         let mut swarm = build_swarm(key).map_err(StartError::Transport)?;
         let topic = IdentTopic::new(topic(&config.writers.network_id()));
         swarm
@@ -249,6 +266,9 @@ impl Handle {
             topic,
             writing,
             listening: Vec::new(),
+            member: config.member,
+            network_id: config.writers.network_id(),
+            waited: 0,
         };
         tokio::spawn(node.run(rx, config.sync_every));
         Ok(Handle { peer_id, commands })
@@ -298,12 +318,18 @@ impl Handle {
 impl Node {
     async fn run(mut self, mut rx: mpsc::UnboundedReceiver<Command>, every: Duration) {
         let mut tick = tokio::time::interval(every);
+        let duty_every = self
+            .member
+            .as_ref()
+            .map_or(Duration::from_secs(3600), |m| m.every);
+        let mut duty = tokio::time::interval(duty_every);
         loop {
             tokio::select! {
                 command = rx.recv() => match command {
                     Some(c) => self.command(c),
                     None => return,
                 },
+                _ = duty.tick(), if self.member.is_some() => self.duties(),
                 _ = tick.tick() => {
                     let peers: Vec<PeerId> = self.swarm.connected_peers().copied().collect();
                     for peer in peers {
@@ -312,6 +338,16 @@ impl Node {
                 }
                 event = self.swarm.select_next_some() => self.event(event),
             }
+        }
+    }
+
+    fn duties(&mut self) {
+        let Some(role) = &self.member else {
+            return;
+        };
+        let objects = role.duties(self.store.replica(), self.network_id, &mut self.waited);
+        for object in objects {
+            let _ = self.publish(object.encode());
         }
     }
 

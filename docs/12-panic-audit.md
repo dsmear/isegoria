@@ -160,7 +160,7 @@ no abort, bounded memory", each asserts a property of its entry point:
 | `network/checkpoint` | `CheckpointClient::ingest` / `ingest_with_log` over sequences of honest and forged checkpoints | the trusted height never decreases; only `Accepted` changes the trusted checkpoint; acceptance needs a threshold of distinct member signatures |
 | `network/merkle` | `merkle_proof`, `verify_proof` | a proof exists exactly for an in-range leaf, and verifies |
 | `protocol/event` (T73) | `NodeEvent::decode` on arbitrary bytes, seeded with genuine events | a decoded event re-encodes to the same bytes (it found F10) |
-| `network/cut` (T74) | `Cut::decode`, `SignedEntry::decode` on arbitrary bytes; `added` on arbitrary previous and next cuts over a replica with forked and partial feeds | one encoding each; `added` names only held entries, each once (it found F11) |
+| `network/cut` (T74) | `Cut::decode`, `SignedEntry::decode`, `MemberObject::decode` on arbitrary bytes; `added` on arbitrary previous and next cuts, with epochs, over a replica with forked and partial feeds; `Cut::next` | one encoding each; `added` names only held entries, each once, and keeps the epoch rule; a proposal extends an applied cut (it found F11) |
 | `network/replica` (T18) | `Message::decode` on arbitrary bytes; replicas fed honest, forked and outsider entries and raw Entries messages, pulling from each other within any cap | a decoded message re-encodes to the same bytes; a wanted entry the peer holds is sent; every entry a replica holds is valid; equivocations verify; two pulls each way converge |
 | `network/store` (T13) | `DurableLog::open`, `ObjectStore::open` on arbitrary file bytes, with and without a genuine header | an opened log verifies and takes an append that survives a reopen; a stored object reads back under its CID after a reopen |
 | `identity/oprf_quorum` | the threshold OPRF with any committee shape, anchor and claimed quorum | a label exactly for `≥ t` distinct committee members, equal for every valid quorum |
@@ -195,6 +195,7 @@ AddressSanitizer, 4 cores, 2 GiB RSS limit):
 | `protocol/event` (T73 step 3: decoded results also applied, 5 min) | — | 1 657 170 | 0 |
 | `network/replica` (T18, 2026-09-27, 5 min) | — | 195 796 | 0 |
 | `network/cut` (T74, 2026-09-27; 5 min, then 5 min after the F11 fix) | 5 min to F11 | 66 374 | 1 (F11, fixed) |
+| `network/cut` (T74 step 2: members' objects and proposals, 5 min) | — | 40 445 | 0 |
 
 `scoring/bridging` was added with T62 (2026-09-24) and has not been run yet: that session
 had no nightly toolchain. `scoring/tests/malformed_ratings.rs` covers the same entry points

@@ -6,7 +6,7 @@ license.workspace = true
 rust-version.workspace = true
 description = "libp2p transport for replication: gossipsub announcements, request-response pull sync. See docs/04 §Replication between nodes."
 
-# Rust 1.86 (rust-toolchain.toml) needs three pins in Cargo.lock, since newer releases
+# Rust 1.86 (rust-toolchain.toml) needs two pins in Cargo.lock, since newer releases
 # require a newer rustc: idna_adapter 1.1.0, multibase 0.9.1 (docs/04 §Replication).
 [dependencies]
 network = { path = "../network" }
@@ -17,3 +17,5 @@ async-trait = "0.1"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
+protocol = { path = "../protocol" }
+identity = { path = "../identity" }

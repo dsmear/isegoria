@@ -18,7 +18,7 @@ use protocol::lifecycle::{Event, State};
 use protocol::node::Rejection;
 
 const NET: [u8; 32] = [5; 32];
-const EPOCH: u64 = 2;
+const EPOCH: u64 = 0;
 
 type Item = (SignedEntry, Vec<u8>);
 
@@ -321,6 +321,7 @@ fn at_pro_13_bad_cuts_are_refused() {
     let dropped = Cut {
         number: 1,
         marks: cut0.marks[1..].to_vec(),
+        ..cut0.clone()
     };
     let ws = writers();
     let forked_items = feed(&ws[3], &mut TransparencyLog::new(), vec![b"fork".to_vec()]);

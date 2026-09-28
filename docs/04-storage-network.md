@@ -177,9 +177,9 @@ unique threshold signature over the epoch number (drand-style) removes both once
 committees have a real distributed key generation (`10` T19); before it, whoever deals the
 key could predict every draw.
 
-The round runs in process today (`10` T37: `network::beacon`, the draws in
-`protocol::randomness`); carrying commits and reveals between nodes, and the deadlines on
-real checkpoints, is `10` T74's, on the replication of T18.
+The round's rules are `network::beacon` (`10` T37) and the draws `protocol::randomness`;
+commits and reveals travel between nodes as members' objects and their deadlines are cuts
+(§Cuts, `10` T74).
 
 ---
 
@@ -390,15 +390,18 @@ order, and conflicting events (two deposits of one CID through two relays, one q
 on two relays, a second results event for an epoch) resolve by which comes first. The order
 is fixed by **cuts** the consortium signs, never by arrival.
 
-- **A cut** is its number (0, 1, 2, … with no gap) and, per writer it covers, a **mark**:
+- **A cut** is its number (0, 1, 2, … with no gap), the epoch it belongs to, whether it
+  **closes** that epoch's deposits, and, per writer it covers, a **mark**:
   the length of that writer's feed and the hash of its last entry — the chain the mark ends
   with is the one counted, even when the writer forked. The marks are sorted by writer, with
   no writer twice and no length 0. Its digest is
-  `H("isegoria/cut/v1" ‖ number ‖ marks)`; the consortium signs it as a checkpoint whose
+  `H("isegoria/cut/v1" ‖ number ‖ epoch ‖ closes ‖ marks)`; the consortium signs it as a checkpoint whose
   height is the number and whose head is the digest, so `t` of the `n` members must sign it
   and a member signing two cuts with one number is caught by the checkpoint rules (NET-006).
 - **Extending.** Cut `k + 1` keeps every writer of cut `k`, at a length at least as long,
-  and its chain passes through cut `k`'s head. A new writer may appear.
+  and its chain passes through cut `k`'s head. A new writer may appear. Its epoch is cut
+  `k`'s, or later; after a cut that closes its epoch, a later one. A cut declares its epoch:
+  there is no shared clock, and the members who sign it accept it.
 - **The order.** The entries a cut adds are, per writer, those past the previous cut's
   length. The writers are ranked by `H("isegoria/cut/order/v1" ‖ previous cut's digest ‖
   writer)` (the previous digest of cut 0 is zeros), and the entries taken one per writer in
@@ -411,15 +414,40 @@ is fixed by **cuts** the consortium signs, never by arrival.
   refused, with its reason, and the state is left as it was; so is an object that is not an
   event, and an event of a kind only the consortium may log (a lifecycle step, epoch
   results) from a writer outside it. Nothing refused stops the cut. Persons' events
-  (deposits, reviewers and respondents admitted) may come from any writer.
+  (deposits, reviewers and respondents admitted) may come from any writer. A deposit counts
+  in the epoch of the cut that applies it: one naming another epoch is refused — after its
+  epoch's closing cut, as late.
 - **Stable.** A state computed from cuts `0…k` does not change when entries arrive late:
   they wait for cut `k + 1`. Two nodes holding the same cuts compute the same state, whatever
   order their replicas received the entries in.
 
-Not yet (`10` T74, step 2): cuts and the beacon's commits and reveals carried as entries
-between nodes, and the deadlines tied to cuts. Finding an object by its CID without a full
-replica, the DHT, is `10` T75. In code: `network::replica`, `network::cut`,
-`protocol::ledger`, the `p2p` crate.
+**Members' objects.** The consortium's own messages travel as objects on the members'
+feeds, one byte `0xC0` then a kind, so no event decodes as one: 1 a cut signature (the
+cut's encoding, the member's index, its signature over the cut's checkpoint); 2 a beacon
+commit (network, member-set hash, epoch, index, commitment, signature: §The epoch's
+beacon); 3 a beacon reveal (epoch, index, secret). An object counts only on the feed of
+the member its index names; on any other feed it is refused as not authorized.
+
+**Collecting a cut.** A node takes, for the next number, the cut that `t` distinct members
+signed on their feeds. Two different cuts each signed by `t` members for one number are the
+consortium equivocating: the node stops there and holds both as evidence (NET-006).
+
+**Proposing and signing.** Cut `k` is proposed by member `k mod n`, who signs it first; its
+epoch and closing are its call. A member co-signs the proposer's cut for the next number
+when the cut extends the last collected one, it holds every entry the cut names, and the
+cut counts its own beacon messages: a closing cut must include its commit for the epoch,
+and the cut after it its reveal, if the member has published them. A proposer that stays
+silent stalls the cuts; replacing it is not specified yet (`10` T74).
+
+**The beacon on cuts.** The round of epoch `e` (§The epoch's beacon) runs on the cuts: a
+commit counts when a cut of epoch `e` applies it, up to and including the cut that closes
+`e` — which is the commit checkpoint and the deposit checkpoint at once; a reveal counts
+when the cut right after the closing one applies it, and at the end of that cut the round
+finishes: its outcome (the value if `t` revealed, who revealed, who withheld) is part of
+the state. A commit or reveal in any other cut, or that the round refuses, is refused.
+
+Finding an object by its CID without a full replica, the DHT, is `10` T75. In code:
+`network::replica`, `network::cut`, `protocol::ledger`, the `p2p` crate.
 
 ---
 
