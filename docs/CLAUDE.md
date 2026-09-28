@@ -60,10 +60,10 @@ band items T59, the appeal stake T61, the anchor-reliability gate T53, the prope
 evaluator score T50, the change detector T51, the band's extra round T60, the
 coordination detector on residuals T56, panel diversification T57, live outcomes
 with exploration T52, the latent DIF target model T54, the reviewer floor T39, the
-differential oracles T45 and the contested-facts pool T55 are done; next the
-characterization T24/T25 — T24 is specified in `13-characterization.md` and its harness is
-`crates/characterization`; the full run happens on the owner's machine), then
-the **P2P network**, then **the rest** (protocol boundary, distributed identity,
+differential oracles T45, the contested-facts pool T55 and the characterization T24 are
+done — T24's results are in `13-characterization.md` §7, its harness is
+`crates/characterization`; next the calibration of the thresholds T25, from `13` §7.5),
+then the **P2P network**, then **the rest** (protocol boundary, distributed identity,
 privacy, pilots) — and inside a phase, fix defects in existing code before adding
 features. Every task starts with a test that fails on the current code.
 

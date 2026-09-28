@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | The specification of T24: the simulation studies that measure how the production detectors and gates behave, how to run them, and what counts as done. |
 | **Derived from** | `docs/10` T24 and §1.4; `docs/08` §5.3, §12 (AT-DIF-01..09, AT-BR-02), §16.1 (SC-2, SC-3, SC-5, SC-7); `docs/07` §12–§14; the working paper's designs (`paper/scripts/common.py`). |
-| **Status** | Specified and harness built (2026-09-26, `crates/characterization`). The full run is pending: it runs on the owner's machine, and §7 receives its results. The thresholds are set afterwards, from §7, by T25. |
+| **Status** | Done (2026-09-28). Specified and harness built on 2026-09-26 (`crates/characterization`); the full run, 54,412 runs on the owner's machine, ended on 2026-09-28 and §7 states its results. The thresholds are set from §7 by T25. |
 
 ## 1. What T24 measures, and what it does not
 
@@ -116,7 +116,8 @@ profile on this repository's 4-core development container (one run per cell):
 
 The full grid is 54,412 runs and about 425 CPU-hours — the sixteen cells added after the
 first pass are about 25 of them — more than half of it in `dif-power` and most of that in
-its cells at N = 6,000: about a day on 16 cores. A first pass with `--replicates 20` takes a tenth of that and
+its cells at N = 6,000: about a day on 16 cores, and about 30 hours on the owner's 8 cores
+and 16 threads (§7). A first pass with `--replicates 20` takes a tenth of that and
 already gives every cell's point estimates; the intervals of §7 need the full count.
 
 **On the owner's machine.**
@@ -286,14 +287,208 @@ and robust scores, and the item's plain mean rating.
 
 ## 7. Results
 
-Pending the full run (§2, "On the owner's machine").
+**The run.** 54,412 runs, every run of the grid recorded, on the owner's machine (AMD
+Ryzen 7 5800X, 8 cores; about 30 hours in all, 2026-09-26 to 2026-09-28). The DIF and
+DTF studies ran on `e8dcc7d`; their records reproduce bit for bit on the later commits —
+one cell re-run and compared, one record of each kind pinned (§6). The two bridging
+studies, re-run after T71, and the sixteen cells added after the first pass ran on
+`9478533`, which summarized every record. The summary and the threshold tables, with
+their provenance, are in `verification/reports/t24/`; the records stay with the owner.
 
-**First pass (2026-09-26).** `--replicates 20` — 5,132 runs, a tenth of every cell —
-ran on the owner's machine; four of its cells re-run on the development container
-reproduced its rows exactly. It found a defect in the side-balanced score, fixed before
-the full run as T71 (`docs/01` D42, `docs/08` BRIDGE-010): its bridging tables describe
-the engine before the fix and are re-run. Its DIF tables are point estimates the full run
-refines; what they already show is a question for T25, not a defect: guessing (`c = 0.2`)
-makes the 2PL target model flag 8–19% of the clean items (D25), and the null batches
-flag no clean item even with 20 anchors (KR-20 ≈ 0.83), the case the KR-20 floor was
-set for with the proxy model (T53).
+**What every statement below assumes.** The populations of §3 and nothing else:
+respondents in two latent classes on an axis the model never sees, 2PL items — a
+guessing floor only where a statement says so — and one or two lean patterns; reviewers
+in two camps with a linear rating model. A rate is over the runs or items of its cell,
+with the 95% interval of §5; "never" means 0 of the cell's 200 runs, an upper bound of
+1.9%. Outside these populations the behaviour is not established (`docs/07` §14).
+
+### 7.1 Latent DIF
+
+- **Specificity** (`dif-null`, AT-DIF-01, DIF-008). On null batches — `N` 1,500–6,000,
+  `K` 4–16, 20–60 anchors (KR-20 0.83–0.94) — the target model never selected a mixture
+  and flagged no clean item: 0 of 5,400 batches, 0 of 50,400 items, at most 1.9% in any
+  cell. Over the 2,307 batches the gates admit, the clean-item rate is 0.0% [0.0, 0.2] at
+  every cut from 0.5 to 1.5. In `dif-power`, with leaning items in the batch, no clean
+  item was flagged but for 0.1% in two cells with `N` = 1,500, which the gates refuse.
+- **Sensitivity** (`dif-power`, AT-DIF-02, STAT-001): the share of leaning items flagged,
+  `K` = 8, 60 anchors, classes of equal size (`π` = 0.5):
+
+  | Leaning items | δ | N = 3,000 | N = 6,000 |
+  |---|---|---|---|
+  | 1 | 0.3–0.9 | never | never |
+  | 2 | 0.3–0.5 | never | never |
+  | 2 | 0.7 | 11.2% [7.6, 16.3] | 56.2% [50.0, 62.4] |
+  | 2 | 0.9 | 92.8% [88.3, 95.6] | 98.8% [97.1, 99.5] |
+  | 3 | 0.3 | never | never |
+  | 3 | 0.5 | 3.3% [1.7, 6.4] | 28.8% [23.9, 34.3] |
+  | 3 | 0.7 | 95.8% [92.4, 97.7] | 100% [98.1, 100] |
+  | 3 | 0.9 | 100% [98.1, 100] | 100% [98.1, 100] |
+
+  One leaning item is never seen, in any of its 44 cells — `N` up to 6,000, δ up to 0.9:
+  the model finds a campaign, not a single item (`docs/02` §B.3). A smaller class costs
+  power: two items at δ = 0.9 are found in 71.2% / 97.2% of cases (`N` = 3,000 / 6,000)
+  at `π` = 0.3 and in 1.0% / 7.5% at `π` = 0.1; three items at δ = 0.9, `π` = 0.1, in
+  35.7% / 96.2%. So does a larger batch: two items at δ = 0.9, `N` = 3,000, are found in
+  97.2% of cases among 4 items, 92.8% among 8 and 37.5% among 16. At `N` = 1,500, below
+  the admission floor, with `π` ≥ 0.3, three items at δ = 0.9 are found in 95.7–99.0% of
+  cases and two in 12.0–37.2%.
+- **The estimated gap.** Where most fits find the mixture — power above 75% — the median
+  fitted gap of the leaning items is close to the true `2δ`: 1.78–1.91 for 1.80 and
+  1.41–1.47 for 1.40. Where few do, it is inflated, up to 2.48 for 1.80 (`N` = 1,500,
+  `π` = 0.3): the fits that select a mixture there are those that happened to see a
+  larger gap.
+- **Anchors.** At `N` = 3,000, `π` = 0.5, with two or three leaning items at δ 0.7 or
+  0.9, 20 anchors (KR-20 ≈ 0.83, below `KR20_MIN`, so never admitted) and 40 (≈ 0.91,
+  admitted in 89.5–92.0% of the batches) flag no clean item and find the leaning items as
+  often as 60 do, but in one cell: two items at δ = 0.9, 86.5% with 20 or 40 anchors
+  against 92.8% with 60.
+- **Two axes** (`dif-two-axes`, AT-DIF-04). With two items leaning on each of two
+  independent axes, the items of each axis are found at δ = 0.9 — 85.0% and 80.5% at
+  `N` = 3,000, 99.5% and 100% at `N` = 6,000 — and never at δ = 0.5; no clean item is
+  flagged.
+- **Pool scale** (`dif-pool-scale`, AT-DIF-09, DIF-009). Batches of 32 and 100 items fit
+  in 32–58 s each, flag no clean item and find every leaning item at δ = 0.9: three runs
+  per cell, a check of feasibility, not a rate.
+
+### 7.2 Robustness
+
+- **Impact** (`dif-misspec`). With the class `z₁ = +1` more able by 0.5 or 1, the target
+  model selects no mixture on a clean batch and flags no clean item but in one cell
+  (0.1%). At `π` = 0.5 impact costs power — two items at δ = 0.9 are found in 90.5%,
+  87.2% and 63.5% of cases at impact 0, 0.5 and 1 — and at `π` = 0.2 it does not
+  (32.0–39.0%).
+- **Guessing** (`dif-misspec`, D25). With a guessing floor `c` = 0.2 in the population and
+  the 2PL model, the target model selects a mixture in 72.5–98.0% of the batches and
+  flags 11.9–16.6% of the clean items — 8.6–20.5% over the batches the gates admit —
+  with or without impact. The leaning items are found in 32.0–45.0% of cases at `π` = 0.5
+  (90.5% without guessing), their gap read at 0.75–0.98 for 1.80, and in 41.5–89.2% at
+  `π` = 0.2. Guessing lowers the anchors' KR-20 to 0.89–0.91, so the floor refuses
+  between none and 91% of these batches, and it is no protection: the batches it admits
+  flag as many clean items. On a population that guesses, the 2PL target model is not
+  usable as it stands.
+- **Non-uniform DIF** (`dif-nonuniform`, AT-DIF-03). A discrimination gap alone is not
+  seen up to α = 0.8, on two or three items, up to `N` = 6,000: no mixture is selected.
+  At α = 1.6 on three items a mixture is selected in 6.5% / 45.5% of the batches
+  (`N` = 3,000 / 6,000), the non-uniform model in 1.0% / 24.0%, and the production rule,
+  which reads the difficulty gap only, flags 4.5% / 18.7% of the leaning items. With a
+  difficulty gap as well (three items, δ = 0.9) the mixture is selected in 99.5–100% of
+  the batches, and the non-uniform model in 29.5% / 91.0% at α = 1.6 — reading `a_gap`
+  at a median 1.60 at `N` = 6,000 — and in 0% / 5.0% at α = 0.8. Two items with δ = 0.5
+  and α 0.4–0.8 are found in 0–12.0% of cases, none with α = 0. At most 0.1% of the
+  clean items are flagged.
+- **Poisoning** (`dif-poisoning`, AT-DIF-07, SC-7). When coordinated respondents answer
+  two clean items wrong, 65.0% [58.2, 71.3] of those items are flagged if the attackers
+  are 10% of the sample and 8.0% [5.0, 12.6] at 5%; none at 2% or less, and none with one
+  target. No other clean item is ever flagged. Masking — coordinated respondents answering
+  the leaning items as if they leaned on nothing — lowers the power on two items at
+  δ = 0.9 from 93.5% to 88.2%, 84.5%, 88.2% and 75.0% at 1, 2, 5 and 10% of the sample.
+
+### 7.3 The DTF bound
+
+`dtf-error` (DIF-011) measures the fitted DTF on the mirror layout over the fits that
+find two or more classes, the only ones whose flags can put facts in the pool (§5): 62%
+and 18% of the batches at `N` = 3,000, δ = 0.5 (`π` = 0.5, 0.3), 86–100% elsewhere.
+
+- **Bias.** The fitted DTF is biased upward where the true one is small: the four clean
+  items, true DTF 0, are fitted at 0.025–0.065 on average. Over all sets the error's mean
+  is −0.001 to +0.065 and its p95 at most +0.17.
+- **Far above `DTF_MAX` = 0.10** sets are refused: a single leaner (true DTF 0.22–0.39)
+  was admitted in 1 fit of 123 (`N` = 3,000, δ = 0.5, `π` = 0.5), a same-side pair
+  (0.44–0.77) never.
+- **Below it** the bias refuses sets that are within: the four clean items are refused in
+  14.6% and 22.9% of the fits at `N` = 3,000, δ = 0.5 (`π` = 0.5, 0.3), in 1.5–5.2% at
+  `N` = 3,000, δ = 0.9 and at `N` = 6,000, δ = 0.5, and in 0–0.5% at `N` = 6,000,
+  δ = 0.9.
+- **Near it** — the two mirror pairs, the four leaners and a pair with two clean items,
+  true DTF 0.06–0.15 on average — the decision is noisy both ways. Of these sets, 4–18% of
+  those truly over the tolerance are admitted (in the weakest cell, 1 of 29); of those
+  truly within, 5–22% are refused at `N` = 6,000, δ = 0.9 and 30–68% at `N` = 3,000,
+  δ = 0.5.
+
+### 7.4 Bridging, after T71
+
+`bridging-sweep` (SC-3, BRIDGE-002, BRIDGE-003), on the mirror design of §3.2: 100–800
+reviewers, camps from 50/50 to 80/20, 5 or 9 ratings each out of 20 items, rating noise
+0.07 or 0.15; `τ` = 0.80, `ε` = 0.02.
+
+- **The axis** is recovered with `|corr|` 0.886–0.995 on average per cell; the worst run
+  reads 0.57 (100 reviewers, 80/20, 5 ratings each, noise 0.15).
+- **Specificity.** No partisan item passed: 0 of 72,000; 99.4–100% of them are eligible
+  for appeal by their side gap. A consensus item whose truth is at least 0.05 below `τ`
+  passed in one cell only, 0.2% [0.0, 1.2] (100 reviewers, 80/20, 9 ratings, noise
+  0.15). For any `τ` from 0.70 to 0.90, without the band, the robust score passes at most
+  0.03% of the items at least 0.05 below it with 100 reviewers, 0.003% with 200 and none
+  with 800.
+- **Sensitivity.** The robust score reads a consensus item low, by 0.003–0.051 on average
+  per cell. A consensus item at least 0.05 above `τ` passes in 97.6–100% of cases with
+  800 reviewers, 82.9–100% with 200 and 64.3–100% with 100, the lowest with 80/20 camps,
+  5 ratings each and noise 0.15; the rest go to the band or fail. Without the band, at
+  `τ` = 0.80, the robust score fails 3.6% of the items at least 0.05 above it with 100
+  reviewers, 0.7% with 200 and 0.01% with 800. The band holds 13.7–20.0% of the consensus items.
+- **Coverage and camp size.** The gate sends 0.1–0.4% of the items to review because a
+  side never rated them (D42), only with 100 reviewers in 80/20 camps rating 5 items
+  each. On the mirror partisan items the full fit's side-balanced score leaks 0.00–0.06 of
+  the camp-size effect on average per cell (sd up to 0.17), the leak of `docs/02` §A.3.
+
+`bridging-capture` (AT-BR-02, BRIDGE-005), on the fixture's camps of 80 and 120: the
+opposing reviewers it takes to carry a partisan item to `τ + ε`, rating it 1.0 in a drawn
+order, over 200 orders.
+
+| Item | Opposing camp | To pass: median [p5, p95] | To the band | Full fit, to pass |
+|---|---|---|---|---|
+| 08, favoured by the majority | 80 | 60 [60, 65] | 55 [50, 55] | 60 |
+| 08, and 40 of its own camp | 80 | 60 [55, 60] | 50 [50, 55] | 55 |
+| 09, favoured by the minority | 120 | 50 [45, 55] | 40 [35, 45] | 45 |
+| 09, and 40 of its own camp | 120 | 45 [40, 50] | 35 [30, 40] | 40 |
+
+Every order carries the item through, and the first pass and the stable one have the
+same median and range: once it passes, it stays passed.
+
+### 7.5 What T25 takes from it
+
+- **Guessing first (D25).** On a population that guesses, 12–17% of the clean items are
+  flagged; no DIF threshold should be lowered before the model accounts for it.
+- **The DIF cut** (`MIXTURE_DIF_MAX` = 1.0). On 2PL populations no clean item is flagged
+  at any cut from 0.5 to 1.5. At 0.6 and below the cut no longer binds — every leaning
+  item of a mixture fit is flagged — and power is the share of fits that select a
+  mixture. Lowering the cut to 0.6 raises power at `N` = 6,000, δ = 0.7 from 56.2% to
+  65.0%, and by at most 1.2 points at δ = 0.9 (two leaning items of eight, `π` = 0.5):
+
+  | Cut on `DIF_j` | Null, admitted | N = 3,000, δ = 0.7 | N = 3,000, δ = 0.9 | N = 6,000, δ = 0.7 | N = 6,000, δ = 0.9 |
+  |---|---|---|---|---|---|
+  | 0.5–0.6 | 0.0% [0.0, 0.2] | 12.0% | 93.0% | 65.0% | 100% |
+  | 0.8 | 0.0% [0.0, 0.2] | 12.0% | 93.0% | 61.0% | 100% |
+  | 1.0 (production) | 0.0% [0.0, 0.2] | 11.2% | 92.8% | 56.2% | 98.8% |
+  | 1.2 | 0.0% [0.0, 0.2] | 9.2% | 89.2% | 49.2% | 95.0% |
+  | 1.5 | 0.0% [0.0, 0.2] | 5.5% | 73.5% | 32.8% | 81.0% |
+
+- **`KR20_MIN` = 0.90.** With 20 anchors (KR-20 ≈ 0.83) no null batch flags a clean item
+  and power is that of 60 anchors but in one cell: the floor could come down, or give way
+  to a minimum number of anchors.
+- **A cut on `a_gap`** adds detection only for a large discrimination gap in a large
+  sample — α = 1.6 at `N` = 6,000: 24.0% of the leaning items, against 18.7% by the
+  difficulty gap — and flags no clean item at any value from 0.2 to 1.0; if one is
+  adopted, its value within 0.2–0.9 changes nothing.
+- **`DTF_MAX` = 0.10.** Within about 0.05 of the tolerance the fitted DTF decides noisily
+  both ways, and its upward bias refuses up to 23% of the clean sets in weak batches; a
+  margin below the tolerance trades refusals for fewer false admissions, a correction of
+  the bias the reverse.
+- **`N_LATENT_MIN` = 3,000.** At 1,500 respondents at most 0.1% of the clean items are
+  flagged, and three leaning items at δ = 0.9 are found in 96–99% of cases (`π` ≥ 0.3),
+  two in 12–37%.
+- **`τ` = 0.80, `ε` = 0.02.** With the band, no consensus item whose truth is 0.05 or more
+  below `τ` passes from 200 reviewers up; without it the false passes stay at or under
+  0.03%. The band takes 14–20% of the consensus items, at the cost of the extra round
+  (`k_extra`), which this design does not measure. `MIN_COVERAGE` sends at most 0.4% of
+  the items to review.
+
+### 7.6 First pass (2026-09-26)
+
+`--replicates 20` — 5,132 runs, a tenth of every cell — ran on the owner's machine; four
+of its cells re-run on the development container reproduced its rows exactly. It found a
+defect in the side-balanced score, fixed before the full run as T71 (`docs/01` D42,
+`docs/08` BRIDGE-010); its bridging tables, which described the engine before the fix,
+are superseded by §7.4. Its DIF tables already showed what §7.1–§7.2 confirm: guessing
+makes the 2PL target model flag clean items (D25), and the null batches flag none even
+with 20 anchors (KR-20 ≈ 0.83), the case the KR-20 floor was set for with the proxy model
+(T53). The sixteen cells added after it (§4) answer the two questions its grid could not.
