@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Purpose** | The ordered plan of work: what is left to fix or build, in priority order, and what each step must show to count as done. |
-| **Derived from** | `docs/08` §14 (gaps), §12 (adversarial tests AT-*), §16 (acceptance gate); `docs/01` D17–D41; the working paper in `paper/`; three reviews — the `docs/08` audit, the second review (2026-09-23), the third review (2026-09-24, `docs/08` §0-quinquies). |
+| **Derived from** | `docs/08` §14 (gaps), §12 (adversarial tests AT-*), §16 (acceptance gate); `docs/01` D17–D42; the working paper in `paper/`; three reviews — the `docs/08` audit, the second review (2026-09-23), the third review (2026-09-24, `docs/08` §0-quinquies). |
 | **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)). Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). |
 
 ## Priorities
@@ -48,7 +48,7 @@ reference implementation / testnet.
 
 ## Where we stand
 
-- **Done:** the audit's six concrete defects (`docs/08` §0-bis); the decisions D17–D41;
+- **Done:** the audit's six concrete defects (`docs/08` §0-bis); the decisions D17–D42;
   the wiring of reputation, identity proofs, commit binding, beacon seeding and batch
   gates into the protocol; signed-log consistency, checkpoint hardening and shard
   authentication; the second review's defects, mutation testing, property and
@@ -63,9 +63,11 @@ reference implementation / testnet.
   detector on model residuals (D39, T56), panel diversification (D40, T57), live
   outcomes with randomized exploration (D35, T52), the latent DIF target model with
   θ inside the likelihood (D37, T54), the reviewer floor of the axis (T39), the
-  differential oracles on random datasets (T45) and the contested-facts pool with its
-  balanced draw (D38, T55). Details and evidence: [Completed work](#completed-work).
-- **Open:** the design revision D41 (D32 is done, T49; D33 and D36, T50; D34, T51; D35, T52; D37, T53 and T54; D38, T55; D39 and D40, T56 and T57); the characterization of the thresholds (T24/T25); the defects found by the
+  differential oracles on random datasets (T45), the contested-facts pool with its
+  balanced draw (D38, T55), the sides of the bridge score (D42, T71, found by T24's
+  first pass) and the characterization of the detectors and gates (T24, 54,412 runs,
+  `docs/13` §7). Details and evidence: [Completed work](#completed-work).
+- **Open:** the design revision D41 (D32 is done, T49; D33 and D36, T50; D34, T51; D35, T52; D37, T53 and T54; D38, T55; D39 and D40, T56 and T57); the calibration of the thresholds (T25), unblocked by T24's results (`docs/13` §7.5); the defects found by the
   third review (2026-09-24), all but T64, T65, T62, T59 and T61; the network runtime
   (persistence, transport, live anchoring); distributed identity; privacy hardening;
   everything external; the [open problems](#open-problems) that wait on an owner
@@ -113,14 +115,20 @@ the band re-decision, T60 — and sit in [Completed work](#phase-12--the-decisio
 
 Every value set above is provisional until it is measured: τ ≈ 0.80 (T49), the latent
 DIF cut (T35, T54), `γ` and the cap (T50), the CUSUM `k`/`h` (T51), the KR-20 floor
-(T53), `N_PROBATION`, the DTF tolerance and the bound's sampling error (T55), and the
-sample floors of `docs/02` §B.6.
+(T53), `N_PROBATION`, the DTF tolerance and the bound's sampling error (T55), the side
+floor and `MIN_COVERAGE` (T71), and the sample floors of `docs/02` §B.6.
 
-| Task | What it means (plain) | Refs | Size |
-|---|---|---|---|
-| T24 | Simulation studies: bias-detector false-positive/false-negative rate and power; bridging robustness sweeps; sample poisoning. The only way to say the detectors "work": includes the **zero-biased** condition (false-positive rate), unbalanced classes, `δ` below 0.9, the T35/T54 threshold choice, the discrimination-gap threshold left open by T40, and the sampling error of the contested-facts DTF bound with its tolerance `DTF_MAX` (T55: a drawn pair with a fitted bound of 0.076 had a true DTF of 0.104) | SC-2/3/7, AT-DIF-01..09, STAT-001, DIF-011 | L |
-| T25 | Declare the ability metric and add the guessing correction (D25); fix the bias threshold from the studies (D24); a calibration procedure for every operational threshold (τ, ε, λ, …) | SC-1/4/6 | M |
-| T26 | **External psychometric review** of the statistical method | SC-8 | *external* |
+T24 is done (2026-09-28) and sits in [Completed work](#phase-14--characterize-the-parameters)
+with T71: its first pass (`--replicates 20`, 5,132 runs, 2026-09-26) found a defect in the
+side-balanced score — a few far-out reviewers made a side of their own, an item one side
+never rated was scored on an extrapolation, and scores left [0, 1] — fixed as T71 (D42);
+the full run, 54,412 runs, measured the detectors and gates on the fixed engine. What it
+gives T25 is in `docs/13` §7.5.
+
+| Task | What it means (plain) | Refs | Done when | Size |
+|---|---|---|---|---|
+| T25 | **Unblocked (2026-09-28) by T24.** Declare the ability metric and add the guessing correction (D25); fix the bias threshold from the studies (D24); a calibration procedure for every operational threshold (τ, ε, λ, …). The inputs are `docs/13` §7.5: the guessing correction first — on a population that guesses the 2PL target model flags 12–17% of the clean items; the DIF cut, which flags no clean item anywhere from 0.5 to 1.5 on 2PL populations and no longer binds at 0.6 and below; `KR20_MIN`, which 20 anchors (KR-20 0.83) did not need; a cut on `a_gap`, or none; `DTF_MAX`, whose fitted bound is biased upward and noisy within about 0.05 of it; `N_LATENT_MIN`; `τ` and `ε`, with no false pass from 200 reviewers up | SC-1/4/6 | SC-1, SC-4 and SC-6 (`docs/08` §16.1): every threshold of `docs/02`'s table set from `docs/13` §7 with its calibration procedure; one DIF rule (D24); the θ metric declared and the 3PL decided (D25) | M |
+| T26 | **External psychometric review** of the statistical method | SC-8 | SC-8: the review recorded in `reports/` | *external* |
 
 ### 1.5 · Order of execution and milestones
 
@@ -145,7 +153,9 @@ order the work is done in. Sizes are the ones in the rows.
 12. T39 (S, descoped `d = 2`) and T45 (M) — done (2026-09-25).
 13. T55 (L) — contested facts: the specification, then the pool and the balanced draw —
     done (2026-09-25).
-14. T24 (L), then T25 (M); T26 is external.
+14. T24 (L) — done (2026-09-28, `docs/13` §7): 54,412 runs on the owner's machine; its
+    first pass found T71 (M), done on 2026-09-26 — then T25 (M), now unblocked; T26 is
+    external.
 
 **Two streams.** Steps 2–5 and 8 touch `bridging`, `gate`, `lifecycle` and the
 orchestrator; steps 6, 7 and 9–11 touch `reputation`, `dif`, `collusion`, `honeypot` and
@@ -161,11 +171,11 @@ returns errors instead of panicking.
 
 **Milestone 1b — "the mechanism is complete".** Steps 8–14: the features the decisions
 add (a second panel, exploration, the target DIF model, panel diversification, the
-contested-facts pool — all done) and the characterization of every threshold (T24/T25,
-open).
+contested-facts pool — all done) and the characterization of every threshold (T24 done,
+T25 open).
 
 **Milestone 1 — "the mechanism is sound"** is 1a and 1b together. Every verdict is
-computed as D32–D41 specify; the band and appeal paths are decided by the gate, not by
+computed as D32–D42 specify; the band and appeal paths are decided by the gate, not by
 the caller; the engine returns errors instead of panicking on malformed input; `sim/`,
 the fixtures and the golden outputs are regenerated on purpose; every threshold is either
 characterized (T24/T25) or marked provisional.
@@ -278,8 +288,8 @@ Not a phase; done alongside every task.
   by T49's side gap) and is done, and so is T60, the band's extra round. T61
   followed the D27 decision and is done. T50, T51 and T52 are done. T53 and T54 are done. T55
   is done: its specification (the source check, the DTF bound) first, then the pool. T56
-  and T57 are done. T24/T25 close the phase: the thresholds of T35 and T49–T55 are final
-  only after them. The full
+  and T57 are done. T24 is done (2026-09-28); T25 closes the phase: the thresholds of
+  T35 and T49–T55 are final only after it. The full
   order and the milestone split: [1.5](#15--order-of-execution-and-milestones).
 - **Phase 1 → 2.** T52's exploration draw (done) works on today's beacon and becomes
   grind-free with T37.
@@ -349,6 +359,13 @@ other documents and commit messages refer to these ids and block names.
 |---|---|---|---|---|
 | T62 | **The engine rejects malformed ratings instead of panicking. Done (2026-09-24):** `Ratings::validate() -> Result<(), RatingsError>` — an observation with `u ≥ n` or `j ≥ m` (`IndexOutOfRange`), `weights.len() ≠ n` (`WeightCount`), a non-finite rating (`NonFiniteRating`), a non-finite or negative weight (`BadWeight`), a duplicate `(u, j)` pair (`DuplicateObservation`) — runs first in `fit` and `bridge_scores`, which return `Result` (the direction of T46); `gate::supplementary_review` propagates it and refuses an item index past the batch (`ItemOutOfRange`); `orchestrator::weighted_ratings` returns `Result` (a standing count that differs from the rows is `WeightCount`; the `assert` in `with_weights` is gone). `scoring/tests/malformed_ratings.rs`: each case returns its error from both entry points, and a property over arbitrary `Ratings` (indices past `n`/`m`, NaN and infinite values, negative weights, any weight count, duplicates) never panics — `fit` and `bridge_scores` succeed exactly when `validate` accepts. `crates/scoring/fuzz/bridging` (cargo-fuzz; not yet run, no nightly in the session) explores the same entry points. *Was:* `Ratings` has public fields and an out-of-range observation panicked on a bounds check inside the objective; duplicates counted twice. *Left to T46* (`docs/12` §2.3): `Ratings::from_dense` on a ragged matrix, and the slice-taking entry points of `irt`, `dif`, `collusion` and `reputation`, which index out of bounds on mismatched lengths or ragged matrices — caller preconditions, probed and recorded | `docs/12` §2.3, T44, T46 | out-of-range index, wrong weight count, non-finite or negative value and duplicate pair each return an error, no panic; a property test: arbitrary `Ratings` never panics | S |
 | — | **Cross-platform reproducibility (`AT-BR-04`). Done (2026-09-25):** the engine's transcendental functions (`exp`, `ln`, `ln_1p`, `cos`, `pow`) come from the pure-Rust `libm` crate through `scoring::fmath`, not from the platform's libm, whose last bits differ between glibc, musl, Apple and Microsoft and which an iterative fit amplifies into a different stopping point; `golden_bits.txt` regenerated on purpose (last-bit changes only, every oracle test unchanged); `libm` optimized in the dev profile (`Cargo.toml`). CI job `golden` (`.github/workflows/ci.yml`) checks the golden bits on linux-gnu in the release profile, linux-musl, macOS-aarch64 and Windows-MSVC on every push, next to the main job's linux-gnu dev run. Verified on 2026-09-25: linux-gnu dev, linux-gnu release and linux-musl agree bit for bit locally, and the first CI run of the job (master `c6ac1fa`, run 38) is green on macOS-aarch64 and Windows-MSVC as well — and the control shows why it was needed: the previous code, on the platform libm, matched its own golden bits in the release profile but moved 96 of the 118 values on musl (glibc vs musl `exp`/`log`/`cos`) | REPRO-001, INV-7 | `AT-BR-04` runs in CI | S |
+
+### Phase 1.4 · Characterize the parameters
+
+| Task | What it means (plain) | Decision / refs | Done when | Size |
+|---|---|---|---|---|
+| T71 | **The bridge score's sides are the camps, on the rating scale, with coverage. Done (2026-09-26),** after D42, found by T24's first pass (`docs/13`): the 2-means iteration from the extremes of `f_u` made far-out reviewers a side of their own (sides of 2 and 5 of 800 reviewers, scores from −0.28 to 1.31; in a bootstrap subsample a side of 1 of 200, which dropped an item's robust score from 0.91 to 0.56 while its full fit passed), and a partisan item no minority reviewer had rated passed at 0.972 on an extrapolated side of 1.445. `bridging::two_means` is now the exact 1-D 2-means cut — the sorted positions' cut with the largest between-side sum of squares, never inside a run of equal values, each side at least `side_floor(n)` = 5% of the reviewers rounded up (`MIN_SIDE_PER_MILLE = 50`), side sums taken from each end so a sign flip mirrors them bit for bit; `side_balanced` clips each prediction to [0, 1]; `bridging::coverage` counts, per item, the ratings of its less-rated side (axis reviewers with a positive weight) and travels in `BridgeScores::coverage`; `gate::bridging_gate(score, gap, coverage, τ, ε, appeal_gap)` returns `SupplementaryReview` below `MIN_COVERAGE = 1` whatever the score, and `supplementary_review` cannot pass an item still below it. `sim/` computes the same split and clipping; the Level A oracle moved only in the side means of the three polarized items (≤ 0.0046) and the golden bits in their side scores and four robust scores, plus the new coverage rows; no fixture verdict changed. *Evidence:* `side_split.rs` (AT-BR-11) — two camps with two or five reviewers at four times the camp distance split into the camps (100/2 before); each side holds the floor on 256 random position sets with outliers (20/1 before); the split does not depend on the axis' origin or scale and a sign flip swaps it; clipped predictions keep the score in [0, 1] (1.2 and −0.3 before). `side_coverage.rs` (AT-BR-12) — an item only the camp of 120 rated at about 0.97 goes to supplementary review (it passed at 0.875), the fixture's items keep their verdicts, and the re-decision passes it only once the other side rates it high. `side_evidence.rs` — T24's three failing replicates re-run from their seeds: the partisan item goes to review, the n = 800 scores stay in [0.51, 0.87] with sides of 633/167 and 630/170 against camps of 640/160, the robust score at 60 boosters is 0.887 against a full 0.903 and the curve is monotone. The two bridging studies of `docs/13` are re-run on this commit | D42; `docs/02` §A.3; BRIDGE-010, AT-BR-11/12 | `AT-BR-11` and `AT-BR-12` pass; T24's failing replicates pass | M |
+| T24 | **The detectors and gates characterized. Done (2026-09-28).** `docs/13` specifies ten studies of the production estimators and gates; `crates/characterization` ran them — 54,412 seeded runs, the full grid, on the owner's machine (AMD Ryzen 7 5800X, about 30 hours, 2026-09-26 to 2026-09-28) — and summarized them with 95% intervals and the threshold tables. The first pass (`--replicates 20`, 5,132 runs) found T71; the DIF and DTF records reproduce bit for bit across it, and the two bridging studies were re-run on the fixed engine. On 2PL populations the target model selects no mixture and flags no clean item over 5,400 null batches; it never finds a single leaning item, and finds two of eight at δ = 0.9 in 92.8% / 98.8% of cases at N = 3,000 / 6,000, at δ = 0.7 in 11.2% / 56.2%. With guessing in the population it flags 12–17% of the clean items (D25). The fitted DTF bound is biased upward and decides noisily within about 0.05 of `DTF_MAX`. No partisan item passed the bridging gate, 0 of 72,000, and a consensus item 0.05 above `τ` passes in 97.6–100% of cases with 800 reviewers; carrying the majority's partisan item takes 60 of the 80 opposing reviewers (75%) | SC-2/3/5/7, AT-DIF-01..09, AT-BR-02, STAT-001, DIF-008, DIF-011, BRIDGE-002/003/005; `docs/13` §7, `verification/reports/t24/` | `docs/13` §6: the full grid run and summarized, its results stated in `docs/13` §7 inside their regime, the tables committed, `docs/08` §12 and §15 restated | L |
 
 ### P1.1 · Quick fixes (audit block 1)
 

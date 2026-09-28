@@ -192,7 +192,16 @@ fn run_epoch(
     // Gates every item on its robust side-balanced score and side gap (D32): a pass, a
     // band item the D26 re-decision later resolves, or a polarization reject to appeal.
     let gate: Vec<GateOutcome> = (0..m)
-        .map(|j| bridging_gate(bridge.robust[j], bridge.full.gap[j], TAU, EPS, APPEAL_GAP))
+        .map(|j| {
+            bridging_gate(
+                bridge.robust[j],
+                bridge.full.gap[j],
+                bridge.coverage[j],
+                TAU,
+                EPS,
+                APPEAL_GAP,
+            )
+        })
         .collect();
     // No fixture item lands in the band on the provisional gate, so the effective outcome
     // is the gate's; the band's extra round is exercised in `supplementary_redecision.rs`.
@@ -391,6 +400,7 @@ fn esm_passes_bridging_and_is_stopped_by_dif_not_review() {
         bridging_gate(
             bridge.robust[ESM],
             bridge.full.gap[ESM],
+            bridge.coverage[ESM],
             TAU,
             EPS,
             APPEAL_GAP
@@ -433,6 +443,7 @@ fn appeal_recovers_a_true_but_divisive_item() {
         bridging_gate(
             bridge.robust[REAL_HEALTH],
             bridge.full.gap[REAL_HEALTH],
+            bridge.coverage[REAL_HEALTH],
             TAU,
             EPS,
             APPEAL_GAP

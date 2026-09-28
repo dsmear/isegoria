@@ -159,7 +159,7 @@ fn the_sides_are_formed_by_the_reviewers_who_define_the_axis() {
             if !on_axis {
                 continue;
             }
-            let pred = f.mu + f.b_u[u] + f.b_j[j] + f.f_u[u] * f.f_j[j];
+            let pred = (f.mu + f.b_u[u] + f.b_j[j] + f.f_u[u] * f.f_j[j]).clamp(0.0, 1.0);
             let k = sides.side[u] as usize;
             sum[k] += pred;
             count[k] += 1;

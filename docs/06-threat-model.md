@@ -37,8 +37,9 @@ implementation must reproduce them.
 A 60/40 unbalanced network. A cartel pushing a partisan item:
 
 - with majority voting: ~40 nodes from its own camp are enough → PASSES
-- with bridging: 40 nodes from its own camp shift nothing; you need **70 of 80 of the
-  opposing camp (87%)** to pass the item
+- with bridging: 40 nodes from its own camp barely move the score (0.52 → 0.54); the
+  item passes only once about **60 of the 80 of the opposing camp (75%)** approve it —
+  55–60 in 90% of 200 drawn orders (T24, `13` §7.4)
 
 Bridging drastically raises the cost of capture.
 

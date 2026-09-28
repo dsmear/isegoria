@@ -49,25 +49,43 @@ def fit(R, mask, lam_b=.15, lam_f=.03, seed=0):
             np.bincount(idx[1],e*fu[idx[0]],m)+2*lam_f*fj])
     return up(minimize(L, x0, jac=G, method="L-BFGS-B", options={"maxiter":4000}).x)
 
-# --- the side-balanced bridge score (docs/02 §A.3, docs/01 D32, T49) ---
-def two_means(f, iters=100):
-    """Deterministic 1-D 2-means on f_u, initialized at its extremes."""
-    c = np.array([f.min(), f.max()])
-    for _ in range(iters):
-        lab = np.abs(f[:, None] - c[None, :]).argmin(1)
-        new = np.array([f[lab == k].mean() if (lab == k).any() else c[k] for k in (0, 1)])
-        if np.allclose(new, c):
-            break
-        c = new
+# --- the side-balanced bridge score (docs/02 §A.3, docs/01 D32 and D42, T49, T71) ---
+def side_floor(n):
+    """The fewest of n reviewers a side holds (D42): 5% rounded up, at least 1, at most n/2."""
+    return min(max(-(-n * 50 // 1000), 1), n // 2)
+
+
+def two_means(f):
+    """The exact 1-D 2-means of f_u (D42): among the cuts of the sorted positions that split
+    no run of equal values and leave side_floor(n) reviewers on each side, the one with the
+    largest between-side sum of squares (a tie: nearer the middle, then lower)."""
+    n = len(f)
+    order = np.lexsort((np.arange(n), f))
+    s = f[order]
+    low = np.concatenate([[0.0], np.cumsum(s)])
+    high = np.concatenate([np.cumsum(s[::-1])[::-1], [0.0]])
+    floor = max(side_floor(n), 1)
+    best = None
+    for k in range(floor, n - floor + 1):
+        if not s[k - 1] < s[k]:
+            continue
+        d = (n - k) * low[k] - k * high[k]
+        between = d * d / (k * (n - k))
+        if best is None or between > best[0] or (
+                between == best[0] and abs(2 * k - n) < abs(2 * best[1] - n)):
+            best = (between, k)
+    lab = np.ones(n, dtype=int)
+    lab[order[:n if best is None else best[1]]] = 0
     return lab
 
 
 def side_scores(params):
-    """Per-side mean predicted rating, the side-balanced score S_j and the side gap."""
+    """Per-side mean prediction clipped to [0, 1], the side-balanced score S_j, the side gap."""
     mu, bu, bj, fu, fj = params
-    rhat = mu + bu[:, None] + bj[None, :] + np.outer(fu, fj)
+    rhat = np.clip(mu + bu[:, None] + bj[None, :] + np.outer(fu, fj), 0.0, 1.0)
     lab = two_means(fu)
-    a, b = rhat[lab == 0].mean(0), rhat[lab == 1].mean(0)
+    a = rhat[lab == 0].mean(0)
+    b = rhat[lab == 1].mean(0) if (lab == 1).any() else a
     return a, b, (a + b) / 2, np.abs(a - b), lab
 
 

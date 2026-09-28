@@ -440,70 +440,73 @@ fn fit_with_init(data: &Ratings, p: &BridgingParams, x0: Vec<f64>) -> Fit {
     }
 }
 
-/// Which of the two sides a reviewer falls on (D32): deterministic 1-D 2-means on `f_u`,
-/// its orientation following the canonical sign of `f` (T48); the score is symmetric in it.
+/// Which of the two sides a reviewer falls on (D32, D42): the exact 1-D 2-means of `f_u`,
+/// side A the lower positions under the canonical sign of `f` (T48); the score is symmetric.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Side {
     A,
     B,
 }
 
-/// The side-balanced bridge score (`docs/02` §A.3, D32, T49): axis reviewers split into
-/// two sides by [`two_means`] on `f_u`, predicted ratings averaged within each side, the
-/// score is the mean of the two — each side counts once regardless of size (`docs/05` [5b]).
+/// The side-balanced bridge score (`docs/02` §A.3, D32, T49, D42): axis reviewers split by
+/// [`two_means`] on `f_u`, predicted ratings clipped to `[0, 1]` and averaged within each
+/// side, the score the mean of the two — each side counts once whatever its size.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SideScores {
     pub side: Vec<Side>,
-    /// Mean predicted rating over side A, per item.
+    /// Mean clipped prediction over side A, per item.
     pub side_a: Vec<f64>,
-    /// Mean predicted rating over side B, per item.
+    /// Mean clipped prediction over side B, per item.
     pub side_b: Vec<f64>,
     pub score: Vec<f64>,
     pub gap: Vec<f64>,
 }
 
-/// Deterministic 1-D 2-means on `f_u`, initialized at its extremes (D32): a tie goes to
-/// side A, an empty side keeps its centre, and the loop stops when both centres are
-/// unchanged or after 100 rounds. Reviewer order is the only order used (reproducible).
+/// Each side's floor, in thousandths of the reviewers split (D42; provisional, T25).
+pub const MIN_SIDE_PER_MILLE: usize = 50;
+
+/// The fewest of `n` reviewers a side of [`two_means`] holds: rounded up, at least 1, at most n/2.
+pub fn side_floor(n: usize) -> usize {
+    (n * MIN_SIDE_PER_MILLE).div_ceil(1000).max(1).min(n / 2)
+}
+
+/// The exact 1-D 2-means of `f_u` (D42): of the cuts of the sorted positions that split no run
+/// of equal values and leave [`side_floor`] reviewers on each side, the one with the largest
+/// between-side sum of squares (a tie: nearer the middle, then lower). No such cut: all A.
 pub fn two_means(f_u: &[f64]) -> Vec<Side> {
-    if f_u.is_empty() {
-        return Vec::new();
+    let n = f_u.len();
+    let mut order: Vec<usize> = (0..n).collect();
+    order.sort_by(|&a, &b| f_u[a].total_cmp(&f_u[b]).then(a.cmp(&b)));
+    let sorted: Vec<f64> = order.iter().map(|&u| f_u[u]).collect();
+    // Summed from each end, so negating `f_u` maps a cut's side sums onto the mirror cut's.
+    let mut low = vec![0.0_f64; n + 1];
+    for k in 0..n {
+        low[k + 1] = low[k] + sorted[k];
     }
-    let lo = f_u.iter().copied().fold(f64::INFINITY, f64::min);
-    let hi = f_u.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-    let mut centres = [lo, hi];
-    let mut side = vec![Side::A; f_u.len()];
-    let close = |a: f64, b: f64| (a - b).abs() <= 1e-8 + 1e-5 * b.abs();
-    for _ in 0..100 {
-        for (s, &f) in side.iter_mut().zip(f_u) {
-            *s = if (f - centres[0]).abs() <= (f - centres[1]).abs() {
-                Side::A
-            } else {
-                Side::B
-            };
+    let mut high = vec![0.0_f64; n + 1];
+    for k in (0..n).rev() {
+        high[k] = high[k + 1] + sorted[k];
+    }
+    let floor = side_floor(n).max(1);
+    let mut best: Option<(f64, usize)> = None;
+    for k in floor..=n.saturating_sub(floor) {
+        if sorted[k - 1].partial_cmp(&sorted[k]) != Some(std::cmp::Ordering::Less) {
+            continue;
         }
-        let (mut sum, mut count) = ([0.0_f64; 2], [0usize; 2]);
-        for (s, &f) in side.iter().zip(f_u) {
-            let k = *s as usize;
-            sum[k] += f;
-            count[k] += 1;
+        let (na, nb) = (k as f64, (n - k) as f64);
+        let d = nb * low[k] - na * high[k];
+        let between = d * d / (na * nb);
+        let better = best.is_none_or(|(b, c)| {
+            between > b || (between == b && k.abs_diff(n - k) < c.abs_diff(n - c))
+        });
+        if better {
+            best = Some((between, k));
         }
-        let next = [
-            if count[0] > 0 {
-                sum[0] / count[0] as f64
-            } else {
-                centres[0]
-            },
-            if count[1] > 0 {
-                sum[1] / count[1] as f64
-            } else {
-                centres[1]
-            },
-        ];
-        if close(next[0], centres[0]) && close(next[1], centres[1]) {
-            break;
-        }
-        centres = next;
+    }
+    let cut = best.map_or(n, |(_, k)| k);
+    let mut side = vec![Side::B; n];
+    for &u in &order[..cut] {
+        side[u] = Side::A;
     }
     side
 }
@@ -558,7 +561,7 @@ pub fn side_balanced(fit: &Fit) -> SideScores {
     for j in 0..m {
         let (mut sum_a, mut sum_b) = (0.0_f64, 0.0_f64);
         for &u in &on_axis {
-            let pred = fit.mu + fit.b_u[u] + fit.b_j[j] + fit.f_u[u] * fit.f_j[j];
+            let pred = (fit.mu + fit.b_u[u] + fit.b_j[j] + fit.f_u[u] * fit.f_j[j]).clamp(0.0, 1.0);
             match out.side[u] {
                 Side::A => sum_a += pred,
                 Side::B => sum_b += pred,
@@ -566,7 +569,7 @@ pub fn side_balanced(fit: &Fit) -> SideScores {
         }
         let (a, b) = match (n_a, n_b) {
             (0, 0) => {
-                let neutral = fit.mu + fit.b_j[j];
+                let neutral = (fit.mu + fit.b_j[j]).clamp(0.0, 1.0);
                 (neutral, neutral)
             }
             (0, _) => {
@@ -587,13 +590,46 @@ pub fn side_balanced(fit: &Fit) -> SideScores {
     out
 }
 
-/// The gate's inputs for every item (`docs/02` §A.3–A.4, D32): `robust`, the pessimistic
-/// bootstrap-min of the side-balanced score compared with `τ`; `full`, the full fit's side
-/// scores, whose `gap` is the polarization the appeal rule reads.
+/// Per item, the ratings from its less-rated side (D42): axis reviewers with a positive weight
+/// count, a side no axis reviewer sits on is left out, indices outside the input are ignored.
+pub fn coverage(data: &Ratings, sides: &SideScores) -> Vec<usize> {
+    let counts = |u: usize| data.axis.get(u).copied().unwrap_or(false);
+    let mut seated = [false; 2];
+    for (u, s) in sides.side.iter().enumerate() {
+        if counts(u) {
+            seated[*s as usize] = true;
+        }
+    }
+    let mut rated = vec![[0usize; 2]; data.m];
+    for o in &data.obs {
+        let weighted = data.weights.get(o.u).is_some_and(|w| *w > 0.0);
+        if let (true, true, Some(s), Some(r)) = (
+            counts(o.u),
+            weighted,
+            sides.side.get(o.u),
+            rated.get_mut(o.j),
+        ) {
+            r[*s as usize] += 1;
+        }
+    }
+    rated
+        .iter()
+        .map(|r| match seated {
+            [true, true] => r[0].min(r[1]),
+            [true, false] => r[0],
+            [false, true] => r[1],
+            [false, false] => 0,
+        })
+        .collect()
+}
+
+/// The gate's inputs per item (`docs/02` §A.3–A.4, D32, D42): the bootstrap-min `robust` read
+/// against `τ`, the `full` fit's side scores (the appeal reads its `gap`) and its [`coverage`].
 #[derive(Clone, Debug, PartialEq)]
 pub struct BridgeScores {
     pub robust: Vec<f64>,
     pub full: SideScores,
+    pub coverage: Vec<usize>,
 }
 
 /// Robust bridge score (`docs/02` §A.4): the bootstrap-min of the side-balanced score over
@@ -644,6 +680,7 @@ pub fn bridge_scores(
     }
     Ok(BridgeScores {
         robust,
+        coverage: coverage(&data, &full_sides),
         full: full_sides,
     })
 }
