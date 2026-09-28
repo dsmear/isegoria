@@ -8,6 +8,7 @@ use identity::nym::Nym;
 use protocol::admission::NullifierSet;
 use protocol::pilot::PilotError;
 use protocol::revalidation::revalidate_batch_latent;
+use scoring::latent::Formats;
 
 fn respondents(n: usize) -> NullifierSet {
     let mut set = NullifierSet::new();
@@ -38,6 +39,7 @@ fn an_admitted_batch_gets_the_production_flags() {
         &respondents(3000),
         &batch.anchors,
         &batch.x,
+        &Formats::open(d.anchors, d.k),
         engine_seed(seed),
     );
     assert_eq!(Ok(outcome.flags.clone()), production);
@@ -57,7 +59,13 @@ fn a_refused_batch_is_recorded_as_refused() {
     let outcome = dif(&d, 5);
     assert!(!outcome.admitted);
     assert!(matches!(
-        revalidate_batch_latent(&respondents(3000), &batch.anchors, &batch.x, 5),
+        revalidate_batch_latent(
+            &respondents(3000),
+            &batch.anchors,
+            &batch.x,
+            &Formats::open(d.anchors, d.k),
+            5
+        ),
         Err(PilotError::UnreliableAnchors { .. })
     ));
 }

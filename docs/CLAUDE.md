@@ -59,7 +59,7 @@ work left is ordered in `10-roadmap.md`. Follow its phases in
 order — **mathematics** (every task up to the characterization T24 is done — its results
 are in `13-characterization.md` §7, its harness is `crates/characterization`; left are
 T25, in four steps (`10-roadmap.md` §1.4): the guessing correction D25 in the latent
-re-check, then in the pilot screen, a supplement of the DIF studies on the corrected
+re-check (done), then in the pilot screen, a supplement of the DIF studies on the corrected
 model, then the thresholds with their calibration procedures; and T81, the mutation
 testing of Phase 1's mechanism. Long characterization runs go to the owner's machine: the
 cloud development container's 4 cores take three to four times as long),

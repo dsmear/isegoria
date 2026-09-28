@@ -4,7 +4,7 @@
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use scoring::dtf::{BadClasses, ClassCurves, DTF_MAX};
-use scoring::latent::{latent_dif_with, LatentDif, LatentParams};
+use scoring::latent::{latent_dif_with, Formats, LatentDif, LatentParams};
 use scoring::Convergence;
 
 fn sigmoid(z: f64) -> f64 {
@@ -139,8 +139,10 @@ fn a_class_below_the_share_floor_does_not_count() {
         eta,
         anchor_a: Vec::new(),
         anchor_b: Vec::new(),
+        anchor_c: Vec::new(),
         item_a: a,
         item_b: b,
+        item_c: vec![0.0; 2],
         dif: vec![0.0; 2],
         a_gap: vec![0.0; 2],
         posterior: Vec::new(),
@@ -214,7 +216,7 @@ fn the_dtf_of_a_fitted_batch_tracks_the_true_curves() {
         max_classes: 2,
         ..LatentParams::default()
     };
-    let res = latent_dif_with(&anchors, &x, &lp);
+    let res = latent_dif_with(&anchors, &x, &Formats::open(na, a.len()), &lp).unwrap();
     assert_eq!(res.classes, 2, "gaps {:?}", res.dif);
     let fitted = ClassCurves::of(&res).unwrap();
     let truth = |set: &[usize]| {

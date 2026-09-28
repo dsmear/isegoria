@@ -176,7 +176,7 @@ never on a single item** (see the latent-class DIF section and
 
 ### B.1 IRT model
 
-3-parameter model (3PL); the 2PL (without `c`) is enough for small batches:
+3-parameter model (3PL), the floor `c_j` set by the item's declared format (`01` D25):
 
 ```
 P(X_ij = 1 | θ_i) = c_j + (1 − c_j) · [ 1 + exp(−a_j (θ_i − b_j)) ]⁻¹
@@ -185,7 +185,37 @@ P(X_ij = 1 | θ_i) = c_j + (1 − c_j) · [ 1 + exp(−a_j (θ_i − b_j)) ]⁻�
 - `a_j` : **discrimination** — how well the question separates those who know from
   those who don't
 - `b_j` : **difficulty**
-- `c_j` : **pseudo-guessing**
+- `c_j` : **pseudo-guessing** — the chance that someone who knows nothing answers right
+
+**Formats.** Every item, anchor or trial, declares its format, and the format sets `c_j`:
+
+- an **open answer** — the respondent gives the datum, which the template's key rule
+  checks (§B.5) — has nothing to guess: `c_j = 0`, the 2PL;
+- a **choice among `m` options, one of them keyed** — true/false is `m = 2` — has a floor
+  near the chance level `1/m`. The floor is estimated with the other parameters, under a
+  prior with its mode at `1/m` and the weight of `w` pseudo-observations
+  (`w = 20`, provisional, T25):
+
+  ```
+  ln p(c) = w · [ (1/m) · ln c + (1 − 1/m) · ln(1 − c) ]        (a Beta(1 + w/m, 1 + w(1 − 1/m)))
+  ```
+
+  The floor is not fixed at `1/m`: distractors pull more or less than chance, item by
+  item, and the latent-class model (§B.3) reads an item's misfit at low ability as a class
+  that finds the item easier — a false DIF on that item. No format with more than one keyed
+  option is specified.
+
+Without the floor, the latent re-check fitted to a population that guesses — a floor of
+0.2 on every item — selects a mixture in 72.5–98.0% of the null batches and flags 12–17%
+of the clean items (T24, `13` §7.2); every item the system asks is true/false or a choice
+among options.
+
+**The metric.** Every threshold on `a`, `b` and the DIF gap is in the metric of the target
+model (§B.3): logistic with no scaling constant (`D = 1`), `θ` of unit variance within each
+latent class, its origin the mean of the first class — in a one-class fit, of the batch's
+respondents. The metric is the batch's own: nothing links the metrics of two fits (§B.7).
+The pilot's stage 1 reads a 2PL slope on the standardized anchor total instead, a proxy
+metric (`08` IRT-001), until T25's second step moves it onto this model (`10`).
 
 ### B.2 Retention criteria
 
@@ -245,8 +275,8 @@ tertiles, Mantel–Haenszel with ETS classification:
 
 ```
 P(x_i) = Σ_g π_g ∫ Π_{a∈A} P_a(x_ia | θ) · Π_{j∈J} P_jg(x_ij | θ) · φ(θ; η_g, 1) dθ,   η_0 = 0
-P_a(x = 1 | θ)  = [1 + exp(−a_a (θ − b_a))]⁻¹          the anchors: one parameter set for every class
-P_jg(x = 1 | θ) = [1 + exp(−a_jg (θ − b_jg))]⁻¹        the trial items: per class
+P_a(x = 1 | θ)  = c_a + (1 − c_a) [1 + exp(−a_a (θ − b_a))]⁻¹      the anchors: one parameter set for every class
+P_jg(x = 1 | θ) = c_j + (1 − c_j) [1 + exp(−a_jg (θ − b_jg))]⁻¹    the trial items: a and b per class, the floor shared
 DIF_j = max_{g,h} | b_jg − b_jh |                       reject if DIF_j > 1.0  (provisional, see below)
 ```
 
@@ -255,7 +285,13 @@ label and do not need one. The anchors (`A`, the DIF-free items the respondents 
 answered) enter the likelihood with class-invariant parameters and each class has its own
 ability mean `η_g`, so a class-wide shift is attributed to ability, not to the trial
 items: DIF is a trial item's departure from the anchors' account of the classes. `θ` is
-integrated on a fixed grid (41 nodes over `[−5, 5]`); `G` is chosen by BIC. **This
+integrated on a fixed grid (41 nodes over `[−5, 5]`); `G` is chosen by BIC. The floors
+`c` follow each item's format (§B.1): 0 for an open answer, otherwise estimated, the same
+in every class — a class that guesses differently on an item is DIF, which the model reads
+in the item's difficulties. The fit minimizes the negative log-likelihood plus the floors'
+priors; the BIC reads the likelihood at that optimum and counts the floors as parameters,
+the same count in every candidate. With every floor 0 the model is the 2PL target model,
+bit for bit. **This
 variant is what makes DIF compatible with full anonymity**: in testing, with ≥2
 distorted questions in a batch, it estimates a difficulty gap `DIF_j` of 1.7–1.9 (the
 true `2δ` = 1.8) on the defective ones when four or six of eight are shifted — 3.6 and
@@ -281,12 +317,16 @@ above it, so 1.0 is kept, provisional. The false-positive / power study (T24, `1
 measured it: on 2PL populations no clean item is flagged at any cut from 0.5 to 1.5, and
 at 0.6 and below the cut no longer binds — power is then the share of fits that select a
 mixture. With a guessing floor in the population 12–17% of the clean items are flagged
-at 1.0, so T25 sets the value after the guessing correction (D25; `08` DIF-006, DIF-008).
+at 1.0, so T25 sets the value after the guessing correction (D25; `08` DIF-006, DIF-008),
+which the model carries since T25's first step (§B.1, `08` AT-DIF-13); its tables are the
+step after.
 
 *Reference implementation (T40, T54).* `G ∈ {1, …, 4}` and uniform (shared `a_j`) vs
 non-uniform (per-class `a_jg`) DIF are chosen together by BIC, each candidate fitted from
 several seeded starts with an analytic gradient (the EM artificial data: per node the
-expected respondents, per respondent the class posterior and its first `θ`-moment); a
+expected respondents, per respondent the class posterior and its first `θ`-moment, and for
+an item with a floor its expected correct answers per node, since its log-odds are no
+longer linear in `θ`); a floor is fitted on the logit scale from the chance level; a
 class holding under 5% of the respondents does not define `DIF_j` (its difficulties are
 unidentified). The verdict reads the difficulty gap only, as above: a per-class
 *discrimination* gap is estimated and reported (`a_gap`) but has no threshold yet. T24
@@ -464,7 +504,8 @@ of its contested facts does.
 **DTF within one fit.** Let `F` be a target-model fit (§B.3) in which the items of a set
 `S` were trial items, with counted classes `g` (share ≥ 5%, as for `DIF_j`), shares
 `π_g` renormalized over them, ability means `η_g` and per-class curves
-`P_jg(θ) = σ(a_jg (θ − b_jg))`. At ability `θ` the expected-score difference between
+`P_jg(θ) = c_j + (1 − c_j) σ(a_jg (θ − b_jg))` — the floor shrinks a class gap by
+`1 − c_j`. At ability `θ` the expected-score difference between
 classes `g` and `h` is `Δ_gh(S; θ) = Σ_{j∈S} [P_jg(θ) − P_jh(θ)]`, and
 
 ```
@@ -786,7 +827,8 @@ detector no longer confuses with a cartel.
 | `N` pilot stage 2 | ~1500–3000 | 1500 with a group signal; ≥3000 for latent-class DIF (§B.6) |
 | `a_min` | 0.6 | minimum discrimination |
 | `\|β₂\|` max DIF | 0.40 | logistic regression |
-| `DIF_j` max (latent classes) | 1.0 logit (provisional; literature 0.5) | IRT mixture; see §B.3; characterized for 0.5–1.5 in `13` §7.5 |
+| `DIF_j` max (latent classes) | 1.0 logit (provisional; literature 0.5) | IRT mixture; see §B.3; characterized for 0.5–1.5 in `13` §7.5, on items with no floor |
+| `w` (floor prior) | 20 pseudo-observations (provisional) | the weight of the prior on a choice item's floor, its mode at the chance level `1/m` (§B.1, D25) |
 | `Δ_MH` max | 1.5 | ETS class C = reject |
 | `α` (cluster discount) | 0.5 | square root; analysis only, not applied to the protocol's weights (D40) |
 | `min_shared` (coordination) | 30 | shared items before a pair's residual correlation is read (D39); at the design scale two reviewers share under one item per epoch, so a pair is read only after many epochs |

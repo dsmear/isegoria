@@ -354,6 +354,8 @@ another. One metric, one value, one justification. Resolves Q-5 / G-08.
 ## D25 — Declared ability metric; guessing correction for multiple-choice
 
 > **Form decided (2026-09-28), from T24's results; built by `docs/10` T25, steps 1–2.**
+> Step 1 done the same day: the latent re-check takes each column's format
+> (`scoring::latent::Formats`) and fits the floors (`docs/08` AT-DIF-13).
 > The correction cannot be omitted: with a guessing floor of 0.2 in the population the
 > 2PL target model of D37 selects a mixture in 72.5–98.0% of the null batches and flags
 > 12–17% of the clean items, and the anchors' KR-20 floor does not prevent it (`docs/13`

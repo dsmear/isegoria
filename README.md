@@ -344,9 +344,10 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
    54,412 runs), whose first pass found and fixed a defect in the bridge score's sides
    (D42, T71). Next, T25: the characterization showed that the latent re-check flags
    clean items when respondents can guess — as they always can on true/false and
-   multiple-choice items — so the model gets its guessing correction first (D25), in the
-   re-check and then in the pilot screen, is measured again, and only then are the
-   thresholds set; and the mutation testing of the mechanism (T81).
+   multiple-choice items — so the model gets its guessing correction first (D25): the
+   re-check has it (T25's first step), the pilot screen is next; then the model is
+   measured again, and only then are the thresholds set; and the mutation testing of the
+   mechanism (T81).
 2. **P2P network** — done so far: the consortium's configuration check (T63), a
    randomness beacon nobody can grind, by commit-reveal among the consortium members (D41,
    T37, in process), draws that read their candidates as a set (T72), and a node's log and

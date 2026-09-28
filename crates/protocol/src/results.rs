@@ -47,12 +47,14 @@ pub enum ResultRecord {
         item: u64,
         residual: f64,
     },
-    /// Per class `g`: `pi[g]`, `eta[g]`, `a[g][j]`, `b[g][j]` (`ClassCurves::new`).
+    /// Per class `g`: `pi[g]`, `eta[g]`, `a[g][j]`, `b[g][j]`; per item its floor `c[j]`
+    /// (`ClassCurves::with_floors`).
     ContestedFit {
         pi: Vec<f64>,
         eta: Vec<f64>,
         a: Vec<Vec<f64>>,
         b: Vec<Vec<f64>>,
+        c: Vec<f64>,
         members: Vec<(Cid, u64)>,
     },
     ContestedRemove {
@@ -235,9 +237,10 @@ impl ResultsState {
                 eta,
                 a,
                 b,
+                c,
                 members,
             } => {
-                let curves = ClassCurves::new(pi, eta, a, b)
+                let curves = ClassCurves::with_floors(pi, eta, a, b, c)
                     .map_err(|_| ResultsRejected::BadClasses { record: i })?;
                 let members: Option<Vec<(Cid, usize)>> = members
                     .iter()
@@ -354,11 +357,13 @@ pub(crate) fn write_results(w: &mut Writer, results: &EpochResults) {
                 eta,
                 a,
                 b,
+                c,
                 members,
             } => {
                 w.u8(8).field(&floats(pi)).field(&floats(eta));
                 write_rows(w, a);
                 write_rows(w, b);
+                w.field(&floats(c));
                 let members: Vec<u8> = members
                     .iter()
                     .flat_map(|(c, j)| c.0.into_iter().chain(j.to_le_bytes()))
@@ -448,6 +453,7 @@ fn read_record(r: &mut Reader) -> Option<ResultRecord> {
         8 => {
             let (pi, eta) = (read_floats(r)?, read_floats(r)?);
             let (a, b) = (read_rows(r)?, read_rows(r)?);
+            let c = read_floats(r)?;
             let bytes = r.field().ok()?;
             if bytes.len() % 40 != 0 {
                 return None;
@@ -467,6 +473,7 @@ fn read_record(r: &mut Reader) -> Option<ResultRecord> {
                 eta,
                 a,
                 b,
+                c,
                 members,
             }
         }

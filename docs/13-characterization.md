@@ -456,7 +456,9 @@ same median and range: once it passes, it stays passed.
   multiple-choice with one keyed option (`docs/README.md`), so a real batch has a floor
   near `1/m` for `m` options — and 0.5 for true/false, which no study here tried. The DIF
   values below hold for items with nothing to guess; for the others T25 measures them
-  again on the corrected model (`docs/10` T25, steps 1–3). The bridging values (`τ`, `ε`,
+  again on the corrected model (`docs/10` T25, steps 1–3). The model carries the floors
+  since T25's first step (`docs/02` §B.1, `docs/08` AT-DIF-13); the harness declares every
+  column an open answer, so the records above reproduce. The bridging values (`τ`, `ε`,
   `MIN_COVERAGE`) do not depend on it.
 - **The DIF cut** (`MIXTURE_DIF_MAX` = 1.0). On 2PL populations no clean item is flagged
   at any cut from 0.5 to 1.5. At 0.6 and below the cut no longer binds — every leaning
