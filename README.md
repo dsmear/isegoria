@@ -243,7 +243,7 @@ dependency on identity or network** — it runs offline and is reproducible
 | [`network`](crates/network) | Content addressing, Merkle, transparency log, consortium checkpoints, the epoch's beacon round, a node's durable log and objects, the replicated signed set and its cuts, erasure coding, anchoring | Real integrity primitives (incl. OpenTimestamps proofs), durable store (T13), replicated set and cuts (T18, T74); anchoring format-level only (T17) |
 | [`protocol`](crates/protocol) | Lifecycle orchestration: deposit, lottery, blind review, gate + appeal, pilot, honeypot; a node's state from its log and from signed cuts | Wires the three layers together; the state replays from the log (T73) and from consortium-signed cuts (T74); no epoch run between nodes yet (T79) |
 | [`p2p`](crates/p2p) | The libp2p transport: gossip announcements and pull sync of the replicated signed set; a consortium member's duties | Real (T18); a replica on disk, members cutting and running the beacon (T74); serves its whole set to any peer (T77); started only from tests (T78) |
-| [`characterization`](crates/characterization) | The T24 harness: seeded simulation studies of the detectors and gates — a tool, not part of a node | Harness built; the full run pending ([`docs/13`](docs/13-characterization.md)) |
+| [`characterization`](crates/characterization) | The T24 harness: seeded simulation studies of the detectors and gates — a tool, not part of a node | Full run done: 54,412 runs, results in [`docs/13`](docs/13-characterization.md) §7 |
 
 The uniqueness label runs on a real single-server **VOPRF** (RFC 9497, via `voprf`)
 *and* on a real **threshold** t-of-n OPRF (Shamir shares + per-share DLEQ over
@@ -276,8 +276,10 @@ cargo llvm-cov --workspace --summary-only   # line coverage (~97%); needs cargo-
 cargo run --release -p characterization -- run --grid smoke   # the T24 studies, one tiny cell each
 ```
 
-The full characterization (T24) is 54,412 seeded runs, about a day on 16 cores; it is
-resumable and runs on demand, never in CI ([`docs/13`](docs/13-characterization.md) §2).
+The full characterization (T24) is 54,412 seeded runs, about 30 hours on an 8-core
+desktop; it is resumable and runs on demand, never in CI
+([`docs/13`](docs/13-characterization.md) §2). Its results are in `docs/13` §7, its
+tables in [`verification/reports/t24/`](verification/reports/t24/).
 
 CI runs the comment budget (`scripts/comment_budget.py`, see `docs/CLAUDE.md`), fmt,
 clippy (`-D warnings`), the full test suite, and coverage on every push and pull request
@@ -306,7 +308,7 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
   - [`08-formal-specification.md`](docs/08-formal-specification.md) — independent audit: what is implemented, tested, still open
   - [`10-roadmap.md`](docs/10-roadmap.md) — **the development plan, by priority**
   - [`11-mutation-testing.md`](docs/11-mutation-testing.md), [`12-panic-audit.md`](docs/12-panic-audit.md) — test-quality reports
-  - [`13-characterization.md`](docs/13-characterization.md) — T24: the characterization studies, their harness, and (after the run) their results
+  - [`13-characterization.md`](docs/13-characterization.md) — T24: the characterization studies, their harness, and their results
   - [`99-glossary.md`](docs/99-glossary.md) — glossary, from scratch
 - **[`sim/`](sim/)** — the executable specification (research prototypes).
 - **[`paper/`](paper/)** — working paper on the mathematics of the mechanism: formal statement,
@@ -338,8 +340,9 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
    T56/T57), live outcomes with randomized exploration (D35, T52), the latent DIF
    target model with θ inside the likelihood (D37, T54) and the contested-facts pool,
    drawn into a test only in sets whose differential test functioning stays within a
-   tolerance (D38, T55); next, the characterization of the thresholds (T24/T25), whose
-   first pass found and fixed a defect in the bridge score's sides (D42, T71).
+   tolerance (D38, T55), and the characterization of the detectors and gates (T24,
+   54,412 runs), whose first pass found and fixed a defect in the bridge score's sides
+   (D42, T71); next, the calibration of the thresholds from its results (T25).
 2. **P2P network** — done so far: the consortium's configuration check (T63), a
    randomness beacon nobody can grind, by commit-reveal among the consortium members (D41,
    T37, in process), draws that read their candidates as a set (T72), and a node's log and

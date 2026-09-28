@@ -69,14 +69,15 @@ reference implementation / testnet.
   outcomes with randomized exploration (D35, T52), the latent DIF target model with
   θ inside the likelihood (D37, T54), the reviewer floor of the axis (T39), the
   differential oracles on random datasets (T45), the contested-facts pool with its
-  balanced draw (D38, T55) and the sides of the bridge score (D42, T71, found by T24's
-  first pass); in Phase 2, the consortium's configuration check (T63), the
+  balanced draw (D38, T55), the sides of the bridge score (D42, T71, found by T24's
+  first pass) and the characterization of the detectors and gates (T24, 54,412 runs,
+  `docs/13` §7); in Phase 2, the consortium's configuration check (T63), the
   commit-reveal beacon (D41, T37), the draws' canonical candidate order (T72), a node's
   durable log and object store (T13), the protocol state rebuilt from the log (T73),
   replication of the signed set over libp2p (T18) and the protocol state from
   consortium-signed cuts, with the beacon run between nodes (T74). Details and
   evidence: [Completed work](#completed-work).
-- **Open:** the characterization of the thresholds (T24/T25: T24's specification and harness are done, `docs/13`, its first pass ran on 2026-09-26 and found T71, fixed the same day; the full run is pending); the defects found by the
+- **Open:** the calibration of the thresholds (T25), unblocked by T24's results (`docs/13` §7.5); the defects found by the
   third review (2026-09-24), all but T64, T65, T62, T59, T61 and T63; the rest of the
   network runtime — the DHT (T75), a silent proposer's replacement (T76), live anchoring
   (T17) — and the four gaps of the Phase 2 check (2026-09-28): a replicated set any peer
@@ -130,16 +131,16 @@ DIF cut (T35, T54), `γ` and the cap (T50), the CUSUM `k`/`h` (T51), the KR-20 f
 (T53), `N_PROBATION`, the DTF tolerance and the bound's sampling error (T55), the side
 floor and `MIN_COVERAGE` (T71), and the sample floors of `docs/02` §B.6.
 
-T24's first pass (`--replicates 20`, 5,132 runs, 2026-09-26) found a defect in the
-side-balanced score: a few far-out reviewers made a side of their own, an item one side
-never rated was scored on an extrapolation, and scores left [0, 1]. It is fixed as T71
-(D42) and sits in [Completed work](#phase-14--characterize-the-parameters); the two
-bridging studies are re-run on the fixed engine, the DIF studies are unaffected.
+T24 is done (2026-09-28) and sits in [Completed work](#phase-14--characterize-the-parameters)
+with T71: its first pass (`--replicates 20`, 5,132 runs, 2026-09-26) found a defect in the
+side-balanced score — a few far-out reviewers made a side of their own, an item one side
+never rated was scored on an extrapolation, and scores left [0, 1] — fixed as T71 (D42);
+the full run, 54,412 runs, measured the detectors and gates on the fixed engine. What it
+gives T25 is in `docs/13` §7.5.
 
 | Task | What it means (plain) | Refs | Done when | Size |
 |---|---|---|---|---|
-| T24 | **Specified and harness built (2026-09-26); first pass run, full run pending.** The first pass (`--replicates 20`, 5,132 runs) ran on the owner's machine on 2026-09-26: four of its cells, re-run on the development container, reproduce its rows exactly, and it found T71 (done). `docs/13` specifies ten studies — 54,412 seeded runs since the first pass added sixteen cells of the production estimators and gates — and `crates/characterization` runs them: in parallel, resumable after an interruption, every run reproducible from its seed on any machine, summarized with 95% intervals and the threshold tables T25 reads. The full grid is about a day on 16 cores and runs on the owner's machine (`docs/13` §2). Simulation studies: bias-detector false-positive/false-negative rate and power; bridging robustness sweeps; sample poisoning. The only way to say the detectors "work": includes the **zero-biased** condition (false-positive rate), unbalanced classes, `δ` below 0.9, the T35/T54 threshold choice, the discrimination-gap threshold left open by T40, and the sampling error of the contested-facts DTF bound with its tolerance `DTF_MAX` (T55: a drawn pair with a fitted bound of 0.076 had a true DTF of 0.104) | SC-2/3/7, AT-DIF-01..09, STAT-001, DIF-011 | `docs/13` §6: the full grid run on one commit, its tables in `docs/13` §7 and `verification/reports/t24/`, the `docs/08` rows restated inside their regime | L |
-| T25 | Declare the ability metric and add the guessing correction (D25); fix the bias threshold from the studies (D24); a calibration procedure for every operational threshold (τ, ε, λ, …) | SC-1/4/6 | SC-1, SC-4 and SC-6 (`docs/08` §16.1): every threshold of `docs/02`'s table set from `docs/13` §7 with its calibration procedure; one DIF rule (D24); the θ metric declared and the 3PL decided (D25) | M |
+| T25 | **Unblocked (2026-09-28) by T24.** Declare the ability metric and add the guessing correction (D25); fix the bias threshold from the studies (D24); a calibration procedure for every operational threshold (τ, ε, λ, …). The inputs are `docs/13` §7.5: the guessing correction first — on a population that guesses the 2PL target model flags 12–17% of the clean items; the DIF cut, which flags no clean item anywhere from 0.5 to 1.5 on 2PL populations and no longer binds at 0.6 and below; `KR20_MIN`, which 20 anchors (KR-20 0.83) did not need; a cut on `a_gap`, or none; `DTF_MAX`, whose fitted bound is biased upward and noisy within about 0.05 of it; `N_LATENT_MIN`; `τ` and `ε`, with no false pass from 200 reviewers up | SC-1/4/6 | SC-1, SC-4 and SC-6 (`docs/08` §16.1): every threshold of `docs/02`'s table set from `docs/13` §7 with its calibration procedure; one DIF rule (D24); the θ metric declared and the 3PL decided (D25) | M |
 | T26 | **External psychometric review** of the statistical method | SC-8 | SC-8: the review recorded in `reports/` | *external* |
 
 ### 1.5 · Order of execution and milestones
@@ -165,9 +166,9 @@ order the work is done in. Sizes are the ones in the rows.
 12. T39 (S, descoped `d = 2`) and T45 (M) — done (2026-09-25).
 13. T55 (L) — contested facts: the specification, then the pool and the balanced draw —
     done (2026-09-25).
-14. T24 (L) — specified and harness built (2026-09-26, `docs/13`); its first pass found
-    T71 (M), done the same day; the full run pending on the owner's machine — then T25
-    (M); T26 is external.
+14. T24 (L) — done (2026-09-28, `docs/13` §7): 54,412 runs on the owner's machine; its
+    first pass found T71 (M), done on 2026-09-26 — then T25 (M), now unblocked; T26 is
+    external.
 
 **Two streams.** Steps 2–5 and 8 touch `bridging`, `gate`, `lifecycle` and the
 orchestrator; steps 6, 7 and 9–11 touch `reputation`, `dif`, `collusion`, `honeypot` and
@@ -183,8 +184,8 @@ returns errors instead of panicking.
 
 **Milestone 1b — "the mechanism is complete".** Steps 8–14: the features the decisions
 add (a second panel, exploration, the target DIF model, panel diversification, the
-contested-facts pool — all done) and the characterization of every threshold (T24/T25,
-open).
+contested-facts pool — all done) and the characterization of every threshold (T24 done,
+T25 open).
 
 **Milestone 1 — "the mechanism is sound"** is 1a and 1b together. Every verdict is
 computed as D32–D42 specify; the band and appeal paths are decided by the gate, not by
@@ -322,8 +323,8 @@ Not a phase; done alongside every task.
   by T49's side gap) and is done, and so is T60, the band's extra round. T61
   followed the D27 decision and is done. T50, T51 and T52 are done. T53 and T54 are done. T55
   is done: its specification (the source check, the DTF bound) first, then the pool. T56
-  and T57 are done. T24/T25 close the phase: the thresholds of T35 and T49–T55 are final
-  only after them. The full
+  and T57 are done. T24 is done (2026-09-28); T25 closes the phase: the thresholds of
+  T35 and T49–T55 are final only after it. The full
   order and the milestone split: [1.5](#15--order-of-execution-and-milestones).
 - **Phase 1 → 2.** T52's exploration draw (done) is grind-free since T37 (done), like every
   other draw.
@@ -406,6 +407,7 @@ other documents and commit messages refer to these ids and block names.
 | Task | What it means (plain) | Decision / refs | Done when | Size |
 |---|---|---|---|---|
 | T71 | **The bridge score's sides are the camps, on the rating scale, with coverage. Done (2026-09-26),** after D42, found by T24's first pass (`docs/13`): the 2-means iteration from the extremes of `f_u` made far-out reviewers a side of their own (sides of 2 and 5 of 800 reviewers, scores from −0.28 to 1.31; in a bootstrap subsample a side of 1 of 200, which dropped an item's robust score from 0.91 to 0.56 while its full fit passed), and a partisan item no minority reviewer had rated passed at 0.972 on an extrapolated side of 1.445. `bridging::two_means` is now the exact 1-D 2-means cut — the sorted positions' cut with the largest between-side sum of squares, never inside a run of equal values, each side at least `side_floor(n)` = 5% of the reviewers rounded up (`MIN_SIDE_PER_MILLE = 50`), side sums taken from each end so a sign flip mirrors them bit for bit; `side_balanced` clips each prediction to [0, 1]; `bridging::coverage` counts, per item, the ratings of its less-rated side (axis reviewers with a positive weight) and travels in `BridgeScores::coverage`; `gate::bridging_gate(score, gap, coverage, τ, ε, appeal_gap)` returns `SupplementaryReview` below `MIN_COVERAGE = 1` whatever the score, and `supplementary_review` cannot pass an item still below it. `sim/` computes the same split and clipping; the Level A oracle moved only in the side means of the three polarized items (≤ 0.0046) and the golden bits in their side scores and four robust scores, plus the new coverage rows; no fixture verdict changed. *Evidence:* `side_split.rs` (AT-BR-11) — two camps with two or five reviewers at four times the camp distance split into the camps (100/2 before); each side holds the floor on 256 random position sets with outliers (20/1 before); the split does not depend on the axis' origin or scale and a sign flip swaps it; clipped predictions keep the score in [0, 1] (1.2 and −0.3 before). `side_coverage.rs` (AT-BR-12) — an item only the camp of 120 rated at about 0.97 goes to supplementary review (it passed at 0.875), the fixture's items keep their verdicts, and the re-decision passes it only once the other side rates it high. `side_evidence.rs` — T24's three failing replicates re-run from their seeds: the partisan item goes to review, the n = 800 scores stay in [0.51, 0.87] with sides of 633/167 and 630/170 against camps of 640/160, the robust score at 60 boosters is 0.887 against a full 0.903 and the curve is monotone. The two bridging studies of `docs/13` are re-run on this commit | D42; `docs/02` §A.3; BRIDGE-010, AT-BR-11/12 | `AT-BR-11` and `AT-BR-12` pass; T24's failing replicates pass | M |
+| T24 | **The detectors and gates characterized. Done (2026-09-28).** `docs/13` specifies ten studies of the production estimators and gates; `crates/characterization` ran them — 54,412 seeded runs, the full grid, on the owner's machine (AMD Ryzen 7 5800X, about 30 hours, 2026-09-26 to 2026-09-28) — and summarized them with 95% intervals and the threshold tables. The first pass (`--replicates 20`, 5,132 runs) found T71; the DIF and DTF records reproduce bit for bit across it, and the two bridging studies were re-run on the fixed engine. On 2PL populations the target model selects no mixture and flags no clean item over 5,400 null batches; it never finds a single leaning item, and finds two of eight at δ = 0.9 in 92.8% / 98.8% of cases at N = 3,000 / 6,000, at δ = 0.7 in 11.2% / 56.2%. With guessing in the population it flags 12–17% of the clean items (D25). The fitted DTF bound is biased upward and decides noisily within about 0.05 of `DTF_MAX`. No partisan item passed the bridging gate, 0 of 72,000, and a consensus item 0.05 above `τ` passes in 97.6–100% of cases with 800 reviewers; carrying the majority's partisan item takes 60 of the 80 opposing reviewers (75%) | SC-2/3/5/7, AT-DIF-01..09, AT-BR-02, STAT-001, DIF-008, DIF-011, BRIDGE-002/003/005; `docs/13` §7, `verification/reports/t24/` | `docs/13` §6: the full grid run and summarized, its results stated in `docs/13` §7 inside their regime, the tables committed, `docs/08` §12 and §15 restated | L |
 
 ### Phase 2.1 · Fix what exists
 

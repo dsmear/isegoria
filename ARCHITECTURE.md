@@ -219,7 +219,9 @@ a test (T78), and a member's duties are the cuts and the beacon, not an epoch's 
 Not part of a node: nothing depends on it. It runs the seeded simulation studies of
 [`docs/13`](docs/13-characterization.md) on the production estimators and gates — in
 parallel, resumable after an interruption, every run reproducible from its seed on any
-machine — and summarizes them with intervals and the threshold tables T25 reads.
+machine — and summarizes them with intervals and the threshold tables T25 reads. The
+full run, 54,412 runs, is stated in `docs/13` §7 and its tables are in
+`verification/reports/t24/`.
 
 | Module | Role |
 |---|---|

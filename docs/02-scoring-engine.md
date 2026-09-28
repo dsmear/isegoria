@@ -277,8 +277,11 @@ admits) and kept for the fixtures and the sim reproduction.
 implementation rejects at **1.0** on the gap, and only when the selected fit converged
 and the BIC prefers a mixture (two or more classes) over one class. On the target model
 the null gaps are 0 (one class selected) or far below 1.0 and the campaign gaps far
-above it, so 1.0 is kept, provisional until the false-positive / power study (`10`
-T24/T25) sets it (`08` DIF-006, DIF-008).
+above it, so 1.0 is kept, provisional. The false-positive / power study (T24, `13` §7)
+measured it: on 2PL populations no clean item is flagged at any cut from 0.5 to 1.5, and
+at 0.6 and below the cut no longer binds — power is then the share of fits that select a
+mixture. With a guessing floor in the population 12–17% of the clean items are flagged
+at 1.0, so T25 sets the value after the guessing correction (D25; `08` DIF-006, DIF-008).
 
 *Reference implementation (T40, T54).* `G ∈ {1, …, 4}` and uniform (shared `a_j`) vs
 non-uniform (per-class `a_jg`) DIF are chosen together by BIC, each candidate fitted from
@@ -286,11 +289,14 @@ several seeded starts with an analytic gradient (the EM artificial data: per nod
 expected respondents, per respondent the class posterior and its first `θ`-moment); a
 class holding under 5% of the respondents does not define `DIF_j` (its difficulties are
 unidentified). The verdict reads the difficulty gap only, as above: a per-class
-*discrimination* gap is estimated and reported (`a_gap`) but has no threshold yet (to be
-set with the uniform one by the false-positive / power study).
+*discrimination* gap is estimated and reported (`a_gap`) but has no threshold yet. T24
+found that one would add detection only for a large discrimination gap in a large sample
+(`13` §7.2, §7.5); T25 decides whether to adopt it.
 
 **Critical requirement: validate in batches.** A single distorted question in
-isolation is unidentifiable (in testing: 1 of 8 → invisible; 2 of 8 → detected). The
+isolation is unidentifiable: one leaning item of eight is never found, at `N` up to 6,000
+and `δ` up to 0.9, while two are found 93% of the time at `δ = 0.9`, `N = 3,000`, and
+11% at `δ = 0.7` (T24, `13` §7.1). The
 real threat is a *campaign* to tilt the bank, and it is that which becomes visible in
 batches. Periodically re-run the analysis on the whole active pool, where even
 scattered distortions add up.
@@ -393,6 +399,13 @@ per-class item parameters without observing the group. It is far more data-hungr
 > multi-axis DIF, budget ~2500–3000+ respondents per batch, rising with the number of
 > axes/classes sought. Giving up observed group labels is paid for in sample size.
 
+**Measured (T24, `13` §7.1).** On 2PL populations the target model flags at most 0.1%
+of the clean items at every sample size from 1,500 to 6,000, and its power grows with the
+sample and with the campaign: two leaning items of eight with `δ = 0.9` are found 93% of
+the time at 3,000 respondents and 99% at 6,000, with `δ = 0.7` 11% and 56%; at 1,500,
+two items with `δ = 0.9` are found 12–37% of the time. The floor `N_LATENT_MIN = 3,000`
+is T25's to confirm from these tables.
+
 **Three distinct floors on network size** (person-nodes, `04`), of different natures:
 
 1. **Evidence-filter correctness (the binding one).** Each batch needs ~1500–3000
@@ -415,6 +428,8 @@ per-class item parameters without observing the group. It is far more data-hungr
 also requires the anchors the batch's respondents answered to be reliable: KR-20 ≥ 0.90
 (`01` D37, T53; `pilot::admit_anchors`). Below it the batch is refused like a short
 sample, because a noisy `θ` proxy is read by the mixture as a latent class (`08` DIF-010).
+The target model does not make that mistake: T24 found no clean item flagged at KR-20
+0.83 (20 anchors, `13` §7.1), so the floor's value is T25's to revisit.
 
 **Throughput** (a floor on usefulness, not correctness) follows `01` D10:
 `validatable_questions/month ≈ (nodes × answers_per_node_month) / answers_per_question`.
@@ -493,8 +508,11 @@ items leaning opposite ways have 0.00 at equal difficulty, 0.04 at 0.25 apart, 0
 0.5 and 0.14 at 1.0. The bound is computed on the fitted curves, and it is a point
 estimate: on a batch fitted at N = 3,000 the fitted DTF of each set was within 0.03 of the
 true one, and on two batches fitted through the production gate a drawn pair with a fitted
-bound of 0.076 had a true DTF of 0.104 (`08` AT-PRO-08). Its sampling error, like the
-tolerance, is part of the characterization (T24/T25).
+bound of 0.076 had a true DTF of 0.104 (`08` AT-PRO-08). T24 measured its sampling error
+(`13` §7.3): the fitted DTF is biased upward where the true one is small — the four
+clean items of the mirror layout, true DTF 0, are fitted at 0.025–0.065 on average —
+sets far over the tolerance are refused, and within about 0.05 of it the decision is
+noisy both ways. The tolerance, and any margin below it, are T25's.
 
 **The balanced draw.** A test with `n` contested slots draws them from the beacon
 (INV-10; `randomness::CONTESTED`, keyed on the test's number) among the selections with
@@ -756,7 +774,7 @@ detector no longer confuses with a cartel.
 | Parameter | Value | Notes |
 |---|---|---|
 | `λ_b / λ_f` | 0.15 / 0.03 | ratio ≈ 5:1, recalibrate |
-| `τ` (bridging threshold, on `S_j`) | ~0.80 (provisional, D32) | absolute, on the probability scale; **calibrate on the pilot**, not fixed |
+| `τ` (bridging threshold, on `S_j`) | ~0.80 (provisional, D32) | absolute, on the probability scale; **calibrate on the pilot**, not fixed; characterized for 0.70–0.90 in `13` §7.4 |
 | `ε` (uncertainty band) | ~0.02 (provisional) | questions in the band → supplementary review; ≈ 3× the bootstrap spread of `S_j` |
 | `k_extra` (extra panel) | 4 (provisional) | reviewers drawn outside the first panel for a band item; their ratings join the first panel's before the re-decision (D26, T60) |
 | `γ_appeal` (side gap for appeal) | 0.25 (provisional) | a rejected question with a wider gap was rejected for polarization: appealable (`05` [5b]) |
@@ -768,7 +786,7 @@ detector no longer confuses with a cartel.
 | `N` pilot stage 2 | ~1500–3000 | 1500 with a group signal; ≥3000 for latent-class DIF (§B.6) |
 | `a_min` | 0.6 | minimum discrimination |
 | `\|β₂\|` max DIF | 0.40 | logistic regression |
-| `DIF_j` max (latent classes) | 1.0 logit (provisional; literature 0.5) | IRT mixture; see §B.3 |
+| `DIF_j` max (latent classes) | 1.0 logit (provisional; literature 0.5) | IRT mixture; see §B.3; characterized for 0.5–1.5 in `13` §7.5 |
 | `Δ_MH` max | 1.5 | ETS class C = reject |
 | `α` (cluster discount) | 0.5 | square root; analysis only, not applied to the protocol's weights (D40) |
 | `min_shared` (coordination) | 30 | shared items before a pair's residual correlation is read (D39); at the design scale two reviewers share under one item per epoch, so a pair is read only after many epochs |
