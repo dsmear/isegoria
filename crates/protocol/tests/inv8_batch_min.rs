@@ -6,6 +6,7 @@ use identity::nym::Nym;
 use protocol::admission::NullifierSet;
 use protocol::pilot::{admit_dif_batch, screen, PilotError, N1_MIN, N2_MIN};
 use protocol::revalidation::{revalidate_batch_latent, N_LATENT_MIN};
+use scoring::latent::Formats;
 
 /// A responses matrix of `n` respondents × `m` items, deterministic and non-degenerate.
 fn responses(n: usize, m: usize) -> Vec<Vec<f64>> {
@@ -58,10 +59,23 @@ fn at_pro_02_the_production_latent_recheck_refuses_one_item() {
     let a = anchors(N_LATENT_MIN);
     let people = respondents(N_LATENT_MIN);
     assert_eq!(
-        revalidate_batch_latent(&people, &a, &responses(N_LATENT_MIN, 1), 0),
+        revalidate_batch_latent(
+            &people,
+            &a,
+            &responses(N_LATENT_MIN, 1),
+            &Formats::open(60, 1),
+            0
+        ),
         Err(PilotError::BatchTooSmall { items: 1 })
     );
-    assert!(revalidate_batch_latent(&people, &a, &responses(N_LATENT_MIN, 2), 0).is_ok());
+    assert!(revalidate_batch_latent(
+        &people,
+        &a,
+        &responses(N_LATENT_MIN, 2),
+        &Formats::open(60, 2),
+        0
+    )
+    .is_ok());
 }
 
 #[cfg(feature = "calibration")]
@@ -100,7 +114,13 @@ fn a_stage_below_its_respondent_floor_is_rejected() {
     // The latent re-check's floor is the largest of the three (`docs/08` §B.6).
     let n = N_LATENT_MIN - 1;
     assert_eq!(
-        revalidate_batch_latent(&respondents(n), &anchors(n), &responses(n, 8), 0),
+        revalidate_batch_latent(
+            &respondents(n),
+            &anchors(n),
+            &responses(n, 8),
+            &Formats::open(60, 8),
+            0
+        ),
         Err(PilotError::NotEnoughRespondents {
             have: n,
             need: N_LATENT_MIN

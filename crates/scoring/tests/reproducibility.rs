@@ -3,7 +3,7 @@
 
 use scoring::bridging::{bridge_scores, fit, BridgingParams, Ratings};
 use scoring::dif::mixture_dif;
-use scoring::latent::{latent_dif_with, LatentParams};
+use scoring::latent::{latent_dif_with, Formats, LatentParams};
 use std::fs;
 use std::path::PathBuf;
 
@@ -91,8 +91,9 @@ fn latent_dif_is_bit_for_bit_reproducible() {
         max_classes: 2,
         ..LatentParams::default()
     };
-    let a = latent_dif_with(&anchors, &x, &lp);
-    let b = latent_dif_with(&anchors, &x, &lp);
+    let formats = Formats::open(na, k);
+    let a = latent_dif_with(&anchors, &x, &formats, &lp).unwrap();
+    let b = latent_dif_with(&anchors, &x, &formats, &lp).unwrap();
     assert_eq!(bits(&a.dif), bits(&b.dif));
     assert_eq!(bits(&a.eta), bits(&b.eta));
     assert_eq!(bits(&a.anchor_b), bits(&b.anchor_b));

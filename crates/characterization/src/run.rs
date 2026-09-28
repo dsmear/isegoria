@@ -12,7 +12,7 @@ use rand_chacha::ChaCha8Rng;
 use scoring::bridging::{bridge_scores, fit, BridgingParams, Obs, Ratings};
 use scoring::dtf::ClassCurves;
 use scoring::irt::{kr20, KR20_MIN};
-use scoring::latent::latent_dif;
+use scoring::latent::{latent_dif, Formats, LatentDif};
 use scoring::Convergence;
 use std::collections::BTreeSet;
 
@@ -102,13 +102,19 @@ pub fn run(task: &Task) -> Outcome {
     }
 }
 
+/// The target model on the drawn batch, every column declared an open answer (`docs/13` §3.1).
+fn latent_fit(d: &DifDesign, batch: &DifBatch, seed: u64) -> LatentDif {
+    let formats = Formats::open(d.anchors, d.k);
+    latent_dif(&batch.anchors, &batch.x, &formats, engine_seed(seed)).expect("the design's formats")
+}
+
 /// The production re-check on the drawn batch, the engine seeded by [`engine_seed`]: the gates
 /// of `latent_batch` are recorded in `admitted`, never applied (`docs/13` §2).
 pub fn dif(d: &DifDesign, seed: u64) -> DifOutcome {
     let batch = dif_batch(d, seed);
     let reliability = kr20(&batch.anchors);
     let admitted = d.k >= K_MIN && d.n >= N_LATENT_MIN && reliability >= KR20_MIN;
-    let fit = latent_dif(&batch.anchors, &batch.x, engine_seed(seed));
+    let fit = latent_fit(d, &batch, seed);
     DifOutcome {
         kr20: reliability,
         admitted,
@@ -149,7 +155,7 @@ fn true_curves(d: &DifDesign, batch: &DifBatch) -> Option<ClassCurves> {
 
 pub fn dtf(d: &DifDesign, seed: u64) -> DtfOutcome {
     let batch = dif_batch(d, seed);
-    let fit = latent_dif(&batch.anchors, &batch.x, engine_seed(seed));
+    let fit = latent_fit(d, &batch, seed);
     let fitted = ClassCurves::of(&fit).ok();
     let truth = true_curves(d, &batch);
     let over = |curves: &Option<ClassCurves>| -> Vec<f64> {

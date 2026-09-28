@@ -56,14 +56,13 @@ them.
 
 The crates exist — the four of the build order below, `p2p` and `characterization`; the
 work left is ordered in `10-roadmap.md`. Follow its phases in
-order — **mathematics** (T64, T65, T62, the side-balanced score T49, the appeal for
-band items T59, the appeal stake T61, the anchor-reliability gate T53, the proper
-evaluator score T50, the change detector T51, the band's extra round T60, the
-coordination detector on residuals T56, panel diversification T57, live outcomes
-with exploration T52, the latent DIF target model T54, the reviewer floor T39, the
-differential oracles T45, the contested-facts pool T55 and the characterization T24 are
-done — T24's results are in `13-characterization.md` §7, its harness is
-`crates/characterization`; next the calibration of the thresholds T25, from `13` §7.5),
+order — **mathematics** (every task up to the characterization T24 is done — its results
+are in `13-characterization.md` §7, its harness is `crates/characterization`; left are
+T25, in four steps (`10-roadmap.md` §1.4): the guessing correction D25 in the latent
+re-check (done), then in the pilot screen, a supplement of the DIF studies on the corrected
+model, then the thresholds with their calibration procedures; and T81, the mutation
+testing of Phase 1's mechanism. Long characterization runs go to the owner's machine: the
+cloud development container's 4 cores take three to four times as long),
 then the **P2P network** (T63, T37, T72, T13, T73, T18 and T74 are done; left are the
 defects T80, T76 and T77 — any peer reads the replicated set, votes included, against
 D17; its mechanism is the owner's choice — then T75, T78, T79 and T17, `10-roadmap.md`

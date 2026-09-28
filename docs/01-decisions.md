@@ -353,6 +353,30 @@ another. One metric, one value, one justification. Resolves Q-5 / G-08.
 
 ## D25 — Declared ability metric; guessing correction for multiple-choice
 
+> **Form decided (2026-09-28), from T24's results; built by `docs/10` T25, steps 1–2.**
+> Step 1 done the same day: the latent re-check takes each column's format
+> (`scoring::latent::Formats`) and fits the floors (`docs/08` AT-DIF-13).
+> The correction cannot be omitted: with a guessing floor of 0.2 in the population the
+> 2PL target model of D37 selects a mixture in 72.5–98.0% of the null batches and flags
+> 12–17% of the clean items, and the anchors' KR-20 floor does not prevent it (`docs/13`
+> §7.2). Every item the system asks is true/false or multiple-choice with one keyed
+> option, so every real batch guesses. The correction is a lower asymptote per item,
+> `P = c_j + (1 − c_j) σ(a_jg (θ − b_jg))`, in the latent re-check (anchors and trial
+> items) and in the pilot screen, which reads the same model:
+>
+> - `c_j` is the same in every latent class: a class that guesses differently on an item
+>   is DIF, and the model reads it in the item's difficulties;
+> - the format is declared per item: an open answer has nothing to guess, its `c_j` fixed
+>   at 0; an item with `m_j` options, one keyed, has `c_j` estimated under a Beta prior
+>   centred on the chance level `1/m_j` (true/false: `m_j = 2`), whose strength T25
+>   calibrates;
+> - with every `c_j` at 0 the model is D37's target model, bit for bit.
+>
+> **Rejected:** a floor fixed at `1/m_j`. Distractors pull more or less than chance, item
+> by item, and the mixture turns one item's misfit at low ability into a class-specific
+> difficulty — a false DIF on that item, T24's failure at a smaller scale. The metric is
+> declared with the model (`docs/02` §B.1).
+
 **Choice.** The document states explicitly which "ability" scale the item thresholds
 are expressed in, and adds the guessing correction (3PL) for multiple-choice items,
 or documents why it is safe to omit.
@@ -689,7 +713,8 @@ non-rotatable pseudonyms (invariant #5), not by the length of probation.
 > fixtures. On the paper's null batches: 1 class at 10, 20, 30 and 60 anchors (KR-20 0.68–0.94), no item flagged, where the proxy model selects two classes at 10, 20 and 30 anchors and flags 8, 2 and 0 clean items. Campaigns (AT-DIF-12): 2, 4 and 6 of 8 items shifted by 0.9 at N = 6,000 with 30 anchors: exactly the shifted items flagged, their gaps 1.7–1.9 (the true 2δ = 1.8; 3.6 and 1.1 in the two-item case) and the clean items' at most 0.13.
 > AT-DIF-01 on the target model: 0 of 120 clean items flagged and no batch with a mixture over 15 null batches — 20, 40 and 60 anchors (KR-20 0.79–0.94), four seeds at N = 3,000 and one at N = 12,000. Runtime: on one core (dev profile, `scoring` at opt-level 3) 8–32 s per 8-item null batch at N = 3,000, 90–110 s at N = 12,000, 15–25 s at N = 6,000, and 75–90 s for a campaign batch at N = 6,000 whose BIC search reaches three classes. The verdict
 > threshold stays 1.0 on the difficulty gap, provisional: the null gaps sit far below it
-> and the campaign gaps far above; its final value is T24/T25.
+> and the campaign gaps far above. T24 measured it (`docs/13` §7.5); its final value is
+> T25's, once the model accounts for guessing (D25).
 
 **Choice.** The latent-class re-check runs only if the anchors' KR-20, computed on the
 batch's respondents, is at least 0.90 (about 40 anchors). Below that the batch is

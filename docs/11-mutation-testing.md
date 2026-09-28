@@ -5,7 +5,7 @@
 | **Purpose** | Measure how much of the code the tests actually *verify*, not just execute, and record every mutant that survives with the reason it is acceptable. |
 | **Tool** | `cargo-mutants` 26.0.0 (the newest release that builds on the pinned rustc 1.86). |
 | **Date** | 2026-09-24, branch `test/t41-mutation-survivors`. |
-| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, run 12 for T73's first step, run 13 for its second). |
+| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, runs 12–14 for T73's three steps, run 15 for T18, runs 16–17 for T74's two steps, run 18 for T25's first step). Not covered yet: the decision logic Phase 1 changed after run 5 — T49–T62, T71 and T39 — apart from T55's (runs 6–7): `docs/10` T81. |
 
 ## Why this was needed
 
@@ -322,6 +322,37 @@ Same settings as run 16, on the step's diff:
   `beacon_between_nodes.rs`, where the patience eventually proposes anyway. Killed by
   `member_duties.rs`, which calls the duties directly; the re-run gives 34 caught, 4
   unviable.
+
+## Run 18 — T25, first step: the guessing floor in the latent re-check
+
+`cargo mutants --in-diff` on the step's diff, with `--no-config`, the `mutants` profile, a 3×
+timeout multiplier and the 60 s floor — without `calibration`, whose paper-scale suites
+would take hours per mutant:
+
+- `scoring/src` (`latent.rs`, `dtf.rs`; the unit tests and `--test=dtf`, `--test=golden`,
+  `--test=latent_guessing`, `--test=reproducibility`): 372 mutants in 36 minutes — 347
+  caught, 19 unviable, 6 missed. One was real: `>` → `==` in `softplus` takes
+  `ln(1 + e^z)` directly, which overflows past `z ≈ 709`, and no fit reaches such a logit;
+  `the_floor_helpers_are_stable_at_extreme_arguments` pins the helpers at ±800 and
+  `log_odds` at its analytic limits. One is gone: a guard around the floors' penalty only
+  made `count > 0` → `>= 0` possible, and with no floor the penalty is +0.0, so the guard
+  was dropped and the golden rows did not move. The re-run of `softplus` and `fit_from` gives
+  18 caught and the two below. The other four are equivalent:
+
+  | Mutant | Why it is equivalent |
+  |---|---|
+  | `latent.rs` `softplus` `z > 0.0` → `>=` | At `z = 0` both branches give `ln 2`, bit for bit. |
+  | `latent.rs` `log_odds` `wrong < 0.5` → `<=` | Differs only when `P(x = 0)` is exactly 0.5, where both branches compute `ln 0.5`. |
+  | `latent.rs` `evaluate` `floors.count > 0` → `>=` | Runs the floors' per-respondent work on a batch that has none: every term it adds is 0 and every table empty, so only the cost changes. |
+  | `latent.rs` `fit_from` `floors.count > 0` → `>=` in the NLL returned | Re-evaluates the likelihood instead of unscaling the optimizer's cached objective: the same value up to an ulp, and bit for bit on every dataset the suites pin — applied by hand, the golden rows, every candidate's BIC included, did not move. The guard keeps a batch of open answers on the arithmetic T24's records ran. |
+
+- `protocol/src` (`revalidation.rs`, `results.rs`; `--test=results_replay`,
+  `--test=anchor_reliability`, `--test=inv8_batch_min`, `--test=proto013_respondent_gate`,
+  `--test=contested_facts`): 12 mutants — 10 caught, 2 unviable. The gate's explicit format
+  check (`||` → `&&`) is killed by a batch whose anchors are unreliable and whose formats
+  are missing: it must read `BadFormats`, not `UnreliableAnchors`.
+- `characterization/src/run.rs` (`--test=production`, `--test=harness`): 8 mutants — 5
+  caught, 3 unviable.
 
 ## Keeping it this way
 

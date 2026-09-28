@@ -8,7 +8,7 @@ use scoring::dif::{mixture_dif, MIXTURE_DIF_MAX};
 use scoring::irt::{kr20, theta_from_anchors};
 #[cfg(feature = "calibration")]
 use scoring::latent::latent_dif;
-use scoring::latent::{latent_dif_with, LatentParams};
+use scoring::latent::{latent_dif_with, Formats, LatentParams};
 use std::time::Instant;
 
 const K: usize = 8;
@@ -65,6 +65,10 @@ fn batch(
     (anchors, responses)
 }
 
+fn open(anchors: &[Vec<f64>], x: &[Vec<f64>]) -> Formats {
+    Formats::open(anchors[0].len(), x[0].len())
+}
+
 fn max(v: &[f64]) -> f64 {
     v.iter().copied().fold(f64::NEG_INFINITY, f64::max)
 }
@@ -83,12 +87,14 @@ fn the_target_model_finds_no_mixture_where_the_proxy_did() {
         let res = latent_dif_with(
             &anchors,
             &x,
+            &open(&anchors, &x),
             &LatentParams {
                 n_starts: 2,
                 max_classes: 2,
                 ..LatentParams::default()
             },
-        );
+        )
+        .unwrap();
         let secs = t0.elapsed().as_secs_f64();
         let proxy = mixture_dif(&theta_from_anchors(&anchors), &x, K, 0);
         println!(
@@ -126,12 +132,14 @@ fn at_dif_12_the_campaign_that_inverted_the_differential_gap_is_flagged_on_the_s
     let res = latent_dif_with(
         &anchors,
         &x,
+        &open(&anchors, &x),
         &LatentParams {
             n_starts: 2,
             max_classes: 3,
             ..LatentParams::default()
         },
-    );
+    )
+    .unwrap();
     println!(
         "6 of 8 biased: {} class(es), pi {:?}, eta {:?}, gaps {:?}, {:?}, {:.1}s",
         res.classes,
@@ -153,7 +161,7 @@ fn the_paper_s_null_table_on_the_target_model() {
     for n_anchor in [10usize, 20, 30, 60] {
         let (anchors, x) = batch(6000, n_anchor, 0, 0.0, 1300);
         let t0 = Instant::now();
-        let res = latent_dif(&anchors, &x, 0);
+        let res = latent_dif(&anchors, &x, &open(&anchors, &x), 0).unwrap();
         println!(
             "{n_anchor} anchors (KR-20 {:.3}): {} class(es), bic gain {:+.1}, max gap {:.3}, {:?}, {:.1}s",
             kr20(&anchors),
@@ -176,7 +184,7 @@ fn at_dif_12_campaigns_of_2_4_and_6_of_8_are_flagged_exactly() {
     for n_biased in [2usize, 4, 6] {
         let (anchors, x) = batch(6000, 30, n_biased, 0.9, 700);
         let t0 = Instant::now();
-        let res = latent_dif(&anchors, &x, 0);
+        let res = latent_dif(&anchors, &x, &open(&anchors, &x), 0).unwrap();
         println!(
             "{n_biased} of 8 biased: {} class(es), pi {:?}, eta {:?}, gaps {:?}, {:?}, {:.1}s",
             res.classes,
@@ -210,7 +218,7 @@ fn at_dif_01_the_item_level_false_positive_rate_on_null_batches() {
             for seed in seeds.clone() {
                 let (anchors, x) = batch(n, n_anchor, 0, 0.0, seed);
                 let t0 = Instant::now();
-                let res = latent_dif(&anchors, &x, 0);
+                let res = latent_dif(&anchors, &x, &open(&anchors, &x), 0).unwrap();
                 let flags = res.flags(MIXTURE_DIF_MAX).iter().filter(|&&f| f).count();
                 items += K;
                 flagged += flags;

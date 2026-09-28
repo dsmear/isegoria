@@ -21,10 +21,23 @@ pub const N2_MIN: usize = 1500;
 /// Why a pilot batch is not admissible (`docs/08` INV-8, §B.6 sample sizes, D37).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PilotError {
-    NotEnoughRespondents { have: usize, need: usize },
-    BatchTooSmall { items: usize },
-    UnreliableAnchors { kr20: f64, need: f64 },
-    RowCountMismatch { rows: usize, respondents: usize },
+    NotEnoughRespondents {
+        have: usize,
+        need: usize,
+    },
+    BatchTooSmall {
+        items: usize,
+    },
+    UnreliableAnchors {
+        kr20: f64,
+        need: f64,
+    },
+    RowCountMismatch {
+        rows: usize,
+        respondents: usize,
+    },
+    /// Not one format per anchor and per item, or a choice among fewer than two options (D25).
+    BadFormats,
 }
 
 pub fn batch_id(items: &[Cid]) -> Cid {

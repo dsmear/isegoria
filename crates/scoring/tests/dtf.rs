@@ -4,7 +4,7 @@
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use scoring::dtf::{BadClasses, ClassCurves, DTF_MAX};
-use scoring::latent::{latent_dif_with, LatentDif, LatentParams};
+use scoring::latent::{latent_dif_with, Formats, LatentDif, LatentParams};
 use scoring::Convergence;
 
 fn sigmoid(z: f64) -> f64 {
@@ -139,8 +139,10 @@ fn a_class_below_the_share_floor_does_not_count() {
         eta,
         anchor_a: Vec::new(),
         anchor_b: Vec::new(),
+        anchor_c: Vec::new(),
         item_a: a,
         item_b: b,
+        item_c: vec![0.0; 2],
         dif: vec![0.0; 2],
         a_gap: vec![0.0; 2],
         posterior: Vec::new(),
@@ -180,6 +182,50 @@ fn malformed_classes_and_sets_are_refused() {
     }
 }
 
+/// D25: a floor `c` shrinks every class gap, so the DTF of a set, by exactly `1 − c`.
+#[test]
+fn a_floor_shrinks_the_dtf_by_one_minus_the_floor() {
+    let (pi, eta) = ([0.6, 0.4], [0.0, 0.3]);
+    let a = vec![vec![1.2, 0.9, 1.4]; 2];
+    let b = vec![vec![-0.4, 0.2, 0.9], vec![0.5, 0.2, 0.1]];
+    let open = ClassCurves::new(&pi, &eta, &a, &b).unwrap();
+    for c in [0.0, 0.2, 0.25, 0.5, 0.9] {
+        let floored = ClassCurves::with_floors(&pi, &eta, &a, &b, &[c; 3]).unwrap();
+        for set in [&[0][..], &[1, 2], &[0, 1, 2]] {
+            let (want, got) = (
+                (1.0 - c) * open.dtf(set).unwrap(),
+                floored.dtf(set).unwrap(),
+            );
+            assert!(
+                (got - want).abs() < 1e-12,
+                "c = {c}, {set:?}: {got} vs {want}"
+            );
+        }
+    }
+    let mixed = ClassCurves::with_floors(&pi, &eta, &a, &b, &[0.5, 0.0, 0.0]).unwrap();
+    let (one, rest) = (mixed.dtf(&[0]).unwrap(), mixed.dtf(&[1, 2]).unwrap());
+    assert!((one - 0.5 * open.dtf(&[0]).unwrap()).abs() < 1e-12);
+    assert!((rest - open.dtf(&[1, 2]).unwrap()).abs() < 1e-12);
+}
+
+/// D25: floors outside `[0, 1)`, not finite, or not one per item describe no fit.
+#[test]
+fn floors_outside_the_unit_interval_are_refused() {
+    let (pi, eta) = ([0.5, 0.5], [0.0, 0.0]);
+    let (a, b) = (vec![vec![1.0, 1.0]; 2], vec![vec![0.0, 0.5]; 2]);
+    let with = |c: &[f64]| ClassCurves::with_floors(&pi, &eta, &a, &b, c).map(|_| ());
+    assert_eq!(with(&[0.0, 0.99]), Ok(()));
+    for bad in [
+        &[1.0, 0.0][..],
+        &[-0.1, 0.0],
+        &[f64::NAN, 0.0],
+        &[0.2],
+        &[0.2, 0.2, 0.2],
+    ] {
+        assert_eq!(with(bad), Err(BadClasses), "{bad:?}");
+    }
+}
+
 /// On a fitted batch with items leaning both ways, each set's DTF is that of its true curves.
 #[test]
 fn the_dtf_of_a_fitted_batch_tracks_the_true_curves() {
@@ -214,7 +260,7 @@ fn the_dtf_of_a_fitted_batch_tracks_the_true_curves() {
         max_classes: 2,
         ..LatentParams::default()
     };
-    let res = latent_dif_with(&anchors, &x, &lp);
+    let res = latent_dif_with(&anchors, &x, &Formats::open(na, a.len()), &lp).unwrap();
     assert_eq!(res.classes, 2, "gaps {:?}", res.dif);
     let fitted = ClassCurves::of(&res).unwrap();
     let truth = |set: &[usize]| {

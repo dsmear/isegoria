@@ -279,8 +279,9 @@ score, inclusion probability: `SkillTrack::record_observed`), 2 a reviewer's uno
 filed (author: `file_appeal`, which escrows a zero observation), 5 an appeal settled (author,
 the escrow's position, and failed, or promoted with the measured quality), 6 exposure (item,
 administrations), 7 a residual (reviewer, the item's global id, `r − r̂`), 8 a contested fit
-(each class's share, ability mean and item parameters — `ClassCurves::new` recomputes the
-curves from them — and the members with their index in the fit: `ContestedPool::record`),
+(each class's share, ability mean and item parameters, and each item's guessing floor —
+`ClassCurves::with_floors` recomputes the curves from them — and the members with their
+index in the fit: `ContestedPool::record`),
 9 a contested fact removed. Reviewers and authors are their proven ids (INV-9); the CUSUM
 parameters and the author prior are the node's configuration. The event is applied whole or
 not at all, and refused for a second results event of the same epoch, an inclusion outside

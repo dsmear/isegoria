@@ -40,6 +40,7 @@ fn fit(members: Vec<(Cid, u64)>) -> ResultRecord {
         eta: vec![0.0, 0.5],
         a: vec![vec![1.0, 1.2], vec![1.0, 1.2]],
         b: vec![vec![0.0, 0.3], vec![0.5, 0.3]],
+        c: vec![0.0, 0.2],
         members,
     }
 }
@@ -256,6 +257,19 @@ fn at_pro_12_results_are_applied_whole_or_not_at_all() {
                 eta: vec![0.0, 0.5],
                 a: vec![vec![1.0], vec![1.0]],
                 b: vec![vec![0.0], vec![0.5]],
+                c: vec![0.0],
+                members: vec![(cid(b"z"), 0)],
+            }],
+            ResultsRejected::BadClasses { record: 0 },
+        ),
+        (
+            2,
+            vec![ResultRecord::ContestedFit {
+                pi: vec![0.6, 0.4],
+                eta: vec![0.0, 0.5],
+                a: vec![vec![1.0], vec![1.0]],
+                b: vec![vec![0.0], vec![0.5]],
+                c: vec![1.0],
                 members: vec![(cid(b"z"), 0)],
             }],
             ResultsRejected::BadClasses { record: 0 },

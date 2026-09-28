@@ -11,6 +11,7 @@ use protocol::pilot::{
     batch_id, response_context, screen, submit_response, PilotError, ResponseRejected, N1_MIN,
 };
 use protocol::revalidation::{revalidate_batch_latent, N_LATENT_MIN};
+use scoring::latent::Formats;
 
 const EPOCH: u64 = 7;
 
@@ -121,7 +122,13 @@ fn three_hundred_rows_from_one_respondent_are_not_enough() {
         .map(|i| (0..8).map(|j| ((i + j) % 2) as f64).collect())
         .collect();
     assert_eq!(
-        revalidate_batch_latent(&respondents, &anchors(N_LATENT_MIN), &responses, 0),
+        revalidate_batch_latent(
+            &respondents,
+            &anchors(N_LATENT_MIN),
+            &responses,
+            &Formats::open(60, 8),
+            0
+        ),
         Err(PilotError::NotEnoughRespondents {
             have: 1,
             need: N_LATENT_MIN
@@ -209,7 +216,13 @@ fn rows_without_a_respondent_are_refused() {
         .map(|i| (0..8).map(|j| ((i + j) % 2) as f64).collect())
         .collect();
     assert_eq!(
-        revalidate_batch_latent(&respondents, &anchors(N_LATENT_MIN + 1), &responses, 0),
+        revalidate_batch_latent(
+            &respondents,
+            &anchors(N_LATENT_MIN + 1),
+            &responses,
+            &Formats::open(60, 8),
+            0
+        ),
         Err(PilotError::RowCountMismatch {
             rows: N_LATENT_MIN + 1,
             respondents: N_LATENT_MIN

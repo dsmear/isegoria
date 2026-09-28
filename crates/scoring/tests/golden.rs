@@ -5,7 +5,7 @@
 use scoring::bridging::{bridge_scores, fit, BridgingParams, Ratings};
 use scoring::dif::mixture_dif;
 use scoring::dtf::ClassCurves;
-use scoring::latent::{latent_dif_with, LatentParams};
+use scoring::latent::{latent_dif_with, Formats, LatentParams};
 use std::fs;
 use std::path::PathBuf;
 
@@ -51,7 +51,7 @@ fn record(rows: &mut Vec<String>, name: &str, v: &[f64]) {
 
 /// A seeded batch for the target model: generated here, since the fixtures carry no
 /// anchor responses. Returns (anchors, responses).
-fn latent_batch(seed: u64) -> (Vec<Vec<f64>>, Vec<Vec<f64>>) {
+fn latent_batch(seed: u64, floor: f64, delta: f64) -> (Vec<Vec<f64>>, Vec<Vec<f64>>) {
     use rand::{Rng, SeedableRng};
     use rand_chacha::ChaCha8Rng;
     let (n, na, k) = (1500, 20, 8);
@@ -72,7 +72,10 @@ fn latent_batch(seed: u64) -> (Vec<Vec<f64>>, Vec<Vec<f64>>) {
         .iter()
         .map(|&t| {
             (0..na)
-                .map(|j| f64::from(rng.gen::<f64>() < sigmoid(a_anchor[j] * (t - b_anchor[j]))))
+                .map(|j| {
+                    let p = sigmoid(a_anchor[j] * (t - b_anchor[j]));
+                    f64::from(rng.gen::<f64>() < floor + (1.0 - floor) * p)
+                })
                 .collect()
         })
         .collect();
@@ -84,8 +87,9 @@ fn latent_batch(seed: u64) -> (Vec<Vec<f64>>, Vec<Vec<f64>>) {
         .map(|(&t, &zi)| {
             (0..k)
                 .map(|j| {
-                    let d = if j < 2 { 0.9 } else { 0.0 };
-                    f64::from(rng.gen::<f64>() < sigmoid(a[j] * (t - b[j] - d * zi)))
+                    let d = if j < 2 { delta } else { 0.0 };
+                    let p = sigmoid(a[j] * (t - b[j] - d * zi));
+                    f64::from(rng.gen::<f64>() < floor + (1.0 - floor) * p)
                 })
                 .collect()
         })
@@ -140,16 +144,18 @@ fn current() -> Vec<String> {
     }
 
     // The target model (D37): the anchors inside the likelihood, θ integrated out.
-    let (anchors, x) = latent_batch(54);
+    let (anchors, x) = latent_batch(54, 0.0, 0.9);
     let res = latent_dif_with(
         &anchors,
         &x,
+        &Formats::open(anchors[0].len(), x[0].len()),
         &LatentParams {
             n_starts: 2,
             max_classes: 2,
             ..LatentParams::default()
         },
-    );
+    )
+    .unwrap();
     let shape = [res.classes as f64, res.non_uniform as i32 as f64];
     record(&mut rows, "latent.model", &shape);
     record(&mut rows, "latent.pi", &res.pi);
@@ -160,12 +166,43 @@ fn current() -> Vec<String> {
     record(&mut rows, "latent.anchor_b", &res.anchor_b);
     record(&mut rows, "latent.item_b", &res.item_b.concat());
     record(&mut rows, "latent.bic_gain", &[res.bic_gain]);
+    let bics: Vec<f64> = res.candidates.iter().map(|c| c.2).collect();
+    record(&mut rows, "latent.candidates", &bics);
     record(&mut rows, "latent.posterior", &res.posterior.concat());
 
     let curves = ClassCurves::of(&res).unwrap();
     let sets: [&[usize]; 4] = [&[0], &[1], &[0, 1], &[2, 3, 4, 5, 6, 7]];
     let dtf: Vec<f64> = sets.iter().map(|s| curves.dtf(s).unwrap()).collect();
     record(&mut rows, "dtf", &dtf);
+
+    // The target model with guessing floors (D25): four options on every column.
+    let (anchors, x) = latent_batch(55, 0.25, 1.5);
+    let res = latent_dif_with(
+        &anchors,
+        &x,
+        &Formats::choice(anchors[0].len(), x[0].len(), 4),
+        &LatentParams {
+            n_starts: 2,
+            max_classes: 2,
+            ..LatentParams::default()
+        },
+    )
+    .unwrap();
+    let shape = [res.classes as f64, res.non_uniform as i32 as f64];
+    record(&mut rows, "floor.model", &shape);
+    record(&mut rows, "floor.pi", &res.pi);
+    record(&mut rows, "floor.dif", &res.dif);
+    record(&mut rows, "floor.anchor_b", &res.anchor_b);
+    record(&mut rows, "floor.anchor_c", &res.anchor_c);
+    record(&mut rows, "floor.item_b", &res.item_b.concat());
+    record(&mut rows, "floor.item_c", &res.item_c);
+    record(&mut rows, "floor.bic_gain", &[res.bic_gain]);
+    let bics: Vec<f64> = res.candidates.iter().map(|c| c.2).collect();
+    record(&mut rows, "floor.candidates", &bics);
+    record(&mut rows, "floor.posterior", &res.posterior.concat());
+    let curves = ClassCurves::of(&res).unwrap();
+    let dtf: Vec<f64> = sets.iter().map(|s| curves.dtf(s).unwrap()).collect();
+    record(&mut rows, "floor.dtf", &dtf);
     rows
 }
 

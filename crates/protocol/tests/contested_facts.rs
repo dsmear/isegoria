@@ -460,6 +460,7 @@ mod fitted {
     use protocol::revalidation::{latent_batch, target_flags, N_LATENT_MIN};
     use rand::{Rng, SeedableRng};
     use rand_chacha::ChaCha8Rng;
+    use scoring::latent::Formats;
 
     /// The fitted bound's estimation error at N = 3,000 (`docs/02` §B.7).
     const ESTIMATION: f64 = 0.05;
@@ -547,8 +548,8 @@ mod fitted {
             [("A", &lean_both, 81, Some(3)), ("B", &lean_one, 82, None)]
         {
             let (anchors, x) = batch(items, seed);
-            let fit =
-                latent_batch(&respondents, &anchors, &x, 0).expect("the gate admits the batch");
+            let open = Formats::open(anchors[0].len(), x[0].len());
+            let fit = latent_batch(&respondents, &anchors, &x, &open, 0).expect("the gate admits");
             let flags = target_flags(&fit);
             let expect: Vec<bool> = items.iter().map(|it| it.2 != 0.0).collect();
             assert_eq!(flags, expect, "{tag}: gaps {:?}", fit.dif);
