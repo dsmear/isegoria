@@ -52,6 +52,11 @@ impl Net {
         signed
     }
 
+    fn member_commit(&mut self, m: usize, round: RoundId) -> network::replica::EntryId {
+        let (commit, _) = members()[m].beacon_commit(round, m);
+        self.publish(m, MemberObject::Commit(commit).encode()).id()
+    }
+
     fn sign(&mut self, m: usize, cut: &Cut) {
         let object = sign_cut(&members()[m], m, NET, &consortium(), cut).encode();
         self.publish(m, object);
@@ -266,4 +271,67 @@ fn at_net_16_epochs_advance_and_proposals_extend() {
     );
     assert_eq!(cut2.number, 2);
     assert!(added(&net.replica, Some(&cut1), &cut2).unwrap().is_empty());
+}
+
+/// AT-NET-16: a proposal does not jump to another, longer branch of a writer: it keeps the
+/// last counted mark.
+#[test]
+fn at_net_16_a_proposal_keeps_the_counted_branch() {
+    let relay = FeedWriter::from_seed(NET, [SEEDS[3]; 32]);
+    let branch = |tag: &str, n: usize| {
+        let mut log = TransparencyLog::new();
+        (0..n)
+            .map(|i| {
+                let o = format!("{tag}-{i}").into_bytes();
+                (relay.sign(&log.append(cid(&o)).clone()), o)
+            })
+            .collect::<Vec<_>>()
+    };
+    let (a, b) = (branch("a", 2), branch("b", 3));
+    let mut first = Net::new();
+    for (e, o) in &a {
+        first.replica.insert(e.clone(), o.clone()).unwrap();
+    }
+    let prev = Cut::next(&first.replica, None, 0, false);
+    let mut other = Net::new();
+    for (e, o) in &b {
+        other.replica.insert(e.clone(), o.clone()).unwrap();
+    }
+    let proposal = Cut::next(&other.replica, Some(&prev), 0, false);
+    assert_eq!(proposal.marks, prev.marks);
+}
+
+/// AT-NET-16: a closing cut whose mark stops right before the member's commit leaves it
+/// out; a cut that does not close does not need it.
+#[test]
+fn at_net_16_the_commit_counts_only_inside_the_mark() {
+    let c = consortium();
+    let mut net = Net::new();
+    net.publish(2, b"an earlier entry of member 2".to_vec());
+    let cut0 = Cut::next(&net.replica, None, 0, false);
+    net.sign(0, &cut0);
+    let closing = Cut::next(&net.replica, Some(&cut0), 0, true);
+    let open = Cut {
+        closes: false,
+        ..closing.clone()
+    };
+    net.sign(1, &closing);
+    net.sign(1, &open);
+    let round = RoundId {
+        network_id: NET,
+        member_set_hash: c.member_set_hash(),
+        epoch: 0,
+    };
+    let commit = net.member_commit(2, round);
+    let mark = closing
+        .marks
+        .iter()
+        .find(|m| m.writer == commit.writer)
+        .unwrap();
+    assert_eq!(
+        mark.len, commit.seq,
+        "the mark ends right before the commit"
+    );
+    assert!(!should_sign(&net.replica, &c, 2, Some(&cut0), &closing));
+    assert!(should_sign(&net.replica, &c, 2, Some(&cut0), &open));
 }
