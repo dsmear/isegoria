@@ -74,7 +74,7 @@ fn split(list: &[(Reviewer, usize)]) -> (Vec<Reviewer>, Vec<usize>) {
     list.iter().copied().unzip()
 }
 
-/// AT-BR-12: the stratified panel is the same for the candidates in any order.
+/// AT-BR-13: the stratified panel is the same for the candidates in any order.
 #[test]
 fn at_br_12_the_panel_does_not_depend_on_the_order_of_the_candidates() {
     let (base, _) = split(&population());
@@ -90,7 +90,7 @@ fn at_br_12_the_panel_does_not_depend_on_the_order_of_the_candidates() {
     }
 }
 
-/// AT-BR-12: the diversified panel (D40) is the same for the candidates in any order.
+/// AT-BR-13: the diversified panel (D40) is the same for the candidates in any order.
 #[test]
 fn at_br_12_the_diverse_panel_does_not_depend_on_the_order_of_the_candidates() {
     let pool = population();
@@ -109,7 +109,7 @@ fn at_br_12_the_diverse_panel_does_not_depend_on_the_order_of_the_candidates() {
     }
 }
 
-/// AT-BR-12: the band's extra round, plain and diversified, reads its candidates as a set.
+/// AT-BR-13: the band's extra round, plain and diversified, reads its candidates as a set.
 #[test]
 fn at_br_12_the_extra_round_does_not_depend_on_the_order_of_the_candidates() {
     let pool = population();
@@ -137,7 +137,7 @@ fn at_br_12_the_extra_round_does_not_depend_on_the_order_of_the_candidates() {
     }
 }
 
-/// AT-BR-12: sortition draws the same committee from the candidates in any order, with ties
+/// AT-BR-13: sortition draws the same committee from the candidates in any order, with ties
 /// on the axis and, without ties, when small strata leave seats to fill.
 #[test]
 fn at_br_12_sortition_does_not_depend_on_the_order_of_the_candidates() {

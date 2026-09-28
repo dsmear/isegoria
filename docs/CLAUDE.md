@@ -54,7 +54,8 @@ them.
 
 ## Current priorities
 
-The four crates exist; the work left is ordered in `10-roadmap.md`. Follow its phases in
+The crates exist — the four of the build order below, `p2p` and `characterization`; the
+work left is ordered in `10-roadmap.md`. Follow its phases in
 order — **mathematics** (T64, T65, T62, the side-balanced score T49, the appeal for
 band items T59, the appeal stake T61, the anchor-reliability gate T53, the proper
 evaluator score T50, the change detector T51, the band's extra round T60, the
@@ -63,9 +64,12 @@ with exploration T52, the latent DIF target model T54, the reviewer floor T39, t
 differential oracles T45 and the contested-facts pool T55 are done; next the
 characterization T24/T25 — T24 is specified in `13-characterization.md` and its harness is
 `crates/characterization`; the full run happens on the owner's machine), then
-the **P2P network**, then **the rest** (protocol boundary, distributed identity,
-privacy, pilots) — and inside a phase, fix defects in existing code before adding
-features. Every task starts with a test that fails on the current code.
+the **P2P network** (T63, T37, T72, T13, T73, T18 and T74 are done; left are the
+defects T80, T76 and T77 — any peer reads the replicated set, votes included, against
+D17; its mechanism is the owner's choice — then T75, T78, T79 and T17, `10-roadmap.md`
+§2.3), then **the rest** (protocol boundary, distributed identity, privacy, pilots) —
+and inside a phase, fix defects in existing code before adding features. Every task
+starts with a test that fails on the current code.
 
 ## Original build order (done)
 

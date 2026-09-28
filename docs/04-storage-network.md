@@ -179,17 +179,18 @@ key could predict every draw.
 
 The round's rules are `network::beacon` (`10` T37) and the draws `protocol::randomness`;
 commits and reveals travel between nodes as members' objects and their deadlines are cuts
-(§Cuts, `10` T74).
+(§Cuts, `10` T74). On cuts, rule 6 is not applied yet: a withholder's signature still
+counts toward the cuts that publish its epoch's draws and results (`10` T76).
 
 ---
 
 ## A node's own disk: surviving a restart
 
-Before any of the above can hold, a single node must survive its own restart: today the
-log lives only in memory. The **log is the source of truth**, and the node keeps two
-append-only files; everything else a node holds — nullifier sets, quotas, reputation
-histories, pools — is a deterministic function of the log's contents, rebuilt by replaying
-it (`10` T73), never saved as a second copy that could drift from it.
+Before any of the above can hold, a single node must survive its own restart. The **log
+is the source of truth**, and the node keeps two append-only files; everything else a node
+holds — nullifier sets, quotas, reputation histories, pools — is a deterministic function
+of the log's contents, rebuilt by replaying it (`10` T73), never saved as a second copy that
+could drift from it.
 
 - **`log`** — a 16-byte header, `isegoria-log-v1` and a newline, then one 104-byte record
   per entry: `seq` (8 bytes, little-endian), `prev`, `payload` (the CID) and `hash`
@@ -214,9 +215,10 @@ object a crash lost.
    it, `hash` recomputed. A tail shorter than a record, or a final record that fails the
    check, is a write a crash tore before it was acknowledged: it is cut off and the cut is
    reported. A record that fails *before* the last refuses the file: a crash does not
-   produce it, and dropping acknowledged history quietly would hide the damage; the node
-   then recovers its history from its peers (`10` T74) and checks it against its signed
-   checkpoint (`log::verify_extends`).
+   produce it, and dropping acknowledged history quietly would hide the damage. The node
+   is then to recover its history from its peers and check it against its signed
+   checkpoint (`log::verify_extends`); nothing does it yet, and the node does not start
+   (`10` T80).
 3. In `objects`, a final record that declares more bytes than the file still holds is torn
    and cut, reported the same way; a declared length above the bound refuses the file
    before anything is sized from it. A torn object whose length survived is only an
@@ -287,14 +289,21 @@ settlement of an escrow that is not open, and a contested fit whose classes desc
 or whose members repeat or fall outside it.
 
 The node applies these results as written: it does not recompute them, and the inputs —
-every reviewer's ratings and every respondent's answers — are not on its log, since they are
-the voting patterns that must not be published (`08` PRIV-004). The event binds the results
+every reviewer's ratings and every respondent's answers — are not in the event, since they
+are the voting patterns that must not be published (`08` PRIV-004). The event binds the results
 to their inputs instead: it carries the RFC 6962 Merkle root (`network::merkle`) of one leaf
 per input — a rating (the judge's id, the item, the probability's bits) or an answer (the
 respondent's id, the batch, the item's index in it, the answer) — the leaves sorted, so the
 root is a function of the set of inputs. Whoever holds the inputs recomputes the engine and
 the root and checks both; a reviewer or respondent holding its own leaf and an inclusion
 proof checks that its input was counted, without seeing anyone else's.
+
+**The ratings are on the log anyway.** A reveal is a lifecycle step (kind 4, event 5) that
+carries the judge's nym, its probability and its nonce, so the log holds every rating of a
+first panel or an extra round joined to its judge's nym, and since replication every
+replica holds them, relays included, for any peer to read (§Who reads). The results event
+keeps the engine's inputs off the log; the reveals put the ratings on it, against `01`
+D17 (`10` T77).
 
 With the four kinds before it, this is a node's whole protocol state (`10` T73); the
 issuing committee's registries are the committee's, not a node's.
@@ -310,6 +319,19 @@ joins it is the consortium's decision). A person never signs an entry: one key u
 person's deposits and reviews would link its author and evaluator pseudonyms (`00`
 invariant 4). A person hands its event to a relay; the event carries its own nullifier
 proof, and the relay's signature says only that this relay logged it.
+
+**Who reads.** Nothing restricts it yet. A node answers the Summary and Want of any peer
+that connects and pulls from it on connect, and a node started without a writer key
+replicates the whole set; the transport authenticates a peer's libp2p key, which is bound to
+no writer key. So any peer reads, in the clear, what the set holds: the drafts under review
+(deposits), the panels before their verdict (assignments and reviewer admissions), every
+reveal with its judge's nym and rating, the batches of each respondent id, and the results'
+records per nym — against §Why not a permissionless blockchain, `08` PRIV-P5 and
+PRIV-P6, and `01` D17: votes are never published in the clear, and until proofs of the
+computation only the consortium holds them, to re-run the engine. How the set keeps them
+— closed replication, confidential objects, or the voting patterns off the log — and
+whether a relay may hold them are open (`10` T77); until then, a network runs only among
+machines its operator controls.
 
 **A signed entry** is a writer's log entry (`seq`, `prev`, `payload`, recomputed `hash`,
 exactly as the log chains it) and the writer's signature over
@@ -367,7 +389,9 @@ has one encoding.
 stores the object, appends the entry, then signs it. A restarted writer replays its log and
 signs every entry again — ed25519 signatures are deterministic, so they are the same — and
 continues at the next `seq`; signing a fresh feed after losing its files would be an
-equivocation. A node whose writer key is not in the writer set does not start.
+equivocation. Nothing prevents it yet: a writer started with its files lost signs `seq` 0
+again at its next publish (`10` T80). A node whose writer key is not in the writer set does
+not start.
 
 **Transport.** libp2p 0.56 over TCP, with Noise and Yamux: gossipsub (signed, strict
 validation) carries the announcements, at most 512 identifiers per message, on the topic
@@ -437,7 +461,7 @@ epoch and closing are its call. A member co-signs the proposer's cut for the nex
 when the cut extends the last collected one, it holds every entry the cut names, and the
 cut counts its own beacon messages: a closing cut must include its commit for the epoch,
 and the cut after it its reveal, if the member has published them. A proposer that stays
-silent stalls the cuts; replacing it is not specified yet (`10` T74).
+silent stalls the cuts; replacing it is not specified yet (`10` T76).
 
 **The beacon on cuts.** The round of epoch `e` (§The epoch's beacon) runs on the cuts: a
 commit counts when a cut of epoch `e` applies it, up to and including the cut that closes
@@ -446,8 +470,11 @@ when the cut right after the closing one applies it, and at the end of that cut 
 finishes: its outcome (the value if `t` revealed, who revealed, who withheld) is part of
 the state. A commit or reveal in any other cut, or that the round refuses, is refused.
 
-Finding an object by its CID without a full replica, the DHT, is `10` T75. In code:
-`network::replica`, `network::cut`, `protocol::ledger`, the `p2p` crate.
+Finding an object by its CID without a full replica, the DHT, is `10` T75. Nothing runs an
+epoch's work between nodes yet — the draws, the reviews, the engine, and the lifecycle steps
+and results they produce, which the members log (`10` T79) — and a node is started only by
+a test (`10` T78). In code: `network::replica`, `network::cut`, `protocol::ledger`, the
+`p2p` crate.
 
 ---
 
@@ -481,6 +508,10 @@ rewrite *also* the most expensive public chain in the world. It turns "nobody ca
 falsify the past" from a consortium promise into a fact anchored to a chain the
 consortium does not control. Technique: OpenTimestamps or equivalent. **It is the
 addition with the best value/slowness ratio.**
+
+In code, the OpenTimestamps proof format and its verification (`network::anchoring`);
+submitting to a calendar, reading Bitcoin headers and anchoring the checkpoint head on a
+schedule are `10` T17.
 
 ---
 

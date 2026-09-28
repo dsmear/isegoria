@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | The ordered plan of work: what is left to fix or build, in priority order, and what each step must show to count as done. |
 | **Derived from** | `docs/08` §14 (gaps), §12 (adversarial tests AT-*), §16 (acceptance gate); `docs/01` D17–D42; the working paper in `paper/`; three reviews — the `docs/08` audit, the second review (2026-09-23), the third review (2026-09-24, `docs/08` §0-quinquies). |
-| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)). Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). |
+| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). |
 
 ## Priorities
 
@@ -21,8 +21,12 @@ Three phases, in this order:
    changes the golden outputs, the fixtures and `sim/` on purpose: building the rest
    first would mean validating it twice.
 2. **[Phase 2 — P2P network](#phase-2--p2p-network).** Nodes that persist, talk, agree,
-   and draw randomness nobody can grind. Today every node runs in one process and the
-   state lives in memory.
+   and draw randomness nobody can grind. A node's log survives a restart, nodes replicate
+   the signed set over libp2p and agree on its order through consortium-signed cuts, and
+   the beacon runs between them (T13, T73, T18, T74). Still missing: finding an object by
+   its CID, a silent proposer's replacement, live anchoring, and four gaps the check of
+   2026-09-28 found — a replicated set any peer reads, against D17, no node process, no
+   epoch run between nodes, a writer that cannot rebuild its feed (T75–T80, T17).
 3. **[Phase 3 — The rest](#phase-3--the-rest).** The protocol boundary (every entry point
    checks, nothing is taken on the caller's word), distributed identity and the
    cryptographic review, statistical privacy, real-world pilots.
@@ -31,9 +35,10 @@ Three phases, in this order:
 the `scoring` crate and the `protocol` rules that turn its numbers into outcomes (gate,
 band re-decision, appeal, reputation weights, panel composition). It opens with two
 severe defects of the protocol boundary (T64, T65, both done), moved ahead of their
-natural place for their severity. Phase 2 holds the `network` crate and the randomness
-beacon. Phase 3 holds the rest of *who may act* (panels, no-shows, honeypot, validated
-types) and
+natural place for their severity. Phase 2 holds the `network` and `p2p` crates, the
+randomness beacon, and what a testnet needs to run between nodes: its processes, its
+epochs, and who may read what they replicate. Phase 3 holds the rest of *who may act*
+(panels, no-shows, honeypot, validated types) and
 everything that needs people outside the project.
 
 **Inside a phase,** defects in code that exists come before new features, and each task
@@ -65,13 +70,20 @@ reference implementation / testnet.
   θ inside the likelihood (D37, T54), the reviewer floor of the axis (T39), the
   differential oracles on random datasets (T45), the contested-facts pool with its
   balanced draw (D38, T55) and the sides of the bridge score (D42, T71, found by T24's
-  first pass); in Phase 2, the consortium's configuration check (T63) and the
-  commit-reveal beacon (D41, T37). Details and evidence: [Completed work](#completed-work).
+  first pass); in Phase 2, the consortium's configuration check (T63), the
+  commit-reveal beacon (D41, T37), the draws' canonical candidate order (T72), a node's
+  durable log and object store (T13), the protocol state rebuilt from the log (T73),
+  replication of the signed set over libp2p (T18) and the protocol state from
+  consortium-signed cuts, with the beacon run between nodes (T74). Details and
+  evidence: [Completed work](#completed-work).
 - **Open:** the characterization of the thresholds (T24/T25: T24's specification and harness are done, `docs/13`, its first pass ran on 2026-09-26 and found T71, fixed the same day; the full run is pending); the defects found by the
-  third review (2026-09-24), all but T64, T65, T62, T59, T61 and T63; the network runtime
-  (persistence, transport, live anchoring); distributed identity; privacy hardening;
-  everything external; the [open problems](#open-problems) that wait on an owner
-  decision (T69).
+  third review (2026-09-24), all but T64, T65, T62, T59, T61 and T63; the rest of the
+  network runtime — the DHT (T75), a silent proposer's replacement (T76), live anchoring
+  (T17) — and the four gaps of the Phase 2 check (2026-09-28): a replicated set any peer
+  reads, against D17 (T77), a node process (T78), an epoch run between nodes (T79), a
+  writer that rebuilds its feed (T80); distributed identity; privacy hardening;
+  everything external; the [open problems](#open-problems) that wait on an owner decision
+  (T69, and T77's mechanism).
 
 ---
 
@@ -206,15 +218,33 @@ replication between nodes, and T74, the protocol state from consortium-signed cu
 the beacon between nodes, are done (2026-09-27/28): see
 [Completed work](#phase-23--build-the-runtime).
 
+**The check of 2026-09-28.** Walking the phase against the code found four gaps no task
+covered: any peer that connects reads everything a node replicates, the drafts under
+review and the ratings joined to their judges' nyms included — against D17 and
+`docs/CLAUDE.md` (T77); a node runs only inside a test (T78); nothing runs an epoch
+between nodes — the steps and results the cuts order are produced only by tests (T79);
+and a writer that loses its files cannot rebuild its feed, and restarted empty it
+equivocates (T80). T77, T80 and T76 are defects in code that exists. Proposed order, to
+be confirmed by the owner: T80 and T76 first; T77 as soon as the owner picks its
+mechanism, and before T75 and T79 — the DHT hands objects to nodes that hold no replica,
+and the epoch's specification depends on what stays off the log; T78 before T79; T17
+alongside.
+
 | Task | What it means (plain) | Refs | Done when | Size |
 |---|---|---|---|---|
 | T75 | **Finding an object by its CID** (split from T18): the DHT (libp2p Kademlia) for light nodes that hold no full replica — who holds an object, fetched and checked against its CID | NET-010, `docs/04` §The four P2P structures | a light node fetches an object it was only given the CID of, from a node it did not know | M |
 | T76 | **A silent proposer and the withholders** (split from T74, 2026-09-28). Cut `k` is proposed by member `k mod n` alone: a proposer that stays silent stalls every cut after it. Specify and build its replacement (a view change: after a bounded wait, the next member proposes, and members sign at most one cut per number and view), and exclude an epoch's withholders from signing the cuts that publish its draws and results (`docs/04` §The epoch's beacon, rule 6) | PROTO-015, §9.4, NET-006 | with one member stopped, the others keep cutting; a withholder's signature does not count where rule 6 excludes it | M |
 | T17 | **Real anchoring:** submit to a calendar, read Bitcoin headers, schedule it, anchor the checkpoint head | NET-009, DS-5 | a checkpoint head is anchored and verified end to end | M |
+| T77 | **The replicated set keeps what D17 keeps private** (found 2026-09-28; a defect against D17 and `docs/CLAUDE.md`; its mechanism waits on the owner, [Open problems](#open-problems)). A node answers the Summary and Want of any peer that connects and pulls from it on connect, and a node started without a writer key replicates the whole set; the transport authenticates a libp2p key that is bound to no writer key. So any peer reads what a node holds, in the clear: the drafts under review (deposits), the panels before their verdict (assignments and reviewer admissions), every reveal with its judge's nym and rating (lifecycle steps), the batches of each respondent id (admissions), and the results' records per nym, residuals included. D17 decided that votes are never published in the clear and that, until proofs of the computation, only the consortium holds them to re-run the engine; `docs/CLAUDE.md` forbids questions under review and voting patterns on a public register in the clear; `docs/04` keeps the engine's inputs off the log — the reveals put the ratings back on it. What is open is how, and whether a relay may hold the votes. Until it is fixed, a network runs only among machines its operator controls | D17, PRIV-004, PRIV-P5, PRIV-P6, `docs/08` G-21, Q-19 | the mechanism recorded in `docs/01`; a peer outside the circle D17 allows gets no draft under review, no panel before its verdict and no rating joined to a nym (a test with such a reader); `docs/04` §Who reads and `docs/08` PRIV-P5/P6 restated | M (option a) to L (b, c) |
+| T78 | **A node process** (found 2026-09-28). The only binary in the workspace is `characterization`: a node is `p2p::Handle::spawn` called from a test, and the tests between nodes (AT-NET-14, AT-NET-17) run their nodes as tasks of one test process. A binary started from a configuration file — network id, writer set, consortium and threshold, its writer key and member role, its directories, listen and peer addresses, periods — that runs until stopped and resumes from its files. It keeps the collected cuts incrementally: a member's `duties` re-collects every cut from number 0 and scans every member object at each look, a cost that grows with the history | Milestone 2, NET-010 | three member processes and a relay, started as separate OS processes from their configuration files, reach the same cuts and beacon values over two epochs; one stopped and restarted rejoins without equivocating | M |
+| T79 | **An epoch run between nodes** (found 2026-09-28). The members only cut and run the beacon (`p2p::member`); nothing reads the ledger's state to do an epoch's work — the lottery at the closing cut, the reviewer draws, the commit and reveal deadlines, the engine and its results event, the band's extra round, appeals and pilots. That flow lives in `end_to_end.rs::run_epoch` and `orchestrator`, called by tests, so no question is processed between nodes. Persons have no way in either: a review's commit and reveal are lifecycle steps, which the ledger takes only from the consortium. Specify first (`docs/04`, `docs/05`): which member publishes each step, how the others check it before co-signing the cut that applies it (the same deterministic computation, invariant 7), how a person's commit and reveal reach a member, the deadlines as cuts, and what stays off the log (T77) | PROTO-015, INV-7, `docs/08` G-22, `docs/05` [3]–[6] | node processes (T78) run an epoch end to end — deposits, lottery, panels, commits, reveals, scoring, results — every node reaching the same state; a step that differs from the deterministic computation is not co-signed | L |
+| T80 | **A writer rebuilds its feed before it writes** (found 2026-09-28; a defect in code that exists). `docs/04` §A node's own disk says a node whose log is damaged before its tail recovers its history from its peers: nothing does, the node refuses to start (`StartError::Store`). And a writer started with its files lost signs `seq` 0 again at its next publish — an equivocation (`docs/04` §A writer's own feed), after which its feed stops and nothing it writes counts in a cut. Before writing, the writer compares its log with its feed in its replica and a peer's, and rebuilds its log and objects from the entries its key signed | NET-010, NET-011, `docs/08` G-23 | a writer restarted with lost or damaged files rebuilds its feed from a peer and continues at the next `seq`; it never signs a `seq` that a replica it can reach already holds | S |
 
-**Milestone 2 — "nodes talk and agree".** Several processes persist, gossip, replicate
-the signed log and converge on the same checkpoint; the beacon is grind-free; checkpoint
-heads are anchored end to end.
+**Milestone 2 — "nodes talk and agree".** Several processes (T78) persist, gossip,
+replicate the signed log and converge on the same checkpoint, a silent proposer
+notwithstanding (T76), and run an epoch between them from deposits to results (T79); the
+beacon is grind-free; checkpoint heads are anchored end to end (T17); no peer outside the
+circle D17 allows reads a vote, a draft under review or a panel before its verdict (T77).
 
 ---
 
@@ -299,7 +329,12 @@ Not a phase; done alongside every task.
   other draw.
 - **Phase 2.** T63 and T37 (both done) before T18 (done, as T38 was); T74 follows T18 and
   carries the beacon's commits and reveals between nodes. T73 (done) gave T18 its codecs for proofs and events. T13 and T74 give T5's weights
-  and the reputation histories of T50–T51 a durable place to live.
+  and the reputation histories of T50–T51 a durable place to live. Of the gaps found on
+  2026-09-28, T80 is a defect in code that exists and comes first, with T76. T77 is a
+  defect too, against D17, whose mechanism waits on the owner's choice; it precedes T75,
+  since the DHT hands objects to nodes that hold no replica, and T79, whose specification
+  depends on whether a reveal stays on the log. T79 runs in T78's process and needs T76,
+  since an epoch run between nodes stalls with its proposer.
 - **Phase 3.** T66 is the minimal form of T46's `Panel`. T58 builds on T33/T43 and
   draws replacements from the beacon (T37, done). T20 supersedes T11. T37's
   threshold-signature variant needs T19. T68 computes the source check T55 takes as an
@@ -319,6 +354,7 @@ and §18 the residual risks each one carries meanwhile.
 | Id | Problem | Options | Refs |
 |---|---|---|---|
 | T69 | **Respondent profiling through contested facts.** The respondent pseudonym is the same on every batch, so whoever holds the answer sheets with their proofs can join one person's sheets over time; since D38 the contested facts a person misses reveal their latent class, so the joined sheets are a profile. The score stays balanced; the respondent's privacy does not | (a) a batch-scoped respondent nullifier, as Semaphore's external nullifier — gives up invariant #5's single respondent pseudonym; (b) never keep or publish answer rows joined to the id — in tension with reproducibility (PRIV-004); (c) an RLN-style per-epoch rate limit in place of a stable id | PRIV-006, PRIV-P8; `docs/08` §17 Q-18, §18; the task row in [3.3](#33--statistical-privacy) |
+| T77 | **How the replicated set keeps what D17 keeps private.** Any peer that connects to a node reads everything the node replicates: the drafts under review, the panels before their verdict, every reveal with its judge's nym and rating, the batches of each respondent id. The goal is decided — D17: votes are never published in the clear, and until proofs of the computation (D14 step 4) only the consortium holds them to re-run the engine; `docs/CLAUDE.md`: no questions under review or voting patterns on a public register in the clear. The mechanism is not, nor whether a relay — a writer that is not a consortium member — may hold the votes. The options combine | (a) **closed replication**: the private objects replicate only inside the circle — the consortium, and the relays if the owner admits them — each transport key bound to a writer key and the sync served accordingly; light nodes and the public get what is published (items after their verdict, results without per-nym records, cuts), and the freedom to fork keeps only that; (b) **confidential objects**: drafts and panels encrypted to the consortium's threshold key and opened when the item is decided, reveals never — needs T19's distributed key, and replay cannot re-check a reveal without it; (c) **the voting patterns off the log**: a reveal logged as the hash of its opening, the rating and nonce kept by the members with the epoch's inputs under the results' Merkle root (as T73 did for the results), a draft logged by CID with its content held by the members until publication — replay no longer re-checks a reveal, the holders of the inputs do, and a panel is still visible before its verdict | D17, PRIV-004, PRIV-P5, PRIV-P6; `docs/08` G-21, §17 Q-19, §18; the task row in [2.3](#23--build-the-runtime) |
 
 ---
 
@@ -382,7 +418,7 @@ other documents and commit messages refer to these ids and block names.
 | Task | What it means (plain) | Refs | Done when | Size |
 |---|---|---|---|---|
 | T37 | **The beacon nobody can grind (D41). Done (2026-09-26):** specified first (`docs/04` §The epoch's beacon, `docs/08` §9.4), with the details D41 left open decided there: each member's secret derived from its key per epoch; the commit bound to the member's key, the network, the member set and the epoch, and signed; the commit set fixed by a log record before the deposits close, signed by a member only if it lists its own commit; the value hashed over the counted reveals in member order; no beacon below `t` reveals, the epoch's draws waiting for the next. `network::beacon` runs the round in process — `BeaconRound` (`open`, `commit`, `close_commits`, `close_deposits`, `reveal`, `finish`), `Member::beacon_commit`, `BeaconOutcome { value, revealed, withheld, record }`, `RoundError` — and `Consortium::verify_excluding` counts no withholder's signature for the epoch. `protocol::randomness::Beacon::from_outcome` replaces `from_checkpoint` (`seed(purpose, index)` and the tags unchanged, every `_from_beacon` draw on it); `lottery::admit` sorts the deposits by content id and drops a repeat (`Cid: Ord`), so the draw is a function of the set; `lifecycle`'s precondition is `seed_from_beacon` (`Invalid::SeedNotFromBeacon`). Tests first: `network/tests/beacon_round.rs` (AT-NET-10: the value independent of arrival order and bound to every reveal, the network and the epoch; a withholder recorded, its signature not counted, the beacon from the others; no beacon below `t`; a late, foreign, unsigned, tampered or second commit, and a reveal that does not open, comes early or twice, or opens a copied commitment, refused; the deadlines in order) and `protocol/tests/inv10_beacon_seed.rs` (AT-BR-05: 130 logs that differ after the commit set, 130 heads, one seed; the lottery the same from a set in any order or with a repeat, over 50 epochs). All failed against the skeleton, and the lottery test on the new beacon before `admit` was changed; on the previous code a probe found 64 seeds for 64 variants of the last deposit (21 admitting their author, three seats among ten) and another admitted set on 50 of 50 seeds for the reversed deposit list. Re-derived with the new beacon: AT-PRO-07's shares, 4.8% and 5.1% with 0.27% in common (were 5.0%, 4.9%, 0.24%); nothing else pinned a beacon-derived number. Transport and real-checkpoint deadlines are T18; the threshold signature T19 | INV-10, CRYPTO-008, D29, D41 | a test shows the last depositor cannot choose among seeds; a member who withholds its reveal is excluded and recorded; `docs/08` status honest meanwhile | M |
-| T72 | **The draws read their candidates as a set. Done (2026-09-26):** `review::assign_reviewers` and `assign_diverse` sorted the candidates by `f_u` with a stable sort, so reviewers at the same position — every newcomer at the origin since T39 — kept the order the caller listed them in, and that order decided the panel; `governance::stratified_sortition` also filled its deficit and returned its committee in the input order, so it depended on the order even without ties. Now every candidate list is put in a canonical order first — position, then nym (`review::by_position`), or id for the sortition (`Id: Ord`, replacing `Eq + Hash`; the repeat check sorts) — and the sortition fills and returns in that order: each draw is a function of the candidate set and the beacon's seed. The extra round (`assign_extra_*`) inherits it. Test first: `protocol/tests/draw_order.rs` (AT-BR-12) — 30 reviewers on the axis, 20 newcomers tied at the origin and a tie at 0.5, in four other orders, panels of 9 over 100 seeds, the diversified panel with clusters and taken nyms, the plain and diversified extra round over 30 beacons, the sortition with ties and without (8 candidates, 7 seats in 5 strata); all four tests failed on the previous code — the reversed list alone drew another panel on 100 of 100 seeds for both assignment functions, and another sortition set on 100 of 100 without any tie. No pinned number moved (the populations of the other suites have no ties); `docs/11` run 10: 12 mutants, 7 caught, 4 unviable, the one survivor the equivalent `count < seats` already justified | INV-10, PROTO-003, PROTO-010, D40, T37 | the same candidates in any order draw the same panel from the same seed, for the first panel, the extra round and the sortition | S |
+| T72 | **The draws read their candidates as a set. Done (2026-09-26):** `review::assign_reviewers` and `assign_diverse` sorted the candidates by `f_u` with a stable sort, so reviewers at the same position — every newcomer at the origin since T39 — kept the order the caller listed them in, and that order decided the panel; `governance::stratified_sortition` also filled its deficit and returned its committee in the input order, so it depended on the order even without ties. Now every candidate list is put in a canonical order first — position, then nym (`review::by_position`), or id for the sortition (`Id: Ord`, replacing `Eq + Hash`; the repeat check sorts) — and the sortition fills and returns in that order: each draw is a function of the candidate set and the beacon's seed. The extra round (`assign_extra_*`) inherits it. Test first: `protocol/tests/draw_order.rs` (AT-BR-13; numbered AT-BR-12 until 2026-09-28, an id T71 also took) — 30 reviewers on the axis, 20 newcomers tied at the origin and a tie at 0.5, in four other orders, panels of 9 over 100 seeds, the diversified panel with clusters and taken nyms, the plain and diversified extra round over 30 beacons, the sortition with ties and without (8 candidates, 7 seats in 5 strata); all four tests failed on the previous code — the reversed list alone drew another panel on 100 of 100 seeds for both assignment functions, and another sortition set on 100 of 100 without any tie. No pinned number moved (the populations of the other suites have no ties); `docs/11` run 10: 12 mutants, 7 caught, 4 unviable, the one survivor the equivalent `count < seats` already justified | INV-10, PROTO-003, PROTO-010, D40, T37 | the same candidates in any order draw the same panel from the same seed, for the first panel, the extra round and the sortition | S |
 
 ### Phase 2.3 · Build the runtime
 
