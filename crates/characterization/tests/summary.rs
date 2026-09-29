@@ -147,6 +147,10 @@ fn the_null_summary_counts_false_positives_per_batch_and_per_item() {
     assert!(close(value(&r, "max_clean_gap_median"), 1.2));
     assert!(close(value(&r, "max_clean_gap_p95"), 1.47));
     assert!(close(value(&r, "fit_seconds"), 2.0));
+    assert!(
+        markdown.contains("### The DIF cut on `DIF_j`"),
+        "{markdown}"
+    );
     let _ = fs::remove_dir_all(out);
 }
 
@@ -185,6 +189,10 @@ fn the_power_summary_counts_detections_per_item_and_per_batch() {
     assert!(close(value(&r, "biased_gap_median"), 1.5));
     let markdown = fs::read_to_string(out.join("summary.md")).unwrap();
     assert!(markdown.contains("| 1.50 (1.80) |"), "{markdown}");
+    assert!(
+        markdown.contains("### The DIF cut on `DIF_j`"),
+        "{markdown}"
+    );
     let _ = fs::remove_dir_all(out);
 }
 
@@ -431,6 +439,11 @@ fn the_threshold_tables_label_every_cell_once() {
         1,
         "{dif_cut}"
     );
+    let csv = fs::read_to_string(out.join("thresholds-dif-cut.csv")).unwrap();
+    assert!(
+        csv.contains(&power(60)) && !csv.contains(&power(20)),
+        "{csv}"
+    );
     let a_cut = header("### A cut on the discrimination gap");
     assert!(a_cut.contains("power N=3000 α=0.8, 2 items"), "{a_cut}");
     assert!(a_cut.contains("power N=3000 α=0.8, 3 items"), "{a_cut}");
@@ -466,7 +479,7 @@ fn the_extra_round_summary_reads_the_band_and_the_re_decisions() {
     })
     .key();
     let run = Outcome::Extra(ExtraOutcome {
-        truth: vec![0.75, 0.85, 0.84, 0.79],
+        truth: vec![0.75, 0.85, 0.84, 0.75],
         robust: vec![0.81, 0.79, 0.83, 0.70],
         gate: "SSPR".to_string(),
         redecided: ["PRP-", "RPP-", "RPP-", "RPP-", "RPP-", "RPP-"]
@@ -484,7 +497,7 @@ fn the_extra_round_summary_reads_the_band_and_the_re_decisions() {
     };
     assert!(close(value(at(0.02, 0), "band"), 0.5));
     assert!(close(value(at(0.04, 0), "band"), 0.75));
-    assert!(close(value(at(0.02, 0), "false_pass"), 1.0));
+    assert!(close(value(at(0.02, 0), "false_pass"), 0.5));
     assert!(close(value(at(0.02, 0), "false_fail"), 0.5));
     assert!(close(value(at(0.02, 2), "false_pass"), 0.0));
     assert!(close(value(at(0.02, 2), "false_fail"), 0.0));
@@ -492,19 +505,51 @@ fn the_extra_round_summary_reads_the_band_and_the_re_decisions() {
     let _ = fs::remove_dir_all(out);
 }
 
-/// Floor runs: the fitted floors in the summary, and the cut table per floor and format.
+/// Several cells of one study in one records file, each run numbered from 0 within its cell.
+fn write_cells(out: &Path, study: Study, cells: Vec<(String, Vec<Outcome>)>) {
+    let dir = out.join(study.name());
+    fs::create_dir_all(&dir).unwrap();
+    let mut text = format!("{}\n", header(study));
+    for (cell, outcomes) in cells {
+        for (i, outcome) in outcomes.into_iter().enumerate() {
+            let record = Record {
+                study,
+                cell: cell.clone(),
+                replicate: i as u32,
+                seed: i as u64,
+                elapsed_ms: 1000,
+                outcome,
+            };
+            text.push_str(&format!("{}\n", record.line()));
+        }
+    }
+    fs::write(dir.join("records.csv"), text).unwrap();
+}
+
+/// The header of the first table after `title` in the summary.
+fn table_header(markdown: &str, title: &str) -> String {
+    let at = markdown.find(title).unwrap_or_else(|| panic!("no {title}"));
+    markdown[at..]
+        .lines()
+        .find(|l| l.starts_with("| cell |") || l.starts_with("| cut |"))
+        .unwrap()
+        .to_string()
+}
+
+/// Floor runs: the fitted floors in each floor table, and the DIF cut per floor and format on
+/// the nulls with 40 or more anchors and the two-leaner power cells of that format alone.
 #[test]
 fn the_floor_summary_reads_the_fitted_floors_and_the_cut_per_format() {
     let out = scratch("floor-summary");
-    let floored = |layout, delta, n| {
-        Cell::Dif(DifDesign {
-            n,
-            layout,
-            delta,
-            guess: 0.2,
-            options: 5,
+    let key = |guess, options, change: &dyn Fn(DifDesign) -> DifDesign| {
+        Cell::Dif(change(DifDesign {
+            n: 6000,
+            layout: Layout::Campaign(2),
+            delta: 0.9,
+            guess,
+            options,
             ..DifDesign::default()
-        })
+        }))
         .key()
     };
     let run = |flags: [bool; 4], dif: [f64; 4], classes: usize, roles: &str| {
@@ -517,30 +562,85 @@ fn the_floor_summary_reads_the_fitted_floors_and_the_cut_per_format() {
             ..o
         })
     };
-    let f = false;
-    write(
+    let (t, f) = (true, false);
+    let clean = || vec![run([f; 4], [0.0; 4], 1, "cccc")];
+    let flagged = || vec![run([t, f, f, f], [1.2, 0.1, 0.1, 0.1], 2, "cccc")];
+    let found = || vec![run([t, t, f, f], [1.8, 1.6, 0.1, 0.1], 2, "++cc")];
+    let null = |d: DifDesign| DifDesign {
+        n: 3000,
+        layout: Layout::Campaign(0),
+        delta: 0.0,
+        ..d
+    };
+    write_cells(
         &out,
         Study::FloorNull,
-        &floored(Layout::Campaign(0), 0.0, 3000),
-        vec![run([f; 4], [0.0; 4], 1, "cccc")],
+        vec![
+            (key(0.2, 5, &null), clean()),
+            (
+                key(0.2, 5, &|d| DifDesign {
+                    anchors: 20,
+                    ..null(d)
+                }),
+                flagged(),
+            ),
+            (key(0.5, 2, &null), flagged()),
+            (key(0.2, 4, &null), flagged()),
+        ],
     );
-    write(
+    let off = [
+        key(0.2, 5, &|d| DifDesign { pi: 0.3, ..d }),
+        key(0.2, 5, &|d| DifDesign { anchors: 40, ..d }),
+        key(0.2, 5, &|d| DifDesign {
+            layout: Layout::Campaign(3),
+            ..d
+        }),
+        key(0.2, 5, &|d| DifDesign { k: 4, ..d }),
+    ];
+    let mut power = vec![
+        (key(0.2, 5, &|d| d), found()),
+        (key(0.5, 2, &|d| d), found()),
+    ];
+    power.extend(off.iter().map(|k| (k.clone(), found())));
+    write_cells(&out, Study::FloorPower, power);
+    write_cells(
         &out,
-        Study::FloorPower,
-        &floored(Layout::Campaign(2), 0.9, 6000),
-        vec![run([true, true, f, f], [1.8, 1.6, 0.1, 0.1], 2, "++cc")],
+        Study::FloorMisspec,
+        vec![(key(0.2, 5, &|d| DifDesign { skew: -4.0, ..d }), found())],
     );
     let markdown = summarize(&out).unwrap();
     let r = row(&out, Study::FloorNull);
     assert!(close(value(&r, "floor_true"), 0.2));
     assert!(close(value(&r, "floor_fitted"), 0.2));
     assert!(close(value(&r, "anchor_floor"), 0.19));
+    let floor = "floor: design / items fitted / anchors fitted";
+    for (title, column) in [
+        ("## floor-null", "| admitted |"),
+        ("## floor-power", "| all leaners flagged |"),
+        ("## floor-misspec", "| batches with a clean item flagged |"),
+    ] {
+        let header = table_header(&markdown, title);
+        assert!(
+            header.contains(floor) && header.contains(column),
+            "{title}: {header}"
+        );
+    }
     assert!(
         markdown.contains("| 0.20 / 0.200 ± 0.016 / 0.190 |"),
         "{markdown}"
     );
-    assert!(markdown.contains("Floor 0.2, 5 options:"), "{markdown}");
-    assert!(markdown.contains("power N=6000 δ=0.9"), "{markdown}");
+    assert_eq!(
+        markdown.matches("Floor 0.2, 5 options:").count(),
+        1,
+        "{markdown}"
+    );
+    assert_eq!(
+        markdown.matches("Floor 0.5, 2 options:").count(),
+        1,
+        "{markdown}"
+    );
+    let cut = table_header(&markdown, "Floor 0.2, 5 options:");
+    assert_eq!(cut.matches("power N=6000 δ=0.9").count(), 1, "{cut}");
     assert!(!markdown.contains("## dif-null"), "{markdown}");
     let table = fs::read_to_string(out.join("thresholds-dif-cut-floor.csv")).unwrap();
     assert!(
@@ -548,5 +648,26 @@ fn the_floor_summary_reads_the_fitted_floors_and_the_cut_per_format() {
         "{table}"
     );
     assert!(table.contains("\n0.2,5,1,null,1,0,"), "{table}");
-    let _ = fs::remove_dir_all(out);
+    assert!(table.contains("\n0.5,2,1,null,1,0.25,"), "{table}");
+    let two = key(0.2, 5, &|d| d);
+    assert!(table.contains(&format!("\n0.2,5,1,{two},1,1,")), "{table}");
+    assert!(off.iter().all(|k| !table.contains(k.as_str())), "{table}");
+    let _ = fs::remove_dir_all(&out);
+
+    let alone = scratch("floor-null-alone");
+    write_cells(
+        &alone,
+        Study::FloorNull,
+        vec![(key(0.2, 5, &null), clean())],
+    );
+    let markdown = summarize(&alone).unwrap();
+    assert!(
+        markdown.contains("### The DIF cut with a guessing floor"),
+        "{markdown}"
+    );
+    assert!(
+        !markdown.contains("### The DIF cut on `DIF_j`"),
+        "{markdown}"
+    );
+    let _ = fs::remove_dir_all(alone);
 }

@@ -1,11 +1,12 @@
 //! The harness reads the production verdict: on a batch the gates admit, its flags are those
 //! of `revalidate_batch_latent`; on one they refuse, it records the refusal (`docs/13` §2).
 
-use characterization::generate::dif_batch;
+use characterization::generate::{dif_batch, PROBE_SPREAD};
 use characterization::grid::{engine_seed, DifDesign, Layout};
-use characterization::run::dif;
+use characterization::run::{dif, gate_char, redecides};
 use identity::nym::Nym;
 use protocol::admission::NullifierSet;
+use protocol::gate::{MIN_COVERAGE, TAU};
 use protocol::pilot::PilotError;
 use protocol::revalidation::revalidate_batch_latent;
 use scoring::latent::Formats;
@@ -100,4 +101,17 @@ fn a_batch_with_a_floor_gets_the_production_flags_of_its_format() {
         "{:?}",
         outcome.floors
     );
+}
+
+/// The gate's code is `U` below `MIN_COVERAGE` whatever the score, else the production gate's.
+#[test]
+fn the_gate_s_code_sends_an_uncovered_item_to_review() {
+    let (low, floor) = (MIN_COVERAGE - 1, MIN_COVERAGE);
+    assert_eq!(gate_char(0.95, 0.0, low), 'U');
+    assert_eq!(gate_char(0.95, 0.0, floor), 'P');
+    assert_eq!(gate_char(TAU, 0.0, floor), 'S');
+    assert_eq!(gate_char(0.5, 0.3, floor), 'A');
+    assert_eq!(gate_char(0.5, 0.1, floor), 'R');
+    assert!(redecides(0.5, low) && !redecides(0.5, floor));
+    assert!(redecides(TAU - PROBE_SPREAD, floor) && !redecides(TAU + PROBE_SPREAD, floor));
 }

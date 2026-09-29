@@ -136,8 +136,16 @@ fn a_record_of_each_kind_is_pinned() {
             "a54dc4c4a4f453d8727c8618def851b67d72d62978c113d470901df99e451778",
         ),
         (
+            Study::DifTwoAxes,
+            "cdb16cef55d897094aae79448996a266a5e08fbd32f496ded217a550459b71a8",
+        ),
+        (
             Study::FloorPower,
             "04deedc88570bfc18e1035c099bbfb0221078a4adb3315bbd2773414258362bf",
+        ),
+        (
+            Study::FloorMisspec,
+            "7cb933f349017a01cb163090325b83fe58f4e21dd9defe9c6aa696e00f8ec47d",
         ),
         (
             Study::FloorDtf,

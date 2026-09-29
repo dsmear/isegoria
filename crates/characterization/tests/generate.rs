@@ -8,6 +8,7 @@ use characterization::grid::{Attack, DifDesign, ExtraDesign, Layout, SweepDesign
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 use scoring::irt::kr20;
+use sha2::Digest;
 
 fn design(n: usize, anchors: usize, k: usize, layout: Layout) -> DifDesign {
     DifDesign {
@@ -299,4 +300,35 @@ fn the_extra_round_s_probes_lie_around_the_threshold() {
         triples(&data.sweep.ratings.obs),
         triples(&plain.ratings.obs)
     );
+}
+
+/// The draws of a batch are pinned: the stream of `docs/13` §3.1 that recorded runs reproduce.
+#[test]
+fn a_batch_s_draws_are_pinned() {
+    let d = DifDesign {
+        delta: 0.9,
+        alpha: 0.4,
+        pi: 0.3,
+        impact: 0.5,
+        ..design(300, 6, 6, Layout::TwoAxes(2))
+    };
+    let batch = dif_batch(&d, 41);
+    let mut h = sha2::Sha256::new();
+    for row in batch.anchors.iter().chain(&batch.x) {
+        for v in row {
+            h.update(v.to_bits().to_le_bytes());
+        }
+    }
+    for v in batch
+        .z
+        .iter()
+        .chain(&batch.a)
+        .chain(&batch.b)
+        .chain(&batch.floors)
+    {
+        h.update(v.to_bits().to_le_bytes());
+    }
+    let digest: String = h.finalize().iter().map(|b| format!("{b:02x}")).collect();
+    let pin = "dcb0aad53a8927d09b07aa39f7f831ef4e94184b2e7c351bd4d0df19959b560a";
+    assert_eq!(digest, pin);
 }

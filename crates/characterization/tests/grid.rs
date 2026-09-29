@@ -5,6 +5,7 @@ use characterization::grid::{
     cells, parse_studies, replicates, tasks, Cell, DifDesign, Grid, Study, SweepDesign, STUDIES,
     SUPPLEMENT, T24,
 };
+use sha2::Digest;
 use std::collections::BTreeSet;
 
 /// The full grid has the cells and replicates of the `docs/13` §4 and §8 tables.
@@ -171,4 +172,37 @@ fn a_study_list_names_studies_and_groups() {
         Ok([&[Study::FloorNull][..], &T24].concat())
     );
     assert!(parse_studies("floor-nul").is_err());
+}
+
+/// Every study names the `docs/08` claims or the `docs` section it measures.
+#[test]
+fn every_study_names_what_it_measures() {
+    let cited = ["AT-", "SC-", "DIF-", "BRIDGE-", "STAT-", "PROTO-", "docs/"];
+    for study in STUDIES {
+        let claims = study.claims();
+        assert!(
+            cited.iter().any(|c| claims.contains(c)),
+            "{}: {claims}",
+            study.name()
+        );
+    }
+}
+
+/// The supplement's cells are the ones `docs/13` §8.3 lists, key for key, in both grids.
+#[test]
+fn the_supplement_s_cells_are_the_specified_ones() {
+    let mut keys = String::new();
+    for grid in [Grid::Full, Grid::Smoke] {
+        for study in SUPPLEMENT {
+            for cell in cells(study, grid) {
+                keys.push_str(&format!("{}\t{}\n", study.name(), cell.key()));
+            }
+        }
+    }
+    let digest: String = sha2::Sha256::digest(keys.as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    let pin = "abb0fed0897eca98d5e1a1cd122392baa90929ceb9b1be09d614bc1a0a3ccc60";
+    assert_eq!(digest, pin, "{keys}");
 }

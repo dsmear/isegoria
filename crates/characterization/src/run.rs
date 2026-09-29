@@ -228,6 +228,21 @@ fn gate_code(outcome: GateOutcome) -> char {
     }
 }
 
+/// The gate's outcome at the production `τ`, `ε` and `γ_appeal` as a record's code: `U` for
+/// an item below `MIN_COVERAGE` sent to review whatever its score (D42).
+pub fn gate_char(score: f64, gap: f64, coverage: usize) -> char {
+    match bridging_gate(score, gap, coverage, TAU, EPS, APPEAL_GAP) {
+        GateOutcome::SupplementaryReview if coverage < MIN_COVERAGE => 'U',
+        outcome => gate_code(outcome),
+    }
+}
+
+/// Whether `bridging-extra` re-decides a probe: its robust score within `PROBE_SPREAD` of
+/// `τ`, or its coverage below `MIN_COVERAGE`.
+pub fn redecides(score: f64, coverage: usize) -> bool {
+    (TAU - PROBE_SPREAD..TAU + PROBE_SPREAD).contains(&score) || coverage < MIN_COVERAGE
+}
+
 pub fn sweep(d: &SweepDesign, seed: u64) -> SweepOutcome {
     let data = sweep_data(d, seed);
     let production = BridgingParams::default();
@@ -242,13 +257,7 @@ pub fn sweep(d: &SweepDesign, seed: u64) -> SweepOutcome {
     let scores = bridge_scores(&data.ratings, &params, BOOTSTRAPS, KEEP)
         .expect("generated ratings are well formed");
     let gate = (0..scores.robust.len())
-        .map(|j| {
-            let (s, g, c) = (scores.robust[j], scores.full.gap[j], scores.coverage[j]);
-            match bridging_gate(s, g, c, TAU, EPS, APPEAL_GAP) {
-                GateOutcome::SupplementaryReview if c < MIN_COVERAGE => 'U',
-                outcome => gate_code(outcome),
-            }
-        })
+        .map(|j| gate_char(scores.robust[j], scores.full.gap[j], scores.coverage[j]))
         .collect();
     SweepOutcome {
         converged: full_fit.status == Convergence::Converged,
@@ -368,12 +377,9 @@ pub fn extra(d: &ExtraDesign, seed: u64) -> ExtraOutcome {
     let mut redecided = vec![String::new(); K_EXTRAS.len()];
     for (p, panel) in panels.iter().enumerate() {
         let j = first + p;
-        let (s, g, c) = (scores.robust[j], scores.full.gap[j], scores.coverage[j]);
-        gate.push(match bridging_gate(s, g, c, TAU, EPS, APPEAL_GAP) {
-            GateOutcome::SupplementaryReview if c < MIN_COVERAGE => 'U',
-            outcome => gate_code(outcome),
-        });
-        let near = (TAU - PROBE_SPREAD..TAU + PROBE_SPREAD).contains(&s) || c < MIN_COVERAGE;
+        let (s, c) = (scores.robust[j], scores.coverage[j]);
+        gate.push(gate_char(s, scores.full.gap[j], c));
+        let near = redecides(s, c);
         let outside: Vec<Reviewer> = reviewers
             .iter()
             .filter(|r| !panel.contains(&index_of(&r.nym)))
