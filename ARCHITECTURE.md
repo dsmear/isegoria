@@ -13,7 +13,7 @@ between the conceptual specification and the Rust implementation. Read
 - [`network` — tamper-evident storage](#network--tamper-evident-storage)
 - [`protocol` — lifecycle orchestration](#protocol--lifecycle-orchestration)
 - [`p2p` — the libp2p transport](#p2p--the-libp2p-transport)
-- [`characterization` — the T24 harness](#characterization--the-t24-harness)
+- [`characterization` — the characterization harness](#characterization--the-characterization-harness)
 - [Invariants and where they are enforced](#invariants-and-where-they-are-enforced)
 - [Reproducibility](#reproducibility)
 - [Testing strategy](#testing-strategy)
@@ -49,7 +49,7 @@ protocol ──► scoring
         ├──► identity
         └──► network
 
-characterization ──► protocol, scoring   (the T24 harness: a tool, not part of a node)
+characterization ──► protocol, scoring, identity   (the characterization harness: a tool, not part of a node)
 p2p              ──► network             (the libp2p transport for replication, T18)
 
 scoring   (no internal deps; only rand, rand_chacha)
@@ -214,21 +214,22 @@ engine and the protocol state stay free of I/O and of an async runtime (T18). Th
 answers any peer, so whoever connects reads the whole set (T77); a node is started only by
 a test (T78), and a member's duties are the cuts and the beacon, not an epoch's work (T79).
 
-## `characterization` — the T24 harness
+## `characterization` — the characterization harness
 
 Not part of a node: nothing depends on it. It runs the seeded simulation studies of
 [`docs/13`](docs/13-characterization.md) on the production estimators and gates — in
 parallel, resumable after an interruption, every run reproducible from its seed on any
-machine — and summarizes them with intervals and the threshold tables T25 reads. The
+machine — and summarizes them with intervals and the threshold tables T25 reads. T24's
 full run, 54,412 runs, is stated in `docs/13` §7 and its tables are in
-`verification/reports/t24/`.
+`verification/reports/t24/`; T25's supplement (`docs/13` §8, `--study t25`) measures the
+model with the guessing floor and the band's extra round.
 
 | Module | Role |
 |---|---|
-| `grid` | the ten studies, their cells (`Cell::key`, `Cell::parse`), replicates and each run's seed |
-| `generate` | the populations: latent-DIF batches (the paper's `dif_generate`, extended), the Level A mirror design, the reference fixture |
-| `run` | one run: `latent_dif` (every column declared open) read by `revalidation::target_flags`, the gates recorded as `admitted`; `bridge_scores` read by `gate::bridging_gate`; `ClassCurves` fitted and true |
-| `record` | a run's CSV record and the store that appends to it and resumes |
+| `grid` | the studies — T24's ten and the supplement's six (`T24`, `SUPPLEMENT`) — their cells (`Cell::key`, `Cell::parse`), replicates, each run's seed and its draws' (`draw_seed`) |
+| `generate` | the populations: latent-DIF batches (the paper's `dif_generate`, extended: a floor per column, a skewed ability, templates), the Level A mirror design and its probes for the extra round, the reference fixture |
+| `run` | one run: `latent_dif` on the design's declared formats read by `revalidation::target_flags`, the gates recorded as `admitted`; `bridge_scores` read by `gate::bridging_gate`, the extra round drawn by `review::assign_reviewers` and re-decided by `gate::supplementary_review`; `ClassCurves` fitted and true, with their floors |
+| `record` | a run's CSV record — a floor study's adds the fitted floors — and the store that appends to it and resumes |
 | `runner` | worker threads, progress and ETA, `errors.log` |
 | `stats`, `summary` | Wilson and design-effect intervals, quantiles; `summary.md` and the CSV tables |
 
@@ -327,7 +328,7 @@ Nine kinds of test (the per-crate counts change often; `cargo test --workspace` 
    sim/fixture drift; needs numpy/scipy); `power` is a Monte-Carlo check of the
    §B.6 sample-size claim (latent-class DIF detection rate at N≈1500 vs 3000).
 9. **Characterization** (T24, `docs/13`): the studies run on demand through
-   `crates/characterization`; its own tests pin the grid to `docs/13` §4, the generators
+   `crates/characterization`; its own tests pin the grid to `docs/13` §4 and §8, the generators
    to the paper's populations (the KR-20 table), the records to their tasks whatever the
    number of workers, the resumption after a torn line, the production verdict
    (`revalidate_batch_latent`) and the summary's statistics on hand-built records.

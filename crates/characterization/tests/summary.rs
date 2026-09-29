@@ -2,10 +2,12 @@
 //! study of the smoke grid runs and is summarized (`docs/13` §2).
 
 use characterization::grid::{
-    tasks, CaptureDesign, Cell, DifDesign, Grid, Layout, Study, SweepDesign, STUDIES,
+    tasks, CaptureDesign, Cell, DifDesign, ExtraDesign, Grid, Layout, Study, SweepDesign, STUDIES,
 };
 use characterization::record::{header, Record};
-use characterization::run::{CaptureOutcome, DifOutcome, DtfOutcome, Outcome, SweepOutcome};
+use characterization::run::{
+    CaptureOutcome, DifOutcome, DtfOutcome, ExtraOutcome, Outcome, SweepOutcome,
+};
 use characterization::runner::{execute, Options};
 use characterization::stats::{clustered_rate, quantile, sd, wilson};
 use characterization::summary::summarize;
@@ -69,6 +71,8 @@ fn outcome(
         a_gap: vec![0.0; 4],
         flags: flags.to_vec(),
         roles: roles.to_string(),
+        floors: Vec::new(),
+        anchor_floor: 0.0,
     })
 }
 
@@ -339,6 +343,7 @@ fn the_sweep_summary_counts_uncovered_items_and_dashes_a_missing_leak() {
         share: 0.5,
         per_reviewer: 5,
         noise: 0.07,
+        lambda: None,
     })
     .key();
     let run = Outcome::Sweep(SweepOutcome {
@@ -429,5 +434,119 @@ fn the_threshold_tables_label_every_cell_once() {
     let a_cut = header("### A cut on the discrimination gap");
     assert!(a_cut.contains("power N=3000 α=0.8, 2 items"), "{a_cut}");
     assert!(a_cut.contains("power N=3000 α=0.8, 3 items"), "{a_cut}");
+    let _ = fs::remove_dir_all(out);
+}
+
+/// The rows of a study's summary table, each by column name.
+fn rows(out: &Path, study: Study) -> Vec<Vec<(String, String)>> {
+    let text = fs::read_to_string(out.join(study.name()).join("summary.csv")).unwrap();
+    let mut lines = text.lines();
+    let names: Vec<String> = lines.next().unwrap().split(',').map(String::from).collect();
+    lines
+        .map(|l| {
+            names
+                .iter()
+                .cloned()
+                .zip(l.split(',').map(String::from))
+                .collect()
+        })
+        .collect()
+}
+
+/// Extra-round runs: the band per ε, and false passes and failures per extra panel size.
+#[test]
+fn the_extra_round_summary_reads_the_band_and_the_re_decisions() {
+    let out = scratch("extra-summary");
+    let cell = Cell::Extra(ExtraDesign {
+        n: 100,
+        share: 0.5,
+        per_reviewer: 5,
+        noise: 0.15,
+        panel: 7,
+    })
+    .key();
+    let run = Outcome::Extra(ExtraOutcome {
+        truth: vec![0.75, 0.85, 0.84, 0.79],
+        robust: vec![0.81, 0.79, 0.83, 0.70],
+        gate: "SSPR".to_string(),
+        redecided: ["PRP-", "RPP-", "RPP-", "RPP-", "RPP-", "RPP-"]
+            .map(String::from)
+            .to_vec(),
+    });
+    write(&out, Study::BridgingExtra, &cell, vec![run]);
+    summarize(&out).unwrap();
+    let all = rows(&out, Study::BridgingExtra);
+    assert_eq!(all.len(), 3 * 6);
+    let at = |eps: f64, k: usize| {
+        all.iter()
+            .find(|r| value(r, "eps") == eps && value(r, "k_extra") == k as f64)
+            .unwrap()
+    };
+    assert!(close(value(at(0.02, 0), "band"), 0.5));
+    assert!(close(value(at(0.04, 0), "band"), 0.75));
+    assert!(close(value(at(0.02, 0), "false_pass"), 1.0));
+    assert!(close(value(at(0.02, 0), "false_fail"), 0.5));
+    assert!(close(value(at(0.02, 2), "false_pass"), 0.0));
+    assert!(close(value(at(0.02, 2), "false_fail"), 0.0));
+    assert!(close(value(at(0.04, 4), "extra_reviews"), 3.0));
+    let _ = fs::remove_dir_all(out);
+}
+
+/// Floor runs: the fitted floors in the summary, and the cut table per floor and format.
+#[test]
+fn the_floor_summary_reads_the_fitted_floors_and_the_cut_per_format() {
+    let out = scratch("floor-summary");
+    let floored = |layout, delta, n| {
+        Cell::Dif(DifDesign {
+            n,
+            layout,
+            delta,
+            guess: 0.2,
+            options: 5,
+            ..DifDesign::default()
+        })
+        .key()
+    };
+    let run = |flags: [bool; 4], dif: [f64; 4], classes: usize, roles: &str| {
+        let Outcome::Dif(o) = outcome(flags, dif, classes, false, roles) else {
+            unreachable!()
+        };
+        Outcome::Dif(DifOutcome {
+            floors: vec![0.18, 0.22, 0.2, 0.2],
+            anchor_floor: 0.19,
+            ..o
+        })
+    };
+    let f = false;
+    write(
+        &out,
+        Study::FloorNull,
+        &floored(Layout::Campaign(0), 0.0, 3000),
+        vec![run([f; 4], [0.0; 4], 1, "cccc")],
+    );
+    write(
+        &out,
+        Study::FloorPower,
+        &floored(Layout::Campaign(2), 0.9, 6000),
+        vec![run([true, true, f, f], [1.8, 1.6, 0.1, 0.1], 2, "++cc")],
+    );
+    let markdown = summarize(&out).unwrap();
+    let r = row(&out, Study::FloorNull);
+    assert!(close(value(&r, "floor_true"), 0.2));
+    assert!(close(value(&r, "floor_fitted"), 0.2));
+    assert!(close(value(&r, "anchor_floor"), 0.19));
+    assert!(
+        markdown.contains("| 0.20 / 0.200 ± 0.016 / 0.190 |"),
+        "{markdown}"
+    );
+    assert!(markdown.contains("Floor 0.2, 5 options:"), "{markdown}");
+    assert!(markdown.contains("power N=6000 δ=0.9"), "{markdown}");
+    assert!(!markdown.contains("## dif-null"), "{markdown}");
+    let table = fs::read_to_string(out.join("thresholds-dif-cut-floor.csv")).unwrap();
+    assert!(
+        table.starts_with("floor,options,cut,cell,runs,rate"),
+        "{table}"
+    );
+    assert!(table.contains("\n0.2,5,1,null,1,0,"), "{table}");
     let _ = fs::remove_dir_all(out);
 }

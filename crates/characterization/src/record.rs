@@ -2,7 +2,7 @@
 //! after an interruption (`docs/13` §2).
 
 use crate::grid::{Kind, Study, Task};
-use crate::run::{CaptureOutcome, DifOutcome, DtfOutcome, Outcome, SweepOutcome};
+use crate::run::{CaptureOutcome, DifOutcome, DtfOutcome, ExtraOutcome, Outcome, SweepOutcome};
 use std::collections::BTreeSet;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
@@ -20,7 +20,16 @@ pub struct Record {
 
 const COMMON: [&str; 5] = ["study", "cell", "replicate", "seed", "elapsed_ms"];
 
-fn columns(kind: Kind) -> &'static [&'static str] {
+/// A study's outcome columns; a floor study's DIF records add the fitted floors.
+fn columns(study: Study) -> Vec<&'static str> {
+    let mut all = kind_columns(study.kind()).to_vec();
+    if study.floors() {
+        all.extend(["floors", "anchor_floor"]);
+    }
+    all
+}
+
+fn kind_columns(kind: Kind) -> &'static [&'static str] {
     match kind {
         Kind::Dif => &[
             "kr20",
@@ -49,15 +58,12 @@ fn columns(kind: Kind) -> &'static [&'static str] {
             "gate",
         ],
         Kind::Capture => &["opposing", "full", "robust", "plain"],
+        Kind::Extra => &["truth", "robust", "gate", "redecided"],
     }
 }
 
 pub fn header(study: Study) -> String {
-    let all: Vec<&str> = COMMON
-        .iter()
-        .chain(columns(study.kind()))
-        .copied()
-        .collect();
+    let all: Vec<&str> = COMMON.iter().copied().chain(columns(study)).collect();
     all.join(",")
 }
 
@@ -131,20 +137,25 @@ impl Record {
             self.elapsed_ms.to_string(),
         ];
         match &self.outcome {
-            Outcome::Dif(o) => fields.extend([
-                o.kr20.to_string(),
-                bit(o.admitted),
-                o.classes.to_string(),
-                bit(o.non_uniform),
-                bit(o.converged),
-                o.bic_gain.to_string(),
-                nums(&o.pi),
-                nums(&o.eta),
-                nums(&o.dif),
-                nums(&o.a_gap),
-                bits(&o.flags),
-                o.roles.clone(),
-            ]),
+            Outcome::Dif(o) => {
+                fields.extend([
+                    o.kr20.to_string(),
+                    bit(o.admitted),
+                    o.classes.to_string(),
+                    bit(o.non_uniform),
+                    bit(o.converged),
+                    o.bic_gain.to_string(),
+                    nums(&o.pi),
+                    nums(&o.eta),
+                    nums(&o.dif),
+                    nums(&o.a_gap),
+                    bits(&o.flags),
+                    o.roles.clone(),
+                ]);
+                if self.study.floors() {
+                    fields.extend([nums(&o.floors), o.anchor_floor.to_string()]);
+                }
+            }
             Outcome::Dtf(o) => fields.extend([
                 o.classes.to_string(),
                 bit(o.converged),
@@ -170,13 +181,19 @@ impl Record {
                 nums(&o.robust),
                 nums(&o.plain),
             ]),
+            Outcome::Extra(o) => fields.extend([
+                nums(&o.truth),
+                nums(&o.robust),
+                o.gate.clone(),
+                o.redecided.join(";"),
+            ]),
         }
         fields.join(",")
     }
 
     pub fn parse(study: Study, line: &str) -> Parsed<Record> {
         let f: Vec<&str> = line.split(',').collect();
-        let expected = COMMON.len() + columns(study.kind()).len();
+        let expected = COMMON.len() + columns(study).len();
         if f.len() != expected {
             return Err(format!("{} fields where {expected} were expected", f.len()));
         }
@@ -198,6 +215,16 @@ impl Record {
                 a_gap: parse_list(o[9], "a_gap")?,
                 flags: parse_bits(o[10], "flags")?,
                 roles: o[11].to_string(),
+                floors: if study.floors() {
+                    parse_list(o[12], "floors")?
+                } else {
+                    Vec::new()
+                },
+                anchor_floor: if study.floors() {
+                    parse(o[13], "anchor_floor")?
+                } else {
+                    0.0
+                },
             }),
             Kind::Dtf => Outcome::Dtf(DtfOutcome {
                 classes: parse(o[0], "classes")?,
@@ -223,6 +250,12 @@ impl Record {
                 full: parse_list(o[1], "full")?,
                 robust: parse_list(o[2], "robust")?,
                 plain: parse_list(o[3], "plain")?,
+            }),
+            Kind::Extra => Outcome::Extra(ExtraOutcome {
+                truth: parse_list(o[0], "truth")?,
+                robust: parse_list(o[1], "robust")?,
+                gate: o[2].to_string(),
+                redecided: parse_list(o[3], "redecided")?,
             }),
         };
         Ok(Record {

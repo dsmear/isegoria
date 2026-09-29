@@ -1,7 +1,7 @@
-//! The populations the studies draw (`docs/13` §3): latent-DIF batches after the paper's
-//! `dif_generate`, the Level A mirror design, and the reference fixture of `sim/`.
+//! The populations the studies draw (`docs/13` §3, §8.2): latent-DIF batches after the
+//! paper's `dif_generate`, the Level A mirror design and its probes, and the `sim/` fixture.
 
-use crate::grid::{Attack, DifDesign, Layout, SweepDesign};
+use crate::grid::{draw_seed, Attack, DifDesign, ExtraDesign, Layout, SweepDesign};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use scoring::bridging::Ratings;
@@ -51,6 +51,31 @@ pub struct DifBatch {
     pub a: Vec<f64>,
     pub b: Vec<f64>,
     pub signs: Vec<f64>,
+    /// Each trial item's guessing floor.
+    pub floors: Vec<f64>,
+}
+
+/// Ability of unit variance and mean 0: a skew-normal of shape `shape`, or for shape 0 a
+/// standard normal from one draw (`docs/13` §8.2).
+pub fn ability(shape: f64, rng: &mut ChaCha8Rng) -> f64 {
+    if shape == 0.0 {
+        return normal(rng);
+    }
+    let delta = shape / (1.0 + shape * shape).sqrt();
+    let (u0, u1) = (normal(rng), normal(rng));
+    let x = delta * u0.abs() + (1.0 - delta * delta).sqrt() * u1;
+    let mean = delta * (2.0 / std::f64::consts::PI).sqrt();
+    (x - mean) / (1.0 - mean * mean).sqrt()
+}
+
+/// Per column, `guess`, or with a spread a draw from `U(guess − spread, guess + spread)`.
+fn floors(d: &DifDesign, count: usize, rng: &mut ChaCha8Rng) -> Vec<f64> {
+    if d.spread == 0.0 {
+        return vec![d.guess; count];
+    }
+    (0..count)
+        .map(|_| rng.gen_range(d.guess - d.spread..=d.guess + d.spread))
+        .collect()
 }
 
 pub fn dif_batch(d: &DifDesign, seed: u64) -> DifBatch {
@@ -60,6 +85,8 @@ pub fn dif_batch(d: &DifDesign, seed: u64) -> DifBatch {
     let b_anchor: Vec<f64> = (0..d.anchors).map(|_| normal(&mut rng)).collect();
     let a: Vec<f64> = (0..d.k).map(|_| rng.gen_range(1.0..1.5)).collect();
     let b: Vec<f64> = (0..d.k).map(|_| 0.6 * normal(&mut rng)).collect();
+    let c_anchor = floors(d, d.anchors, &mut rng);
+    let c = floors(d, d.k, &mut rng);
     let (fraction, targets, masked) = match d.attack {
         Attack::None => (0.0, 0, false),
         Attack::Inject { fraction, targets } => (fraction, targets.min(d.k), false),
@@ -67,7 +94,7 @@ pub fn dif_batch(d: &DifDesign, seed: u64) -> DifBatch {
     };
     let attackers = ((fraction * d.n as f64).round() as usize).min(d.n);
     let targeted = |j: usize| j >= d.k - targets;
-    let respond = |p: f64| d.guess + (1.0 - d.guess) * p;
+    let respond = |c: f64, p: f64| c + (1.0 - c) * p;
     let (mut anchors, mut x, mut z) = (
         Vec::with_capacity(d.n),
         Vec::with_capacity(d.n),
@@ -76,12 +103,19 @@ pub fn dif_batch(d: &DifDesign, seed: u64) -> DifBatch {
     for i in 0..d.n {
         let z1 = if rng.gen::<f64>() < d.pi { 1.0 } else { -1.0 };
         let z2 = if rng.gen::<f64>() < 0.5 { 1.0 } else { -1.0 };
-        let theta = normal(&mut rng) + if z1 > 0.0 { d.impact } else { 0.0 };
+        let theta = ability(d.skew, &mut rng) + if z1 > 0.0 { d.impact } else { 0.0 };
+        let bumps: Vec<f64> = if d.testlet == 0.0 {
+            Vec::new()
+        } else {
+            (0..d.k.div_ceil(2))
+                .map(|_| d.testlet * normal(&mut rng))
+                .collect()
+        };
         let attacker = i >= d.n - attackers;
         let row: Vec<f64> = (0..d.anchors)
             .map(|j| {
                 let p = sigmoid(a_anchor[j] * (theta - b_anchor[j]));
-                bit(&mut rng, respond(p))
+                bit(&mut rng, respond(c_anchor[j], p))
             })
             .collect();
         anchors.push(row);
@@ -93,9 +127,10 @@ pub fn dif_batch(d: &DifDesign, seed: u64) -> DifBatch {
                     first[j] * z1 + second[j] * z2
                 };
                 let slope = a[j] + d.alpha / 2.0 * lean;
+                let own = bumps.get(j / 2).map_or(theta, |bump| theta + bump);
                 let drawn = bit(
                     &mut rng,
-                    respond(sigmoid(slope * (theta - b[j] - d.delta * lean))),
+                    respond(c[j], sigmoid(slope * (own - b[j] - d.delta * lean))),
                 );
                 if attacker && targeted(j) {
                     0.0
@@ -124,6 +159,7 @@ pub fn dif_batch(d: &DifDesign, seed: u64) -> DifBatch {
         a,
         b,
         signs: first,
+        floors: c,
     }
 }
 
@@ -136,6 +172,7 @@ pub struct SweepData {
     pub lean: Vec<f64>,
     pub truth: Vec<f64>,
     pub true_f: Vec<f64>,
+    pub severity: Vec<f64>,
 }
 
 fn phi(x: f64) -> f64 {
@@ -157,6 +194,22 @@ pub fn expected_clamped(mu: f64, sd: f64) -> f64 {
 
 pub const CONSENSUS_ITEMS: usize = 10;
 pub const PARTISAN_ITEMS: usize = 10;
+
+/// The truth of an item of quality `q` and lean `lean`: the mean over the camps, the first
+/// `camp_a` reviewers and the rest, of the camp's mean expected clamped rating.
+fn truth_of(q: f64, lean: f64, true_f: &[f64], severity: &[f64], camp_a: usize, noise: f64) -> f64 {
+    let camp = |range: std::ops::Range<usize>| -> Option<f64> {
+        let expected: Vec<f64> = range
+            .map(|u| expected_clamped(q + 0.45 * true_f[u] * lean + severity[u], noise))
+            .collect();
+        (!expected.is_empty()).then(|| expected.iter().sum::<f64>() / expected.len() as f64)
+    };
+    let sides: Vec<f64> = [camp(0..camp_a), camp(camp_a..true_f.len())]
+        .into_iter()
+        .flatten()
+        .collect();
+    sides.iter().sum::<f64>() / sides.len() as f64
+}
 
 pub fn sweep_data(d: &SweepDesign, seed: u64) -> SweepData {
     let mut rng = ChaCha8Rng::seed_from_u64(seed);
@@ -200,22 +253,7 @@ pub fn sweep_data(d: &SweepDesign, seed: u64) -> SweepData {
     }
     let camp_a = d.n - n_b;
     let truth = (0..m)
-        .map(|j| {
-            let camp = |range: std::ops::Range<usize>| -> Option<f64> {
-                let expected: Vec<f64> = range
-                    .map(|u| {
-                        let mu = q[j] + 0.45 * true_f[u] * lean[j] + severity[u];
-                        expected_clamped(mu, d.noise)
-                    })
-                    .collect();
-                (!expected.is_empty()).then(|| expected.iter().sum::<f64>() / expected.len() as f64)
-            };
-            let sides: Vec<f64> = [camp(0..camp_a), camp(camp_a..d.n)]
-                .into_iter()
-                .flatten()
-                .collect();
-            sides.iter().sum::<f64>() / sides.len() as f64
-        })
+        .map(|j| truth_of(q[j], lean[j], &true_f, &severity, camp_a, d.noise))
         .collect();
     SweepData {
         ratings: Ratings::from_dense(&r, &mask),
@@ -223,6 +261,55 @@ pub fn sweep_data(d: &SweepDesign, seed: u64) -> SweepData {
         lean,
         truth,
         true_f,
+        severity,
+    }
+}
+
+/// The probes of `bridging-extra` and the half-width of their qualities' range around `τ`.
+pub const PROBES: usize = 10;
+pub const PROBE_SPREAD: f64 = 0.06;
+
+/// A drawn extra-round design: the mirror design, and per probe, on a stream of its own, its
+/// quality, its truth and every reviewer's rating of it, rated or not (`docs/13` §8.2).
+#[derive(Clone, Debug)]
+pub struct ExtraData {
+    pub sweep: SweepData,
+    pub probe_q: Vec<f64>,
+    pub probe_truth: Vec<f64>,
+    pub probe_ratings: Vec<Vec<f64>>,
+}
+
+pub fn extra_data(d: &ExtraDesign, tau: f64, seed: u64) -> ExtraData {
+    let design = SweepDesign {
+        n: d.n,
+        share: d.share,
+        per_reviewer: d.per_reviewer,
+        noise: d.noise,
+        lambda: None,
+    };
+    let sweep = sweep_data(&design, seed);
+    let mut rng = ChaCha8Rng::seed_from_u64(draw_seed("probes", seed, 0));
+    let probe_q: Vec<f64> = (0..PROBES)
+        .map(|_| rng.gen_range(tau - PROBE_SPREAD..tau + PROBE_SPREAD))
+        .collect();
+    let probe_ratings = probe_q
+        .iter()
+        .map(|q| {
+            (0..d.n)
+                .map(|u| (q + sweep.severity[u] + d.noise * normal(&mut rng)).clamp(0.0, 1.0))
+                .collect()
+        })
+        .collect();
+    let camp_a = d.n - (d.n as f64 * d.share).round() as usize;
+    let probe_truth = probe_q
+        .iter()
+        .map(|&q| truth_of(q, 0.0, &sweep.true_f, &sweep.severity, camp_a, d.noise))
+        .collect();
+    ExtraData {
+        sweep,
+        probe_q,
+        probe_truth,
+        probe_ratings,
     }
 }
 

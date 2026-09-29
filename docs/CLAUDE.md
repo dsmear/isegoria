@@ -60,7 +60,8 @@ order — **mathematics** (every task up to the characterization T24 is done —
 are in `13-characterization.md` §7, its harness is `crates/characterization`; left are
 T25, in four steps (`10-roadmap.md` §1.4): the guessing correction D25 in the latent
 re-check (done), then in the pilot screen, a supplement of the DIF studies on the corrected
-model, then the thresholds with their calibration procedures; and T81, the mutation
+model (specified and its harness built, `13-characterization.md` §8; its runs are the
+owner's), then the thresholds with their calibration procedures; and T81, the mutation
 testing of Phase 1's mechanism. Long characterization runs go to the owner's machine: the
 cloud development container's 4 cores take three to four times as long),
 then the **P2P network** (T63, T37, T72, T13, T73, T18 and T74 are done; left are the

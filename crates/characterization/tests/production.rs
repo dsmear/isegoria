@@ -69,3 +69,35 @@ fn a_refused_batch_is_recorded_as_refused() {
         Err(PilotError::UnreliableAnchors { .. })
     ));
 }
+
+/// A batch with a floor gets the production flags of its declared format (`docs/13` §8.2).
+#[test]
+fn a_batch_with_a_floor_gets_the_production_flags_of_its_format() {
+    let d = DifDesign {
+        n: 3000,
+        anchors: 60,
+        k: 4,
+        layout: Layout::Campaign(2),
+        delta: 0.9,
+        guess: 0.1,
+        options: 10,
+        ..DifDesign::default()
+    };
+    let seed = 25;
+    let batch = dif_batch(&d, seed);
+    let outcome = dif(&d, seed);
+    assert!(outcome.admitted, "KR-20 {}", outcome.kr20);
+    let production = revalidate_batch_latent(
+        &respondents(3000),
+        &batch.anchors,
+        &batch.x,
+        &Formats::choice(d.anchors, d.k, 10),
+        engine_seed(seed),
+    );
+    assert_eq!(Ok(outcome.flags.clone()), production);
+    assert!(
+        outcome.floors.iter().all(|c| (0.02..0.25).contains(c)),
+        "{:?}",
+        outcome.floors
+    );
+}

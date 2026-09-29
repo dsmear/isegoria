@@ -53,6 +53,8 @@ fn a_run_is_a_function_of_its_task() {
         Study::DtfError,
         Study::BridgingSweep,
         Study::BridgingCapture,
+        Study::FloorPower,
+        Study::BridgingExtra,
     ];
     for task in tasks(&kinds, Grid::Smoke, Some(1), None) {
         let first = Record::new(&task, 0, run(&task));
@@ -132,6 +134,22 @@ fn a_record_of_each_kind_is_pinned() {
         (
             Study::BridgingCapture,
             "a54dc4c4a4f453d8727c8618def851b67d72d62978c113d470901df99e451778",
+        ),
+        (
+            Study::FloorPower,
+            "04deedc88570bfc18e1035c099bbfb0221078a4adb3315bbd2773414258362bf",
+        ),
+        (
+            Study::FloorDtf,
+            "72d6135a1ca48e03fc747563fc002eda58ed3572f1c9c588c0ad2084efa1f85f",
+        ),
+        (
+            Study::BridgingLambda,
+            "bed457a39859bb0b08b68122e7e7893334ff2d0b589f1d47e9899f42ff6f7782",
+        ),
+        (
+            Study::BridgingExtra,
+            "63f785c0941bf4d49c4a6dec35a56a0db6e4570989438d07be56553a50a2cf17",
         ),
     ];
     for (study, pin) in pins {

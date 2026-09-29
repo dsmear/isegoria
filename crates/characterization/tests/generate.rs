@@ -1,8 +1,12 @@
 //! The generators draw the populations `docs/13` §3 defines: the paper's batches, the
 //! design's class shares and attackers, and the bridging designs.
 
-use characterization::generate::{dif_batch, expected_clamped, fixture, sweep_data};
-use characterization::grid::{Attack, DifDesign, Layout, SweepDesign};
+use characterization::generate::{
+    ability, dif_batch, expected_clamped, extra_data, fixture, sweep_data, PROBES, PROBE_SPREAD,
+};
+use characterization::grid::{Attack, DifDesign, ExtraDesign, Layout, SweepDesign};
+use rand::SeedableRng;
+use rand_chacha::ChaCha8Rng;
 use scoring::irt::kr20;
 
 fn design(n: usize, anchors: usize, k: usize, layout: Layout) -> DifDesign {
@@ -139,6 +143,7 @@ fn the_bridging_design_has_its_camps_pairs_and_ratings() {
         share: 0.6,
         per_reviewer: 9,
         noise: 0.07,
+        lambda: None,
     };
     let data = sweep_data(&d, 5);
     assert_eq!((data.ratings.n, data.ratings.m), (200, 20));
@@ -183,4 +188,115 @@ fn a_batch_is_a_function_of_its_seed() {
     let (a, b, c) = (dif_batch(&d, 3), dif_batch(&d, 3), dif_batch(&d, 4));
     assert_eq!((&a.anchors, &a.x), (&b.anchors, &b.x));
     assert_ne!(a.x, c.x);
+}
+
+/// A floor per column around the design's, the fitted curves' `floors` the items' (`docs/13` §8.2).
+#[test]
+fn a_spread_draws_each_column_s_floor_around_the_design_s() {
+    let d = DifDesign {
+        guess: 0.2,
+        spread: 0.1,
+        ..design(6000, 20, 8, Layout::Campaign(0))
+    };
+    let batch = dif_batch(&d, 21);
+    assert!(
+        batch.floors.iter().all(|c| (0.1..=0.3).contains(c)),
+        "{:?}",
+        batch.floors
+    );
+    let distinct: std::collections::BTreeSet<u64> =
+        batch.floors.iter().map(|c| c.to_bits()).collect();
+    assert_eq!(distinct.len(), 8);
+    let fixed = dif_batch(&DifDesign { spread: 0.0, ..d }, 21);
+    assert!(fixed.floors.iter().all(|&c| c == 0.2));
+    let lowest = |b: &characterization::generate::DifBatch| {
+        (0..20)
+            .map(|j| share(&b.anchors, j, |_| true))
+            .fold(1.0_f64, f64::min)
+    };
+    assert!(lowest(&batch) > 0.1 && lowest(&fixed) > 0.2);
+}
+
+/// The skewed ability has mean 0, variance 1 and the skew of its shape's sign (`docs/13` §8.2).
+#[test]
+fn the_skewed_ability_is_standardized_and_skewed_as_its_shape() {
+    for shape in [-4.0, 0.0, 4.0] {
+        let mut rng = ChaCha8Rng::seed_from_u64(7);
+        let x: Vec<f64> = (0..200_000).map(|_| ability(shape, &mut rng)).collect();
+        let n = x.len() as f64;
+        let mean = x.iter().sum::<f64>() / n;
+        let var = x.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / n;
+        let skew = x.iter().map(|v| (v - mean).powi(3)).sum::<f64>() / n / var.powf(1.5);
+        assert!(
+            mean.abs() < 0.01 && (var - 1.0).abs() < 0.01,
+            "{shape}: {mean} {var}"
+        );
+        let expected = if shape == 0.0 {
+            0.0
+        } else {
+            0.7845 * shape.signum()
+        };
+        assert!((skew - expected).abs() < 0.03, "{shape}: skewness {skew}");
+    }
+}
+
+/// Items of one template, a pair, agree more than items of two (`docs/13` §8.2).
+#[test]
+fn items_of_one_template_are_answered_alike() {
+    let corr = |testlet: f64, i: usize, j: usize| {
+        let d = DifDesign {
+            testlet,
+            ..design(8000, 10, 4, Layout::Campaign(0))
+        };
+        let b = dif_batch(&d, 31);
+        let (mi, mj) = (share(&b.x, i, |_| true), share(&b.x, j, |_| true));
+        let cov = b.x.iter().map(|r| (r[i] - mi) * (r[j] - mj)).sum::<f64>() / 8000.0;
+        cov / (mi * (1.0 - mi) * mj * (1.0 - mj)).sqrt()
+    };
+    let (pair, apart) = (corr(1.0, 0, 1), corr(1.0, 1, 2));
+    assert!(
+        pair > apart + 0.08,
+        "same template {pair}, two templates {apart}"
+    );
+    assert!((corr(0.0, 0, 1) - corr(0.0, 1, 2)).abs() < 0.05);
+}
+
+/// The probes lie within `PROBE_SPREAD` of `τ`, their truth follows their quality, and every
+/// reviewer has a rating of each (`docs/13` §8.2).
+#[test]
+fn the_extra_round_s_probes_lie_around_the_threshold() {
+    let d = ExtraDesign {
+        n: 400,
+        share: 0.8,
+        per_reviewer: 5,
+        noise: 0.15,
+        panel: 7,
+    };
+    let data = extra_data(&d, 0.8, 9);
+    assert_eq!(data.probe_q.len(), PROBES);
+    assert!(data
+        .probe_q
+        .iter()
+        .all(|q| (0.8 - PROBE_SPREAD..0.8 + PROBE_SPREAD).contains(q)));
+    for (q, t) in data.probe_q.iter().zip(&data.probe_truth) {
+        assert!((q - t).abs() < 0.02, "quality {q}, truth {t}");
+    }
+    assert!(data.probe_ratings.iter().all(|r| r.len() == 400));
+    let plain = sweep_data(
+        &SweepDesign {
+            n: 400,
+            share: 0.8,
+            per_reviewer: 5,
+            noise: 0.15,
+            lambda: None,
+        },
+        9,
+    );
+    let triples = |obs: &[scoring::bridging::Obs]| -> Vec<(usize, usize, u64)> {
+        obs.iter().map(|o| (o.u, o.j, o.r.to_bits())).collect()
+    };
+    assert_eq!(
+        triples(&data.sweep.ratings.obs),
+        triples(&plain.ratings.obs)
+    );
 }
