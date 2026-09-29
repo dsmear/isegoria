@@ -5,7 +5,7 @@
 | **Purpose** | Measure how much of the code the tests actually *verify*, not just execute, and record every mutant that survives with the reason it is acceptable. |
 | **Tool** | `cargo-mutants` 26.0.0 (the newest release that builds on the pinned rustc 1.86). |
 | **Date** | 2026-09-24, branch `test/t41-mutation-survivors`. |
-| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, runs 12–14 for T73's three steps, run 15 for T18, runs 16–17 for T74's two steps, run 18 for T25's first step). Not covered yet: the decision logic Phase 1 changed after run 5 — T49–T62, T71 and T39 — apart from T55's (runs 6–7): `docs/10` T81. |
+| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, runs 12–14 for T73's three steps, run 15 for T18, runs 16–17 for T74's two steps, run 18 for T25's first step, run 19 for its third step's harness). Not covered yet: the decision logic Phase 1 changed after run 5 — T49–T62, T71 and T39 — apart from T55's (runs 6–7): `docs/10` T81. |
 
 ## Why this was needed
 
@@ -353,6 +353,60 @@ would take hours per mutant:
   are missing: it must read `BadFormats`, not `UnreliableAnchors`.
 - `characterization/src/run.rs` (`--test=production`, `--test=harness`): 8 mutants — 5
   caught, 3 unviable.
+
+## Run 19 — T25, third step: the supplement's harness
+
+`cargo mutants --no-config` on the step's diff of `crates/characterization/src` — the
+`mutants` profile, a 3× timeout multiplier and the 60 s floor, `-j 4`; the crate has no
+`calibration` — one run per file with the tests that read it:
+
+- `summary.rs` (`--test=summary`): 78 mutants in 21 minutes — 58 caught, 3 unviable, 17
+  missed.
+- `record.rs` (`--test=harness`, `--test=summary`): 16 mutants — 12 caught, 4 unviable.
+- `grid.rs` (`--test=grid`, `--test=harness`): 66 mutants — 43 caught, 5 unviable, 18
+  missed.
+- `generate.rs` (`--test=generate`, `--test=harness`): 111 mutants — 98 caught, 3
+  unviable, 10 missed.
+- `run.rs` (`--test=harness`, `--test=production`, `--test=summary`): 41 mutants — 29
+  caught, 7 unviable, 5 missed.
+- `main.rs` (`--test=grid`): the diff's one mutant, `parse` returning `Ok(Default::default())`,
+  does not build — `Args` has no default. The file's other lines, T24's printout of `plan`
+  and the dispatch of `main`, are outside the diff and reached by no test: the binary's
+  glue, run by hand (`docs/13` §2).
+
+None of the 50 survivors was a wrong result; each was a check the suite did not make, and
+the tests that make them kill them on the re-run:
+
+- *The draws of the new options.* A test of a distribution cannot see a change that keeps
+  it — `+` → `−` on a symmetric normal in `ability`, the template's effect subtracted or
+  scaled — so `floor-misspec`'s smoke record, which draws skew, templates and spread, is
+  pinned, and so are the bits of a drawn batch (`a_batch_s_draws_are_pinned`): the same bits
+  T24's generator draws at `5931ff1`, checked on a worktree of it. The batch also reads the
+  second axis's class `z₂`, which no test read since T24.
+- *The coverage guard* of the gate's record code and of the extra round's reach: they are
+  now `run::gate_char` and `run::redecides`, tested at `MIN_COVERAGE`
+  (`the_gate_s_code_sends_an_uncovered_item_to_review`); the sweep shares the first.
+- *The supplement's cells*: a field or a sign dropped in `full` or `smoke` leaves the cell
+  counts unchanged, so the keys of both grids are pinned against `docs/13` §8.3
+  (`the_supplement_s_cells_are_the_specified_ones`), and every study must cite what it
+  measures (`every_study_names_what_it_measures`).
+- *The summary's floor tables*: the floor test now carries a second format, a null with 20
+  anchors and a power cell off each condition of the cut table's selection, and reads each
+  floor table's header and the cell the cut table names; the threshold tables are checked
+  with one study's records alone.
+
+The re-run on the survivors' lines: `grid.rs` 19 caught; `run.rs`, `gate_char` and
+`redecides`, 13 caught; `generate.rs` 25, then 9 on the lines of `z₁` and `z₂` once the
+batch was pinned — all caught, one as a timeout (a template's effect divided by a normal
+has tails that keep the fit from converging in time), but for the two equivalents below;
+`summary.rs` 32, then 11 on the cut table's selection once the test named the cell it
+reads — all caught but for the equivalent below. Three are equivalent:
+
+  | Mutant | Why it is equivalent |
+  |---|---|
+  | `generate.rs` `dif_batch` `z1 > 0.0` → `>=` | `z₁` is +1 or −1, never 0. |
+  | `generate.rs` `dif_batch` `< 0.5` → `<=` in the draw of `z₂` | Differs only on a uniform draw of exactly 0.5, one chance in 2⁵³ per respondent, and no pinned batch meets one. |
+  | `summary.rs` `extra_pass` `TAU + eps` → `TAU − eps` | Reached only for a probe outside the band `[τ − ε, τ + ε)`, where a score at or above `τ + ε` and one at or above `τ − ε` are the same probes. |
 
 ## Keeping it this way
 
