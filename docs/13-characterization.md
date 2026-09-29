@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | The specification of T24: the simulation studies that measure how the production detectors and gates behave, how to run them, and what counts as done. |
 | **Derived from** | `docs/10` T24, T25 (step 3) and §1.4; `docs/08` §5.3, §12 (AT-DIF-01..09, AT-DIF-13, AT-BR-02), §16.1 (SC-2, SC-3, SC-5, SC-7); `docs/07` §12–§14; `docs/02` §B.1 (D25); the working paper's designs (`paper/scripts/common.py`). |
-| **Status** | T24 done (2026-09-28). Specified and harness built on 2026-09-26 (`crates/characterization`); the full run, 54,412 runs on the owner's machine, ended on 2026-09-28 and §7 states its results. T25 sets the thresholds from §7, the DIF ones once the model accounts for guessing (D25) and a supplement of these studies has measured it (`docs/10` T25, steps 1–3, §7.5). The supplement, T25's step 3, is specified in §8 (2026-09-28) and the harness extended and smoke-tested; its runs go to the owner's machine. |
+| **Status** | T24 done (2026-09-28). Specified and harness built on 2026-09-26 (`crates/characterization`); the full run, 54,412 runs on the owner's machine, ended on 2026-09-28 and §7 states its results. T25 sets the thresholds from §7, the DIF ones once the model accounts for guessing (D25) and a supplement of these studies has measured it (`docs/10` T25, steps 1–3, §7.5). The supplement, T25's step 3, is specified in §8 (2026-09-28) and the harness extended and smoke-tested; its first pass ran on the owner's machine on 2026-09-29 (§8.7), the full run is under way. |
 
 ## 1. What T24 measures, and what it does not
 
@@ -666,4 +666,45 @@ out the studies with no records.
 
 ### 8.7 Results
 
-Not yet run.
+**First pass (2026-09-29).** `--replicates 20` — 2,380 runs, twenty per cell — on the
+owner's machine, on the harness of `a9cdafa`. Its rates carry intervals of about ±15–20
+points; the full run is under way. What it shows:
+
+- **Specificity with a floor** (`floor-null`). No mixture and no clean item flagged in any
+  of the 240 null batches (1,920 clean items): five and four options, true/false, floors
+  varying around the declared chance, N 3,000–6,000, 20–60 anchors. The fitted floors are
+  the drawn ones (0.20 read at 0.198–0.207, 0.50 at 0.499–0.505).
+- **The KR-20 floor.** With 60 anchors the KR-20 is 0.89 with five options, 0.88 with four
+  and 0.79 with true/false; 0.85 and 0.70 with 40 anchors, 0.74 and 0.56 with 20.
+  `KR20_MIN` = 0.90 refuses 70–100% of these batches, and none of them flags a clean item;
+  40 anchors find as many leaners as 60 (two at δ = 0.9, N = 6,000: 75% and 70%).
+- **Power** (`floor-power`), two leaning items of eight at δ = 0.9, π = 0.5: with five
+  options 15%, 70% and 95% at N = 3,000, 6,000 and 12,000; with four 35% and 100% at 6,000
+  and 12,000; with true/false 0% at every N up to 12,000. Three items at δ = 0.9: 100% from
+  N = 3,000 with five options, 30% at 6,000 with true/false. Where most fits find the
+  mixture the gap is read at its scale (1.69–1.89 for 1.80), and inflated where few do (2.15
+  at 15%); no clean item is flagged in any cell.
+- **Misspecification** (`floor-misspec`). Templates at `tl = 1.0` and a skew of −4 make the
+  model select spurious classes and flag clean items: 45% and 35% of the null batches with
+  a floor, 100% and 65% without one — T24's populations — and 13.8–68.1% of their clean
+  items; with three leaners the skew of −4 flags clean items in 95% of the batches. A skew of
+  −2, templates at `tl = 0.5`, impact, floors off the chance level and varying floors flag
+  none. Impact 1.0 costs power (three leaners found in 85%); a floor off the declared chance
+  is read toward it (0.1 at 0.14, 0.3 at 0.26).
+- **DTF with a floor** (`floor-dtf`) behaves as in §7.3: the four clean items fitted 0.03–0.06
+  high, sets far over the tolerance refused, sets near it decided noisily both ways.
+- **`(λ_b, λ_f)`** (`bridging-lambda`). Within a factor of 3 of the production values the
+  verdicts do not move: no partisan item passes, a consensus item 0.05 below `τ` passes in
+  one cell of 48 (2.3%); a larger `λ_f` recovers the axis better (`|corr|` 0.92–0.95 at
+  0.09, 0.78–0.91 at 0.01).
+- **The band's extra round** (`bridging-extra`), first panels of 7 and 11: 15–72% of the
+  probes at least 0.02 above `τ` fail, most of them below the band in the first round. More
+  extra reviewers lower the false passes (at `ε` = 0.06, from 15–22% with none to 2–19% with
+  11) but not the false failures; a band of ±0.06 instead of ±0.02 lowers those by 2–21
+  points with no extra reviewer.
+
+What T25 takes from it before the full run: the templates and the left skew are a defect of
+the latent re-check, T82, to fix before the DIF thresholds are set; and for step 4, a
+minimum number of anchors in place of `KR20_MIN`, `N_LATENT_MIN` near 12,000 for batches
+of choice items, a policy for true/false batches, which the re-check does not see into, and
+`ε`, `k_extra` and the panel's size set together.
