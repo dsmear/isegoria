@@ -60,9 +60,9 @@ order — **mathematics** (every task up to the characterization T24 is done —
 are in `13-characterization.md` §7, its harness is `crates/characterization`; left are
 T25, in four steps (`10-roadmap.md` §1.4): the guessing correction D25 in the latent
 re-check (done), then in the pilot screen, a supplement of the DIF studies on the corrected
-model (specified and its harness built, `13-characterization.md` §8; its runs are the
-owner's), then the thresholds with their calibration procedures; T82, the re-check reading
-templates and a skewed ability as bias, which the supplement's first pass found and the
+model (done, its results in `13-characterization.md` §8.7, but for the screen's study, which
+follows the screen), then the thresholds with their calibration procedures; T82, the
+re-check reading templates and a skewed ability as bias, which the supplement found and the
 thresholds wait on; and T81, the mutation
 testing of Phase 1's mechanism. Long characterization runs go to the owner's machine: the
 cloud development container's 4 cores take three to four times as long),

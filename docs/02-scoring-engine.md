@@ -122,7 +122,9 @@ supplementary review instead of being decided by the exact value: an extra round
 `k_extra` reviewers drawn outside the first panel (`k_extra = 4`, provisional), whose
 ratings are added to the first panel's before the score is re-decided against the plain
 `τ` (`01` D26, T60; `05` [5]). `ε ≈ 0.02` provisional, about three times the bootstrap
-spread of `S_j` on the reference fixtures (≤ 0.006); to be tuned with `k_extra` (T25).
+spread of `S_j` on the reference fixtures (≤ 0.006); to be tuned with `k_extra`, `τ` and
+the panel's size (T25 step 4): on items rated by a panel of 7 or 11 the extra round lowers
+the false passes near `τ`, not the false failures (`13` §8.7.4).
 
 *History.* Until T49 the gate read the intercept `b_j` against `τ ≈ 0.08` with
 `ε ≈ 0.008`: the Community Notes reference value (0.40, on binary votes) proved
@@ -318,8 +320,9 @@ measured it: on 2PL populations no clean item is flagged at any cut from 0.5 to 
 at 0.6 and below the cut no longer binds — power is then the share of fits that select a
 mixture. With a guessing floor in the population 12–17% of the clean items are flagged
 at 1.0, so T25 sets the value after the guessing correction (D25; `08` DIF-006, DIF-008),
-which the model carries since T25's first step (§B.1, `08` AT-DIF-13); its tables are the
-step after.
+which the model carries since T25's first step (§B.1, `08` AT-DIF-13). On populations
+that guess the corrected model flags no clean item at any cut from 0.5 to 1.5, and a cut
+below 1.0 gains at most 3 points of power (T25 step 3, `13` §8.7.1): 1.0 can stay.
 
 *Reference implementation (T40, T54).* `G ∈ {1, …, 4}` and uniform (shared `a_j`) vs
 non-uniform (per-class `a_jg`) DIF are chosen together by BIC, each candidate fitted from
@@ -446,6 +449,14 @@ the time at 3,000 respondents and 99% at 6,000, with `δ = 0.7` 11% and 56%; at 
 two items with `δ = 0.9` are found 12–37% of the time. The floor `N_LATENT_MIN = 3,000`
 is T25's to confirm from these tables.
 
+**Measured with a guessing floor (T25 step 3, `13` §8.7.1).** On populations that guess
+the corrected model flags no clean item either, and the floor costs power: two leaning
+items of eight with `δ = 0.9` are found 9% of the time at 3,000 respondents with five
+options, 70% at 6,000 and 97% at 12,000; with four options 39% and 90% at 6,000 and
+12,000; with true/false 5% at 12,000. `N_LATENT_MIN` depends on the items' format — about
+12,000 with four or five options — and true/false batches need a policy of their own
+(T25 step 4).
+
 **Three distinct floors on network size** (person-nodes, `04`), of different natures:
 
 1. **Evidence-filter correctness (the binding one).** Each batch needs ~1500–3000
@@ -469,7 +480,10 @@ also requires the anchors the batch's respondents answered to be reliable: KR-20
 (`01` D37, T53; `pilot::admit_anchors`). Below it the batch is refused like a short
 sample, because a noisy `θ` proxy is read by the mixture as a latent class (`08` DIF-010).
 The target model does not make that mistake: T24 found no clean item flagged at KR-20
-0.83 (20 anchors, `13` §7.1), so the floor's value is T25's to revisit.
+0.83 (20 anchors, `13` §7.1), so the floor's value is T25's to revisit. With a guessing
+floor the KR-20 of batches that flag no clean item is 0.55–0.89, and 0.90 refuses 83–100%
+of the batches of choice items (T25 step 3, `13` §8.7.1): a minimum number of anchors is
+the candidate (T25 step 4).
 
 **Throughput** (a floor on usefulness, not correctness) follows `01` D10:
 `validatable_questions/month ≈ (nodes × answers_per_node_month) / answers_per_question`.
@@ -553,7 +567,9 @@ bound of 0.076 had a true DTF of 0.104 (`08` AT-PRO-08). T24 measured its sampli
 (`13` §7.3): the fitted DTF is biased upward where the true one is small — the four
 clean items of the mirror layout, true DTF 0, are fitted at 0.025–0.065 on average —
 sets far over the tolerance are refused, and within about 0.05 of it the decision is
-noisy both ways. The tolerance, and any margin below it, are T25's.
+noisy both ways; with a guessing floor the same, the clean items fitted at 0.03–0.05, and
+with true/false more sets near the tolerance decided in error (`13` §8.7.3). The
+tolerance, and any margin below it, are T25's.
 
 **The balanced draw.** A test with `n` contested slots draws them from the beacon
 (INV-10; `randomness::CONTESTED`, keyed on the test's number) among the selections with
@@ -814,10 +830,10 @@ detector no longer confuses with a cartel.
 
 | Parameter | Value | Notes |
 |---|---|---|
-| `λ_b / λ_f` | 0.15 / 0.03 | ratio ≈ 5:1, recalibrate |
+| `λ_b / λ_f` | 0.15 / 0.03 | ratio ≈ 5:1; within a factor of 3 of it the verdicts move by at most 7 points, and `λ_f` below 0.03 costs axis recovery (`13` §8.7.4) |
 | `τ` (bridging threshold, on `S_j`) | ~0.80 (provisional, D32) | absolute, on the probability scale; **calibrate on the pilot**, not fixed; characterized for 0.70–0.90 in `13` §7.4 |
-| `ε` (uncertainty band) | ~0.02 (provisional) | questions in the band → supplementary review; ≈ 3× the bootstrap spread of `S_j` |
-| `k_extra` (extra panel) | 4 (provisional) | reviewers drawn outside the first panel for a band item; their ratings join the first panel's before the re-decision (D26, T60) |
+| `ε` (uncertainty band) | ~0.02 (provisional) | questions in the band → supplementary review; ≈ 3× the bootstrap spread of `S_j`; error rates near `τ` in `13` §8.7.4 |
+| `k_extra` (extra panel) | 4 (provisional) | reviewers drawn outside the first panel for a band item; their ratings join the first panel's before the re-decision (D26, T60); set with `ε`, `τ` and the panel's size (`13` §8.7.4) |
 | `γ_appeal` (side gap for appeal) | 0.25 (provisional) | a rejected question with a wider gap was rejected for polarization: appealable (`05` [5b]) |
 | side floor | 5% of the reviewers, rounded up (provisional) | the fewest reviewers a side of the split holds (`MIN_SIDE_PER_MILLE = 50`, D42) |
 | `MIN_COVERAGE` | 1 rating (provisional) | an item with fewer from either side goes to supplementary review whatever its score (D42) |

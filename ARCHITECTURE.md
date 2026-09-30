@@ -221,8 +221,9 @@ Not part of a node: nothing depends on it. It runs the seeded simulation studies
 parallel, resumable after an interruption, every run reproducible from its seed on any
 machine — and summarizes them with intervals and the threshold tables T25 reads. T24's
 full run, 54,412 runs, is stated in `docs/13` §7 and its tables are in
-`verification/reports/t24/`; T25's supplement (`docs/13` §8, `--study t25`) measures the
-model with the guessing floor and the band's extra round.
+`verification/reports/t24/`; T25's supplement (`docs/13` §8, `--study t25`), 19,700 runs,
+measures the model with the guessing floor and the band's extra round, stated in §8.7 and
+tabled in `verification/reports/t25/`.
 
 | Module | Role |
 |---|---|

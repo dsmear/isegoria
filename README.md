@@ -243,7 +243,7 @@ dependency on identity or network** — it runs offline and is reproducible
 | [`network`](crates/network) | Content addressing, Merkle, transparency log, consortium checkpoints, the epoch's beacon round, a node's durable log and objects, the replicated signed set and its cuts, erasure coding, anchoring | Real integrity primitives (incl. OpenTimestamps proofs), durable store (T13), replicated set and cuts (T18, T74); anchoring format-level only (T17) |
 | [`protocol`](crates/protocol) | Lifecycle orchestration: deposit, lottery, blind review, gate + appeal, pilot, honeypot; a node's state from its log and from signed cuts | Wires the three layers together; the state replays from the log (T73) and from consortium-signed cuts (T74); no epoch run between nodes yet (T79) |
 | [`p2p`](crates/p2p) | The libp2p transport: gossip announcements and pull sync of the replicated signed set; a consortium member's duties | Real (T18); a replica on disk, members cutting and running the beacon (T74); serves its whole set to any peer (T77); started only from tests (T78) |
-| [`characterization`](crates/characterization) | The characterization harness: seeded simulation studies of the detectors and gates — a tool, not part of a node | T24's full run done: 54,412 runs, results in [`docs/13`](docs/13-characterization.md) §7; T25's supplement specified (§8), its runs pending |
+| [`characterization`](crates/characterization) | The characterization harness: seeded simulation studies of the detectors and gates — a tool, not part of a node | T24's full run done: 54,412 runs, results in [`docs/13`](docs/13-characterization.md) §7; T25's supplement done: 19,700 runs, results in §8.7 |
 
 The uniqueness label runs on a real single-server **VOPRF** (RFC 9497, via `voprf`)
 *and* on a real **threshold** t-of-n OPRF (Shamir shares + per-share DLEQ over
@@ -281,7 +281,8 @@ desktop; it is resumable and runs on demand, never in CI
 ([`docs/13`](docs/13-characterization.md) §2). Its results are in `docs/13` §7, its
 tables in [`verification/reports/t24/`](verification/reports/t24/). T25's supplement —
 the model with the guessing floor, and the band's extra round — is `--study t25`, 19,700
-runs, about 14 hours on the same machine (`docs/13` §8).
+runs, about 10 hours on the same machine; its results are in `docs/13` §8.7, its tables in
+[`verification/reports/t25/`](verification/reports/t25/).
 
 CI runs the comment budget (`scripts/comment_budget.py`, see `docs/CLAUDE.md`), fmt,
 clippy (`-D warnings`), the full test suite, and coverage on every push and pull request
@@ -348,8 +349,9 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
    clean items when respondents can guess — as they always can on true/false and
    multiple-choice items — so the model gets its guessing correction first (D25): the
    re-check has it (T25's first step), the pilot screen is next; then the model is
-   measured again — the supplement is specified and its harness built, its runs are the
-   owner's — and only then are the thresholds set; and the mutation testing of the
+   measured again — the supplement, 19,700 runs, found it specific on every format, its
+   power dependent on the format, and templates and a skewed ability read as bias, to fix
+   first (T82) — and only then are the thresholds set; and the mutation testing of the
    mechanism (T81).
 2. **P2P network** — done so far: the consortium's configuration check (T63), a
    randomness beacon nobody can grind, by commit-reveal among the consortium members (D41,
