@@ -5,7 +5,7 @@
 | **Purpose** | Measure how much of the code the tests actually *verify*, not just execute, and record every mutant that survives with the reason it is acceptable. |
 | **Tool** | `cargo-mutants` 26.0.0 (the newest release that builds on the pinned rustc 1.86). |
 | **Date** | 2026-09-24, branch `test/t41-mutation-survivors`. |
-| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, runs 12–14 for T73's three steps, run 15 for T18, runs 16–17 for T74's two steps, run 18 for T25's first step, run 19 for its third step's harness). Not covered yet: the decision logic Phase 1 changed after run 5 — T49–T62, T71 and T39 — apart from T55's (runs 6–7): `docs/10` T81. |
+| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, runs 12–14 for T73's three steps, run 15 for T18, runs 16–17 for T74's two steps, run 18 for T25's first step, run 19 for its third step's harness, run 20 for T82). Not covered yet: the decision logic Phase 1 changed after run 5 — T49–T62, T71 and T39 — apart from T55's (runs 6–7): `docs/10` T81. |
 
 ## Why this was needed
 
@@ -407,6 +407,26 @@ reads — all caught but for the equivalent below. Three are equivalent:
   | `generate.rs` `dif_batch` `z1 > 0.0` → `>=` | `z₁` is +1 or −1, never 0. |
   | `generate.rs` `dif_batch` `< 0.5` → `<=` in the draw of `z₂` | Differs only on a uniform draw of exactly 0.5, one chance in 2⁵³ per respondent, and no pinned batch meets one. |
   | `summary.rs` `extra_pass` `TAU + eps` → `TAU − eps` | Reached only for a probe outside the band `[τ − ε, τ + ε)`, where a score at or above `τ + ε` and one at or above `τ − ε` are the same probes. |
+
+## Run 20 — T82: the ability's shape estimated, one template per batch
+
+`cargo mutants --no-config --in-diff` on T82's diff (`70d7c9b`) — the `mutants` profile, a
+3× timeout multiplier and the 60 s floor, `-j 4`, without `calibration` — one run per crate
+with the tests that read its files:
+
+- `scoring/src` (`latent.rs`, `dtf.rs`; the unit tests and `--test=dtf`, `--test=golden`,
+  `--test=latent_guessing`, `--test=latent_misspecification`, `--test=reproducibility`):
+  357 mutants in 30 minutes — 339 caught, 18 unviable, none missed. The gradient check,
+  the histogram's weights and moving nodes included, kills every change to the
+  likelihood's arithmetic; the golden rows and the fits, the rest.
+- `protocol/src` (`pilot.rs`, `revalidation.rs`, `results.rs`, `exposure.rs`;
+  `--test=shared_templates`, `--test=results_replay`, `--test=anchor_reliability`,
+  `--test=inv8_batch_min`, `--test=proto013_respondent_gate`, `--test=contested_facts`,
+  `--test=lifecycle`): 16 mutants in 14 minutes — 12 caught, 4 unviable.
+- `characterization/src/run.rs` (`--test=misspecification`, `--test=production`,
+  `--test=harness`): 10 mutants in 24 minutes — 9 caught, 1 unviable.
+
+No survivor, and so no equivalent to justify.
 
 ## Keeping it this way
 

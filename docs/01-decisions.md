@@ -941,8 +941,9 @@ of a side a few reviewers could form, since each side counts once.
 > `revalidation::latent_batch`, `PilotError::{SharedTemplate, BadTemplates}`,
 > `exposure::Template::id`; `scoring::latent::Ability` and `LatentDif::ability`,
 > `dtf::ClassCurves::with_ability`, the contested-fit record's histogram (`docs/04`); the
-> golden rows regenerated. AT-DIF-14 and AT-DIF-15 (`docs/08` §12); the supplement's DIF
-> studies run again on the corrected model (`docs/13` §8.8).
+> golden rows regenerated. AT-DIF-14 and AT-DIF-15 (`docs/08` §12); mutation run 20
+> (`docs/11`), no survivor; the supplement's DIF studies run again on the corrected model
+> (`docs/13` §8.8).
 
 **Choice.** Two amendments.
 - **One template per batch.** No two columns of a latent re-check — its trial items and
