@@ -11,6 +11,7 @@ use protocol::results::{
     answer_leaf, inclusion_proof, inputs_root, rating_leaf, verify_inclusion, EpochResults,
     ResultRecord, ResultsRejected,
 };
+use scoring::latent::Ability;
 use scoring::reputation::{AuthorPrior, CusumParams};
 use std::fs;
 use std::path::PathBuf;
@@ -34,6 +35,14 @@ fn nym(i: u8) -> Nym {
     Nym([i; 32])
 }
 
+/// A three-node ability of mean 0 and variance 1.
+fn ability() -> Ability {
+    Ability {
+        nodes: vec![-1.5, 0.0, 1.5],
+        weights: vec![2.0 / 9.0, 5.0 / 9.0, 2.0 / 9.0],
+    }
+}
+
 fn fit(members: Vec<(Cid, u64)>) -> ResultRecord {
     ResultRecord::ContestedFit {
         pi: vec![0.6, 0.4],
@@ -41,6 +50,7 @@ fn fit(members: Vec<(Cid, u64)>) -> ResultRecord {
         a: vec![vec![1.0, 1.2], vec![1.0, 1.2]],
         b: vec![vec![0.0, 0.3], vec![0.5, 0.3]],
         c: vec![0.0, 0.2],
+        ability: ability(),
         members,
     }
 }
@@ -258,6 +268,7 @@ fn at_pro_12_results_are_applied_whole_or_not_at_all() {
                 a: vec![vec![1.0], vec![1.0]],
                 b: vec![vec![0.0], vec![0.5]],
                 c: vec![0.0],
+                ability: ability(),
                 members: vec![(cid(b"z"), 0)],
             }],
             ResultsRejected::BadClasses { record: 0 },
@@ -270,6 +281,23 @@ fn at_pro_12_results_are_applied_whole_or_not_at_all() {
                 a: vec![vec![1.0], vec![1.0]],
                 b: vec![vec![0.0], vec![0.5]],
                 c: vec![1.0],
+                ability: ability(),
+                members: vec![(cid(b"z"), 0)],
+            }],
+            ResultsRejected::BadClasses { record: 0 },
+        ),
+        (
+            2,
+            vec![ResultRecord::ContestedFit {
+                pi: vec![0.6, 0.4],
+                eta: vec![0.0, 0.5],
+                a: vec![vec![1.0], vec![1.0]],
+                b: vec![vec![0.0], vec![0.5]],
+                c: vec![0.0],
+                ability: Ability {
+                    nodes: vec![0.0, 1.0],
+                    weights: vec![1.0, -0.5],
+                },
                 members: vec![(cid(b"z"), 0)],
             }],
             ResultsRejected::BadClasses { record: 0 },

@@ -8,7 +8,8 @@ use identity::nym::{Nym, Role};
 use network::cid::{cid, Cid};
 use protocol::admission::{NullifierSet, Unproven};
 use protocol::pilot::{
-    batch_id, response_context, screen, submit_response, PilotError, ResponseRejected, N1_MIN,
+    batch_id, response_context, screen, submit_response, PilotError, ResponseRejected, Templates,
+    N1_MIN,
 };
 use protocol::revalidation::{revalidate_batch_latent, N_LATENT_MIN};
 use scoring::latent::Formats;
@@ -127,6 +128,7 @@ fn three_hundred_rows_from_one_respondent_are_not_enough() {
             &anchors(N_LATENT_MIN),
             &responses,
             &Formats::open(60, 8),
+            &Templates::none(60, 8),
             0
         ),
         Err(PilotError::NotEnoughRespondents {
@@ -221,6 +223,7 @@ fn rows_without_a_respondent_are_refused() {
             &anchors(N_LATENT_MIN + 1),
             &responses,
             &Formats::open(60, 8),
+            &Templates::none(60, 8),
             0
         ),
         Err(PilotError::RowCountMismatch {

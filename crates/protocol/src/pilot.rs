@@ -38,6 +38,48 @@ pub enum PilotError {
     },
     /// Not one format per anchor and per item, or a choice among fewer than two options (D25).
     BadFormats,
+    /// Not one template entry per anchor and per item (D43).
+    BadTemplates,
+    /// Two columns of the batch, anchors included, come from `template` (D43, `docs/05` [7]).
+    SharedTemplate {
+        template: Cid,
+    },
+}
+
+/// Each column's template (`docs/05` [9]) in column order; `None` for an item from no template.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Templates {
+    pub anchors: Vec<Option<Cid>>,
+    pub items: Vec<Option<Cid>>,
+}
+
+impl Templates {
+    pub fn none(anchors: usize, items: usize) -> Templates {
+        Templates {
+            anchors: vec![None; anchors],
+            items: vec![None; items],
+        }
+    }
+}
+
+/// One template per batch (`docs/01` D43): one entry per column, no template twice.
+pub fn admit_templates(
+    templates: &Templates,
+    anchors: usize,
+    items: usize,
+) -> Result<(), PilotError> {
+    if templates.anchors.len() != anchors || templates.items.len() != items {
+        return Err(PilotError::BadTemplates);
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    for template in templates.anchors.iter().chain(&templates.items).flatten() {
+        if !seen.insert(*template) {
+            return Err(PilotError::SharedTemplate {
+                template: *template,
+            });
+        }
+    }
+    Ok(())
 }
 
 pub fn batch_id(items: &[Cid]) -> Cid {

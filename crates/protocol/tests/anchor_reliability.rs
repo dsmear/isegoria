@@ -3,7 +3,7 @@
 
 use identity::nym::Nym;
 use protocol::admission::NullifierSet;
-use protocol::pilot::{admit_anchors, PilotError};
+use protocol::pilot::{admit_anchors, PilotError, Templates};
 use protocol::revalidation::{latent_flags, revalidate_batch_latent, N_LATENT_MIN};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
@@ -28,6 +28,10 @@ fn sigmoid(z: f64) -> f64 {
 /// Returns (anchors, responses), both respondents × items.
 fn open(anchors: &[Vec<f64>]) -> Formats {
     Formats::open(anchors[0].len(), K)
+}
+
+fn none(anchors: &[Vec<f64>]) -> Templates {
+    Templates::none(anchors[0].len(), K)
 }
 
 fn null_batch(seed: u64, n_anchor: usize) -> (Vec<Vec<f64>>, Vec<Vec<f64>>) {
@@ -91,7 +95,14 @@ fn kr20_follows_the_anchor_count_as_in_the_paper() {
 fn at_dif_11_twenty_anchors_are_refused_before_the_fit() {
     let (anchors, responses) = null_batch(1300, 20);
     let people = respondents(N);
-    let refused = revalidate_batch_latent(&people, &anchors, &responses, &open(&anchors), 0);
+    let refused = revalidate_batch_latent(
+        &people,
+        &anchors,
+        &responses,
+        &open(&anchors),
+        &none(&anchors),
+        0,
+    );
     let Err(PilotError::UnreliableAnchors { kr20: r, need }) = refused else {
         panic!("a 20-anchor proxy was accepted: {refused:?}");
     };
@@ -123,8 +134,15 @@ fn at_dif_11_sixty_anchors_are_accepted_and_raise_no_flag() {
     let (anchors, responses) = null_batch(1300, 60);
     let r = admit_anchors(&anchors).unwrap();
     assert!(r >= KR20_MIN, "KR-20 {r:.3}");
-    let flags =
-        revalidate_batch_latent(&respondents(N), &anchors, &responses, &open(&anchors), 0).unwrap();
+    let flags = revalidate_batch_latent(
+        &respondents(N),
+        &anchors,
+        &responses,
+        &open(&anchors),
+        &none(&anchors),
+        0,
+    )
+    .unwrap();
     println!("60 anchors: KR-20 {r:.3}, flags {flags:?}");
     assert_eq!(flags, vec![false; K]);
 }
@@ -159,7 +177,14 @@ fn anchor_rows_must_be_the_respondents() {
     let (anchors, responses) = null_batch(1300, 60);
     let people = respondents(N - 1);
     assert_eq!(
-        revalidate_batch_latent(&people, &anchors, &responses[..N - 1], &open(&anchors), 0),
+        revalidate_batch_latent(
+            &people,
+            &anchors,
+            &responses[..N - 1],
+            &open(&anchors),
+            &none(&anchors),
+            0
+        ),
         Err(PilotError::RowCountMismatch {
             rows: N,
             respondents: N - 1
@@ -168,7 +193,14 @@ fn anchor_rows_must_be_the_respondents() {
     let mut ragged = anchors.clone();
     ragged[5].pop();
     assert_eq!(
-        revalidate_batch_latent(&respondents(N), &ragged, &responses, &open(&anchors), 0),
+        revalidate_batch_latent(
+            &respondents(N),
+            &ragged,
+            &responses,
+            &open(&anchors),
+            &none(&anchors),
+            0
+        ),
         Err(PilotError::RowCountMismatch {
             rows: 59,
             respondents: 60
@@ -182,7 +214,7 @@ fn formats_must_describe_the_batch() {
     let (anchors, responses) = null_batch(1300, 60);
     let people = respondents(N);
     let refused = |formats: &Formats| {
-        revalidate_batch_latent(&people, &anchors, &responses, formats, 0)
+        revalidate_batch_latent(&people, &anchors, &responses, formats, &none(&anchors), 0)
             == Err(PilotError::BadFormats)
     };
     assert!(refused(&Formats::open(59, K)));
@@ -192,7 +224,14 @@ fn formats_must_describe_the_batch() {
     assert!(refused(&one_option));
     let (unreliable, responses) = null_batch(1300, 20);
     assert_eq!(
-        revalidate_batch_latent(&people, &unreliable, &responses, &Formats::open(19, K), 0),
+        revalidate_batch_latent(
+            &people,
+            &unreliable,
+            &responses,
+            &Formats::open(19, K),
+            &none(&unreliable),
+            0
+        ),
         Err(PilotError::BadFormats),
         "the formats are checked before the anchors' reliability"
     );

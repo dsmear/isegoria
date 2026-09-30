@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | The specification of T24: the simulation studies that measure how the production detectors and gates behave, how to run them, and what counts as done. |
 | **Derived from** | `docs/10` T24, T25 (step 3) and §1.4; `docs/08` §5.3, §12 (AT-DIF-01..09, AT-DIF-13, AT-BR-02), §16.1 (SC-2, SC-3, SC-5, SC-7); `docs/07` §12–§14; `docs/02` §B.1 (D25); the working paper's designs (`paper/scripts/common.py`). |
-| **Status** | T24 done (2026-09-28). Specified and harness built on 2026-09-26 (`crates/characterization`); the full run, 54,412 runs on the owner's machine, ended on 2026-09-28 and §7 states its results. T25 sets the thresholds from §7, the DIF ones once the model accounts for guessing (D25) and a supplement of these studies has measured it (`docs/10` T25, steps 1–3, §7.5). The supplement, T25's step 3, is specified in §8 (2026-09-28); its full run, 19,700 runs on the owner's machine, ended on 2026-09-30 and §8.7 states its results; the screen's study waits on T25's second step. |
+| **Status** | T24 done (2026-09-28). Specified and harness built on 2026-09-26 (`crates/characterization`); the full run, 54,412 runs on the owner's machine, ended on 2026-09-28 and §7 states its results. T25 sets the thresholds from §7, the DIF ones once the model accounts for guessing (D25) and a supplement of these studies has measured it (`docs/10` T25, steps 1–3, §7.5). The supplement, T25's step 3, is specified in §8 (2026-09-28); its full run, 19,700 runs on the owner's machine, ended on 2026-09-30 and §8.7 states its results; the screen's study waits on T25's second step. T82 (`docs/01` D43, 2026-09-30) then changed the target model: the DIF results of §7 and §8.7 describe the model before it, and the supplement's DIF studies run again on it (§8.8). |
 
 ## 1. What T24 measures, and what it does not
 
@@ -547,7 +547,9 @@ the cell's key — unless the cell sets it:
   variance 1 (skewness ±0.78 at shape ±4), plus the impact; at 0, one normal as in §3.1.
 - `tl`, templates: trial items 0–1, 2–3, … are pairs of one template, and each
   respondent gets an effect `tl · N(0, 1)` per template, added to the ability on its two
-  items — a testlet, so the two are answered alike beyond what ability explains.
+  items — a testlet, so the two are answered alike beyond what ability explains. Since
+  D43 the gate refuses a batch with two items of one template, so `admitted` is false for
+  these cells, and their fits measure a template the batch did not declare.
 
 With the four at their defaults a batch draws exactly the random stream of §3.1, so T24's
 records reproduce (§6).
@@ -821,3 +823,35 @@ it already showed what §8.7.1 states, and found the misspecification of §8.7.2
 records; no cell was added after it.
 
 The screen at N = 300 (§8.1) joins the supplement once T25's second step is done.
+
+### 8.8 After T82: the DIF studies again
+
+D43 (T82) gave the target model an estimated ability histogram and the batch gate a
+template rule, the day the full run ended. Every DIF, DTF and floor record of §7 and §8.7
+comes from the model before it; its bridging records are unchanged. So the four DIF
+studies of the supplement run again on the corrected model, same grid and seeds — the
+measurements T25's fourth step reads, since every item the system asks guesses:
+
+- **What changes.** Each class's ability is the shared histogram shifted by its mean,
+  estimated with the rest (`docs/02` §B.3). The pinned DIF records of `tests/harness.rs`
+  change on purpose; the bridging ones reproduce. `admitted` is false for the `tl` cells
+  (§8.2). A fit with a floor costs about half as much again as before (T82, `docs/10`).
+- **Power, at the margin.** The one-class fit now takes the sample's departures from a
+  normal, which a second class used to take as well, so a real mixture can gain less over
+  one class. On the golden batch of 1,500 respondents and 20 anchors with two leaners at
+  δ = 0.9, the previous model selected two classes with a BIC gain of 2.4 and the
+  corrected one selects one; on its batch with a floor the gain fell from 27.5 to 24.1,
+  the leaners flagged as before. A paired pre-check on the supplement's own batches, in the
+  container, found no such loss where the tables are read: on eight replicates of three
+  leaners at δ = 0.9, N = 3,000, five options, and eight of two leaners at N = 6,000, both
+  models find the same batches — all eight, and the same five of eight — their BIC gains
+  within 5 of each other, no clean item flagged.
+- **What it must show.** The skewed and template cells flag clean items in no more null
+  batches than the clean populations do — for templates, of a template the batch did not
+  declare, since a declared one is refused. The other cells stay as §8.7 states them, or
+  the difference is stated: the power tables and `N_LATENT_MIN` are read from this run.
+- **On the owner's machine**, on the commit that carries this section, into a new
+  directory, since the harness resumes from the records it finds:
+  `cargo run --release -p characterization -- run --study floor-null,floor-power,floor-misspec,floor-dtf --out characterization-t25-d43`,
+  a first pass with `--replicates 20` first. T24's DIF studies are not run again: they
+  describe the model before D43 on populations that do not guess.

@@ -4,7 +4,7 @@
 
 use crate::admission::NullifierSet;
 use crate::exposure::{should_retire, ExposureLedger, ItemHealth, RetirementReason};
-use crate::pilot::{admit_anchors, admit_dif_batch, PilotError};
+use crate::pilot::{admit_anchors, admit_dif_batch, admit_templates, PilotError, Templates};
 use network::cid::Cid;
 #[cfg(feature = "calibration")]
 use scoring::dif::{logistic_dif, BETA2_MAX};
@@ -76,16 +76,18 @@ pub fn target_flags(res: &LatentDif) -> Vec<bool> {
 }
 
 /// Batch-admission gate for the production latent re-check (`docs/08` INV-8, D37): a
-/// batch of at least `K_MIN` items, `N_LATENT_MIN` respondents, a format per column (D25),
-/// reliable anchors (`pilot::admit_anchors`); the target model integrates θ out (T54).
+/// batch of at least `K_MIN` items, `N_LATENT_MIN` respondents, a format per column (D25), no
+/// template twice (D43), reliable anchors (`pilot::admit_anchors`); θ integrated out (T54).
 pub fn revalidate_batch_latent(
     respondents: &NullifierSet,
     anchors: &[Vec<f64>],
     responses: &[Vec<f64>],
     formats: &Formats,
+    templates: &Templates,
     seed: u64,
 ) -> Result<Vec<bool>, PilotError> {
-    latent_batch(respondents, anchors, responses, formats, seed).map(|fit| target_flags(&fit))
+    latent_batch(respondents, anchors, responses, formats, templates, seed)
+        .map(|fit| target_flags(&fit))
 }
 
 /// The fit [`revalidate_batch_latent`] flags from, behind the same gates: the contested pool
@@ -95,6 +97,7 @@ pub fn latent_batch(
     anchors: &[Vec<f64>],
     responses: &[Vec<f64>],
     formats: &Formats,
+    templates: &Templates,
     seed: u64,
 ) -> Result<LatentDif, PilotError> {
     let n = respondents.len();
@@ -128,6 +131,7 @@ pub fn latent_batch(
     if formats.anchors.len() != k_anchor || formats.items.len() != m {
         return Err(PilotError::BadFormats);
     }
+    admit_templates(templates, k_anchor, m)?;
     admit_anchors(anchors)?;
     latent_dif(anchors, responses, formats, seed).map_err(|_| PilotError::BadFormats)
 }

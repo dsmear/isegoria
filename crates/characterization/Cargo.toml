@@ -17,3 +17,7 @@ rand_chacha = "0.3"
 # datasets on every platform, so any run reproduces from its seed anywhere (docs/13 §2).
 libm = "0.2"
 sha2 = "0.10"
+
+[features]
+# The slower checks, as in the other crates: CI runs them in its calibration pass.
+calibration = []

@@ -4,7 +4,7 @@
 
 use identity::nym::Nym;
 use protocol::admission::NullifierSet;
-use protocol::pilot::{admit_dif_batch, screen, PilotError, N1_MIN, N2_MIN};
+use protocol::pilot::{admit_dif_batch, screen, PilotError, Templates, N1_MIN, N2_MIN};
 use protocol::revalidation::{revalidate_batch_latent, N_LATENT_MIN};
 use scoring::latent::Formats;
 
@@ -64,6 +64,7 @@ fn at_pro_02_the_production_latent_recheck_refuses_one_item() {
             &a,
             &responses(N_LATENT_MIN, 1),
             &Formats::open(60, 1),
+            &Templates::none(60, 1),
             0
         ),
         Err(PilotError::BatchTooSmall { items: 1 })
@@ -73,6 +74,7 @@ fn at_pro_02_the_production_latent_recheck_refuses_one_item() {
         &a,
         &responses(N_LATENT_MIN, 2),
         &Formats::open(60, 2),
+        &Templates::none(60, 2),
         0
     )
     .is_ok());
@@ -119,6 +121,7 @@ fn a_stage_below_its_respondent_floor_is_rejected() {
             &anchors(n),
             &responses(n, 8),
             &Formats::open(60, 8),
+            &Templates::none(60, 8),
             0
         ),
         Err(PilotError::NotEnoughRespondents {

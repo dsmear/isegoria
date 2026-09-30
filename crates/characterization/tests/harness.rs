@@ -121,11 +121,11 @@ fn a_record_of_each_kind_is_pinned() {
     let pins = [
         (
             Study::DifPower,
-            "9a829eaa86d78ae0cc473d1d3481051de8f47ef57557859ff3745e14d11ef056",
+            "2d38bd1d3bd49967dcf0f5506a68e3144699ea3623d1b1d7843f1035520bd994",
         ),
         (
             Study::DtfError,
-            "5fb32673f7ad9d049ad8492d910e61f1259b5c01c9ed8d7a76f0007bd91fe58e",
+            "a90418aef1d564a130318bb81a96f54e49e4b54f96ba11cad15dbabf8a7b8b3b",
         ),
         (
             Study::BridgingSweep,
@@ -141,11 +141,11 @@ fn a_record_of_each_kind_is_pinned() {
         ),
         (
             Study::FloorPower,
-            "04deedc88570bfc18e1035c099bbfb0221078a4adb3315bbd2773414258362bf",
+            "4a45a1cfa8239ca42d195cd1bf35c9ee8969b53dfb9a6e0869cfb8b07280320b",
         ),
         (
             Study::FloorMisspec,
-            "7cb933f349017a01cb163090325b83fe58f4e21dd9defe9c6aa696e00f8ec47d",
+            "4eaebc9204692250ab53288e4205cf47069154f9eecd73ec2c45fe2ef687d781",
         ),
         (
             Study::FloorDtf,

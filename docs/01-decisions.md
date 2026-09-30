@@ -359,7 +359,7 @@ another. One metric, one value, one justification. Resolves Q-5 / G-08.
 > The correction cannot be omitted: with a guessing floor of 0.2 in the population the
 > 2PL target model of D37 selects a mixture in 72.5–98.0% of the null batches and flags
 > 12–17% of the clean items, and the anchors' KR-20 floor does not prevent it (`docs/13`
-> §7.2). Every item the system asks is true/false or multiple-choice with one keyed
+> §7.2); since D43 an undeclared floor bends the metric instead (`docs/02` §B.1). Every item the system asks is true/false or multiple-choice with one keyed
 > option, so every real batch guesses. The correction is a lower asymptote per item,
 > `P = c_j + (1 − c_j) σ(a_jg (θ − b_jg))`, in the latent re-check (anchors and trial
 > items) and in the pilot screen, which reads the same model:
@@ -928,3 +928,65 @@ of a side a few reviewers could form, since each side counts once.
   removes the cause.
 - Rejecting an uncovered item: the missing ratings are the panel's, not a defect of the
   item; the band's extra round, stratified on the axis (D40), is where they are added.
+
+---
+
+## D43 — Latent DIF: one template per batch; the ability's shape estimated
+
+> **Decided (2026-09-30)** by the owner, from the misspecifications T25's supplement found
+> (`docs/13` §8.7.2); built by `docs/10` T82. Amends D37's target model and the metric of
+> D25 (`docs/02` §B.1), which it keeps as declared.
+>
+> **Implemented** (T82, 2026-09-30): `protocol::pilot::{Templates, admit_templates}` in
+> `revalidation::latent_batch`, `PilotError::{SharedTemplate, BadTemplates}`,
+> `exposure::Template::id`; `scoring::latent::Ability` and `LatentDif::ability`,
+> `dtf::ClassCurves::with_ability`, the contested-fit record's histogram (`docs/04`); the
+> golden rows regenerated. AT-DIF-14 and AT-DIF-15 (`docs/08` §12); the supplement's DIF
+> studies run again on the corrected model (`docs/13` §8.8).
+
+**Choice.** Two amendments.
+- **One template per batch.** No two columns of a latent re-check — its trial items and
+  the anchors its respondents answered — come from the same template (`05` [9]). Each
+  column's template is declared with its format (D25), and the gate refuses a batch in
+  which two share one before any fit (`PilotError::SharedTemplate`): batches are composed
+  with the templates apart. An item built from no template is a template of its own.
+- **The ability's shape estimated.** Within a class θ no longer follows a normal. Every
+  class follows the same histogram over the quadrature grid, estimated with the other
+  parameters and shifted by the class's mean `η_g`. The histogram is standardized — mean
+  0, variance 1 — so D25's metric holds as declared: θ of unit variance within each class,
+  its origin the first class's mean. Its weights are the same parameters in every
+  candidate model and the BIC counts them in each, so they do not decide the number of
+  classes. The DTF bound integrates over the same distribution, and a contested fit's
+  record carries it (`04`).
+
+**Why.** The target model assumes a respondent's answers independent given θ, and θ
+normal within each class; the BIC reads any misfit as classes. The supplement broke both
+on null batches with a floor of 0.2. Trial items in pairs answered alike — a respondent's
+effect of SD 1 shared by the pair — selected classes and flagged clean items in 41% of the
+batches (11.2% of their clean items); a left-skewed ability (a skew-normal of shape −4) in
+56% (22.4%); without floors in 100% and 52%.
+- Local dependence and a class that finds both items easier give the same answers: no fit
+  tells them apart, so the batch must not hold the pair.
+- A skewed ability is a shape no normal takes and a mixture of two normals approximates,
+  so two classes take it; in the low one, answered near chance, the items' difficulties
+  are barely identified, and their gaps run to several points. With the shape estimated,
+  one class fits.
+
+**Rejected.**
+- A testlet model, a random effect per template: it needs the templates declared as the
+  rule does, adds a dimension to the integral per template, and the rule removes the
+  dependence at no cost to the fit.
+- A skew-normal ability, one parameter more: it covers the asymmetry the study drew and no
+  other shape, and the study would pass it on its own family.
+- A histogram per class: forty more parameters per class in the BIC, so a mixture would
+  need a far larger gain to be selected and the power the supplement measured would fall;
+  and free shapes let two classes split the population by ability, which the anchors
+  cannot tell from DIF.
+- Leaving the misfit to the thresholds, a larger DIF cut or class share: the spurious gaps
+  are as large as real ones, and the cut the supplement measured would stop protecting.
+
+**Consequence.** T24's and the supplement's DIF tables describe the model before this
+decision; the supplement's DIF studies are run again on it before T25's fourth step reads
+them (`docs/13`). The histogram also takes an undeclared floor as a skew: a batch that
+guesses, declared open, is now one class, its discriminations a fifth low and its ability
+read skewed (`docs/02` §B.1) — the floor of D25 keeps the metric.

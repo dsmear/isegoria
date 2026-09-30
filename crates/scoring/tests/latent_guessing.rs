@@ -137,12 +137,27 @@ fn at_dif_13_null_batches_that_guess_are_not_mixtures() {
     assert_null(&varied, "floors 0.1–0.3");
 }
 
-/// AT-DIF-13: the same guessing batch declared open is read as a mixture — the defect D25 fixes.
+/// AT-DIF-13: declared open, a batch that guesses bends the metric its floors keep (D25, D43).
 #[cfg(feature = "calibration")]
 #[test]
-fn at_dif_13_a_batch_that_guesses_declared_open_is_read_as_a_mixture() {
+fn at_dif_13_a_batch_that_guesses_declared_open_bends_the_metric() {
     let (anchors, x) = batch(3000, 60, 0, 0.0, (0.2, 0.2), 2400);
-    let res = fit(&anchors, &x, &Formats::open(60, K), "declared open");
-    assert!(res.classes >= 2, "gaps {:?}", res.dif);
-    assert!(res.flags(MIXTURE_DIF_MAX).iter().any(|&f| f));
+    let open = fit(&anchors, &x, &Formats::open(60, K), "declared open");
+    let five = fit(&anchors, &x, &Formats::choice(60, K, 5), "five options");
+    let mean_a = |res: &LatentDif| res.anchor_a.iter().sum::<f64>() / res.anchor_a.len() as f64;
+    let skew = |res: &LatentDif| -> f64 {
+        let (u, w) = (&res.ability.nodes, &res.ability.weights);
+        u.iter().zip(w).map(|(u, w)| w * u * u * u).sum()
+    };
+    assert_null(&open, "declared open");
+    let (a_open, a_five) = (mean_a(&open), mean_a(&five));
+    assert!(
+        a_open < 0.85 * a_five,
+        "anchors' a: {a_open:.3} open, {a_five:.3} five"
+    );
+    let (s_open, s_five) = (skew(&open), skew(&five));
+    assert!(
+        s_open > 0.4 && s_five.abs() < 0.3,
+        "skewness {s_open:.2}, {s_five:.2}"
+    );
 }

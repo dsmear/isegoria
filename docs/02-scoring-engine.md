@@ -210,12 +210,17 @@ P(X_ij = 1 | θ_i) = c_j + (1 − c_j) · [ 1 + exp(−a_j (θ_i − b_j)) ]⁻�
 Without the floor, the latent re-check fitted to a population that guesses — a floor of
 0.2 on every item — selects a mixture in 72.5–98.0% of the null batches and flags 12–17%
 of the clean items (T24, `13` §7.2); every item the system asks is true/false or a choice
-among options.
+among options. Since the ability's shape is estimated (§B.3, `01` D43) the same batches
+declared open select one class, the histogram taking the guessing as a right skew, but
+the metric bends: on four seeds the anchors' mean discrimination falls to 1.0 against 1.3
+with the floors (drawn around 1.25), and the ability reads skewed by +0.55 to +0.80. The
+floor keeps the metric the thresholds are expressed in.
 
 **The metric.** Every threshold on `a`, `b` and the DIF gap is in the metric of the target
 model (§B.3): logistic with no scaling constant (`D = 1`), `θ` of unit variance within each
 latent class, its origin the mean of the first class — in a one-class fit, of the batch's
-respondents. The metric is the batch's own: nothing links the metrics of two fits (§B.7).
+respondents — and its shape estimated, the same in every class (§B.3, `01` D43). The
+metric is the batch's own: nothing links the metrics of two fits (§B.7).
 The pilot's stage 1 reads a 2PL slope on the standardized anchor total instead, a proxy
 metric (`08` IRT-001), until T25's second step moves it onto this model (`10`).
 
@@ -276,7 +281,7 @@ tertiles, Mantel–Haenszel with ETS classification:
 > statistic and the balanced draw, §B.5 the source check that classifies.
 
 ```
-P(x_i) = Σ_g π_g ∫ Π_{a∈A} P_a(x_ia | θ) · Π_{j∈J} P_jg(x_ij | θ) · φ(θ; η_g, 1) dθ,   η_0 = 0
+P(x_i) = Σ_g π_g Σ_q w_q Π_{a∈A} P_a(x_ia | η_g + u_q) · Π_{j∈J} P_jg(x_ij | η_g + u_q),   η_0 = 0
 P_a(x = 1 | θ)  = c_a + (1 − c_a) [1 + exp(−a_a (θ − b_a))]⁻¹      the anchors: one parameter set for every class
 P_jg(x = 1 | θ) = c_j + (1 − c_j) [1 + exp(−a_jg (θ − b_jg))]⁻¹    the trial items: a and b per class, the floor shared
 DIF_j = max_{g,h} | b_jg − b_jh |                       reject if DIF_j > 1.0  (provisional, see below)
@@ -286,14 +291,21 @@ The population is a mixture of `G` classes with proportions `π_g`; the classes 
 label and do not need one. The anchors (`A`, the DIF-free items the respondents also
 answered) enter the likelihood with class-invariant parameters and each class has its own
 ability mean `η_g`, so a class-wide shift is attributed to ability, not to the trial
-items: DIF is a trial item's departure from the anchors' account of the classes. `θ` is
-integrated on a fixed grid (41 nodes over `[−5, 5]`); `G` is chosen by BIC. The floors
-`c` follow each item's format (§B.1): 0 for an open answer, otherwise estimated, the same
-in every class — a class that guesses differently on an item is DIF, which the model reads
-in the item's difficulties. The fit minimizes the negative log-likelihood plus the floors'
-priors; the BIC reads the likelihood at that optimum and counts the floors as parameters,
-the same count in every candidate. With every floor 0 the model is the 2PL target model,
-bit for bit. **This
+items: DIF is a trial item's departure from the anchors' account of the classes. Every
+class's ability has the same shape, a histogram estimated with the other parameters (`01`
+D43): weights `w_q` over a fixed grid of 41 nodes on `[−5, 5]`, whose nodes `u_q` are the
+grid standardized by the weights' own mean and standard deviation, so the shape has mean 0
+and variance 1 and class `g`'s ability is `η_g + u_q` with probability `w_q`. A normal cannot
+take a skewed shape and a mixture of two normals approximates it, so with a fixed normal a
+skewed ability selected classes that do not exist (`13` §8.7.2); with the shape estimated,
+one class fits. The weights' moments on the grid, which the standardized nodes leave free,
+are held near 0 and 1 by a penalty — a gauge, not a prior on the shape. `G` is chosen by
+BIC. The floors `c` follow each item's format (§B.1): 0 for an open answer, otherwise
+estimated, the same in every class — a class that guesses differently on an item is DIF,
+which the model reads in the item's difficulties. The fit minimizes the negative log-likelihood plus the floors'
+priors and the gauge; the BIC reads the likelihood at that optimum and counts the floors
+and the histogram's weights (41, less their sum, mean and variance) as parameters, the same
+count in every candidate: the histogram does not decide the number of classes. **This
 variant is what makes DIF compatible with full anonymity**: in testing, with ≥2
 distorted questions in a batch, it estimates a difficulty gap `DIF_j` of 1.7–1.9 (the
 true `2δ` = 1.8) on the defective ones when four or six of eight are shifted — 3.6 and
@@ -343,6 +355,13 @@ and `δ` up to 0.9, while two are found 93% of the time at `δ = 0.9`, `N = 3,00
 real threat is a *campaign* to tilt the bank, and it is that which becomes visible in
 batches. Periodically re-run the analysis on the whole active pool, where even
 scattered distortions add up.
+
+**One template per batch (`01` D43).** No two columns of a batch — its trial items and the
+anchors its respondents answered — come from the same template (`05` [9]). Items of one
+template are answered alike beyond ability, and the mixture cannot tell that from a class
+that finds both easier: with pairs so answered, null batches flagged clean items in 41% of
+the cases (`13` §8.7.2). Each column declares its template with its format, and the gate
+refuses a batch in which two share one (`PilotError::SharedTemplate`) before any fit.
 
 **Multi-axis.** Test on more than one latent axis, including at least one that
 captures the socio-economic fracture. Variant 2 surfaces it by itself: in testing a
@@ -523,12 +542,13 @@ of its contested facts does.
 classes `g` and `h` is `Δ_gh(S; θ) = Σ_{j∈S} [P_jg(θ) − P_jh(θ)]`, and
 
 ```
-DTF_F(S) = max_{g,h} ∫ |Δ_gh(S; θ)| f_F(θ) dθ          f_F(θ) = Σ_g π_g φ(θ; η_g, 1)
+DTF_F(S) = max_{g,h} Σ_{c,q} π_c w_q |Δ_gh(S; η_c + u_q)|
 ```
 
 — the unsigned DTF (Chalmers, Counsell & Flora, 2016) on the number-correct scale, over
-the batch's own ability distribution, at the worst pair of classes; the integral is the
-fit's quadrature, 41 nodes over `[−5, 5]` with weights `∝ f_F(θ_q)` (`scoring::dtf`).
+the batch's own ability distribution, at the worst pair of classes: every class's nodes,
+`η_c + u_q` with weight `π_c w_q`, the fit's histogram shifted to each class (§B.3, D43;
+`scoring::dtf`).
 Items that lean the same way add up. Items that lean opposite ways cancel, but only
 where their curves overlap: the absolute value inside the integral does not let a set
 favour one class at low ability and the other at high ability. One item has the DTF of

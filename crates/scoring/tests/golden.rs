@@ -160,6 +160,8 @@ fn current() -> Vec<String> {
     record(&mut rows, "latent.model", &shape);
     record(&mut rows, "latent.pi", &res.pi);
     record(&mut rows, "latent.eta", &res.eta);
+    record(&mut rows, "latent.ability.nodes", &res.ability.nodes);
+    record(&mut rows, "latent.ability.weights", &res.ability.weights);
     record(&mut rows, "latent.dif", &res.dif);
     record(&mut rows, "latent.a_gap", &res.a_gap);
     record(&mut rows, "latent.anchor_a", &res.anchor_a);
@@ -191,6 +193,8 @@ fn current() -> Vec<String> {
     let shape = [res.classes as f64, res.non_uniform as i32 as f64];
     record(&mut rows, "floor.model", &shape);
     record(&mut rows, "floor.pi", &res.pi);
+    record(&mut rows, "floor.ability.nodes", &res.ability.nodes);
+    record(&mut rows, "floor.ability.weights", &res.ability.weights);
     record(&mut rows, "floor.dif", &res.dif);
     record(&mut rows, "floor.anchor_b", &res.anchor_b);
     record(&mut rows, "floor.anchor_c", &res.anchor_c);

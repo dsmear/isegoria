@@ -457,6 +457,7 @@ mod fitted {
     use super::*;
     use identity::nym::Nym;
     use protocol::admission::NullifierSet;
+    use protocol::pilot::Templates;
     use protocol::revalidation::{latent_batch, target_flags, N_LATENT_MIN};
     use rand::{Rng, SeedableRng};
     use rand_chacha::ChaCha8Rng;
@@ -549,7 +550,9 @@ mod fitted {
         {
             let (anchors, x) = batch(items, seed);
             let open = Formats::open(anchors[0].len(), x[0].len());
-            let fit = latent_batch(&respondents, &anchors, &x, &open, 0).expect("the gate admits");
+            let none = Templates::none(open.anchors.len(), open.items.len());
+            let fit =
+                latent_batch(&respondents, &anchors, &x, &open, &none, 0).expect("the gate admits");
             let flags = target_flags(&fit);
             let expect: Vec<bool> = items.iter().map(|it| it.2 != 0.0).collect();
             assert_eq!(flags, expect, "{tag}: gaps {:?}", fit.dif);

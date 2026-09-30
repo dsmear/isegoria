@@ -62,8 +62,9 @@ T25, in four steps (`10-roadmap.md` §1.4): the guessing correction D25 in the l
 re-check (done), then in the pilot screen, a supplement of the DIF studies on the corrected
 model (done, its results in `13-characterization.md` §8.7, but for the screen's study, which
 follows the screen), then the thresholds with their calibration procedures; T82, the
-re-check reading templates and a skewed ability as bias, which the supplement found and the
-thresholds wait on; and T81, the mutation
+re-check reading templates and a skewed ability as bias, which the supplement found — decided
+(D43) and built, its DIF studies to run again on the corrected model, which the thresholds
+wait on; and T81, the mutation
 testing of Phase 1's mechanism. Long characterization runs go to the owner's machine: the
 cloud development container's 4 cores take three to four times as long),
 then the **P2P network** (T63, T37, T72, T13, T73, T18 and T74 are done; left are the

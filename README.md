@@ -350,9 +350,9 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
    multiple-choice items — so the model gets its guessing correction first (D25): the
    re-check has it (T25's first step), the pilot screen is next; then the model is
    measured again — the supplement, 19,700 runs, found it specific on every format, its
-   power dependent on the format, and templates and a skewed ability read as bias, to fix
-   first (T82) — and only then are the thresholds set; and the mutation testing of the
-   mechanism (T81).
+   power dependent on the format, and templates and a skewed ability read as bias, now fixed
+   (D43, T82) and to be measured again — and only then are the thresholds set; and the
+   mutation testing of the mechanism (T81).
 2. **P2P network** — done so far: the consortium's configuration check (T63), a
    randomness beacon nobody can grind, by commit-reveal among the consortium members (D41,
    T37, in process), draws that read their candidates as a set (T72), and a node's log and

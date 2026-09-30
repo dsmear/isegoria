@@ -138,12 +138,18 @@ fn latent_fit(d: &DifDesign, batch: &DifBatch, seed: u64) -> LatentDif {
     latent_dif(&batch.anchors, &batch.x, &formats, engine_seed(seed)).expect("the design's formats")
 }
 
+/// Whether the gates of `latent_batch` admit the design's batch of anchor reliability `kr20`;
+/// a design's template pairs (`tl`) share a template (D43).
+pub fn admitted(d: &DifDesign, kr20: f64) -> bool {
+    d.k >= K_MIN && d.n >= N_LATENT_MIN && kr20 >= KR20_MIN && d.testlet == 0.0
+}
+
 /// The production re-check on the drawn batch, the engine seeded by [`engine_seed`]: the gates
 /// of `latent_batch` are recorded in `admitted`, never applied (`docs/13` §2).
 pub fn dif(d: &DifDesign, seed: u64) -> DifOutcome {
     let batch = dif_batch(d, seed);
     let reliability = kr20(&batch.anchors);
-    let admitted = d.k >= K_MIN && d.n >= N_LATENT_MIN && reliability >= KR20_MIN;
+    let admitted = admitted(d, reliability);
     let fit = latent_fit(d, &batch, seed);
     DifOutcome {
         kr20: reliability,

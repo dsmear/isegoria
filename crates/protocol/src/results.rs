@@ -11,6 +11,7 @@ use network::codec::{Reader, Writer};
 use network::merkle::{leaf_hash, merkle_proof, merkle_root, verify_proof, MerkleProof};
 use scoring::collusion::ResidualHistory;
 use scoring::dtf::ClassCurves;
+use scoring::latent::Ability;
 use scoring::reputation::{AuthorPrior, CusumParams};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -47,14 +48,15 @@ pub enum ResultRecord {
         item: u64,
         residual: f64,
     },
-    /// Per class `g`: `pi[g]`, `eta[g]`, `a[g][j]`, `b[g][j]`; per item its floor `c[j]`
-    /// (`ClassCurves::with_floors`).
+    /// Per class `g`: `pi[g]`, `eta[g]`, `a[g][j]`, `b[g][j]`; per item its floor `c[j]`; the
+    /// classes' ability histogram (`ClassCurves::with_ability`).
     ContestedFit {
         pi: Vec<f64>,
         eta: Vec<f64>,
         a: Vec<Vec<f64>>,
         b: Vec<Vec<f64>>,
         c: Vec<f64>,
+        ability: Ability,
         members: Vec<(Cid, u64)>,
     },
     ContestedRemove {
@@ -238,9 +240,10 @@ impl ResultsState {
                 a,
                 b,
                 c,
+                ability,
                 members,
             } => {
-                let curves = ClassCurves::with_floors(pi, eta, a, b, c)
+                let curves = ClassCurves::with_ability(pi, eta, ability, a, b, c)
                     .map_err(|_| ResultsRejected::BadClasses { record: i })?;
                 let members: Option<Vec<(Cid, usize)>> = members
                     .iter()
@@ -358,12 +361,15 @@ pub(crate) fn write_results(w: &mut Writer, results: &EpochResults) {
                 a,
                 b,
                 c,
+                ability,
                 members,
             } => {
                 w.u8(8).field(&floats(pi)).field(&floats(eta));
                 write_rows(w, a);
                 write_rows(w, b);
-                w.field(&floats(c));
+                w.field(&floats(c))
+                    .field(&floats(&ability.nodes))
+                    .field(&floats(&ability.weights));
                 let members: Vec<u8> = members
                     .iter()
                     .flat_map(|(c, j)| c.0.into_iter().chain(j.to_le_bytes()))
@@ -454,6 +460,10 @@ fn read_record(r: &mut Reader) -> Option<ResultRecord> {
             let (pi, eta) = (read_floats(r)?, read_floats(r)?);
             let (a, b) = (read_rows(r)?, read_rows(r)?);
             let c = read_floats(r)?;
+            let ability = Ability {
+                nodes: read_floats(r)?,
+                weights: read_floats(r)?,
+            };
             let bytes = r.field().ok()?;
             if bytes.len() % 40 != 0 {
                 return None;
@@ -474,6 +484,7 @@ fn read_record(r: &mut Reader) -> Option<ResultRecord> {
                 a,
                 b,
                 c,
+                ability,
                 members,
             }
         }

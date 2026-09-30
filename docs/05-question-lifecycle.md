@@ -130,6 +130,10 @@ Requirements:
 
 - **In batches, never a single item**: an isolated distorted question is
   unidentifiable (in testing: 1/8 invisible, 2/8 detected). Validate groups.
+- **One template per batch**: no two items of the same template ([9]) among a batch's
+  trial items and the anchors its respondents answer — items answered alike beyond
+  ability read as a latent class (`01` D43, `02` §B.3). Batches are composed with the
+  templates apart, and the gate refuses one that is not.
 - **Multi-axis**: look for bias on more than one latent axis, including a
   socio-economic one (a question neutral on the political axis can be distorted on
   education).
@@ -199,7 +203,8 @@ ends in the contested pool is promoted ([5b], `01` D27).
 An item used a lot gets memorized and circulates: it loses value. Countermeasures:
 
 - a broad pool and rotation
-- **parametric** items generated from templates (same structure, different values)
+- **parametric** items generated from templates (same structure, different values) —
+  never two of one template in the same DIF batch ([6]-[7], `01` D43)
 - automatic retirement on exposure detection
 
 ---

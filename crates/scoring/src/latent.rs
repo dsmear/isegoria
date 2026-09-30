@@ -83,6 +83,14 @@ pub struct BadFormats;
 
 const MAX_ITERS: usize = 1000;
 
+/// An ability distribution of mean 0 and variance 1: mass `weights[q]` at `nodes[q]`
+/// (`docs/01` D43, `docs/02` §B.3).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Ability {
+    pub nodes: Vec<f64>,
+    pub weights: Vec<f64>,
+}
+
 /// The target-model fit selected by BIC.
 #[derive(Clone, Debug)]
 pub struct LatentDif {
@@ -94,6 +102,8 @@ pub struct LatentDif {
     pub pi: Vec<f64>,
     /// Class ability means `η_g`, with `η_0 = 0`.
     pub eta: Vec<f64>,
+    /// The classes' ability histogram: class `g`'s ability is `η_g` plus it.
+    pub ability: Ability,
     /// The anchors' class-invariant parameters.
     pub anchor_a: Vec<f64>,
     pub anchor_b: Vec<f64>,
@@ -130,7 +140,7 @@ impl LatentDif {
 }
 
 /// A candidate: `g` classes over `na` anchors and `k` trial items, `a` shared or per class,
-/// and `floors` guessing floors.
+/// `floors` guessing floors, and the ability histogram's `nodes` logits.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Model {
     g: usize,
@@ -138,10 +148,11 @@ struct Model {
     k: usize,
     per_class_a: bool,
     floors: usize,
+    nodes: usize,
 }
 
-// Parameter layout: [ ζ (G−1 class logits vs class 0) | η (G−1 class means, η_0 = 0) | anchor a
-// (A) | anchor b (A) | item a (K, or K·G class-major) | item b (K·G) | floor logits ].
+// Layout: [ ζ (G−1 logits vs class 0) | η (G−1, η_0 = 0) | anchor a (A) | anchor b (A) | item a
+// (K, or K·G class-major) | item b (K·G) | floor logits | histogram logits (Q) ].
 impl Model {
     fn n_item_a(&self) -> usize {
         if self.per_class_a {
@@ -151,7 +162,10 @@ impl Model {
         }
     }
     fn len(&self) -> usize {
-        self.floor_idx(self.floors)
+        self.hist_idx(self.nodes)
+    }
+    fn hist_idx(&self, q: usize) -> usize {
+        self.floor_idx(self.floors) + q
     }
     fn floor_idx(&self, slot: usize) -> usize {
         2 * (self.g - 1) + 2 * self.na + self.n_item_a() + self.g * self.k + slot
@@ -174,8 +188,9 @@ impl Model {
     fn item_b_idx(&self, g: usize, j: usize) -> usize {
         2 * (self.g - 1) + 2 * self.na + self.n_item_a() + g * self.k + j
     }
+    /// The histogram's weights less their sum, mean and variance.
     fn free_params(&self) -> usize {
-        self.len()
+        self.len() - 3
     }
     fn pi(&self, p: &[f64]) -> Vec<f64> {
         let mut z = vec![0.0; self.g];
@@ -209,20 +224,44 @@ impl Grid {
         Grid { theta }
     }
 
-    /// Per node, `ln φ(θ_q − eta)` normalized over the grid, and the grid mean of θ under it.
-    fn log_weights(&self, eta: f64) -> (Vec<f64>, f64) {
-        let lw: Vec<f64> = self
-            .theta
-            .iter()
-            .map(|t| -0.5 * (t - eta) * (t - eta))
-            .collect();
-        let m = lw.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-        let z: f64 = lw.iter().map(|v| exp(v - m)).sum();
+    /// The histogram of `logits` over the grid, standardized by moving its nodes.
+    fn shape(&self, logits: &[f64]) -> Shape {
+        let m = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let z: f64 = logits.iter().map(|v| exp(v - m)).sum();
         let ln_z = m + ln(z);
-        let lw: Vec<f64> = lw.iter().map(|v| v - ln_z).collect();
-        let mean = lw.iter().zip(&self.theta).map(|(lw, t)| exp(*lw) * t).sum();
-        (lw, mean)
+        let ln_w: Vec<f64> = logits.iter().map(|v| v - ln_z).collect();
+        let w: Vec<f64> = ln_w.iter().map(|v| exp(*v)).collect();
+        let mean: f64 = w.iter().zip(&self.theta).map(|(w, u)| w * u).sum();
+        let var: f64 = w
+            .iter()
+            .zip(&self.theta)
+            .map(|(w, u)| w * (u - mean) * (u - mean))
+            .sum();
+        let sd = var.sqrt();
+        let nodes = self.theta.iter().map(|u| (u - mean) / sd).collect();
+        Shape {
+            ln_w,
+            w,
+            mean,
+            sd,
+            nodes,
+        }
     }
+
+    /// The logits of the standard normal on the grid, where every histogram starts.
+    fn normal_logits(&self) -> Vec<f64> {
+        self.theta.iter().map(|u| -0.5 * u * u).collect()
+    }
+}
+
+/// A histogram over the grid: its weights, their mean and standard deviation on the grid, and
+/// the standardized nodes `(θ_q − mean) / sd`.
+struct Shape {
+    ln_w: Vec<f64>,
+    w: Vec<f64>,
+    mean: f64,
+    sd: f64,
+    nodes: Vec<f64>,
 }
 
 /// The anchors and items with a guessing floor, each with its slot among the floor
@@ -402,9 +441,16 @@ fn floor_derivatives(
     (da, dz, dg)
 }
 
+/// At a node, a column's log-likelihood derivative in θ over `right` expected correct answers
+/// of `n` under the floor `c`: `a (1 − c) σ (1 − σ) / P` each right, `−a σ` each wrong.
+fn floor_slope(c: f64, a: f64, sigma: f64, right: f64, n: f64) -> f64 {
+    let p = (c + (1.0 - c) * sigma).max(f64::MIN_POSITIVE);
+    right * a * (1.0 - c) * sigma * (1.0 - sigma) / p - (n - right) * a * sigma
+}
+
 /// The negative marginal log-likelihood with its gradient and, on request, the class
-/// posteriors. Transcendentals are evaluated per node and item, never per respondent: at a
-/// node a respondent's log-likelihood is a constant plus the log-odds of its correct answers.
+/// posteriors. Transcendentals are evaluated per class, node and item, never per respondent:
+/// at a node a respondent's log-likelihood is a constant plus the log-odds of its correct answers.
 fn evaluate(
     model: &Model,
     p: &[f64],
@@ -417,13 +463,11 @@ fn evaluate(
     let pi = model.pi(p);
     let ln_pi: Vec<f64> = pi.iter().map(|v| ln(*v)).collect();
     let eta = model.eta(p);
-    let mut ln_w = Vec::with_capacity(gn);
-    let mut grid_mean = Vec::with_capacity(gn);
-    for &e in &eta {
-        let (lw, m) = grid.log_weights(e);
-        ln_w.push(lw);
-        grid_mean.push(m);
-    }
+    let shape = grid.shape(&p[model.hist_idx(0)..model.len()]);
+    let theta: Vec<Vec<f64>> = eta
+        .iter()
+        .map(|e| shape.nodes.iter().map(|u| e + u).collect())
+        .collect();
     let anchor_a: Vec<f64> = (0..na).map(|a| p[model.anchor_a_idx(a)]).collect();
     let anchor_b: Vec<f64> = (0..na).map(|a| p[model.anchor_b_idx(a)]).collect();
     let anchor_ab: Vec<f64> = anchor_a.iter().zip(&anchor_b).map(|(a, b)| a * b).collect();
@@ -436,10 +480,12 @@ fn evaluate(
     let item_ab: Vec<Vec<f64>> = (0..gn)
         .map(|g| (0..k).map(|j| item_a[g][j] * item_b[g][j]).collect())
         .collect();
-    let anchor_cells: Vec<Vec<Cell>> = (0..q)
-        .map(|qi| {
-            (0..na)
-                .map(|a| cell(anchor_a[a], grid.theta[qi], anchor_b[a]))
+    let anchor_cells: Vec<Vec<Vec<Cell>>> = theta
+        .iter()
+        .map(|nodes| {
+            nodes
+                .iter()
+                .map(|&t| (0..na).map(|a| cell(anchor_a[a], t, anchor_b[a])).collect())
                 .collect()
         })
         .collect();
@@ -451,22 +497,13 @@ fn evaluate(
         None => cell.softplus,
         Some(gm) => cell.softplus + softplus(*gm),
     };
-    let anchor_softplus: Vec<f64> = anchor_cells
-        .iter()
-        .map(|cells| {
-            cells
-                .iter()
-                .zip(&anchor_gamma)
-                .map(|(c, gm)| wrong(c, gm))
-                .sum()
-        })
-        .collect();
     let item_cells: Vec<Vec<Vec<Cell>>> = (0..gn)
         .map(|g| {
-            (0..q)
-                .map(|qi| {
+            theta[g]
+                .iter()
+                .map(|&t| {
                     (0..k)
-                        .map(|j| cell(item_a[g][j], grid.theta[qi], item_b[g][j]))
+                        .map(|j| cell(item_a[g][j], t, item_b[g][j]))
                         .collect()
                 })
                 .collect()
@@ -476,25 +513,33 @@ fn evaluate(
         .map(|g| {
             (0..q)
                 .map(|qi| {
-                    ln_pi[g] + ln_w[g][qi]
-                        - anchor_softplus[qi]
-                        - item_cells[g][qi]
-                            .iter()
-                            .zip(&item_gamma)
-                            .map(|(c, gm)| wrong(c, gm))
-                            .sum::<f64>()
+                    let anchors: f64 = anchor_cells[g][qi]
+                        .iter()
+                        .zip(&anchor_gamma)
+                        .map(|(c, gm)| wrong(c, gm))
+                        .sum();
+                    let items: f64 = item_cells[g][qi]
+                        .iter()
+                        .zip(&item_gamma)
+                        .map(|(c, gm)| wrong(c, gm))
+                        .sum();
+                    ln_pi[g] + shape.ln_w[qi] - anchors - items
                 })
                 .collect()
         })
         .collect();
-    let anchor_lodds: Vec<Vec<f64>> = floors
-        .anchor_list
-        .iter()
-        .enumerate()
-        .map(|(s, &(a, _))| {
-            let gm = p[model.floor_idx(s)];
-            (0..q)
-                .map(|qi| log_odds(&anchor_cells[qi][a], gm))
+    let anchor_lodds: Vec<Vec<Vec<f64>>> = (0..gn)
+        .map(|g| {
+            floors
+                .anchor_list
+                .iter()
+                .enumerate()
+                .map(|(s, &(a, _))| {
+                    let gm = p[model.floor_idx(s)];
+                    (0..q)
+                        .map(|qi| log_odds(&anchor_cells[g][qi][a], gm))
+                        .collect()
+                })
                 .collect()
         })
         .collect();
@@ -516,18 +561,18 @@ fn evaluate(
 
     let mut n_gq = vec![vec![0.0; q]; gn];
     // Per anchor `Σ_i x_ia · E[θ | x_i]`; per class and item `Σ_i x_ij r_ig` and
-    // `Σ_i x_ij Σ_q θ_q r_igq`.
+    // `Σ_i x_ij Σ_q θ_gq r_igq`; per class and node `Σ_i r_igq s1_ig`.
     let mut anchor_theta = vec![0.0; na];
     let mut item_r0 = vec![vec![0.0; k]; gn];
     let mut item_r1 = vec![vec![0.0; k]; gn];
     let mut class_r0 = vec![0.0; gn];
-    // Under a floor the log-odds are not linear in θ: per anchor the expected correct
-    // answers at each node, per class and item the same within the class.
-    let mut anchor_right = vec![vec![0.0; q]; floors.anchor_list.len()];
+    let mut open_slope = vec![vec![0.0; q]; gn];
+    // Under a floor the log-odds are not linear in θ: per class, column and node the
+    // expected correct answers.
+    let mut anchor_right = vec![vec![vec![0.0; q]; floors.anchor_list.len()]; gn];
     let mut item_right = vec![vec![vec![0.0; q]; floors.item_list.len()]; gn];
     let has_floors = floors.count > 0;
     let mut extra = vec![0.0; if has_floors { gn * q } else { 0 }];
-    let mut node = vec![0.0; if has_floors { q } else { 0 }];
     let mut posterior = if want_posterior {
         Some(Vec::with_capacity(data.n))
     } else {
@@ -545,15 +590,14 @@ fn evaluate(
         let s1a: f64 = ca.iter().map(|&a| anchor_a[a]).sum();
         let s2a: f64 = ca.iter().map(|&a| anchor_ab[a]).sum();
         if has_floors {
-            node.fill(0.0);
-            for &s in &data.floor_anchors[i] {
-                node.iter_mut()
-                    .zip(&anchor_lodds[s])
-                    .for_each(|(v, l)| *v += l);
-            }
             for g in 0..gn {
                 let row = &mut extra[g * q..(g + 1) * q];
-                row.copy_from_slice(&node);
+                row.fill(0.0);
+                for &s in &data.floor_anchors[i] {
+                    row.iter_mut()
+                        .zip(&anchor_lodds[g][s])
+                        .for_each(|(v, l)| *v += l);
+                }
                 for &s in &data.floor_items[i] {
                     row.iter_mut()
                         .zip(&item_lodds[g][s])
@@ -565,9 +609,9 @@ fn evaluate(
         for g in 0..gn {
             s1[g] = s1a + ci.iter().map(|&j| item_a[g][j]).sum::<f64>();
             s2[g] = s2a + ci.iter().map(|&j| item_ab[g][j]).sum::<f64>();
-            let row = &constant[g];
+            let (row, nodes) = (&constant[g], &theta[g]);
             for qi in 0..q {
-                let mut t = row[qi] + grid.theta[qi] * s1[g] - s2[g];
+                let mut t = row[qi] + nodes[qi] * s1[g] - s2[g];
                 if has_floors {
                     t += extra[g * q + qi];
                 }
@@ -582,12 +626,13 @@ fn evaluate(
         total += lse;
         for g in 0..gn {
             let (mut a0, mut a1) = (0.0, 0.0);
-            let n_g = &mut n_gq[g];
+            let (n_g, slope, nodes) = (&mut n_gq[g], &mut open_slope[g], &theta[g]);
             for qi in 0..q {
                 let r = exp(terms[g * q + qi] - lse);
                 n_g[qi] += r;
+                slope[qi] += r * s1[g];
                 a0 += r;
-                a1 += r * grid.theta[qi];
+                a1 += r * nodes[qi];
                 terms[g * q + qi] = r;
             }
             r0[g] = a0;
@@ -604,19 +649,15 @@ fn evaluate(
             anchor_theta[a] += theta_mean;
         }
         if has_floors {
-            for (qi, v) in node.iter_mut().enumerate() {
-                *v = (0..gn).map(|g| terms[g * q + qi]).sum();
-            }
-            for &s in &data.floor_anchors[i] {
-                anchor_right[s]
-                    .iter_mut()
-                    .zip(&node)
-                    .for_each(|(v, r)| *v += r);
-            }
-            for (g, right) in item_right.iter_mut().enumerate() {
+            for g in 0..gn {
                 let r = &terms[g * q..(g + 1) * q];
+                for &s in &data.floor_anchors[i] {
+                    let right = &mut anchor_right[g][s];
+                    right.iter_mut().zip(r).for_each(|(v, r)| *v += r);
+                }
                 for &s in &data.floor_items[i] {
-                    right[s].iter_mut().zip(r).for_each(|(v, r)| *v += r);
+                    let right = &mut item_right[g][s];
+                    right.iter_mut().zip(r).for_each(|(v, r)| *v += r);
                 }
             }
         }
@@ -625,22 +666,24 @@ fn evaluate(
         }
     }
 
-    // The gradient from the EM "artificial data": the expected respondents per node, and
-    // per respondent the class posterior `r_ig` and its first θ-moment `Σ_q θ_q r_igq`.
+    // The gradient from the EM "artificial data": the expected respondents per class and
+    // node, and per respondent the class posterior `r_ig` and its first θ-moment.
     let mut grad = vec![0.0; p.len()];
-    let n_q: Vec<f64> = (0..q)
-        .map(|qi| (0..gn).map(|g| n_gq[g][qi]).sum())
-        .collect();
+    // `slope[g][q]`: the expected log-likelihood's derivative in class g's node q.
+    let mut slope = open_slope;
     for a in 0..na {
+        let (ai, bi) = (model.anchor_a_idx(a), model.anchor_b_idx(a));
         if anchor_gamma[a].is_some() {
             continue;
         }
-        let (ai, bi) = (model.anchor_a_idx(a), model.anchor_b_idx(a));
         let (mut expected_theta, mut expected) = (0.0, 0.0);
-        for qi in 0..q {
-            let s = anchor_cells[qi][a].sigma * n_q[qi];
-            expected_theta += s * (grid.theta[qi] - anchor_b[a]);
-            expected += s;
+        for g in 0..gn {
+            for qi in 0..q {
+                let s = anchor_cells[g][qi][a].sigma * n_gq[g][qi];
+                expected_theta += s * (theta[g][qi] - anchor_b[a]);
+                expected += s;
+                slope[g][qi] -= anchor_a[a] * s;
+            }
         }
         grad[ai] += expected_theta - (anchor_theta[a] - anchor_b[a] * data.anchor_count[a]);
         grad[bi] += anchor_a[a] * (data.anchor_count[a] - expected);
@@ -654,8 +697,9 @@ fn evaluate(
             let (mut expected_theta, mut expected) = (0.0, 0.0);
             for qi in 0..q {
                 let s = item_cells[g][qi][j].sigma * n_gq[g][qi];
-                expected_theta += s * (grid.theta[qi] - item_b[g][j]);
+                expected_theta += s * (theta[g][qi] - item_b[g][j]);
                 expected += s;
+                slope[g][qi] -= item_a[g][j] * s;
             }
             grad[ai] += expected_theta - (item_r1[g][j] - item_b[g][j] * item_r0[g][j]);
             grad[bi] += item_a[g][j] * (item_r0[g][j] - expected);
@@ -663,12 +707,25 @@ fn evaluate(
     }
     for (s, &(a, _)) in floors.anchor_list.iter().enumerate() {
         let c = sigmoid(p[model.floor_idx(s)]);
-        let sigma = (0..q).map(|qi| anchor_cells[qi][a].sigma);
-        let (da, dz, dg) =
-            floor_derivatives(c, sigma, &anchor_right[s], &n_q, &grid.theta, anchor_b[a]);
-        grad[model.anchor_a_idx(a)] -= da;
-        grad[model.anchor_b_idx(a)] += anchor_a[a] * dz;
-        grad[model.floor_idx(s)] -= dg;
+        for g in 0..gn {
+            let sigma = (0..q).map(|qi| anchor_cells[g][qi][a].sigma);
+            let (da, dz, dg) = floor_derivatives(
+                c,
+                sigma,
+                &anchor_right[g][s],
+                &n_gq[g],
+                &theta[g],
+                anchor_b[a],
+            );
+            grad[model.anchor_a_idx(a)] -= da;
+            grad[model.anchor_b_idx(a)] += anchor_a[a] * dz;
+            grad[model.floor_idx(s)] -= dg;
+            for qi in 0..q {
+                let sg = anchor_cells[g][qi][a].sigma;
+                slope[g][qi] +=
+                    floor_slope(c, anchor_a[a], sg, anchor_right[g][s][qi], n_gq[g][qi]);
+            }
+        }
     }
     for (s, &(j, _)) in floors.item_list.iter().enumerate() {
         let slot = floors.anchor_list.len() + s;
@@ -680,22 +737,44 @@ fn evaluate(
                 sigma,
                 &item_right[g][s],
                 &n_gq[g],
-                &grid.theta,
+                &theta[g],
                 item_b[g][j],
             );
             grad[model.item_a_idx(g, j)] -= da;
             grad[model.item_b_idx(g, j)] += item_a[g][j] * dz;
             grad[model.floor_idx(slot)] -= dg;
+            for qi in 0..q {
+                let sg = item_cells[g][qi][j].sigma;
+                slope[g][qi] += floor_slope(c, item_a[g][j], sg, item_right[g][s][qi], n_gq[g][qi]);
+            }
         }
     }
     let n = data.n as f64;
     for g in 1..gn {
         grad[model.zeta_idx(g)] -= class_r0[g] - n * pi[g];
-        grad[model.eta_idx(g)] -= n_gq[g]
-            .iter()
-            .zip(&grid.theta)
-            .map(|(n, t)| n * (t - grid_mean[g]))
-            .sum::<f64>();
+        grad[model.eta_idx(g)] -= slope[g].iter().sum::<f64>();
+    }
+    // A histogram logit moves its weight and, through the mean and variance, every node.
+    let slope_sum: f64 = slope.iter().flatten().sum();
+    let slope_node: f64 = slope
+        .iter()
+        .map(|row| {
+            row.iter()
+                .zip(&shape.nodes)
+                .map(|(s, u)| s * u)
+                .sum::<f64>()
+        })
+        .sum();
+    let var = shape.sd * shape.sd;
+    for qi in 0..q {
+        let n_q: f64 = (0..gn).map(|g| n_gq[g][qi]).sum();
+        let dev = grid.theta[qi] - shape.mean;
+        let d_mean = shape.w[qi] * dev;
+        let d_var = shape.w[qi] * (dev * dev - var);
+        let d_ll = (n_q - n * shape.w[qi])
+            - slope_sum * d_mean / shape.sd
+            - slope_node * d_var / (2.0 * var);
+        grad[model.hist_idx(qi)] -= d_ll;
     }
     (-total, grad, posterior)
 }
@@ -720,6 +799,21 @@ fn penalty(model: &Model, floors: &Floors, p: &[f64], grad: &mut [f64]) -> f64 {
     total
 }
 
+/// The histogram's gauge: its moments on the grid, free under the standardized nodes, held
+/// near 0 and 1 with the weight of `n` respondents; its gradient is added into `grad`.
+fn gauge(model: &Model, grid: &Grid, n: f64, p: &[f64], grad: &mut [f64]) -> f64 {
+    let shape = grid.shape(&p[model.hist_idx(0)..]);
+    let var = shape.sd * shape.sd;
+    let (dm, dv) = (shape.mean, var - 1.0);
+    for (qi, u) in grid.theta.iter().enumerate() {
+        let dev = u - shape.mean;
+        let d_mean = shape.w[qi] * dev;
+        let d_var = shape.w[qi] * (dev * dev - var);
+        grad[model.hist_idx(qi)] += n * 2.0 * (dm * d_mean + dv * d_var);
+    }
+    n * (dm * dm + dv * dv)
+}
+
 /// Minimizes the NLL of `model` from `p0`, plus the floors' priors; the optimizer sees the
 /// objective per respondent, the NLL returned is the likelihood's total, without the priors.
 fn fit_from(
@@ -738,7 +832,8 @@ fn fit_from(
             }
         }
         let (f, mut g, _) = evaluate(model, p, data, grid, floors, false);
-        let f = f + penalty(model, floors, p, &mut g);
+        let f =
+            f + penalty(model, floors, p, &mut g) + gauge(model, grid, data.n as f64, p, &mut g);
         for v in g.iter_mut() {
             *v *= scale;
         }
@@ -747,11 +842,7 @@ fn fit_from(
         (f, g)
     };
     let m = lbfgs(p0, |p| eval(p).0, |p| eval(p).1, 10, MAX_ITERS, G_TOL);
-    let nll = if floors.count > 0 {
-        evaluate(model, &m.x, data, grid, floors, false).0
-    } else {
-        eval(&m.x).0 / scale
-    };
+    let nll = evaluate(model, &m.x, data, grid, floors, false).0;
     (nll, m.x, m.status)
 }
 
@@ -811,8 +902,10 @@ pub fn latent_dif_with(
         k,
         per_class_a: false,
         floors: floors.count,
+        nodes: grid.theta.len(),
     };
     let mut p1 = vec![0.0; one.len()];
+    p1[one.hist_idx(0)..].copy_from_slice(&grid.normal_logits());
     let mut start = |slot: Option<(usize, f64)>, correct: f64| match slot {
         None => start_difficulty(correct as usize, n),
         Some((s, chance)) => {
@@ -850,6 +943,7 @@ pub fn latent_dif_with(
                 k,
                 per_class_a,
                 floors: floors.count,
+                nodes: one.nodes,
             };
             let mut chosen: Option<(f64, Vec<f64>, Convergence)> = None;
             for _ in 0..lp.n_starts.max(1) {
@@ -872,6 +966,7 @@ pub fn latent_dif_with(
                 for s in 0..floors.count {
                     p0[model.floor_idx(s)] = p1[one.floor_idx(s)];
                 }
+                p0[model.hist_idx(0)..].copy_from_slice(&p1[one.hist_idx(0)..]);
                 let fit = fit_from(&model, p0, &data, &grid, &floors);
                 let better = match &chosen {
                     None => true,
@@ -920,6 +1015,7 @@ pub fn latent_dif_with(
         .map(|j| gap(&|g, j| model.item_a_idx(g, j), j))
         .collect();
     let (_, _, posterior) = evaluate(&model, &p, &data, &grid, &floors, true);
+    let shape = grid.shape(&p[model.hist_idx(0)..]);
     let floor_of =
         |f: &Option<(usize, f64)>| f.map_or(0.0, |(s, _)| sigmoid(p[model.floor_idx(s)]));
 
@@ -928,6 +1024,10 @@ pub fn latent_dif_with(
         non_uniform: model.per_class_a,
         pi,
         eta,
+        ability: Ability {
+            nodes: shape.nodes,
+            weights: shape.w,
+        },
         anchor_a: (0..na).map(|a| p[model.anchor_a_idx(a)]).collect(),
         anchor_b: (0..na).map(|a| p[model.anchor_b_idx(a)]).collect(),
         anchor_c: floors.anchor.iter().map(floor_of).collect(),
@@ -969,6 +1069,7 @@ mod tests {
     ) -> f64 {
         let pi = model.pi(p);
         let eta = model.eta(p);
+        let shape = grid.shape(&p[model.hist_idx(0)..]);
         let floor =
             |f: Option<(usize, f64)>| f.map_or(0.0, |(s, _)| sigmoid(p[model.floor_idx(s)]));
         let term = |x: f64, c: f64, s: f64| {
@@ -983,9 +1084,9 @@ mod tests {
         for (i, row) in x.iter().enumerate() {
             let mut lik = 0.0;
             for g in 0..model.g {
-                let (lw, _) = grid.log_weights(eta[g]);
-                for (qi, &t) in grid.theta.iter().enumerate() {
-                    let mut l = ln(pi[g]) + lw[qi];
+                for (qi, &u) in shape.nodes.iter().enumerate() {
+                    let t = eta[g] + u;
+                    let mut l = ln(pi[g]) + ln(shape.w[qi]);
                     for (a, &xa) in anchors[i].iter().enumerate() {
                         let c = cell(p[model.anchor_a_idx(a)], t, p[model.anchor_b_idx(a)]);
                         l += term(xa, floor(floors.anchor[a]), c.sigma);
@@ -1048,10 +1149,12 @@ mod tests {
             k,
             per_class_a: false,
             floors: 0,
+            nodes: grid.theta.len(),
         };
-        let p: Vec<f64> = (0..one.len())
+        let mut p: Vec<f64> = (0..one.len())
             .map(|i| if i < na { 1.0 } else { 0.0 })
             .collect();
+        p[one.hist_idx(0)..].copy_from_slice(&grid.normal_logits());
         let t0 = Instant::now();
         for _ in 0..10 {
             evaluate(&one, &p, &data, &grid, &floors, false);
@@ -1061,6 +1164,7 @@ mod tests {
             t0.elapsed().as_secs_f64() * 100.0
         );
         let mut p1 = vec![0.0; one.len()];
+        p1[one.hist_idx(0)..].copy_from_slice(&grid.normal_logits());
         for a in 0..na {
             p1[one.anchor_a_idx(a)] = 1.0;
         }
@@ -1079,9 +1183,11 @@ mod tests {
             k,
             per_class_a: false,
             floors: 0,
+            nodes: one.nodes,
         };
         let mut p0 = vec![0.0; two.len()];
         p0[two.eta_idx(1)] = 0.1;
+        p0[two.hist_idx(0)..].copy_from_slice(&p1[one.hist_idx(0)..]);
         for a in 0..na {
             p0[two.anchor_a_idx(a)] = p1[one.anchor_a_idx(a)];
             p0[two.anchor_b_idx(a)] = p1[one.anchor_b_idx(a)];
@@ -1104,10 +1210,10 @@ mod tests {
         );
     }
 
-    /// The BIC penalty counts the free parameters of each model shape, floors included.
+    /// The BIC counts each model shape's free parameters: floors, and the histogram less three.
     #[test]
     fn free_parameters_are_counted_as_specified() {
-        let (na, k) = (5, 8);
+        let (na, k, nodes) = (5, 8, 41);
         for g in 1..=4 {
             for floors in [0, 3] {
                 let shared = Model {
@@ -1116,6 +1222,7 @@ mod tests {
                     k,
                     per_class_a: false,
                     floors,
+                    nodes,
                 };
                 let per_class = Model {
                     g,
@@ -1123,15 +1230,16 @@ mod tests {
                     k,
                     per_class_a: true,
                     floors,
+                    nodes,
                 };
                 assert_eq!(
                     shared.free_params(),
-                    2 * (g - 1) + 2 * na + k + k * g + floors,
+                    2 * (g - 1) + 2 * na + k + k * g + floors + nodes - 3,
                     "G={g} shared, {floors} floors"
                 );
                 assert_eq!(
                     per_class.free_params(),
-                    2 * (g - 1) + 2 * na + 2 * k * g + floors,
+                    2 * (g - 1) + 2 * na + 2 * k * g + floors + nodes - 3,
                     "G={g} per-class, {floors} floors"
                 );
             }
@@ -1167,6 +1275,7 @@ mod tests {
                         k,
                         per_class_a,
                         floors: floors.count,
+                        nodes: grid.theta.len(),
                     };
                     let p: Vec<f64> = (0..model.len()).map(|_| normal(&mut rng) * 0.7).collect();
                     let (fused, analytic, _) = evaluate(&model, &p, &data, &grid, &floors, false);
@@ -1178,7 +1287,8 @@ mod tests {
                     );
                     let objective = |q: &[f64]| {
                         let (f, mut grad, _) = evaluate(&model, q, &data, &grid, &floors, false);
-                        (f + penalty(&model, &floors, q, &mut grad), grad)
+                        let priors = penalty(&model, &floors, q, &mut grad);
+                        (f + priors + gauge(&model, &grid, 7.0, q, &mut grad), grad)
                     };
                     let numeric = numerical_gradient(&|q: &[f64]| objective(q).0, &p, 1e-6);
                     for (i, (a, b)) in objective(&p).1.iter().zip(&numeric).enumerate() {

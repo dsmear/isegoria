@@ -7,7 +7,7 @@ use characterization::run::{dif, gate_char, redecides};
 use identity::nym::Nym;
 use protocol::admission::NullifierSet;
 use protocol::gate::{MIN_COVERAGE, TAU};
-use protocol::pilot::PilotError;
+use protocol::pilot::{PilotError, Templates};
 use protocol::revalidation::revalidate_batch_latent;
 use scoring::latent::Formats;
 
@@ -41,6 +41,7 @@ fn an_admitted_batch_gets_the_production_flags() {
         &batch.anchors,
         &batch.x,
         &Formats::open(d.anchors, d.k),
+        &Templates::none(d.anchors, d.k),
         engine_seed(seed),
     );
     assert_eq!(Ok(outcome.flags.clone()), production);
@@ -65,6 +66,7 @@ fn a_refused_batch_is_recorded_as_refused() {
             &batch.anchors,
             &batch.x,
             &Formats::open(d.anchors, d.k),
+            &Templates::none(d.anchors, d.k),
             5
         ),
         Err(PilotError::UnreliableAnchors { .. })
@@ -93,6 +95,7 @@ fn a_batch_with_a_floor_gets_the_production_flags_of_its_format() {
         &batch.anchors,
         &batch.x,
         &Formats::choice(d.anchors, d.k, 10),
+        &Templates::none(d.anchors, d.k),
         engine_seed(seed),
     );
     assert_eq!(Ok(outcome.flags.clone()), production);
