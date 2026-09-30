@@ -26,6 +26,8 @@ pub struct LatentParams {
     pub theta_max: f64,
     /// The weight of every floor's prior ([`FLOOR_PRIOR_WEIGHT`]).
     pub floor_weight: f64,
+    /// Whether the ability's shape is estimated (D43) or held at the standard normal.
+    pub estimate_shape: bool,
 }
 
 impl Default for LatentParams {
@@ -37,6 +39,7 @@ impl Default for LatentParams {
             nodes: 41,
             theta_max: 5.0,
             floor_weight: FLOOR_PRIOR_WEIGHT,
+            estimate_shape: true,
         }
     }
 }
@@ -73,6 +76,17 @@ impl Formats {
             anchors: vec![format; anchors],
             items: vec![format; items],
         }
+    }
+
+    /// One format per anchor and per trial item, every choice among two options or more.
+    pub fn describes(&self, anchors: usize, items: usize) -> bool {
+        self.anchors.len() == anchors
+            && self.items.len() == items
+            && self
+                .anchors
+                .iter()
+                .chain(&self.items)
+                .all(|f| !matches!(f, Format::Choice(m) if *m < 2))
     }
 }
 
@@ -140,7 +154,7 @@ impl LatentDif {
 }
 
 /// A candidate: `g` classes over `na` anchors and `k` trial items, `a` shared or per class,
-/// `floors` guessing floors, and the ability histogram's `nodes` logits.
+/// `floors` guessing floors, and the ability histogram's `nodes` logits (0: held normal).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Model {
     g: usize,
@@ -190,7 +204,7 @@ impl Model {
     }
     /// The histogram's weights less their sum, mean and variance.
     fn free_params(&self) -> usize {
-        self.len() - 3
+        self.len() - if self.nodes > 0 { 3 } else { 0 }
     }
     fn pi(&self, p: &[f64]) -> Vec<f64> {
         let mut z = vec![0.0; self.g];
@@ -252,6 +266,15 @@ impl Grid {
     fn normal_logits(&self) -> Vec<f64> {
         self.theta.iter().map(|u| -0.5 * u * u).collect()
     }
+
+    /// The ability of `model` at `p`: its histogram, or the normal when it has none.
+    fn ability(&self, model: &Model, p: &[f64]) -> Shape {
+        if model.nodes == 0 {
+            self.shape(&self.normal_logits())
+        } else {
+            self.shape(&p[model.hist_idx(0)..model.len()])
+        }
+    }
 }
 
 /// A histogram over the grid: its weights, their mean and standard deviation on the grid, and
@@ -278,14 +301,7 @@ struct Floors {
 
 impl Floors {
     fn new(formats: &Formats, na: usize, k: usize, weight: f64) -> Result<Floors, BadFormats> {
-        let valid = formats.anchors.len() == na
-            && formats.items.len() == k
-            && formats
-                .anchors
-                .iter()
-                .chain(&formats.items)
-                .all(|f| !matches!(f, Format::Choice(m) if *m < 2));
-        if !valid {
+        if !formats.describes(na, k) {
             return Err(BadFormats);
         }
         let slots = |formats: &[Format], first: usize| -> Vec<Option<(usize, f64)>> {
@@ -463,7 +479,7 @@ fn evaluate(
     let pi = model.pi(p);
     let ln_pi: Vec<f64> = pi.iter().map(|v| ln(*v)).collect();
     let eta = model.eta(p);
-    let shape = grid.shape(&p[model.hist_idx(0)..model.len()]);
+    let shape = grid.ability(model, p);
     let theta: Vec<Vec<f64>> = eta
         .iter()
         .map(|e| shape.nodes.iter().map(|u| e + u).collect())
@@ -766,7 +782,7 @@ fn evaluate(
         })
         .sum();
     let var = shape.sd * shape.sd;
-    for qi in 0..q {
+    for qi in (0..q).filter(|_| model.nodes > 0) {
         let n_q: f64 = (0..gn).map(|g| n_gq[g][qi]).sum();
         let dev = grid.theta[qi] - shape.mean;
         let d_mean = shape.w[qi] * dev;
@@ -802,6 +818,9 @@ fn penalty(model: &Model, floors: &Floors, p: &[f64], grad: &mut [f64]) -> f64 {
 /// The histogram's gauge: its moments on the grid, free under the standardized nodes, held
 /// near 0 and 1 with the weight of `n` respondents; its gradient is added into `grad`.
 fn gauge(model: &Model, grid: &Grid, n: f64, p: &[f64], grad: &mut [f64]) -> f64 {
+    if model.nodes == 0 {
+        return 0.0;
+    }
     let shape = grid.shape(&p[model.hist_idx(0)..]);
     let var = shape.sd * shape.sd;
     let (dm, dv) = (shape.mean, var - 1.0);
@@ -902,10 +921,16 @@ pub fn latent_dif_with(
         k,
         per_class_a: false,
         floors: floors.count,
-        nodes: grid.theta.len(),
+        nodes: if lp.estimate_shape {
+            grid.theta.len()
+        } else {
+            0
+        },
     };
     let mut p1 = vec![0.0; one.len()];
-    p1[one.hist_idx(0)..].copy_from_slice(&grid.normal_logits());
+    if one.nodes > 0 {
+        p1[one.hist_idx(0)..].copy_from_slice(&grid.normal_logits());
+    }
     let mut start = |slot: Option<(usize, f64)>, correct: f64| match slot {
         None => start_difficulty(correct as usize, n),
         Some((s, chance)) => {
@@ -1015,7 +1040,7 @@ pub fn latent_dif_with(
         .map(|j| gap(&|g, j| model.item_a_idx(g, j), j))
         .collect();
     let (_, _, posterior) = evaluate(&model, &p, &data, &grid, &floors, true);
-    let shape = grid.shape(&p[model.hist_idx(0)..]);
+    let shape = grid.ability(&model, &p);
     let floor_of =
         |f: &Option<(usize, f64)>| f.map_or(0.0, |(s, _)| sigmoid(p[model.floor_idx(s)]));
 
@@ -1069,7 +1094,7 @@ mod tests {
     ) -> f64 {
         let pi = model.pi(p);
         let eta = model.eta(p);
-        let shape = grid.shape(&p[model.hist_idx(0)..]);
+        let shape = grid.ability(model, p);
         let floor =
             |f: Option<(usize, f64)>| f.map_or(0.0, |(s, _)| sigmoid(p[model.floor_idx(s)]));
         let term = |x: f64, c: f64, s: f64| {
@@ -1213,35 +1238,37 @@ mod tests {
     /// The BIC counts each model shape's free parameters: floors, and the histogram less three.
     #[test]
     fn free_parameters_are_counted_as_specified() {
-        let (na, k, nodes) = (5, 8, 41);
-        for g in 1..=4 {
-            for floors in [0, 3] {
-                let shared = Model {
-                    g,
-                    na,
-                    k,
-                    per_class_a: false,
-                    floors,
-                    nodes,
-                };
-                let per_class = Model {
-                    g,
-                    na,
-                    k,
-                    per_class_a: true,
-                    floors,
-                    nodes,
-                };
-                assert_eq!(
-                    shared.free_params(),
-                    2 * (g - 1) + 2 * na + k + k * g + floors + nodes - 3,
-                    "G={g} shared, {floors} floors"
-                );
-                assert_eq!(
-                    per_class.free_params(),
-                    2 * (g - 1) + 2 * na + 2 * k * g + floors + nodes - 3,
-                    "G={g} per-class, {floors} floors"
-                );
+        let (na, k) = (5, 8);
+        for (nodes, histogram) in [(41, 38), (0, 0)] {
+            for g in 1..=4 {
+                for floors in [0, 3] {
+                    let shared = Model {
+                        g,
+                        na,
+                        k,
+                        per_class_a: false,
+                        floors,
+                        nodes,
+                    };
+                    let per_class = Model {
+                        g,
+                        na,
+                        k,
+                        per_class_a: true,
+                        floors,
+                        nodes,
+                    };
+                    assert_eq!(
+                        shared.free_params(),
+                        2 * (g - 1) + 2 * na + k + k * g + floors + histogram,
+                        "G={g} shared, {floors} floors"
+                    );
+                    assert_eq!(
+                        per_class.free_params(),
+                        2 * (g - 1) + 2 * na + 2 * k * g + floors + histogram,
+                        "G={g} per-class, {floors} floors"
+                    );
+                }
             }
         }
     }
@@ -1267,7 +1294,7 @@ mod tests {
         for formats in [Formats::open(na, k), mixed, Formats::choice(na, k, 5)] {
             let floors = Floors::new(&formats, na, k, FLOOR_PRIOR_WEIGHT).expect("formats");
             let data = Data::new(&anchors, &x, na, k, &floors);
-            for g in 1..=3 {
+            for (g, nodes) in [(1, 0), (2, 0), (1, 11), (2, 11), (3, 11)] {
                 for per_class_a in [false, true] {
                     let model = Model {
                         g,
@@ -1275,7 +1302,7 @@ mod tests {
                         k,
                         per_class_a,
                         floors: floors.count,
-                        nodes: grid.theta.len(),
+                        nodes,
                     };
                     let p: Vec<f64> = (0..model.len()).map(|_| normal(&mut rng) * 0.7).collect();
                     let (fused, analytic, _) = evaluate(&model, &p, &data, &grid, &floors, false);

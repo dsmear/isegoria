@@ -59,7 +59,7 @@ work left is ordered in `10-roadmap.md`. Follow its phases in
 order — **mathematics** (every task up to the characterization T24 is done — its results
 are in `13-characterization.md` §7, its harness is `crates/characterization`; left are
 T25, in four steps (`10-roadmap.md` §1.4): the guessing correction D25 in the latent
-re-check (done), then in the pilot screen, a supplement of the DIF studies on the corrected
+re-check and the pilot screen (both done), a supplement of the DIF studies on the corrected
 model (done, its results in `13-characterization.md` §8.7, but for the screen's study, which
 follows the screen), then the thresholds with their calibration procedures; T82, the
 re-check reading templates and a skewed ability as bias, which the supplement found — decided

@@ -66,13 +66,12 @@ fn anchors(n: usize) -> Vec<Vec<f64>> {
         .collect()
 }
 
-/// `n` respondents' abilities and `m` item columns of `n` answers each, non-degenerate.
-fn sample(n: usize, m: usize) -> (Vec<f64>, Vec<Vec<f64>>) {
-    let theta: Vec<f64> = (0..n).map(|i| (i as f64 / n as f64) - 0.5).collect();
-    let items: Vec<Vec<f64>> = (0..m)
-        .map(|j| (0..n).map(|i| ((i * 7 + j * 3) % 5) as f64 * 0.2).collect())
+/// `n` respondents' anchors and their answers to `m` items, one row each, non-degenerate.
+fn sample(n: usize, m: usize) -> (Vec<Vec<f64>>, Vec<Vec<f64>>) {
+    let items: Vec<Vec<f64>> = (0..n)
+        .map(|i| (0..m).map(|j| ((i * 7 + j * 3) % 5) as f64 * 0.2).collect())
         .collect();
-    (theta, items)
+    (anchors(n), items)
 }
 
 // -------------------------------- AT-PRO-09 --------------------------------
@@ -109,9 +108,9 @@ fn three_hundred_rows_from_one_respondent_are_not_enough() {
     let proof = respond_proof(&issuer, &person(&issuer, 1), batch);
     submit_response(&proof, &issuer.public(), batch, EPOCH, &mut respondents).unwrap();
 
-    let (theta, items) = sample(300, 3);
+    let (rows, items) = sample(300, 3);
     assert_eq!(
-        screen(&respondents, &theta, &items),
+        screen(&respondents, &rows, &items, &Formats::open(60, 3)),
         Err(PilotError::NotEnoughRespondents {
             have: 1,
             need: N1_MIN
@@ -189,28 +188,38 @@ fn a_proof_for_another_role_cannot_respond() {
 fn rows_without_a_respondent_are_refused() {
     let respondents = admitted(N1_MIN);
 
-    let (theta, items) = sample(N1_MIN + 1, 3);
+    let formats = Formats::open(60, 3);
+    let (rows, items) = sample(N1_MIN + 1, 3);
     assert_eq!(
-        screen(&respondents, &theta, &items),
+        screen(&respondents, &rows, &items, &formats),
         Err(PilotError::RowCountMismatch {
             rows: N1_MIN + 1,
             respondents: N1_MIN
         })
     );
 
-    // An item column of another length is refused too.
-    let (theta, mut items) = sample(N1_MIN, 3);
+    // A respondent's row of another length is refused too, the anchors' or the items'.
+    let (mut rows, mut items) = sample(N1_MIN, 3);
     items[1].push(0.0);
     assert_eq!(
-        screen(&respondents, &theta, &items),
+        screen(&respondents, &rows, &items, &formats),
         Err(PilotError::RowCountMismatch {
-            rows: N1_MIN + 1,
-            respondents: N1_MIN
+            rows: 4,
+            respondents: 3
+        })
+    );
+    items[1].pop();
+    rows[2].pop();
+    assert_eq!(
+        screen(&respondents, &rows, &items, &formats),
+        Err(PilotError::RowCountMismatch {
+            rows: 59,
+            respondents: 60
         })
     );
 
-    let (theta, items) = sample(N1_MIN, 3);
-    assert!(screen(&respondents, &theta, &items).is_ok());
+    let (rows, items) = sample(N1_MIN, 3);
+    assert!(screen(&respondents, &rows, &items, &formats).is_ok());
 
     // The same for the latent re-check.
     let respondents = admitted(N_LATENT_MIN);

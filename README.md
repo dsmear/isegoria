@@ -348,8 +348,8 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
    (D42, T71). Next, T25: the characterization showed that the latent re-check flags
    clean items when respondents can guess — as they always can on true/false and
    multiple-choice items — so the model gets its guessing correction first (D25): the
-   re-check has it (T25's first step), the pilot screen is next; then the model is
-   measured again — the supplement, 19,700 runs, found it specific on every format, its
+   re-check has it (T25's first step), and so does the pilot screen (the second); then the
+   model is measured again — the supplement, 19,700 runs, found it specific on every format, its
    power dependent on the format, and templates and a skewed ability read as bias, now fixed
    (D43, T82) and to be measured again — and only then are the thresholds set; and the
    mutation testing of the mechanism (T81).

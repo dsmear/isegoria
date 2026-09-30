@@ -22,6 +22,7 @@ use protocol::revalidation::items_to_retire;
 #[cfg(feature = "calibration")]
 use protocol::revalidation::revalidate_pool;
 use protocol::review::{assign_reviewers, commit, reveal, Reviewer};
+use scoring::latent::Formats;
 
 #[test]
 fn deposit_requires_a_primary_source_and_records_on_the_log() {
@@ -212,26 +213,37 @@ fn noisy(i: usize, base: bool) -> f64 {
     ((base ^ flip) as i32) as f64
 }
 
+/// Twenty open anchors answered as a noisy step at spread difficulties, one row per person.
+fn stepped_anchors(theta: &[f64]) -> Vec<Vec<f64>> {
+    theta
+        .iter()
+        .enumerate()
+        .map(|(i, &t)| {
+            (0..20)
+                .map(|k| noisy(i + 17 * k, t > -2.0 + 4.0 * k as f64 / 19.0))
+                .collect()
+        })
+        .collect()
+}
+
 #[test]
 fn pilot_stage1_drops_non_discriminating_items() {
     let (theta, _group) = synthetic();
-    let discriminating: Vec<f64> = theta
+    let responses: Vec<Vec<f64>> = theta
         .iter()
         .enumerate()
-        .map(|(i, &t)| noisy(i, t > 0.0))
+        .map(|(i, &t)| vec![noisy(i, t > 0.0), (i % 2) as f64])
         .collect();
-    let random: Vec<f64> = (0..theta.len()).map(|i| (i % 2) as f64).collect();
 
-    let keep = stage1_screen(&theta, &[discriminating, random]);
+    let keep = stage1_screen(&stepped_anchors(&theta), &responses, &Formats::open(20, 2)).unwrap();
     assert!(keep[0], "a discriminating item should survive stage 1");
     assert!(!keep[1], "a non-discriminating item should be killed");
 }
 
-/// A perfectly separating item has no finite 2PL slope: the fit reports `Separated` and
-/// the huge slope it stopped at must not pass `a ≥ A_MIN` (T34, OPT-001). Its
-/// point-biserial is high, so only the status check stops it.
+/// A perfectly separating item has no finite 2PL slope on a θ proxy: the fit reports
+/// `Separated`, and the slope it stopped at says nothing (T34, OPT-001).
 #[test]
-fn pilot_stage1_fails_an_item_whose_2pl_fit_is_separated() {
+fn a_2pl_fit_on_a_separating_item_reports_separation() {
     let (theta, _group) = synthetic();
     let separated: Vec<f64> = theta.iter().map(|&t| (t > 0.0) as i32 as f64).collect();
 
@@ -239,14 +251,9 @@ fn pilot_stage1_fails_an_item_whose_2pl_fit_is_separated() {
     assert_eq!(fit.status, scoring::LogisticFit::Separated);
     assert!(
         fit.a >= scoring::irt::A_MIN,
-        "contrast: the slope alone would pass, a = {}",
+        "the slope alone would pass, a = {}",
         fit.a
     );
-    assert!(
-        scoring::irt::point_biserial(&separated, &theta) >= scoring::irt::R_PBIS_MIN,
-        "contrast: the point-biserial alone would pass"
-    );
-    assert!(!stage1_screen(&theta, &[separated])[0]);
 }
 
 #[cfg(feature = "calibration")]

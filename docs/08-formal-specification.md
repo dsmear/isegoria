@@ -286,7 +286,7 @@ The repository makes, in `README.md`, `docs/00`–`06`, and `ARCHITECTURE.md`, t
    Draft ──deposit──► TransparencyLog(Cid) ──admit(lottery)──► assign_reviewers(f_u-stratified)
      ──commit/reveal──► Ratings ──scoring::bridging::bridge_scores──► bridging_gate(τ, ε)
      ──► Pass | SupplementaryReview | AppealEligible | Reject
-     ──► pilot::stage1_screen(r_pbis, 2PL a) ──► pilot::stage2_dif(logistic β₂ on `group`)
+     ──► pilot::stage1_screen(r_pbis, then the one-class target model) ──► pilot::stage2_dif(logistic β₂ on `group`)
      ──► pool ──► revalidation::{revalidate_pool (axes), revalidate_pool_latent (mixture)} ──► exposure::should_retire
 ```
 
@@ -485,11 +485,12 @@ Each critical claim carries the full block required by `docs/07` §4. Secondary 
 - **Evidence.** `level_b.rs::verdicts_match_the_oracle` (item 06: −0.356). Follows from the definition when the key is fully inverted and the item discriminates.
 - **Evidence status.** TESTED.
 
-#### IRT-003 — 2PL discrimination screen
-- **Claim.** `fit_2pl_item` returns `a` such that `a ≥ 0.6` retains discriminating items.
-- **Status (T34).** `fit_2pl_item` now returns `Fit2pl { a, b, status }`; `pilot::stage1_screen` fails an item whose fit is not `Converged`, so a separated item's diverging slope no longer passes `a ≥ A_MIN` (`lifecycle.rs::pilot_stage1_fails_an_item_whose_2pl_fit_is_separated`).
-- **Evidence.** `level_b.rs::irt_2pl_discrimination_ranks_items` (ranking + one item below 0.6). `end_to_end.rs` documents that item 02 (generated as 3PL with guessing floor 0.25 in the sim) fails the screen; the test rationalizes this as 3PL-vs-2PL, but the θ-metric mismatch (IRT-001) is an equally plausible cause and is not separated out.
-- **Evidence status.** IMPLEMENTED, TESTED (2 items). Threshold validity NOT ESTABLISHED. 3PL, `c ≤ 0.35`, `|b| ≤ 2.5` (constant `B_ABS_MAX` exists, unused), infit/outfit: NOT IMPLEMENTED.
+#### IRT-003 — The stage-1 discrimination screen
+- **Claim.** Stage 1 keeps an item that discriminates and drops one that does not, a wrong key, one too easy or too hard, and one easier to guess than its format allows.
+- **Status (T34).** `fit_2pl_item` returns `Fit2pl { a, b, status }`, and a separated item's diverging slope reports `Separated` (`lifecycle.rs::a_2pl_fit_on_a_separating_item_reports_separation`).
+- **Status (T25 step 2, 2026-09-30).** The screen no longer fits a 2PL slope on the standardized anchor total: `pilot::stage1_fit` leaves out an item whose `r_pbis` on the anchors' total is below `R_PBIS_MIN` and fits the target model with one class on the pilot's anchors and the other items, each declared with its format, the ability's shape held normal (`docs/02` §B.2); `stage1_verdicts` keeps an item when the fit converged, `r_pbis ≥ R_PBIS_MIN`, `a ≥ A_MIN`, `|b| ≤ B_ABS_MAX` and a choice item's floor is at most `C_EXCESS_MAX` over chance. Fitted with the rest, an item keyed backwards stopped the fit from converging, and the pilot kept nothing.
+- **Evidence.** `pilot_screen.rs` (AT-PRO-15): each threshold at its boundary, the point-biserial's included, a fit that did not converge keeps nothing, and an item keyed backwards is left out of the fit while the others are screened. `end_to_end.rs`: the fixture's item 02 (`a = 1.6` with a floor of 0.25), which the 2PL proxy read at 0.47, passes and item 05 (`a = 0.15`) fails; the fixture's pool is items 01, 02 and 07, the reference sim's. `level_b.rs::irt_2pl_discrimination_ranks_items` keeps the 2PL fit's ranking.
+- **Evidence status.** IMPLEMENTED, TESTED. Threshold validity at stage 1's size NOT ESTABLISHED: the screen's study (`docs/13` §8) and T25's fourth step. Infit/outfit NOT IMPLEMENTED.
 
 #### DIF-001 — Logistic DIF numerics
 - **Claim.** `dif::logistic_dif` returns the unpenalized MLE of `logit P = β₀ + β₁θ + β₂g + β₃θg`.
@@ -775,7 +776,7 @@ Each critical claim carries the full block required by `docs/07` §4. Secondary 
 
 #### PROTO-004 — Gate and appeal — TESTED (four outcomes; appeal recovers item 03 in e2e). `appeal_threshold = 0.5` on `|f_j|` appears only in a test constant; not in `docs/02`'s parameter table.
 
-#### PROTO-005 — Pilot stage semantics — Stage 1 = `r_pbis ≥ 0.20 ∧ a ≥ 0.6`; Stage 2 = `|β₂| ≤ 0.40` on a supplied `group`. No `|b| ≤ 2.5`, no `c`, no MH, no mixture in the pilot; the mixture appears only in re-validation. Sample sizes (300/1500/3000) are not parameters of any function. TESTED on synthetic and fixture data.
+#### PROTO-005 — Pilot stage semantics — Stage 1 = `r_pbis ≥ 0.20`, then on those items the one-class target model's `a ≥ 0.6 ∧ |b| ≤ 2.5 ∧ c ≤ 1/m + 0.10`, converged (T25 step 2, IRT-003); Stage 2 = `|β₂| ≤ 0.40` on a supplied `group`. No MH, no mixture in the pilot; the mixture appears only in re-validation. Sample sizes (300/1500/3000) are not parameters of any function. TESTED on synthetic and fixture data.
 
 #### PROTO-006 — Batch enforcement — RESOLVED@T9 (was NOT ENFORCED).
 - The DIF stages run through batch-admission gates that refuse a batch below `K_MIN` items (INV-8) and a sample below its §B.6 floor: `pilot::admit_dif_batch`, the wrappers `pilot::{screen, dif_batch}` (Variant 1) and `revalidation::revalidate_batch_latent` (production Variant 2), with floors `N1_MIN`=300 / `N2_MIN`=1500 / `N_LATENT_MIN`=3000, and — the latent re-check — a third floor on the anchors: KR-20 ≥ `KR20_MIN` = 0.90 on the batch's respondents (`pilot::admit_anchors`, D37, T53). `end_to_end.rs::run_epoch` runs the pilot through the gates, and `lifecycle::step` independently rejects `Pilot2Batch { batch_size < K_MIN }` (T12). AT-PRO-02 passes (`inv8_batch_min.rs`).
@@ -1269,6 +1270,7 @@ Each entry names the test that MUST exist, its oracle, and the claim it falsifie
 | AT-PRO-12 ✓ | epoch results (T73) | every kind of result record in one epoch, the node reopened; each refusal as the last record of an event; the inputs' root over ratings and answers in any order; every record re-encoded | the state the direct calls give; a refused event leaves no trace; every participant's inclusion proof verifies against the recorded root, an outsider's does not; one encoding per event — `results_replay.rs` | PROTO-014, PRIV-004 |
 | AT-PRO-13 ✓ | the state from signed cuts (T74) | eight entries of two relays — one deposit through both, one quota spent on both, an object that is not an event — in every arrival order, two cuts; a lifecycle step from a relay, then from a member; cuts unsigned, signed for another cut, out of turn, unsorted, not yet held, shortening, dropping, forking; four writers over six cuts | the same state and refusals in every order; the first in order wins, the other refused (`DuplicateCid`, `OverQuota`), the cut goes on; the relay's step `NotAuthorized`, the member's applied; bad cuts leave the ledger as it was, the held cut applies after; one entry per writer per round, the rank redrawn — `ledger.rs` | PROTO-015 |
 | AT-PRO-14 ✓ | the beacon on cuts (T74) | commits in epoch 0's cuts, a reveal before the closing cut, a commit on a relay's feed, a deposit of another epoch, a second commit, reveals and a mismatched one in the cut after the closing one, a stale commit there; fewer than `t` reveals; an epoch with no commit | the outcome equals the in-process `BeaconRound`'s; `OutOfWindow`, `NotAuthorized`, `WrongEpoch`, `DuplicateCommit`, `RevealMismatch` refused; no value with fewer than `t`; an empty round — `beacon_on_cuts.rs` | PROTO-015, §9.4 |
+| AT-PRO-15 ✓ | the stage-1 screen (D25) | a hand-built stage-1 fit with items at each threshold's edge; a fit that did not converge; a simulated pilot of 300 with an item keyed backwards, which stopped the fit of all items from converging; the fixture's items 02 and 05 | kept at `a = A_MIN`, `\|b\| = B_ABS_MAX`, `c = 1/m + C_EXCESS_MAX`, `r_pbis = R_PBIS_MIN`, dropped just past each; nothing kept from an unconverged fit; the item keyed backwards left out of the fit and dropped, the others kept; item 02 kept and item 05 dropped — `pilot_screen.rs`, `end_to_end.rs` (T25 step 2) | IRT-003, PROTO-005 |
 
 ---
 
@@ -1362,7 +1364,7 @@ Only gaps supported by evidence in the repository are listed. Each gives: locati
 *Ambiguity.* Whether `a ≥ 0.6`, `|b| ≤ 2.5` refer to the IRT metric or the standardized-total metric.
 *Minimum spec.* Declare the metric; either re-derive thresholds for it or estimate an IRT-scaled θ. Decide 3PL.
 *Test.* AT-DIF-02 extended with a 3PL generator; verdict_agreement.rs.
-*Status.* DECIDED (`docs/01` D25, 2026-09-28): a guessing floor per item in the target model, whose metric the pilot screen reads too; built by `docs/10` T25, steps 1–2 — step 1 done (2026-09-28, AT-DIF-13), the metric declared in `docs/02` §B.1, the model characterized on populations that guess by step 3 (2026-09-30, `docs/13` §8.7) — its thresholds set by step 4. T24 measured the need: with a floor of 0.2 in the population the 2PL target model flags 12–17% of the clean items (`docs/13` §7.2).
+*Status.* DECIDED (`docs/01` D25, 2026-09-28): a guessing floor per item in the target model, whose metric the pilot screen reads too; built by `docs/10` T25, steps 1–2 — step 1 done (2026-09-28, AT-DIF-13), the metric declared in `docs/02` §B.1, the model characterized on populations that guess by step 3 (2026-09-30, `docs/13` §8.7), the pilot's stage 1 on the same model and metric by step 2 (2026-09-30, AT-PRO-15) — its thresholds set by step 4. T24 measured the need: with a floor of 0.2 in the population the 2PL target model flags 12–17% of the clean items (`docs/13` §7.2).
 
 **G-08 — Mixture DIF cut-off inconsistent (docs 0.5 on b-gap; sim 0.35 on |δ|; code 0.5 on |δ|).**
 *Location.* `docs/02` §B.3, `sim/latent_dif_and_capacity.py:63`, `dif.rs::MIXTURE_DIF_MAX`, `revalidation.rs:58`.
@@ -1474,9 +1476,9 @@ Status is the lowest justified. "Missing evidence" names what would raise it one
 | BRIDGE-009 | camp-size neutrality | paper §3.4, `levelA_leak.py`; `side_balanced.rs` (AT-BR-08) | RESOLVED (T49) — leak ≤ 0.1 from 200 reviewers (0.1–0.2 residual at 50–100); the appeal reads the side gap; each side holds at least 5% of the reviewers (D42) | the side floor's value (T25) | — |
 | BRIDGE-010 | the sides are the camps, the scores on the scale, both sides rated the item | `bridging.rs` (`two_means`, `side_floor`, `coverage`), `gate.rs` (`MIN_COVERAGE`); `side_split.rs`, `side_coverage.rs`, `side_evidence.rs` (AT-BR-11/12) | RESOLVED (D42, T71) — the exact 2-means cut with a floor, predictions clipped to [0, 1], an uncovered item to supplementary review | the floor and `MIN_COVERAGE` provisional | T25; `docs/13` `bridging-sweep`, `bridging-capture` re-run |
 | OPT-001 | convergence observable | `optim.rs`, `glm.rs` (+ tests) | IMPLEMENTED (T2) — `lbfgs`/`fit_logistic` return status; separation detected. T41: a failed line search is no longer reported as `Converged` (the stall test ran first, and Armijo could pass by rounding with no movement). T45: the stall's gradient bound `√(2 λ_max · 1e-12 · (1 + |f|))` characterized and pinned | — | — |
-| IRT-001 | θ proxy | `irt.rs`, `level_b.rs` | TESTED; the metric declared for the target model (`docs/02` §B.1, D25, T25 step 1) | the pilot screen on the declared metric (T25 step 2) | G-07 |
+| IRT-001 | θ proxy | `irt.rs`, `level_b.rs` | TESTED; the metric declared for the target model (`docs/02` §B.1, D25, T25 step 1), which the stage-1 screen reads since T25 step 2 | the pilot screen on the declared metric (T25 step 2) | G-07 |
 | IRT-002 | inverted key caught | `level_b.rs` | TESTED | partial-key cases | AT-DIF-02 ext. |
-| IRT-003 | 2PL screen | `level_b.rs`, `end_to_end.rs` | TESTED (2 items) | threshold validity; 3PL | G-07 |
+| IRT-003 | stage-1 screen | `pilot_screen.rs` (AT-PRO-15), `end_to_end.rs`, `level_b.rs` | TESTED on the target model's one-class fit (T25 step 2): item 02 of the fixture passes, item 05 fails, each threshold at its boundary, an item keyed backwards left out of the fit | threshold validity at stage 1's size | T25 |
 | DIF-001 | logistic numerics | `level_b.rs` | TESTED | SE/LRT/multiplicity | §6.5 |
 | DIF-002 | Variant 1 admissible input | `dif.rs`, `pilot.rs` (`calibration` feature) | RESOLVED (T32) — Variant 1 is calibration-only; production compiles no per-respondent `group` (D20) | — | G-01 |
 | DIF-003 | MH classification | `level_b.rs` (incl. NaN at n = 200) | TESTED (2 items); NaN policy RESOLVED via `total_cmp` (§0-ter) | significance; tertile spec | §6.5 |

@@ -221,8 +221,8 @@ model (§B.3): logistic with no scaling constant (`D = 1`), `θ` of unit varianc
 latent class, its origin the mean of the first class — in a one-class fit, of the batch's
 respondents — and its shape estimated, the same in every class (§B.3, `01` D43). The
 metric is the batch's own: nothing links the metrics of two fits (§B.7).
-The pilot's stage 1 reads a 2PL slope on the standardized anchor total instead, a proxy
-metric (`08` IRT-001), until T25's second step moves it onto this model (`10`).
+The pilot's stage 1 reads the same model with one class (§B.2, T25's second step), so its
+thresholds are in this metric too.
 
 ### B.2 Retention criteria
 
@@ -230,9 +230,29 @@ metric (`08` IRT-001), until T25's second step moves it onto this model (`10`).
 |---|---|---|
 | `a_j` | ≥ 0.6 | the question distinguishes nothing: it is noise |
 | `b_j` | −2.5 ≤ b_j ≤ 2.5 | too easy or too hard to be informative |
-| `c_j` | ≤ 0.35 | answer is guessable |
+| `c_j` | ≤ `1/m_j` + 0.10 (0.35 with four options) | answer is guessable |
 | Infit/Outfit MNSQ | 0.7 – 1.3 | the question is not coherent with the construct |
 | `r_pbis` (point-biserial) | ≥ 0.20 | same, classical version |
+
+**Stage 1 reads the target model (`01` D25, T25's second step).** The pilot's first stage
+drops an item whose `r_pbis` against the anchors' total is below `R_PBIS_MIN`, then fits
+the target model of §B.3 with one class on the pilot's anchors and the other items, each
+column declared with its format, and keeps an item when the fit converged, `a ≥ A_MIN`,
+`|b| ≤ B_ABS_MAX` and a choice item's floor is at most `C_EXCESS_MAX` = 0.10 (provisional)
+above its chance level `1/m`. The point-biserial comes first because the model's curves
+rise with ability: fitted with the rest, an item keyed backwards ran its slope to 0 and
+its difficulty to 100 and beyond, and the fit, which never converged, kept no item of the
+pilot — in 13 of 16 simulated pilots of 300 with five options, and in most of the
+screen's pre-check pilots of five options at every size (`13` §8). At the
+pilot's ~300 respondents the ability's shape is held at the normal, the metric's variance
+and origin unchanged: on four simulated pilots of that size the histogram of D43 did not
+converge twice and traded slope for floor on good items (`a` 10–12, `c` 0.37), where the
+normal converged every time. The infit/outfit row above is not implemented. Before, stage
+1 read a 2PL slope on the standardized anchor total, a proxy metric in which the fixture's
+item 02 — `a = 1.6` with a floor of 0.25, like every item of the reference sim — read 0.47
+and failed; it now passes, and the fixture's pool is items 01, 02 and 07, as the sim finds.
+The thresholds are calibrated at stage 1's size by the screen's study (`13` §8) and T25's
+fourth step.
 
 **Point-biserial**: correlation between "correct answer to this item" (0/1) and total
 score on the rest of the test. If **negative**, the answer key is almost always wrong

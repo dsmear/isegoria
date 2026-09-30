@@ -119,8 +119,11 @@ judgment to the data.
 ## [6]-[7] Two-stage pilot
 
 **Stage 1 (~300 respondents).** Cheap screen: immediately kills questions with
-insufficient discrimination (`a < 0.6`, `r_pbis < 0.20`) and those with a wrong key
-(negative `r_pbis`). Costs little.
+insufficient discrimination (`a < 0.6`, `r_pbis < 0.20`), too easy or too hard
+(`|b| > 2.5`), guessable (a floor more than 0.10 above chance), and those with a wrong key
+(negative `r_pbis`) — the point-biserial first, then the one-class fit of the model the
+re-check uses on the items it keeps, the ability's shape held normal at this size (`02`
+§B.2, `01` D25). Costs little.
 
 **Stage 2 (~1500–3000 respondents), only for survivors.** The large sample is needed
 because **latent-class DIF** (`02` B.3) requires enough people at each competence

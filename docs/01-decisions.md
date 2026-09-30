@@ -355,7 +355,10 @@ another. One metric, one value, one justification. Resolves Q-5 / G-08.
 
 > **Form decided (2026-09-28), from T24's results; built by `docs/10` T25, steps 1–2.**
 > Step 1 done the same day: the latent re-check takes each column's format
-> (`scoring::latent::Formats`) and fits the floors (`docs/08` AT-DIF-13).
+> (`scoring::latent::Formats`) and fits the floors (`docs/08` AT-DIF-13). Step 2 done on
+> 2026-09-30: the pilot's stage 1 reads the one-class fit of the same model on the items
+> its point-biserial keeps (`pilot::{stage1_fit, stage1_verdicts}`, `irt::C_EXCESS_MAX`;
+> `docs/08` AT-PRO-15).
 > The correction cannot be omitted: with a guessing floor of 0.2 in the population the
 > 2PL target model of D37 selects a mixture in 72.5–98.0% of the null batches and flags
 > 12–17% of the clean items, and the anchors' KR-20 floor does not prevent it (`docs/13`
@@ -985,6 +988,12 @@ batches (11.2% of their clean items); a left-skewed ability (a skew-normal of sh
   cannot tell from DIF.
 - Leaving the misfit to the thresholds, a larger DIF cut or class share: the spurious gaps
   are as large as real ones, and the cut the supplement measured would stop protecting.
+
+**Scope.** The histogram is estimated where classes are sought, in the latent re-check's
+batches of 3,000 respondents and more. The pilot's stage 1, one class on ~300 respondents,
+holds the shape at the normal (`LatentParams::estimate_shape`): at that size the histogram
+did not converge on two simulated pilots of four and traded slope for floor on good items,
+and one class has no false class to create (`docs/02` §B.2).
 
 **Consequence.** T24's and the supplement's DIF tables describe the model before this
 decision; the supplement's DIF studies are run again on it before T25's fourth step reads
