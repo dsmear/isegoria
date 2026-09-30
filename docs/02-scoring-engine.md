@@ -251,8 +251,11 @@ normal converged every time. The infit/outfit row above is not implemented. Befo
 1 read a 2PL slope on the standardized anchor total, a proxy metric in which the fixture's
 item 02 — `a = 1.6` with a floor of 0.25, like every item of the reference sim — read 0.47
 and failed; it now passes, and the fixture's pool is items 01, 02 and 07, as the sim finds.
-The thresholds are calibrated at stage 1's size by the screen's study (`13` §8) and T25's
-fourth step.
+The screen's study (`13` §8.7.5) measured this rule on simulated pilots. It drops wrong
+keys and flat and too hard items. But `R_PBIS_MIN` also drops good items whose floor
+lowers their point-biserial — most true/false items and most items near `b = 2` — and the
+fit reads an item easier to guess than its format allows as an easier item, which
+`C_EXCESS_MAX` does not catch at these sizes. T25's fourth step sets the thresholds.
 
 **Point-biserial**: correlation between "correct answer to this item" (0/1) and total
 score on the rest of the test. If **negative**, the answer key is almost always wrong

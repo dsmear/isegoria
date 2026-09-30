@@ -351,7 +351,8 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
    re-check has it (T25's first step), and so does the pilot screen (the second); then the
    model is measured again — the supplement, 19,700 runs, found it specific on every format, its
    power dependent on the format, and templates and a skewed ability read as bias, now fixed
-   (D43, T82) and to be measured again — and only then are the thresholds set; and the
+   (D43, T82) and to be measured again; the screen's study, 3,600 pilots, found its
+   point-biserial dropping good items that guess — and only then are the thresholds set; and the
    mutation testing of the mechanism (T81).
 2. **P2P network** — done so far: the consortium's configuration check (T63), a
    randomness beacon nobody can grind, by commit-reveal among the consortium members (D41,

@@ -662,6 +662,7 @@ a time:
 | `floor-dtf` | 1,200 | 91 s, 33–215 s |
 | `bridging-lambda` | 9,600 | 1.2 s |
 | `bridging-extra` | 2,400 | 13 s |
+| `floor-screen` | 3,600 | 0.23 s, 0.02–2.0 s — in all 3.5 minutes in the container (§8.7.5) |
 
 About 195 CPU-hours of the container in all, 76 of them in `floor-power`: at the ratio
 T24 measured (§7: 425 of them in about 30 hours), about 14 hours on the owner's machine,
@@ -693,7 +694,8 @@ out the studies with no records.
 3. Each result stated in the form of `docs/07` §14, and `docs/08` restated: AT-DIF-13 in
    §12; DIF-008, STAT-001 and DIF-011 with a floor, BRIDGE-002 and BRIDGE-003 for
    `(λ_b, λ_f)`, BRIDGE-006 for `k_extra`, in §15.
-4. The screen's study added once step 2 is done, run and stated (§8.1).
+4. The screen's study added once step 2 is done, run and stated (§8.1): done on
+   2026-09-30 (§8.7.5).
 5. T25's step 4 is then unblocked: `N_LATENT_MIN`, the DIF cut, `KR20_MIN` or a minimum
    number of anchors and `DTF_MAX` for items that guess; `k_extra` and `ε`; `λ_b/λ_f`.
 
@@ -822,7 +824,54 @@ options in every fit at δ = 0.9 and in 1 of 200 and 53 of 200 at δ = 0.5 (N = 
   of 80/20 raise them by 9–18. The number of reviewers in the epoch changes little: a probe's
   score rests on its panel.
 
-#### 8.7.5 What T25 takes from it
+#### 8.7.5 The pilot's stage-1 screen
+
+**The run.** `floor-screen`'s 3,600 runs, no `errors.log`, in the container on 2026-09-30,
+3 min 26 s with four workers, on the harness of `ec34fa4`: the stage 1 of T25's second
+step, the point-biserial first. Its tables are in `verification/reports/t25/`
+(`floor-screen-summary.csv`, `floor-screen-items.csv`, `thresholds-screen.csv`).
+
+- **Keyed backwards, too hard.** The item keyed backwards was never kept: 0 of 3,600, at
+  most 1.9% in any cell. The item too hard was kept in 10 of 3,600, at most 3.0%
+  [1.4, 6.4] in a cell (N = 300, five options). The point-biserial drops both before the
+  fit: its mean is −0.22 to −0.37 for the first and 0.03–0.10 for the second.
+- **Flat items** were kept in 4.2% of cases: 5.5% with four options, 6.1% with five, 0.9%
+  with true/false; 10.5–10.8% at N = 300 with four or five options, 1.4–1.9% at 1,500.
+  Most of the kept ones are the `a = 0.45` item, whose fitted slope reads 0.6–0.7 with
+  four or five options when the point-biserial lets it into the fit.
+- **Good items.** Four of the five were kept in 93.3% of cases with four options and
+  95.5% with five, 89.6–97.6% by size. The fifth, `(1.2, 2)`, was kept in 16.6% and
+  29.8%. With true/false, the four were kept in 42.0% and the fifth in 1.1%. A larger
+  sample does not help: the point-biserial, not the fit, drops them. Its mean on the
+  anchors' total is a population value under `R_PBIS_MIN` = 0.20: 0.15–0.19 for
+  `(1.2, 2)` with four or five options; with true/false 0.16–0.18 for `(0.8, 0)` and
+  `(1.2, 1)`, 0.19–0.21 for `(1.6, 0.9)` and 0.09–0.10 for `(1.2, 2)`. At N = 1,500 the
+  true/false pilots keep `(0.8, 0)` and `(1.2, 1)` in 4–21% of cases.
+- **The guessable item**, its floor 0.2 over chance, was kept in 79.2% of cases with four
+  options, 83.8% with five, and 16.4% with true/false, where the point-biserial drops it
+  with the good ones. The fit reads it as an easier item: with four options its floor
+  reads 0.27–0.34 against a true 0.45, its difficulty −0.4 to −0.6 against 0. A larger
+  sample barely helps: at 1,500 it is still kept in 65.8% and 70.8% of cases.
+  `C_EXCESS_MAX` at 0.05 still keeps 40–80% of them, and drops 23–30% of the good items.
+- **The thresholds.** `B_ABS_MAX` changes nothing between 2.0 and 3.0: the point-biserial
+  has already dropped the items it would drop. Moving `A_MIN` from 0.4 to 0.8 trades flat
+  items kept against good items dropped: at N = 300 with five options, from 15.1% and
+  18.4% to 3.1% and 27.0%.
+- **Convergence.** 98.9% of the fits converged: all of them with five options, 99.8%
+  with four, 96.9% with true/false. With true/false at N = 300 and 60 anchors, only 85.5%
+  converged: an anchor's slope and floor run off. A pilot whose fit does not converge
+  keeps nothing.
+
+**What it means.** `R_PBIS_MIN` decides stage 1, and it is not calibrated for items that
+guess. The floor lowers every item's point-biserial, so the screen drops a hard good item
+in most pilots whatever the format, and most good true/false items at any size. `C_EXCESS_MAX` cannot
+catch a floor 0.2 over chance at stage 1's sizes, because the fit reads the item as easier.
+The re-check, at 3,000 respondents and more, is where floors are measured (§8.7.1). T25's
+fourth step sets `R_PBIS_MIN` — by format, or lower, leaving the work to the fit's `a` —
+and measures the chosen value with a new run of this study. The keyed-backwards item's
+point-biserial is negative at every size, so any positive bar still drops it.
+
+#### 8.7.6 What T25 takes from it
 
 - **The model with a floor is specific** on every format tried, down to 20 anchors, and the
   floors it fits are the drawn ones: D25 does what it was for.
@@ -841,19 +890,21 @@ options in every fit at δ = 0.9 and in 1 of 200 and 53 of 200 at δ = 0.5 (N = 
 - **`DTF_MAX`** as in §7.5: the bias on clean sets is 0.03–0.05 with a floor, and with
   true/false the sets near the tolerance are admitted or refused more often in error.
 - **`(λ_b, λ_f)`** can stay; `λ_f` should not go below 0.03.
+- **The pilot's stage 1 needs its own `R_PBIS_MIN`** (§8.7.5). At 0.20 it drops most good
+  true/false items and most hard good items. `A_MIN` and `B_ABS_MAX` barely matter once
+  it has run. `C_EXCESS_MAX` cannot see a guessable item at stage 1's sizes, so the
+  floor is judged at the re-check.
 - **`τ`, `ε`, `k_extra` and the panel's size go together.** On items rated by a panel of
   production size the robust score is noisy and biased low near `τ`: the extra round only
   lowers the false passes, a wider band the false failures, a larger panel both. T24's
   statements on the gate (§7.4) hold for items rated by 25–360 reviewers, not for these.
 
-#### 8.7.6 First pass (2026-09-29)
+#### 8.7.7 First pass (2026-09-29)
 
 `--replicates 20` — 2,380 runs, twenty per cell — ran first, on the same harness, and its
 records are the first twenty of every cell of the full run. With intervals of ±15–20 points
 it already showed what §8.7.1 states, and found the misspecification of §8.7.2, which T82
 records; no cell was added after it.
-
-The screen at N = 300 (§8.1) joins the supplement once T25's second step is done.
 
 ### 8.8 After T82: the DIF studies again
 
