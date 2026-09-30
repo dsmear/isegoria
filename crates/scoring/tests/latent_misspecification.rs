@@ -120,3 +120,20 @@ fn at_dif_14_a_skewed_null_batch_is_one_class() {
         "skewness {skew}"
     );
 }
+
+/// AT-DIF-14: with its shape held, a skewed batch's ability is read as the normal.
+#[test]
+fn at_dif_14_a_held_shape_reads_the_normal() {
+    let (anchors, x) = batch(1000, 0, 0.0, -4.0, 2450);
+    let held = LatentParams {
+        max_classes: 1,
+        estimate_shape: false,
+        ..LatentParams::default()
+    };
+    let res = latent_dif_with(&anchors, &x, &Formats::choice(ANCHORS, K, 5), &held).unwrap();
+    let (mean, var, skew) = moments(&res);
+    assert!(
+        mean.abs() < 1e-9 && (var - 1.0).abs() < 1e-9 && skew.abs() < 1e-9,
+        "mean {mean}, var {var}, skewness {skew}"
+    );
+}

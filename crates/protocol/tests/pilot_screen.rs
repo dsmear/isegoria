@@ -150,3 +150,12 @@ fn at_pro_15_an_item_keyed_backwards_does_not_stop_the_screen() {
     assert!(fit.rpb[3] < 0.0 && fit.rpb[..3].iter().all(|&r| r >= R_PBIS_MIN));
     assert!(fit.a[3].is_nan() && fit.b[3].is_nan() && fit.c[3].is_nan());
 }
+
+/// AT-PRO-15: at 300 respondents stage 1 holds the ability normal and keeps every good item.
+#[test]
+fn at_pro_15_stage_1_holds_the_ability_normal() {
+    let items = [(1.2, -0.5), (1.2, 0.0), (1.2, 0.5), (1.6, 0.9), (1.2, 0.0)];
+    let (anchors, x) = pilot(300, 20, &items, 7);
+    let got = stage1_screen(&anchors, &x, &Formats::choice(20, 5, 5));
+    assert_eq!(got, Ok(vec![true, true, true, true, false]));
+}
