@@ -22,9 +22,10 @@ pub enum Study {
     FloorDtf,
     BridgingLambda,
     BridgingExtra,
+    FloorScreen,
 }
 
-pub const STUDIES: [Study; 16] = [
+pub const STUDIES: [Study; 17] = [
     Study::DifNull,
     Study::DifPower,
     Study::DifMisspec,
@@ -41,6 +42,7 @@ pub const STUDIES: [Study; 16] = [
     Study::FloorDtf,
     Study::BridgingLambda,
     Study::BridgingExtra,
+    Study::FloorScreen,
 ];
 
 /// T24's studies (`docs/13` §4) and T25's supplement (§8), for `--study t24` and `--study t25`.
@@ -56,13 +58,14 @@ pub const T24: [Study; 10] = [
     Study::BridgingSweep,
     Study::BridgingCapture,
 ];
-pub const SUPPLEMENT: [Study; 6] = [
+pub const SUPPLEMENT: [Study; 7] = [
     Study::FloorNull,
     Study::FloorPower,
     Study::FloorMisspec,
     Study::FloorDtf,
     Study::BridgingLambda,
     Study::BridgingExtra,
+    Study::FloorScreen,
 ];
 
 /// The studies a `--study` value names: names, `t24`, `t25` or `all`, comma-separated.
@@ -87,6 +90,7 @@ pub enum Kind {
     Sweep,
     Capture,
     Extra,
+    Screen,
 }
 
 impl Study {
@@ -108,6 +112,7 @@ impl Study {
             Study::FloorDtf => "floor-dtf",
             Study::BridgingLambda => "bridging-lambda",
             Study::BridgingExtra => "bridging-extra",
+            Study::FloorScreen => "floor-screen",
         }
     }
 
@@ -121,6 +126,7 @@ impl Study {
             Study::BridgingSweep | Study::BridgingLambda => Kind::Sweep,
             Study::BridgingCapture => Kind::Capture,
             Study::BridgingExtra => Kind::Extra,
+            Study::FloorScreen => Kind::Screen,
             _ => Kind::Dif,
         }
     }
@@ -146,6 +152,9 @@ impl Study {
                 "SC-3, BRIDGE-002, BRIDGE-003: the verdicts against (λ_b, λ_f)"
             }
             Study::BridgingExtra => "BRIDGE-006, PROTO-008: the band's extra round, k_extra and ε",
+            Study::FloorScreen => {
+                "IRT-003, PROTO-005: the pilot's stage-1 screen and its thresholds"
+            }
         }
     }
 
@@ -249,6 +258,15 @@ pub struct ExtraDesign {
     pub panel: usize,
 }
 
+/// A stage-1 pilot of `n` respondents, `anchors` anchors and fixed trial items, every column
+/// a choice among `options` options (`docs/13` §8.2).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ScreenDesign {
+    pub n: usize,
+    pub anchors: usize,
+    pub options: u8,
+}
+
 /// Boosters on one partisan item of the reference fixture (`docs/13` §3.3).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CaptureDesign {
@@ -263,6 +281,7 @@ pub enum Cell {
     Sweep(SweepDesign),
     Capture(CaptureDesign),
     Extra(ExtraDesign),
+    Screen(ScreenDesign),
 }
 
 fn layout_key(layout: Layout) -> String {
@@ -361,6 +380,7 @@ impl Cell {
                 "n={} s={} r={} e={} panel={}",
                 e.n, e.share, e.per_reviewer, e.noise, e.panel
             ),
+            Cell::Screen(s) => format!("n={} a={} m={}", s.n, s.anchors, s.options),
         }
     }
 
@@ -441,6 +461,14 @@ impl Cell {
                     per_reviewer: f["r"].parse().ok()?,
                     noise: f["e"].parse().ok()?,
                     panel: f["panel"].parse().ok()?,
+                }))
+            }
+            Kind::Screen => {
+                let f = fields(key, &["n", "a", "m"])?;
+                Some(Cell::Screen(ScreenDesign {
+                    n: f["n"].parse().ok()?,
+                    anchors: f["a"].parse().ok()?,
+                    options: f["m"].parse().ok().filter(|&m: &u8| m >= 2)?,
                 }))
             }
         }
@@ -772,6 +800,19 @@ fn full(study: Study) -> Vec<Cell> {
                 }
             }
         }
+        Study::FloorScreen => {
+            for n in [300, 600, 1500] {
+                for anchors in [30, 60] {
+                    for options in [2, 4, 5] {
+                        out.push(Cell::Screen(ScreenDesign {
+                            n,
+                            anchors,
+                            options,
+                        }));
+                    }
+                }
+            }
+        }
     }
     out
 }
@@ -859,6 +900,11 @@ fn smoke(study: Study) -> Vec<Cell> {
             per_reviewer: 5,
             noise: 0.07,
             panel: 7,
+        })],
+        Study::FloorScreen => vec![Cell::Screen(ScreenDesign {
+            n: 300,
+            anchors: 30,
+            options: 4,
         })],
     }
 }

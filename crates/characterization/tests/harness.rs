@@ -55,6 +55,7 @@ fn a_run_is_a_function_of_its_task() {
         Study::BridgingCapture,
         Study::FloorPower,
         Study::BridgingExtra,
+        Study::FloorScreen,
     ];
     for task in tasks(&kinds, Grid::Smoke, Some(1), None) {
         let first = Record::new(&task, 0, run(&task));
@@ -158,6 +159,10 @@ fn a_record_of_each_kind_is_pinned() {
         (
             Study::BridgingExtra,
             "63f785c0941bf4d49c4a6dec35a56a0db6e4570989438d07be56553a50a2cf17",
+        ),
+        (
+            Study::FloorScreen,
+            "a32e531dfd723479e9f805536d5fb463586dbbf8836b58ace9f4ea49a3841ef9",
         ),
     ];
     for (study, pin) in pins {

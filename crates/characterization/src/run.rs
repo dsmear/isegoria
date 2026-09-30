@@ -2,16 +2,19 @@
 //! gates, and return what the study records (`docs/13` §4, §8.3).
 
 use crate::generate::{
-    dif_batch, extra_data, fixture, sweep_data, DifBatch, FIXTURE_LEAN, PROBE_SPREAD,
+    dif_batch, extra_data, fixture, screen_batch, sweep_data, DifBatch, FIXTURE_LEAN, PROBE_SPREAD,
+    SCREEN_ITEMS,
 };
 use crate::grid::{
-    draw_seed, engine_seed, CaptureDesign, Cell, DifDesign, ExtraDesign, Kind, SweepDesign, Task,
+    draw_seed, engine_seed, CaptureDesign, Cell, DifDesign, ExtraDesign, Kind, ScreenDesign,
+    SweepDesign, Task,
 };
 use identity::nym::Nym;
 use protocol::gate::{
     bridging_gate, supplementary_review, GateOutcome, APPEAL_GAP, EPS, MIN_COVERAGE, TAU,
 };
 use protocol::lifecycle::K_MIN;
+use protocol::pilot::{stage1_fit, stage1_verdicts};
 use protocol::revalidation::{target_flags, N_LATENT_MIN};
 use protocol::review::{assign_reviewers, Reviewer};
 use rand::seq::SliceRandom;
@@ -47,6 +50,7 @@ pub enum Outcome {
     Sweep(SweepOutcome),
     Capture(CaptureOutcome),
     Extra(ExtraOutcome),
+    Screen(ScreenOutcome),
 }
 
 /// A latent-DIF run: the gates' inputs, the selected fit, the verdict and each item's role;
@@ -117,6 +121,19 @@ pub struct ExtraOutcome {
     pub redecided: Vec<String>,
 }
 
+/// A stage-1 screen: whether the fit converged, and per trial item its `a`, `b`, `c` (NaN if
+/// left out of the fit), its point-biserial, its verdict and its role in [`SCREEN_ITEMS`].
+#[derive(Clone, Debug, PartialEq)]
+pub struct ScreenOutcome {
+    pub converged: bool,
+    pub a: Vec<f64>,
+    pub b: Vec<f64>,
+    pub c: Vec<f64>,
+    pub rpb: Vec<f64>,
+    pub kept: Vec<bool>,
+    pub roles: String,
+}
+
 pub fn run(task: &Task) -> Outcome {
     let seed = task.seed();
     match (task.study.kind(), task.cell) {
@@ -125,6 +142,7 @@ pub fn run(task: &Task) -> Outcome {
         (_, Cell::Sweep(d)) => Outcome::Sweep(sweep(&d, seed)),
         (_, Cell::Capture(d)) => Outcome::Capture(capture(&d, seed)),
         (_, Cell::Extra(d)) => Outcome::Extra(extra(&d, seed)),
+        (_, Cell::Screen(d)) => Outcome::Screen(screen(&d, seed)),
     }
 }
 
@@ -413,5 +431,21 @@ pub fn extra(d: &ExtraDesign, seed: u64) -> ExtraOutcome {
         robust: (0..probes).map(|p| scores.robust[first + p]).collect(),
         gate,
         redecided,
+    }
+}
+
+/// The production stage-1 screen on the drawn pilot (`docs/13` §8.2).
+pub fn screen(d: &ScreenDesign, seed: u64) -> ScreenOutcome {
+    let batch = screen_batch(d, seed);
+    let formats = Formats::choice(d.anchors, SCREEN_ITEMS.len(), d.options);
+    let fit = stage1_fit(&batch.anchors, &batch.x, &formats).expect("the design's formats");
+    ScreenOutcome {
+        converged: fit.status == Convergence::Converged,
+        kept: stage1_verdicts(&fit, &formats),
+        a: fit.a,
+        b: fit.b,
+        c: fit.c,
+        rpb: fit.rpb,
+        roles: batch.roles,
     }
 }

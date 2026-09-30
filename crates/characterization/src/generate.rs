@@ -1,7 +1,8 @@
 //! The populations the studies draw (`docs/13` §3, §8.2): latent-DIF batches after the
-//! paper's `dif_generate`, the Level A mirror design and its probes, and the `sim/` fixture.
+//! paper's `dif_generate`, stage-1 pilots, the Level A mirror design and its probes, and the
+//! `sim/` fixture.
 
-use crate::grid::{draw_seed, Attack, DifDesign, ExtraDesign, Layout, SweepDesign};
+use crate::grid::{draw_seed, Attack, DifDesign, ExtraDesign, Layout, ScreenDesign, SweepDesign};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use scoring::bridging::Ratings;
@@ -160,6 +161,71 @@ pub fn dif_batch(d: &DifDesign, seed: u64) -> DifBatch {
         b,
         signs: first,
         floors: c,
+    }
+}
+
+/// The trial items of `floor-screen`, a role and `(a, b)` each: `g` good, `f` flat, `h` too
+/// hard, `c` guessable, its floor [`SCREEN_GUESS`] over chance, `k` keyed backwards.
+pub const SCREEN_ITEMS: [(char, f64, f64); 10] = [
+    ('g', 0.8, 0.0),
+    ('g', 1.2, -1.0),
+    ('g', 1.2, 1.0),
+    ('g', 1.6, 0.9),
+    ('g', 1.2, 2.0),
+    ('f', 0.3, 0.0),
+    ('f', 0.45, 0.0),
+    ('h', 1.2, 3.0),
+    ('c', 1.2, 0.0),
+    ('k', 1.2, 0.0),
+];
+pub const SCREEN_GUESS: f64 = 0.2;
+
+/// A drawn stage-1 pilot: the anchors' and the trial items' answers, one role per item.
+#[derive(Clone, Debug)]
+pub struct ScreenBatch {
+    pub anchors: Vec<Vec<f64>>,
+    pub x: Vec<Vec<f64>>,
+    pub roles: String,
+}
+
+pub fn screen_batch(d: &ScreenDesign, seed: u64) -> ScreenBatch {
+    let mut rng = ChaCha8Rng::seed_from_u64(seed);
+    let chance = 1.0 / f64::from(d.options);
+    let a_anchor: Vec<f64> = (0..d.anchors).map(|_| rng.gen_range(0.9..1.6)).collect();
+    let b_anchor: Vec<f64> = (0..d.anchors).map(|_| normal(&mut rng)).collect();
+    let respond = |c: f64, p: f64| c + (1.0 - c) * p;
+    let (mut anchors, mut x) = (Vec::with_capacity(d.n), Vec::with_capacity(d.n));
+    for _ in 0..d.n {
+        let theta = normal(&mut rng);
+        let row: Vec<f64> = (0..d.anchors)
+            .map(|j| {
+                let p = sigmoid(a_anchor[j] * (theta - b_anchor[j]));
+                bit(&mut rng, respond(chance, p))
+            })
+            .collect();
+        anchors.push(row);
+        let row: Vec<f64> = SCREEN_ITEMS
+            .iter()
+            .map(|&(role, a, b)| {
+                let floor = if role == 'c' {
+                    chance + SCREEN_GUESS
+                } else {
+                    chance
+                };
+                let right = bit(&mut rng, respond(floor, sigmoid(a * (theta - b))));
+                if role == 'k' {
+                    1.0 - right
+                } else {
+                    right
+                }
+            })
+            .collect();
+        x.push(row);
+    }
+    ScreenBatch {
+        anchors,
+        x,
+        roles: SCREEN_ITEMS.iter().map(|item| item.0).collect(),
     }
 }
 

@@ -1,9 +1,9 @@
 //! The harness reads the production verdict: on a batch the gates admit, its flags are those
 //! of `revalidate_batch_latent`; on one they refuse, it records the refusal (`docs/13` §2).
 
-use characterization::generate::{dif_batch, PROBE_SPREAD};
-use characterization::grid::{engine_seed, DifDesign, Layout};
-use characterization::run::{dif, gate_char, redecides};
+use characterization::generate::{dif_batch, screen_batch, PROBE_SPREAD};
+use characterization::grid::{engine_seed, DifDesign, Layout, ScreenDesign};
+use characterization::run::{dif, gate_char, redecides, screen};
 use identity::nym::Nym;
 use protocol::admission::NullifierSet;
 use protocol::gate::{MIN_COVERAGE, TAU};
@@ -117,4 +117,29 @@ fn the_gate_s_code_sends_an_uncovered_item_to_review() {
     assert_eq!(gate_char(0.5, 0.1, floor), 'R');
     assert!(redecides(0.5, low) && !redecides(0.5, floor));
     assert!(redecides(TAU - PROBE_SPREAD, floor) && !redecides(TAU + PROBE_SPREAD, floor));
+}
+
+/// A pilot's recorded verdicts are those of the production stage-1 gate on the same pilot.
+#[test]
+fn a_pilot_gets_the_production_screen() {
+    let d = ScreenDesign {
+        n: 300,
+        anchors: 30,
+        options: 5,
+    };
+    for seed in [8, 9] {
+        let batch = screen_batch(&d, seed);
+        let outcome = screen(&d, seed);
+        let production = protocol::pilot::screen(
+            &respondents(300),
+            &batch.anchors,
+            &batch.x,
+            &Formats::choice(d.anchors, 10, d.options),
+        );
+        assert_eq!(Ok(outcome.kept.clone()), production);
+        assert!(
+            outcome.converged && outcome.kept[..5].contains(&true),
+            "{outcome:?}"
+        );
+    }
 }

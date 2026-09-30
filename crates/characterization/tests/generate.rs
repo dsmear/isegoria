@@ -2,9 +2,10 @@
 //! design's class shares and attackers, and the bridging designs.
 
 use characterization::generate::{
-    ability, dif_batch, expected_clamped, extra_data, fixture, sweep_data, PROBES, PROBE_SPREAD,
+    ability, dif_batch, expected_clamped, extra_data, fixture, screen_batch, sweep_data, PROBES,
+    PROBE_SPREAD, SCREEN_GUESS, SCREEN_ITEMS,
 };
-use characterization::grid::{Attack, DifDesign, ExtraDesign, Layout, SweepDesign};
+use characterization::grid::{Attack, DifDesign, ExtraDesign, Layout, ScreenDesign, SweepDesign};
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 use scoring::irt::kr20;
@@ -260,6 +261,61 @@ fn items_of_one_template_are_answered_alike() {
         "same template {pair}, two templates {apart}"
     );
     assert!((corr(0.0, 0, 1) - corr(0.0, 1, 2)).abs() < 0.05);
+}
+
+/// At `b = 0` a pilot's item is right at its floor plus half the rest: chance, or chance plus
+/// `SCREEN_GUESS` for the guessable item; the item keyed backwards the complement.
+#[test]
+fn a_screen_pilot_draws_its_items_as_designed() {
+    let d = ScreenDesign {
+        n: 20_000,
+        anchors: 10,
+        options: 4,
+    };
+    let batch = screen_batch(&d, 3);
+    assert_eq!(batch.roles, "gggggffhck");
+    assert_eq!((batch.x.len(), batch.anchors.len()), (20_000, 20_000));
+    assert!(batch.x.iter().all(|row| row.len() == SCREEN_ITEMS.len()));
+    assert!(batch.anchors.iter().all(|row| row.len() == 10));
+    let at_chance = 0.25 + 0.75 * 0.5;
+    let guessable = 0.25 + SCREEN_GUESS + (0.75 - SCREEN_GUESS) * 0.5;
+    for (j, expected) in [
+        (0, at_chance),
+        (5, at_chance),
+        (6, at_chance),
+        (8, guessable),
+        (9, 1.0 - at_chance),
+    ] {
+        let right = share(&batch.x, j, |_| true);
+        assert!(
+            (right - expected).abs() < 0.015,
+            "item {j}: {right} vs {expected}"
+        );
+    }
+    let hard = share(&batch.x, 7, |_| true);
+    assert!(hard > 0.25 && hard < 0.3, "the item too hard: {hard}");
+}
+
+/// A pilot's draws are pinned: the stream of `docs/13` §8.2 that recorded runs reproduce.
+#[test]
+fn a_screen_pilot_s_draws_are_pinned() {
+    let d = ScreenDesign {
+        n: 50,
+        anchors: 6,
+        options: 5,
+    };
+    let batch = screen_batch(&d, 17);
+    let mut h = sha2::Sha256::new();
+    for row in batch.anchors.iter().chain(&batch.x) {
+        for v in row {
+            h.update(v.to_bits().to_le_bytes());
+        }
+    }
+    let digest: String = h.finalize().iter().map(|b| format!("{b:02x}")).collect();
+    assert_eq!(
+        digest,
+        "438ebd6ec97c2926ebb2dbc753d18832b51270def76e9c0321dbc6add2cc161f"
+    );
 }
 
 /// The probes lie within `PROBE_SPREAD` of `τ`, their truth follows their quality, and every

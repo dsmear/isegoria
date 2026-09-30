@@ -514,7 +514,7 @@ and adds the two Level A measurements T24's design does not make (`docs/10` T25,
 Same harness, seeds, records and statistics as §2–§5; six new studies, four new
 population options, and new record columns. Specified on 2026-09-28, the harness
 extended and smoke-tested in the container the same day; the runs, on the owner's machine,
-ended on 2026-09-30 (§8.7).
+ended on 2026-09-30 (§8.7). The screen's study, a seventh, followed T25's second step.
 
 ### 8.1 What it measures
 
@@ -526,12 +526,12 @@ ended on 2026-09-30 (§8.7).
 | `floor-dtf` | How far is the fitted DTF from the true one when the items guess? | DIF-011, `DTF_MAX` |
 | `bridging-lambda` | How do the gate's verdicts move with the regularization `(λ_b, λ_f)`? | SC-3, BRIDGE-002, BRIDGE-003 |
 | `bridging-extra` | What does the band's extra round decide, by `k_extra` and `ε`, on an item rated by a panel of production size? | BRIDGE-006, PROTO-008 |
+| `floor-screen` | How often does the pilot's stage 1 keep a good item and drop a bad one — one that barely discriminates, too hard, guessable beyond its format, or keyed backwards — by respondents, anchors and format, and at which thresholds? | IRT-003, PROTO-005, `A_MIN`, `B_ABS_MAX`, `C_EXCESS_MAX` |
 
-**Not yet in it.** The screen at N = 300 — Stage 1 of the pilot (`docs/02` §B.2) — reads
-the one-class fit of the floor model, which T25's second step puts in the screen: its
-study is added then, and since a one-class fit of 300 respondents takes under a second it
-runs in the container. The `d = 1` fit on `d = 2` populations that BRIDGE-002 still lists
-is not part of T25.
+`floor-screen` joined the supplement with T25's second step (2026-09-30), which put the
+one-class fit of the floor model in stage 1 (`docs/02` §B.2); a fit of a few hundred
+respondents takes about a second, so it runs in the container. The `d = 1` fit on
+`d = 2` populations that BRIDGE-002 still lists is not part of T25.
 
 ### 8.2 The populations
 
@@ -568,6 +568,18 @@ first panel, drawn by the same stratified draw as `review::assign_extra_from_bea
 their ratings of it, and `gate::supplementary_review` decides on the whole; `k_extra = 0`
 re-fits the first panel alone, the rule before T60. A probe's truth is §3.2's.
 
+**The screen's design** (`floor-screen`). `n` respondents of normal ability answer `a`
+anchors — `a_j ~ U(0.9, 1.6)`, `b_j ~ N(0, 1)`, a floor at the chance `1/m` of `m`
+options — and ten trial items of fixed kinds, every column declared with `m` options:
+five good ones, `(a, b)` = (0.8, 0), (1.2, −1), (1.2, 1), (1.6, 0.9) and (1.2, 2); two
+flat ones, `a` = 0.3 and 0.45 at `b = 0`; one too hard, (1.2, 3); one guessable, (1.2, 0)
+with its floor 0.2 over chance; one keyed backwards, (1.2, 0) scored right where it is
+wrong. Every floor but the guessable one's is at chance. The screen runs as production runs
+it — `pilot::stage1_fit`, then `stage1_verdicts` — and the record keeps every item's
+point-biserial and fitted `a`, `b`, `c`, none for an item the point-biserial left out of
+the fit, so the summary can re-apply the other thresholds. `R_PBIS_MIN`, which decides
+the fit's items, is not re-applied: another value is another run.
+
 ### 8.3 The studies
 
 Unless a row says otherwise a batch has `N = 3,000`, 60 anchors, `K = 8`, `π = 0.5`, no
@@ -581,9 +593,10 @@ impact, and a floor with its format written *floor/options*: 0.2/5, 0.25/4, 0.5/
 | `floor-dtf` | 6 | 200 | the mirror layout: 0.2/5 × `N ∈ {3000, 6000}` × `δ ∈ {0.5, 0.9}`; 0.5/2 × `N ∈ {3000, 6000}` at `δ = 0.9` |
 | `bridging-lambda` | 48 | 200 | `n ∈ {100, 200, 800}` × `share ∈ {0.6, 0.8}` × `(λ_b, λ_f)`: `λ_b ∈ {0.05, 0.15, 0.45}`, `λ_f ∈ {0.01, 0.03, 0.09}`, `λ_b > λ_f` (eight pairs, the production one among them); 5 ratings each, noise 0.15 |
 | `bridging-extra` | 12 | 200 | `n ∈ {100, 200, 800}` × `share ∈ {0.5, 0.8}` × first panel `∈ {7, 11}` |
+| `floor-screen` | 18 | 200 | `n ∈ {300, 600, 1500}` × anchors `∈ {30, 60}` × `m ∈ {2, 4, 5}` |
 
-19,700 runs. `floor-power` and `floor-misspec` have 100 replicates, not 200: their fits
-are the dearest of the grid, and an interval of about ±10 points places `N_LATENT_MIN`
+19,700 runs, and `floor-screen`'s 3,600 since T25's second step. `floor-power` and
+`floor-misspec` have 100 replicates, not 200: their fits are the dearest of the grid, and an interval of about ±10 points places `N_LATENT_MIN`
 and sizes a failure; `floor-null` keeps 200, whose "never" bounds a rate at 1.9%. The
 grid was sized on two pre-checks. Two leaning items at `δ = 0.9` under a floor of 0.2
 were found in 1 of 8 batches at `N = 3,000` (`docs/08` DIF-008), 4 of 8 at 6,000 and 4 of
@@ -595,9 +608,19 @@ is its cause. One replicate of each says it is not: without a floor, the skew of
 flagged one clean item and the templates six of eight, where T24's populations, normal
 and locally independent, flagged none.
 
+`floor-screen`'s pre-check, six replicates of every cell in the container, found a defect
+of the screen before its run: the fit did not converge, and kept no item, in 31 of the 108
+pilots — 27 of the 36 with five options, where the item keyed backwards, fitted with the
+rest, ran its slope to 0 and its difficulty past 100. Step 2 then left an item below
+`R_PBIS_MIN` out of the fit (`docs/02` §B.2); on the same pilots 106 fits of 108
+converged, the other two at 300 respondents and 60 true/false anchors, where an anchor's
+slope and floor ran off.
+
 **What a run records.** As §4, and: a floor study's DIF record adds each trial item's
-fitted floor and the anchors' mean fitted floor (`floors`, `anchor_floor`); `floor-dtf`'s
-true curves carry the drawn floors (`ClassCurves::with_floors`). An extra-round run
+fitted floor and the anchors' mean fitted floor (`floors`, `anchor_floor`); a screen run
+records whether the fit converged and per item its fitted `a`, `b`, `c` (NaN if left out
+of the fit), point-biserial, verdict and kind; `floor-dtf`'s true curves carry the drawn
+floors (`ClassCurves::with_floors`). An extra-round run
 records per probe its truth, first-round robust score and gate code, and per `k_extra`
 the re-decision — `P`, `A`, `R`, or `-` where the probe was not re-decided.
 
@@ -611,6 +634,14 @@ As §5, and:
   clean-item rate on the null batches of `floor-null` with 40 or 60 anchors — admitted or
   not, since the KR-20 floor refuses most of them and step 4 revisits it — and the power
   of the `floor-power` cells with two leaning items of eight, `π = 0.5` and 60 anchors.
+- **The screen.** Per cell and item kind, the share kept, with the intervals of §5 — over
+  runs for a kind of one item, over items grouped by run for the good and the flat ones:
+  the good items' is the screen's specificity, each bad kind's its miss rate. Per item
+  (`items.csv`), the share of runs it entered the fit, the share kept, the mean and spread
+  of its fitted `a`, `b`, `c` and its mean point-biserial. The thresholds
+  (`thresholds-screen.csv`): per stage-1 size and format, over anchors, the good items
+  dropped and each bad kind kept as one threshold moves — `A_MIN` 0.4–0.8, `C_EXCESS_MAX`
+  0.05–0.25, `B_ABS_MAX` 2.0–3.0 — the others at their production values.
 - **The extra round.** For `ε ∈ {0.02, 0.04, 0.06}` and each `k_extra`, a probe passes if
   it is covered and its robust score is at or above `τ + ε`, or if it is in the band — or
   uncovered — and its re-decision passes. False passes are over the probes whose truth is
@@ -648,7 +679,7 @@ four times as long, runs the smoke grid, single cells and the pre-checks.
 4. Send back `summary.md`, the `summary.csv` files, `thresholds-dif-cut-floor.csv` and
    `bridging-lambda/tau.csv`, with the commit and the machine.
 
-`--study t25` names the six studies of this section, `--study t24` the ten of §4. A
+`--study t25` names the seven studies of this section, `--study t24` the ten of §4. A
 separate `--out` keeps the supplement's summary to its own studies: `summarize` leaves
 out the studies with no records.
 

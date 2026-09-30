@@ -28,6 +28,7 @@ fn the_full_grid_has_the_cells_the_specification_lists() {
         (Study::FloorDtf, 6, 200),
         (Study::BridgingLambda, 48, 200),
         (Study::BridgingExtra, 12, 200),
+        (Study::FloorScreen, 18, 200),
     ];
     assert_eq!(expect.len(), STUDIES.len());
     for (study, n_cells, reps) in expect {
@@ -36,7 +37,7 @@ fn the_full_grid_has_the_cells_the_specification_lists() {
         assert!(!cells(study, Grid::Smoke).is_empty(), "{}", study.name());
     }
     assert_eq!(tasks(&T24, Grid::Full, None, None).len(), 54_412);
-    assert_eq!(tasks(&SUPPLEMENT, Grid::Full, None, None).len(), 19_700);
+    assert_eq!(tasks(&SUPPLEMENT, Grid::Full, None, None).len(), 23_300);
     let groups: BTreeSet<Study> = T24.into_iter().chain(SUPPLEMENT).collect();
     assert_eq!(groups, STUDIES.into_iter().collect());
 }
@@ -203,6 +204,6 @@ fn the_supplement_s_cells_are_the_specified_ones() {
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect();
-    let pin = "abb0fed0897eca98d5e1a1cd122392baa90929ceb9b1be09d614bc1a0a3ccc60";
+    let pin = "7d1d3e4d8097ad40b17ade137f3891b811b9ada5412d83764bca335b03c0b01e";
     assert_eq!(digest, pin, "{keys}");
 }

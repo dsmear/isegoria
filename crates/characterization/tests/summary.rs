@@ -2,11 +2,12 @@
 //! study of the smoke grid runs and is summarized (`docs/13` §2).
 
 use characterization::grid::{
-    tasks, CaptureDesign, Cell, DifDesign, ExtraDesign, Grid, Layout, Study, SweepDesign, STUDIES,
+    tasks, CaptureDesign, Cell, DifDesign, ExtraDesign, Grid, Layout, ScreenDesign, Study,
+    SweepDesign, STUDIES,
 };
 use characterization::record::{header, Record};
 use characterization::run::{
-    CaptureOutcome, DifOutcome, DtfOutcome, ExtraOutcome, Outcome, SweepOutcome,
+    CaptureOutcome, DifOutcome, DtfOutcome, ExtraOutcome, Outcome, ScreenOutcome, SweepOutcome,
 };
 use characterization::runner::{execute, Options};
 use characterization::stats::{clustered_rate, quantile, sd, wilson};
@@ -670,4 +671,110 @@ fn the_floor_summary_reads_the_fitted_floors_and_the_cut_per_format() {
         "{markdown}"
     );
     let _ = fs::remove_dir_all(alone);
+}
+
+/// The rows of a CSV table, each by column name.
+fn csv_rows(path: &Path) -> Vec<Vec<(String, String)>> {
+    let text = fs::read_to_string(path).unwrap();
+    let mut lines = text.lines();
+    let names: Vec<String> = lines.next().unwrap().split(',').map(String::from).collect();
+    lines
+        .map(|l| {
+            names
+                .iter()
+                .cloned()
+                .zip(l.split(',').map(String::from))
+                .collect()
+        })
+        .collect()
+}
+
+fn text(row: &[(String, String)], name: &str) -> String {
+    row.iter().find(|(n, _)| n == name).unwrap().1.clone()
+}
+
+/// Screen runs: the share kept per kind and per item, and the thresholds table, which
+/// replays the recorded verdicts at the production values and moves one threshold at a time.
+#[test]
+fn the_screen_summary_reads_the_kinds_and_replays_the_verdicts() {
+    let out = scratch("screen-summary");
+    let nan = f64::NAN;
+    let run = |guess_floor: f64, kept: &str| {
+        let mut c = vec![0.25; 10];
+        c[8] = guess_floor;
+        c[9] = nan;
+        Outcome::Screen(ScreenOutcome {
+            converged: true,
+            a: vec![0.8, 1.2, 1.2, 1.6, 1.2, 0.3, 0.45, 1.2, 1.2, nan],
+            b: vec![0.0, -1.0, 1.0, 0.9, 2.0, 0.0, 0.0, 3.0, 0.0, nan],
+            c,
+            rpb: vec![0.3, 0.3, 0.3, 0.3, 0.3, 0.25, 0.25, 0.25, 0.3, -0.3],
+            kept: kept.chars().map(|k| k == '1').collect(),
+            roles: "gggggffhck".to_string(),
+        })
+    };
+    let key = Cell::Screen(ScreenDesign {
+        n: 300,
+        anchors: 30,
+        options: 4,
+    })
+    .key();
+    write(
+        &out,
+        Study::FloorScreen,
+        &key,
+        vec![run(0.32, "1111100010"), run(0.38, "1111100000")],
+    );
+    let markdown = summarize(&out).unwrap();
+    assert!(markdown.contains("## floor-screen"), "{markdown}");
+    assert!(
+        markdown.contains("### The stage-1 screen's thresholds"),
+        "{markdown}"
+    );
+    let kinds = rows(&out, Study::FloorScreen);
+    let kept = |kind: &str| {
+        value(
+            kinds.iter().find(|r| text(r, "kind") == kind).unwrap(),
+            "kept",
+        )
+    };
+    assert_eq!(
+        ["good", "flat", "too hard", "guessable", "keyed backwards"].map(kept),
+        [1.0, 0.0, 0.0, 0.5, 0.0]
+    );
+    let items = csv_rows(&out.join(Study::FloorScreen.name()).join("items.csv"));
+    assert_eq!(items.len(), 10);
+    assert!(close(value(&items[8], "kept"), 0.5) && close(value(&items[8], "c_mean"), 0.35));
+    assert_eq!(
+        (value(&items[9], "fitted"), value(&items[8], "fitted")),
+        (0.0, 1.0)
+    );
+    let table = csv_rows(&out.join("thresholds-screen.csv"));
+    let at = |threshold: &str, v: f64, kind: &str| {
+        let row = table.iter().find(|r| {
+            text(r, "threshold") == threshold && value(r, "value") == v && text(r, "kind") == kind
+        });
+        value(row.unwrap(), "kept")
+    };
+    for (threshold, v) in [("A_MIN", 0.6), ("B_ABS_MAX", 2.5), ("C_EXCESS_MAX", 0.1)] {
+        let replayed = ["good", "flat", "too hard", "guessable", "keyed backwards"]
+            .map(|kind| at(threshold, v, kind));
+        assert_eq!(replayed, [1.0, 0.0, 0.0, 0.5, 0.0], "{threshold}");
+    }
+    assert_eq!(
+        (at("A_MIN", 0.4, "flat"), at("A_MIN", 0.8, "good")),
+        (0.5, 1.0)
+    );
+    assert_eq!(at("A_MIN", 0.5, "flat"), 0.0);
+    assert_eq!(
+        (
+            at("B_ABS_MAX", 3.0, "too hard"),
+            at("B_ABS_MAX", 2.75, "too hard")
+        ),
+        (1.0, 0.0)
+    );
+    assert_eq!(at("B_ABS_MAX", 2.0, "good"), 1.0);
+    let guessable = [0.05, 0.15].map(|v| at("C_EXCESS_MAX", v, "guessable"));
+    assert_eq!(guessable, [0.0, 1.0]);
+    let _ = fs::remove_dir_all(out);
 }

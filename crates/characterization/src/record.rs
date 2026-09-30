@@ -2,7 +2,9 @@
 //! after an interruption (`docs/13` §2).
 
 use crate::grid::{Kind, Study, Task};
-use crate::run::{CaptureOutcome, DifOutcome, DtfOutcome, ExtraOutcome, Outcome, SweepOutcome};
+use crate::run::{
+    CaptureOutcome, DifOutcome, DtfOutcome, ExtraOutcome, Outcome, ScreenOutcome, SweepOutcome,
+};
 use std::collections::BTreeSet;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
@@ -59,6 +61,7 @@ fn kind_columns(kind: Kind) -> &'static [&'static str] {
         ],
         Kind::Capture => &["opposing", "full", "robust", "plain"],
         Kind::Extra => &["truth", "robust", "gate", "redecided"],
+        Kind::Screen => &["converged", "a", "b", "c", "rpb", "kept", "roles"],
     }
 }
 
@@ -187,6 +190,15 @@ impl Record {
                 o.gate.clone(),
                 o.redecided.join(";"),
             ]),
+            Outcome::Screen(o) => fields.extend([
+                bit(o.converged),
+                nums(&o.a),
+                nums(&o.b),
+                nums(&o.c),
+                nums(&o.rpb),
+                bits(&o.kept),
+                o.roles.clone(),
+            ]),
         }
         fields.join(",")
     }
@@ -256,6 +268,15 @@ impl Record {
                 robust: parse_list(o[1], "robust")?,
                 gate: o[2].to_string(),
                 redecided: parse_list(o[3], "redecided")?,
+            }),
+            Kind::Screen => Outcome::Screen(ScreenOutcome {
+                converged: parse_bit(o[0], "converged")?,
+                a: parse_list(o[1], "a")?,
+                b: parse_list(o[2], "b")?,
+                c: parse_list(o[3], "c")?,
+                rpb: parse_list(o[4], "rpb")?,
+                kept: parse_bits(o[5], "kept")?,
+                roles: o[6].to_string(),
             }),
         };
         Ok(Record {
