@@ -84,10 +84,13 @@ jobs:
         with:
           components: llvm-tools-preview
       - uses: taiki-e/install-action@cargo-llvm-cov
+      # One instrumented run of the suite; both reports read its profile data.
+      - name: Coverage run
+        run: cargo llvm-cov --workspace --no-report
       - name: Coverage summary
-        run: cargo llvm-cov --workspace --summary-only
+        run: cargo llvm-cov report --summary-only
       - name: Coverage report (lcov)
-        run: cargo llvm-cov --workspace --lcov --output-path lcov.info
+        run: cargo llvm-cov report --lcov --output-path lcov.info
       - uses: actions/upload-artifact@v4
         with:
           name: lcov
