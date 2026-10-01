@@ -713,17 +713,20 @@ fn the_screen_summary_reads_the_kinds_and_replays_the_verdicts() {
             roles: "gggggffhck".to_string(),
         })
     };
-    let key = Cell::Screen(ScreenDesign {
-        n: 300,
-        anchors: 30,
-        options: 4,
-    })
-    .key();
-    write(
+    let key = |n, anchors| {
+        Cell::Screen(ScreenDesign {
+            n,
+            anchors,
+            options: 4,
+        })
+        .key()
+    };
+    let runs = || vec![run(0.32, "1111100010"), run(0.38, "1111100000")];
+    let cells = [key(300, 30), key(300, 60), key(600, 30)];
+    write_cells(
         &out,
         Study::FloorScreen,
-        &key,
-        vec![run(0.32, "1111100010"), run(0.38, "1111100000")],
+        cells.iter().map(|k| (k.clone(), runs())).collect(),
     );
     let markdown = summarize(&out).unwrap();
     assert!(markdown.contains("## floor-screen"), "{markdown}");
@@ -731,6 +734,18 @@ fn the_screen_summary_reads_the_kinds_and_replays_the_verdicts() {
         markdown.contains("### The stage-1 screen's thresholds"),
         "{markdown}"
     );
+    let line = |prefix: &str| markdown.lines().find(|l| l.starts_with(prefix));
+    assert!(line("| n=300 a=30 m=4 | 2 |").is_some_and(|l| l.ends_with("| 1.0 |")));
+    let good = &markdown[markdown.find("Per good item").unwrap()..];
+    let mut rows_of_good = good.lines().filter(|l| l.starts_with('|'));
+    let header = "| cell | (0.8, 0) | (1.2, -1) | (1.2, 1) | (1.6, 0.9) | (1.2, 2) |";
+    assert_eq!(rows_of_good.next(), Some(header));
+    let first = rows_of_good.nth(1).unwrap_or_default();
+    assert_eq!(first.matches("100.0%").count(), 5, "{first}");
+    for kind in ["flat", "too hard", "guessable"] {
+        let heading = format!(": good items dropped / {kind} items kept");
+        assert_eq!(markdown.matches(&heading).count(), 1, "{heading}");
+    }
     let kinds = rows(&out, Study::FloorScreen);
     let kept = |kind: &str| {
         value(
@@ -743,13 +758,22 @@ fn the_screen_summary_reads_the_kinds_and_replays_the_verdicts() {
         [1.0, 0.0, 0.0, 0.5, 0.0]
     );
     let items = csv_rows(&out.join(Study::FloorScreen.name()).join("items.csv"));
-    assert_eq!(items.len(), 10);
+    assert_eq!(items.len(), 30);
+    assert_eq!(value(&items[0], "kept"), 1.0);
     assert!(close(value(&items[8], "kept"), 0.5) && close(value(&items[8], "c_mean"), 0.35));
     assert_eq!(
         (value(&items[9], "fitted"), value(&items[8], "fitted")),
         (0.0, 1.0)
     );
     let table = csv_rows(&out.join("thresholds-screen.csv"));
+    let pooled = |n: &str| -> Vec<f64> {
+        let of_n = table.iter().filter(|r| text(r, "n") == n);
+        of_n.map(|r| value(r, "runs")).collect()
+    };
+    let (small, large) = (pooled("300"), pooled("600"));
+    assert!(
+        !large.is_empty() && small.iter().all(|&r| r == 4.0) && large.iter().all(|&r| r == 2.0)
+    );
     let at = |threshold: &str, v: f64, kind: &str| {
         let row = table.iter().find(|r| {
             text(r, "threshold") == threshold && value(r, "value") == v && text(r, "kind") == kind
