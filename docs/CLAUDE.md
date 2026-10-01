@@ -61,11 +61,12 @@ are in `13-characterization.md` §7, its harness is `crates/characterization`; l
 T25, in four steps (`10-roadmap.md` §1.4): the guessing correction D25 in the latent
 re-check and the pilot screen (both done), a supplement of the DIF studies on the corrected
 model (done, its results in `13-characterization.md` §8.7, the screen's study included),
-then the thresholds with their calibration procedures; T82, the
+then the thresholds with their calibration procedures (Level A's register written,
+`14-parameter-register.md`); T82, the
 re-check reading templates and a skewed ability as bias, which the supplement found — decided
 (D43) and built, its DIF studies to run again on the corrected model, which the thresholds
-wait on; and T81, the mutation
-testing of Phase 1's mechanism. Long characterization runs go to the owner's machine: the
+wait on. T81, the mutation testing of Phase 1's mechanism, is done
+(`11-mutation-testing.md` run 22). Long characterization runs go to the owner's machine: the
 cloud development container's 4 cores take three to four times as long),
 then the **P2P network** (T63, T37, T72, T13, T73, T18 and T74 are done; left are the
 defects T80, T76 and T77 — any peer reads the replicated set, votes included, against

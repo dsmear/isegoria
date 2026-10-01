@@ -5,7 +5,7 @@
 | **Purpose** | Measure how much of the code the tests actually *verify*, not just execute, and record every mutant that survives with the reason it is acceptable. |
 | **Tool** | `cargo-mutants` 26.0.0 (the newest release that builds on the pinned rustc 1.86). |
 | **Date** | 2026-09-24, branch `test/t41-mutation-survivors`. |
-| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, runs 12–14 for T73's three steps, run 15 for T18, runs 16–17 for T74's two steps, run 18 for T25's first step, run 19 for its third step's harness, run 20 for T82, run 21 for T25's second step and the screen's study). Not covered yet: the decision logic Phase 1 changed after run 5 — T49–T62, T71 and T39 — apart from T55's (runs 6–7): `docs/10` T81. |
+| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, runs 12–14 for T73's three steps, run 15 for T18, runs 16–17 for T74's two steps, run 18 for T25's first step, run 19 for its third step's harness, run 20 for T82, run 21 for T25's second step and the screen's study, run 22 for T81: the decision logic Phase 1 changed after run 5). |
 
 ## Why this was needed
 
@@ -471,6 +471,90 @@ One is equivalent:
   | Mutant | Why it is equivalent |
   |---|---|
   | `summary.rs` `kept_rate` `items > 0` → `>=` | Every run of `floor-screen` carries every kind of item (`SCREEN_ITEMS`): no run has none of a kind to leave out. |
+
+## Run 22 — T81: Phase 1's mechanism
+
+`cargo mutants` on the files whose decision logic Phase 1 changed and T25 does not (`docs/10`
+T81), whole files rather than a diff, under the configuration — the `mutants` profile,
+`calibration`, the 3× multiplier — with the timeout's floor raised to 300 s
+(`--minimum-test-timeout 300`) and `-j 4`: one run per file, with the crate's unit tests
+and the integration suites that read the file.
+
+- `protocol/src/gate.rs` (12 suites): 17 mutants in 41 minutes — 15 caught, 2 unviable.
+- `protocol/src/appeal.rs` (`appeal_stake`, `end_to_end`, `results_replay`): 32 in 15
+  minutes — 25 caught, 2 unviable, 5 missed.
+- `protocol/src/exploration.rs` (`contested_facts`, `end_to_end`, `exploration`): 28 in 64
+  minutes — 25 caught, 2 unviable, 1 missed.
+- `protocol/src/orchestrator.rs` (9 suites): 34 in 21 minutes — 27 caught, 7 unviable.
+- `protocol/src/probation.rs` (7 suites): 62 in 11 minutes — 53 caught, 5 unviable, 4
+  missed.
+- `protocol/src/review.rs` (13 suites): 71 in 13 minutes — 44 caught, 11 unviable, 16
+  missed.
+- `protocol/src/lifecycle.rs` (13 suites): 76 in 90 minutes — 74 caught, 2 unviable.
+- `scoring/src/collusion.rs` (`adversarial`, `anti_collusion`, `coordination`,
+  `hand_computed`, `properties`): 155 in 20 minutes — 132 caught, 2 timeouts (`find` made to
+  loop, counted as caught), 21 missed.
+- `scoring/src/reputation.rs` (`adversarial`, `evaluator_score`, `exploration_weights`,
+  `hand_computed`, `level_c`, `properties`): 162 in 12 minutes — 158 caught, 4 missed.
+- `scoring/src/bridging.rs` (13 suites, in four shards, `--shard k/4`): 449 in 102 minutes —
+  371 caught, 10 unviable, 68 missed.
+
+In all, 1,086 mutants in about six and a half hours: 924 caught, 2 timeouts, 41 unviable,
+119 missed. None of the survivors was a wrong result: 103 were checks the suite did not make,
+each now made by a test, and 16 are equivalent.
+
+The survivors:
+
+- *Values no test read* (thirteen): an author's history — `covers_stake`, `len`,
+  `is_empty` — the change detector's `statistic` and `alarms`, the CUSUM's statistic away
+  from zero and its alarm at exactly `h`, and the mean score of more than one item. The
+  tests read the decisions built on them, or the values at 0 only. The appeal stake's tests
+  now read the history's length before and after a filing and that an author below the
+  floor does not cover the stake; AT-REP-07 feeds the detector a known sequence and reads its
+  statistic, to 1e-12, and its alarm count; the CUSUM and the mean score are fed dyadic
+  values and read exactly. Run again on their lines: 7, 5 and, with `collusion.rs`'s, all
+  caught.
+- *The panel draws' outcomes* (twelve, `review.rs`): the beacon's extra panel emptied or
+  drawn from the first one, the strata's bounds in `assign_diverse`, and its fallback to the
+  reviewer nearest an emptied stratum's centre. The tests read the panels' properties — size,
+  one member per cluster, two panels apart — which the mutants kept. AT-BR-10 now draws three
+  strata of two and reads each panel, and empties a stratum to read the reviewer the
+  fallback takes; the beacon's panels are read full, the extra one outside the first. Run
+  again on the file's survivor lines: 33 caught, 2 unviable, the four below left.
+- *The coordination detector's exact outcomes* (sixteen, `collusion.rs`): a reviewer
+  recorded past the history's size, the residual an epoch records — read only through
+  correlations, which a reviewer's constant does not move — the p-value's count of the
+  observed pairing, a pair at exactly `ρ_min`, each pair's permutation seed, the mean average
+  linkage merges on, and the merge made on a tie. The tests read the detector's verdicts on
+  the paper's cartel, which the mutants kept. Six tests now read them by value, and `docs/02`
+  states the seed and the tie rule they pin. Run again with `reputation.rs`'s, 54 mutants on
+  their lines: 49 caught, the five below left.
+- *The bridging fit's edges* (sixty-two, `bridging.rs`): the position of a reviewer off the
+  axis (T39), read only by its side and a magnitude; the axis' sign rule on a tie and at
+  zero; the side floor itself; the tie between two cuts; the labels of reviewers off the
+  axis by the nearer centre; a fit whose axis has one side, or none; a reviewer of weight
+  zero in the coverage; the ratings errors' messages. No fixture reaches these branches, and
+  the tests read the gate's verdicts on fits that never take them. The position now solves
+  the ridge normal equations to 1e-12, and the rest are read on fits built by hand: exact
+  ties of three and of 26 reviewers, off-axis reviewers on either side of both centres, an
+  axis at one position, no axis, a reviewer of weight zero. Run again on the survivors'
+  lines: 118 mutants, 112 caught, the six below left.
+
+Sixteen are equivalent:
+
+  | Mutant | Why it is equivalent |
+  |---|---|
+  | `exploration.rs` `explore` `<` → `<=` | The draw is a multiple of 2⁻⁵³ in [0, 1); `EXPLORATION_RATE`, 0.05, is not one, so no draw equals it. |
+  | `review.rs` `assign_diverse`, `assign_reviewers`: `n == 0 \|\| k == 0` → `&&` (two) | `k` is capped at `n`: either one zero leaves the strata's loop empty, and the guard returns what the loop would. |
+  | `review.rs` `assign_diverse`, `assign_reviewers`: `.max(lo + 1)` → `.max(lo * 1)` (two) | With `k ≤ n`, `⌊(s+1)n/k⌋ ≥ ⌊sn/k⌋ + ⌊n/k⌋ ≥ lo + 1`: the bound never binds. |
+  | `collusion.rs` `coordination_clusters`: `(u << 32) \| v` → `^` | `u << 32` has no low bits and `v < 2³²`: the two agree. |
+  | `collusion.rs` `cluster_by_correlation`: `skip(i + 1)` → `skip(i * 1)` | It adds the diagonal, and `union(i, i)` changes nothing. |
+  | `collusion.rs` `discount_weights`: `s > 0.0` → `>=` | Review weights are positive: `s = 0` only when the cluster's weights are all 0, and each keeps 0 either way (`NaN.min(1.0)` is 1). |
+  | `collusion.rs` `pearson`: `a − m_a` → `a + m_a`, `b − m_b` → `b + m_b` in the covariance (two) | Each adds `2·m·Σ(x − m_x)` over the other column: zero, but for the rounding of its mean. |
+  | `bridging.rs` `fit_validated`: `obj < *b` → `<=` | Two starts reach one objective bit for bit only at one optimum or its sign flip, which `canonical_sign` makes one fit. |
+  | `bridging.rs` `side_balanced`: the arm `(0, _)` deleted, and its mean's `/` → `%`, `*` (three) | `two_means` puts a reviewer on side A whenever it has one to place: side A is empty only with side B, the arm before. |
+  | `bridging.rs` `bridge_scores`: `rng.gen() < keep_frac` → `<=` | A draw equals `keep_frac` with probability 2⁻⁵³ at most. |
+  | `bridging.rs` `bridge_scores`: `sj < *b` → `<=` | It replaces the minimum by an equal value; a score is never −0. |
 
 ## Keeping it this way
 

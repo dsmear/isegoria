@@ -353,8 +353,8 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
    model is measured again — the supplement, 19,700 runs, found it specific on every format, its
    power dependent on the format, and templates and a skewed ability read as bias, now fixed
    (D43, T82) and to be measured again; the screen's study, 3,600 pilots, found its
-   point-biserial dropping good items that guess — and only then are the thresholds set; and the
-   mutation testing of the mechanism (T81).
+   point-biserial dropping good items that guess — and only then are the thresholds set, Level
+   A's register written (`docs/14`). The mechanism's decision logic is mutation-tested (T81).
 2. **P2P network** — done so far: the consortium's configuration check (T63), a
    randomness beacon nobody can grind, by commit-reveal among the consortium members (D41,
    T37, in process), draws that read their candidates as a set (T72), and a node's log and
