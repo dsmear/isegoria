@@ -29,11 +29,13 @@ fn filing_escrows_a_zero_and_lowers_the_reputation_at_once() {
     assert!((before - 0.4).abs() < 1e-12);
     assert!((appeal_floor(&prior()) - 0.4).abs() < 1e-12);
     assert!(author.covers_stake(&prior()));
-    assert!(author.is_empty() && author.len() == 0);
+    assert!(author.is_empty());
+    assert_eq!(author.len(), 0);
 
     let escrow = author.file_appeal(&prior()).unwrap();
     assert_eq!(author.qualities(), &[0.0]);
-    assert!(!author.is_empty() && author.len() == 1);
+    assert!(!author.is_empty());
+    assert_eq!(author.len(), 1);
     // (2 + 0) / (2 + 3 + 1)
     assert!((author.reputation(&prior()) - 1.0 / 3.0).abs() < 1e-12);
 
