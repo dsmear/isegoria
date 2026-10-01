@@ -111,3 +111,24 @@ fn no_alarm_during_probation() {
     assert_eq!(track.weight(false, 3.0), 0.0);
     assert_eq!(track.alarms(), 0);
 }
+
+/// AT-REP-07: past probation the statistic adds each drop below the mean less `k`; an alarm
+/// is counted and restarts the track.
+#[test]
+fn at_rep_07_the_statistic_and_the_alarm_count_are_exact() {
+    let params = CusumParams::default();
+    let mut track = SkillTrack::new();
+    for _ in 0..N_PROBATION {
+        assert!(track.record(0.5, &params).is_none());
+    }
+    assert_eq!(track.statistic(), 0.0);
+    assert!(track.record(0.2, &params).is_none());
+    assert!((track.statistic() - (0.5 - 0.2 - params.k)).abs() < 1e-12);
+    let alarm = track.record(-1.0, &params);
+    let scored = N_PROBATION + 1;
+    assert_eq!(alarm, Some(Alarm { count: 1, scored }));
+    assert_eq!(
+        (track.alarms(), track.statistic(), track.scored()),
+        (1, 0.0, 0)
+    );
+}
