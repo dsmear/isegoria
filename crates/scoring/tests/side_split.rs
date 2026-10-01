@@ -2,7 +2,7 @@
 //! side, and predictions on the rating scale (`docs/02` §A.3, `docs/08` AT-BR-11).
 
 use proptest::prelude::*;
-use scoring::bridging::{side_balanced, two_means, Fit, Side};
+use scoring::bridging::{side_balanced, side_floor, two_means, Fit, Side};
 use scoring::Convergence;
 
 fn floor(n: usize) -> usize {
@@ -40,6 +40,25 @@ fn at_br_11_a_few_outlying_reviewers_do_not_form_a_side() {
 }
 
 /// AT-BR-11: predictions are clipped to [0, 1] before the side means: the score stays on the scale.
+/// A side's floor is 5% of the reviewers rounded up, at least 1, at most half (AT-BR-11).
+#[test]
+fn at_br_11_the_side_floor_by_hand() {
+    let table = [
+        (0, 0),
+        (1, 0),
+        (2, 1),
+        (3, 1),
+        (20, 1),
+        (21, 2),
+        (40, 2),
+        (41, 3),
+        (800, 40),
+    ];
+    for (n, want) in table {
+        assert_eq!(side_floor(n), want, "n = {n}");
+    }
+}
+
 #[test]
 fn at_br_11_predictions_are_clipped_to_the_rating_scale() {
     let fit = Fit {
