@@ -171,3 +171,52 @@ proptest! {
         prop_assert_eq!(bridge_scores(&data, &p, 2, 0.85).is_ok(), valid);
     }
 }
+
+/// Every error names what is wrong and where (`docs/12` §2.3).
+#[test]
+fn every_error_names_what_is_wrong_and_where() {
+    let cases = [
+        (
+            RatingsError::IndexOutOfRange {
+                u: 5,
+                j: 2,
+                n: 3,
+                m: 4,
+            },
+            "observation (5, 2) outside 3 reviewers × 4 items",
+        ),
+        (
+            RatingsError::WeightCount {
+                expected: 3,
+                found: 2,
+            },
+            "2 weights for 3 reviewers",
+        ),
+        (
+            RatingsError::AxisCount {
+                expected: 3,
+                found: 1,
+            },
+            "1 axis flags for 3 reviewers",
+        ),
+        (
+            RatingsError::NonFiniteRating { u: 1, j: 0 },
+            "rating (1, 0) is not finite",
+        ),
+        (
+            RatingsError::BadWeight { u: 2 },
+            "weight of reviewer 2 is not a finite, non-negative number",
+        ),
+        (
+            RatingsError::DuplicateObservation { u: 0, j: 1 },
+            "observation (0, 1) appears twice",
+        ),
+        (
+            RatingsError::ItemOutOfRange { j: 7, m: 2 },
+            "item 7 outside 2 items",
+        ),
+    ];
+    for (error, message) in cases {
+        assert_eq!(error.to_string(), message);
+    }
+}
