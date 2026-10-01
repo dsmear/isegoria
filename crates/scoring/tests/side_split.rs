@@ -2,7 +2,9 @@
 //! side, and predictions on the rating scale (`docs/02` §A.3, `docs/08` AT-BR-11).
 
 use proptest::prelude::*;
-use scoring::bridging::{side_balanced, side_floor, two_means, Fit, Side};
+use scoring::bridging::{
+    coverage, side_balanced, side_floor, two_means, Fit, Ratings, Side, SideScores,
+};
 use scoring::Convergence;
 
 fn floor(n: usize) -> usize {
@@ -39,7 +41,80 @@ fn at_br_11_a_few_outlying_reviewers_do_not_form_a_side() {
     }
 }
 
-/// AT-BR-11: predictions are clipped to [0, 1] before the side means: the score stays on the scale.
+/// A one-item fit, `μ + b_j` = 0.75 and `f_j` = 0.125, its reviewers at `f_u`.
+fn placed(f_u: &[f64], axis: &[bool]) -> Fit {
+    Fit {
+        mu: 0.5,
+        b_u: vec![0.0; f_u.len()],
+        b_j: vec![0.25],
+        f_u: f_u.to_vec(),
+        f_j: vec![0.125],
+        axis: axis.to_vec(),
+        status: Convergence::Converged,
+    }
+}
+
+/// Of tied cuts, the one nearest the middle wins, then the lower (AT-BR-11).
+#[test]
+fn at_br_11_a_tie_goes_to_the_cut_nearest_the_middle_then_the_lower() {
+    assert_eq!(sizes(&two_means(&[0.0, 1.0, 2.0])), (1, 2));
+    let f: Vec<f64> = [(-7.5, 8), (-1.0, 5), (1.0, 5), (7.5, 8)]
+        .iter()
+        .flat_map(|&(x, k)| std::iter::repeat_n(x, k))
+        .collect();
+    assert_eq!(sizes(&two_means(&f)), (13, 13));
+}
+
+/// A reviewer off the axis takes the side whose centre is nearer (AT-BR-11).
+#[test]
+fn at_br_11_a_reviewer_off_the_axis_takes_the_nearer_centre() {
+    let mut f = vec![-2.0; 3];
+    f.extend([2.0; 7]);
+    f.extend([-0.2, 0.2, 1.9, -1.9]);
+    let axis: Vec<bool> = (0..14).map(|u| u < 10).collect();
+    let side = side_balanced(&placed(&f, &axis)).side;
+    assert_eq!(side[10..], [Side::A, Side::B, Side::B, Side::A]);
+}
+
+/// With the axis at one position there is one side, and the score is its mean (AT-BR-11).
+#[test]
+fn at_br_11_one_side_scores_its_own_mean() {
+    let s = side_balanced(&placed(
+        &[1.0, 1.0, 1.0, 1.0, 0.9],
+        &[true, true, true, true, false],
+    ));
+    assert_eq!(s.side, vec![Side::A; 5]);
+    assert_eq!(
+        (s.side_a[0], s.side_b[0], s.score[0], s.gap[0]),
+        (0.875, 0.875, 0.875, 0.0)
+    );
+}
+
+/// With no reviewer on the axis the score is the item's level, `μ + b_j` (AT-BR-11).
+#[test]
+fn at_br_11_no_axis_scores_the_item_level() {
+    let s = side_balanced(&placed(&[0.5, -0.5], &[false, false]));
+    assert_eq!(
+        (s.side_a[0], s.side_b[0], s.score[0], s.gap[0]),
+        (0.75, 0.75, 0.75, 0.0)
+    );
+}
+
+/// A reviewer of weight 0 adds nothing to an item's coverage (AT-BR-11).
+#[test]
+fn at_br_11_a_reviewer_of_weight_zero_covers_nothing() {
+    let data = Ratings::from_dense(&[vec![0.5], vec![0.5]], &[vec![true], vec![true]])
+        .with_weights(vec![1.0, 0.0]);
+    let sides = SideScores {
+        side: vec![Side::A, Side::B],
+        side_a: vec![0.5],
+        side_b: vec![0.5],
+        score: vec![0.5],
+        gap: vec![0.0],
+    };
+    assert_eq!(coverage(&data, &sides), vec![0]);
+}
+
 /// A side's floor is 5% of the reviewers rounded up, at least 1, at most half (AT-BR-11).
 #[test]
 fn at_br_11_the_side_floor_by_hand() {
@@ -59,6 +134,7 @@ fn at_br_11_the_side_floor_by_hand() {
     }
 }
 
+/// AT-BR-11: predictions are clipped to [0, 1] before the side means: the score stays on the scale.
 #[test]
 fn at_br_11_predictions_are_clipped_to_the_rating_scale() {
     let fit = Fit {
