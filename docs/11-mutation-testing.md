@@ -5,7 +5,7 @@
 | **Purpose** | Measure how much of the code the tests actually *verify*, not just execute, and record every mutant that survives with the reason it is acceptable. |
 | **Tool** | `cargo-mutants` 26.0.0 (the newest release that builds on the pinned rustc 1.86). |
 | **Date** | 2026-09-24, branch `test/t41-mutation-survivors`. |
-| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, runs 12–14 for T73's three steps, run 15 for T18, runs 16–17 for T74's two steps, run 18 for T25's first step, run 19 for its third step's harness, run 20 for T82). Not covered yet: the decision logic Phase 1 changed after run 5 — T49–T62, T71 and T39 — apart from T55's (runs 6–7): `docs/10` T81. |
+| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, runs 12–14 for T73's three steps, run 15 for T18, runs 16–17 for T74's two steps, run 18 for T25's first step, run 19 for its third step's harness, run 20 for T82, run 21 for T25's second step and the screen's study). Not covered yet: the decision logic Phase 1 changed after run 5 — T49–T62, T71 and T39 — apart from T55's (runs 6–7): `docs/10` T81. |
 
 ## Why this was needed
 
@@ -427,6 +427,50 @@ with the tests that read its files:
   `--test=harness`): 10 mutants in 24 minutes — 9 caught, 1 unviable.
 
 No survivor, and so no equivalent to justify.
+
+## Run 21 — T25, second step: the pilot screen, and the screen's study
+
+`cargo mutants --in-diff` on the diff of T25's second step and of the screen's study
+(`f7daa4d..ec34fa4`) under the configuration — the `mutants` profile, `calibration`, the 3×
+multiplier and the 60 s floor, `-j 4` — one run per crate with the tests that read its
+files, the harness file by file:
+
+- `scoring/src/latent.rs` (`Formats::describes`, the held shape; the unit tests and
+  `--test=latent_guessing`, `--test=latent_misspecification`, `--test=golden`,
+  `--test=dtf`, `--test=reproducibility`): 101 mutants in 21 minutes — 98 caught, 2
+  unviable, 1 missed.
+- `protocol/src/pilot.rs` (`--test=pilot_screen`, `--test=end_to_end`, `--test=lifecycle`,
+  `--test=inv8_batch_min`, `--test=proto013_respondent_gate`): 30 mutants — 27 caught, 2
+  unviable, 1 missed. One outcome was lost to a full disk (`write message to log`) and its
+  mutant run again: caught.
+- `characterization/src`, with `--timeout 600`: the timeout set from a baseline run alone,
+  70 s for `summary.rs`, timed out correct runs with four jobs in parallel.
+  `summary.rs` (`--test=summary`): 77 mutants in 56 minutes — 66 caught, 3 unviable, 8
+  missed. `grid.rs` (`--test=grid`, `--test=harness`): 15 — 11 caught, 4 unviable.
+  `record.rs` (`--test=harness`, `--test=summary`): 9 — 5 caught, 4 unviable.
+  `generate.rs` (`--test=generate`, `--test=harness`): 24 — 23 caught, 1 unviable.
+  `run.rs` (`--test=harness`, `--test=production`, `--test=summary`, `--timeout 1800`,
+  `-j 2`, its three suites alone taking 16 minutes): 3 mutants — 1 caught, 2 unviable.
+
+None of the survivors was a wrong result:
+
+- *The held shape* (one in each crate): stage 1 left to estimate the ability's shape, or
+  the normal's logits copied into a held shape's empty slots — no test fitted with the
+  shape held but the pilot's, and none of the pilot's noticed the shape estimated.
+  AT-DIF-14 now fits a skewed batch with its shape held and reads the normal; AT-PRO-15
+  screens a pilot of 300 on which an estimated shape trades slope for floor on a good
+  item (`a` 9.5, `c` 0.32) and keeps it. Run again: 3 and 1 caught.
+- *The screen's summary* (seven): the fit time, the share kept of an item kept in every
+  run (the test read one kept in one run of two), the table of the good items and its
+  header, the thresholds table's pooling over anchors, and its headings. The test now
+  writes three cells, two of one size and format, and reads each. Run again on their
+  lines: 9 of 10 caught, the one left the equivalent below.
+
+One is equivalent:
+
+  | Mutant | Why it is equivalent |
+  |---|---|
+  | `summary.rs` `kept_rate` `items > 0` → `>=` | Every run of `floor-screen` carries every kind of item (`SCREEN_ITEMS`): no run has none of a kind to leave out. |
 
 ## Keeping it this way
 
