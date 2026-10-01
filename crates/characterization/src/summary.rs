@@ -1,13 +1,18 @@
-//! The summaries of the records (`docs/13` §5): a table per study and the threshold tables
-//! T25 reads, written as `summary.md` and CSV files beside the records.
+//! The summaries of the records (`docs/13` §5, §8.4): a table per study and the threshold
+//! tables T25 reads, written as `summary.md` and CSV files beside the records.
 
-use crate::grid::{cells, Cell, DifDesign, Grid, Kind, Study, STUDIES};
+use crate::generate::SCREEN_ITEMS;
+use crate::grid::{cells, Cell, DifDesign, Grid, Kind, Layout, Study, STUDIES};
 use crate::record::{read, Record};
-use crate::run::{CaptureOutcome, DifOutcome, DtfOutcome, Outcome, SweepOutcome, DTF_SETS};
+use crate::run::{
+    CaptureOutcome, DifOutcome, DtfOutcome, ExtraOutcome, Outcome, ScreenOutcome, SweepOutcome,
+    DTF_SETS, K_EXTRAS,
+};
 use crate::stats::{clustered_rate, mean, quantile, sd, sorted, wilson};
 use protocol::gate::{EPS, TAU};
 use scoring::dif::MIXTURE_DIF_MAX;
 use scoring::dtf::DTF_MAX;
+use scoring::irt::{A_MIN, B_ABS_MAX, C_EXCESS_MAX, R_PBIS_MIN};
 use std::collections::BTreeMap;
 use std::fs;
 use std::io;
@@ -172,6 +177,14 @@ const DIF_COLUMNS: [&str; 40] = [
     "fit_seconds",
 ];
 
+/// The floor studies' extra columns: the design's floor, the fitted one, the anchors' fitted one.
+const FLOOR_COLUMNS: [&str; 4] = [
+    "floor_true",
+    "floor_fitted",
+    "floor_fitted_sd",
+    "anchor_floor",
+];
+
 struct DifCell {
     key: String,
     runs: usize,
@@ -196,6 +209,8 @@ struct DifCell {
     biased_a_gap_median: f64,
     max_clean_gap: (f64, f64),
     seconds: f64,
+    /// Floor studies only: the design's floor, the items' fitted mean and sd, the anchors' mean.
+    floors: Option<[f64; 4]>,
 }
 
 fn dif_cell(study: Study, key: &str, records: &[&Record]) -> DifCell {
@@ -247,6 +262,12 @@ fn dif_cell(study: Study, key: &str, records: &[&Record]) -> DifCell {
         .iter()
         .map(|r| r.elapsed_ms as f64 / 1000.0)
         .collect();
+    let floors = study.floors().then(|| {
+        let fitted: Vec<f64> = runs.iter().flat_map(|o| o.floors.iter().copied()).collect();
+        let anchors: Vec<f64> = runs.iter().map(|o| o.anchor_floor).collect();
+        let truth = design(study, key).map_or(f64::NAN, |d| d.guess);
+        [truth, mean(&fitted), sd(&fitted), mean(&anchors)]
+    });
     DifCell {
         key: key.to_string(),
         runs: n,
@@ -274,6 +295,7 @@ fn dif_cell(study: Study, key: &str, records: &[&Record]) -> DifCell {
         biased_a_gap_median: mixture_median(|o| &o.a_gap),
         max_clean_gap: (quantile(&max_clean, 0.5), quantile(&max_clean, 0.95)),
         seconds: mean(&seconds),
+        floors,
     }
 }
 
@@ -315,7 +337,24 @@ impl DifCell {
             v(self.max_clean_gap.1),
             v(self.seconds),
         ]);
+        if let Some(floors) = self.floors {
+            row.extend(floors.map(v));
+        }
         row
+    }
+
+    /// The floor, as the design draws it and as the fit reads it on the items and anchors.
+    fn floor_text(&self) -> String {
+        self.floors
+            .map_or("—".into(), |[truth, fitted, spread, anchors]| {
+                format!(
+                    "{} / {} ± {} / {}",
+                    num(truth, 2),
+                    num(fitted, 3),
+                    num(spread, 3),
+                    num(anchors, 3)
+                )
+            })
     }
 }
 
@@ -471,6 +510,90 @@ fn dif_markdown(study: Study, table: &[DifCell]) -> String {
                 ]
             },
         ),
+        Study::FloorNull => (
+            vec![
+                "cell",
+                "runs",
+                "admitted",
+                "KR-20",
+                "mixture",
+                "clean items flagged",
+                "batches with a clean item flagged",
+                "floor: design / items fitted / anchors fitted",
+                "max clean gap p95",
+                "fit s",
+            ],
+            |c| {
+                vec![
+                    c.key.clone(),
+                    c.runs.to_string(),
+                    pct(c.admitted),
+                    num(c.kr20, 3),
+                    pct(c.mixtures),
+                    pct_ci(c.clean_fp),
+                    pct_ci(c.batch_fp),
+                    c.floor_text(),
+                    num(c.max_clean_gap.1, 2),
+                    num(c.seconds, 1),
+                ]
+            },
+        ),
+        Study::FloorMisspec => (
+            vec![
+                "cell",
+                "runs",
+                "KR-20",
+                "mixture",
+                "power",
+                "clean items flagged",
+                "batches with a clean item flagged",
+                "biased gap, mixtures: median (true)",
+                "floor: design / items fitted / anchors fitted",
+                "fit s",
+            ],
+            |c| {
+                vec![
+                    c.key.clone(),
+                    c.runs.to_string(),
+                    num(c.kr20, 3),
+                    pct(c.mixtures),
+                    pct_ci(c.power),
+                    pct_ci(c.clean_fp),
+                    pct_ci(c.batch_fp),
+                    format!("{} ({})", num(c.biased_gap_median, 2), num(c.true_gap, 2)),
+                    c.floor_text(),
+                    num(c.seconds, 1),
+                ]
+            },
+        ),
+        Study::FloorPower => (
+            vec![
+                "cell",
+                "runs",
+                "KR-20",
+                "mixture",
+                "power",
+                "all leaners flagged",
+                "clean items flagged",
+                "biased gap, mixtures: median (true)",
+                "floor: design / items fitted / anchors fitted",
+                "fit s",
+            ],
+            |c| {
+                vec![
+                    c.key.clone(),
+                    c.runs.to_string(),
+                    num(c.kr20, 3),
+                    pct(c.mixtures),
+                    pct_ci(c.power),
+                    pct_ci(c.all_biased),
+                    pct_ci(c.clean_fp),
+                    format!("{} ({})", num(c.biased_gap_median, 2), num(c.true_gap, 2)),
+                    c.floor_text(),
+                    num(c.seconds, 1),
+                ]
+            },
+        ),
         _ => (
             vec![
                 "cell",
@@ -568,6 +691,62 @@ fn cut_table(
             &["cut", "cell", "runs", "rate", "rate_lo", "rate_hi"],
             &csv_rows,
         ),
+    }
+}
+
+/// Per floor and format, the DIF cut table on the nulls of `floor-null` and the two-leaner
+/// cells of `floor-power` with the same floor and format; the CSV leads with the floor.
+fn floor_cut_tables(nulls: &[Record], power: &[Record]) -> CutTable {
+    let mut formats: Vec<(f64, u8)> = Vec::new();
+    for (study, records) in [(Study::FloorNull, nulls), (Study::FloorPower, power)] {
+        for (key, _) in grouped(study, records) {
+            if let Some(d) = design(study, &key) {
+                if d.spread == 0.0 && !formats.contains(&(d.guess, d.options)) {
+                    formats.push((d.guess, d.options));
+                }
+            }
+        }
+    }
+    let (mut markdown, mut csv_text) = (String::new(), String::new());
+    for (guess, options) in formats {
+        let same = |d: &DifDesign| d.guess == guess && d.options == options && d.spread == 0.0;
+        let null_runs: Vec<&DifOutcome> = grouped(Study::FloorNull, nulls)
+            .into_iter()
+            .filter(|(key, _)| {
+                design(Study::FloorNull, key).is_some_and(|d| same(&d) && d.anchors >= 40)
+            })
+            .flat_map(|(_, rs)| rs.into_iter().filter_map(dif_of))
+            .collect();
+        let cells = power_cells(Study::FloorPower, power, |d| {
+            let two = d.layout == Layout::Campaign(2) && d.pi == 0.5 && d.anchors == 60;
+            (same(d) && two && d.k == 8).then(|| format!("N={} δ={}", d.n, d.delta))
+        });
+        let table = cut_table(
+            &[0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+            &null_runs,
+            &cells,
+            |o| &o.dif,
+        );
+        markdown.push_str(&format!(
+            "Floor {guess}, {options} options:\n\n{}\n",
+            table.markdown
+        ));
+        let mut lines = table.csv.lines();
+        let header = lines.next().unwrap_or_default();
+        if csv_text.is_empty() {
+            csv_text.push_str(&format!("floor,options,{header}\n"));
+        }
+        for line in lines {
+            csv_text.push_str(&format!("{guess},{options},{line}\n"));
+        }
+    }
+    if csv_text.is_empty() {
+        csv_text.push_str("floor,options,cut,cell,runs,rate,rate_lo,rate_hi\n");
+        markdown.push_str("No records yet.\n");
+    }
+    CutTable {
+        markdown,
+        csv: csv_text,
     }
 }
 
@@ -1150,6 +1329,370 @@ fn capture_section(study: Study, records: &[Record]) -> (String, String, String)
     )
 }
 
+fn extra_of(r: &Record) -> Option<&ExtraOutcome> {
+    match &r.outcome {
+        Outcome::Extra(o) => Some(o),
+        _ => None,
+    }
+}
+
+/// The band half-widths the extra-round summary reads, within the probes' re-decided range.
+pub const EXTRA_EPS: [f64; 3] = [0.02, 0.04, 0.06];
+/// A probe is truly above or below `τ` when its truth is at least this far from it.
+pub const EXTRA_MARGIN: f64 = 0.02;
+
+fn code(codes: &str, p: usize) -> u8 {
+    codes.as_bytes().get(p).copied().unwrap_or(b'-')
+}
+
+fn banded(o: &ExtraOutcome, p: usize, eps: f64) -> bool {
+    code(&o.gate, p) == b'U' || (TAU - eps..TAU + eps).contains(&o.robust[p])
+}
+
+/// Whether probe `p` passes with the band `τ ± eps` and the extra panel `K_EXTRAS[k]`.
+fn extra_pass(o: &ExtraOutcome, p: usize, eps: f64, k: usize) -> bool {
+    if banded(o, p, eps) {
+        o.redecided.get(k).is_some_and(|c| code(c, p) == b'P')
+    } else {
+        o.robust[p] >= TAU + eps
+    }
+}
+
+fn extra_section(study: Study, records: &[Record]) -> (String, String) {
+    let columns = [
+        "cell",
+        "eps",
+        "k_extra",
+        "runs",
+        "band",
+        "false_pass",
+        "false_pass_lo",
+        "false_pass_hi",
+        "false_fail",
+        "false_fail_lo",
+        "false_fail_hi",
+        "extra_reviews",
+    ];
+    let (mut csv_rows, mut md_rows) = (Vec::new(), Vec::new());
+    for (key, rs) in grouped(study, records) {
+        let runs: Vec<&ExtraOutcome> = rs.iter().filter_map(|r| extra_of(r)).collect();
+        for eps in EXTRA_EPS {
+            let per_run = |pick: &dyn Fn(&ExtraOutcome, usize) -> bool,
+                           hit: &dyn Fn(&ExtraOutcome, usize) -> bool| {
+                let counts: Vec<(usize, usize)> = runs
+                    .iter()
+                    .filter_map(|o| {
+                        let items: Vec<usize> =
+                            (0..o.truth.len()).filter(|&p| pick(o, p)).collect();
+                        (!items.is_empty())
+                            .then(|| (items.iter().filter(|&&p| hit(o, p)).count(), items.len()))
+                    })
+                    .collect();
+                clustered_rate(&counts)
+            };
+            let band = per_run(&|_, _| true, &|o, p| banded(o, p, eps)).0;
+            let mut md = vec![key.clone(), num(eps, 2), pct(band)];
+            for (k, &size) in K_EXTRAS.iter().enumerate() {
+                let below = |o: &ExtraOutcome, p: usize| o.truth[p] <= TAU - EXTRA_MARGIN;
+                let above = |o: &ExtraOutcome, p: usize| o.truth[p] >= TAU + EXTRA_MARGIN;
+                let fp = per_run(&below, &|o, p| extra_pass(o, p, eps, k));
+                let ff = per_run(&above, &|o, p| !extra_pass(o, p, eps, k));
+                let mut row = vec![
+                    key.clone(),
+                    v(eps),
+                    size.to_string(),
+                    runs.len().to_string(),
+                    v(band),
+                ];
+                row.extend(triple(fp));
+                row.extend(triple(ff));
+                row.push(v(size as f64 * band));
+                csv_rows.push(row);
+                md.push(format!("{} / {}", pct(fp.0), pct(ff.0)));
+            }
+            md_rows.push(md);
+        }
+    }
+    let mut headers = vec!["cell".to_string(), "ε".to_string(), "band".to_string()];
+    headers.extend(
+        K_EXTRAS
+            .iter()
+            .map(|k| format!("k_extra = {k}: false pass / false fail")),
+    );
+    let headers: Vec<&str> = headers.iter().map(String::as_str).collect();
+    (md_table(&headers, &md_rows), csv(&columns, &csv_rows))
+}
+
+fn screen_of(r: &Record) -> Option<&ScreenOutcome> {
+    match &r.outcome {
+        Outcome::Screen(o) => Some(o),
+        _ => None,
+    }
+}
+
+/// The roles of the screen's items, as the summary names them.
+pub const SCREEN_ROLES: [(u8, &str); 5] = [
+    (b'g', "good"),
+    (b'f', "flat"),
+    (b'h', "too hard"),
+    (b'c', "guessable"),
+    (b'k', "keyed backwards"),
+];
+
+/// The stage-1 screen's thresholds: `A_MIN`, `B_ABS_MAX` and `C_EXCESS_MAX`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Limits {
+    pub a_min: f64,
+    pub b_max: f64,
+    pub c_excess: f64,
+}
+
+pub const PRODUCTION_LIMITS: Limits = Limits {
+    a_min: A_MIN,
+    b_max: B_ABS_MAX,
+    c_excess: C_EXCESS_MAX,
+};
+
+/// Whether item `j` of a screen run of `options` options is kept at `limits`, by the rule of
+/// `pilot::stage1_verdicts`.
+pub fn screen_keeps(o: &ScreenOutcome, j: usize, options: u8, limits: Limits) -> bool {
+    o.converged
+        && o.a[j] >= limits.a_min
+        && o.b[j].abs() <= limits.b_max
+        && o.c[j] <= 1.0 / f64::from(options) + limits.c_excess
+        && o.rpb[j] >= R_PBIS_MIN
+}
+
+/// The share of the items of `role` that `keeps` keeps, over items grouped by run.
+fn kept_rate(
+    runs: &[&ScreenOutcome],
+    role: u8,
+    keeps: impl Fn(&ScreenOutcome, usize) -> bool,
+) -> (f64, f64, f64) {
+    let counts: Vec<(usize, usize)> = runs
+        .iter()
+        .map(|o| {
+            let items: Vec<usize> = (0..o.roles.len())
+                .filter(|&j| o.roles.as_bytes()[j] == role)
+                .collect();
+            let kept = items.iter().filter(|&&j| keeps(o, j)).count();
+            (kept, items.len())
+        })
+        .filter(|&(_, items)| items > 0)
+        .collect();
+    clustered_rate(&counts)
+}
+
+fn screen_design(key: &str) -> Option<(usize, u8)> {
+    match Cell::parse(Study::FloorScreen, key)? {
+        Cell::Screen(d) => Some((d.n, d.options)),
+        _ => None,
+    }
+}
+
+/// The screen's markdown, its per-kind table and its per-item table (`docs/13` §8.4).
+fn screen_section(study: Study, records: &[Record]) -> (String, String, String) {
+    let (mut md_rows, mut good_rows, mut kind_rows, mut item_rows) =
+        (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    for (key, rs) in grouped(study, records) {
+        let runs: Vec<&ScreenOutcome> = rs.iter().filter_map(|r| screen_of(r)).collect();
+        let converged = runs.iter().filter(|o| o.converged).count();
+        let seconds: Vec<f64> = rs.iter().map(|r| r.elapsed_ms as f64 / 1000.0).collect();
+        let mut md = vec![
+            key.clone(),
+            runs.len().to_string(),
+            pct(converged as f64 / runs.len() as f64),
+        ];
+        for (role, name) in SCREEN_ROLES {
+            let kept = kept_rate(&runs, role, |o, j| o.kept[j]);
+            md.push(pct_ci(kept));
+            let mut row = vec![key.clone(), name.to_string(), runs.len().to_string()];
+            row.extend(triple(kept));
+            kind_rows.push(row);
+        }
+        md.push(num(mean(&seconds), 1));
+        md_rows.push(md);
+        let mut good = vec![key.clone()];
+        for (j, &(role, a, b)) in SCREEN_ITEMS.iter().enumerate() {
+            let hits = runs.iter().filter(|o| o.kept.get(j) == Some(&true)).count();
+            let kept = rate(hits, runs.len());
+            if role == 'g' {
+                good.push(pct_ci(kept));
+            }
+            let of = |pick: fn(&ScreenOutcome) -> &Vec<f64>| -> Vec<f64> {
+                runs.iter()
+                    .filter_map(|o| pick(o).get(j).copied())
+                    .filter(|x| !x.is_nan())
+                    .collect()
+            };
+            let (fa, fb, fc, rpb) = (of(|o| &o.a), of(|o| &o.b), of(|o| &o.c), of(|o| &o.rpb));
+            let mut row = vec![
+                key.clone(),
+                j.to_string(),
+                role.to_string(),
+                v(a),
+                v(b),
+                runs.len().to_string(),
+                v(fa.len() as f64 / runs.len() as f64),
+            ];
+            row.extend(triple(kept));
+            row.extend([fa, fb, fc].iter().flat_map(|x| [v(mean(x)), v(sd(x))]));
+            row.push(v(mean(&rpb)));
+            item_rows.push(row);
+        }
+        good_rows.push(good);
+    }
+    let mut headers = vec!["cell", "runs", "converged"];
+    let kept: Vec<String> = SCREEN_ROLES
+        .iter()
+        .map(|(_, name)| format!("{name} kept"))
+        .collect();
+    headers.extend(kept.iter().map(String::as_str));
+    headers.push("fit s");
+    let mut good_headers = vec!["cell".to_string()];
+    good_headers.extend(
+        SCREEN_ITEMS
+            .iter()
+            .filter(|item| item.0 == 'g')
+            .map(|&(_, a, b)| format!("({a}, {b})")),
+    );
+    let good_headers: Vec<&str> = good_headers.iter().map(String::as_str).collect();
+    let markdown = format!(
+        "Per cell and kind of item, the share the production screen keeps: of the good items, its \
+         specificity; of each bad kind, its miss rate (`docs/13` §8.4):\n\n{}\n\
+         Per good item `(a, b)`, the share kept:\n\n{}",
+        md_table(&headers, &md_rows),
+        md_table(&good_headers, &good_rows)
+    );
+    let kinds = csv(
+        &["cell", "kind", "runs", "kept", "kept_lo", "kept_hi"],
+        &kind_rows,
+    );
+    let items = csv(
+        &[
+            "cell", "item", "role", "a_true", "b_true", "runs", "fitted", "kept", "kept_lo",
+            "kept_hi", "a_mean", "a_sd", "b_mean", "b_sd", "c_mean", "c_sd", "rpb_mean",
+        ],
+        &item_rows,
+    );
+    (markdown, kinds, items)
+}
+
+/// A threshold the screen table moves, the values it takes and the kind of item it is for.
+struct ScreenSweep {
+    name: &'static str,
+    values: [f64; 5],
+    role: u8,
+    at: fn(f64) -> Limits,
+}
+
+fn screen_sweeps() -> [ScreenSweep; 3] {
+    [
+        ScreenSweep {
+            name: "A_MIN",
+            values: [0.4, 0.5, 0.6, 0.7, 0.8],
+            role: b'f',
+            at: |a_min| Limits {
+                a_min,
+                ..PRODUCTION_LIMITS
+            },
+        },
+        ScreenSweep {
+            name: "B_ABS_MAX",
+            values: [2.0, 2.25, 2.5, 2.75, 3.0],
+            role: b'h',
+            at: |b_max| Limits {
+                b_max,
+                ..PRODUCTION_LIMITS
+            },
+        },
+        ScreenSweep {
+            name: "C_EXCESS_MAX",
+            values: [0.05, 0.1, 0.15, 0.2, 0.25],
+            role: b'c',
+            at: |c_excess| Limits {
+                c_excess,
+                ..PRODUCTION_LIMITS
+            },
+        },
+    ]
+}
+
+/// Per stage-1 size and format, over anchors, each kind's share kept as one threshold moves.
+fn screen_thresholds(records: &[Record]) -> CutTable {
+    let mut groups: Vec<((usize, u8), Vec<&ScreenOutcome>)> = Vec::new();
+    for (key, rs) in grouped(Study::FloorScreen, records) {
+        let Some(group) = screen_design(&key) else {
+            continue;
+        };
+        let runs = rs.iter().filter_map(|r| screen_of(r));
+        match groups.iter_mut().find(|(g, _)| *g == group) {
+            Some((_, all)) => all.extend(runs),
+            None => groups.push((group, runs.collect())),
+        }
+    }
+    let name_of = |role: u8| {
+        SCREEN_ROLES
+            .iter()
+            .find(|r| r.0 == role)
+            .map_or("", |r| r.1)
+    };
+    let (mut markdown, mut csv_rows) = (String::new(), Vec::new());
+    for sweep in screen_sweeps() {
+        let mut md_rows = Vec::new();
+        for value in sweep.values {
+            let limits = (sweep.at)(value);
+            let mut md = vec![num(value, 2)];
+            for ((n, options), runs) in &groups {
+                let keeps = |o: &ScreenOutcome, j: usize| screen_keeps(o, j, *options, limits);
+                for (role, name) in SCREEN_ROLES {
+                    let kept = kept_rate(runs, role, keeps);
+                    let mut row = vec![
+                        sweep.name.to_string(),
+                        v(value),
+                        n.to_string(),
+                        options.to_string(),
+                        runs.len().to_string(),
+                        name.to_string(),
+                    ];
+                    row.extend(triple(kept));
+                    csv_rows.push(row);
+                }
+                let good = kept_rate(runs, b'g', keeps).0;
+                let bad = kept_rate(runs, sweep.role, keeps).0;
+                md.push(format!("{} / {}", pct(1.0 - good), pct(bad)));
+            }
+            md_rows.push(md);
+        }
+        let mut headers = vec!["value".to_string()];
+        headers.extend(groups.iter().map(|((n, m), _)| format!("N={n} m={m}")));
+        let headers: Vec<&str> = headers.iter().map(String::as_str).collect();
+        markdown.push_str(&format!(
+            "`{}`: good items dropped / {} items kept\n\n{}\n",
+            sweep.name,
+            name_of(sweep.role),
+            md_table(&headers, &md_rows)
+        ));
+    }
+    CutTable {
+        markdown,
+        csv: csv(
+            &[
+                "threshold",
+                "value",
+                "n",
+                "m",
+                "runs",
+                "kind",
+                "kept",
+                "kept_lo",
+                "kept_hi",
+            ],
+            &csv_rows,
+        ),
+    }
+}
+
 fn is_admitted_null(o: &DifOutcome) -> bool {
     o.admitted && !o.roles.chars().any(|c| "+-2t".contains(c))
 }
@@ -1169,23 +1712,22 @@ pub fn summarize(out: &Path) -> io::Result<String> {
     }
     let total: usize = all.values().map(Vec::len).sum();
     let mut md = format!(
-        "# T24 characterization: summary\n\n{total} runs recorded in `{}`. Rates are shares of runs or \
+        "# Characterization: summary\n\n{total} runs recorded in `{}`. Rates are shares of runs or \
          items with 95% intervals: Wilson over runs; over items, Wilson on the effective sample size \
          of items grouped in batches (`docs/13` §5).\n",
         out.display()
     );
     for study in STUDIES {
         let records = &all[&study];
+        if records.is_empty() {
+            continue;
+        }
         md.push_str(&format!(
             "\n## {}\n\n*{}*: {} runs.\n\n",
             study.name(),
             study.claims(),
             records.len()
         ));
-        if records.is_empty() {
-            md.push_str("No records yet.\n");
-            continue;
-        }
         let dir = out.join(study.name());
         match study.kind() {
             Kind::Dif => {
@@ -1194,7 +1736,11 @@ pub fn summarize(out: &Path) -> io::Result<String> {
                     .map(|(k, rs)| dif_cell(study, k, rs))
                     .collect();
                 let rows: Vec<Row> = table.iter().map(DifCell::csv_row).collect();
-                fs::write(dir.join("summary.csv"), csv(&DIF_COLUMNS, &rows))?;
+                let mut columns = DIF_COLUMNS.to_vec();
+                if study.floors() {
+                    columns.extend(FLOOR_COLUMNS);
+                }
+                fs::write(dir.join("summary.csv"), csv(&columns, &rows))?;
                 md.push_str(&dif_markdown(study, &table));
             }
             Kind::Dtf => {
@@ -1214,44 +1760,87 @@ pub fn summarize(out: &Path) -> io::Result<String> {
                 fs::write(dir.join("curve.csv"), curve)?;
                 md.push_str(&markdown);
             }
+            Kind::Screen => {
+                let (markdown, table, items) = screen_section(study, records);
+                fs::write(dir.join("summary.csv"), table)?;
+                fs::write(dir.join("items.csv"), items)?;
+                md.push_str(&markdown);
+            }
+            Kind::Extra => {
+                let (markdown, table) = extra_section(study, records);
+                fs::write(dir.join("summary.csv"), table)?;
+                md.push_str(&format!(
+                    "Per band half-width ε and extra panel size, the gate with the band and its re-decision \
+                     against each probe's truth: false passes among the probes at least {EXTRA_MARGIN} below τ, \
+                     false failures among those at least {EXTRA_MARGIN} above it (`docs/13` §8.4):\n\n{markdown}"
+                ));
+            }
         }
     }
-    let nulls: Vec<&DifOutcome> = dif_outcomes(&all[&Study::DifNull])
-        .filter(|o| is_admitted_null(o))
-        .collect();
-    let power = power_cells(Study::DifPower, &all[&Study::DifPower], |d| {
-        let default = d.k == 8 && d.pi == 0.5 && d.anchors == DifDesign::default().anchors;
-        (default && d.layout == crate::grid::Layout::Campaign(2) && d.n >= 3000)
-            .then(|| format!("N={} δ={}", d.n, d.delta))
-    });
-    let dif_cut = cut_table(
-        &[0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
-        &nulls,
-        &power,
-        |o| &o.dif,
-    );
-    let nonuniform = power_cells(Study::DifNonuniform, &all[&Study::DifNonuniform], |d| {
-        let crate::grid::Layout::Campaign(count) = d.layout else {
-            return None;
-        };
-        (d.delta == 0.0).then(|| format!("N={} α={}, {count} items", d.n, d.alpha))
-    });
-    let a_cut = cut_table(
-        &[0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-        &nulls,
-        &nonuniform,
-        |o| &o.a_gap,
-    );
-    fs::write(out.join("thresholds-dif-cut.csv"), &dif_cut.csv)?;
-    fs::write(out.join("thresholds-a-gap.csv"), &a_cut.csv)?;
-    md.push_str(&format!(
-        "\n## Threshold tables\n\n### The DIF cut on `DIF_j` (production: {MIXTURE_DIF_MAX:.1})\n\nClean items \
-         flagged on admitted null batches, and power on two leaning items of eight (π = 0.5), at each \
-         cut of the production rule (a converged fit with two or more classes, a gap above the cut):\n\n{}\n\
-         ### A cut on the discrimination gap `a_gap` (none in production)\n\nThe same, with `a_gap` in place \
-         of `DIF_j`; power on the pure non-uniform cells of `dif-nonuniform`:\n\n{}",
-        dif_cut.markdown, a_cut.markdown
-    ));
+    let has = |study: Study| !all[&study].is_empty();
+    let mut tables: Vec<String> = Vec::new();
+    if has(Study::DifNull) || has(Study::DifPower) || has(Study::DifNonuniform) {
+        let nulls: Vec<&DifOutcome> = dif_outcomes(&all[&Study::DifNull])
+            .filter(|o| is_admitted_null(o))
+            .collect();
+        let power = power_cells(Study::DifPower, &all[&Study::DifPower], |d| {
+            let default = d.k == 8 && d.pi == 0.5 && d.anchors == DifDesign::default().anchors;
+            (default && d.layout == Layout::Campaign(2) && d.n >= 3000)
+                .then(|| format!("N={} δ={}", d.n, d.delta))
+        });
+        let dif_cut = cut_table(
+            &[0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5],
+            &nulls,
+            &power,
+            |o| &o.dif,
+        );
+        let nonuniform = power_cells(Study::DifNonuniform, &all[&Study::DifNonuniform], |d| {
+            let Layout::Campaign(count) = d.layout else {
+                return None;
+            };
+            (d.delta == 0.0).then(|| format!("N={} α={}, {count} items", d.n, d.alpha))
+        });
+        let a_cut = cut_table(
+            &[0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+            &nulls,
+            &nonuniform,
+            |o| &o.a_gap,
+        );
+        fs::write(out.join("thresholds-dif-cut.csv"), &dif_cut.csv)?;
+        fs::write(out.join("thresholds-a-gap.csv"), &a_cut.csv)?;
+        tables.push(format!(
+            "### The DIF cut on `DIF_j` (production: {MIXTURE_DIF_MAX:.1})\n\nClean items \
+             flagged on admitted null batches, and power on two leaning items of eight (π = 0.5), at each \
+             cut of the production rule (a converged fit with two or more classes, a gap above the cut):\n\n{}\n\
+             ### A cut on the discrimination gap `a_gap` (none in production)\n\nThe same, with `a_gap` in place \
+             of `DIF_j`; power on the pure non-uniform cells of `dif-nonuniform`:\n\n{}",
+            dif_cut.markdown, a_cut.markdown
+        ));
+    }
+    if has(Study::FloorNull) || has(Study::FloorPower) {
+        let floor_cut = floor_cut_tables(&all[&Study::FloorNull], &all[&Study::FloorPower]);
+        fs::write(out.join("thresholds-dif-cut-floor.csv"), &floor_cut.csv)?;
+        tables.push(format!(
+            "### The DIF cut with a guessing floor\n\nPer floor and declared format, clean items flagged \
+             on the null batches of `floor-null` with 40 or 60 anchors, admitted or not, and power on two \
+             leaning items of eight (π = 0.5, 60 anchors) in `floor-power`:\n\n{}",
+            floor_cut.markdown
+        ));
+    }
+    if has(Study::FloorScreen) {
+        let screen = screen_thresholds(&all[&Study::FloorScreen]);
+        fs::write(out.join("thresholds-screen.csv"), &screen.csv)?;
+        tables.push(format!(
+            "### The stage-1 screen's thresholds\n\nPer stage-1 size and format, over anchors, the good \
+             items dropped and the items a threshold is for kept, as it moves and the others stay at their \
+             production values (`A_MIN` = {A_MIN}, `B_ABS_MAX` = {B_ABS_MAX}, `C_EXCESS_MAX` = \
+             {C_EXCESS_MAX}):\n\n{}",
+            screen.markdown
+        ));
+    }
+    if !tables.is_empty() {
+        md.push_str(&format!("\n## Threshold tables\n\n{}", tables.join("\n")));
+    }
     fs::write(out.join("summary.md"), &md)?;
     Ok(md)
 }

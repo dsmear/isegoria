@@ -5,7 +5,7 @@
 | **Purpose** | Measure how much of the code the tests actually *verify*, not just execute, and record every mutant that survives with the reason it is acceptable. |
 | **Tool** | `cargo-mutants` 26.0.0 (the newest release that builds on the pinned rustc 1.86). |
 | **Date** | 2026-09-24, branch `test/t41-mutation-survivors`. |
-| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, runs 12–14 for T73's three steps, run 15 for T18, runs 16–17 for T74's two steps, run 18 for T25's first step). Not covered yet: the decision logic Phase 1 changed after run 5 — T49–T62, T71 and T39 — apart from T55's (runs 6–7): `docs/10` T81. |
+| **Status** | Every surviving mutant is either killed or justified below (runs 1–3 for T41, run 4 for the T48 optimizer, run 5 for the T40 detector, run 6 for the T55 contested-facts pool, run 7 for its follow-up, run 8 for the T63 consortium, run 9 for the T37 beacon, run 10 for the T72 candidate order, run 11 for the T13 store, runs 12–14 for T73's three steps, run 15 for T18, runs 16–17 for T74's two steps, run 18 for T25's first step, run 19 for its third step's harness, run 20 for T82, run 21 for T25's second step and the screen's study, run 22 for T81: the decision logic Phase 1 changed after run 5). |
 
 ## Why this was needed
 
@@ -353,6 +353,208 @@ would take hours per mutant:
   are missing: it must read `BadFormats`, not `UnreliableAnchors`.
 - `characterization/src/run.rs` (`--test=production`, `--test=harness`): 8 mutants — 5
   caught, 3 unviable.
+
+## Run 19 — T25, third step: the supplement's harness
+
+`cargo mutants --no-config` on the step's diff of `crates/characterization/src` — the
+`mutants` profile, a 3× timeout multiplier and the 60 s floor, `-j 4`; the crate has no
+`calibration` — one run per file with the tests that read it:
+
+- `summary.rs` (`--test=summary`): 78 mutants in 21 minutes — 58 caught, 3 unviable, 17
+  missed.
+- `record.rs` (`--test=harness`, `--test=summary`): 16 mutants — 12 caught, 4 unviable.
+- `grid.rs` (`--test=grid`, `--test=harness`): 66 mutants — 43 caught, 5 unviable, 18
+  missed.
+- `generate.rs` (`--test=generate`, `--test=harness`): 111 mutants — 98 caught, 3
+  unviable, 10 missed.
+- `run.rs` (`--test=harness`, `--test=production`, `--test=summary`): 41 mutants — 29
+  caught, 7 unviable, 5 missed.
+- `main.rs` (`--test=grid`): the diff's one mutant, `parse` returning `Ok(Default::default())`,
+  does not build — `Args` has no default. The file's other lines, T24's printout of `plan`
+  and the dispatch of `main`, are outside the diff and reached by no test: the binary's
+  glue, run by hand (`docs/13` §2).
+
+None of the 50 survivors was a wrong result; each was a check the suite did not make, and
+the tests that make them kill them on the re-run:
+
+- *The draws of the new options.* A test of a distribution cannot see a change that keeps
+  it — `+` → `−` on a symmetric normal in `ability`, the template's effect subtracted or
+  scaled — so `floor-misspec`'s smoke record, which draws skew, templates and spread, is
+  pinned, and so are the bits of a drawn batch (`a_batch_s_draws_are_pinned`): the same bits
+  T24's generator draws at `5931ff1`, checked on a worktree of it. The batch also reads the
+  second axis's class `z₂`, which no test read since T24.
+- *The coverage guard* of the gate's record code and of the extra round's reach: they are
+  now `run::gate_char` and `run::redecides`, tested at `MIN_COVERAGE`
+  (`the_gate_s_code_sends_an_uncovered_item_to_review`); the sweep shares the first.
+- *The supplement's cells*: a field or a sign dropped in `full` or `smoke` leaves the cell
+  counts unchanged, so the keys of both grids are pinned against `docs/13` §8.3
+  (`the_supplement_s_cells_are_the_specified_ones`), and every study must cite what it
+  measures (`every_study_names_what_it_measures`).
+- *The summary's floor tables*: the floor test now carries a second format, a null with 20
+  anchors and a power cell off each condition of the cut table's selection, and reads each
+  floor table's header and the cell the cut table names; the threshold tables are checked
+  with one study's records alone.
+
+The re-run on the survivors' lines: `grid.rs` 19 caught; `run.rs`, `gate_char` and
+`redecides`, 13 caught; `generate.rs` 25, then 9 on the lines of `z₁` and `z₂` once the
+batch was pinned — all caught, one as a timeout (a template's effect divided by a normal
+has tails that keep the fit from converging in time), but for the two equivalents below;
+`summary.rs` 32, then 11 on the cut table's selection once the test named the cell it
+reads — all caught but for the equivalent below. Three are equivalent:
+
+  | Mutant | Why it is equivalent |
+  |---|---|
+  | `generate.rs` `dif_batch` `z1 > 0.0` → `>=` | `z₁` is +1 or −1, never 0. |
+  | `generate.rs` `dif_batch` `< 0.5` → `<=` in the draw of `z₂` | Differs only on a uniform draw of exactly 0.5, one chance in 2⁵³ per respondent, and no pinned batch meets one. |
+  | `summary.rs` `extra_pass` `TAU + eps` → `TAU − eps` | Reached only for a probe outside the band `[τ − ε, τ + ε)`, where a score at or above `τ + ε` and one at or above `τ − ε` are the same probes. |
+
+## Run 20 — T82: the ability's shape estimated, one template per batch
+
+`cargo mutants --no-config --in-diff` on T82's diff (`70d7c9b`) — the `mutants` profile, a
+3× timeout multiplier and the 60 s floor, `-j 4`, without `calibration` — one run per crate
+with the tests that read its files:
+
+- `scoring/src` (`latent.rs`, `dtf.rs`; the unit tests and `--test=dtf`, `--test=golden`,
+  `--test=latent_guessing`, `--test=latent_misspecification`, `--test=reproducibility`):
+  357 mutants in 30 minutes — 339 caught, 18 unviable, none missed. The gradient check,
+  the histogram's weights and moving nodes included, kills every change to the
+  likelihood's arithmetic; the golden rows and the fits, the rest.
+- `protocol/src` (`pilot.rs`, `revalidation.rs`, `results.rs`, `exposure.rs`;
+  `--test=shared_templates`, `--test=results_replay`, `--test=anchor_reliability`,
+  `--test=inv8_batch_min`, `--test=proto013_respondent_gate`, `--test=contested_facts`,
+  `--test=lifecycle`): 16 mutants in 14 minutes — 12 caught, 4 unviable.
+- `characterization/src/run.rs` (`--test=misspecification`, `--test=production`,
+  `--test=harness`): 10 mutants in 24 minutes — 9 caught, 1 unviable.
+
+No survivor, and so no equivalent to justify.
+
+## Run 21 — T25, second step: the pilot screen, and the screen's study
+
+`cargo mutants --in-diff` on the diff of T25's second step and of the screen's study
+(`f7daa4d..ec34fa4`) under the configuration — the `mutants` profile, `calibration`, the 3×
+multiplier and the 60 s floor, `-j 4` — one run per crate with the tests that read its
+files, the harness file by file:
+
+- `scoring/src/latent.rs` (`Formats::describes`, the held shape; the unit tests and
+  `--test=latent_guessing`, `--test=latent_misspecification`, `--test=golden`,
+  `--test=dtf`, `--test=reproducibility`): 101 mutants in 21 minutes — 98 caught, 2
+  unviable, 1 missed.
+- `protocol/src/pilot.rs` (`--test=pilot_screen`, `--test=end_to_end`, `--test=lifecycle`,
+  `--test=inv8_batch_min`, `--test=proto013_respondent_gate`): 30 mutants — 27 caught, 2
+  unviable, 1 missed. One outcome was lost to a full disk (`write message to log`) and its
+  mutant run again: caught.
+- `characterization/src`, with `--timeout 600`: the timeout set from a baseline run alone,
+  70 s for `summary.rs`, timed out correct runs with four jobs in parallel.
+  `summary.rs` (`--test=summary`): 77 mutants in 56 minutes — 66 caught, 3 unviable, 8
+  missed. `grid.rs` (`--test=grid`, `--test=harness`): 15 — 11 caught, 4 unviable.
+  `record.rs` (`--test=harness`, `--test=summary`): 9 — 5 caught, 4 unviable.
+  `generate.rs` (`--test=generate`, `--test=harness`): 24 — 23 caught, 1 unviable.
+  `run.rs` (`--test=harness`, `--test=production`, `--test=summary`, `--timeout 1800`,
+  `-j 2`, its three suites alone taking 16 minutes): 3 mutants — 1 caught, 2 unviable.
+
+None of the survivors was a wrong result:
+
+- *The held shape* (one in each crate): stage 1 left to estimate the ability's shape, or
+  the normal's logits copied into a held shape's empty slots — no test fitted with the
+  shape held but the pilot's, and none of the pilot's noticed the shape estimated.
+  AT-DIF-14 now fits a skewed batch with its shape held and reads the normal; AT-PRO-15
+  screens a pilot of 300 on which an estimated shape trades slope for floor on a good
+  item (`a` 9.5, `c` 0.32) and keeps it. Run again: 3 and 1 caught.
+- *The screen's summary* (seven): the fit time, the share kept of an item kept in every
+  run (the test read one kept in one run of two), the table of the good items and its
+  header, the thresholds table's pooling over anchors, and its headings. The test now
+  writes three cells, two of one size and format, and reads each. Run again on their
+  lines: 9 of 10 caught, the one left the equivalent below.
+
+One is equivalent:
+
+  | Mutant | Why it is equivalent |
+  |---|---|
+  | `summary.rs` `kept_rate` `items > 0` → `>=` | Every run of `floor-screen` carries every kind of item (`SCREEN_ITEMS`): no run has none of a kind to leave out. |
+
+## Run 22 — T81: Phase 1's mechanism
+
+`cargo mutants` on the files whose decision logic Phase 1 changed and T25 does not (`docs/10`
+T81), whole files rather than a diff, under the configuration — the `mutants` profile,
+`calibration`, the 3× multiplier — with the timeout's floor raised to 300 s
+(`--minimum-test-timeout 300`) and `-j 4`: one run per file, with the crate's unit tests
+and the integration suites that read the file.
+
+- `protocol/src/gate.rs` (12 suites): 17 mutants in 41 minutes — 15 caught, 2 unviable.
+- `protocol/src/appeal.rs` (`appeal_stake`, `end_to_end`, `results_replay`): 32 in 15
+  minutes — 25 caught, 2 unviable, 5 missed.
+- `protocol/src/exploration.rs` (`contested_facts`, `end_to_end`, `exploration`): 28 in 64
+  minutes — 25 caught, 2 unviable, 1 missed.
+- `protocol/src/orchestrator.rs` (9 suites): 34 in 21 minutes — 27 caught, 7 unviable.
+- `protocol/src/probation.rs` (7 suites): 62 in 11 minutes — 53 caught, 5 unviable, 4
+  missed.
+- `protocol/src/review.rs` (13 suites): 71 in 13 minutes — 44 caught, 11 unviable, 16
+  missed.
+- `protocol/src/lifecycle.rs` (13 suites): 76 in 90 minutes — 74 caught, 2 unviable.
+- `scoring/src/collusion.rs` (`adversarial`, `anti_collusion`, `coordination`,
+  `hand_computed`, `properties`): 155 in 20 minutes — 132 caught, 2 timeouts (`find` made to
+  loop, counted as caught), 21 missed.
+- `scoring/src/reputation.rs` (`adversarial`, `evaluator_score`, `exploration_weights`,
+  `hand_computed`, `level_c`, `properties`): 162 in 12 minutes — 158 caught, 4 missed.
+- `scoring/src/bridging.rs` (13 suites, in four shards, `--shard k/4`): 449 in 102 minutes —
+  371 caught, 10 unviable, 68 missed.
+
+In all, 1,086 mutants in about six and a half hours: 924 caught, 2 timeouts, 41 unviable,
+119 missed. None of the survivors was a wrong result: 103 were checks the suite did not make,
+each now made by a test, and 16 are equivalent.
+
+The survivors:
+
+- *Values no test read* (thirteen): an author's history — `covers_stake`, `len`,
+  `is_empty` — the change detector's `statistic` and `alarms`, the CUSUM's statistic away
+  from zero and its alarm at exactly `h`, and the mean score of more than one item. The
+  tests read the decisions built on them, or the values at 0 only. The appeal stake's tests
+  now read the history's length before and after a filing and that an author below the
+  floor does not cover the stake; AT-REP-07 feeds the detector a known sequence and reads its
+  statistic, to 1e-12, and its alarm count; the CUSUM and the mean score are fed dyadic
+  values and read exactly. Run again on their lines: 7, 5 and, with `collusion.rs`'s, all
+  caught.
+- *The panel draws' outcomes* (twelve, `review.rs`): the beacon's extra panel emptied or
+  drawn from the first one, the strata's bounds in `assign_diverse`, and its fallback to the
+  reviewer nearest an emptied stratum's centre. The tests read the panels' properties — size,
+  one member per cluster, two panels apart — which the mutants kept. AT-BR-10 now draws three
+  strata of two and reads each panel, and empties a stratum to read the reviewer the
+  fallback takes; the beacon's panels are read full, the extra one outside the first. Run
+  again on the file's survivor lines: 33 caught, 2 unviable, the four below left.
+- *The coordination detector's exact outcomes* (sixteen, `collusion.rs`): a reviewer
+  recorded past the history's size, the residual an epoch records — read only through
+  correlations, which a reviewer's constant does not move — the p-value's count of the
+  observed pairing, a pair at exactly `ρ_min`, each pair's permutation seed, the mean average
+  linkage merges on, and the merge made on a tie. The tests read the detector's verdicts on
+  the paper's cartel, which the mutants kept. Six tests now read them by value, and `docs/02`
+  states the seed and the tie rule they pin. Run again with `reputation.rs`'s, 54 mutants on
+  their lines: 49 caught, the five below left.
+- *The bridging fit's edges* (sixty-two, `bridging.rs`): the position of a reviewer off the
+  axis (T39), read only by its side and a magnitude; the axis' sign rule on a tie and at
+  zero; the side floor itself; the tie between two cuts; the labels of reviewers off the
+  axis by the nearer centre; a fit whose axis has one side, or none; a reviewer of weight
+  zero in the coverage; the ratings errors' messages. No fixture reaches these branches, and
+  the tests read the gate's verdicts on fits that never take them. The position now solves
+  the ridge normal equations to 1e-12, and the rest are read on fits built by hand: exact
+  ties of three and of 26 reviewers, off-axis reviewers on either side of both centres, an
+  axis at one position, no axis, a reviewer of weight zero. Run again on the survivors'
+  lines: 118 mutants, 112 caught, the six below left.
+
+Sixteen are equivalent:
+
+  | Mutant | Why it is equivalent |
+  |---|---|
+  | `exploration.rs` `explore` `<` → `<=` | The draw is a multiple of 2⁻⁵³ in [0, 1); `EXPLORATION_RATE`, 0.05, is not one, so no draw equals it. |
+  | `review.rs` `assign_diverse`, `assign_reviewers`: `n == 0 \|\| k == 0` → `&&` (two) | `k` is capped at `n`: either one zero leaves the strata's loop empty, and the guard returns what the loop would. |
+  | `review.rs` `assign_diverse`, `assign_reviewers`: `.max(lo + 1)` → `.max(lo * 1)` (two) | With `k ≤ n`, `⌊(s+1)n/k⌋ ≥ ⌊sn/k⌋ + ⌊n/k⌋ ≥ lo + 1`: the bound never binds. |
+  | `collusion.rs` `coordination_clusters`: `(u << 32) \| v` → `^` | `u << 32` has no low bits and `v < 2³²`: the two agree. |
+  | `collusion.rs` `cluster_by_correlation`: `skip(i + 1)` → `skip(i * 1)` | It adds the diagonal, and `union(i, i)` changes nothing. |
+  | `collusion.rs` `discount_weights`: `s > 0.0` → `>=` | Review weights are positive: `s = 0` only when the cluster's weights are all 0, and each keeps 0 either way (`NaN.min(1.0)` is 1). |
+  | `collusion.rs` `pearson`: `a − m_a` → `a + m_a`, `b − m_b` → `b + m_b` in the covariance (two) | Each adds `2·m·Σ(x − m_x)` over the other column: zero, but for the rounding of its mean. |
+  | `bridging.rs` `fit_validated`: `obj < *b` → `<=` | Two starts reach one objective bit for bit only at one optimum or its sign flip, which `canonical_sign` makes one fit. |
+  | `bridging.rs` `side_balanced`: the arm `(0, _)` deleted, and its mean's `/` → `%`, `*` (three) | `two_means` puts a reviewer on side A whenever it has one to place: side A is empty only with side B, the arm before. |
+  | `bridging.rs` `bridge_scores`: `rng.gen() < keep_frac` → `<=` | A draw equals `keep_frac` with probability 2⁻⁵³ at most. |
+  | `bridging.rs` `bridge_scores`: `sj < *b` → `<=` | It replaces the minimum by an equal value; a score is never −0. |
 
 ## Keeping it this way
 

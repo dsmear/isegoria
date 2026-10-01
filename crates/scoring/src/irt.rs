@@ -4,6 +4,9 @@ use crate::glm::{fit_logistic, LogisticFit};
 
 pub const A_MIN: f64 = 0.6;
 pub const B_ABS_MAX: f64 = 2.5;
+/// How far a choice item's fitted floor may exceed its chance level `1/m` (`docs/02` §B.2):
+/// 0.35 with four options; provisional (T25).
+pub const C_EXCESS_MAX: f64 = 0.10;
 pub const R_PBIS_MIN: f64 = 0.20;
 /// Anchor-reliability floor for the latent re-check (`docs/01` D37, T53), provisional (T25).
 pub const KR20_MIN: f64 = 0.90;

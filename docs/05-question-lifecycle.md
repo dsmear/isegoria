@@ -119,8 +119,11 @@ judgment to the data.
 ## [6]-[7] Two-stage pilot
 
 **Stage 1 (~300 respondents).** Cheap screen: immediately kills questions with
-insufficient discrimination (`a < 0.6`, `r_pbis < 0.20`) and those with a wrong key
-(negative `r_pbis`). Costs little.
+insufficient discrimination (`a < 0.6`, `r_pbis < 0.20`), too easy or too hard
+(`|b| > 2.5`), guessable (a floor more than 0.10 above chance), and those with a wrong key
+(negative `r_pbis`) — the point-biserial first, then the one-class fit of the model the
+re-check uses on the items it keeps, the ability's shape held normal at this size (`02`
+§B.2, `01` D25). Costs little.
 
 **Stage 2 (~1500–3000 respondents), only for survivors.** The large sample is needed
 because **latent-class DIF** (`02` B.3) requires enough people at each competence
@@ -130,6 +133,10 @@ Requirements:
 
 - **In batches, never a single item**: an isolated distorted question is
   unidentifiable (in testing: 1/8 invisible, 2/8 detected). Validate groups.
+- **One template per batch**: no two items of the same template ([9]) among a batch's
+  trial items and the anchors its respondents answer — items answered alike beyond
+  ability read as a latent class (`01` D43, `02` §B.3). Batches are composed with the
+  templates apart, and the gate refuses one that is not.
 - **Multi-axis**: look for bias on more than one latent axis, including a
   socio-economic one (a question neutral on the political axis can be distorted on
   education).
@@ -199,7 +206,8 @@ ends in the contested pool is promoted ([5b], `01` D27).
 An item used a lot gets memorized and circulates: it loses value. Countermeasures:
 
 - a broad pool and rotation
-- **parametric** items generated from templates (same structure, different values)
+- **parametric** items generated from templates (same structure, different values) —
+  never two of one template in the same DIF batch ([6]-[7], `01` D43)
 - automatic retirement on exposure detection
 
 ---

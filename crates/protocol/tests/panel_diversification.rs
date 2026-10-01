@@ -7,8 +7,8 @@ mod common;
 use identity::nym::Nym;
 use protocol::orchestrator::{bridging_weights, ReviewerStanding};
 use protocol::review::{
-    assign_diverse, assign_diverse_from_beacon, assign_extra_diverse_from_beacon, assign_reviewers,
-    Reviewer, K_EXTRA,
+    assign_diverse, assign_diverse_from_beacon, assign_extra_diverse_from_beacon,
+    assign_extra_from_beacon, assign_reviewers, Reviewer, K_EXTRA,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
@@ -157,4 +157,70 @@ fn no_reviewer_s_weight_changes_with_the_clusters() {
     let standings = vec![ReviewerStanding::established(0.02); 4];
     let w = bridging_weights(&standings, 3.0);
     assert!(w.iter().all(|&x| (x - w[0]).abs() < 1e-12 && x > 1.0));
+}
+
+/// The beacon's panels are full: the diverse first panel holds `K`, and the band's plain extra
+/// panel `K_EXTRA` reviewers, none of them on the first panel (D26, T57).
+#[test]
+fn the_beacon_panels_are_full_and_the_extra_one_comes_from_outside_the_first() {
+    let (reviewers, clusters) = population();
+    let beacon = common::beacon(3, 5);
+    for slot in 0..50u64 {
+        let first = assign_diverse_from_beacon(&reviewers, &clusters, K, &beacon, slot);
+        assert_eq!(first.len(), K);
+        let first_nyms: Vec<Nym> = first.iter().map(|r| r.nym).collect();
+        let extra = assign_extra_from_beacon(&reviewers, &first_nyms, K_EXTRA, &beacon, slot);
+        assert_eq!(extra.len(), K_EXTRA);
+        assert!(
+            extra.iter().all(|r| !first_nyms.contains(&r.nym)),
+            "slot {slot}"
+        );
+    }
+}
+
+/// A reviewer `nym(i)` at each position `f[i]` on the axis.
+fn line(f: &[f64]) -> Vec<Reviewer> {
+    f.iter()
+        .enumerate()
+        .map(|(i, &f_u)| Reviewer { nym: nym(i), f_u })
+        .collect()
+}
+
+/// AT-BR-10: with no cluster in the way the draw takes one reviewer per stratum, and over
+/// seeds every member of every stratum.
+#[test]
+fn at_br_10_the_draw_takes_one_per_stratum_and_each_member_in_turn() {
+    let f: Vec<f64> = (0..6).map(f64::from).collect();
+    let reviewers = line(&f);
+    let singletons: Vec<usize> = (0..6).collect();
+    let mut drawn = HashSet::new();
+    for seed in 0..64 {
+        let panel: Vec<usize> = assign_diverse(&reviewers, &singletons, &[], 3, seed)
+            .iter()
+            .map(|r| r.f_u as usize)
+            .collect();
+        assert_eq!(panel.iter().map(|p| p / 2).collect::<Vec<_>>(), [0, 1, 2]);
+        drawn.extend(panel);
+    }
+    assert_eq!(drawn.len(), 6);
+}
+
+/// AT-BR-10: a stratum with no eligible member takes the eligible reviewer nearest its
+/// centre, `f = 5` here: the one at 3.2, or at 7.9 when the first stratum drew it.
+#[test]
+fn at_br_10_an_emptied_stratum_takes_the_reviewer_nearest_its_centre() {
+    let f = [0.0, 1.0, 2.0, 3.2, 4.0, 5.0, 6.0, 7.0, 7.9, 9.0, 10.0, 11.0];
+    let reviewers = line(&f);
+    let clusters: Vec<usize> = (0..12)
+        .map(|i| if (4..8).contains(&i) { 5 } else { i })
+        .collect();
+    let at = |r: &Reviewer| f.iter().position(|&x| x == r.f_u).unwrap();
+    let mut first = HashSet::new();
+    for seed in 0..32 {
+        let panel = assign_diverse(&reviewers, &clusters, &[nym(5)], 3, seed);
+        let (p0, p1) = (at(&panel[0]), at(&panel[1]));
+        assert_eq!(p1, if p0 == 3 { 8 } else { 3 }, "seed {seed}");
+        first.insert(p0);
+    }
+    assert!(first.len() > 1);
 }

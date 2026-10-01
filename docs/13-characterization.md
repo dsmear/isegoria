@@ -1,10 +1,10 @@
-# Isegoria — Characterization studies (T24)
+# Isegoria — Characterization studies (T24, T25 step 3)
 
 | | |
 |---|---|
 | **Purpose** | The specification of T24: the simulation studies that measure how the production detectors and gates behave, how to run them, and what counts as done. |
-| **Derived from** | `docs/10` T24 and §1.4; `docs/08` §5.3, §12 (AT-DIF-01..09, AT-BR-02), §16.1 (SC-2, SC-3, SC-5, SC-7); `docs/07` §12–§14; the working paper's designs (`paper/scripts/common.py`). |
-| **Status** | Done (2026-09-28). Specified and harness built on 2026-09-26 (`crates/characterization`); the full run, 54,412 runs on the owner's machine, ended on 2026-09-28 and §7 states its results. T25 sets the thresholds from §7, the DIF ones once the model accounts for guessing (D25) and a supplement of these studies has measured it (`docs/10` T25, steps 1–3, §7.5). |
+| **Derived from** | `docs/10` T24, T25 (step 3) and §1.4; `docs/08` §5.3, §12 (AT-DIF-01..09, AT-DIF-13, AT-BR-02), §16.1 (SC-2, SC-3, SC-5, SC-7); `docs/07` §12–§14; `docs/02` §B.1 (D25); the working paper's designs (`paper/scripts/common.py`). |
+| **Status** | T24 done (2026-09-28). Specified and harness built on 2026-09-26 (`crates/characterization`); the full run, 54,412 runs on the owner's machine, ended on 2026-09-28 and §7 states its results. T25 sets the thresholds from §7, the DIF ones once the model accounts for guessing (D25) and a supplement of these studies has measured it (`docs/10` T25, steps 1–3, §7.5). The supplement, T25's step 3, is specified in §8 (2026-09-28); its full run, 19,700 runs on the owner's machine, ended on 2026-09-30 and §8.7 states its results; the screen's study waits on T25's second step. T82 (`docs/01` D43, 2026-09-30) then changed the target model: the DIF results of §7 and §8.7 describe the model before it, and the supplement's DIF studies run again on it (§8.8). |
 
 ## 1. What T24 measures, and what it does not
 
@@ -50,7 +50,7 @@ cargo run --release -p characterization -- summarize            # summary.md and
 | Option | Meaning | Default |
 |---|---|---|
 | `--grid full\|smoke` | the grid of §4, or one tiny cell per study | `full` |
-| `--study NAME[,NAME…]` | the studies to plan or run | all |
+| `--study NAME[,NAME…]` | the studies to plan or run: names, `t24` (§4), `t25` (§8) or `all` | all |
 | `--replicates R` | the first `R` replicates of each study, at most its own count | the study's |
 | `--filter TEXT` | only the cells whose key contains `TEXT` | none |
 | `--jobs J` | worker threads | the number of cores |
@@ -504,3 +504,436 @@ are superseded by §7.4. Its DIF tables already showed what §7.1–§7.2 confir
 makes the 2PL target model flag clean items (D25), and the null batches flag none even
 with 20 anchors (KR-20 ≈ 0.83), the case the KR-20 floor was set for with the proxy model
 (T53). The sixteen cells added after it (§4) answer the two questions its grid could not.
+
+## 8. The guessing supplement (T25, step 3)
+
+T24 drew its latent-DIF populations without a guessing floor, or with one the 2PL target
+model could not read (§7.2). T25's first step gave the model a floor per column (D25,
+`docs/02` §B.1): this supplement measures the corrected model on populations that guess,
+and adds the two Level A measurements T24's design does not make (`docs/10` T25, step 3).
+Same harness, seeds, records and statistics as §2–§5; six new studies, four new
+population options, and new record columns. Specified on 2026-09-28, the harness
+extended and smoke-tested in the container the same day; the runs, on the owner's machine,
+ended on 2026-09-30 (§8.7). The screen's study, a seventh, followed T25's second step.
+
+### 8.1 What it measures
+
+| Study | Question | `docs/08` |
+|---|---|---|
+| `floor-null` | Does the corrected model select a mixture or flag a clean item on a population that guesses — five options (floor 0.2), four (0.25), true/false (0.5), floors that vary around the declared chance — by sample and number of anchors? What is then the anchors' KR-20? | AT-DIF-13, DIF-008, the KR-20 floor |
+| `floor-power` | How often are leaning items found under a floor, by format, sample up to 12,000, shift, number of leaners, anchors and class balance? | SC-2, STAT-001, `N_LATENT_MIN`, the DIF cut |
+| `floor-misspec` | Does the corrected model create or hide DIF under impact, a skewed ability, items of one template answered alike, or floors off the declared chance? | `docs/07` §14, D25 |
+| `floor-dtf` | How far is the fitted DTF from the true one when the items guess? | DIF-011, `DTF_MAX` |
+| `bridging-lambda` | How do the gate's verdicts move with the regularization `(λ_b, λ_f)`? | SC-3, BRIDGE-002, BRIDGE-003 |
+| `bridging-extra` | What does the band's extra round decide, by `k_extra` and `ε`, on an item rated by a panel of production size? | BRIDGE-006, PROTO-008 |
+| `floor-screen` | How often does the pilot's stage 1 keep a good item and drop a bad one — one that barely discriminates, too hard, guessable beyond its format, or keyed backwards — by respondents, anchors and format, and at which thresholds? | IRT-003, PROTO-005, `A_MIN`, `B_ABS_MAX`, `C_EXCESS_MAX` |
+
+`floor-screen` joined the supplement with T25's second step (2026-09-30), which put the
+one-class fit of the floor model in stage 1 (`docs/02` §B.2); a fit of a few hundred
+respondents takes about a second, so it runs in the container. The `d = 1` fit on
+`d = 2` populations that BRIDGE-002 still lists is not part of T25.
+
+### 8.2 The populations
+
+Latent-DIF batches as in §3.1, with four options, each at its default — and absent from
+the cell's key — unless the cell sets it:
+
+- `m`, the format the fit is told: 0 declares every column an open answer, as T24 did;
+  `m ≥ 2` declares every column a choice among `m` options, its floor estimated under the
+  prior of `docs/02` §B.1, centred on `1/m`. The population's floor stays `g`.
+- `gs`: each column's floor drawn from `U(g − gs, g + gs)` rather than all at `g`, the
+  anchors' then the items', after the items' parameters.
+- `sk`: ability drawn from a skew-normal of shape `sk`, standardized to mean 0 and
+  variance 1 (skewness ±0.78 at shape ±4), plus the impact; at 0, one normal as in §3.1.
+- `tl`, templates: trial items 0–1, 2–3, … are pairs of one template, and each
+  respondent gets an effect `tl · N(0, 1)` per template, added to the ability on its two
+  items — a testlet, so the two are answered alike beyond what ability explains. Since
+  D43 the gate refuses a batch with two items of one template, so `admitted` is false for
+  these cells, and their fits measure a template the batch did not declare.
+
+With the four at their defaults a batch draws exactly the random stream of §3.1, so T24's
+records reproduce (§6).
+
+**The extra-round design** (`bridging-extra`). The mirror design of §3.2 — `n` reviewers,
+the majority's share, 5 ratings each of the 20 items, noise 0.15 — defines the axis, and a
+fit of it alone places the reviewers. Ten *probes* of quality `q ~ U(τ − 0.06, τ + 0.06)`
+and no lean join it, each rated by a first panel of `panel` reviewers drawn by
+`review::assign_reviewers` on the placed positions, as production draws a panel; a rating
+is `clamp(q + severity + noise · N(0, 1), 0, 1)`, drawn for every reviewer and probe
+whether the reviewer rates it or not. The gate reads the probes as the epoch does
+(`bridge_scores`, `gate::bridging_gate` at the production `τ` and `ε`). A probe whose
+robust score is within 0.06 of `τ`, or whose coverage is below `MIN_COVERAGE`, is
+re-decided once for each `k_extra ∈ {0, 2, 4, 6, 8, 11}`: `k_extra` reviewers outside its
+first panel, drawn by the same stratified draw as `review::assign_extra_from_beacon`, add
+their ratings of it, and `gate::supplementary_review` decides on the whole; `k_extra = 0`
+re-fits the first panel alone, the rule before T60. A probe's truth is §3.2's.
+
+**The screen's design** (`floor-screen`). `n` respondents of normal ability answer `a`
+anchors — `a_j ~ U(0.9, 1.6)`, `b_j ~ N(0, 1)`, a floor at the chance `1/m` of `m`
+options — and ten trial items of fixed kinds, every column declared with `m` options:
+five good ones, `(a, b)` = (0.8, 0), (1.2, −1), (1.2, 1), (1.6, 0.9) and (1.2, 2); two
+flat ones, `a` = 0.3 and 0.45 at `b = 0`; one too hard, (1.2, 3); one guessable, (1.2, 0)
+with its floor 0.2 over chance; one keyed backwards, (1.2, 0) scored right where it is
+wrong. Every floor but the guessable one's is at chance. The screen runs as production runs
+it — `pilot::stage1_fit`, then `stage1_verdicts` — and the record keeps every item's
+point-biserial and fitted `a`, `b`, `c`, none for an item the point-biserial left out of
+the fit, so the summary can re-apply the other thresholds. `R_PBIS_MIN`, which decides
+the fit's items, is not re-applied: another value is another run.
+
+### 8.3 The studies
+
+Unless a row says otherwise a batch has `N = 3,000`, 60 anchors, `K = 8`, `π = 0.5`, no
+impact, and a floor with its format written *floor/options*: 0.2/5, 0.25/4, 0.5/2.
+
+| Study | Cells | Replicates | Factors |
+|---|---|---|---|
+| `floor-null` | 12 | 200 | 0.2/5, 0.25/4, 0.5/2 and 0.2 ± 0.1/5 × `N ∈ {3000, 6000}`; 0.2/5 and 0.5/2 with 20 and 40 anchors; no leaning item |
+| `floor-power` | 23 | 100 | 0.2/5 and 0.5/2, each: at `N = 3000` two or three items at `δ = 0.9` and three at 0.7; at `N = 6000` two or three at `δ ∈ {0.7, 0.9}`; at `N = 12000` two at `δ ∈ {0.7, 0.9}`. Then 0.25/4, two items at `δ = 0.9`, `N ∈ {6000, 12000}`; 0.2/5 with 40 anchors, two or three items at `δ = 0.9`, `N = 6000`; 0.2/5 with `π = 0.3`, two items at `δ = 0.9`, `N = 12000` |
+| `floor-misspec` | 18 | 100 | at 0.2/5, none or three items at `δ = 0.9`, each with one of: impact 1.0; skew −4, −2 or 4; a floor of 0.1 or 0.3 declared as five options; templates `tl = 1.0`. Then templates `tl = 0.5` with no leaning item; floors 0.2 ± 0.1 with three; and on T24's populations — no floor, every column open — skew −4 and templates `tl = 1.0`, with no leaning item |
+| `floor-dtf` | 6 | 200 | the mirror layout: 0.2/5 × `N ∈ {3000, 6000}` × `δ ∈ {0.5, 0.9}`; 0.5/2 × `N ∈ {3000, 6000}` at `δ = 0.9` |
+| `bridging-lambda` | 48 | 200 | `n ∈ {100, 200, 800}` × `share ∈ {0.6, 0.8}` × `(λ_b, λ_f)`: `λ_b ∈ {0.05, 0.15, 0.45}`, `λ_f ∈ {0.01, 0.03, 0.09}`, `λ_b > λ_f` (eight pairs, the production one among them); 5 ratings each, noise 0.15 |
+| `bridging-extra` | 12 | 200 | `n ∈ {100, 200, 800}` × `share ∈ {0.5, 0.8}` × first panel `∈ {7, 11}` |
+| `floor-screen` | 18 | 200 | `n ∈ {300, 600, 1500}` × anchors `∈ {30, 60}` × `m ∈ {2, 4, 5}` |
+
+19,700 runs, and `floor-screen`'s 3,600 since T25's second step. `floor-power` and
+`floor-misspec` have 100 replicates, not 200: their fits are the dearest of the grid, and an interval of about ±10 points places `N_LATENT_MIN`
+and sizes a failure; `floor-null` keeps 200, whose "never" bounds a rate at 1.9%. The
+grid was sized on two pre-checks. Two leaning items at `δ = 0.9` under a floor of 0.2
+were found in 1 of 8 batches at `N = 3,000` (`docs/08` DIF-008), 4 of 8 at 6,000 and 4 of
+4 at 12,000, no clean item flagged. One replicate of every cell then selected a mixture
+and flagged clean items on the null batches with a skew of −4 (five items of eight) and
+with templates at `tl = 1.0` (four), and not at skew 4 or `tl = 0.5`: the skew of −2 and
+the two populations without a floor were added to size it and to tell whether the floor
+is its cause. One replicate of each says it is not: without a floor, the skew of −4
+flagged one clean item and the templates six of eight, where T24's populations, normal
+and locally independent, flagged none.
+
+`floor-screen`'s pre-check, six replicates of every cell in the container, found a defect
+of the screen before its run: the fit did not converge, and kept no item, in 31 of the 108
+pilots — 27 of the 36 with five options, where the item keyed backwards, fitted with the
+rest, ran its slope to 0 and its difficulty past 100. Step 2 then left an item below
+`R_PBIS_MIN` out of the fit (`docs/02` §B.2); on the same pilots 106 fits of 108
+converged, the other two at 300 respondents and 60 true/false anchors, where an anchor's
+slope and floor ran off.
+
+**What a run records.** As §4, and: a floor study's DIF record adds each trial item's
+fitted floor and the anchors' mean fitted floor (`floors`, `anchor_floor`); a screen run
+records whether the fit converged and per item its fitted `a`, `b`, `c` (NaN if left out
+of the fit), point-biserial, verdict and kind; `floor-dtf`'s true curves carry the drawn
+floors (`ClassCurves::with_floors`). An extra-round run
+records per probe its truth, first-round robust score and gate code, and per `k_extra`
+the re-decision — `P`, `A`, `R`, or `-` where the probe was not re-decided.
+
+### 8.4 Statistics
+
+As §5, and:
+
+- **Floors.** The floor tables give the design's floor, the items' mean fitted floor with
+  its spread, and the anchors' mean fitted floor.
+- **The DIF cut with a floor** (`thresholds-dif-cut-floor.csv`): per floor and format, the
+  clean-item rate on the null batches of `floor-null` with 40 or 60 anchors — admitted or
+  not, since the KR-20 floor refuses most of them and step 4 revisits it — and the power
+  of the `floor-power` cells with two leaning items of eight, `π = 0.5` and 60 anchors.
+- **The screen.** Per cell and item kind, the share kept, with the intervals of §5 — over
+  runs for a kind of one item, over items grouped by run for the good and the flat ones:
+  the good items' is the screen's specificity, each bad kind's its miss rate. Per item
+  (`items.csv`), the share of runs it entered the fit, the share kept, the mean and spread
+  of its fitted `a`, `b`, `c` and its mean point-biserial. The thresholds
+  (`thresholds-screen.csv`): per stage-1 size and format, over anchors, the good items
+  dropped and each bad kind kept as one threshold moves — `A_MIN` 0.4–0.8, `C_EXCESS_MAX`
+  0.05–0.25, `B_ABS_MAX` 2.0–3.0 — the others at their production values.
+- **The extra round.** For `ε ∈ {0.02, 0.04, 0.06}` and each `k_extra`, a probe passes if
+  it is covered and its robust score is at or above `τ + ε`, or if it is in the band — or
+  uncovered — and its re-decision passes. False passes are over the probes whose truth is
+  at least 0.02 below `τ`, false failures over those at least 0.02 above it, both over
+  items grouped by run (§5); the table gives the band's share, and the CSV the extra
+  reviews it costs per probe, `k_extra` times that share.
+
+### 8.5 Cost and running
+
+Measured in the release profile on the development container, one run per cell, four at
+a time:
+
+| Study | Runs | Time of one run: mean, range |
+|---|---|---|
+| `floor-null` | 2,400 | 50 s, 19–100 s — 24–46 s at N = 3,000, 60–100 s at 6,000 |
+| `floor-power` | 2,300 | 119 s, 24–433 s — up to 433 s at N = 12,000, where a mixture is found |
+| `floor-misspec` | 1,800 | 87 s, 25–278 s — the spurious mixtures of a skew of −4 are the dearest |
+| `floor-dtf` | 1,200 | 91 s, 33–215 s |
+| `bridging-lambda` | 9,600 | 1.2 s |
+| `bridging-extra` | 2,400 | 13 s |
+| `floor-screen` | 3,600 | 0.23 s, 0.02–2.0 s — in all 3.5 minutes in the container (§8.7.5) |
+
+About 195 CPU-hours of the container in all, 76 of them in `floor-power`: at the ratio
+T24 measured (§7: 425 of them in about 30 hours), about 14 hours on the owner's machine,
+and the first pass (`--replicates 20`) about 2. The container, whose 4 cores take three to
+four times as long, runs the smoke grid, single cells and the pre-checks.
+
+**On the owner's machine**, on the branch or commit that carries this section:
+
+1. `cargo run --release -p characterization -- run --grid smoke --study t25 --out smoke-t25`:
+   about a minute, a check of the build and the machine.
+2. `cargo run --release -p characterization -- run --study t25 --replicates 20 --out characterization-t25`,
+   then look at `characterization-t25/summary.md`.
+3. `cargo run --release -p characterization -- run --study t25 --out characterization-t25`
+   for the rest; stop and restart it freely.
+4. Send back `summary.md`, the `summary.csv` files, `thresholds-dif-cut-floor.csv` and
+   `bridging-lambda/tau.csv`, with the commit and the machine.
+
+`--study t25` names the seven studies of this section, `--study t24` the ten of §4. A
+separate `--out` keeps the supplement's summary to its own studies: `summarize` leaves
+out the studies with no records.
+
+### 8.6 Done when
+
+1. Every run of §8.3 recorded on one commit of the harness, the last `run` with no
+   `errors.log`, and `summarize` run on the records; T24's pinned records reproduce on
+   that commit (`tests/harness.rs`).
+2. §8.7 holds the results with the commit, the date, the machine and the wall time; the
+   CSV tables are committed under `verification/reports/t25/`.
+3. Each result stated in the form of `docs/07` §14, and `docs/08` restated: AT-DIF-13 in
+   §12; DIF-008, STAT-001 and DIF-011 with a floor, BRIDGE-002 and BRIDGE-003 for
+   `(λ_b, λ_f)`, BRIDGE-006 for `k_extra`, in §15.
+4. The screen's study added once step 2 is done, run and stated (§8.1): done on
+   2026-09-30 (§8.7.5).
+5. T25's step 4 is then unblocked: `N_LATENT_MIN`, the DIF cut, `KR20_MIN` or a minimum
+   number of anchors and `DTF_MAX` for items that guess; `k_extra` and `ε`; `λ_b/λ_f`.
+
+### 8.7 Results
+
+**The run.** 19,700 runs, every run of §8.3 recorded, no `errors.log`, on the owner's
+machine: the first pass (`--replicates 20`) on 2026-09-29 and the rest by 2026-09-30, about
+10 hours, on the harness of `a9cdafa` — every later commit keeps what the runs compute, a
+record of each kind pinned (§6). The summary and every study's table, with their provenance,
+are in `verification/reports/t25/`; the records stay with the owner.
+
+**What every statement below assumes.** The populations of §3.1 and §8.2 and nothing else:
+two latent classes on an axis the model never sees, every item and anchor with the floor the
+cell draws, declared with the cell's format, a normal ability in each class unless a
+statement says otherwise, trial items answered independently given ability unless a
+statement names templates; reviewers in two camps rating by a linear model, probes rated by
+panels drawn as production draws them. A rate is over its cell's runs or items with the 95%
+interval of §5; "never" is 0 of the cell's runs, an upper bound of 1.9% over 200 runs and
+3.7% over 100. Outside these populations the behaviour is not established (`docs/07` §14).
+
+#### 8.7.1 Latent DIF with a guessing floor
+
+- **Specificity** (`floor-null`, AT-DIF-13, DIF-008). On null batches whose every item and
+  anchor has a floor — five options (0.2), four (0.25), true/false (0.5), floors varying by
+  ±0.1 around the declared 0.2 — N 3,000–6,000, 20–60 anchors, the corrected model never
+  selected a mixture and flagged no clean item: 0 of 2,400 batches, 0 of 19,200 clean items,
+  at most 1.9% in any cell. The fitted floors are the drawn ones: 0.201–0.204 for 0.2,
+  0.251–0.254 for 0.25, 0.500–0.501 for 0.5, with a spread of 0.03–0.06 from item to item.
+- **The KR-20 floor.** With 60 anchors the KR-20 is 0.894 with five options, 0.880 with four
+  and 0.785–0.787 with true/false; with 40 anchors 0.848 and 0.711, with 20 anchors 0.737 and
+  0.546. `KR20_MIN` = 0.90 admits 12.5–16.5% of the null batches of five options with 60
+  anchors and none of the others, and 7–17% of the five-option power batches with 60
+  anchors — batches that flag no clean item at any of these reliabilities. With 40 anchors
+  two leaners at δ = 0.9, N = 6,000, are found in 67.5% [57.8, 75.9] of cases, against
+  70.0% [60.4, 78.1] with 60; three in 100% with both.
+- **Sensitivity** (`floor-power`, STAT-001): the share of leaning items flagged, `K` = 8,
+  60 anchors, `π` = 0.5; T24 found two leaners at δ = 0.9 in 92.8% and 98.8% of the
+  batches that do not guess at N = 3,000 and 6,000 (§7.1).
+
+  | Format | Leaning items, δ | N = 3,000 | N = 6,000 | N = 12,000 |
+  |---|---|---|---|---|
+  | five options (0.2) | 2, 0.9 | 9.0% [4.8, 16.2] | 70.0% [60.4, 78.1] | 97.0% [92.2, 98.9] |
+  | | 2, 0.7 | | 2.0% [0.6, 7.0] | 28.0% [20.4, 37.2] |
+  | | 3, 0.9 | 96.0% [90.2, 98.4] | 100% [96.3, 100] | |
+  | | 3, 0.7 | 22.7% [15.6, 31.8] | 81.0% [72.4, 87.4] | |
+  | four options (0.25) | 2, 0.9 | | 39.0% [30.0, 48.8] | 90.0% [82.6, 94.5] |
+  | true/false (0.5) | 2, 0.9 | never | never | 5.0% [2.2, 11.2] |
+  | | 2, 0.7 | | never | never |
+  | | 3, 0.9 | never | 31.0% [22.8, 40.6] | |
+  | | 3, 0.7 | never | never | |
+
+  A smaller class costs little at N = 12,000: two leaners at δ = 0.9 with `π` = 0.3 are
+  found in 92.0% [85.0, 95.9] of cases. No clean item is flagged in any cell but one, 0.2%
+  (three leaners at δ = 0.7, N = 3,000). Where most fits find the mixture the gap is read at
+  its scale — 1.78–1.87 for 1.80, 1.45 for 1.40 — and inflated where few do: 2.15 at 9%,
+  1.47–1.57 for 1.40 at 2–28%, 2.00–2.09 with true/false.
+- **The DIF cut** (`thresholds-dif-cut-floor.csv`). No clean item is flagged at any cut from
+  0.5 to 1.5 on the nulls with 40 or 60 anchors (0.0% [0.0, 0.6] with five options and with
+  true/false, [0.0, 1.0] with four). Below 1.0 the cut barely binds: at 0.8, five options,
+  N = 12,000, two leaners are found in 98.0% of cases at δ = 0.9 and 31.0% at δ = 0.7,
+  against 97.0% and 28.0% at 1.0; elsewhere nothing moves. At 1.5 the same cells fall to
+  79.0% and 14.5%.
+
+#### 8.7.2 Misspecification
+
+`floor-misspec`, five options, N = 3,000, 60 anchors, `π` = 0.5, none or three leaning
+items at δ = 0.9:
+
+- **Absorbed.** Impact 1.0 flags no clean item and costs power (85.0% [76.7, 90.7] of three
+  leaners, against 96.0% without it); so do a skew of −2 or +4 (97.0% and 95.0%, one batch
+  in 100 with a clean item flagged), templates at `tl` = 0.5, floors of 0.1 or 0.3 declared
+  as five options (99.0% and 68.0%) and floors varying by ±0.1 (96.0%). A floor off the
+  declared chance is read toward it — 0.1 at 0.14, 0.3 at 0.25–0.26 — and a skew biases the
+  fitted floors, 0.26–0.27 at +4 and 0.18–0.20 at −2 and −4, without flags.
+- **Read as bias** (T82). A skew of −4 makes the model select classes in 60% of the null
+  batches and flag 22.4% [18.1, 27.3] of their clean items, in 56.0% [46.2, 65.3] of the
+  batches; with three leaners, 31.0% of the clean items in 77.0% of the batches, the leaners'
+  gap read at 3.64 for 1.80. Templates at `tl` = 1.0 do it in 41% of the null batches:
+  11.2% [8.7, 14.4] of the clean items, 41.0% [31.9, 50.8] of the batches; with three
+  leaners, 7.8% of the clean items in 21.0% of the batches. On T24's populations — no floor,
+  every column open — it is not better: a skew of −4 flags 12.5% [9.3, 16.7] of the clean
+  items in 52.0% of the batches, templates at 1.0 flag 73.0% [69.8, 76.0] of them in every
+  batch.
+
+#### 8.7.3 The DTF bound with a floor
+
+`floor-dtf`, the mirror layout, over the fits that find two or more classes (§5): with five
+options in every fit at δ = 0.9 and in 1 of 200 and 53 of 200 at δ = 0.5 (N = 3,000 and
+6,000); with true/false at δ = 0.9 in 83 and 189 of 200.
+
+- **Bias.** As in §7.3, the fitted DTF is biased up where the true one is small: the four
+  clean items are fitted at 0.029–0.046 on average with five options and 0.036–0.048 with
+  true/false, and refused in 0.5–9.4% and 3.7–10.8% of the fits.
+- **Far above `DTF_MAX`** a set is admitted almost never: a single leaner (true DTF
+  0.18–0.31) in 3 fits of 1,452, a same-side pair (0.36–0.61) never.
+- **Near it** — the mirror pairs, the four leaners, a pair with two clean items, true DTF
+  0.05–0.12 on average — the decision is noisy both ways. With five options up to 13% of
+  the sets truly over the tolerance are admitted; with true/false, at N = 6,000, 17–33%. Of
+  the sets truly within, five options refuse 9–31% at N = 6,000, δ = 0.9, 28–59% at
+  N = 3,000 and 27–61% at δ = 0.5; true/false refuses 14–45% at N = 6,000 and 41–74% at
+  N = 3,000.
+
+#### 8.7.4 Bridging: `(λ_b, λ_f)` and the band's extra round
+
+- **`(λ_b, λ_f)`** (`bridging-lambda`, SC-3, BRIDGE-002, BRIDGE-003), the mirror design of
+  §3.2, 100–800 reviewers, camps 60/40 and 80/20, 5 ratings each, noise 0.15, the eight
+  pairs within a factor of 3 of the production (0.15, 0.03). No partisan item passes but
+  0.05% in two cells (100 reviewers, 80/20); a consensus item 0.05 or more below `τ` passes
+  in at most 0.25%; one 0.05 or more above passes in 62–69% of cases with 100 reviewers in
+  80/20 camps, 78–84% in 60/40, 79–86% and 91–95% with 200, 97–100% with 800 — within a cell,
+  the pair moves it by at most 7 points, the production pair inside the range. `λ_f` sets
+  the axis's recovery: `|corr|` 0.80–0.91 on average at 0.01, 0.88–0.93 at 0.03, 0.92–0.95
+  at 0.09, and the worst run falls to 0.36 at 0.01 against 0.53 at 0.03 and 0.72 at 0.09.
+  `λ_b` moves nothing measurable.
+- **The band's extra round** (`bridging-extra`, BRIDGE-006, PROTO-008). On probes within
+  0.06 of `τ`, each rated by a first panel of 7 or 11 reviewers, noise 0.15, over 100–800
+  reviewers in camps of 50/50 and 80/20: at the production `ε` = 0.02 and `k_extra` = 4,
+  6.4–11.7% of the probes 0.02–0.06 below `τ` pass and 39.9–66.5% of those 0.02–0.06 above
+  fail. The extra round lowers the false passes — from 8.7–14.1% with no extra reviewer to
+  4.5–8.0% with 11 — and leaves the false failures where they are (38.3–64.6% with none,
+  40.3–65.9% with 11): they are decided in the first round, below the band. A band of ±0.06
+  lowers them by 12–16 points (23.5–52.9% with no extra reviewer, 20.9–51.8% with 11) and
+  raises the false passes unless the extra round is large (16.1–22.1% with none, 7.1–12.1%
+  with 11), at 3.8–6.1 extra reviews per probe with 11, against 0.5–0.9 at the production
+  setting. A first panel of 11 instead of 7 lowers the false failures by 4–12 points; camps
+  of 80/20 raise them by 9–18. The number of reviewers in the epoch changes little: a probe's
+  score rests on its panel.
+
+#### 8.7.5 The pilot's stage-1 screen
+
+**The run.** `floor-screen`'s 3,600 runs, no `errors.log`, in the container on 2026-09-30,
+3 min 26 s with four workers, on the harness of `ec34fa4`: the stage 1 of T25's second
+step, the point-biserial first. Its tables are in `verification/reports/t25/`
+(`floor-screen-summary.csv`, `floor-screen-items.csv`, `thresholds-screen.csv`).
+
+- **Keyed backwards, too hard.** The item keyed backwards was never kept: 0 of 3,600, at
+  most 1.9% in any cell. The item too hard was kept in 10 of 3,600, at most 3.0%
+  [1.4, 6.4] in a cell (N = 300, five options). The point-biserial drops both before the
+  fit: its mean is −0.22 to −0.37 for the first and 0.03–0.10 for the second.
+- **Flat items** were kept in 4.2% of cases: 5.5% with four options, 6.1% with five, 0.9%
+  with true/false; 10.5–10.8% at N = 300 with four or five options, 1.4–1.9% at 1,500.
+  Most of the kept ones are the `a = 0.45` item, whose fitted slope reads 0.6–0.7 with
+  four or five options when the point-biserial lets it into the fit.
+- **Good items.** Four of the five were kept in 93.3% of cases with four options and
+  95.5% with five, 89.6–97.6% by size. The fifth, `(1.2, 2)`, was kept in 16.6% and
+  29.8%. With true/false, the four were kept in 42.0% and the fifth in 1.1%. A larger
+  sample does not help: the point-biserial, not the fit, drops them. Its mean on the
+  anchors' total is a population value under `R_PBIS_MIN` = 0.20: 0.15–0.19 for
+  `(1.2, 2)` with four or five options; with true/false 0.16–0.18 for `(0.8, 0)` and
+  `(1.2, 1)`, 0.19–0.21 for `(1.6, 0.9)` and 0.09–0.10 for `(1.2, 2)`. At N = 1,500 the
+  true/false pilots keep `(0.8, 0)` and `(1.2, 1)` in 4–21% of cases.
+- **The guessable item**, its floor 0.2 over chance, was kept in 79.2% of cases with four
+  options, 83.8% with five, and 16.4% with true/false, where the point-biserial drops it
+  with the good ones. The fit reads it as an easier item: with four options its floor
+  reads 0.27–0.34 against a true 0.45, its difficulty −0.4 to −0.6 against 0. A larger
+  sample barely helps: at 1,500 it is still kept in 65.8% and 70.8% of cases.
+  `C_EXCESS_MAX` at 0.05 still keeps 40–80% of them, and drops 23–30% of the good items.
+- **The thresholds.** `B_ABS_MAX` changes nothing between 2.0 and 3.0: the point-biserial
+  has already dropped the items it would drop. Moving `A_MIN` from 0.4 to 0.8 trades flat
+  items kept against good items dropped: at N = 300 with five options, from 15.1% and
+  18.4% to 3.1% and 27.0%.
+- **Convergence.** 98.9% of the fits converged: all of them with five options, 99.8%
+  with four, 96.9% with true/false. With true/false at N = 300 and 60 anchors, only 85.5%
+  converged: an anchor's slope and floor run off. A pilot whose fit does not converge
+  keeps nothing.
+
+**What it means.** `R_PBIS_MIN` decides stage 1, and it is not calibrated for items that
+guess. The floor lowers every item's point-biserial, so the screen drops a hard good item
+in most pilots whatever the format, and most good true/false items at any size. `C_EXCESS_MAX` cannot
+catch a floor 0.2 over chance at stage 1's sizes, because the fit reads the item as easier.
+The re-check, at 3,000 respondents and more, is where floors are measured (§8.7.1). T25's
+fourth step sets `R_PBIS_MIN` — by format, or lower, leaving the work to the fit's `a` —
+and measures the chosen value with a new run of this study. The keyed-backwards item's
+point-biserial is negative at every size, so any positive bar still drops it.
+
+#### 8.7.6 What T25 takes from it
+
+- **The model with a floor is specific** on every format tried, down to 20 anchors, and the
+  floors it fits are the drawn ones: D25 does what it was for.
+- **T82 first.** Templates answered alike and a strongly left-skewed ability are read as
+  bias, with a floor or without; the DIF thresholds wait on it (`docs/10` T82).
+- **`KR20_MIN` gives way to a minimum number of anchors.** With a floor the KR-20 is
+  0.55–0.89 on batches that flag no clean item, and the floor refuses 83–100% of the batches
+  of choice items; 40 anchors cost no power measured here.
+- **`N_LATENT_MIN` depends on the format.** Two leaners at δ = 0.9 need about 12,000
+  respondents with four or five options (90–97%; 6,000 gives 39–70%), where open answers
+  need 3,000 (§7.1); three leaners are found from 3,000 with five options. With true/false
+  the re-check does not see two leaners up to 12,000, and three only at 6,000 in 31%:
+  true/false batches need a policy of their own.
+- **The DIF cut** can stay at 1.0: below it nothing gains more than 3 points, above it
+  power falls.
+- **`DTF_MAX`** as in §7.5: the bias on clean sets is 0.03–0.05 with a floor, and with
+  true/false the sets near the tolerance are admitted or refused more often in error.
+- **`(λ_b, λ_f)`** can stay; `λ_f` should not go below 0.03.
+- **The pilot's stage 1 needs its own `R_PBIS_MIN`** (§8.7.5). At 0.20 it drops most good
+  true/false items and most hard good items. `A_MIN` and `B_ABS_MAX` barely matter once
+  it has run. `C_EXCESS_MAX` cannot see a guessable item at stage 1's sizes, so the
+  floor is judged at the re-check.
+- **`τ`, `ε`, `k_extra` and the panel's size go together.** On items rated by a panel of
+  production size the robust score is noisy and biased low near `τ`: the extra round only
+  lowers the false passes, a wider band the false failures, a larger panel both. T24's
+  statements on the gate (§7.4) hold for items rated by 25–360 reviewers, not for these.
+
+#### 8.7.7 First pass (2026-09-29)
+
+`--replicates 20` — 2,380 runs, twenty per cell — ran first, on the same harness, and its
+records are the first twenty of every cell of the full run. With intervals of ±15–20 points
+it already showed what §8.7.1 states, and found the misspecification of §8.7.2, which T82
+records; no cell was added after it.
+
+### 8.8 After T82: the DIF studies again
+
+D43 (T82) gave the target model an estimated ability histogram and the batch gate a
+template rule, the day the full run ended. Every DIF, DTF and floor record of §7 and §8.7
+comes from the model before it; its bridging records are unchanged. So the four DIF
+studies of the supplement run again on the corrected model, same grid and seeds — the
+measurements T25's fourth step reads, since every item the system asks guesses:
+
+- **What changes.** Each class's ability is the shared histogram shifted by its mean,
+  estimated with the rest (`docs/02` §B.3). The pinned DIF records of `tests/harness.rs`
+  change on purpose; the bridging ones reproduce. `admitted` is false for the `tl` cells
+  (§8.2). A fit with a floor costs about half as much again as before (T82, `docs/10`).
+- **Power, at the margin.** The one-class fit now takes the sample's departures from a
+  normal, which a second class used to take as well, so a real mixture can gain less over
+  one class. On the golden batch of 1,500 respondents and 20 anchors with two leaners at
+  δ = 0.9, the previous model selected two classes with a BIC gain of 2.4 and the
+  corrected one selects one; on its batch with a floor the gain fell from 27.5 to 24.1,
+  the leaners flagged as before. A paired pre-check on the supplement's own batches, in the
+  container, found no such loss where the tables are read: on eight replicates of three
+  leaners at δ = 0.9, N = 3,000, five options, and eight of two leaners at N = 6,000, both
+  models find the same batches — all eight, and the same five of eight — their BIC gains
+  within 5 of each other, no clean item flagged.
+- **What it must show.** The skewed and template cells flag clean items in no more null
+  batches than the clean populations do — for templates, of a template the batch did not
+  declare, since a declared one is refused. The other cells stay as §8.7 states them, or
+  the difference is stated: the power tables and `N_LATENT_MIN` are read from this run.
+- **On the owner's machine**, on the commit that carries this section, into a new
+  directory, since the harness resumes from the records it finds:
+  `cargo run --release -p characterization -- run --study floor-null,floor-power,floor-misspec,floor-dtf --out characterization-t25-d43`,
+  a first pass with `--replicates 20` first. T24's DIF studies are not run again: they
+  describe the model before D43 on populations that do not guess.

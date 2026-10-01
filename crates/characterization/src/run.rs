@@ -1,11 +1,22 @@
 //! One run: draw the population from the run's seed, apply the production estimator and
-//! gates, and return what the study records (`docs/13` §4).
+//! gates, and return what the study records (`docs/13` §4, §8.3).
 
-use crate::generate::{dif_batch, fixture, sweep_data, DifBatch, FIXTURE_LEAN};
-use crate::grid::{engine_seed, CaptureDesign, Cell, DifDesign, Kind, SweepDesign, Task};
-use protocol::gate::{bridging_gate, GateOutcome, APPEAL_GAP, EPS, MIN_COVERAGE, TAU};
+use crate::generate::{
+    dif_batch, extra_data, fixture, screen_batch, sweep_data, DifBatch, FIXTURE_LEAN, PROBE_SPREAD,
+    SCREEN_ITEMS,
+};
+use crate::grid::{
+    draw_seed, engine_seed, CaptureDesign, Cell, DifDesign, ExtraDesign, Kind, ScreenDesign,
+    SweepDesign, Task,
+};
+use identity::nym::Nym;
+use protocol::gate::{
+    bridging_gate, supplementary_review, GateOutcome, APPEAL_GAP, EPS, MIN_COVERAGE, TAU,
+};
 use protocol::lifecycle::K_MIN;
+use protocol::pilot::{stage1_fit, stage1_verdicts};
 use protocol::revalidation::{target_flags, N_LATENT_MIN};
+use protocol::review::{assign_reviewers, Reviewer};
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
@@ -38,9 +49,12 @@ pub enum Outcome {
     Dtf(DtfOutcome),
     Sweep(SweepOutcome),
     Capture(CaptureOutcome),
+    Extra(ExtraOutcome),
+    Screen(ScreenOutcome),
 }
 
-/// A latent-DIF run: the gates' inputs, the selected fit, the verdict and each item's role.
+/// A latent-DIF run: the gates' inputs, the selected fit, the verdict and each item's role;
+/// the fitted floors, per trial item and the anchors' mean, recorded by the floor studies only.
 #[derive(Clone, Debug, PartialEq)]
 pub struct DifOutcome {
     pub kr20: f64,
@@ -55,6 +69,8 @@ pub struct DifOutcome {
     pub a_gap: Vec<f64>,
     pub flags: Vec<bool>,
     pub roles: String,
+    pub floors: Vec<f64>,
+    pub anchor_floor: f64,
 }
 
 /// Per set of [`DTF_SETS`], the fitted DTF and the one of the true curves.
@@ -92,6 +108,32 @@ pub struct CaptureOutcome {
     pub plain: Vec<f64>,
 }
 
+/// The extra panel sizes `bridging-extra` re-decides with; 0 re-fits the first panel alone.
+pub const K_EXTRAS: [usize; 6] = [0, 2, 4, 6, 8, 11];
+
+/// Per probe its truth, first-round robust score and gate code (as [`SweepOutcome`]); per
+/// size of [`K_EXTRAS`], one re-decision code per probe, `P`, `A`, `R`, or `-` if not re-decided.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExtraOutcome {
+    pub truth: Vec<f64>,
+    pub robust: Vec<f64>,
+    pub gate: String,
+    pub redecided: Vec<String>,
+}
+
+/// A stage-1 screen: whether the fit converged, and per trial item its `a`, `b`, `c` (NaN if
+/// left out of the fit), its point-biserial, its verdict and its role in [`SCREEN_ITEMS`].
+#[derive(Clone, Debug, PartialEq)]
+pub struct ScreenOutcome {
+    pub converged: bool,
+    pub a: Vec<f64>,
+    pub b: Vec<f64>,
+    pub c: Vec<f64>,
+    pub rpb: Vec<f64>,
+    pub kept: Vec<bool>,
+    pub roles: String,
+}
+
 pub fn run(task: &Task) -> Outcome {
     let seed = task.seed();
     match (task.study.kind(), task.cell) {
@@ -99,13 +141,25 @@ pub fn run(task: &Task) -> Outcome {
         (_, Cell::Dif(d)) => Outcome::Dif(dif(&d, seed)),
         (_, Cell::Sweep(d)) => Outcome::Sweep(sweep(&d, seed)),
         (_, Cell::Capture(d)) => Outcome::Capture(capture(&d, seed)),
+        (_, Cell::Extra(d)) => Outcome::Extra(extra(&d, seed)),
+        (_, Cell::Screen(d)) => Outcome::Screen(screen(&d, seed)),
     }
 }
 
-/// The target model on the drawn batch, every column declared an open answer (`docs/13` §3.1).
+/// The target model on the drawn batch, every column declared as the design says: an open
+/// answer, or `options` options (`docs/13` §3.1, §8.2).
 fn latent_fit(d: &DifDesign, batch: &DifBatch, seed: u64) -> LatentDif {
-    let formats = Formats::open(d.anchors, d.k);
+    let formats = match d.options {
+        0 => Formats::open(d.anchors, d.k),
+        m => Formats::choice(d.anchors, d.k, m),
+    };
     latent_dif(&batch.anchors, &batch.x, &formats, engine_seed(seed)).expect("the design's formats")
+}
+
+/// Whether the gates of `latent_batch` admit the design's batch of anchor reliability `kr20`;
+/// a design's template pairs (`tl`) share a template (D43).
+pub fn admitted(d: &DifDesign, kr20: f64) -> bool {
+    d.k >= K_MIN && d.n >= N_LATENT_MIN && kr20 >= KR20_MIN && d.testlet == 0.0
 }
 
 /// The production re-check on the drawn batch, the engine seeded by [`engine_seed`]: the gates
@@ -113,7 +167,7 @@ fn latent_fit(d: &DifDesign, batch: &DifBatch, seed: u64) -> LatentDif {
 pub fn dif(d: &DifDesign, seed: u64) -> DifOutcome {
     let batch = dif_batch(d, seed);
     let reliability = kr20(&batch.anchors);
-    let admitted = d.k >= K_MIN && d.n >= N_LATENT_MIN && reliability >= KR20_MIN;
+    let admitted = admitted(d, reliability);
     let fit = latent_fit(d, &batch, seed);
     DifOutcome {
         kr20: reliability,
@@ -123,6 +177,8 @@ pub fn dif(d: &DifDesign, seed: u64) -> DifOutcome {
         converged: fit.status == Convergence::Converged,
         bic_gain: fit.bic_gain,
         flags: target_flags(&fit),
+        anchor_floor: fit.anchor_c.iter().sum::<f64>() / fit.anchor_c.len().max(1) as f64,
+        floors: fit.item_c,
         pi: fit.pi,
         eta: fit.eta,
         dif: fit.dif,
@@ -144,11 +200,12 @@ fn true_curves(d: &DifDesign, batch: &DifBatch) -> Option<ClassCurves> {
             })
             .collect()
     };
-    ClassCurves::new(
+    ClassCurves::with_floors(
         &[1.0 - d.pi, d.pi],
         &[0.0, d.impact],
         &per_class(&batch.a, d.alpha / 2.0),
         &per_class(&batch.b, d.delta),
+        &batch.floors,
     )
     .ok()
 }
@@ -195,23 +252,36 @@ fn gate_code(outcome: GateOutcome) -> char {
     }
 }
 
+/// The gate's outcome at the production `τ`, `ε` and `γ_appeal` as a record's code: `U` for
+/// an item below `MIN_COVERAGE` sent to review whatever its score (D42).
+pub fn gate_char(score: f64, gap: f64, coverage: usize) -> char {
+    match bridging_gate(score, gap, coverage, TAU, EPS, APPEAL_GAP) {
+        GateOutcome::SupplementaryReview if coverage < MIN_COVERAGE => 'U',
+        outcome => gate_code(outcome),
+    }
+}
+
+/// Whether `bridging-extra` re-decides a probe: its robust score within `PROBE_SPREAD` of
+/// `τ`, or its coverage below `MIN_COVERAGE`.
+pub fn redecides(score: f64, coverage: usize) -> bool {
+    (TAU - PROBE_SPREAD..TAU + PROBE_SPREAD).contains(&score) || coverage < MIN_COVERAGE
+}
+
 pub fn sweep(d: &SweepDesign, seed: u64) -> SweepOutcome {
     let data = sweep_data(d, seed);
+    let production = BridgingParams::default();
+    let (lam_b, lam_f) = d.lambda.unwrap_or((production.lam_b, production.lam_f));
     let params = BridgingParams {
         seed: engine_seed(seed),
-        ..BridgingParams::default()
+        lam_b,
+        lam_f,
+        ..production
     };
     let full_fit = fit(&data.ratings, &params).expect("generated ratings are well formed");
     let scores = bridge_scores(&data.ratings, &params, BOOTSTRAPS, KEEP)
         .expect("generated ratings are well formed");
     let gate = (0..scores.robust.len())
-        .map(|j| {
-            let (s, g, c) = (scores.robust[j], scores.full.gap[j], scores.coverage[j]);
-            match bridging_gate(s, g, c, TAU, EPS, APPEAL_GAP) {
-                GateOutcome::SupplementaryReview if c < MIN_COVERAGE => 'U',
-                outcome => gate_code(outcome),
-            }
-        })
+        .map(|j| gate_char(scores.robust[j], scores.full.gap[j], scores.coverage[j]))
         .collect();
     SweepOutcome {
         converged: full_fit.status == Convergence::Converged,
@@ -273,4 +343,109 @@ pub fn capture(d: &CaptureDesign, seed: u64) -> CaptureOutcome {
         out.plain.push(item.iter().sum::<f64>() / item.len() as f64);
     }
     out
+}
+
+fn nym(u: usize) -> Nym {
+    let mut bytes = [0u8; 32];
+    bytes[..8].copy_from_slice(&(u as u64).to_le_bytes());
+    Nym(bytes)
+}
+
+fn index_of(nym: &Nym) -> usize {
+    let mut first = [0u8; 8];
+    first.copy_from_slice(&nym.0[..8]);
+    u64::from_le_bytes(first) as usize
+}
+
+/// The probes join the mirror design, each rated by a panel drawn as `review` draws it on
+/// the positions a fit of the mirror items gives; a probe within `PROBE_SPREAD` of `τ`, or
+/// uncovered, is re-decided with each extra panel of [`K_EXTRAS`] (`docs/13` §8.2).
+pub fn extra(d: &ExtraDesign, seed: u64) -> ExtraOutcome {
+    let data = extra_data(d, TAU, seed);
+    let params = BridgingParams {
+        seed: engine_seed(seed),
+        ..BridgingParams::default()
+    };
+    let axis = fit(&data.sweep.ratings, &params).expect("generated ratings are well formed");
+    let reviewers: Vec<Reviewer> = (0..d.n)
+        .map(|u| Reviewer {
+            nym: nym(u),
+            f_u: axis.f_u[u],
+        })
+        .collect();
+    let first = data.sweep.ratings.m;
+    let probes = data.probe_q.len();
+    let panels: Vec<Vec<usize>> = (0..probes)
+        .map(|p| {
+            assign_reviewers(&reviewers, d.panel, draw_seed("panel", seed, p as u64))
+                .iter()
+                .map(|r| index_of(&r.nym))
+                .collect()
+        })
+        .collect();
+    let mut obs = data.sweep.ratings.obs.clone();
+    for (p, panel) in panels.iter().enumerate() {
+        obs.extend(panel.iter().map(|&u| Obs {
+            u,
+            j: first + p,
+            r: data.probe_ratings[p][u],
+        }));
+    }
+    let base = Ratings {
+        m: first + probes,
+        obs,
+        ..data.sweep.ratings.clone()
+    };
+    let scores = bridge_scores(&base, &params, BOOTSTRAPS, KEEP).expect("well formed");
+    let mut gate = String::new();
+    let mut redecided = vec![String::new(); K_EXTRAS.len()];
+    for (p, panel) in panels.iter().enumerate() {
+        let j = first + p;
+        let (s, c) = (scores.robust[j], scores.coverage[j]);
+        gate.push(gate_char(s, scores.full.gap[j], c));
+        let near = redecides(s, c);
+        let outside: Vec<Reviewer> = reviewers
+            .iter()
+            .filter(|r| !panel.contains(&index_of(&r.nym)))
+            .copied()
+            .collect();
+        for (codes, &k) in redecided.iter_mut().zip(&K_EXTRAS) {
+            if !near {
+                codes.push('-');
+                continue;
+            }
+            let extra_panel = assign_reviewers(&outside, k, draw_seed("extra", seed, p as u64));
+            let mut expanded = base.clone();
+            expanded.obs.extend(extra_panel.iter().map(|r| Obs {
+                u: index_of(&r.nym),
+                j,
+                r: data.probe_ratings[p][index_of(&r.nym)],
+            }));
+            let outcome =
+                supplementary_review(&expanded, &params, j, TAU, APPEAL_GAP).expect("well formed");
+            codes.push(gate_code(outcome));
+        }
+    }
+    ExtraOutcome {
+        truth: data.probe_truth,
+        robust: (0..probes).map(|p| scores.robust[first + p]).collect(),
+        gate,
+        redecided,
+    }
+}
+
+/// The production stage-1 screen on the drawn pilot (`docs/13` §8.2).
+pub fn screen(d: &ScreenDesign, seed: u64) -> ScreenOutcome {
+    let batch = screen_batch(d, seed);
+    let formats = Formats::choice(d.anchors, SCREEN_ITEMS.len(), d.options);
+    let fit = stage1_fit(&batch.anchors, &batch.x, &formats).expect("the design's formats");
+    ScreenOutcome {
+        converged: fit.status == Convergence::Converged,
+        kept: stage1_verdicts(&fit, &formats),
+        a: fit.a,
+        b: fit.b,
+        c: fit.c,
+        rpb: fit.rpb,
+        roles: batch.roles,
+    }
 }

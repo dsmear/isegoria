@@ -777,6 +777,27 @@ mod tests {
         }
     }
 
+    /// The largest `|f_j|`, the earliest on a tie, is made non-negative; a zero axis stays.
+    #[test]
+    fn the_sign_follows_the_earliest_largest_item() {
+        let signed = |f_j: Vec<f64>| {
+            let mut f = Fit {
+                mu: 0.0,
+                b_u: vec![0.0],
+                b_j: vec![0.0; f_j.len()],
+                f_u: vec![1.0],
+                f_j,
+                axis: vec![true],
+                status: Convergence::Converged,
+            };
+            canonical_sign(&mut f);
+            (f.f_u[0], f.f_j)
+        };
+        assert_eq!(signed(vec![0.5, -0.5]), (1.0, vec![0.5, -0.5]));
+        assert_eq!(signed(vec![0.25, -0.5]), (-1.0, vec![-0.25, 0.5]));
+        assert_eq!(signed(vec![0.0, 0.0]), (1.0, vec![0.0, 0.0]));
+    }
+
     /// The objective is the weighted squared error plus both penalties, checked by hand.
     #[test]
     fn objective_is_weighted_error_plus_penalties() {

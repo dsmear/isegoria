@@ -53,6 +53,9 @@ fn a_run_is_a_function_of_its_task() {
         Study::DtfError,
         Study::BridgingSweep,
         Study::BridgingCapture,
+        Study::FloorPower,
+        Study::BridgingExtra,
+        Study::FloorScreen,
     ];
     for task in tasks(&kinds, Grid::Smoke, Some(1), None) {
         let first = Record::new(&task, 0, run(&task));
@@ -119,11 +122,11 @@ fn a_record_of_each_kind_is_pinned() {
     let pins = [
         (
             Study::DifPower,
-            "9a829eaa86d78ae0cc473d1d3481051de8f47ef57557859ff3745e14d11ef056",
+            "2d38bd1d3bd49967dcf0f5506a68e3144699ea3623d1b1d7843f1035520bd994",
         ),
         (
             Study::DtfError,
-            "5fb32673f7ad9d049ad8492d910e61f1259b5c01c9ed8d7a76f0007bd91fe58e",
+            "a90418aef1d564a130318bb81a96f54e49e4b54f96ba11cad15dbabf8a7b8b3b",
         ),
         (
             Study::BridgingSweep,
@@ -132,6 +135,34 @@ fn a_record_of_each_kind_is_pinned() {
         (
             Study::BridgingCapture,
             "a54dc4c4a4f453d8727c8618def851b67d72d62978c113d470901df99e451778",
+        ),
+        (
+            Study::DifTwoAxes,
+            "cdb16cef55d897094aae79448996a266a5e08fbd32f496ded217a550459b71a8",
+        ),
+        (
+            Study::FloorPower,
+            "4a45a1cfa8239ca42d195cd1bf35c9ee8969b53dfb9a6e0869cfb8b07280320b",
+        ),
+        (
+            Study::FloorMisspec,
+            "4eaebc9204692250ab53288e4205cf47069154f9eecd73ec2c45fe2ef687d781",
+        ),
+        (
+            Study::FloorDtf,
+            "72d6135a1ca48e03fc747563fc002eda58ed3572f1c9c588c0ad2084efa1f85f",
+        ),
+        (
+            Study::BridgingLambda,
+            "bed457a39859bb0b08b68122e7e7893334ff2d0b589f1d47e9899f42ff6f7782",
+        ),
+        (
+            Study::BridgingExtra,
+            "63f785c0941bf4d49c4a6dec35a56a0db6e4570989438d07be56553a50a2cf17",
+        ),
+        (
+            Study::FloorScreen,
+            "a32e531dfd723479e9f805536d5fb463586dbbf8836b58ace9f4ea49a3841ef9",
         ),
     ];
     for (study, pin) in pins {

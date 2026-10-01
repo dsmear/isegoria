@@ -1,4 +1,5 @@
-//! The T24 studies, their grids of cells and the seed of every run (`docs/13` §2, §4).
+//! The characterization studies — T24's and T25's supplement — their grids of cells and the
+//! seed of every run (`docs/13` §2, §4, §8).
 
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -15,9 +16,37 @@ pub enum Study {
     DtfError,
     BridgingSweep,
     BridgingCapture,
+    FloorNull,
+    FloorPower,
+    FloorMisspec,
+    FloorDtf,
+    BridgingLambda,
+    BridgingExtra,
+    FloorScreen,
 }
 
-pub const STUDIES: [Study; 10] = [
+pub const STUDIES: [Study; 17] = [
+    Study::DifNull,
+    Study::DifPower,
+    Study::DifMisspec,
+    Study::DifNonuniform,
+    Study::DifTwoAxes,
+    Study::DifPoisoning,
+    Study::DifPoolScale,
+    Study::DtfError,
+    Study::BridgingSweep,
+    Study::BridgingCapture,
+    Study::FloorNull,
+    Study::FloorPower,
+    Study::FloorMisspec,
+    Study::FloorDtf,
+    Study::BridgingLambda,
+    Study::BridgingExtra,
+    Study::FloorScreen,
+];
+
+/// T24's studies (`docs/13` §4) and T25's supplement (§8), for `--study t24` and `--study t25`.
+pub const T24: [Study; 10] = [
     Study::DifNull,
     Study::DifPower,
     Study::DifMisspec,
@@ -29,6 +58,29 @@ pub const STUDIES: [Study; 10] = [
     Study::BridgingSweep,
     Study::BridgingCapture,
 ];
+pub const SUPPLEMENT: [Study; 7] = [
+    Study::FloorNull,
+    Study::FloorPower,
+    Study::FloorMisspec,
+    Study::FloorDtf,
+    Study::BridgingLambda,
+    Study::BridgingExtra,
+    Study::FloorScreen,
+];
+
+/// The studies a `--study` value names: names, `t24`, `t25` or `all`, comma-separated.
+pub fn parse_studies(value: &str) -> Result<Vec<Study>, String> {
+    let mut studies = Vec::new();
+    for name in value.split(',') {
+        match name {
+            "all" => studies.extend(STUDIES),
+            "t24" => studies.extend(T24),
+            "t25" => studies.extend(SUPPLEMENT),
+            _ => studies.push(Study::parse(name).ok_or(format!("unknown study {name:?}"))?),
+        }
+    }
+    Ok(studies)
+}
 
 /// What a study's runs produce, hence its record schema.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -37,6 +89,8 @@ pub enum Kind {
     Dtf,
     Sweep,
     Capture,
+    Extra,
+    Screen,
 }
 
 impl Study {
@@ -52,6 +106,13 @@ impl Study {
             Study::DtfError => "dtf-error",
             Study::BridgingSweep => "bridging-sweep",
             Study::BridgingCapture => "bridging-capture",
+            Study::FloorNull => "floor-null",
+            Study::FloorPower => "floor-power",
+            Study::FloorMisspec => "floor-misspec",
+            Study::FloorDtf => "floor-dtf",
+            Study::BridgingLambda => "bridging-lambda",
+            Study::BridgingExtra => "bridging-extra",
+            Study::FloorScreen => "floor-screen",
         }
     }
 
@@ -61,9 +122,11 @@ impl Study {
 
     pub fn kind(self) -> Kind {
         match self {
-            Study::DtfError => Kind::Dtf,
-            Study::BridgingSweep => Kind::Sweep,
+            Study::DtfError | Study::FloorDtf => Kind::Dtf,
+            Study::BridgingSweep | Study::BridgingLambda => Kind::Sweep,
             Study::BridgingCapture => Kind::Capture,
+            Study::BridgingExtra => Kind::Extra,
+            Study::FloorScreen => Kind::Screen,
             _ => Kind::Dif,
         }
     }
@@ -81,7 +144,26 @@ impl Study {
             Study::DtfError => "DIF-011, the sampling error of the DTF bound (T55)",
             Study::BridgingSweep => "SC-3, BRIDGE-002, BRIDGE-003, the gate's τ and ε",
             Study::BridgingCapture => "AT-BR-02, BRIDGE-005",
+            Study::FloorNull => "AT-DIF-13, DIF-008 with a guessing floor (D25), the KR-20 floor",
+            Study::FloorPower => "SC-2, STAT-001 with a guessing floor (D25), N_LATENT_MIN",
+            Study::FloorMisspec => "robustness of the floor model (docs/07 §14, D25)",
+            Study::FloorDtf => "DIF-011 with a guessing floor, DTF_MAX",
+            Study::BridgingLambda => {
+                "SC-3, BRIDGE-002, BRIDGE-003: the verdicts against (λ_b, λ_f)"
+            }
+            Study::BridgingExtra => "BRIDGE-006, PROTO-008: the band's extra round, k_extra and ε",
+            Study::FloorScreen => {
+                "IRT-003, PROTO-005: the pilot's stage-1 screen and its thresholds"
+            }
         }
+    }
+
+    /// Whether the study's records carry the fitted guessing floors (`docs/13` §8.3).
+    pub fn floors(self) -> bool {
+        matches!(
+            self,
+            Study::FloorNull | Study::FloorPower | Study::FloorMisspec
+        )
     }
 }
 
@@ -124,6 +206,14 @@ pub struct DifDesign {
     pub impact: f64,
     pub guess: f64,
     pub attack: Attack,
+    /// The format the fit is told: 0 an open answer, otherwise `m` options (`docs/02` §B.1).
+    pub options: u8,
+    /// Each column's floor is drawn from `guess ± spread`.
+    pub spread: f64,
+    /// The skew-normal shape of the ability distribution, standardized; 0 for a normal.
+    pub skew: f64,
+    /// The spread of a respondent's effect shared by each pair of trial items (a template).
+    pub testlet: f64,
 }
 
 impl Default for DifDesign {
@@ -139,6 +229,10 @@ impl Default for DifDesign {
             impact: 0.0,
             guess: 0.0,
             attack: Attack::None,
+            options: 0,
+            spread: 0.0,
+            skew: 0.0,
+            testlet: 0.0,
         }
     }
 }
@@ -150,6 +244,27 @@ pub struct SweepDesign {
     pub share: f64,
     pub per_reviewer: usize,
     pub noise: f64,
+    /// `(λ_b, λ_f)` of the fit; None for the production values.
+    pub lambda: Option<(f64, f64)>,
+}
+
+/// The mirror design plus probe items near `τ`, each rated by a panel (`docs/13` §8.2).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ExtraDesign {
+    pub n: usize,
+    pub share: f64,
+    pub per_reviewer: usize,
+    pub noise: f64,
+    pub panel: usize,
+}
+
+/// A stage-1 pilot of `n` respondents, `anchors` anchors and fixed trial items, every column
+/// a choice among `options` options (`docs/13` §8.2).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ScreenDesign {
+    pub n: usize,
+    pub anchors: usize,
+    pub options: u8,
 }
 
 /// Boosters on one partisan item of the reference fixture (`docs/13` §3.3).
@@ -165,6 +280,8 @@ pub enum Cell {
     Dif(DifDesign),
     Sweep(SweepDesign),
     Capture(CaptureDesign),
+    Extra(ExtraDesign),
+    Screen(ScreenDesign),
 }
 
 fn layout_key(layout: Layout) -> String {
@@ -217,35 +334,79 @@ fn fields<'a>(key: &'a str, names: &[&str]) -> Option<BTreeMap<&'a str, &'a str>
     expected.then_some(map)
 }
 
+/// The optional fields of a latent-DIF key, present only when not at their default.
+const DIF_OPTIONAL: [&str; 4] = ["m", "gs", "sk", "tl"];
+
 impl Cell {
     /// The cell's name in records and seeds: stable, space-separated `key=value` pairs.
     pub fn key(&self) -> String {
         match self {
-            Cell::Dif(d) => format!(
-                "n={} a={} k={} lay={} d={} al={} pi={} im={} g={} atk={}",
-                d.n,
-                d.anchors,
-                d.k,
-                layout_key(d.layout),
-                d.delta,
-                d.alpha,
-                d.pi,
-                d.impact,
-                d.guess,
-                attack_key(d.attack)
-            ),
-            Cell::Sweep(s) => format!("n={} s={} r={} e={}", s.n, s.share, s.per_reviewer, s.noise),
+            Cell::Dif(d) => {
+                let mut key = format!(
+                    "n={} a={} k={} lay={} d={} al={} pi={} im={} g={} atk={}",
+                    d.n,
+                    d.anchors,
+                    d.k,
+                    layout_key(d.layout),
+                    d.delta,
+                    d.alpha,
+                    d.pi,
+                    d.impact,
+                    d.guess,
+                    attack_key(d.attack)
+                );
+                let extra = [
+                    ("m", d.options != 0, d.options.to_string()),
+                    ("gs", d.spread != 0.0, d.spread.to_string()),
+                    ("sk", d.skew != 0.0, d.skew.to_string()),
+                    ("tl", d.testlet != 0.0, d.testlet.to_string()),
+                ];
+                for (name, present, value) in extra {
+                    if present {
+                        key.push_str(&format!(" {name}={value}"));
+                    }
+                }
+                key
+            }
+            Cell::Sweep(s) => {
+                let key = format!("n={} s={} r={} e={}", s.n, s.share, s.per_reviewer, s.noise);
+                match s.lambda {
+                    None => key,
+                    Some((b, f)) => format!("{key} lb={b} lf={f}"),
+                }
+            }
             Cell::Capture(c) => format!("item={} own={} step={}", c.item, c.own, c.step),
+            Cell::Extra(e) => format!(
+                "n={} s={} r={} e={} panel={}",
+                e.n, e.share, e.per_reviewer, e.noise, e.panel
+            ),
+            Cell::Screen(s) => format!("n={} a={} m={}", s.n, s.anchors, s.options),
         }
     }
 
     pub fn parse(study: Study, key: &str) -> Option<Cell> {
         match study.kind() {
             Kind::Dif | Kind::Dtf => {
-                let f = fields(
-                    key,
-                    &["n", "a", "k", "lay", "d", "al", "pi", "im", "g", "atk"],
-                )?;
+                let base = ["n", "a", "k", "lay", "d", "al", "pi", "im", "g", "atk"];
+                let present: Vec<&str> = DIF_OPTIONAL
+                    .into_iter()
+                    .filter(|name| key.contains(&format!(" {name}=")))
+                    .collect();
+                let names: Vec<&str> = base.iter().copied().chain(present).collect();
+                let f = fields(key, &names)?;
+                let optional = |name: &str| f.get(name).copied();
+                let options = optional("m").map_or(Some(0), |v| v.parse().ok())?;
+                let spread = optional("gs").map_or(Some(0.0), |v| v.parse().ok())?;
+                let skew = optional("sk").map_or(Some(0.0), |v| v.parse().ok())?;
+                let testlet = optional("tl").map_or(Some(0.0), |v| v.parse().ok())?;
+                let default = |v: f64, present: &str| v == 0.0 && f.contains_key(present);
+                if options < 2 && f.contains_key("m")
+                    || default(spread, "gs")
+                    || default(skew, "sk")
+                    || default(testlet, "tl")
+                {
+                    return None;
+                }
                 Some(Cell::Dif(DifDesign {
                     n: f["n"].parse().ok()?,
                     anchors: f["a"].parse().ok()?,
@@ -257,15 +418,31 @@ impl Cell {
                     impact: f["im"].parse().ok()?,
                     guess: f["g"].parse().ok()?,
                     attack: parse_attack(f["atk"])?,
+                    options,
+                    spread,
+                    skew,
+                    testlet,
                 }))
             }
             Kind::Sweep => {
-                let f = fields(key, &["n", "s", "r", "e"])?;
+                let tuned = key.contains(" lb=");
+                let names: &[&str] = if tuned {
+                    &["n", "s", "r", "e", "lb", "lf"]
+                } else {
+                    &["n", "s", "r", "e"]
+                };
+                let f = fields(key, names)?;
+                let lambda = if tuned {
+                    Some((f["lb"].parse().ok()?, f["lf"].parse().ok()?))
+                } else {
+                    None
+                };
                 Some(Cell::Sweep(SweepDesign {
                     n: f["n"].parse().ok()?,
                     share: f["s"].parse().ok()?,
                     per_reviewer: f["r"].parse().ok()?,
                     noise: f["e"].parse().ok()?,
+                    lambda,
                 }))
             }
             Kind::Capture => {
@@ -274,6 +451,24 @@ impl Cell {
                     item: f["item"].parse().ok()?,
                     own: f["own"].parse().ok()?,
                     step: f["step"].parse().ok()?,
+                }))
+            }
+            Kind::Extra => {
+                let f = fields(key, &["n", "s", "r", "e", "panel"])?;
+                Some(Cell::Extra(ExtraDesign {
+                    n: f["n"].parse().ok()?,
+                    share: f["s"].parse().ok()?,
+                    per_reviewer: f["r"].parse().ok()?,
+                    noise: f["e"].parse().ok()?,
+                    panel: f["panel"].parse().ok()?,
+                }))
+            }
+            Kind::Screen => {
+                let f = fields(key, &["n", "a", "m"])?;
+                Some(Cell::Screen(ScreenDesign {
+                    n: f["n"].parse().ok()?,
+                    anchors: f["a"].parse().ok()?,
+                    options: f["m"].parse().ok().filter(|&m: &u8| m >= 2)?,
                 }))
             }
         }
@@ -291,6 +486,28 @@ pub enum Grid {
 fn dif(d: DifDesign) -> Cell {
     Cell::Dif(d)
 }
+
+/// Every column with the floor `guess`, declared with `options` options (`docs/13` §8.2).
+fn floored(guess: f64, options: u8, d: DifDesign) -> DifDesign {
+    DifDesign {
+        guess,
+        options,
+        ..d
+    }
+}
+
+/// The `(λ_b, λ_f)` of `bridging-lambda`: a third, the production value and three times it,
+/// `λ_b > λ_f` (`docs/08` §0).
+pub const LAMBDAS: [(f64, f64); 8] = [
+    (0.05, 0.01),
+    (0.05, 0.03),
+    (0.15, 0.01),
+    (0.15, 0.03),
+    (0.15, 0.09),
+    (0.45, 0.01),
+    (0.45, 0.03),
+    (0.45, 0.09),
+];
 
 fn biased(n: usize, k: usize, count: usize, delta: f64, pi: f64) -> DifDesign {
     DifDesign {
@@ -437,6 +654,7 @@ fn full(study: Study) -> Vec<Cell> {
                                 share,
                                 per_reviewer,
                                 noise,
+                                lambda: None,
                             }));
                         }
                     }
@@ -447,6 +665,151 @@ fn full(study: Study) -> Vec<Cell> {
             for item in [7, 8] {
                 for own in [0, 40] {
                     out.push(Cell::Capture(CaptureDesign { item, own, step: 5 }));
+                }
+            }
+        }
+        Study::FloorNull => {
+            for (guess, options, spread) in
+                [(0.2, 5, 0.0), (0.25, 4, 0.0), (0.5, 2, 0.0), (0.2, 5, 0.1)]
+            {
+                for n in [3000, 6000] {
+                    out.push(dif(DifDesign {
+                        spread,
+                        ..floored(guess, options, biased(n, 8, 0, 0.0, 0.5))
+                    }));
+                }
+            }
+            for (guess, options) in [(0.2, 5), (0.5, 2)] {
+                for anchors in [20, 40] {
+                    out.push(dif(DifDesign {
+                        anchors,
+                        ..floored(guess, options, biased(3000, 8, 0, 0.0, 0.5))
+                    }));
+                }
+            }
+        }
+        Study::FloorPower => {
+            let (n3, n6, n12) = (
+                [(0.9, 2), (0.9, 3), (0.7, 3)],
+                [(0.7, 2), (0.9, 2), (0.7, 3), (0.9, 3)],
+                [(0.7, 2), (0.9, 2)],
+            );
+            for (guess, options) in [(0.2, 5), (0.5, 2)] {
+                for (n, shifts) in [(3000, &n3[..]), (6000, &n6[..]), (12000, &n12[..])] {
+                    for &(delta, count) in shifts {
+                        out.push(dif(floored(
+                            guess,
+                            options,
+                            biased(n, 8, count, delta, 0.5),
+                        )));
+                    }
+                }
+            }
+            for n in [6000, 12000] {
+                out.push(dif(floored(0.25, 4, biased(n, 8, 2, 0.9, 0.5))));
+            }
+            for count in [2, 3] {
+                out.push(dif(DifDesign {
+                    anchors: 40,
+                    ..floored(0.2, 5, biased(6000, 8, count, 0.9, 0.5))
+                }));
+            }
+            out.push(dif(floored(0.2, 5, biased(12000, 8, 2, 0.9, 0.3))));
+        }
+        Study::FloorMisspec => {
+            let base = |count: usize| {
+                let delta = if count > 0 { 0.9 } else { 0.0 };
+                floored(0.2, 5, biased(3000, 8, count, delta, 0.5))
+            };
+            for count in [0, 3] {
+                out.push(dif(DifDesign {
+                    impact: 1.0,
+                    ..base(count)
+                }));
+                for skew in [-4.0, -2.0, 4.0] {
+                    out.push(dif(DifDesign {
+                        skew,
+                        ..base(count)
+                    }));
+                }
+                for guess in [0.1, 0.3] {
+                    out.push(dif(DifDesign {
+                        guess,
+                        ..base(count)
+                    }));
+                }
+                out.push(dif(DifDesign {
+                    testlet: 1.0,
+                    ..base(count)
+                }));
+            }
+            out.push(dif(DifDesign {
+                testlet: 0.5,
+                ..base(0)
+            }));
+            out.push(dif(DifDesign {
+                spread: 0.1,
+                ..base(3)
+            }));
+            let open = biased(3000, 8, 0, 0.0, 0.5);
+            out.push(dif(DifDesign { skew: -4.0, ..open }));
+            out.push(dif(DifDesign {
+                testlet: 1.0,
+                ..open
+            }));
+        }
+        Study::FloorDtf => {
+            for (guess, options, deltas) in [(0.2, 5, &[0.5, 0.9][..]), (0.5, 2, &[0.9][..])] {
+                for n in [3000, 6000] {
+                    for &delta in deltas {
+                        out.push(dif(DifDesign {
+                            layout: Layout::Mirror,
+                            ..floored(guess, options, biased(n, 8, 0, delta, 0.5))
+                        }));
+                    }
+                }
+            }
+        }
+        Study::BridgingLambda => {
+            for n in [100, 200, 800] {
+                for share in [0.6, 0.8] {
+                    for lambda in LAMBDAS {
+                        out.push(Cell::Sweep(SweepDesign {
+                            n,
+                            share,
+                            per_reviewer: 5,
+                            noise: 0.15,
+                            lambda: Some(lambda),
+                        }));
+                    }
+                }
+            }
+        }
+        Study::BridgingExtra => {
+            for n in [100, 200, 800] {
+                for share in [0.5, 0.8] {
+                    for panel in [7, 11] {
+                        out.push(Cell::Extra(ExtraDesign {
+                            n,
+                            share,
+                            per_reviewer: 5,
+                            noise: 0.15,
+                            panel,
+                        }));
+                    }
+                }
+            }
+        }
+        Study::FloorScreen => {
+            for n in [300, 600, 1500] {
+                for anchors in [30, 60] {
+                    for options in [2, 4, 5] {
+                        out.push(Cell::Screen(ScreenDesign {
+                            n,
+                            anchors,
+                            options,
+                        }));
+                    }
                 }
             }
         }
@@ -504,11 +867,44 @@ fn smoke(study: Study) -> Vec<Cell> {
             share: 0.6,
             per_reviewer: 5,
             noise: 0.07,
+            lambda: None,
         })],
         Study::BridgingCapture => vec![Cell::Capture(CaptureDesign {
             item: 7,
             own: 40,
             step: 40,
+        })],
+        Study::FloorNull => one(floored(0.2, 5, tiny(Layout::Campaign(0), 0.0))),
+        Study::FloorPower => one(floored(0.2, 5, tiny(Layout::Campaign(2), 0.9))),
+        Study::FloorMisspec => one(DifDesign {
+            impact: 0.5,
+            spread: 0.1,
+            skew: 4.0,
+            testlet: 1.0,
+            ..floored(0.2, 5, tiny(Layout::Campaign(2), 0.9))
+        }),
+        Study::FloorDtf => one(DifDesign {
+            k: 8,
+            ..floored(0.2, 5, tiny(Layout::Mirror, 0.9))
+        }),
+        Study::BridgingLambda => vec![Cell::Sweep(SweepDesign {
+            n: 40,
+            share: 0.6,
+            per_reviewer: 5,
+            noise: 0.07,
+            lambda: Some((0.05, 0.01)),
+        })],
+        Study::BridgingExtra => vec![Cell::Extra(ExtraDesign {
+            n: 40,
+            share: 0.6,
+            per_reviewer: 5,
+            noise: 0.07,
+            panel: 7,
+        })],
+        Study::FloorScreen => vec![Cell::Screen(ScreenDesign {
+            n: 300,
+            anchors: 30,
+            options: 4,
         })],
     }
 }
@@ -523,6 +919,7 @@ pub fn cells(study: Study, grid: Grid) -> Vec<Cell> {
 pub fn replicates(study: Study, grid: Grid) -> u32 {
     match (grid, study) {
         (Grid::Full, Study::DifPoolScale) => 3,
+        (Grid::Full, Study::FloorPower | Study::FloorMisspec) => 100,
         (Grid::Full, _) => 200,
         (Grid::Smoke, _) => 2,
     }
@@ -565,6 +962,18 @@ pub fn engine_seed(seed: u64) -> u64 {
     let mut h = Sha256::new();
     h.update(b"isegoria/characterization/engine/v1");
     h.update(seed.to_le_bytes());
+    first_eight(&h.finalize())
+}
+
+/// The seed of the `index`-th draw of `domain` inside a run (a panel, an extra round), apart
+/// from the population's stream.
+pub fn draw_seed(domain: &str, seed: u64, index: u64) -> u64 {
+    let mut h = Sha256::new();
+    h.update(b"isegoria/characterization/draw/v1");
+    h.update((domain.len() as u64).to_le_bytes());
+    h.update(domain.as_bytes());
+    h.update(seed.to_le_bytes());
+    h.update(index.to_le_bytes());
     first_eight(&h.finalize())
 }
 

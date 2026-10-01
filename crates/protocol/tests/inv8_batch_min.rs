@@ -4,7 +4,7 @@
 
 use identity::nym::Nym;
 use protocol::admission::NullifierSet;
-use protocol::pilot::{admit_dif_batch, screen, PilotError, N1_MIN, N2_MIN};
+use protocol::pilot::{admit_dif_batch, screen, PilotError, Templates, N1_MIN, N2_MIN};
 use protocol::revalidation::{revalidate_batch_latent, N_LATENT_MIN};
 use scoring::latent::Formats;
 
@@ -15,15 +15,7 @@ fn responses(n: usize, m: usize) -> Vec<Vec<f64>> {
         .collect()
 }
 
-/// The same answers item-major: one column of `n` answers per item, as `screen` and
-/// `dif_batch` take them.
-fn columns(n: usize, m: usize) -> Vec<Vec<f64>> {
-    let rows = responses(n, m);
-    (0..m)
-        .map(|j| rows.iter().map(|r| r[j]).collect())
-        .collect()
-}
-
+#[cfg(feature = "calibration")]
 fn theta(n: usize) -> Vec<f64> {
     (0..n).map(|i| (i as f64 / n as f64) - 0.5).collect()
 }
@@ -64,6 +56,7 @@ fn at_pro_02_the_production_latent_recheck_refuses_one_item() {
             &a,
             &responses(N_LATENT_MIN, 1),
             &Formats::open(60, 1),
+            &Templates::none(60, 1),
             0
         ),
         Err(PilotError::BatchTooSmall { items: 1 })
@@ -73,6 +66,7 @@ fn at_pro_02_the_production_latent_recheck_refuses_one_item() {
         &a,
         &responses(N_LATENT_MIN, 2),
         &Formats::open(60, 2),
+        &Templates::none(60, 2),
         0
     )
     .is_ok());
@@ -103,13 +97,20 @@ fn at_pro_02_the_attribute_dif_stage_refuses_one_item() {
 fn a_stage_below_its_respondent_floor_is_rejected() {
     let n = N1_MIN - 1;
     assert_eq!(
-        screen(&respondents(n), &theta(n), &columns(n, 3)),
+        screen(
+            &respondents(n),
+            &anchors(n),
+            &responses(n, 3),
+            &Formats::open(60, 3)
+        ),
         Err(PilotError::NotEnoughRespondents {
             have: n,
             need: N1_MIN
         })
     );
-    assert!(screen(&respondents(N1_MIN), &theta(N1_MIN), &columns(N1_MIN, 3)).is_ok());
+    let pilot = (anchors(N1_MIN), responses(N1_MIN, 3));
+    let formats = Formats::open(60, 3);
+    assert!(screen(&respondents(N1_MIN), &pilot.0, &pilot.1, &formats).is_ok());
 
     // The latent re-check's floor is the largest of the three (`docs/08` §B.6).
     let n = N_LATENT_MIN - 1;
@@ -119,6 +120,7 @@ fn a_stage_below_its_respondent_floor_is_rejected() {
             &anchors(n),
             &responses(n, 8),
             &Formats::open(60, 8),
+            &Templates::none(60, 8),
             0
         ),
         Err(PilotError::NotEnoughRespondents {

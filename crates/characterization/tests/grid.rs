@@ -1,10 +1,14 @@
-//! The grids of the T24 studies are the ones `docs/13` §4 specifies, every run has its own
-//! seed, and a larger replicate count extends a smaller one (`docs/13` §2).
+//! The grids of the characterization studies are the ones `docs/13` §4 and §8 specify, every
+//! run has its own seed, and a larger replicate count extends a smaller one (`docs/13` §2).
 
-use characterization::grid::{cells, replicates, tasks, Cell, Grid, Study, STUDIES};
+use characterization::grid::{
+    cells, parse_studies, replicates, tasks, Cell, DifDesign, Grid, Study, SweepDesign, STUDIES,
+    SUPPLEMENT, T24,
+};
+use sha2::Digest;
 use std::collections::BTreeSet;
 
-/// The full grid has the cells and replicates of the `docs/13` §4 tables.
+/// The full grid has the cells and replicates of the `docs/13` §4 and §8 tables.
 #[test]
 fn the_full_grid_has_the_cells_the_specification_lists() {
     let expect = [
@@ -18,6 +22,13 @@ fn the_full_grid_has_the_cells_the_specification_lists() {
         (Study::DtfError, 8, 200),
         (Study::BridgingSweep, 36, 200),
         (Study::BridgingCapture, 4, 200),
+        (Study::FloorNull, 12, 200),
+        (Study::FloorPower, 23, 100),
+        (Study::FloorMisspec, 18, 100),
+        (Study::FloorDtf, 6, 200),
+        (Study::BridgingLambda, 48, 200),
+        (Study::BridgingExtra, 12, 200),
+        (Study::FloorScreen, 18, 200),
     ];
     assert_eq!(expect.len(), STUDIES.len());
     for (study, n_cells, reps) in expect {
@@ -25,8 +36,47 @@ fn the_full_grid_has_the_cells_the_specification_lists() {
         assert_eq!(replicates(study, Grid::Full), reps, "{}", study.name());
         assert!(!cells(study, Grid::Smoke).is_empty(), "{}", study.name());
     }
-    let runs = tasks(&STUDIES, Grid::Full, None, None).len();
-    assert_eq!(runs, 54_412);
+    assert_eq!(tasks(&T24, Grid::Full, None, None).len(), 54_412);
+    assert_eq!(tasks(&SUPPLEMENT, Grid::Full, None, None).len(), 23_300);
+    let groups: BTreeSet<Study> = T24.into_iter().chain(SUPPLEMENT).collect();
+    assert_eq!(groups, STUDIES.into_iter().collect());
+}
+
+/// A key names the floor fields only when set; an explicit default or one option is refused.
+#[test]
+fn the_floor_fields_of_a_key_are_named_only_when_set() {
+    let plain = Cell::Dif(DifDesign::default()).key();
+    assert!(!plain.contains(" m=") && !plain.contains(" gs="), "{plain}");
+    let floored = Cell::Dif(DifDesign {
+        guess: 0.2,
+        options: 5,
+        spread: 0.1,
+        skew: -4.0,
+        testlet: 0.5,
+        ..DifDesign::default()
+    });
+    let key = floored.key();
+    assert!(
+        key.ends_with(" g=0.2 atk=none m=5 gs=0.1 sk=-4 tl=0.5"),
+        "{key}"
+    );
+    assert_eq!(Cell::parse(Study::FloorMisspec, &key), Some(floored));
+    for explicit in [" m=0", " m=1", " gs=0", " sk=0", " tl=0"] {
+        let key = format!("{plain}{explicit}");
+        assert_eq!(Cell::parse(Study::FloorNull, &key), None, "{key}");
+    }
+    let tuned = Cell::Sweep(SweepDesign {
+        n: 100,
+        share: 0.6,
+        per_reviewer: 5,
+        noise: 0.15,
+        lambda: Some((0.15, 0.03)),
+    });
+    assert!(tuned.key().ends_with(" lb=0.15 lf=0.03"), "{}", tuned.key());
+    assert_eq!(
+        Cell::parse(Study::BridgingLambda, &tuned.key()),
+        Some(tuned)
+    );
 }
 
 /// The first pass's additions: power with 20 and 40 anchors, non-uniform DIF on three items.
@@ -110,4 +160,50 @@ fn a_filter_keeps_the_matching_cells() {
     let kept = tasks(&[Study::DifNull], Grid::Full, Some(1), Some("n=6000"));
     assert_eq!(kept.len(), 9);
     assert!(kept.iter().all(|t| t.cell.key().contains("n=6000")));
+}
+
+/// `--study` takes names and the groups `t24`, `t25` and `all`, and refuses an unknown name.
+#[test]
+fn a_study_list_names_studies_and_groups() {
+    assert_eq!(parse_studies("t24"), Ok(T24.to_vec()));
+    assert_eq!(parse_studies("t25"), Ok(SUPPLEMENT.to_vec()));
+    assert_eq!(parse_studies("all"), Ok(STUDIES.to_vec()));
+    assert_eq!(
+        parse_studies("floor-null,t24"),
+        Ok([&[Study::FloorNull][..], &T24].concat())
+    );
+    assert!(parse_studies("floor-nul").is_err());
+}
+
+/// Every study names the `docs/08` claims or the `docs` section it measures.
+#[test]
+fn every_study_names_what_it_measures() {
+    let cited = ["AT-", "SC-", "DIF-", "BRIDGE-", "STAT-", "PROTO-", "docs/"];
+    for study in STUDIES {
+        let claims = study.claims();
+        assert!(
+            cited.iter().any(|c| claims.contains(c)),
+            "{}: {claims}",
+            study.name()
+        );
+    }
+}
+
+/// The supplement's cells are the ones `docs/13` §8.3 lists, key for key, in both grids.
+#[test]
+fn the_supplement_s_cells_are_the_specified_ones() {
+    let mut keys = String::new();
+    for grid in [Grid::Full, Grid::Smoke] {
+        for study in SUPPLEMENT {
+            for cell in cells(study, grid) {
+                keys.push_str(&format!("{}\t{}\n", study.name(), cell.key()));
+            }
+        }
+    }
+    let digest: String = sha2::Sha256::digest(keys.as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    let pin = "7d1d3e4d8097ad40b17ade137f3891b811b9ada5412d83764bca335b03c0b01e";
+    assert_eq!(digest, pin, "{keys}");
 }

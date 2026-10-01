@@ -1,6 +1,7 @@
-//! The command line of the T24 harness: `plan`, `run` and `summarize` (`docs/13` §2).
+//! The command line of the characterization harness: `plan`, `run` and `summarize`
+//! (`docs/13` §2).
 
-use characterization::grid::{cells, replicates, tasks, Grid, Study, STUDIES};
+use characterization::grid::{cells, parse_studies, replicates, tasks, Grid, Study, STUDIES};
 use characterization::runner::{execute, Options};
 use characterization::summary::summarize;
 use std::path::PathBuf;
@@ -15,8 +16,8 @@ usage: characterization <plan|run|summarize> [options]
   summarize   write <out>/summary.md and the CSV tables from the records
 
 options:
-  --grid full|smoke        the grid of docs/13 §4, or one tiny cell per study (full)
-  --study NAME[,NAME...]   the studies to plan or run (all)
+  --grid full|smoke        the grid of docs/13 §4 and §8, or one tiny cell per study (full)
+  --study NAME[,NAME...]   the studies to plan or run: names, t24 (§4), t25 (§8) or all (all)
   --replicates R           the first R replicates of each study, at most its own count
   --filter TEXT            only the cells whose key contains TEXT
   --jobs J                 worker threads (the number of cores)
@@ -61,13 +62,7 @@ fn parse(mut argv: impl Iterator<Item = String>) -> Result<Args, String> {
                     other => return Err(format!("unknown grid {other:?}")),
                 }
             }
-            "--study" if value == "all" => args.studies = STUDIES.to_vec(),
-            "--study" => {
-                args.studies = value
-                    .split(',')
-                    .map(|n| Study::parse(n).ok_or(format!("unknown study {n:?}")))
-                    .collect::<Result<_, _>>()?
-            }
+            "--study" => args.studies = parse_studies(&value)?,
             "--replicates" => {
                 args.replicates = Some(value.parse().map_err(|_| "--replicates needs a number")?)
             }

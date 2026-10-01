@@ -43,7 +43,9 @@ use protocol::pilot::{
 use protocol::revalidation::revalidate_pool_latent;
 #[cfg(feature = "calibration")]
 use scoring::bridging::{bridge_scores, BridgingParams, Ratings};
+#[cfg(feature = "calibration")]
 use scoring::irt::theta_from_anchors;
+use scoring::latent::Formats;
 #[cfg(feature = "calibration")]
 use scoring::reputation::AuthorPrior;
 #[cfg(feature = "calibration")]
@@ -55,7 +57,7 @@ use std::path::PathBuf;
 
 /// Items reaching the pool under the retention criteria of `docs/02` §B.2.
 #[cfg(feature = "calibration")]
-const EXPECTED_POOL: [usize; 2] = [0, 6];
+const EXPECTED_POOL: [usize; 3] = [0, CONSTITUTIONAL, 6];
 #[cfg(feature = "calibration")]
 const ESM: usize = 3; // DIF, must be stopped in Level B (not A)
 const CAPITAL: usize = 4; // no discrimination, dies in pilot stage 1
@@ -63,8 +65,7 @@ const CAPITAL: usize = 4; // no discrimination, dies in pilot stage 1
 const WRONG_KEY: usize = 5; // negative point-biserial, dies in the pilot
 #[cfg(feature = "calibration")]
 const REAL_HEALTH: usize = 2; // true-but-divisive: rejected by bridging, saved by appeal
-#[cfg(feature = "calibration")]
-const CONSTITUTIONAL: usize = 1; // passes Level A; too flat a 2PL slope (0.47) in the screen
+const CONSTITUTIONAL: usize = 1; // guesses like every item: a 2PL on the anchor total read a = 0.47
 
 fn fixtures_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../scoring/tests/fixtures")
@@ -82,8 +83,24 @@ fn read_vector(name: &str) -> Vec<f64> {
     read_matrix(name).into_iter().map(|r| r[0]).collect()
 }
 
+#[cfg(feature = "calibration")]
 fn column(m: &[Vec<f64>], j: usize) -> Vec<f64> {
     m.iter().map(|row| row[j]).collect()
+}
+
+/// The respondents' answers to `items`, one row each.
+fn rows(m: &[Vec<f64>], items: &[usize]) -> Vec<Vec<f64>> {
+    m.iter()
+        .map(|row| items.iter().map(|&j| row[j]).collect())
+        .collect()
+}
+
+/// The fixture's pilot, four options on every anchor and item as in the sim: its stage 1.
+fn fixture_screen(items: &[usize]) -> Vec<bool> {
+    let anchors = read_matrix("levelb_XA.csv");
+    let formats = Formats::choice(anchors[0].len(), items.len(), 4);
+    let x = read_matrix("levelb_X.csv");
+    stage1_screen(&anchors, &rows(&x, items), &formats).expect("the fixture's formats")
 }
 
 #[cfg(feature = "calibration")]
@@ -233,7 +250,8 @@ fn run_epoch(
 
     // --- scoring Level B: two-stage pilot on the advancing items (INV-8, §B.6, T9), via
     // `pilot::{screen, dif_batch}`; the fixtures meet both admission floors ---
-    let theta = theta_from_anchors(&read_matrix("levelb_XA.csv"));
+    let anchors = read_matrix("levelb_XA.csv");
+    let theta = theta_from_anchors(&anchors);
     let grp = read_vector("levelb_grp.csv");
     let x = read_matrix("levelb_X.csv");
 
@@ -262,9 +280,9 @@ fn run_epoch(
     }
     assert_eq!(respondents.len(), theta.len());
 
-    let cols: Vec<Vec<f64>> = piloted.iter().map(|&j| column(&x, j)).collect();
-    let keep1 =
-        screen(&respondents, &theta, &cols).expect("stage-1 respondent floor met on the fixtures");
+    let formats = Formats::choice(anchors[0].len(), piloted.len(), 4);
+    let keep1 = screen(&respondents, &anchors, &rows(&x, &piloted), &formats)
+        .expect("stage-1 respondent floor met on the fixtures");
     let screen_passed: HashMap<usize, bool> =
         piloted.iter().copied().zip(keep1.iter().copied()).collect();
     let after1: Vec<usize> = piloted
@@ -369,22 +387,10 @@ fn full_epoch_filters_each_item_at_the_right_stage() {
         );
     }
     // Everything the two filters must stop is absent, each for its own reason (DIF, no
-    // discrimination, negative point-biserial, a flat 2PL slope, or unappealed polarization).
-    for bad in [
-        CONSTITUTIONAL,
-        ESM,
-        CAPITAL,
-        WRONG_KEY,
-        REAL_HEALTH,
-        7,
-        8,
-        9,
-    ] {
+    // discrimination, negative point-biserial, or unappealed polarization).
+    for bad in [ESM, CAPITAL, WRONG_KEY, REAL_HEALTH, 7, 8, 9] {
         assert!(!pool.contains(&bad), "item {bad} should not reach the pool");
     }
-    // CONSTITUTIONAL is a 3PL-with-guessing item: fitting a 2PL underestimates its
-    // discrimination, so it falls in the screen as `docs/02` B.1 anticipates.
-    assert!(!pool.contains(&CONSTITUTIONAL));
     assert_eq!(pool, EXPECTED_POOL.into_iter().collect::<BTreeSet<_>>());
 }
 
@@ -413,7 +419,7 @@ fn esm_passes_bridging_and_is_stopped_by_dif_not_review() {
     let grp = read_vector("levelb_grp.csv");
     let x = read_matrix("levelb_X.csv");
     // survives the discrimination screen …
-    assert!(stage1_screen(&theta, &[column(&x, ESM)])[0]);
+    assert_eq!(fixture_screen(&[ESM]), vec![true]);
     // … but is caught by the DIF stage (a real DIF rejection, not a separated fit).
     assert_eq!(
         stage2_dif(&theta, &grp, &[column(&x, ESM)])[0],
@@ -423,11 +429,19 @@ fn esm_passes_bridging_and_is_stopped_by_dif_not_review() {
 
 #[test]
 fn non_discriminating_item_dies_in_the_pilot_screen() {
-    let theta = theta_from_anchors(&read_matrix("levelb_XA.csv"));
-    let x = read_matrix("levelb_X.csv");
-    assert!(
-        !stage1_screen(&theta, &[column(&x, CAPITAL)])[0],
+    assert_eq!(
+        fixture_screen(&[CAPITAL]),
+        vec![false],
         "an item that measures nothing must not survive stage 1"
+    );
+}
+
+/// D25: the fixture's item 02, a = 1.6 with a floor of 0.25, passes the screen; item 05 not.
+#[test]
+fn a_good_item_that_guesses_passes_the_pilot_screen() {
+    assert_eq!(
+        fixture_screen(&[CONSTITUTIONAL, CAPITAL]),
+        vec![true, false]
     );
 }
 

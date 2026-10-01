@@ -89,6 +89,15 @@ impl Template {
         }
     }
 
+    /// The template's own id, which its variants share (`docs/01` D43).
+    pub fn id(&self) -> Cid {
+        let mut buf = Vec::with_capacity(28 + self.structure.len());
+        buf.extend_from_slice(b"isegoria/template/v1");
+        buf.extend_from_slice(&(self.structure.len() as u64).to_le_bytes());
+        buf.extend_from_slice(&self.structure);
+        cid(&buf)
+    }
+
     /// Content id of the concrete item for these parameter values. The structure is
     /// length-prefixed so no `(structure, values)` pair collides with another.
     pub fn variant(&self, values: &[u8]) -> Cid {

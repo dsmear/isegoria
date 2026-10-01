@@ -122,7 +122,9 @@ supplementary review instead of being decided by the exact value: an extra round
 `k_extra` reviewers drawn outside the first panel (`k_extra = 4`, provisional), whose
 ratings are added to the first panel's before the score is re-decided against the plain
 `τ` (`01` D26, T60; `05` [5]). `ε ≈ 0.02` provisional, about three times the bootstrap
-spread of `S_j` on the reference fixtures (≤ 0.006); to be tuned with `k_extra` (T25).
+spread of `S_j` on the reference fixtures (≤ 0.006); to be tuned with `k_extra`, `τ` and
+the panel's size (T25 step 4): on items rated by a panel of 7 or 11 the extra round lowers
+the false passes near `τ`, not the false failures (`13` §8.7.4).
 
 *History.* Until T49 the gate read the intercept `b_j` against `τ ≈ 0.08` with
 `ε ≈ 0.008`: the Community Notes reference value (0.40, on binary votes) proved
@@ -208,14 +210,19 @@ P(X_ij = 1 | θ_i) = c_j + (1 − c_j) · [ 1 + exp(−a_j (θ_i − b_j)) ]⁻�
 Without the floor, the latent re-check fitted to a population that guesses — a floor of
 0.2 on every item — selects a mixture in 72.5–98.0% of the null batches and flags 12–17%
 of the clean items (T24, `13` §7.2); every item the system asks is true/false or a choice
-among options.
+among options. Since the ability's shape is estimated (§B.3, `01` D43) the same batches
+declared open select one class, the histogram taking the guessing as a right skew, but
+the metric bends: on four seeds the anchors' mean discrimination falls to 1.0 against 1.3
+with the floors (drawn around 1.25), and the ability reads skewed by +0.55 to +0.80. The
+floor keeps the metric the thresholds are expressed in.
 
 **The metric.** Every threshold on `a`, `b` and the DIF gap is in the metric of the target
 model (§B.3): logistic with no scaling constant (`D = 1`), `θ` of unit variance within each
 latent class, its origin the mean of the first class — in a one-class fit, of the batch's
-respondents. The metric is the batch's own: nothing links the metrics of two fits (§B.7).
-The pilot's stage 1 reads a 2PL slope on the standardized anchor total instead, a proxy
-metric (`08` IRT-001), until T25's second step moves it onto this model (`10`).
+respondents — and its shape estimated, the same in every class (§B.3, `01` D43). The
+metric is the batch's own: nothing links the metrics of two fits (§B.7).
+The pilot's stage 1 reads the same model with one class (§B.2, T25's second step), so its
+thresholds are in this metric too.
 
 ### B.2 Retention criteria
 
@@ -223,9 +230,32 @@ metric (`08` IRT-001), until T25's second step moves it onto this model (`10`).
 |---|---|---|
 | `a_j` | ≥ 0.6 | the question distinguishes nothing: it is noise |
 | `b_j` | −2.5 ≤ b_j ≤ 2.5 | too easy or too hard to be informative |
-| `c_j` | ≤ 0.35 | answer is guessable |
+| `c_j` | ≤ `1/m_j` + 0.10 (0.35 with four options) | answer is guessable |
 | Infit/Outfit MNSQ | 0.7 – 1.3 | the question is not coherent with the construct |
 | `r_pbis` (point-biserial) | ≥ 0.20 | same, classical version |
+
+**Stage 1 reads the target model (`01` D25, T25's second step).** The pilot's first stage
+drops an item whose `r_pbis` against the anchors' total is below `R_PBIS_MIN`, then fits
+the target model of §B.3 with one class on the pilot's anchors and the other items, each
+column declared with its format, and keeps an item when the fit converged, `a ≥ A_MIN`,
+`|b| ≤ B_ABS_MAX` and a choice item's floor is at most `C_EXCESS_MAX` = 0.10 (provisional)
+above its chance level `1/m`. The point-biserial comes first because the model's curves
+rise with ability: fitted with the rest, an item keyed backwards ran its slope to 0 and
+its difficulty to 100 and beyond, and the fit, which never converged, kept no item of the
+pilot — in 13 of 16 simulated pilots of 300 with five options, and in most of the
+screen's pre-check pilots of five options at every size (`13` §8). At the
+pilot's ~300 respondents the ability's shape is held at the normal, the metric's variance
+and origin unchanged: on four simulated pilots of that size the histogram of D43 did not
+converge twice and traded slope for floor on good items (`a` 10–12, `c` 0.37), where the
+normal converged every time. The infit/outfit row above is not implemented. Before, stage
+1 read a 2PL slope on the standardized anchor total, a proxy metric in which the fixture's
+item 02 — `a = 1.6` with a floor of 0.25, like every item of the reference sim — read 0.47
+and failed; it now passes, and the fixture's pool is items 01, 02 and 07, as the sim finds.
+The screen's study (`13` §8.7.5) measured this rule on simulated pilots. It drops wrong
+keys and flat and too hard items. But `R_PBIS_MIN` also drops good items whose floor
+lowers their point-biserial — most true/false items and most items near `b = 2` — and the
+fit reads an item easier to guess than its format allows as an easier item, which
+`C_EXCESS_MAX` does not catch at these sizes. T25's fourth step sets the thresholds.
 
 **Point-biserial**: correlation between "correct answer to this item" (0/1) and total
 score on the rest of the test. If **negative**, the answer key is almost always wrong
@@ -274,7 +304,7 @@ tertiles, Mantel–Haenszel with ETS classification:
 > statistic and the balanced draw, §B.5 the source check that classifies.
 
 ```
-P(x_i) = Σ_g π_g ∫ Π_{a∈A} P_a(x_ia | θ) · Π_{j∈J} P_jg(x_ij | θ) · φ(θ; η_g, 1) dθ,   η_0 = 0
+P(x_i) = Σ_g π_g Σ_q w_q Π_{a∈A} P_a(x_ia | η_g + u_q) · Π_{j∈J} P_jg(x_ij | η_g + u_q),   η_0 = 0
 P_a(x = 1 | θ)  = c_a + (1 − c_a) [1 + exp(−a_a (θ − b_a))]⁻¹      the anchors: one parameter set for every class
 P_jg(x = 1 | θ) = c_j + (1 − c_j) [1 + exp(−a_jg (θ − b_jg))]⁻¹    the trial items: a and b per class, the floor shared
 DIF_j = max_{g,h} | b_jg − b_jh |                       reject if DIF_j > 1.0  (provisional, see below)
@@ -284,14 +314,21 @@ The population is a mixture of `G` classes with proportions `π_g`; the classes 
 label and do not need one. The anchors (`A`, the DIF-free items the respondents also
 answered) enter the likelihood with class-invariant parameters and each class has its own
 ability mean `η_g`, so a class-wide shift is attributed to ability, not to the trial
-items: DIF is a trial item's departure from the anchors' account of the classes. `θ` is
-integrated on a fixed grid (41 nodes over `[−5, 5]`); `G` is chosen by BIC. The floors
-`c` follow each item's format (§B.1): 0 for an open answer, otherwise estimated, the same
-in every class — a class that guesses differently on an item is DIF, which the model reads
-in the item's difficulties. The fit minimizes the negative log-likelihood plus the floors'
-priors; the BIC reads the likelihood at that optimum and counts the floors as parameters,
-the same count in every candidate. With every floor 0 the model is the 2PL target model,
-bit for bit. **This
+items: DIF is a trial item's departure from the anchors' account of the classes. Every
+class's ability has the same shape, a histogram estimated with the other parameters (`01`
+D43): weights `w_q` over a fixed grid of 41 nodes on `[−5, 5]`, whose nodes `u_q` are the
+grid standardized by the weights' own mean and standard deviation, so the shape has mean 0
+and variance 1 and class `g`'s ability is `η_g + u_q` with probability `w_q`. A normal cannot
+take a skewed shape and a mixture of two normals approximates it, so with a fixed normal a
+skewed ability selected classes that do not exist (`13` §8.7.2); with the shape estimated,
+one class fits. The weights' moments on the grid, which the standardized nodes leave free,
+are held near 0 and 1 by a penalty — a gauge, not a prior on the shape. `G` is chosen by
+BIC. The floors `c` follow each item's format (§B.1): 0 for an open answer, otherwise
+estimated, the same in every class — a class that guesses differently on an item is DIF,
+which the model reads in the item's difficulties. The fit minimizes the negative log-likelihood plus the floors'
+priors and the gauge; the BIC reads the likelihood at that optimum and counts the floors
+and the histogram's weights (41, less their sum, mean and variance) as parameters, the same
+count in every candidate: the histogram does not decide the number of classes. **This
 variant is what makes DIF compatible with full anonymity**: in testing, with ≥2
 distorted questions in a batch, it estimates a difficulty gap `DIF_j` of 1.7–1.9 (the
 true `2δ` = 1.8) on the defective ones when four or six of eight are shifted — 3.6 and
@@ -318,8 +355,9 @@ measured it: on 2PL populations no clean item is flagged at any cut from 0.5 to 
 at 0.6 and below the cut no longer binds — power is then the share of fits that select a
 mixture. With a guessing floor in the population 12–17% of the clean items are flagged
 at 1.0, so T25 sets the value after the guessing correction (D25; `08` DIF-006, DIF-008),
-which the model carries since T25's first step (§B.1, `08` AT-DIF-13); its tables are the
-step after.
+which the model carries since T25's first step (§B.1, `08` AT-DIF-13). On populations
+that guess the corrected model flags no clean item at any cut from 0.5 to 1.5, and a cut
+below 1.0 gains at most 3 points of power (T25 step 3, `13` §8.7.1): 1.0 can stay.
 
 *Reference implementation (T40, T54).* `G ∈ {1, …, 4}` and uniform (shared `a_j`) vs
 non-uniform (per-class `a_jg`) DIF are chosen together by BIC, each candidate fitted from
@@ -340,6 +378,13 @@ and `δ` up to 0.9, while two are found 93% of the time at `δ = 0.9`, `N = 3,00
 real threat is a *campaign* to tilt the bank, and it is that which becomes visible in
 batches. Periodically re-run the analysis on the whole active pool, where even
 scattered distortions add up.
+
+**One template per batch (`01` D43).** No two columns of a batch — its trial items and the
+anchors its respondents answered — come from the same template (`05` [9]). Items of one
+template are answered alike beyond ability, and the mixture cannot tell that from a class
+that finds both easier: with pairs so answered, null batches flagged clean items in 41% of
+the cases (`13` §8.7.2). Each column declares its template with its format, and the gate
+refuses a batch in which two share one (`PilotError::SharedTemplate`) before any fit.
 
 **Multi-axis.** Test on more than one latent axis, including at least one that
 captures the socio-economic fracture. Variant 2 surfaces it by itself: in testing a
@@ -446,6 +491,14 @@ the time at 3,000 respondents and 99% at 6,000, with `δ = 0.7` 11% and 56%; at 
 two items with `δ = 0.9` are found 12–37% of the time. The floor `N_LATENT_MIN = 3,000`
 is T25's to confirm from these tables.
 
+**Measured with a guessing floor (T25 step 3, `13` §8.7.1).** On populations that guess
+the corrected model flags no clean item either, and the floor costs power: two leaning
+items of eight with `δ = 0.9` are found 9% of the time at 3,000 respondents with five
+options, 70% at 6,000 and 97% at 12,000; with four options 39% and 90% at 6,000 and
+12,000; with true/false 5% at 12,000. `N_LATENT_MIN` depends on the items' format — about
+12,000 with four or five options — and true/false batches need a policy of their own
+(T25 step 4).
+
 **Three distinct floors on network size** (person-nodes, `04`), of different natures:
 
 1. **Evidence-filter correctness (the binding one).** Each batch needs ~1500–3000
@@ -469,7 +522,10 @@ also requires the anchors the batch's respondents answered to be reliable: KR-20
 (`01` D37, T53; `pilot::admit_anchors`). Below it the batch is refused like a short
 sample, because a noisy `θ` proxy is read by the mixture as a latent class (`08` DIF-010).
 The target model does not make that mistake: T24 found no clean item flagged at KR-20
-0.83 (20 anchors, `13` §7.1), so the floor's value is T25's to revisit.
+0.83 (20 anchors, `13` §7.1), so the floor's value is T25's to revisit. With a guessing
+floor the KR-20 of batches that flag no clean item is 0.55–0.89, and 0.90 refuses 83–100%
+of the batches of choice items (T25 step 3, `13` §8.7.1): a minimum number of anchors is
+the candidate (T25 step 4).
 
 **Throughput** (a floor on usefulness, not correctness) follows `01` D10:
 `validatable_questions/month ≈ (nodes × answers_per_node_month) / answers_per_question`.
@@ -509,12 +565,13 @@ of its contested facts does.
 classes `g` and `h` is `Δ_gh(S; θ) = Σ_{j∈S} [P_jg(θ) − P_jh(θ)]`, and
 
 ```
-DTF_F(S) = max_{g,h} ∫ |Δ_gh(S; θ)| f_F(θ) dθ          f_F(θ) = Σ_g π_g φ(θ; η_g, 1)
+DTF_F(S) = max_{g,h} Σ_{c,q} π_c w_q |Δ_gh(S; η_c + u_q)|
 ```
 
 — the unsigned DTF (Chalmers, Counsell & Flora, 2016) on the number-correct scale, over
-the batch's own ability distribution, at the worst pair of classes; the integral is the
-fit's quadrature, 41 nodes over `[−5, 5]` with weights `∝ f_F(θ_q)` (`scoring::dtf`).
+the batch's own ability distribution, at the worst pair of classes: every class's nodes,
+`η_c + u_q` with weight `π_c w_q`, the fit's histogram shifted to each class (§B.3, D43;
+`scoring::dtf`).
 Items that lean the same way add up. Items that lean opposite ways cancel, but only
 where their curves overlap: the absolute value inside the integral does not let a set
 favour one class at low ability and the other at high ability. One item has the DTF of
@@ -553,7 +610,9 @@ bound of 0.076 had a true DTF of 0.104 (`08` AT-PRO-08). T24 measured its sampli
 (`13` §7.3): the fitted DTF is biased upward where the true one is small — the four
 clean items of the mirror layout, true DTF 0, are fitted at 0.025–0.065 on average —
 sets far over the tolerance are refused, and within about 0.05 of it the decision is
-noisy both ways. The tolerance, and any margin below it, are T25's.
+noisy both ways; with a guessing floor the same, the clean items fitted at 0.03–0.05, and
+with true/false more sets near the tolerance decided in error (`13` §8.7.3). The
+tolerance, and any margin below it, are T25's.
 
 **The balanced draw.** A test with `n` contested slots draws them from the beacon
 (INV-10; `randomness::CONTESTED`, keyed on the test's number) among the selections with
@@ -775,9 +834,11 @@ correlate. A cartel agrees beyond the model: its residuals do.
 1. residuals accumulate per reviewer and item across epochs   (ResidualHistory)
 2. a pair (u, v) is read only once it shares ≥ 30 items         (min_shared)
 3. ρ_uv = Pearson correlation of the shared residuals
-4. flagged if ρ_uv ≥ ρ_min = 0.7 and the permutation p-value ≤ 0.001 (999 permutations, seeded)
-5. clusters by average linkage over the flagged pairs: two groups merge only while the mean
-   correlation over all their cross pairs (an unflagged pair counting 0) is ≥ ρ_min
+4. flagged if ρ_uv ≥ ρ_min = 0.7 and the permutation p-value ≤ 0.001: (1 + hits)/(P + 1)
+   over P = 999 permutations, seeded per pair by seed·0x9E3779B97F4A7C15 ⊕ (u ≪ 32 | v)
+5. clusters by average linkage over the flagged pairs: the two groups with the highest mean
+   correlation over all their cross pairs (an unflagged pair counting 0) merge — on a tie,
+   the pair first in member order — while that mean is ≥ ρ_min
 ```
 
 On the paper's dataset (200 reviewers in two camps, 60 items, a cartel of 10 minority
@@ -812,12 +873,16 @@ detector no longer confuses with a cartel.
 
 ## Initial parameters
 
+Each threshold's reason, calibration procedure, sensitivity, what breaks if it moves and its
+location are in `docs/14` (SC-1): Level A's are written, Level B's and C's come with T25's
+step 4.
+
 | Parameter | Value | Notes |
 |---|---|---|
-| `λ_b / λ_f` | 0.15 / 0.03 | ratio ≈ 5:1, recalibrate |
+| `λ_b / λ_f` | 0.15 / 0.03 | ratio ≈ 5:1; within a factor of 3 of it the verdicts move by at most 7 points, and `λ_f` below 0.03 costs axis recovery (`13` §8.7.4) |
 | `τ` (bridging threshold, on `S_j`) | ~0.80 (provisional, D32) | absolute, on the probability scale; **calibrate on the pilot**, not fixed; characterized for 0.70–0.90 in `13` §7.4 |
-| `ε` (uncertainty band) | ~0.02 (provisional) | questions in the band → supplementary review; ≈ 3× the bootstrap spread of `S_j` |
-| `k_extra` (extra panel) | 4 (provisional) | reviewers drawn outside the first panel for a band item; their ratings join the first panel's before the re-decision (D26, T60) |
+| `ε` (uncertainty band) | ~0.02 (provisional) | questions in the band → supplementary review; ≈ 3× the bootstrap spread of `S_j`; error rates near `τ` in `13` §8.7.4 |
+| `k_extra` (extra panel) | 4 (provisional) | reviewers drawn outside the first panel for a band item; their ratings join the first panel's before the re-decision (D26, T60); set with `ε`, `τ` and the panel's size (`13` §8.7.4) |
 | `γ_appeal` (side gap for appeal) | 0.25 (provisional) | a rejected question with a wider gap was rejected for polarization: appealable (`05` [5b]) |
 | side floor | 5% of the reviewers, rounded up (provisional) | the fewest reviewers a side of the split holds (`MIN_SIDE_PER_MILLE = 50`, D42) |
 | `MIN_COVERAGE` | 1 rating (provisional) | an item with fewer from either side goes to supplementary review whatever its score (D42) |

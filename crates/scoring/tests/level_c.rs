@@ -162,6 +162,25 @@ fn the_cusum_reacts_to_a_sustained_drop_not_to_variance() {
     );
 }
 
+/// The statistic runs the drop below the reference less `k`; an alarm needs `s > h` (D34).
+#[test]
+fn the_cusum_statistic_runs_the_drop_and_alarms_only_past_h() {
+    let params = CusumParams { k: 0.125, h: 0.5 };
+    let mut c = Cusum::new();
+    assert!(!c.observe(1.0, 0.75, &params));
+    assert_eq!(c.statistic(), 0.125);
+    assert!(!c.observe(1.0, 0.5, &params));
+    assert_eq!(c.statistic(), 0.5);
+    assert!(c.observe(1.0, 0.75, &params));
+    assert_eq!(c.statistic(), 0.0);
+}
+
+/// `S_u` is the plain mean of a reviewer's per-item scores (D34).
+#[test]
+fn the_mean_score_is_the_plain_mean() {
+    assert_eq!(mean_score(&[0.25, -0.5, 1.0]), 0.25);
+}
+
 #[test]
 fn weight_cap_limits_a_single_node() {
     let weights = vec![0.2, 0.4, 0.5, 0.6, 0.9];

@@ -114,6 +114,39 @@ fn a_reviewer_below_the_floor_is_placed_on_the_axis_it_does_not_define() {
     // On the axis, the same ratings define: `f_j` and the others' positions move.
     assert_ne!(bits(&on.f_j), bits(&absent.f_j));
     assert!(on.f_u[n].abs() > 0.2);
+
+    // The position solves the ridge normal equations over its own ratings (T39).
+    let (b, f) = (off.b_u[n], off.f_u[n]);
+    let (mut db, mut df) = (-params.lam_b * b, -params.lam_f * f);
+    for o in obs.iter().filter(|o| o.u == n) {
+        let x = off.f_j[o.j];
+        let e = o.r - off.mu - off.b_j[o.j] - b - f * x;
+        db += e;
+        df += x * e;
+    }
+    assert!(db.abs() < 1e-12 && df.abs() < 1e-12, "{db:e}, {df:e}");
+}
+
+/// Unregularized, a reviewer off the axis with nothing to place it is at the origin (T39).
+#[test]
+fn an_undetermined_position_off_the_axis_is_the_origin() {
+    let (r, _) = two_camps(40, 39);
+    let n = r.len();
+    let params = BridgingParams {
+        lam_b: 0.0,
+        lam_f: 0.0,
+        ..BridgingParams::default()
+    };
+    let mut axis = vec![true; n + 1];
+    axis[n] = false;
+    let data = Ratings {
+        n: n + 1,
+        weights: vec![1.0; n + 1],
+        axis,
+        ..dense(&r)
+    };
+    let fitted = fit(&data, &params).unwrap();
+    assert_eq!((fitted.b_u[n], fitted.f_u[n]), (0.0, 0.0));
 }
 
 /// With every reviewer on the axis the fit and the bridge scores are bit for bit the
