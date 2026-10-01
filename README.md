@@ -312,6 +312,7 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
   - [`10-roadmap.md`](docs/10-roadmap.md) — **the development plan, by priority**
   - [`11-mutation-testing.md`](docs/11-mutation-testing.md), [`12-panic-audit.md`](docs/12-panic-audit.md) — test-quality reports
   - [`13-characterization.md`](docs/13-characterization.md) — T24 and T25's supplement: the characterization studies, their harness, and their results
+  - [`14-parameter-register.md`](docs/14-parameter-register.md) — the thresholds' register: why each exists, how it is calibrated, what breaks if it moves
   - [`99-glossary.md`](docs/99-glossary.md) — glossary, from scratch
 - **[`sim/`](sim/)** — the executable specification (research prototypes).
 - **[`paper/`](paper/)** — working paper on the mathematics of the mechanism: formal statement,

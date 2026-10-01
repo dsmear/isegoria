@@ -873,6 +873,10 @@ detector no longer confuses with a cartel.
 
 ## Initial parameters
 
+Each threshold's reason, calibration procedure, sensitivity, what breaks if it moves and its
+location are in `docs/14` (SC-1): Level A's are written, Level B's and C's come with T25's
+step 4.
+
 | Parameter | Value | Notes |
 |---|---|---|
 | `λ_b / λ_f` | 0.15 / 0.03 | ratio ≈ 5:1; within a factor of 3 of it the verdicts move by at most 7 points, and `λ_f` below 0.03 costs axis recovery (`13` §8.7.4) |
