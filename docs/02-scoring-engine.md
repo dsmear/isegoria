@@ -834,9 +834,11 @@ correlate. A cartel agrees beyond the model: its residuals do.
 1. residuals accumulate per reviewer and item across epochs   (ResidualHistory)
 2. a pair (u, v) is read only once it shares ≥ 30 items         (min_shared)
 3. ρ_uv = Pearson correlation of the shared residuals
-4. flagged if ρ_uv ≥ ρ_min = 0.7 and the permutation p-value ≤ 0.001 (999 permutations, seeded)
-5. clusters by average linkage over the flagged pairs: two groups merge only while the mean
-   correlation over all their cross pairs (an unflagged pair counting 0) is ≥ ρ_min
+4. flagged if ρ_uv ≥ ρ_min = 0.7 and the permutation p-value ≤ 0.001: (1 + hits)/(P + 1)
+   over P = 999 permutations, seeded per pair by seed·0x9E3779B97F4A7C15 ⊕ (u ≪ 32 | v)
+5. clusters by average linkage over the flagged pairs: the two groups with the highest mean
+   correlation over all their cross pairs (an unflagged pair counting 0) merge — on a tie,
+   the pair first in member order — while that mean is ≥ ρ_min
 ```
 
 On the paper's dataset (200 reviewers in two camps, 60 items, a cartel of 10 minority

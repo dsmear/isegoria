@@ -4,11 +4,12 @@
 
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
-use scoring::bridging::{fit, BridgingParams, Ratings};
+use scoring::bridging::{fit, BridgingParams, Fit, Ratings};
 use scoring::collusion::{
     cluster_by_correlation, coordination_clusters, correlation_matrix, permutation_p_value,
     CoordinationParams, ResidualHistory, MIN_SHARED_ITEMS,
 };
+use scoring::Convergence;
 
 const N: usize = 200;
 const N_A: usize = 80;
@@ -301,4 +302,138 @@ fn a_mimic_forms_a_pair_with_its_target_and_chains_nobody_else() {
             "{g:?}"
         );
     }
+}
+
+/// An epoch records each rating less `μ + b_u + b_j + f_u·f_j`, by item id (COLLUSION-003).
+#[test]
+fn an_epoch_records_each_rating_less_its_prediction() {
+    let r = vec![vec![0.875, 0.25], vec![0.375, 0.75]];
+    let data = Ratings::from_dense(&r, &[vec![true; 2], vec![true; 2]]);
+    let fitted = Fit {
+        mu: 0.5,
+        b_u: vec![0.125, -0.25],
+        b_j: vec![0.0625, -0.375],
+        f_u: vec![0.5, -0.75],
+        f_j: vec![0.25, 0.5],
+        axis: vec![true; 2],
+        status: Convergence::Converged,
+    };
+    let mut epoch = ResidualHistory::new(0);
+    epoch.record_epoch(&data, &fitted, &[40, 7]).unwrap();
+    let mut by_hand = ResidualHistory::new(0);
+    by_hand.record(1, 7, 0.75 - (0.5 - 0.25 - 0.375 - 0.375));
+    by_hand.record(1, 40, 0.375 - (0.5 - 0.25 + 0.0625 - 0.1875));
+    by_hand.record(0, 7, 0.25 - (0.5 + 0.125 - 0.375 + 0.25));
+    by_hand.record(0, 40, 0.875 - (0.5 + 0.125 + 0.0625 + 0.125));
+    assert_eq!(epoch.reviewers(), 2);
+    assert_eq!(epoch, by_hand);
+}
+
+/// The observed pairing counts once: `(1 + hits) / (P + 1)`, from `1/(P+1)` to 1 (D39).
+#[test]
+fn the_p_value_counts_the_observed_pairing() {
+    let a: Vec<f64> = (0..30).map(f64::from).collect();
+    assert_eq!(permutation_p_value(&a, &a, f64::INFINITY, 99, 3), 0.01);
+    assert_eq!(permutation_p_value(&a, &a, f64::NEG_INFINITY, 99, 3), 1.0);
+}
+
+/// A pair whose residual correlation is exactly `ρ_min` reaches it and is flagged (COLLUSION-002).
+#[test]
+fn a_pair_at_exactly_rho_min_is_flagged() {
+    let mut r = ChaCha8Rng::seed_from_u64(4);
+    let mut h = ResidualHistory::new(2);
+    for item in 0..30 {
+        let x = normal(&mut r);
+        h.record(0, item, x);
+        h.record(1, item, x + 0.5 * normal(&mut r));
+    }
+    let (rho, _) = h.pair(0, 1, MIN_SHARED_ITEMS).unwrap();
+    let params = CoordinationParams {
+        rho_min: rho,
+        p_max: 1.0,
+        ..CoordinationParams::default()
+    };
+    assert_eq!(coordination_clusters(&h, &params).flagged.len(), 1);
+}
+
+/// Each pair's permutations are seeded by `seed·φ ⊕ (u ≪ 32 | v)`, so a verdict reproduces (INV-7).
+#[test]
+fn each_pair_draws_its_permutations_from_its_own_seed() {
+    let mut r = ChaCha8Rng::seed_from_u64(6);
+    let rows: Vec<Vec<f64>> = (0..3)
+        .map(|_| (0..30).map(|_| normal(&mut r)).collect())
+        .collect();
+    let mut h = ResidualHistory::new(3);
+    for (u, row) in rows.iter().enumerate() {
+        for (item, &x) in row.iter().enumerate() {
+            h.record(u, item as u64, x);
+        }
+    }
+    let params = CoordinationParams {
+        rho_min: -1.0,
+        p_max: 1.0,
+        seed: 7,
+        ..CoordinationParams::default()
+    };
+    let report = coordination_clusters(&h, &params);
+    assert_eq!(report.flagged.len(), 3);
+    for e in &report.flagged {
+        let seed = 7u64.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ ((e.u as u64) << 32 | e.v as u64);
+        let p = permutation_p_value(&rows[e.u], &rows[e.v], e.rho, 999, seed);
+        assert_eq!(e.p_value, p, "pair ({}, {})", e.u, e.v);
+    }
+}
+
+/// `x`, `x + 0.48·e` and `0.75·x + 0.66·y` on 40 items, `x`, `y`, `e` independent draws.
+fn three_reviewers(order: [usize; 3]) -> ResidualHistory {
+    let mut r = ChaCha8Rng::seed_from_u64(37);
+    let mut h = ResidualHistory::new(3);
+    for item in 0..40 {
+        let (x, y, e) = (normal(&mut r), normal(&mut r), normal(&mut r));
+        let rows = [x, x + 0.48 * e, 0.75 * x + 0.66 * y];
+        for (&u, &v) in order.iter().zip(&rows) {
+            h.record(u, item, v);
+        }
+    }
+    h
+}
+
+/// Groups merge on the mean over all cross pairs, the most correlated first (COLLUSION-005).
+#[test]
+fn average_linkage_merges_the_closest_groups_on_their_mean() {
+    let h = three_reviewers([1, 2, 0]);
+    let rho = |u, v| h.pair(u, v, MIN_SHARED_ITEMS).unwrap().0;
+    assert!(rho(1, 2) > rho(0, 1) && rho(0, 1) >= 0.7 && rho(0, 2) < 0.7);
+    let params = CoordinationParams {
+        p_max: 1.0,
+        ..CoordinationParams::default()
+    };
+    let report = coordination_clusters(&h, &params);
+    assert_eq!(report.flagged.len(), 2);
+    assert_eq!(report.clusters, vec![0, 1, 1]);
+}
+
+/// Of two merges at the same mean, the one first in member order is made (COLLUSION-005).
+#[test]
+fn a_tie_merges_the_groups_first_in_member_order() {
+    let mut r = ChaCha8Rng::seed_from_u64(10);
+    let mut h = ResidualHistory::new(3);
+    for item in 0..30 {
+        let x = normal(&mut r);
+        let y = x + 0.3 * normal(&mut r);
+        h.record(0, item, x);
+        h.record(0, item + 100, x);
+        h.record(1, item, y);
+        h.record(2, item + 100, y);
+    }
+    assert_eq!(
+        h.pair(0, 1, MIN_SHARED_ITEMS),
+        h.pair(0, 2, MIN_SHARED_ITEMS)
+    );
+    assert_eq!(h.shared(1, 2), 0);
+    let params = CoordinationParams {
+        p_max: 1.0,
+        ..CoordinationParams::default()
+    };
+    assert_eq!(coordination_clusters(&h, &params).clusters, vec![0, 0, 2]);
 }
