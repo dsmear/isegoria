@@ -12,14 +12,15 @@ use network::cid::Cid;
 use scoring::bridging::{Obs, Ratings, RatingsError};
 use scoring::reputation::weight_cap;
 
-/// A reviewer's standing from the previous epoch, row-ordered like the fit's ratings.
-/// `skill` is `S_u` (`reputation::{loo_scores, mean_score}`), ignored on probation/founders.
+/// A reviewer's standing from the previous epoch, row-ordered like the fit's ratings (`skill`
+/// is `S_u`); `alarms` end the founder weight, not the `is_founder` the axis reads (`docs/15` A6).
 #[derive(Clone, Copy, Debug)]
 pub struct ReviewerStanding {
     pub is_founder: bool,
     pub judgments_with_outcome: usize,
     pub skill: f64,
     pub reviews: usize,
+    pub alarms: usize,
 }
 
 impl ReviewerStanding {
@@ -30,6 +31,7 @@ impl ReviewerStanding {
             judgments_with_outcome: 0,
             skill: 0.0,
             reviews: 0,
+            alarms: 0,
         }
     }
 
@@ -39,6 +41,7 @@ impl ReviewerStanding {
             judgments_with_outcome: crate::probation::N_PROBATION,
             skill,
             reviews: crate::probation::N_PROBATION,
+            alarms: 0,
         }
     }
 }
@@ -54,11 +57,10 @@ pub fn axis_mask(prev: &[ReviewerStanding]) -> Vec<bool> {
         .collect()
 }
 
-/// Per-reviewer bridging weight `w_u` from the previous epoch's standing: 0 on probation,
-/// 1 for a founder, the capped odds weight once established (D33).
+/// `w_u` per standing (D33): 0 on probation, 1 for a founder with no alarm, else the capped odds.
 pub fn bridging_weights(prev: &[ReviewerStanding], w_max: f64) -> Vec<f64> {
     prev.iter()
-        .map(|r| effective_review_weight(r.is_founder, r.judgments_with_outcome, r.skill, w_max))
+        .map(|r| effective_review_weight(r, w_max))
         .collect()
 }
 
@@ -67,15 +69,8 @@ pub fn bridging_weights(prev: &[ReviewerStanding], w_max: f64) -> Vec<f64> {
 pub fn epoch_weight_cap(prev: &[ReviewerStanding]) -> f64 {
     let counted: Vec<f64> = prev
         .iter()
-        .filter(|r| status(r.is_founder, r.judgments_with_outcome) != Status::Probation)
-        .map(|r| {
-            effective_review_weight(
-                r.is_founder,
-                r.judgments_with_outcome,
-                r.skill,
-                f64::INFINITY,
-            )
-        })
+        .filter(|r| status(r) != Status::Probation)
+        .map(|r| effective_review_weight(r, f64::INFINITY))
         .collect();
     if counted.is_empty() {
         f64::INFINITY

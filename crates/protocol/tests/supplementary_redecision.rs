@@ -511,6 +511,7 @@ fn an_extra_reviewer_without_a_row_is_re_decided_on_its_standing() {
         judgments_with_outcome: 0,
         skill: 0.0,
         reviews: 3,
+        alarms: 0,
     };
     let established = ReviewerStanding::established(0.02);
 

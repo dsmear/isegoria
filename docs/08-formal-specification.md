@@ -16,8 +16,8 @@ The original audit body and dated remediation entries retain their historical sc
 For the current correction pass, read them with
 [`15-phase1-review.md`](15-phase1-review.md). In particular, the historical closures
 of REPUTATION-008, DIF-011 and PROTO-008 do not settle the new A1/A2/A5 findings;
-the founder-reset contract remains open (A6), and the nonconvergence handling awaits
-design review (A4).
+the founder-reset correction awaits design review (A6), and the nonconvergence handling
+is closed (A4).
 SC-6's local difference-score result does not establish protocol-level properness
 with a draw known before the report. This documentation pass records those limits;
 it is not a new implementation fix or a replacement for T26.
@@ -1024,8 +1024,8 @@ Before any deployment: (1) the threshold OPRF composition and its DLEQ transcrip
 | State | Event | Precondition | Next | Effect |
 |---|---|---|---|---|
 | `Probation{n<30}` | outcome `o_j` known for a reviewed item | — | `Probation{n+1}` or `Established` at 30 (D36, T50) | the per-item scores `S_uj` accumulate; weight 0 |
-| `Founder` | same | declared at bootstrap | `Established` at 30 | weight 1 until then |
-| `Established` | epoch close | — | `Established` | `S_u ← mean of the per-item leave-one-out difference scores` (D33, T50); `w = min(3·median, exp(γ·S_u·k_u/(k_u+k₀)))`, the cap over the reviewers who carry weight (binds, REPUTATION-005); each per-item score also feeds the one-sided CUSUM against `S_u` — an alarm restarts the track: `Probation{0}` (D34, T51) |
+| `Founder` | same | declared at bootstrap; no alarm on record (`docs/15` A6) | `Established` at 30 | weight 1 until then |
+| `Established` | epoch close | — | `Established` | `S_u ← mean of the per-item leave-one-out difference scores` (D33, T50); `w = min(3·median, exp(γ·S_u·k_u/(k_u+k₀)))`, the cap over the reviewers who carry weight (binds, REPUTATION-005); each per-item score also feeds the one-sided CUSUM against `S_u` — an alarm restarts the track: `Probation{0}` (D34, T51), a founder's too, never `Founder` again (`docs/15` A6) |
 | any | detected block voting (cluster) | COLLUSION-002/003 fixed | same | `w ← w·s^{α−1}` (INV-14) |
 
 ### 9.3 Enrollment and issuance (target protocol; current code is a single in-process call)

@@ -825,15 +825,16 @@ from the informed minority.
   It runs only once the reviewer is out of probation (a mean over few items is no
   reference). On an alarm the reviewer returns to probation: the mean, the count and the
   statistic restart, so the weight is 0 until 30 new scored outcomes and shrunk again
-  afterwards. This is the intended contract: the current founder path restores
-  `Founder` weight 1 after the reset, an open mismatch (`15` A6), not an approved
-  exception to that contract. It reacts to a change, not to variance: a cautious
+  afterwards. A founder is no exception: its weight 1 is the bootstrap's and ends at its
+  first alarm, after which it is on probation at weight 0 like anyone, then at its skill
+  weight, never 1 again; its founder membership, which the axis reads (§A.4), stays
+  (`ReviewerStanding::alarms`, `15` A6). It reacts to a change, not to variance: a cautious
   reviewer with noisy scores around a good mean raises nothing. In the paper's simulation, `k = 0.03`,
   `h = 1.5` give 0.07 false alarms per 1,000 scored items and catch a reviewer who starts
   flipping 20% of forecasts after a median of 36 items (`08` AT-REP-07).
 - `w_max = 3 × median(w)`, a hard cap recomputed each epoch over the reviewers who
-  carry weight (founders at 1 and established reviewers at their odds weight, not
-  probationers at 0; `orchestrator::epoch_weight_cap`). Limits the damage of a single
+  carry weight (founders with no alarm at 1 and established reviewers at their odds
+  weight, not probationers at 0, an alarmed founder included; `orchestrator::epoch_weight_cap`). Limits the damage of a single
   event.
 
 *History.* Until T51 `E_u` rose slowly and fell fast (an asymmetric moving average),

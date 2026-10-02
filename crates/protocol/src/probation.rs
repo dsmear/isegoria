@@ -1,6 +1,6 @@
-//! Probation and cold start (`docs/03` P2, `docs/05` §Cold start): a fresh node has
-//! weight 0 until `N_PROBATION` scored outcomes; founders seed at weight 1 until then,
-//! then everyone uses the skill-based, capped odds weight (`docs/01` D33, D36).
+//! Probation and cold start (`docs/03` P2, `docs/05` §Cold start): weight 0 until `N_PROBATION`
+//! scored outcomes, a founder 1 meanwhile for the bootstrap only, never after an alarm, then
+//! everyone the skill-based, capped odds weight (`docs/01` D33, D34, D36, `docs/15` A6).
 
 use crate::orchestrator::ReviewerStanding;
 use identity::nym::Nym;
@@ -17,10 +17,11 @@ pub enum Status {
     Established,
 }
 
-pub fn status(is_founder: bool, judgments_with_outcome: usize) -> Status {
-    if judgments_with_outcome >= N_PROBATION {
+/// A founder with an alarm on record is on probation like anyone (`docs/02` §C.4).
+pub fn status(r: &ReviewerStanding) -> Status {
+    if r.judgments_with_outcome >= N_PROBATION {
         Status::Established
-    } else if is_founder {
+    } else if r.is_founder && r.alarms == 0 {
         Status::Founder
     } else {
         Status::Probation
@@ -37,16 +38,15 @@ pub fn review_weight(status: Status, weight: f64, w_max: f64) -> f64 {
     }
 }
 
-/// Convenience: classifies and weights in one step. `skill` is `S_u`,
-/// `judgments_with_outcome` its `k_u`; established weight `min(w_max, odds_weight(skill, k_u))`.
-pub fn effective_review_weight(
-    is_founder: bool,
-    judgments_with_outcome: usize,
-    skill: f64,
-    w_max: f64,
-) -> f64 {
-    let weight = odds_weight(skill, judgments_with_outcome, &EvaluatorParams::default());
-    review_weight(status(is_founder, judgments_with_outcome), weight, w_max)
+/// Convenience: classifies and weights in one step; established weight
+/// `min(w_max, odds_weight(skill, judgments_with_outcome))`.
+pub fn effective_review_weight(r: &ReviewerStanding, w_max: f64) -> f64 {
+    let weight = odds_weight(
+        r.skill,
+        r.judgments_with_outcome,
+        &EvaluatorParams::default(),
+    );
+    review_weight(status(r), weight, w_max)
 }
 
 /// A reviewer's scored history (`docs/01` D33–D36): the IPW mean score `S_u`, the
@@ -150,7 +150,7 @@ impl SkillTrack {
     }
 
     pub fn status(&self, is_founder: bool) -> Status {
-        status(is_founder, self.scored)
+        status(&self.standing(is_founder))
     }
 
     pub fn standing(&self, is_founder: bool) -> ReviewerStanding {
@@ -159,11 +159,12 @@ impl SkillTrack {
             judgments_with_outcome: self.scored,
             skill: self.skill(),
             reviews: self.reviewed,
+            alarms: self.alarms,
         }
     }
 
     pub fn weight(&self, is_founder: bool, w_max: f64) -> f64 {
-        effective_review_weight(is_founder, self.scored, self.skill(), w_max)
+        effective_review_weight(&self.standing(is_founder), w_max)
     }
 }
 

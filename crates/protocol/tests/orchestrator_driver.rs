@@ -28,6 +28,7 @@ fn bridging_weights_map_probation_founder_established() {
             judgments_with_outcome: 0,
             reviews: 0,
             skill: 0.9,
+            alarms: 0,
         },
         // a founder past the probation threshold is established, not seeded
         ReviewerStanding {
@@ -35,6 +36,7 @@ fn bridging_weights_map_probation_founder_established() {
             judgments_with_outcome: N_PROBATION,
             reviews: N_PROBATION,
             skill: 0.01,
+            alarms: 0,
         },
     ];
     let w = bridging_weights(&prev, 2.0);
@@ -52,12 +54,14 @@ fn the_epoch_cap_is_three_times_the_median_of_the_counted_weights() {
         judgments_with_outcome: 400,
         reviews: 400,
         skill: 0.1, // exp(35·0.1·0.8) ≈ 16: an outlier
+        alarms: 0,
     });
     prev.push(ReviewerStanding {
         is_founder: false,
         judgments_with_outcome: 0,
         reviews: 0,
         skill: 0.9, // probation: not part of the crowd the cap is relative to
+        alarms: 0,
     });
     let cap = epoch_weight_cap(&prev);
     assert!((cap - 3.0).abs() < 1e-12, "cap {cap}");
@@ -74,6 +78,7 @@ fn the_epoch_cap_is_three_times_the_median_of_the_counted_weights() {
         judgments_with_outcome: 0,
         reviews: 0,
         skill: 0.0,
+        alarms: 0,
     }];
     assert_eq!(epoch_weight_cap(&fresh), f64::INFINITY);
 }

@@ -611,6 +611,12 @@ the reviewer being scored.
 > on a seeded honest stream of 10,000 items; a reviewer who starts flipping 20% of
 > forecasts is caught within 100 items on nine of ten seeds (median 25; the tenth after
 > 356 — at `k = 0.03` the drift is small and the tail long, a T25 calibration item).
+>
+> **Founders (decided 2026-10-02, `docs/15` A6).** A founder's weight 1 serves the
+> bootstrap; it is no exemption from the probation an alarm starts. After an alarm a
+> founder is on probation like anyone — weight 0 until 30 new scored outcomes, then its
+> skill weight with the usual shrinkage and cap — and every later alarm does the same. Its
+> founder membership, which the axis reads, stays (`orchestrator::ReviewerStanding::alarms`).
 
 **Choice.** The score used for the weights is a symmetric long-window mean of the
 per-item scores. The fast fall of the asymmetric update is replaced by a one-sided CUSUM

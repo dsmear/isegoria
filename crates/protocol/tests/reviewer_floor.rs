@@ -18,18 +18,21 @@ fn the_axis_is_defined_by_founders_and_reviewers_past_the_floor() {
             judgments_with_outcome: 0,
             skill: 0.0,
             reviews: 3,
+            alarms: 0,
         },
         ReviewerStanding {
             is_founder: false,
             judgments_with_outcome: 12,
             skill: 0.1,
             reviews: N_MIN_REVIEWS - 1,
+            alarms: 0,
         },
         ReviewerStanding {
             is_founder: false,
             judgments_with_outcome: 12,
             skill: 0.1,
             reviews: N_MIN_REVIEWS,
+            alarms: 0,
         },
     ];
     assert_eq!(axis_mask(&prev), vec![true, true, false, false, true]);

@@ -14,6 +14,7 @@ use protocol::gate::{bridging_gate, GateOutcome, APPEAL_GAP, EPS, TAU};
 use protocol::governance::{change_approved, stratified_sortition, Candidate};
 use protocol::honeypot::{inject, reviewer_skills, HONEYPOT_RATE};
 use protocol::lottery::admit;
+use protocol::orchestrator::ReviewerStanding;
 use protocol::pilot::stage1_screen;
 #[cfg(feature = "calibration")]
 use protocol::pilot::{stage2_dif, DifVerdict};
@@ -326,31 +327,57 @@ fn sortition_handles_more_seats_than_candidates() {
     assert_eq!(all.len(), 5, "cannot draw more than exist");
 }
 
+/// A standing with `k` scored outcomes and reviews and no alarm on record.
+fn standing(is_founder: bool, k: usize, skill: f64) -> ReviewerStanding {
+    ReviewerStanding {
+        is_founder,
+        judgments_with_outcome: k,
+        skill,
+        reviews: k,
+        alarms: 0,
+    }
+}
+
 #[test]
 fn probation_gates_weight_until_a_track_record_exists() {
     // A new node is on probation: measured, but weight 0 (docs/03 P2), for the first
     // 30 scored outcomes (D36).
     assert_eq!(N_PROBATION, 30);
-    assert_eq!(status(false, 0), Status::Probation);
-    assert_eq!(status(false, N_PROBATION - 1), Status::Probation);
+    assert_eq!(status(&standing(false, 0, 0.0)), Status::Probation);
     assert_eq!(
-        effective_review_weight(false, N_PROBATION - 1, 0.9, 1.5),
+        status(&standing(false, N_PROBATION - 1, 0.0)),
+        Status::Probation
+    );
+    assert_eq!(
+        effective_review_weight(&standing(false, N_PROBATION - 1, 0.9), 1.5),
         0.0
     );
 
     // A founder seeds the bootstrap at uniform weight 1 (docs/05 cold start).
-    assert_eq!(status(true, 0), Status::Founder);
-    assert_eq!(effective_review_weight(true, 0, 0.9, 1.5), 1.0);
+    assert_eq!(status(&standing(true, 0, 0.0)), Status::Founder);
+    assert_eq!(effective_review_weight(&standing(true, 0, 0.9), 1.5), 1.0);
 
     // Past the threshold, anyone is weighted by the odds weight of their skill, capped
     // (D33): a crowd-level reviewer weighs 1, a better one more, a much better one w_max.
-    assert_eq!(status(false, N_PROBATION), Status::Established);
-    assert_eq!(status(true, N_PROBATION), Status::Established);
-    assert_eq!(effective_review_weight(false, N_PROBATION, 0.0, 1.5), 1.0);
-    let better = effective_review_weight(false, N_PROBATION, 0.02, 1.5);
+    assert_eq!(
+        status(&standing(false, N_PROBATION, 0.0)),
+        Status::Established
+    );
+    assert_eq!(
+        status(&standing(true, N_PROBATION, 0.0)),
+        Status::Established
+    );
+    assert_eq!(
+        effective_review_weight(&standing(false, N_PROBATION, 0.0), 1.5),
+        1.0
+    );
+    let better = effective_review_weight(&standing(false, N_PROBATION, 0.02), 1.5);
     let expected = (35.0 * 0.02 * 30.0 / 130.0f64).exp();
     assert!((better - expected).abs() < 1e-12, "{better} vs {expected}");
-    assert_eq!(effective_review_weight(true, N_PROBATION, 0.5, 1.5), 1.5); // capped
+    assert_eq!(
+        effective_review_weight(&standing(true, N_PROBATION, 0.5), 1.5),
+        1.5
+    ); // capped
 }
 
 #[test]
@@ -365,11 +392,11 @@ fn founder_set_tracks_declared_members() {
     assert!(!founders.contains(&carol));
     // A node's founder status feeds the weight rule.
     assert_eq!(
-        effective_review_weight(founders.contains(&carol), 0, 0.9, 1.5),
+        effective_review_weight(&standing(founders.contains(&carol), 0, 0.9), 1.5),
         0.0
     );
     assert_eq!(
-        effective_review_weight(founders.contains(&alice), 0, 0.9, 1.5),
+        effective_review_weight(&standing(founders.contains(&alice), 0, 0.9), 1.5),
         1.0
     );
 }

@@ -240,7 +240,8 @@ defense against meta-level capture: they must not be choosable by anyone.
 ## Cold start (bootstrap)
 
 - **A founder set** publicly declared, deliberately heterogeneous in orientation and
-  provenance, all with identical weight `w = 1`.
+  provenance, all with identical weight `w = 1` for the bootstrap: until 30 scored
+  outcomes, and never again after a change-detector alarm (`01` D34).
 - No differential weight before 30 scored outcomes per node (the probation period,
   `03` P2; `01` D36, T50 — was 200), then the shrinkage of the odds weight toward 1 as
   evidence accumulates (`02` §C.2).
