@@ -213,7 +213,7 @@ pub fn screen(
     anchors: &[Vec<f64>],
     responses: &[Vec<f64>],
     formats: &Formats,
-) -> Result<Vec<bool>, PilotError> {
+) -> Result<Vec<Screening>, PilotError> {
     if respondents.len() < N1_MIN {
         return Err(PilotError::NotEnoughRespondents {
             have: respondents.len(),
@@ -276,7 +276,7 @@ pub fn stage1_screen(
     anchors: &[Vec<f64>],
     responses: &[Vec<f64>],
     formats: &Formats,
-) -> Result<Vec<bool>, PilotError> {
+) -> Result<Vec<Screening>, PilotError> {
     let fit = stage1_fit(anchors, responses, formats)?;
     Ok(stage1_verdicts(&fit, formats))
 }
@@ -331,10 +331,22 @@ pub fn stage1_fit(
     Ok(out)
 }
 
-/// Per item, kept if the fit converged, `r_pbis ≥ R_PBIS_MIN`, `a ≥ A_MIN`, `|b| ≤ B_ABS_MAX`
-/// and its floor at most `C_EXCESS_MAX` over chance: never an item left out of the fit.
-pub fn stage1_verdicts(fit: &Stage1Fit, formats: &Formats) -> Vec<bool> {
-    let converged = fit.status == Convergence::Converged;
+/// A trial item's stage-1 reading (`docs/02` §B.2, `docs/15` A11): kept, dropped, or
+/// indeterminate because the fit did not converge.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Screening {
+    Pass,
+    Fail,
+    Indeterminate,
+}
+
+/// Per item of a converged fit, `Pass` iff `r_pbis ≥ R_PBIS_MIN`, `a ≥ A_MIN`, `|b| ≤ B_ABS_MAX`
+/// and its floor at most `C_EXCESS_MAX` over chance (never an item left out of the fit); every
+/// item `Indeterminate` when the fit did not converge.
+pub fn stage1_verdicts(fit: &Stage1Fit, formats: &Formats) -> Vec<Screening> {
+    if fit.status != Convergence::Converged {
+        return vec![Screening::Indeterminate; formats.items.len()];
+    }
     formats
         .items
         .iter()
@@ -344,11 +356,15 @@ pub fn stage1_verdicts(fit: &Stage1Fit, formats: &Formats) -> Vec<bool> {
                 Format::Open => 0.0,
                 Format::Choice(m) => 1.0 / f64::from(m) + C_EXCESS_MAX,
             };
-            converged
-                && fit.rpb[j] >= R_PBIS_MIN
+            let kept = fit.rpb[j] >= R_PBIS_MIN
                 && fit.a[j] >= A_MIN
                 && fit.b[j].abs() <= B_ABS_MAX
-                && fit.c[j] <= ceiling
+                && fit.c[j] <= ceiling;
+            if kept {
+                Screening::Pass
+            } else {
+                Screening::Fail
+            }
         })
         .collect()
 }

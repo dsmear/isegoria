@@ -4,6 +4,7 @@
 
 use crate::exposure::RetirementReason;
 use crate::gate::GateOutcome;
+use crate::pilot::Screening;
 use crate::revalidation::Recheck;
 use crate::review::{reveal, Commit as Commitment};
 use identity::nym::Nym;
@@ -182,10 +183,11 @@ pub enum Event {
     },
     /// The appeal window expired with no appeal.
     AppealExpires,
-    /// Pilot stage 1 batch. `enough_respondents` ≥ N₁; `passed` = discrimination screen.
+    /// Pilot stage 1 batch. `enough_respondents` ≥ N₁; `screen` = the discrimination screen's
+    /// reading, indeterminate when its fit did not converge (`docs/15` A11).
     Pilot1Batch {
         enough_respondents: bool,
-        passed: bool,
+        screen: Screening,
     },
     /// Pilot stage 2 batch of `batch_size` items; `passed` = DIF (Variant 2); on a DIF
     /// failure `source_verified` = the source check's verdict (`docs/02` §B.5, D38).
@@ -486,15 +488,17 @@ pub fn step(state: State, event: Event) -> Result<State, Invalid> {
             Pilot1 { appealed },
             Pilot1Batch {
                 enough_respondents,
-                passed,
+                screen,
             },
         ) => {
             if !enough_respondents {
                 Err(Invalid::NotEnoughRespondents)
-            } else if passed {
-                Ok(Pilot2 { appealed })
             } else {
-                Ok(Rejected(RejectReason::Screen))
+                Ok(match screen {
+                    Screening::Pass => Pilot2 { appealed },
+                    Screening::Fail => Rejected(RejectReason::Screen),
+                    Screening::Indeterminate => Pilot1 { appealed },
+                })
             }
         }
 
@@ -537,20 +541,25 @@ pub fn step(state: State, event: Event) -> Result<State, Invalid> {
             },
             Pilot1Batch {
                 enough_respondents,
-                passed,
+                screen,
             },
         ) => {
             if !enough_respondents {
                 Err(Invalid::NotEnoughRespondents)
-            } else if passed {
-                Ok(Explored {
-                    reason,
-                    screened: true,
-                })
             } else {
-                Ok(Measured {
-                    reason,
-                    passed: false,
+                Ok(match screen {
+                    Screening::Pass => Explored {
+                        reason,
+                        screened: true,
+                    },
+                    Screening::Fail => Measured {
+                        reason,
+                        passed: false,
+                    },
+                    Screening::Indeterminate => Explored {
+                        reason,
+                        screened: false,
+                    },
                 })
             }
         }

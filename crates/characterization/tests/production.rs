@@ -7,7 +7,7 @@ use characterization::run::{dif, gate_char, redecides, screen};
 use identity::nym::Nym;
 use protocol::admission::NullifierSet;
 use protocol::gate::{MIN_COVERAGE, TAU};
-use protocol::pilot::{PilotError, Templates};
+use protocol::pilot::{PilotError, Screening, Templates};
 use protocol::revalidation::{revalidate_batch_latent, Recheck};
 use scoring::latent::Formats;
 
@@ -154,10 +154,14 @@ fn a_pilot_gets_the_production_screen() {
             &batch.x,
             &Formats::choice(d.anchors, 10, d.options),
         );
-        assert_eq!(Ok(outcome.kept.clone()), production);
         assert!(
             outcome.converged && outcome.kept[..5].contains(&true),
             "{outcome:?}"
         );
+        let readings = outcome.kept.iter().map(|&kept| match kept {
+            true => Screening::Pass,
+            false => Screening::Fail,
+        });
+        assert_eq!(Ok(readings.collect()), production);
     }
 }

@@ -9,6 +9,7 @@ use protocol::orchestrator::{
     bridging_weights, epoch_weight_cap, review_round, run_item, weighted_ratings, ExtraRound,
     ItemVerdicts, Judgment, ReviewerStanding,
 };
+use protocol::pilot::Screening;
 use protocol::probation::N_PROBATION;
 use scoring::bridging::{fit, side_balanced, BridgingParams, RatingsError};
 
@@ -140,7 +141,7 @@ fn passing() -> ItemVerdicts {
         author_reputation: 0.6,
         appeal_floor: 0.4,
         enough_respondents: true,
-        screen_passed: true,
+        screen: Screening::Pass,
         dif_passed: true,
         source_verified: false,
         pilot2_batch_size: 8,
@@ -216,7 +217,7 @@ fn a_clean_item_reaches_the_pool() {
 #[test]
 fn the_screen_and_the_dif_stage_each_stop_an_item() {
     let screened = ItemVerdicts {
-        screen_passed: false,
+        screen: Screening::Fail,
         ..passing()
     };
     assert_eq!(

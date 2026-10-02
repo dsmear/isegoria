@@ -643,7 +643,10 @@ slope and floor ran off.
 **What a run records.** As §4, and: a floor study's DIF record adds each trial item's
 fitted floor and the anchors' mean fitted floor (`floors`, `anchor_floor`); a screen run
 records whether the fit converged and per item its fitted `a`, `b`, `c` (NaN if left out
-of the fit), point-biserial, verdict and kind; `floor-dtf`'s true curves carry the drawn
+of the fit), point-biserial, verdict and kind — the verdict as a bit, kept only on a `Pass`,
+so a fit that did not converge records every item not kept beside `converged = false`: a
+measurement encoding, not a verdict the protocol can use, which reads that pilot as
+indeterminate (`15` A11; `run::recorded_kept`, the records unchanged); `floor-dtf`'s true curves carry the drawn
 floors (`ClassCurves::with_floors`). An extra-round run
 records per probe its truth, first-round robust score and gate code, and per `k_extra`
 the re-decision — `P`, `A`, `R`, or `-` where the probe was not re-decided.

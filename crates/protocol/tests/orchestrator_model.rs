@@ -10,6 +10,7 @@ use proptest::test_runner::TestRunner;
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{Invalid, RejectReason, State, K_EXTRA_MAX, K_MIN};
 use protocol::orchestrator::{review_round, run_item, ExtraRound, ItemVerdicts, Judgment};
+use protocol::pilot::Screening;
 use protocol::review::commit;
 use std::collections::HashSet;
 
@@ -138,11 +139,20 @@ fn model_run_item(
         if !v.enough_respondents {
             return Err(Invalid::NotEnoughRespondents);
         }
-        if !v.screen_passed {
-            return Ok(State::Measured {
-                reason: why,
-                passed: false,
-            });
+        match v.screen {
+            Screening::Fail => {
+                return Ok(State::Measured {
+                    reason: why,
+                    passed: false,
+                })
+            }
+            Screening::Indeterminate => {
+                return Ok(State::Explored {
+                    reason: why,
+                    screened: false,
+                })
+            }
+            Screening::Pass => {}
         }
         if v.pilot2_batch_size < K_MIN {
             return Err(Invalid::BatchTooSmall);
@@ -165,8 +175,14 @@ fn model_run_item(
     if !v.enough_respondents {
         return Err(Invalid::NotEnoughRespondents);
     }
-    if !v.screen_passed {
-        return Ok(State::Rejected(RejectReason::Screen));
+    match v.screen {
+        Screening::Fail => return Ok(State::Rejected(RejectReason::Screen)),
+        Screening::Indeterminate => {
+            return Ok(State::Pilot1 {
+                appealed: effective == GateOutcome::AppealEligible,
+            })
+        }
+        Screening::Pass => {}
     }
     if v.pilot2_batch_size < K_MIN {
         return Err(Invalid::BatchTooSmall);
@@ -438,7 +454,11 @@ fn verdicts() -> impl Strategy<Value = ItemVerdicts> {
         any::<bool>(),
         (prop::bool::weighted(0.8), prop::bool::weighted(0.8)),
         prop::bool::weighted(0.85),
-        prop::bool::weighted(0.75),
+        prop_oneof![
+            12 => Just(Screening::Pass),
+            4 => Just(Screening::Fail),
+            2 => Just(Screening::Indeterminate)
+        ],
         prop::bool::weighted(0.75),
         prop_oneof![1 => 0..K_MIN, 5 => K_MIN..K_MIN + 10],
         any::<bool>(),
@@ -463,7 +483,7 @@ fn verdicts() -> impl Strategy<Value = ItemVerdicts> {
                     author_reputation: if covers { 0.6 } else { 0.3 },
                     appeal_floor: 0.4,
                     enough_respondents: enough,
-                    screen_passed: screen,
+                    screen,
                     dif_passed: dif,
                     source_verified: verified,
                     pilot2_batch_size: batch,
@@ -669,6 +689,9 @@ fn the_rounds_cover_every_outcome() {
         "Measured { reason: Defect, passed: false }",
         "Measured { reason: Polarized, passed: true }",
         "Measured { reason: Borderline, passed: true }",
+        "Pilot1 { appealed: false }",
+        "Pilot1 { appealed: true }",
+        "Explored { reason: Defect, screened: false }",
         "PartialEpoch",
         "NoExtraPanel",
         "PanelSizeInvalid",

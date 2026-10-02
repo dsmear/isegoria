@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis and proposal; **A1 open** (`15`). Diagnosis confirmed; the updated analysis of the beacon's manipulability and of observations, assignments and the IPW count approved; the proof of properness approved as a result conditional on the joint invariance C6 and the theorem's other hypotheses, not as a guarantee of the protocol; the overall proposal **not approved**. The band baselines (C5, §4.6) **approved** on `e8fdbe7`. The pilot batch contract (C3) and missing outcomes (C2) are analyzed in [`17`](17-a1-pilot-batch-design.md), not approved on `164fff6` and revised, pending design review. The paper is not rewritten; `01` D33 carries a dated refinement and `02` §C.2 the band baselines. |
+| **Status** | Analysis and proposal; **A1 open** (`15`). Diagnosis confirmed; the updated analysis of the beacon's manipulability and of observations, assignments and the IPW count approved; the proof of properness approved as a result conditional on the joint invariance C6 and the theorem's other hypotheses, not as a guarantee of the protocol; the overall proposal **not approved**. The band baselines (C5, §4.6) **approved** on `e8fdbe7`. The pilot batch contract (C3) and missing outcomes (C2) are analyzed in [`17`](17-a1-pilot-batch-design.md): not approved on `164fff6`; its revision approved on `37addca` as a conditional analysis, with no batching policy approved for implementation. The paper is not rewritten; `01` D33 carries a dated refinement and `02` §C.2 the band baselines. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `4478f04`, revised from it. Line references are to that commit. |
 | **Scope** | The claim that randomized exploration with inverse-probability weighting (IPW) keeps the evaluator score proper (`01` D35, `02` §C.2, paper Prop. `prop:ipw`). A10 (the fallback baseline) stays a separate finding. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated exactly; **E** executed as a Rust test (`crates/protocol/tests/a1_exploration_information.rs`). |
@@ -202,7 +202,7 @@ proof is the argument.
 |---|---|---|---|---|
 | H0 | a reviewer's information at commit, private part included, is pre-draw information | not stated; the current draw is known at commit | state the information model together with the source (§5, §6) | part of the §6 analysis for the chosen source |
 | C1 | the recorded `ε` is the conditional exploration probability | **no**: the draw is known at commit (§1) and selectable by beacon members (§6) | a draw after `Φ_j` with a round rule fixed in advance (§5); a source without selection, or a guarantee stated conditional on a behavioral model of the members (§6) | a log-order test that no admissible candidate value is computable before `Φ_j`; the §6 analysis for the chosen source |
-| C2 | an entering item yields its outcome | partial: a pilot without enough respondents is refused, leaving the item in `Pilot1`; a stage-2 fit that does not converge has no representation (`15` A4, residual (a)) | a policy for missing outcomes, still open. Removing an inconclusive pilot from every panelist's `R_u` would not settle the selection and can contradict C4; it is not offered as a solution | to be defined with the policy |
+| C2 | an entering item yields its outcome | partial: a pilot without enough respondents is refused, leaving the item in `Pilot1`; a stage-1 fit that does not converge leaves it in `Pilot1` or `Explored`, pending (`15` A11); a stage-2 fit that does not converge has no representation (`15` A4, residual (a)) | a policy for missing outcomes, still open. Removing an inconclusive pilot from every panelist's `R_u` would not settle the selection and can contradict C4; it is not offered as a solution | to be defined with the policy |
 | C3 | one outcome whatever the path | the same lifecycle events and floors on both paths; `Measured { passed }` is `passed ‖ source_verified`, as `Contested` counts 1 (L); batch composition unspecified, while the DIF verdict is batch-level | a batch contract, still to be defined: a path-blind assignment rule is not sufficient, since a batch's population depends on other items' paths | to be defined with the contract |
 | C4 | the denominator is the assignment | `SkillTrack` counts recorded items, observed or not; a `Pending` item is never counted; a no-show freezes the item (T58 not implemented) | `R_u` taken from the assignment record; a no-show rule (§4.4) | a test that every assigned item enters `N_u` |
 | C5 | the baseline is invariant to `u`'s deviations | **decided by the review and implemented** without a production caller (`protocol::panel_scores`, §4.6); commit-reveal blinds the first panel; A10's fallback remains on the golden-item path | a production caller that composes live items' scores through it | `panel_scores.rs` (E); for the caller, a test that it uses `item_scores` |
@@ -470,8 +470,8 @@ outcome at the current cost; the audit is not more robust to a manipulable sourc
 
 **Smallest next verifiable step.** C5 was that step (§4.6: decided, implemented and
 approved on `e8fdbe7`). C3's batch contract and C2's missing outcomes are analyzed in
-[`17`](17-a1-pilot-batch-design.md), not approved on `164fff6`, revised and pending design
-review; C4's denominator waits on decisions not yet taken.
+[`17`](17-a1-pilot-batch-design.md), approved on `37addca` as a conditional analysis, with no
+batching policy approved; C4's denominator waits on decisions not yet taken.
 
 **Trade-offs that need the owner.**
 
@@ -482,7 +482,7 @@ review; C4's denominator waits on decisions not yet taken.
    rejections) against the audit sample (simpler dependence, a report-independent evidence
    count; on the declared scenarios, with full compatible reuse, about a sixth of the scored
    outcomes at equal cost, or about 47% more pilot capacity at an equal expected number of
-   scored outcomes, 100% without reuse; an equal expected count is not equal information,
+   scored outcomes, 100% without reuse; an equal expected count is not an equal precision,
    `17` §4.1).
 3. Whether closing A1 requires the incentives of the reputation actually used (`k_u`,
    shrinkage, weight, cap, CUSUM; §7) or only the IPW objective.

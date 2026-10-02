@@ -122,7 +122,10 @@ guessing floors and ability shape held normal. The verdict applies the provision
 cuts on discrimination, difficulty and excess floor (`02` §B.2). The screen's study
 found losses of good items and weak detection of excess guessing at this size
 (`13` §8.7.5). These cuts are implemented; reliable exclusion of every guessable item
-is not established.
+is not established. A fit that did not converge gives no verdict: the screen is
+indeterminate and the item stays in `Pilot1` or `Explored`, neither rejected nor
+measured; this schedules no new attempt and does not guarantee the pilot ends (`02` §B.2,
+`15` A11).
 
 **Stage 2, only for survivors.** The anonymous re-check has a code admission floor of
 3,000 distinct respondents. The 1,500 floor belongs to the group-labelled calibration

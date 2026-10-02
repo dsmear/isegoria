@@ -15,7 +15,7 @@ use protocol::governance::{change_approved, stratified_sortition, Candidate};
 use protocol::honeypot::{inject, reviewer_skills, HONEYPOT_RATE};
 use protocol::lottery::admit;
 use protocol::orchestrator::ReviewerStanding;
-use protocol::pilot::stage1_screen;
+use protocol::pilot::{stage1_screen, Screening};
 #[cfg(feature = "calibration")]
 use protocol::pilot::{stage2_dif, DifVerdict};
 use protocol::probation::{effective_review_weight, status, FounderSet, Status, N_PROBATION};
@@ -237,8 +237,7 @@ fn pilot_stage1_drops_non_discriminating_items() {
         .collect();
 
     let keep = stage1_screen(&stepped_anchors(&theta), &responses, &Formats::open(20, 2)).unwrap();
-    assert!(keep[0], "a discriminating item should survive stage 1");
-    assert!(!keep[1], "a non-discriminating item should be killed");
+    assert_eq!(keep, vec![Screening::Pass, Screening::Fail]);
 }
 
 /// A perfectly separating item has no finite 2PL slope on a θ proxy: the fit reports

@@ -1454,7 +1454,7 @@ pub const PRODUCTION_LIMITS: Limits = Limits {
 };
 
 /// Whether item `j` of a screen run of `options` options is kept at `limits`, by the rule of
-/// `pilot::stage1_verdicts`.
+/// `pilot::stage1_verdicts`; an unconverged run keeps nothing, as its record encodes it.
 pub fn screen_keeps(o: &ScreenOutcome, j: usize, options: u8, limits: Limits) -> bool {
     o.converged
         && o.a[j] >= limits.a_min

@@ -48,7 +48,7 @@ guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
 | [`14-parameter-register.md`](14-parameter-register.md) | Every threshold's reason, calibration procedure, sensitivity, failure and location (`07` §13) |
 | [`15-phase1-review.md`](15-phase1-review.md) | Current review findings, evidence limits and correction handoff; distinguishes implemented behavior from unresolved guarantees |
 | [`16-a1-incentive-design.md`](16-a1-incentive-design.md) | A1 dossier, for design review: the exploration draw's information sequence, the adaptive counterexample, the corrected IPW theorem and the candidate fixes |
-| [`17-a1-pilot-batch-design.md`](17-a1-pilot-batch-design.md) | A1 pilot batches and missing outcomes, not approved on `164fff6`, revised for design review: what a verdict depends on, the batch contract C3 needs, four alternatives and their costs, missing outcomes |
+| [`17-a1-pilot-batch-design.md`](17-a1-pilot-batch-design.md) | A1 pilot batches and missing outcomes, approved on `37addca` as a conditional analysis (no batching policy approved): what a verdict depends on, the batch contract C3 needs, four alternatives and their costs, missing outcomes |
 | [`99-glossary.md`](99-glossary.md) | Every concept explained from scratch, from the problem to the formula |
 | [`sim/`](../sim/) | Historical research prototypes and scoped fixture/differential oracles; see its README for current vs retired paths |
 | [`paper/`](../paper/) | Working paper: formal statement and analysis of the scoring mechanism, with proofs, reproducible experiments and open problems |

@@ -1,7 +1,9 @@
 //! The pilot's stage-1 screen on the target model (`docs/02` §B.2, `docs/01` D25, T25 step 2):
 //! each threshold at its boundary, and an item the fit cannot model left out of it.
 
-use protocol::pilot::{stage1_fit, stage1_screen, stage1_verdicts, PilotError, Stage1Fit};
+use protocol::pilot::{
+    stage1_fit, stage1_screen, stage1_verdicts, PilotError, Screening, Stage1Fit,
+};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use scoring::irt::{A_MIN, B_ABS_MAX, C_EXCESS_MAX, R_PBIS_MIN};
@@ -39,22 +41,28 @@ fn at_pro_15_each_threshold_holds_at_its_boundary() {
     formats.items[6] = Format::Open;
     formats.items[7] = Format::Open;
     let got = stage1_verdicts(&fit(&items, Convergence::Converged), &formats);
-    let edges = [true, false];
+    let edges = [Screening::Pass, Screening::Fail];
     assert_eq!(got, edges.repeat(5));
 }
 
-/// AT-PRO-15: a fit that did not converge keeps no item, however good its parameters.
+/// AT-PRO-15, A11: a fit that did not converge decides no item, however good its parameters.
 #[test]
-fn at_pro_15_a_fit_that_did_not_converge_keeps_nothing() {
-    let items = [(1.2, 0.0, 0.25, 0.5); 2];
+fn at_pro_15_a_fit_that_did_not_converge_decides_nothing() {
+    let items = [(1.2, 0.0, 0.25, 0.5), (0.1, 0.0, 0.25, 0.1)];
     let formats = Formats::choice(2, 2, 4);
-    for (status, kept) in [
-        (Convergence::Converged, true),
-        (Convergence::MaxIters, false),
-        (Convergence::LineSearchFailed, false),
+    for (status, reading) in [
+        (
+            Convergence::Converged,
+            vec![Screening::Pass, Screening::Fail],
+        ),
+        (Convergence::MaxIters, vec![Screening::Indeterminate; 2]),
+        (
+            Convergence::LineSearchFailed,
+            vec![Screening::Indeterminate; 2],
+        ),
     ] {
         let got = stage1_verdicts(&fit(&items, status), &formats);
-        assert_eq!(got, vec![kept; 2], "{status:?}");
+        assert_eq!(got, reading, "{status:?}");
     }
 }
 
@@ -145,7 +153,8 @@ fn at_pro_15_an_item_keyed_backwards_does_not_stop_the_screen() {
     let (anchors, x) = pilot(300, 20, &items, 0);
     let formats = Formats::choice(20, 4, 5);
     let got = stage1_screen(&anchors, &x, &formats);
-    assert_eq!(got, Ok(vec![true, true, true, false]));
+    let pass = Screening::Pass;
+    assert_eq!(got, Ok(vec![pass, pass, pass, Screening::Fail]));
     let fit = stage1_fit(&anchors, &x, &formats).unwrap();
     assert!(fit.rpb[3] < 0.0 && fit.rpb[..3].iter().all(|&r| r >= R_PBIS_MIN));
     assert!(fit.a[3].is_nan() && fit.b[3].is_nan() && fit.c[3].is_nan());
@@ -157,5 +166,6 @@ fn at_pro_15_stage_1_holds_the_ability_normal() {
     let items = [(1.2, -0.5), (1.2, 0.0), (1.2, 0.5), (1.6, 0.9), (1.2, 0.0)];
     let (anchors, x) = pilot(300, 20, &items, 7);
     let got = stage1_screen(&anchors, &x, &Formats::choice(20, 5, 5));
-    assert_eq!(got, Ok(vec![true, true, true, true, false]));
+    let pass = Screening::Pass;
+    assert_eq!(got, Ok(vec![pass, pass, pass, pass, Screening::Fail]));
 }

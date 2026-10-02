@@ -8,6 +8,7 @@ use protocol::appeal::{appeal_floor, AppealOutcome, AuthorHistory, InsufficientR
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State};
 use protocol::orchestrator::{review_round, run_item, settle_appeal, ItemVerdicts, Judgment};
+use protocol::pilot::Screening;
 use scoring::reputation::AuthorPrior;
 
 /// `run_item` for an item that is not in the band: no extra round, no re-decision.
@@ -118,7 +119,7 @@ fn appealed() -> ItemVerdicts {
         author_reputation: 0.6,
         appeal_floor: 0.4,
         enough_respondents: true,
-        screen_passed: true,
+        screen: Screening::Pass,
         dif_passed: true,
         source_verified: false,
         pilot2_batch_size: 8,
@@ -172,7 +173,7 @@ fn the_terminal_state_settles_the_escrow() {
     // Promoted.
     let escrow = author.file_appeal(&prior()).unwrap();
     let terminal = run(reviewed(), &appealed()).unwrap();
-    settle_appeal(&mut author, escrow, &terminal, 0.85);
+    settle_appeal(&mut author, escrow, &terminal, 0.85).unwrap();
     assert_eq!(author.qualities(), &[0.9, 0.85]);
     assert!(author.reputation(&prior()) > before);
 
@@ -191,7 +192,7 @@ fn the_terminal_state_settles_the_escrow() {
     )
     .unwrap();
     assert_eq!(terminal, State::Rejected(RejectReason::Dif));
-    settle_appeal(&mut author, escrow, &terminal, 0.85);
+    settle_appeal(&mut author, escrow, &terminal, 0.85).unwrap();
     assert_eq!(author.qualities(), &[0.9, 0.0]);
     assert!(author.reputation(&prior()) < before);
 }
@@ -213,7 +214,7 @@ fn an_appeal_that_ends_in_the_contested_pool_is_promoted() {
     )
     .unwrap();
     assert_eq!(terminal, State::Contested);
-    settle_appeal(&mut author, escrow, &terminal, 0.85);
+    settle_appeal(&mut author, escrow, &terminal, 0.85).unwrap();
     assert_eq!(author.qualities(), &[0.9, 0.85]);
     assert!(author.reputation(&prior()) > before);
 }

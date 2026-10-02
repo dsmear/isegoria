@@ -4,6 +4,7 @@
 use crate::deposit::Draft;
 use crate::gate::GateOutcome;
 use crate::lifecycle::Event;
+use crate::pilot::Screening;
 use crate::results::{read_results, write_results, EpochResults};
 use crate::revalidation::Recheck;
 use crate::review::Commit as Commitment;
@@ -149,6 +150,14 @@ fn recheck_byte(dif: Recheck) -> u8 {
     }
 }
 
+fn screening_byte(screen: Screening) -> u8 {
+    match screen {
+        Screening::Fail => 0,
+        Screening::Pass => 1,
+        Screening::Indeterminate => 2,
+    }
+}
+
 fn nym_field(nyms: &[Nym]) -> Vec<u8> {
     nyms.iter().flat_map(|n| n.0).collect()
 }
@@ -176,11 +185,11 @@ fn write_step(w: &mut Writer, event: &Event) {
         Event::AppealExpires => w.u8(10),
         Event::Pilot1Batch {
             enough_respondents,
-            passed,
+            screen,
         } => w
             .u8(11)
             .u8(u8::from(*enough_respondents))
-            .u8(u8::from(*passed)),
+            .u8(screening_byte(*screen)),
         Event::Pilot2Batch {
             batch_size,
             passed,
@@ -226,6 +235,15 @@ fn read_recheck(r: &mut Reader) -> Option<Recheck> {
         0 => Recheck::NoDif,
         1 => Recheck::Dif,
         2 => Recheck::Indeterminate,
+        _ => return None,
+    })
+}
+
+fn read_screening(r: &mut Reader) -> Option<Screening> {
+    Some(match r.u8().ok()? {
+        0 => Screening::Fail,
+        1 => Screening::Pass,
+        2 => Screening::Indeterminate,
         _ => return None,
     })
 }
@@ -278,7 +296,7 @@ fn read_step(r: &mut Reader) -> Option<Event> {
         10 => Event::AppealExpires,
         11 => Event::Pilot1Batch {
             enough_respondents: read_bool(r)?,
-            passed: read_bool(r)?,
+            screen: read_screening(r)?,
         },
         12 => Event::Pilot2Batch {
             batch_size: usize::try_from(r.u64().ok()?).ok()?,

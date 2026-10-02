@@ -14,7 +14,7 @@ use protocol::gate::{
     bridging_gate, supplementary_review, GateOutcome, APPEAL_GAP, EPS, MIN_COVERAGE, TAU,
 };
 use protocol::lifecycle::K_MIN;
-use protocol::pilot::{stage1_fit, stage1_verdicts};
+use protocol::pilot::{stage1_fit, stage1_verdicts, Screening};
 use protocol::revalidation::{target_flags, N_LATENT_MIN};
 use protocol::review::{assign_reviewers, Reviewer};
 use rand::seq::SliceRandom;
@@ -442,6 +442,18 @@ pub fn extra(d: &ExtraDesign, seed: u64) -> ExtraOutcome {
     }
 }
 
+/// The screen's readings as a record stores them beside `converged`: kept only on `Pass`, a
+/// measurement encoding, not a verdict the protocol can use (`docs/15` A11).
+fn recorded_kept(readings: &[Screening]) -> Vec<bool> {
+    readings
+        .iter()
+        .map(|reading| match reading {
+            Screening::Pass => true,
+            Screening::Fail | Screening::Indeterminate => false,
+        })
+        .collect()
+}
+
 /// The production stage-1 screen on the drawn pilot (`docs/13` §8.2).
 pub fn screen(d: &ScreenDesign, seed: u64) -> ScreenOutcome {
     let batch = screen_batch(d, seed);
@@ -449,7 +461,7 @@ pub fn screen(d: &ScreenDesign, seed: u64) -> ScreenOutcome {
     let fit = stage1_fit(&batch.anchors, &batch.x, &formats).expect("the design's formats");
     ScreenOutcome {
         converged: fit.status == Convergence::Converged,
-        kept: stage1_verdicts(&fit, &formats),
+        kept: recorded_kept(&stage1_verdicts(&fit, &formats)),
         a: fit.a,
         b: fit.b,
         c: fit.c,

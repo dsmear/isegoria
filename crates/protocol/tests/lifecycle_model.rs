@@ -10,6 +10,7 @@ use proptest::test_runner::TestRunner;
 use protocol::exposure::RetirementReason;
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State, K_EXTRA_MAX, K_MIN};
+use protocol::pilot::Screening;
 use protocol::revalidation::Recheck;
 use protocol::review::{commit, Commit};
 use std::collections::HashSet;
@@ -358,16 +359,18 @@ fn model_step(phase: &Phase, event: &Event, preimage: Preimage) -> Result<Phase,
             Pilot1 { appealed },
             Event::Pilot1Batch {
                 enough_respondents,
-                passed,
+                screen,
             },
         ) => {
             guard(&[(!enough_respondents, NotEnoughRespondents)])?;
-            Ok(if *passed {
-                Pilot2 {
+            Ok(match screen {
+                Screening::Pass => Pilot2 {
                     appealed: *appealed,
-                }
-            } else {
-                Rejected(RejectReason::Screen)
+                },
+                Screening::Fail => Rejected(RejectReason::Screen),
+                Screening::Indeterminate => Pilot1 {
+                    appealed: *appealed,
+                },
             })
         }
 
@@ -406,20 +409,23 @@ fn model_step(phase: &Phase, event: &Event, preimage: Preimage) -> Result<Phase,
             },
             Event::Pilot1Batch {
                 enough_respondents,
-                passed,
+                screen,
             },
         ) => {
             guard(&[(!enough_respondents, NotEnoughRespondents)])?;
-            Ok(if *passed {
-                Explored {
+            Ok(match screen {
+                Screening::Pass => Explored {
                     reason: *reason,
                     screened: true,
-                }
-            } else {
-                Measured {
+                },
+                Screening::Fail => Measured {
                     reason: *reason,
                     passed: false,
-                }
+                },
+                Screening::Indeterminate => Explored {
+                    reason: *reason,
+                    screened: false,
+                },
             })
         }
         (
@@ -604,7 +610,7 @@ enum Op {
     AppealExpires,
     Pilot1Batch {
         enough: bool,
-        passed: bool,
+        screen: Screening,
     },
     Pilot2Batch {
         batch: usize,
@@ -692,7 +698,11 @@ fn next_op(
             screened: false, ..
         } => Op::Pilot1Batch {
             enough: !stray,
-            passed: pick % 4 != 0,
+            screen: match pick % 8 {
+                0 | 1 => Screening::Fail,
+                2 => Screening::Indeterminate,
+                _ => Screening::Pass,
+            },
         },
         Phase::Pilot2 { .. } | Phase::Explored { screened: true, .. } => Op::Pilot2Batch {
             batch: if stray {
@@ -721,7 +731,7 @@ fn next_op(
             5 => Op::Explore(true),
             _ => Op::Pilot1Batch {
                 enough: true,
-                passed: true,
+                screen: Screening::Pass,
             },
         },
     }
@@ -945,9 +955,9 @@ fn plan(op: &Op, phase: &Phase) -> (Event, Preimage) {
             reputation_covers_stake: covers_stake,
         }),
         Op::AppealExpires => plain(Event::AppealExpires),
-        Op::Pilot1Batch { enough, passed } => plain(Event::Pilot1Batch {
+        Op::Pilot1Batch { enough, screen } => plain(Event::Pilot1Batch {
             enough_respondents: enough,
-            passed,
+            screen,
         }),
         Op::Pilot2Batch {
             batch,
@@ -1026,7 +1036,15 @@ fn arbitrary_op() -> impl Strategy<Value = Op> {
             covers_stake
         }),
         Just(Op::AppealExpires),
-        any::<(bool, bool)>().prop_map(|(enough, passed)| Op::Pilot1Batch { enough, passed }),
+        (
+            any::<bool>(),
+            prop_oneof![
+                Just(Screening::Pass),
+                Just(Screening::Fail),
+                Just(Screening::Indeterminate)
+            ]
+        )
+            .prop_map(|(enough, screen)| Op::Pilot1Batch { enough, screen }),
         (0usize..=4, any::<bool>(), any::<bool>()).prop_map(|(batch, passed, verified)| {
             Op::Pilot2Batch {
                 batch,
@@ -1201,6 +1219,17 @@ fn legal_transition(
             "re-decided before every extra panelist revealed (T60)"
         );
     }
+    // An indeterminate screen decides nothing: the item stays where it was (`docs/15` A11).
+    if let (
+        Event::Pilot1Batch {
+            screen: Screening::Indeterminate,
+            ..
+        },
+        Ok(next),
+    ) = (event, got)
+    {
+        prop_assert_eq!(next, before, "an indeterminate screen moved the item");
+    }
     // Either pool (D38) is entered from `Pilot2` after `Pilot1`, or from the other pool.
     match got {
         Ok(pool @ (State::ActivePool | State::Contested)) if before != pool => {
@@ -1219,11 +1248,14 @@ fn legal_transition(
         }
         // The explored item's path (T52): the draw, the screen, the measurement — and
         // never the pool.
-        Ok(State::Explored {
-            screened: false, ..
-        }) => {
+        Ok(
+            next @ State::Explored {
+                screened: false, ..
+            },
+        ) => {
+            let pending = next == before && matches!(event, Event::Pilot1Batch { .. });
             prop_assert!(
-                matches!(before, State::Rejected(why) if why.at_the_gate()),
+                matches!(before, State::Rejected(why) if why.at_the_gate()) || pending,
                 "Explored entered from {:?}",
                 before
             );
@@ -1298,6 +1330,13 @@ fn run_walk(flags: [bool; 4], ops: &[Op]) -> Result<HashSet<String>, TestCaseErr
             (Ok(next), Ok(next_phase)) => {
                 well_formed(&next)?;
                 pilot1_seen |= matches!(next, State::Pilot1 { .. });
+                if let Event::Pilot1Batch {
+                    screen: Screening::Indeterminate,
+                    ..
+                } = event
+                {
+                    seen.insert(format!("indeterminate in {}", label(&next)));
+                }
                 seen.insert(label(&next));
                 accepted.push(event);
                 state = next;
@@ -1368,6 +1407,9 @@ fn the_walks_cover_every_state_and_every_rejection() {
         "Measured(passed: true)",
         "Retired(EmergingDif)",
         "Retired(Exposure)",
+        "indeterminate in Pilot1 { appealed: false }",
+        "indeterminate in Pilot1 { appealed: true }",
+        "indeterminate in Explored(screened: false)",
     ];
     let rejections = [
         "NoPrimarySource",

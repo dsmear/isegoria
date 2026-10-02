@@ -1,12 +1,6 @@
 //! A1, C3 (`docs/17`): one target's latent DIF verdict read in two admissible batches that
 //! share its respondents and its answers and differ only in the other trial items.
 
-use protocol::exploration::{outcome_of, Observation, Scored, EXPLORATION_RATE};
-use protocol::lifecycle::{step, Event, RejectReason, State};
-use protocol::pilot::{stage1_verdicts, Stage1Fit};
-use scoring::latent::Formats;
-use scoring::Convergence;
-
 #[cfg(feature = "calibration")]
 mod fitted {
     use identity::nym::Nym;
@@ -91,39 +85,5 @@ mod fitted {
         let campaign = target_in(&anchors, &x, &[0, 1, 2, 3, 4, 5, 6, 7]);
         let alone = target_in(&anchors, &x, &[0, 4, 5, 6, 7, 8, 9, 10]);
         assert_eq!((campaign, alone), (Recheck::Dif, Recheck::NoDif));
-    }
-}
-
-/// A11: composed as the APIs allow, an unconverged stage-1 fit scores outcome 0 on both paths.
-#[test]
-fn an_unconverged_screen_composes_into_outcome_zero() {
-    let fit = Stage1Fit {
-        status: Convergence::MaxIters,
-        rpb: vec![0.5; 2],
-        a: vec![1.2; 2],
-        b: vec![0.0; 2],
-        c: vec![0.0; 2],
-    };
-    let kept = stage1_verdicts(&fit, &Formats::open(2, 2));
-    assert_eq!(kept, vec![false; 2]);
-    let screen = Event::Pilot1Batch {
-        enough_respondents: true,
-        passed: kept[0],
-    };
-    let entered = step(State::Pilot1 { appealed: false }, screen.clone()).unwrap();
-    assert_eq!(entered, State::Rejected(RejectReason::Screen));
-    let explored = State::Explored {
-        reason: RejectReason::Defect,
-        screened: false,
-    };
-    let measured = step(explored, screen).unwrap();
-    for (state, inclusion) in [(entered, 1.0), (measured, EXPLORATION_RATE)] {
-        assert_eq!(
-            outcome_of(&state, EXPLORATION_RATE),
-            Scored::Observed(Observation {
-                outcome: 0.0,
-                inclusion
-            })
-        );
     }
 }

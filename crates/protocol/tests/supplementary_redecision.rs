@@ -10,6 +10,7 @@ use protocol::orchestrator::{
     expanded_ratings, review_round, run_item, weighted_ratings, ExtraRound, ItemVerdicts, Judgment,
     ReviewerStanding, N_MIN_REVIEWS,
 };
+use protocol::pilot::Screening;
 use scoring::bridging::{
     bridge_scores, fit, side_balanced, BridgingParams, Obs, Ratings, RatingsError,
 };
@@ -440,7 +441,7 @@ fn a_band_item_whose_extra_reviewers_disapprove_is_rejected() {
         author_reputation: 0.6,
         appeal_floor: 0.4,
         enough_respondents: true,
-        screen_passed: true,
+        screen: Screening::Pass,
         dif_passed: true,
         source_verified: false,
         pilot2_batch_size: 8,
@@ -574,7 +575,7 @@ fn an_extra_reviewer_without_a_row_is_re_decided_on_its_standing() {
         author_reputation: 0.6,
         appeal_floor: 0.4,
         enough_respondents: true,
-        screen_passed: true,
+        screen: Screening::Pass,
         dif_passed: true,
         source_verified: false,
         pilot2_batch_size: 8,

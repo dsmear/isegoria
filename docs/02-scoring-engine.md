@@ -278,6 +278,17 @@ lowers their point-biserial — most true/false items and most items near `b = 2
 fit reads an item easier to guess than its format allows as an easier item, which
 `C_EXCESS_MAX` does not catch at these sizes. T25's fourth step sets the thresholds.
 
+**Fit status is not a screen verdict (`15` A11).** Stage 1 reads each item as kept, dropped
+or indeterminate (`pilot::Screening`). Kept and dropped come only from a converged fit, by
+the cuts above; an item left out of the fit by `R_PBIS_MIN` is dropped. When the fit did not
+converge every item of the pilot is indeterminate, the ones the point-biserial left out
+included: no verdict of that fit is a completed screen. `stage1_verdicts`, `stage1_screen`
+and `screen` carry the reading per item to `Event::Pilot1Batch`, and an indeterminate
+screen leaves the item where it was, `Pilot1` or `Explored`: no screen rejection, no observed
+outcome, no exploration measured. Staying is the absence of a decision; it schedules no new
+attempt and does not guarantee the pilot ends (the missing-outcome policy is open, `17` §5).
+A pilot the gates refuse is an input error (`PilotError`), not an indeterminate screen.
+
 **Point-biserial**: correlation between "correct answer to this item" (0/1) and total
 score on the rest of the test. If **negative**, the answer key is almost always wrong
 (those who know more get it wrong more) — in testing this correctly caught an item

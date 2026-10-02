@@ -5,6 +5,7 @@
 use crate::appeal::{AppealOutcome, AuthorHistory, Escrow};
 use crate::gate::GateOutcome;
 use crate::lifecycle::{step, Event, Invalid, State};
+use crate::pilot::Screening;
 use crate::probation::{effective_review_weight, status, Status};
 use crate::review::commit;
 use identity::nym::Nym;
@@ -104,7 +105,7 @@ pub struct ItemVerdicts {
     pub author_reputation: f64,
     pub appeal_floor: f64,
     pub enough_respondents: bool,
-    pub screen_passed: bool,
+    pub screen: Screening,
     pub dif_passed: bool,
     /// The source check's verdict on a DIF failure: a contested fact if set (D38).
     pub source_verified: bool,
@@ -224,9 +225,9 @@ pub fn expanded_ratings(
     expanded
 }
 
-/// Drives one item from a scored review round to its terminal `State` via `lifecycle::step`:
-/// resolves an `Appeal`, a band's `SupplementaryReview` (via `redecide` over the extra
-/// round's reveals, [`expanded_ratings`]), an exploration draw, then the pilot batches.
+/// Drives one item from a scored review round via `lifecycle::step`: an `Appeal`, a band's
+/// `SupplementaryReview` (`redecide` over the extra reveals), an exploration draw, the pilot
+/// batches; an indeterminate screen stops it in `Pilot1` or `Explored` (`docs/15` A11).
 pub fn run_item(
     reviewed: State,
     v: &ItemVerdicts,
@@ -293,7 +294,7 @@ pub fn run_item(
             s,
             Event::Pilot1Batch {
                 enough_respondents: v.enough_respondents,
-                passed: v.screen_passed,
+                screen: v.screen,
             },
         )?;
     }
@@ -316,12 +317,22 @@ pub fn run_item(
 }
 
 /// Settles an appeal's escrow on the item's terminal state (D27): the pool, or the contested
-/// pool (D38), promotes it via `quality`; any other terminal keeps the zero standing.
-pub fn settle_appeal(author: &mut AuthorHistory, escrow: Escrow, terminal: &State, quality: f64) {
+/// pool (D38), promotes it via `quality`; any other terminal keeps the zero standing. `Pilot1`,
+/// a screen still pending, settles nothing and hands the escrow back (`docs/15` A11).
+pub fn settle_appeal(
+    author: &mut AuthorHistory,
+    escrow: Escrow,
+    terminal: &State,
+    quality: f64,
+) -> Result<(), Escrow> {
+    if matches!(terminal, State::Pilot1 { .. }) {
+        return Err(escrow);
+    }
     let outcome = if matches!(terminal, State::ActivePool | State::Contested) {
         AppealOutcome::Promoted { quality }
     } else {
         AppealOutcome::Failed
     };
     author.settle(escrow, outcome);
+    Ok(())
 }

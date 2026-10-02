@@ -13,6 +13,7 @@ use protocol::exploration::{
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State, K_MIN};
 use protocol::orchestrator::{review_round, run_item, ItemVerdicts, Judgment};
+use protocol::pilot::Screening;
 use protocol::probation::{SkillTrack, Status, N_PROBATION};
 use protocol::randomness::Beacon;
 use scoring::reputation::{difference_score, CusumParams};
@@ -110,7 +111,7 @@ fn verdicts(gate: GateOutcome, explored: bool) -> ItemVerdicts {
         author_reputation: 0.6,
         appeal_floor: 0.4,
         enough_respondents: true,
-        screen_passed: true,
+        screen: Screening::Pass,
         dif_passed: true,
         source_verified: false,
         pilot2_batch_size: 8,
@@ -143,7 +144,7 @@ fn an_explored_rejection_is_measured_and_never_enters_the_pool() {
                 explored.clone(),
                 Event::Pilot1Batch {
                     enough_respondents: false,
-                    passed: true
+                    screen: Screening::Pass
                 }
             ),
             Err(Invalid::NotEnoughRespondents)
@@ -165,7 +166,7 @@ fn an_explored_rejection_is_measured_and_never_enters_the_pool() {
                 explored.clone(),
                 Event::Pilot1Batch {
                     enough_respondents: true,
-                    passed: false
+                    screen: Screening::Fail
                 }
             ),
             Ok(State::Measured {
@@ -177,7 +178,7 @@ fn an_explored_rejection_is_measured_and_never_enters_the_pool() {
             explored,
             Event::Pilot1Batch {
                 enough_respondents: true,
-                passed: true,
+                screen: Screening::Pass,
             },
         )
         .unwrap();
@@ -204,7 +205,7 @@ fn an_explored_rejection_is_measured_and_never_enters_the_pool() {
                 screened.clone(),
                 Event::Pilot1Batch {
                     enough_respondents: true,
-                    passed: true
+                    screen: Screening::Pass
                 }
             ),
             Err(Invalid::UnexpectedEvent),
@@ -291,7 +292,7 @@ fn an_explored_rejection_is_measured_and_never_enters_the_pool() {
         run_item(
             reviewed(),
             &ItemVerdicts {
-                screen_passed: false,
+                screen: Screening::Fail,
                 ..verdicts(GateOutcome::AppealEligible, true)
             },
             None,

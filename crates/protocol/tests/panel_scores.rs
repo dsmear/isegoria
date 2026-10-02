@@ -14,6 +14,7 @@ use protocol::orchestrator::{
 use protocol::panel_scores::{
     extra_round_baseline, first_panel_baselines, item_scores, Forecast, ItemScores,
 };
+use protocol::pilot::Screening;
 use protocol::probation::SkillTrack;
 use scoring::reputation::CusumParams;
 
@@ -238,7 +239,7 @@ fn a_band_item_is_scored_through_the_lifecycle() {
         },
         Event::Pilot1Batch {
             enough_respondents: true,
-            passed: true,
+            screen: Screening::Pass,
         },
         Event::Pilot2Batch {
             batch_size: K_MIN,

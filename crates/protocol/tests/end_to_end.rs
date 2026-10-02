@@ -35,11 +35,11 @@ use protocol::orchestrator::{
     review_round, run_item, settle_appeal, weighted_ratings, ItemVerdicts, Judgment,
     ReviewerStanding,
 };
-use protocol::pilot::stage1_screen;
 #[cfg(feature = "calibration")]
 use protocol::pilot::{
     batch_id, dif_batch, response_context, screen, stage2_dif, submit_response, DifVerdict, N1_MIN,
 };
+use protocol::pilot::{stage1_screen, Screening};
 use protocol::revalidation::revalidate_pool_latent;
 #[cfg(feature = "calibration")]
 use scoring::bridging::{bridge_scores, BridgingParams, Ratings};
@@ -96,7 +96,7 @@ fn rows(m: &[Vec<f64>], items: &[usize]) -> Vec<Vec<f64>> {
 }
 
 /// The fixture's pilot, four options on every anchor and item as in the sim: its stage 1.
-fn fixture_screen(items: &[usize]) -> Vec<bool> {
+fn fixture_screen(items: &[usize]) -> Vec<Screening> {
     let anchors = read_matrix("levelb_XA.csv");
     let formats = Formats::choice(anchors[0].len(), items.len(), 4);
     let x = read_matrix("levelb_X.csv");
@@ -283,12 +283,12 @@ fn run_epoch(
     let formats = Formats::choice(anchors[0].len(), piloted.len(), 4);
     let keep1 = screen(&respondents, &anchors, &rows(&x, &piloted), &formats)
         .expect("stage-1 respondent floor met on the fixtures");
-    let screen_passed: HashMap<usize, bool> =
+    let screens: HashMap<usize, Screening> =
         piloted.iter().copied().zip(keep1.iter().copied()).collect();
     let after1: Vec<usize> = piloted
         .iter()
         .zip(keep1.iter())
-        .filter_map(|(&j, &k)| k.then_some(j))
+        .filter_map(|(&j, &k)| (k == Screening::Pass).then_some(j))
         .collect();
 
     let cols2: Vec<Vec<f64>> = after1.iter().map(|&j| column(&x, j)).collect();
@@ -352,7 +352,8 @@ fn run_epoch(
             author_reputation: reputation,
             appeal_floor: appeal_floor(&prior),
             enough_respondents: respondents.len() >= N1_MIN,
-            screen_passed: *screen_passed.get(&j).unwrap_or(&false),
+            // An item off the pilot never reaches the screen: it has no reading to give.
+            screen: screens.get(&j).copied().unwrap_or(Screening::Indeterminate),
             dif_passed: *dif_passed.get(&j).unwrap_or(&false),
             source_verified: false,
             pilot2_batch_size,
@@ -365,7 +366,7 @@ fn run_epoch(
         false_negatives.record(&terminal);
         if let Some(escrow) = escrow {
             // The item's measured quality is its later pool record; 0.8 stands in for it.
-            settle_appeal(&mut author, escrow, &terminal, 0.8);
+            settle_appeal(&mut author, escrow, &terminal, 0.8).expect("the pilot concluded");
         }
         if terminal == State::ActivePool {
             pool.insert(j);
@@ -419,7 +420,7 @@ fn esm_passes_bridging_and_is_stopped_by_dif_not_review() {
     let grp = read_vector("levelb_grp.csv");
     let x = read_matrix("levelb_X.csv");
     // survives the discrimination screen …
-    assert_eq!(fixture_screen(&[ESM]), vec![true]);
+    assert_eq!(fixture_screen(&[ESM]), vec![Screening::Pass]);
     // … but is caught by the DIF stage (a real DIF rejection, not a separated fit).
     assert_eq!(
         stage2_dif(&theta, &grp, &[column(&x, ESM)])[0],
@@ -431,7 +432,7 @@ fn esm_passes_bridging_and_is_stopped_by_dif_not_review() {
 fn non_discriminating_item_dies_in_the_pilot_screen() {
     assert_eq!(
         fixture_screen(&[CAPITAL]),
-        vec![false],
+        vec![Screening::Fail],
         "an item that measures nothing must not survive stage 1"
     );
 }
@@ -441,7 +442,7 @@ fn non_discriminating_item_dies_in_the_pilot_screen() {
 fn a_good_item_that_guesses_passes_the_pilot_screen() {
     assert_eq!(
         fixture_screen(&[CONSTITUTIONAL, CAPITAL]),
-        vec![true, false]
+        vec![Screening::Pass, Screening::Fail]
     );
 }
 

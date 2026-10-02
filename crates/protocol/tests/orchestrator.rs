@@ -5,6 +5,7 @@ use identity::nym::Nym;
 use network::cid::{cid, Cid};
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State, K_MIN};
+use protocol::pilot::Screening;
 use protocol::revalidation::Recheck;
 use protocol::review::commit;
 
@@ -118,7 +119,7 @@ fn a_full_valid_walk_reaches_the_pool_then_retires() {
         s,
         Event::Pilot1Batch {
             enough_respondents: true,
-            passed: true,
+            screen: Screening::Pass,
         },
     )
     .unwrap();
@@ -457,7 +458,7 @@ fn a_pilot1_batch_below_the_respondent_floor_is_rejected() {
             State::Pilot1 { appealed: false },
             Event::Pilot1Batch {
                 enough_respondents: false,
-                passed: true
+                screen: Screening::Pass
             }
         ),
         Err(Invalid::NotEnoughRespondents)

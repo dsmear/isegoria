@@ -12,6 +12,7 @@ use protocol::exploration::{explore_from_beacon, outcome_of, Scored, EXPLORATION
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, RejectReason, State, K_MIN};
 use protocol::orchestrator::{review_round, Judgment};
+use protocol::pilot::Screening;
 use protocol::probation::{SkillTrack, N_PROBATION};
 use protocol::randomness::Beacon;
 use protocol::review::{assign_from_beacon, Reviewer};
@@ -226,7 +227,7 @@ fn appeal_inclusion(appeal: bool, explored: bool) -> Option<f64> {
         s,
         Event::Pilot1Batch {
             enough_respondents: true,
-            passed: true,
+            screen: Screening::Pass,
         },
     )
     .unwrap();

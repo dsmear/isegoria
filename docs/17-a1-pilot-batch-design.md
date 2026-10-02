@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | Analysis, **not approved**. Astra's review of `164fff6` (below) did not approve it; this revision answers that review and is **pending design review**. A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. |
-| **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised from it. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. |
+| **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The correction of `15` A11, implemented after `37addca` and pending design review, changes how stage 1 reads a fit that did not converge; the passages describing it say so. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
-| **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
+| **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
 
 ## Design review (Astra)
 
@@ -30,6 +30,20 @@ Review on `164fff6`:
 
 This revision verifies those numbers (§4, C) and answers each point in §§2–6.
 
+Review on `37addca`:
+
+- Evidence: reading of the diff, the code and the tests, with independent recalculations; the
+  Rust tests were not re-run.
+- Approved as a conditional analysis: the revised mathematical argument (§3) and the
+  comparison of the alternatives (§4). No batching policy is approved for implementation; A1
+  stays open.
+- The historical screen study's provenance checked by comparing the code since `ec34fa4`; its
+  percentages read in the historical results, neither recalculated by Astra nor re-run; the
+  study's individual records are not kept.
+- Non-blocking correction, made in §4.1: sampling by groups does not always lower the
+  precision of the IPW score; the variance formulas assume draws independent across groups and
+  fixed assignments.
+
 ## 1. The path from the pilot to the scored outcome
 
 R = runtime the lifecycle machine runs; A = API with no production caller; I = documented
@@ -41,12 +55,12 @@ functions are called only by tests and by the characterization harness (`charact
 | 1 | Entry: `Pilot1 { appealed }` after a pass, a band pass or an appeal; `Explored` after an exploration draw | `lifecycle.rs` (`Score`, `Resolve`, `Appeal`, `Explore`) | R |
 | 2 | Batch formation: which items, when, how many, with which anchors and respondents | none; `05` [6]–[7] requires batches, never a single item, templates apart | — (I for the two requirements) |
 | 3 | Stage-1 admission: at least `N1_MIN = 300` admitted respondents, one row each | `pilot::screen`, `pilot.rs:20,211–226` | A |
-| 4 | Stage-1 fit and verdict: point-biserial `r_pbis` on the anchor total; items with `r_pbis ≥ 0.20` fitted jointly in a one-class model, shape held normal; kept iff converged, `r_pbis ≥ 0.20`, `a ≥ 0.6`, `|b| ≤ 2.5`, floor within 0.10 of chance; `screen` returns the verdicts without the fit's status | `stage1_fit`, `stage1_verdicts`, `pilot.rs:274–355`; cuts `irt.rs:5–12` | A |
-| 5 | Stage-1 lifecycle: too few respondents is refused (`NotEnoughRespondents`, the item stays in `Pilot1`); `passed = false` gives `Rejected(Screen)`, also when the fit did not converge (`15` A11) | `lifecycle.rs:485–499`; booleans from `ItemVerdicts` (`orchestrator.rs:99–111,294`) | R, caller's inputs |
+| 4 | Stage-1 fit and verdict: point-biserial `r_pbis` on the anchor total; items with `r_pbis ≥ 0.20` fitted jointly in a one-class model, shape held normal; kept iff converged, `r_pbis ≥ 0.20`, `a ≥ 0.6`, `|b| ≤ 2.5`, floor within 0.10 of chance; at `164fff6` `screen` returned the verdicts without the fit's status, `false` for every item of a fit that did not converge; since the A11 correction every such item reads `Screening::Indeterminate` | `stage1_fit`, `stage1_verdicts`, `pilot.rs:274–355`; cuts `irt.rs:5–12` | A |
+| 5 | Stage-1 lifecycle: too few respondents is refused (`NotEnoughRespondents`, the item stays in `Pilot1`); `passed = false` gives `Rejected(Screen)`, at `164fff6` also when the fit did not converge; since the A11 correction an indeterminate screen keeps `Pilot1` (`15` A11) | `lifecycle.rs:485–499`; booleans from `ItemVerdicts` (`orchestrator.rs:99–111,294`) | R, caller's inputs |
 | 6 | Stage-2 admission and fit: at least `K_MIN = 2` items, `N_LATENT_MIN = 3000` respondents, a format per column, no template twice, anchors' KR-20 at least 0.90; one-class fit, then mixtures by BIC, only a converged candidate replaces the one-class fit, the selected fit's status reported, classes under 5% share ignored in the gaps | `revalidation.rs:15,101–157`; `latent.rs:911–1034` (`:1022`, `:1031`, `:1034`) | A |
 | 7 | Stage-2 reading: `Dif`, `NoDif`, or `Indeterminate` when the selected fit did not converge | `revalidation::target_rechecks` (`15` A4) | A |
 | 8 | Stage-2 lifecycle: `batch_size < K_MIN` refused (`BatchTooSmall`); `passed` gives `ActivePool`; else `source_verified` gives `Contested`; else `Rejected(Dif)`. No input for an indeterminate verdict (`15` A4, residual (a)) | `lifecycle.rs:501–518` | R, caller's inputs |
-| 9 | The explored path: the same two events, ending in `Measured { passed: passed ‖ source_verified }`; `passed = false` at stage 1 gives `Measured { passed: false }` | `lifecycle.rs:533–576` | R |
+| 9 | The explored path: the same two events, ending in `Measured { passed: passed ‖ source_verified }`; `passed = false` at stage 1 gives `Measured { passed: false }`; since the A11 correction an indeterminate screen keeps `Explored` | `lifecycle.rs:533–576` | R |
 | 10 | Outcome for scoring: pool or contested 1, screen or DIF rejection 0, `Measured` at `π = ε` | `exploration::outcome_of`, `exploration.rs:39–58` | R |
 
 ## 2. What a verdict depends on
@@ -57,7 +71,7 @@ functions are called only by tests and by the characterization harness (`charact
 | Anchors | `r_pbis` reads the anchor total; the fit uses the anchors | θ is integrated over the anchors; KR-20 gate | L |
 | Other trial items | fitted jointly with the item; one convergence status for the whole fit | the mixture is fitted over all trial items; class selection and the item's gap between classes depend on them | L; E-fit below |
 | Formats and templates | each format sets a floor | the same; a shared template is refused | L |
-| Convergence | batch-level: if the fit does not converge, no item is kept | batch-level: `Indeterminate` for every item | L; E-api below |
+| Convergence | batch-level: if the fit does not converge, no item is kept (at `164fff6`), no item is decided (since `15` A11) | batch-level: `Indeterminate` for every item | L; E-api below |
 | Class selection | — (one class) | BIC over the batch; a class under 5% share does not define gaps | L |
 | Screening | — | stage 2 runs on stage-1 survivors (`05` [7]), so its batch depends on other items' screens | I |
 | Source verified | — | turns a DIF failure into `Contested` (an input; the check, T68, is not in code) | L |
@@ -77,11 +91,13 @@ entrants, with which companions. Four kinds of evidence, kept apart:
   shows that in this realization, with companions chosen by hand, the verdict is sensitive to
   the companions. It shows no frequency, no deviation of a reviewer producing such a change of
   companions, no change in the verdict's distribution, and nothing about a batching rule.
-- **The screening composition** (E-api, `an_unconverged_screen_composes_into_outcome_zero`). A
-  `Stage1Fit` with status `MaxIters`, built by hand, through `stage1_verdicts`, `step` and
-  `outcome_of`: on the entering path `Rejected(Screen)` and an observed outcome 0 at `π = 1`; on
-  the explored path, asserted since this revision, `Measured { passed: false }` and an observed
-  outcome 0 at `π = ε`. No fit runs. That real stage-1 fits fail to converge is recorded apart,
+- **The screening composition** (E-api, `an_unconverged_screen_composes_into_outcome_zero` at
+  `37addca`). A `Stage1Fit` with status `MaxIters`, built by hand, through `stage1_verdicts`,
+  `step` and `outcome_of`: on the entering path `Rejected(Screen)` and an observed outcome 0 at
+  `π = 1`; on the explored path `Measured { passed: false }` and an observed outcome 0 at
+  `π = ε`. No fit runs. The A11 correction turns it into an acceptance test of the new contract
+  (`indeterminate_screen.rs::an_unconverged_screen_leaves_both_paths_pending`): both paths stay
+  pending. That real stage-1 fits fail to converge is recorded apart,
   on simulated pilots, by the screen study run on the harness of `ec34fa4`: 98.9% of its fits
   converged, 85.5% with true/false items at N = 300 and 60 anchors (`13` §8.7.5; L, not
   re-run). Since `ec34fa4` the lock file, the toolchain, `protocol::pilot` and the fit of
@@ -186,7 +202,8 @@ admissible deviation and the verdict's distribution (§4, dynamic batching). Two
 
 - Piloting only the selected members of a group: the verdict on `G ∩ entrants` is a different
   quantity from the verdict on `G`, so (1) fails against a reference defined on `G`.
-- Reading a missing outcome as 0: applied on both paths, as the code does (§2), it need not
+- Reading a missing outcome as 0: applied on both paths, as stage 1 did before the A11
+  correction (§2), it need not
   break (1), but it changes the quantity forecast to "kept, and the batch's fit converged",
   whose convergence part belongs to the batch, not to the item (§2). `15` A11.
 
@@ -242,7 +259,7 @@ current path (gate, band, appeal, pilot) and its outcomes are not scored.
 - Exploration (D35) is not needed for scoring; the gate's false-negative rate comes from the
   selected groups' rejected members.
 - The observed count grows by `α` per judgment whatever the report (`16` §7). An equal expected
-  count is not equal information (§4.1).
+  count is not an equal precision (§4.1).
 - Changes: the group record at admission; a group draw after the freeze; piloting a selected
   group in full; scoring only selected groups; C2 still open.
 
@@ -355,16 +372,20 @@ reference `N[g + (1 − g)ε]`; audit with full compatible reuse `N(g + α − g
   not measured on admitted batches of the candidate (`13` §8.7.5 has stage 1 on simulated
   pilots only).
 
-**An equal expected count is not equal information.** At `α = 0.525`, C scores as many
+**An equal expected count is not an equal precision.** At `α = 0.525`, C scores as many
 outcomes per judgment in expectation as the reference, but a group draw selects its members
-together. For a reviewer whose items fall `m_G` in each group `G`, the observed count's variance
-is `α(1 − α) Σ_G m_G²`, against `α(1 − α) N_u` for independent draws per item (six items in one
-group: 8.9775 against 1.49625); the variance of the IPW sum `Σ_j I_j d_uj/α` given the `d_uj` is
-`((1 − α)/α) Σ_G (Σ_{j ∈ G ∩ R_u} d_uj)²`, against `((1 − α)/α) Σ_j d_uj²`. They coincide when no two
-of a reviewer's items share a group, which depends on group and assignment rules not yet
-specified. D's inclusions are correlated in the same way, with weights `1/ε` on drawn groups.
-In every batch design, the current one included, the verdicts of one batch come from one fit
-and are dependent.
+together. The formulas below assume draws independent across groups and the assignments fixed.
+For a reviewer whose items fall `m_G` in each group `G`, the observed count's variance is
+`α(1 − α) Σ_G m_G²`, against `α(1 − α) N_u` for independent draws per item: it grows when several
+of the reviewer's items share a draw (six items in one group: 8.9775 against 1.49625). The
+variance of the IPW sum `Σ_j I_j d_uj/α` given the `d_uj` is `((1 − α)/α) Σ_G (Σ_{j ∈ G ∩ R_u} d_uj)²`,
+against `((1 − α)/α) Σ_j d_uj²`: it can grow or shrink, since scores of opposite signs in one
+group compensate. With `d₁ = 1` and `d₂ = −1` in one group it is 0, against `2(1 − α)/α`
+(Astra's example, checked). The precision is different, to be evaluated with the group and
+assignment rules, not yet specified; it is no universal loss of information. The two coincide
+when no two of a reviewer's items share a group. D's inclusions are correlated in the same
+way, with weights `1/ε` on drawn groups. In every batch design, the current one included, the
+verdicts of one batch come from one fit and are dependent.
 
 ## 5. Missing outcomes (C2)
 
@@ -372,7 +393,7 @@ and are dependent.
 |---|---|---|
 | batch not admissible | `PilotError` (`BatchTooSmall`, `NotEnoughRespondents`, `RowCountMismatch`, `BadFormats`, `UnreliableAnchors`, `SharedTemplate`) before any fit; lifecycle refuses `Pilot1Batch` without enough respondents and `Pilot2Batch` below `K_MIN`, leaving the item where it is | — |
 | too few respondents | as above | — |
-| fit not converged | stage 1: no item kept, which composes into outcome 0 on both paths (`15` A11; §2, E-api); stage 2: `Indeterminate`, with no lifecycle input (`15` A4, residual (a)) | — |
+| fit not converged | stage 1: at `164fff6` no item kept, which composed into outcome 0 on both paths (§2, E-api); since the A11 correction every item indeterminate, the item pending in `Pilot1` or `Explored`, with no termination guarantee (`15` A11); stage 2: `Indeterminate`, with no lifecycle input (`15` A4, residual (a)) | — |
 | fewer than `K_MIN` stage-1 survivors in a fixed group | if stage 2 runs on survivors (`05` [7]), `Pilot2Batch` is refused (`BatchTooSmall`) and the survivor stays in `Pilot2` | — |
 | a pilot that does not conclude | the item stays in `Pilot1` or `Pilot2` | — |
 | withdrawal before the outcome | no lifecycle event exists | — |
@@ -415,8 +436,9 @@ simulated model, not independence in the field.
 - In one realization, with companions chosen by hand, a target's verdict is `Dif` beside
   leaning companions and `NoDif` beside clean ones (E-fit). Sensitivity to companions, not a
   frequency and not a deviation.
-- The APIs compose a stage 1 that did not converge into an observed outcome 0 on both paths
-  (E-api, `15` A11); real stage-1 fits fail to converge on some simulated pilots (`13` §8.7.5).
+- At `37addca` the APIs composed a stage 1 that did not converge into an observed outcome 0
+  on both paths (E-api); real stage-1 fits failed to converge on some simulated pilots (`13`
+  §8.7.5). The correction (`15` A11) is implemented and awaits design review.
 - The paths' outcome laws need not coincide (abstract counterexample; D, C). The lemma needs
   conditional agreement (2) on each path's event; with H0, C1, C2, C4 and (3), truthful
   reporting is the unique maximizer: `16` §4.3's conditional theorem.
@@ -434,8 +456,8 @@ attempts with the declared probabilities).
 
 - A: (1) and (3) by construction and no draw; 95% of the declared capacity over the reference.
 - C: a constant `π` and a report-independent count; from no increment (`α = ε`, full reuse) to
-  100% (`α = 0.525`, separate); less information per expected outcome when a reviewer's items
-  share a group.
+  100% (`α = 0.525`, separate); a different precision per expected outcome, to be evaluated,
+  when a reviewer's items share a group.
 - D: every observed outcome scored, at `π ∈ {1, ε}`; between the reference and A depending on
   `K` and on the correlation of entries; a group freeze and new lifecycle inputs.
 - B and dynamic batching: not shown viable, not excluded (§4).
@@ -449,8 +471,8 @@ attempts with the declared probabilities).
   candidate (`15` D2, D4).
 - Design decisions (Astra): the batch contract itself (A, C, D or another); group size and
   formation rule (templates apart); whether a group's verdict decides its entrants' pool entry
-  (reuse); the retry bound and the residual-missing policy (C2); the representation of a stage
-  1 that did not converge (`15` A11); whether exploration is retired for scoring.
+  (reuse); the retry bound and the residual-missing policy (C2); the review of A11's
+  correction (`15`); whether exploration is retired for scoring.
 - No decision is asked of the owner now; capacity trade-offs arise only once a design is
   chosen.
 
@@ -460,7 +482,7 @@ attempts with the declared probabilities).
    or gate decision (a test that it is a function of the admitted set alone).
 2. An observed group is piloted in full under one procedure, whatever caused its observation;
    the recorded `π` is the inclusion probability given the freeze.
-3. No missing outcome is recorded as 0 (`15` A11 closed).
+3. No missing outcome is recorded as 0 (for stage 1, `15` A11 once approved).
 4. The retry bound and the residual-missing policy are those decided, applied alike on every
    path.
 5. The executed comparison stays in the suite as evidence of the dependence it guards against.
