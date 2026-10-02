@@ -733,9 +733,24 @@ over the crowd: positive when they are right where the crowd is wrong, exactly 0
 reviewer who reports the crowd's forecast, negative for noise or block voting. Its
 expectation is maximized by the true belief, by exactly `Σ_j (p_uj − q_uj)²` over any
 other report under those conditions (`08` AT-REP-05). With no other positive panel
-weight, the implemented fallback uses the reviewer's own forecast as baseline,
-producing zero for every report; this case is uninformative, not strictly proper
-(`15` A10).
+weight, `reputation::loo_baseline` (the golden-item path, `honeypot::reviewer_skills`)
+falls back to the reviewer's own forecast as baseline, producing zero for every report;
+this case is uninformative, not strictly proper (`15` A10).
+
+**Band items (`01` D26, D33; `16` C5).** On an item that went through the extra round, a
+first panelist's baseline is the weighted leave-one-out mean of the *other first panelists*
+only, and an extra reviewer's baseline is the weighted mean of the whole first panel,
+fixed before its own report: no extra-round report enters any baseline, so an extra
+reviewer's baseline also excludes the other extra reviewers. The weights are the epoch's
+frozen review weights (`orchestrator::bridging_weights`), never recomputed from the current
+report, its outcome or later reputation; the score's formula and the weights' meaning are
+unchanged. The extra round sees the first panel's reveals before reporting, so its truthful
+forecast is conditional on that information. Where the forecasts a baseline may read carry
+no weight there is no baseline (`None`): neither the reviewer's own forecast nor 0; what that
+does to the denominator, probation and reputation is not decided. Implemented as
+`protocol::panel_scores` (`first_panel_baselines`, `extra_round_baseline`, `item_scores`),
+with no production caller yet. This composes baselines; it is no proof of the protocol's
+properness and changes neither the gate nor bridging.
 
 **Fundamental property.** Someone who replicates the consensus gets `S_u = 0`. You
 gain reputation only by being right **when the crowd is wrong**. This is the incentive

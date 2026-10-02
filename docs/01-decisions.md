@@ -568,6 +568,13 @@ decoys; on the same test the intercept moves from +0.09 to +0.32.
 > weight (`orchestrator::epoch_weight_cap`), where it binds. `evaluator_score` (`σ(γ·BSS)`) is
 > removed; `brier_skill_score` stays as the sim oracle only. AT-REP-02/04/05 pass
 > (`evaluator_score.rs`). The scored items are still the golden ones: D35 is T52.
+>
+> **Refined (decided 2026-10-02, `docs/16` C5).** On a band item the "other panelists" are
+> read as follows: a first panelist's baseline is the other first panelists' weighted mean;
+> an extra reviewer's is the whole first panel's, fixed before its report; no extra-round
+> report enters any baseline; the epoch's frozen weights; no baseline where no weight
+> remains, never the reviewer's own forecast (`protocol::panel_scores`). The golden-item path
+> keeps `loo_baseline`'s fallback (`docs/15` A10).
 
 **Choice.** On every scored item the evaluator score is
 `S_uj = (p̄_{−u,j} − o_j)² − (p_uj − o_j)²`, where `p̄_{−u,j}` is the weight-adjusted

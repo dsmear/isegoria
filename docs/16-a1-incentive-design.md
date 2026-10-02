@@ -2,12 +2,14 @@
 
 | | |
 |---|---|
-| **Status** | Analysis and proposal; **A1 open** (`15`). Diagnosis confirmed by design review; the proposal is **not approved**. This revision follows that review; the paper, `01` and `02` are not rewritten. |
+| **Status** | Analysis and proposal; **A1 open** (`15`). Diagnosis confirmed; the updated analysis of the beacon's manipulability and of observations, assignments and the IPW count approved; the theorem and the overall proposal **not approved**. The band baselines (C5, §4.6) are decided by the review and implemented: implemented and verified, design review pending. The paper is not rewritten; `01` D33 carries a dated refinement and `02` §C.2 the band baselines. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `4478f04`, revised from it. Line references are to that commit. |
 | **Scope** | The claim that randomized exploration with inverse-probability weighting (IPW) keeps the evaluator score proper (`01` D35, `02` §C.2, paper Prop. `prop:ipw`). A10 (the fallback baseline) stays a separate finding. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated exactly; **E** executed as a Rust test (`crates/protocol/tests/a1_exploration_information.rs`). |
 
-## Design review (Astra)
+## Design reviews (Astra)
+
+First review:
 
 - The diagnosis of A1 is confirmed.
 - Independent recalculation: truthful 0.09 against adaptive 0.166, an advantage of 0.076;
@@ -19,7 +21,19 @@
   window expired); the rule that picks the beacon round is fixed before the round's result
   is known; delays, missing reveals and fallbacks are part of the guarantee.
 
-This record is no partial closure of the production guarantee.
+Second review:
+
+- Approved: the updated analysis of the beacon's manipulability (§6) and of the difference
+  between observations, assignments and the IPW count (§7).
+- The threshold probabilities recalculated independently with rational arithmetic:
+  0.08613835589931641, 0.44645792456821365, 0.8084466252647782.
+- Evidence: reading of the diff and checks of the mathematics; the Rust tests were not re-run.
+- The theorem and the overall proposal are not yet approved; A1 stays open. Decided by the
+  review: the band baselines' composition (§4.6).
+
+These records are no partial closure of the production guarantee. The conditions C1–C6 below
+are this dossier's; they are not the review findings of the same names in `15` (there, C5 is
+the author average).
 
 ## 1. Diagnosis
 
@@ -67,7 +81,7 @@ documented intention only.
 | 10 | Exploration | a gate rejection (`Defect`, `Polarized`, `Borderline`) | whether the driver sends `Explore` | `Explore { seed_from_beacon }` checks a boolean and the reason (`lifecycle.rs:520–531`); it neither forces a drawn item to be explored nor forbids an undrawn one | R (check) / A (draw) |
 | 11 | Pilot | the item enters stage 1 on its own account (pass, band pass, appeal) or as explored | batch composition (unspecified) | the same `Pilot1Batch`/`Pilot2Batch` floors on both paths | R |
 | 12 | Score recording | terminal state | — | `outcome_of` (`exploration.rs:39–58`): observed at `π = 1` after a pilot on its own account, at `π = ε` when `Measured`, unobserved for an unexplored gate rejection, pending otherwise; `record_outcome` (`:61–76`) feeds `SkillTrack` (`probation.rs:84–122`): IPW sum over reviewed items, `k_u` = observed count, CUSUM on unweighted observed scores | R |
-| — | Baseline | the other panelists' reports | which panelists enter it (first panel only, or the extra round too) | `loo_baseline` (`reputation.rs:62–90`); its inputs are the caller's | A |
+| — | Baseline | the other panelists' reports | — (decided, §4.6: first panelists against the other first panelists, extra reviewers against the first panel) | `panel_scores::item_scores`; the golden-item path keeps `loo_baseline` (`reputation.rs:62–90`) | A |
 
 ## 3. The counterexample (simplified gate)
 
@@ -98,12 +112,16 @@ full bridging gate, where a report moves the decision only when pivotal (not mea
 
 - **Assignment.** `R_u`, the items assigned to reviewer `u`, is fixed by the assignment
   record; `N_u = |R_u| ≥ 1`.
-- **Strategies.** `u`'s report on `j` is `p_uj = σ_u(F_u)`, any measurable function of `F_u`,
-  `u`'s information when the commitment is made. The reveal decision is taken later, on
-  `F'_u ⊇ F_u`, and is treated separately (§4.4).
-- **Freeze.** `Φ_j` (§5). `F_Φ` is the information at `Φ_j`: every completed report on `j`
-  (first panel and extra round), the gate decision and re-decision `D_j`, the appeal decision,
-  the baselines `b_uj`, the memberships `j ∈ R_u`. These are the *pre-draw variables*.
+- **Information.** `F_u` is everything `u` knows when committing: the public log and its
+  private information (its own signals, and anything learned from others, a beacon member
+  included). `F'_u ⊇ F_u` is what it knows at its reveal decision (§4.4).
+- **Strategies.** `u`'s report on `j` is `p_uj = σ_u(F_u)`, any measurable function of `F_u`.
+- **Freeze.** `Φ_j` (§5). The *pre-draw variables* are every completed report on `j` (first
+  panel and extra round), the gate decision and re-decision `D_j`, the appeal decision, the
+  baselines `b_uj` and the memberships `j ∈ R_u`. `F_Φ` is generated by them and by the
+  information, public and private, of every reviewer and author up to `Φ_j`.
+- **H0.** `F_u ⊆ F_Φ` for every reviewer whose score is claimed. It is a hypothesis about
+  who knows what, not about the log: no published reveal does not establish it (§5).
 - **Draw.** `X_j ∈ {0, 1}`; observation `I_j = 1{D_j = enters} + 1{D_j = rejected} X_j`, where
   *enters* means piloted on its own account (pass, band pass, successful appeal).
 - **Nominal and effective inclusion.** The recorded `π_j` is 1 on *enters* and `ε` on
@@ -118,21 +136,26 @@ full bridging gate, where a report moves the decision only when pivotal (not mea
 - **C3 (one potential outcome).** There is a `{0,1}`-valued `o_j`, item `j`'s Level B
   outcome under a reference pilot procedure, such that the value observed through any path
   (own account, appealed, explored) equals `o_j`, and `X_j` is independent of `o_j` given
-  `F_Φ`. A sufficient construction: the pilot assigns items to batches by a rule that does not
-  read the path, and the screen and DIF verdicts depend on the item, its batch and the batch's
-  respondents only. Conditioning on a σ-algebra that already contains the path and the outcome
-  would prove nothing about the paths' equivalence; C3 is a property of the procedure.
+  `F_Φ`. C3 is a property of the procedure: conditioning on a σ-algebra that already contains
+  the path and the outcome would prove nothing about the paths' equivalence. A batch rule that
+  does not read the path is not enough on its own: which items reach the pilot, hence each
+  batch's population, depends on other items' decisions and draws, and the DIF verdict reads
+  the batch. The batch contract that would give C3 is still to be defined.
 - **C4 (fixed denominator).** `R_u` is fixed at assignment and does not depend on reports,
   reveals or draws. The theorem below concerns completed reports; missing reveals are §4.4.
-- **C5 (baseline invariance).** `b_uj` is the same function of the other reviewers' reports
-  whatever strategy `u` plays: for any `σ_u`, `σ'_u`, `b_uj(σ_u) = b_uj(σ'_u)` pathwise. The
-  forecasts may share information; no statistical independence is required. It fails if a
-  reviewer whose report enters `b_uj` sees `u`'s report before committing (an extra-round
-  reviewer who sees the first panel's reveals and enters a first panelist's baseline), and
-  under A10's fallback (`b_uj = p_uj`).
-- **C6 (outcome-law invariance).** The conditional law of `o_j` given `F_u` is the same under
-  every `σ_u`: `P(o_j = 1 | F_u; σ_u) = q_uj`. It follows from C3 when the report changes only
-  the path.
+- **C5 (pathwise baseline invariance).** `b_uj` is a function of reports that `u`'s
+  deviations do not change: for any `σ_u`, `σ'_u`, `b_uj(σ_u) = b_uj(σ'_u)` pathwise. The
+  forecasts may share information; no statistical independence is required. For band items
+  the composition of §4.6 gives it; A10's fallback (`b_uj = p_uj`) violates it.
+- **C6 (joint invariance).** The conditional joint law of `(b_uj, o_j)` given `F_u` is the same
+  under every `σ_u`. Sufficient construction: C5 makes `b_uj` pathwise invariant; C3 makes
+  `o_j` a potential outcome that `u`'s report could change only through the path, which it does
+  not change; then `(b_uj, o_j)` is pathwise invariant under `u`'s deviations, and so is its
+  joint law. Invariance of the baseline and of the outcome's marginal law is not enough: with
+  `Z` Bernoulli(½) and `b = Z`, let `o = Z` when `p = ½`, and `o = 1 − Z` under the deviation
+  `p = 1`. The baseline and the marginal law of `o` are unchanged, yet `E[d]` moves from −¼
+  to ½. That abstract example (checked by Astra) shows what the hypothesis must exclude; it is
+  not an attack on the protocol.
 
 ### 4.3 Lemma and theorem
 
@@ -144,15 +167,16 @@ full bridging gate, where a report moves the decision only when pivotal (not mea
 (C2). On *rejected*, `I_j/π_j = X_j/ε` and, `X_j` being independent of `o_j` given `F_Φ` (C3),
 `E[X_j d_uj | F_Φ] = π*_j · d̄_uj`. ∎
 
-**Theorem (completed reports).** If `u` completes every report in `R_u`, and C1–C4 hold,
-`E[Ŝ_u | F_u] = (1/N_u) Σ_{j ∈ R_u} E[d_uj | F_u]` for every strategy. With C5–C6 also,
-`E[d_uj | F_u] = c_uj − (p_uj − q_uj)²`, `c_uj` free of `σ_u`; truthful reporting is the unique
-maximizer.
+**Theorem (completed reports).** Assume H0, that `u` completes every report in `R_u`, and
+C1–C4. Then `E[Ŝ_u | F_u] = (1/N_u) Σ_{j ∈ R_u} E[d_uj | F_u]` for every strategy. With C6 also
+(C3 and C5 being its sufficient construction), `E[d_uj | F_u] = c_uj − (p_uj − q_uj)²`, with
+`q_uj = P(o_j = 1 | F_u)` and `c_uj` free of `σ_u`; truthful reporting is the unique maximizer.
 
-*Proof.* `F_u ⊆ F_Φ`; by the lemma and C1 each term's conditional expectation given `F_Φ` is
-`d̄_uj`, and the tower property gives `E[d_uj | F_u]`; C4 fixes `N_u`. With `b = b_uj` fixed
-across `u`'s deviations (C5) and `o_j` of law `Bernoulli(q_uj)` given `F_u` whatever `u` reports
-(C6), `E[(p − o)² | F_u] = (p − q)² + q(1 − q)`. ∎
+*Proof.* By H0, `F_u ⊆ F_Φ`. By the lemma and C1 each term's conditional expectation given
+`F_Φ` is `d̄_uj`, and the tower property gives `E[d_uj | F_u]`; C4 fixes `N_u`. Write
+`E[d | F_u] = E[(b − o)² | F_u] − E[(p − o)² | F_u]`. Under C6 the first term is the same for
+every `σ_u`. With `p` `F_u`-measurable and `o` of law `Bernoulli(q)` given `F_u`, the same under
+every `σ_u` by C6, the second is `(p − q)² + q(1 − q)`. ∎
 
 Under the current sequence C1 fails: `X_j` is `F_u`-measurable (§1). Once `X_j` is
 independent of `F_u`, adaptive rules reduce to rules on `F_u`, each covered by the theorem.
@@ -162,12 +186,13 @@ proof is the argument.
 
 | Condition | Meaning | Support in the current code | Change or decision needed | Verification that would establish it |
 |---|---|---|---|---|
+| H0 | a reviewer's information at commit, private part included, is pre-draw information | not stated; the current draw is known at commit | state the information model together with the source (§5, §6) | part of the §6 analysis for the chosen source |
 | C1 | the recorded `ε` is the conditional exploration probability | **no**: the draw is known at commit (§1) and selectable by beacon members (§6) | a draw after `Φ_j` with a round rule fixed in advance (§5); a source without selection, or a guarantee stated conditional on a behavioral model of the members (§6) | a log-order test that no admissible candidate value is computable before `Φ_j`; the §6 analysis for the chosen source |
-| C2 | an entering item yields its outcome | partial: a pilot without enough respondents is refused, leaving the item in `Pilot1`; a stage-2 fit that does not converge has no representation (`15` A4, residual (a)) | a rule for an entering item whose pilot cannot conclude, decided before the draw (for example, re-pilot, or removal from every panelist's `R_u` alike) | a lifecycle test: every entering item ends with an outcome or a pre-draw removal |
-| C3 | one outcome whatever the path | the same lifecycle events and floors on both paths; `Measured { passed }` is `passed ‖ source_verified`, as `Contested` counts 1 (L); batch composition unspecified, while the DIF verdict is batch-level | a path-blind batch assignment rule | a test that batch assignment does not read the path; evidence that verdicts do not depend on the path through the batch (owner-run measurement if needed) |
+| C2 | an entering item yields its outcome | partial: a pilot without enough respondents is refused, leaving the item in `Pilot1`; a stage-2 fit that does not converge has no representation (`15` A4, residual (a)) | a policy for missing outcomes, still open. Removing an inconclusive pilot from every panelist's `R_u` would not settle the selection and can contradict C4; it is not offered as a solution | to be defined with the policy |
+| C3 | one outcome whatever the path | the same lifecycle events and floors on both paths; `Measured { passed }` is `passed ‖ source_verified`, as `Contested` counts 1 (L); batch composition unspecified, while the DIF verdict is batch-level | a batch contract, still to be defined: a path-blind assignment rule is not sufficient, since a batch's population depends on other items' paths | to be defined with the contract |
 | C4 | the denominator is the assignment | `SkillTrack` counts recorded items, observed or not; a `Pending` item is never counted; a no-show freezes the item (T58 not implemented) | `R_u` taken from the assignment record; a no-show rule (§4.4) | a test that every assigned item enters `N_u` |
-| C5 | the baseline is invariant to `u`'s deviations | commit-reveal blinds the first panel (L); the band item's baseline and the extra round's sight of first-panel reveals are unspecified; A10's fallback | decide the band baseline's composition and the extra round's blindness | a test of the scoring composition for band items |
-| C6 | the report does not change the outcome's law | follows from C3 | none beyond C3 | as C3 |
+| C5 | the baseline is invariant to `u`'s deviations | **decided by the review and implemented** without a production caller (`protocol::panel_scores`, §4.6); commit-reveal blinds the first panel; A10's fallback remains on the golden-item path | a production caller that composes live items' scores through it | `panel_scores.rs` (E); for the caller, a test that it uses `item_scores` |
+| C6 | the joint law of baseline and outcome is invariant to `u`'s deviations | follows from C3 and C5 by the construction above; C3 open | none beyond C3 and C5 | as C3 and C5 |
 
 ### 4.4 Missing reveals (outside the theorem)
 
@@ -182,22 +207,75 @@ it unprofitable *for the score*, not implemented:
 3. a withheld judgment scores a fixed `s_ns ≤ −1`, recorded at `π = 1` whatever the path and
    the draw.
 
-Since `E[d | F'_u] ≥ −(p − q')² ≥ −1` for any committed `p` and updated belief `q'`, withholding
-is then weakly dominated in `E[Ŝ_u]` (D). Further hypotheses: the penalty does not depend on
-the outcome or the draw; the replacement's report enters the gate, so withholding still
+The bound is pointwise: `(b − o)² ≥ 0` and `(p − o)² ≤ 1`, so `d ≥ −1` on every realization,
+hence `E[d | F'_u] ≥ −1`. (The earlier claim `E[d | F'_u] ≥ −(p − q')²` was wrong: with `b = o`,
+an even outcome and `p = q' = ½`, `E[d] = −¼`.) Three quantities must be kept apart: the raw
+score `d`, at least −1 pointwise; the realized IPW contribution `I d / π`, at least `−1/π`
+pointwise, so `−1/ε` on an explored item; and its expected value. Going from the bound on `d`
+to a statement about `E[Ŝ_u]` under withholding needs C1 and C2 relative to `F'_u` (the draw
+independent of what `u` knows at the reveal decision), so that a revealed judgment's expected
+contribution is `E[d | F'_u] ≥ −1`; a fixed denominator (C4); and the deviation leaving the
+conditional expectation of every other term of `Ŝ_u` unchanged (other items' baselines,
+outcomes and draws). Under those, a no-show score `s_ns ≤ −1` recorded at `π = 1` makes
+withholding weakly dominated in `E[Ŝ_u]` (D). Further hypotheses: the penalty does not depend
+on the outcome or the draw; the replacement's report enters the gate, so withholding still
 changes `D_j` (a motive outside the score); reputation effects beyond `Ŝ_u` (T58's suspension)
-are separate; involuntary absences (availability) need their own policy. The value of `s_ns`
-and its scope are decisions.
+are separate; involuntary absences (availability) need their own policy. The penalty is a
+proposal, neither implemented nor approved; its value and scope are decisions.
 
 ### 4.5 What the theorem does not cover
 
 1. *IPW unbiasedness* (C1–C4) is a property of the estimator's mean, not of the reviewer's
    objective.
-2. *Strict properness* needs C5–C6; under A10's fallback the score is identically 0.
+2. *Strict properness* needs C6, through C3 and C5; under A10's fallback the score is
+   identically 0.
 3. *The reputation actually used* (§7): `k_u`, the shrinkage, the convex weight, the cap and
    the CUSUM. These are open; no claim about the size of their effects is made here.
 4. *Preferences over the item's fate*: properness bounds the price of shading a report, it
    does not remove the motive.
+
+### 4.6 Band baselines (decided by the review; implemented)
+
+The second review fixed the composition:
+
+- a first panelist's baseline: the weighted leave-one-out mean of the other first panelists;
+- an extra reviewer's baseline: the first panel's weighted mean, fixed before its report;
+- no extra-round report enters a first panelist's baseline, nor another extra reviewer's;
+- the weights are the epoch's frozen review weights, never recomputed from the current report,
+  its outcome or later reputation; the score's formula and the weights' meaning are unchanged.
+
+The extra round is not required to be blind to the first panel's reveals: the current
+sequence shows them before the extra assignment, and an extra reviewer's truthful forecast is
+conditional on what it knows then. Under this composition C5 holds for both kinds of reviewer:
+a first panelist's baseline reads reports committed blind to its own, an extra reviewer's reads
+reports fixed before its own.
+
+**Implementation.** No production code composes reports, weights and scores for live items:
+`exploration::record_outcome` takes the score from its caller, and
+`results::ResultRecord::ReviewerScore` carries a precomputed score; only the golden-item path
+composes, through `loo_scores` with its A10 fallback. The smallest composition API is
+`protocol::panel_scores` (`crates/protocol/src/panel_scores.rs`): `Forecast { prob, weight }`;
+`first_panel_baselines(first)`; `extra_round_baseline(first)`, which takes no extra-round input;
+`item_scores(first, extra, outcome)`, whose extra-round input is forecasts only. A baseline
+without weight is `None`, and so is its score: never the reviewer's own forecast, never 0. Its
+effect on the denominator, probation and reputation is not decided. A10 stays open for the
+overall policy and for the golden-item path's fallback.
+
+**Verification** (E, `crates/protocol/tests/panel_scores.rs`; expectations computed by hand with
+weights 2, 0.5, 1.5 and 0): the baselines equal the weighted means each may read; a first
+panelist's own report leaves its baseline; extra reports, added or changed, move no baseline; a
+first report of positive weight moves the extra baseline and one of weight 0 does not; no weight
+left gives no baseline and no score, alone or in a pair, with or without an extra round; both
+kinds of reviewer get the difference score for both outcomes. One band item is walked through
+`review_round`, `Score { SupplementaryReview }`, `extra_round`, `Resolve`, the two pilot events
+with boolean verdicts and `outcome_of`; its scores are composed with weights from
+`bridging_weights` on frozen standings and recorded into a `SkillTrack` through
+`record_outcome`. The path stops there: no pilot fit, no epoch results, no log replay, no weight
+update; it is not an end-to-end test. A first baseline including the panelist's own report, a
+weightless baseline read as 0, and a constant extra baseline each fail the tests (checked).
+
+This decides the baselines' composition; it does not prove the protocol's properness and
+changes neither the gate nor bridging.
 
 ## 5. The freeze: what it removes and what it does not
 
@@ -331,7 +409,7 @@ and scores only audited outcomes, all at `π = α`.
 
 | | Ideal source (C1 holds) | Current beacon, §6 model |
 |---|---|---|
-| **Deferred draw** | the theorem holds under C1–C6; the freeze covers reports, extra round, gate, appeal and `R_u`; every pilot outcome is scored; `k_u` still depends on the report through the path | on a targeted rejected item `π* ∈ [ε^L, 1 − (1 − ε)^L]`, so the nominal IPW is biased there |
+| **Deferred draw** | the theorem holds under H0 and C1–C6; the freeze covers reports, extra round, gate, appeal and `R_u`; every pilot outcome is scored; `k_u` still depends on the report through the path | on a targeted rejected item `π* ∈ [ε^L, 1 − (1 − ε)^L]`, so the nominal IPW is biased there |
 | **Audit sample** | C1 needs no freeze of the decision or the appeal (`π = α` is constant); the observed count's increment is `α` whatever the report; outcomes of unaudited items that entered the pilot are observed but not scored | the same selection: on a targeted item `π* ∈ [α^L, 1 − (1 − α)^L]`; the audit does not correct a manipulable source |
 
 What the audit simplifies (no decision or appeal in the freeze, a report-independent evidence
@@ -351,7 +429,7 @@ derivations, not guaranteed times:
 
 **What can be proved today.** Under the current sequence, no protocol-level properness claim:
 the counterexample stands. What holds is conditional: for completed reports, the theorem of
-§4.3 under C1–C6. With the commit-reveal beacon, C1 holds only under a behavioral model of the
+§4.3 under H0 and C1–C6. With the commit-reveal beacon, C1 holds only under a behavioral model of the
 members: honest reveals counted, fewer than `t` colluders, and no coalition able to choose
 among values or to abort acting on exploration preferences. That is an assumption to state,
 not a property to prove.
@@ -365,18 +443,19 @@ outcome at the current cost; the audit is not more robust to a manipulable sourc
 
 **Blocking premises for implementing it as A1's correction.**
 
-1. C3: a path-blind batch assignment for the pilot, and C2's rule for an entering item whose
-   pilot cannot conclude (`15` A4, residual (a)).
-2. C5: the band item's baseline composition and the extra round's blindness.
+1. C3: a batch contract for the pilot, still to be defined, and C2's policy for missing
+   outcomes, still open (`15` A4, residual (a)).
+2. C5: decided and implemented (§4.6), design review pending; a production caller is
+   still needed.
 3. C4: the denominator from the assignment record and a no-show rule.
 4. The randomness guarantee: a conditional statement under an explicit member model, or a
    source change.
 
-**Smallest next verifiable step.** Settle C5: specify which panelists form each reviewer's
-baseline on a band item and that the extra round commits blind to the first panel's
-reveals, in `02` §C.2, with a test of the scoring composition on a band item. It touches no
-randomness, event format or threshold, and it is a premise of the IPW objective whatever
-source is chosen. C3 next.
+**Smallest next verifiable step.** C5 was that step (§4.6: decided, implemented and
+verified, design review pending). Next: define C3's batch contract, that is, which items a
+batch may hold and how batches form so that an item's outcome depends neither on its own
+path nor on other items' paths. C2's missing-outcome policy and C4's denominator wait on
+decisions not yet taken.
 
 **Trade-offs that need the owner.**
 

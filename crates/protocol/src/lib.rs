@@ -18,6 +18,7 @@ pub mod lifecycle;
 pub mod lottery;
 pub mod node;
 pub mod orchestrator;
+pub mod panel_scores;
 pub mod pilot;
 pub mod probation;
 pub mod randomness;
