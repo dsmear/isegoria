@@ -1384,4 +1384,194 @@ mod tests {
         assert_eq!(floors.anchor[1], Some((1, 0.25)));
         assert_eq!(floors.item[0], Some((2, 0.25)));
     }
+
+    /// Thirty respondents' random answers to `na` anchors and `k` items, open formats.
+    fn random_batch(na: usize, k: usize) -> (Vec<Vec<f64>>, Vec<Vec<f64>>, Floors) {
+        let mut rng = ChaCha8Rng::seed_from_u64(18);
+        let mut rows = |m: usize| -> Vec<Vec<f64>> {
+            (0..30)
+                .map(|_| (0..m).map(|_| f64::from(rng.gen::<f64>() < 0.5)).collect())
+                .collect()
+        };
+        let (anchors, x) = (rows(na), rows(k));
+        let floors = Floors::new(&Formats::open(na, k), na, k, FLOOR_PRIOR_WEIGHT).unwrap();
+        (anchors, x, floors)
+    }
+
+    /// A3 (`docs/18`): adding a constant to every histogram logit leaves the NLL and the penalty.
+    #[test]
+    fn a_shift_of_the_histogram_logits_is_its_only_exact_gauge() {
+        let (na, k) = (3, 4);
+        let (anchors, x, floors) = random_batch(na, k);
+        let data = Data::new(&anchors, &x, na, k, &floors);
+        let grid = Grid::new(11, 4.0);
+        let model = Model {
+            g: 2,
+            na,
+            k,
+            per_class_a: false,
+            floors: 0,
+            nodes: 11,
+        };
+        let mut rng = ChaCha8Rng::seed_from_u64(3);
+        let p: Vec<f64> = (0..model.len()).map(|_| normal(&mut rng) * 0.7).collect();
+        let mut shifted = p.clone();
+        for v in &mut shifted[model.hist_idx(0)..] {
+            *v += 2.5;
+        }
+        let both = |q: &[f64]| {
+            let mut g = vec![0.0; q.len()];
+            let f = evaluate(&model, q, &data, &grid, &floors, false).0;
+            (f, gauge(&model, &grid, 30.0, q, &mut g))
+        };
+        let ((f, h), (fs, hs)) = (both(&p), both(&shifted));
+        assert!((f - fs).abs() <= 1e-12 * f.abs(), "NLL {f} vs {fs}");
+        assert!(
+            (h - hs).abs() <= 1e-12 * (1.0 + h.abs()),
+            "penalty {h} vs {hs}"
+        );
+    }
+
+    /// A3 (`docs/18`): two grid variances standardize to different shapes, not to one gauge orbit.
+    #[test]
+    fn standardized_nodes_do_not_make_the_grid_moments_a_gauge() {
+        let grid = Grid::new(3, 1.0);
+        let read = |w: [f64; 3]| {
+            let s = grid.shape(&w.map(ln));
+            let moment = |k: i32| (0..3).map(|q| s.w[q] * s.nodes[q].powi(k)).sum::<f64>();
+            let model = Model {
+                g: 1,
+                na: 0,
+                k: 0,
+                per_class_a: false,
+                floors: 0,
+                nodes: 3,
+            };
+            let penalty = gauge(&model, &grid, 1.0, &w.map(ln), &mut [0.0; 3]);
+            (moment(1), moment(2), moment(4), s.nodes[2], penalty)
+        };
+        let (m1, v1, k1, top1, g1) = read([0.25, 0.5, 0.25]);
+        let (m2, v2, k2, top2, g2) = read([0.125, 0.75, 0.125]);
+        for (m, v) in [(m1, v1), (m2, v2)] {
+            assert!(m.abs() < 1e-12 && (v - 1.0).abs() < 1e-12);
+        }
+        assert!((top1 - 2f64.sqrt()).abs() < 1e-12 && (top2 - 2.0).abs() < 1e-12);
+        assert!((k1 - 2.0).abs() < 1e-12 && (k2 - 4.0).abs() < 1e-12);
+        assert!((g1 - 0.25).abs() < 1e-12 && (g2 - 0.5625).abs() < 1e-12);
+    }
+
+    /// A3 (`docs/18`): on a fitted histogram the grid moments bend the NLL; the penalty holds them.
+    #[test]
+    #[ignore]
+    fn the_moment_penalty_holds_a_fitted_histogram() {
+        let (na, k, q) = (30, 6, 41);
+        for (n, skewed) in [(2000, false), (3000, true)] {
+            let mut rng = ChaCha8Rng::seed_from_u64(7);
+            let aa: Vec<f64> = (0..na).map(|_| rng.gen_range(0.9..1.6)).collect();
+            let ba: Vec<f64> = (0..na).map(|_| normal(&mut rng)).collect();
+            let (mut anchors, mut x) = (Vec::new(), Vec::new());
+            for _ in 0..n {
+                let mut t = normal(&mut rng);
+                if skewed {
+                    let z = normal(&mut rng).abs();
+                    t = (0.24 * t - 0.97 * (z - 0.7979)) / 0.62;
+                }
+                let mut bit = |pr: f64| f64::from(rng.gen::<f64>() < pr);
+                anchors.push((0..na).map(|j| bit(sigmoid(aa[j] * (t - ba[j])))).collect());
+                let items = (0..k).map(|j| bit(sigmoid(1.2 * (t - 0.4 * j as f64 + 1.0))));
+                x.push(items.collect::<Vec<f64>>());
+            }
+            let formats = Formats::open(na, k);
+            let lp = LatentParams {
+                max_classes: 1,
+                ..LatentParams::default()
+            };
+            let res = latent_dif_with(&anchors, &x, &formats, &lp).unwrap();
+            assert_eq!(res.status, Convergence::Converged);
+            let floors = Floors::new(&formats, na, k, FLOOR_PRIOR_WEIGHT).unwrap();
+            let (data, grid) = (Data::new(&anchors, &x, na, k, &floors), Grid::new(q, 5.0));
+            let model = Model {
+                g: 1,
+                na,
+                k,
+                per_class_a: false,
+                floors: 0,
+                nodes: q,
+            };
+            let mut p = vec![0.0; model.len()];
+            for a in 0..na {
+                p[model.anchor_a_idx(a)] = res.anchor_a[a];
+                p[model.anchor_b_idx(a)] = res.anchor_b[a];
+            }
+            for j in 0..k {
+                p[model.item_a_idx(0, j)] = res.item_a[0][j];
+                p[model.item_b_idx(0, j)] = res.item_b[0][j];
+            }
+            for (i, w) in res.ability.weights.iter().enumerate() {
+                p[model.hist_idx(i)] = ln(w.max(1e-300));
+            }
+            let per = n as f64;
+            let nll = |v: &[f64]| evaluate(&model, v, &data, &grid, &floors, false).0 / per;
+            let held = |v: &[f64]| gauge(&model, &grid, per, v, &mut vec![0.0; v.len()]) / per;
+            let s = grid.shape(&p[model.hist_idx(0)..]);
+            let (mean, var) = (s.mean, s.sd * s.sd);
+            let lightest = s.w.iter().copied().fold(1.0, f64::min);
+            let rough = (1..q - 1)
+                .map(|i| (s.ln_w[i + 1] - 2.0 * s.ln_w[i] + s.ln_w[i - 1]).abs())
+                .fold(0.0, f64::max);
+            let mut bend = Vec::new();
+            for power in 1..=3 {
+                let d: Vec<f64> = grid.theta.iter().map(|u| u.powi(power)).collect();
+                let along = |t: f64| {
+                    let mut v = p.clone();
+                    for i in 0..q {
+                        v[model.hist_idx(i)] += t * d[i];
+                    }
+                    v
+                };
+                let spread = (0..q).map(|i| s.w[i] * d[i] * d[i]).sum::<f64>()
+                    - (0..q).map(|i| s.w[i] * d[i]).sum::<f64>().powi(2);
+                let h = 1e-3;
+                let second = |f: &dyn Fn(&[f64]) -> f64| {
+                    (f(&along(h)) - 2.0 * f(&p) + f(&along(-h))) / (h * h * spread)
+                };
+                bend.push((second(&nll), second(&held)));
+            }
+            let free = |v: &[f64]| {
+                let (f, g, _) = evaluate(&model, v, &data, &grid, &floors, false);
+                (f / per, g.iter().map(|x| x / per).collect::<Vec<f64>>())
+            };
+            let refit = lbfgs(p.clone(), |v| free(v).0, |v| free(v).1, 10, 3000, 1e-7);
+            let r = grid.shape(&refit.x[model.hist_idx(0)..]);
+            let moment =
+                |sh: &Shape, k: i32| (0..q).map(|i| sh.w[i] * sh.nodes[i].powi(k)).sum::<f64>();
+            let moved = |idx: &dyn Fn(usize) -> usize, m: usize| {
+                (0..m)
+                    .map(|i| (refit.x[idx(i)] - p[idx(i)]).abs())
+                    .fold(0.0, f64::max)
+            };
+            println!(
+                "n {n}, skewed {skewed}: lightest weight {lightest:.1e}, largest second difference \
+                 of ln w {rough:.1}, grid mean {mean:.1e}, variance − 1 {:.1e}; curvature per \
+                 respondent (NLL, penalty) along θ, θ², θ³ {bend:.3?}; without the penalty: {:?}, \
+                 NLL {:.3} lower, grid mean {:.4}, variance {:.4}, skewness {:.4} → {:.4}, \
+                 kurtosis {:.4} → {:.4}, largest move of an anchor's a {:.4}, b {:.4}, an item's b {:.4}",
+                var - 1.0,
+                refit.status,
+                (nll(&p) - nll(&refit.x)) * per,
+                r.mean,
+                r.sd * r.sd,
+                moment(&s, 3),
+                moment(&r, 3),
+                moment(&s, 4),
+                moment(&r, 4),
+                moved(&|a| model.anchor_a_idx(a), na),
+                moved(&|a| model.anchor_b_idx(a), na),
+                moved(&|j| model.item_b_idx(0, j), k),
+            );
+            assert!(mean.abs() < 1e-2 && (var - 1.0).abs() < 1e-2);
+            assert!(bend[0].0 > 0.1 * bend[2].0 && bend[1].0 > 0.1 * bend[2].0);
+            assert!(nll(&refit.x) < nll(&p));
+        }
+    }
 }

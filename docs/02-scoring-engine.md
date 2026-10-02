@@ -364,7 +364,11 @@ the likelihood differences and the selected number of classes (`13` §8.8).
 
 **Open interpretation (`15` A3, B1–B3).** Calling that penalty a pure gauge and
 subtracting two moment degrees of freedom requires justification: changing weights
-can change standardized shape. The fit/selection procedure and its sensitivity to the
+can change standardized shape. The diagnosis (`18`, pending design review) finds that the grid
+moments are no gauge — the ability family has dimension `Q−1`, its only exact redundancy a shift
+of the logits, its identifiability from the responses not proved — and that the penalty is a
+regularizer growing with `n`; the count's offset is the same in every candidate of a call, so it
+leaves the ordering of the candidates unchanged. The fit/selection procedure and its sensitivity to the
 floor prior must be evaluated as implemented. The floor `c_j` is shared across
 classes; class-specific guessing can be misspecification and is not generally
 represented exactly by a difficulty shift. Fitted anonymous classes are statistical

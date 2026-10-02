@@ -91,6 +91,17 @@ python oracle_bridging.py <dir>    # reads R.csv, mask.csv, weights.csv; writes 
 python oracle_mixture.py <dir>     # reads theta.csv, X.csv; writes oracle.csv
 ```
 
+### `latent_shape_dimension.py`
+
+A3's calculations (`docs/18`): the latent ability histogram's map from logits to a
+standardized distribution, as `scoring::latent` computes it — the review's 3-node example,
+the map's rank (`Q − 1`), and how much the grid's mean and variance move the response
+patterns of eight 2PL items at a smooth and at a rough histogram. numpy only; deterministic.
+
+```
+python latent_shape_dimension.py
+```
+
 ## What these prototypes demonstrate
 
 Motivating scenarios documented in `docs/06-threat-model.md`, within these prototypes:

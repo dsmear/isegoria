@@ -16,9 +16,9 @@ The original audit body and dated remediation entries retain their historical sc
 For the current correction pass, read them with
 [`15-phase1-review.md`](15-phase1-review.md). In particular, the historical closures
 of REPUTATION-008, DIF-011 and PROTO-008 do not settle the new A1/A2/A5 findings;
-the founder-reset correction (A6), the nonconvergence handling (A4) and the stage-1
-nonconvergence correction (A11) are closed; A4's residual in the pilot's stage 2 and the
-appeal settled before the pilot concludes await design review.
+the founder-reset correction (A6), the nonconvergence handling (A4), the stage-1
+nonconvergence correction (A11), A4's residual in the pilot's stage 2 and the appeal settled
+before the pilot concludes are closed; A3's diagnosis (`18`) awaits design review.
 SC-6's local difference-score result does not establish protocol-level properness
 with a draw known before the report. This documentation pass records those limits;
 it is not a new implementation fix or a replacement for T26.

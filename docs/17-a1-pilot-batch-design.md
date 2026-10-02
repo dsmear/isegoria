@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. |
-| **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The correction of `15` A11, implemented after `37addca` and pending design review, changes how stage 1 reads a fit that did not converge; the passages describing it say so. |
+| **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
 
@@ -59,7 +59,7 @@ functions are called only by tests and by the characterization harness (`charact
 | 5 | Stage-1 lifecycle: too few respondents is refused (`NotEnoughRespondents`, the item stays in `Pilot1`); `passed = false` gives `Rejected(Screen)`, at `164fff6` also when the fit did not converge; since the A11 correction an indeterminate screen keeps `Pilot1` (`15` A11) | `lifecycle.rs:485–499`; booleans from `ItemVerdicts` (`orchestrator.rs:99–111,294`) | R, caller's inputs |
 | 6 | Stage-2 admission and fit: at least `K_MIN = 2` items, `N_LATENT_MIN = 3000` respondents, a format per column, no template twice, anchors' KR-20 at least 0.90; one-class fit, then mixtures by BIC, only a converged candidate replaces the one-class fit, the selected fit's status reported, classes under 5% share ignored in the gaps | `revalidation.rs:15,101–157`; `latent.rs:911–1034` (`:1022`, `:1031`, `:1034`) | A |
 | 7 | Stage-2 reading: `Dif`, `NoDif`, or `Indeterminate` when the selected fit did not converge | `revalidation::target_rechecks` (`15` A4) | A |
-| 8 | Stage-2 lifecycle: `batch_size < K_MIN` refused (`BatchTooSmall`); `passed` gives `ActivePool`; else `source_verified` gives `Contested`; else `Rejected(Dif)`. At `164fff6` no input for an indeterminate verdict; since the correction of `15` A4's residual (a), pending design review, the event takes the `Recheck` and an indeterminate one keeps `Pilot2` | `lifecycle.rs:501–518` | R, caller's inputs |
+| 8 | Stage-2 lifecycle: `batch_size < K_MIN` refused (`BatchTooSmall`); `passed` gives `ActivePool`; else `source_verified` gives `Contested`; else `Rejected(Dif)`. At `164fff6` no input for an indeterminate verdict; since the correction of `15` A4's residual (a), closed on `af17eb3`, the event takes the `Recheck` and an indeterminate one keeps `Pilot2` | `lifecycle.rs:501–518` | R, caller's inputs |
 | 9 | The explored path: the same two events, ending in `Measured { passed: passed ‖ source_verified }`; `passed = false` at stage 1 gives `Measured { passed: false }`; since the A11 correction an indeterminate screen keeps `Explored` | `lifecycle.rs:533–576` | R |
 | 10 | Outcome for scoring: pool or contested 1, screen or DIF rejection 0, `Measured` at `π = ε` | `exploration::outcome_of`, `exploration.rs:39–58` | R |
 
@@ -438,7 +438,7 @@ simulated model, not independence in the field.
   frequency and not a deviation.
 - At `37addca` the APIs composed a stage 1 that did not converge into an observed outcome 0
   on both paths (E-api); real stage-1 fits failed to converge on some simulated pilots (`13`
-  §8.7.5). The correction (`15` A11) is implemented and awaits design review.
+  §8.7.5). The correction (`15` A11) is closed on `dd842d6`.
 - The paths' outcome laws need not coincide (abstract counterexample; D, C). The lemma needs
   conditional agreement (2) on each path's event; with H0, C1, C2, C4 and (3), truthful
   reporting is the unique maximizer: `16` §4.3's conditional theorem.
@@ -471,8 +471,8 @@ attempts with the declared probabilities).
   candidate (`15` D2, D4).
 - Design decisions (Astra): the batch contract itself (A, C, D or another); group size and
   formation rule (templates apart); whether a group's verdict decides its entrants' pool entry
-  (reuse); the retry bound and the residual-missing policy (C2); the review of A11's
-  correction (`15`); whether exploration is retired for scoring.
+  (reuse); the retry bound and the residual-missing policy (C2); whether exploration is
+  retired for scoring. (A11's correction, listed here at `37addca`, is closed on `dd842d6`.)
 - No decision is asked of the owner now; capacity trade-offs arise only once a design is
   chosen.
 
@@ -482,7 +482,7 @@ attempts with the declared probabilities).
    or gate decision (a test that it is a function of the admitted set alone).
 2. An observed group is piloted in full under one procedure, whatever caused its observation;
    the recorded `π` is the inclusion probability given the freeze.
-3. No missing outcome is recorded as 0 (for stage 1, `15` A11 once approved).
+3. No missing outcome is recorded as 0 (for stage 1, `15` A11, closed).
 4. The retry bound and the residual-missing policy are those decided, applied alike on every
    path.
 5. The executed comparison stays in the suite as evidence of the dependence it guards against.
