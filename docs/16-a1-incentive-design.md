@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis and proposal; **A1 open** (`15`). Diagnosis confirmed; the updated analysis of the beacon's manipulability and of observations, assignments and the IPW count approved; the proof of properness approved as a result conditional on the joint invariance C6 and the theorem's other hypotheses, not as a guarantee of the protocol; the overall proposal **not approved**. The band baselines (C5, §4.6) **approved** on `e8fdbe7`. The pilot batch contract (C3) and missing outcomes (C2) are analyzed in [`17`](17-a1-pilot-batch-design.md). The paper is not rewritten; `01` D33 carries a dated refinement and `02` §C.2 the band baselines. |
+| **Status** | Analysis and proposal; **A1 open** (`15`). Diagnosis confirmed; the updated analysis of the beacon's manipulability and of observations, assignments and the IPW count approved; the proof of properness approved as a result conditional on the joint invariance C6 and the theorem's other hypotheses, not as a guarantee of the protocol; the overall proposal **not approved**. The band baselines (C5, §4.6) **approved** on `e8fdbe7`. The pilot batch contract (C3) and missing outcomes (C2) are analyzed in [`17`](17-a1-pilot-batch-design.md), not approved on `164fff6` and revised, pending design review. The paper is not rewritten; `01` D33 carries a dated refinement and `02` §C.2 the band baselines. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `4478f04`, revised from it. Line references are to that commit. |
 | **Scope** | The claim that randomized exploration with inverse-probability weighting (IPW) keeps the evaluator score proper (`01` D35, `02` §C.2, paper Prop. `prop:ipw`). A10 (the fallback baseline) stays a separate finding. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated exactly; **E** executed as a Rust test (`crates/protocol/tests/a1_exploration_information.rs`). |
@@ -438,7 +438,9 @@ derivations, not guaranteed times:
   items (the ≈3.5 of D35's table);
 - audit at `α = 0.05`: ≈0.6 a month with golden items; 30 outcomes in ≈50 months instead of ≈8.7;
 - audit matching the deferred draw's rate (`α ≈ 0.525`): ≈175 audited rejections to pilot a
-  month against ≈17 explored, about 158 extra slots, ≈47% of 333.
+  month against ≈17 explored, about 158 extra slots, ≈47% of 333, if every audited entering
+  item's pool-entry pilot is reused, which needs the same group, sample and procedure; with
+  validation and audit separate, 333.5 extra, 100% (`17` §4.1).
 
 ## 9. Recommendation
 
@@ -468,8 +470,8 @@ outcome at the current cost; the audit is not more robust to a manipulable sourc
 
 **Smallest next verifiable step.** C5 was that step (§4.6: decided, implemented and
 approved on `e8fdbe7`). C3's batch contract and C2's missing outcomes are analyzed in
-[`17`](17-a1-pilot-batch-design.md), pending design review; C4's denominator waits on
-decisions not yet taken.
+[`17`](17-a1-pilot-batch-design.md), not approved on `164fff6`, revised and pending design
+review; C4's denominator waits on decisions not yet taken.
 
 **Trade-offs that need the owner.**
 
@@ -478,8 +480,10 @@ decisions not yet taken.
    DKG and a same-message fallback exists.
 2. Deferred draw (more evidence; the appeal in the freeze, so later measurement of polarized
    rejections) against the audit sample (simpler dependence, a report-independent evidence
-   count; on the declared scenarios about a sixth of the scored outcomes at equal cost, or
-   about 47% more pilot capacity at equal evidence).
+   count; on the declared scenarios, with full compatible reuse, about a sixth of the scored
+   outcomes at equal cost, or about 47% more pilot capacity at an equal expected number of
+   scored outcomes, 100% without reuse; an equal expected count is not equal information,
+   `17` §4.1).
 3. Whether closing A1 requires the incentives of the reputation actually used (`k_u`,
    shrinkage, weight, cap, CUSUM; §7) or only the IPW objective.
 

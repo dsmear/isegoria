@@ -71,7 +71,7 @@ mod fitted {
         target_rechecks(&fit)[0]
     }
 
-    /// A1 C3: the same target, answers and respondents, read with leaning or with clean companions.
+    /// A1 C3: one target, same answers: `Dif` beside leaning items, `NoDif` beside clean ones.
     #[test]
     fn a_target_s_verdict_depends_on_its_batch() {
         let items = [
@@ -90,12 +90,11 @@ mod fitted {
         let (anchors, x) = population(&items, 83);
         let campaign = target_in(&anchors, &x, &[0, 1, 2, 3, 4, 5, 6, 7]);
         let alone = target_in(&anchors, &x, &[0, 4, 5, 6, 7, 8, 9, 10]);
-        println!("target with three leaning companions: {campaign:?}; with clean ones: {alone:?}");
-        assert_ne!(campaign, alone, "this realization shows no dependence");
+        assert_eq!((campaign, alone), (Recheck::Dif, Recheck::NoDif));
     }
 }
 
-/// A1 C2: composed as the APIs allow, a stage-1 fit that did not converge scores outcome 0.
+/// A11: composed as the APIs allow, an unconverged stage-1 fit scores outcome 0 on both paths.
 #[test]
 fn an_unconverged_screen_composes_into_outcome_zero() {
     let fit = Stage1Fit {
@@ -107,20 +106,24 @@ fn an_unconverged_screen_composes_into_outcome_zero() {
     };
     let kept = stage1_verdicts(&fit, &Formats::open(2, 2));
     assert_eq!(kept, vec![false; 2]);
-    let screened = step(
-        State::Pilot1 { appealed: false },
-        Event::Pilot1Batch {
-            enough_respondents: true,
-            passed: kept[0],
-        },
-    )
-    .unwrap();
-    assert_eq!(screened, State::Rejected(RejectReason::Screen));
-    assert_eq!(
-        outcome_of(&screened, EXPLORATION_RATE),
-        Scored::Observed(Observation {
-            outcome: 0.0,
-            inclusion: 1.0
-        })
-    );
+    let screen = Event::Pilot1Batch {
+        enough_respondents: true,
+        passed: kept[0],
+    };
+    let entered = step(State::Pilot1 { appealed: false }, screen.clone()).unwrap();
+    assert_eq!(entered, State::Rejected(RejectReason::Screen));
+    let explored = State::Explored {
+        reason: RejectReason::Defect,
+        screened: false,
+    };
+    let measured = step(explored, screen).unwrap();
+    for (state, inclusion) in [(entered, 1.0), (measured, EXPLORATION_RATE)] {
+        assert_eq!(
+            outcome_of(&state, EXPLORATION_RATE),
+            Scored::Observed(Observation {
+                outcome: 0.0,
+                inclusion
+            })
+        );
+    }
 }
