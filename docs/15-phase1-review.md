@@ -4,7 +4,7 @@
 |---|---|
 | **Baseline** | `master` at [`64a4c530781e65709b834ec6e0b3dc4f74cbcfd6`](https://github.com/dsmear/isegoria/tree/64a4c530781e65709b834ec6e0b3dc4f74cbcfd6), reviewed on 2026-10-01/02. |
 | **Purpose** | Track the independent A–E review's open claims and acceptance criteria without treating either the code or the review as infallible. Stable review IDs are preserved below. |
-| **Status** | Documentation alignment only. No scoring formula, threshold, protocol transition, fixture or measurement changed. This register does not mark an implementation finding fixed. |
+| **Status** | Opened as documentation alignment: no scoring formula, threshold, protocol transition, fixture or measurement changed at the baseline. Later corrections are recorded in their finding's entry, which separates implementation and verification from design review; no finding is marked fixed before that review. |
 | **Evidence** | L: source/report read; D: independent algebra or static deduction; C: Python calculation performed during the review; P: compilation and tests reported passing by the owner. Rust tests were not run by this reviewer: `cargo` was unavailable. P is not a claim that the post-D43 characterization has run. |
 
 The five review answers concern correctness (A), statistics (B), consistency (C),
@@ -44,7 +44,7 @@ column says what was checked, not that a proposed correction has been validated.
 | **A2 — high** | Per-fit DTF uses each fit's own distribution/classes; summing it is not by itself a bound for a common target population. Unflagged active items need not contribute zero. `02:560–598`; `scoring/src/dtf.rs:104–154,194–224`; `protocol/src/contested.rs:126–142`. | L/D/C. Specify the target measure, linking assumptions and whole-test contribution, then prove the bound and separate estimation error. A sampling-error margin alone does not close this. |
 | **A3 — high** | The histogram's claimed gauge can affect standardized shape. Its penalty and `Q−3` parameter count require justification. `02:318–331`; `scoring/src/latent.rs:205–207,241–262,818–859`. | L/D/C. Specify genuine constraints or regularization, the objective, model dimension and selection criterion consistently. The same two-parameter counting offset across histogram candidates does not alone alter their BIC ordering. |
 | **A4 — high** | An unconverged latent fit produces false flags; `revalidate_batch_latent` discards fit status, while a false `emerging_dif` can restore ActivePool. `scoring/src/latent.rs:145–152`; `protocol/src/revalidation.rs:74–90`; `protocol/src/lifecycle.rs:580–590`. | L/D, static path, no observed failure frequency. Preserve an indeterminate outcome through the decision boundary; verify it cannot certify absence of DIF. |
-| **A5 — high** | `expanded_ratings` adds a newcomer's row and weight without extending `axis`; the next fit can return `AxisCount`. `protocol/src/orchestrator.rs:205–227`; `scoring/src/bridging.rs:72–86,255–257`. | L/D, static. Verify newcomer → expanded ratings → fit → supplementary verdict, including the eligibility of the new row. The existing newcomer test at `protocol/tests/supplementary_redecision.rs:335–344` stops before the fit. |
+| **A5 — high** | `expanded_ratings` adds a newcomer's row and weight without extending `axis`; the next fit can return `AxisCount`. `protocol/src/orchestrator.rs:205–227`; `scoring/src/bridging.rs:72–86,255–257`. | L/D, static. Verify newcomer → expanded ratings → fit → supplementary verdict, including the eligibility of the new row. The existing newcomer test at `protocol/tests/supplementary_redecision.rs:335–344` stops before the fit. **Confirmed; implemented and verified, design review pending** ([record](#a5-correction-record)). |
 | **A6 — high** | After a CUSUM reset, `status(true, 0)` restores founder weight 1, whereas §C.4 promises weight 0 until new outcomes. `protocol/src/probation.rs:20–36,94–104,152–166`; `02:800–803`. | L/D, static. Decide whether initial founder privilege survives a disciplinary reset; implement and test that explicit policy. Keep the mismatch visible until then. |
 | **A7 — medium** | Participation differs between fitting, side averaging and bootstrap: zero-weight axis rows can affect the score; bootstrap can reuse positive weights of off-axis rows. `protocol/src/orchestrator.rs:49–62`; `scoring/src/bridging.rs:261–294,515–568,650–675`. | L/D/C. Define consistent participation semantics for fitting, partition, means, coverage and bootstrap. The off-axis/positive-weight case is an API-contract counterexample, not a demonstrated production mapping. |
 | **A8 — medium** | Low power for one biased item is presented as structural non-identifiability. `paper/sections/04-level-b.tex:62–85,138–142`; `08:522–526`. | L/D. Separate distinguishability from the null, parameter identifiability and finite-sample power. Preserve observed simulation failures without turning them into a general impossibility theorem. |
@@ -55,6 +55,16 @@ column says what was checked, not that a proposed correction has been validated.
 
 Paths beginning `scoring/` or `protocol/` in the table are relative to `crates/`;
 numbered document shorthand is relative to `docs/`. Paper paths are repository-relative.
+
+### A5 correction record
+
+| | |
+|---|---|
+| **State** | **Confirmed.** Implemented and verified by the implementation agent; **not yet reviewed by Astra** (design review). A5 stays open until that review. |
+| **Reproduction** | On `d0a0808` (code identical to the baseline): the band item of `supplementary_redecision.rs` (200 reviewers, a first panel of nine at `τ + 0.02`) with an extra round of four reviewers who have no row in the epoch's ratings. `gate::supplementary_review` on the output of `expanded_ratings` returned `Err(AxisCount { expected: 204, found: 200 })`, and the re-decision closure inside `run_item` failed with the same error: `expanded_ratings` extended `weights` but not `axis`, which `Ratings::validate` refuses. |
+| **Eligibility policy** | Taken from the existing contracts, not chosen anew. Axis membership belongs to the reviewer's standing — founder, or at least `n_min` reviews on record (`02` §A.4, `orchestrator::axis_mask`) — and the weight is its review weight (`bridging_weights`, D33/D36); having no row this epoch changes neither. `expanded_ratings` now takes the newcomer's `ReviewerStanding` and the epoch's `w_max` in place of a bare weight, and builds the row with the two functions `weighted_ratings` uses. A caller-supplied weight plus axis flag was not adopted: it admits pairs no standing produces. |
+| **Verification** | `supplementary_redecision.rs::an_extra_reviewer_without_a_row_is_re_decided_on_its_standing`. Rows for a probationer, a reviewer past the floor but in probation, a founder and an established reviewer equal those `weighted_ratings` builds (`axis = [false, true, true, true]`). Through `run_item`, four established reviewers without rows reject the item when they disapprove and pass it when they approve; four probationers leave it in the pool either way, with `S_j` bit-identical. The test fails on the defect (`AxisCount` at the fit), with new rows forced off the axis (the established reviewers' disapproval no longer rejects) and forced on (the axis check). The protocol and scoring suites pass. |
+| **Left open** | A reviewer past the floor but in probation sits on the axis at weight 0 and enters the side averages without its rating counting: A7's participation semantics, unchanged here. An extra round drawn only from zero-weight reviewers adds no weighted evidence, so the re-decision rests on the first panel's ratings alone against the plain `τ`, the effect PROTO-008 described; `review::assign_extra_from_beacon` does not consider weight. Whether the extra draw should account for weight is a design question outside A5. |
 
 ### Small reproductions to preserve during correction
 
@@ -122,6 +132,7 @@ numbered document shorthand is relative to `docs/`. Paper paths are repository-r
    T26 must review the final candidate; T27 remains the empirical pilot dependency.
 
 **First correction handoff:** verify A1–A3's guarantee premises and A4–A7's code paths.
-The local input-contract defect A5 is a suitable first bounded implementation once its
-reproduction and newcomer eligibility policy are explicit. T83 is needed before final
-calibration, not before investigating these defects.
+A5, the local input-contract defect, is the first bounded implementation: its reproduction
+and newcomer eligibility policy are in its [correction record](#a5-correction-record),
+awaiting design review. T83 is needed before final calibration, not before investigating
+these defects.

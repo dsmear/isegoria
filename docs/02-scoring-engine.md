@@ -163,6 +163,9 @@ inadequate at this scale, and the useful value on the intercept was around 0.08.
   axis from the start (the founder set is declared heterogeneous, `05` §Cold start),
   otherwise the first epochs would have no axis. Until it is established a newcomer
   weighs 0 anyway (`01` D36) and is assigned from the position it has (`05` [4]).
+  A reviewer drawn into the band's extra round with no row in the epoch's ratings gets
+  the row its standing gives, as the epoch's rows do: on the axis only as a founder or
+  past the floor, at its review weight (`orchestrator::expanded_ratings`; `15` A5).
   Provisional (T25).
 
 ### A.5 Optimization

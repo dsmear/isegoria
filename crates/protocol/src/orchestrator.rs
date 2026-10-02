@@ -203,21 +203,24 @@ pub fn extra_round(band: State, extra: &ExtraRound) -> Result<State, Invalid> {
 }
 
 /// The ratings the band re-decision fits (D26): `base` plus one observation of `item` per
-/// extra reveal, adding a weighted row for a reviewer not already in `rows`.
+/// extra reveal; a reviewer not in `rows` gets a row from its standing, as in [`weighted_ratings`].
 pub fn expanded_ratings(
     base: &Ratings,
     rows: &[Nym],
     item: usize,
     reveals: &[(Nym, f64)],
-    weight_of_new: impl Fn(&Nym) -> f64,
+    standing_of_new: impl Fn(&Nym) -> ReviewerStanding,
+    w_max: f64,
 ) -> Ratings {
     let mut expanded = base.clone();
     for &(nym, r) in reveals {
         let u = match rows.iter().position(|n| *n == nym) {
             Some(u) => u,
             None => {
+                let standing = [standing_of_new(&nym)];
+                expanded.weights.extend(bridging_weights(&standing, w_max));
+                expanded.axis.extend(axis_mask(&standing));
                 expanded.n += 1;
-                expanded.weights.push(weight_of_new(&nym));
                 expanded.n - 1
             }
         };

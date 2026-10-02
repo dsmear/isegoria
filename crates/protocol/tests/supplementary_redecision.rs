@@ -7,7 +7,8 @@ use network::cid::cid;
 use protocol::gate::{bridging_gate, supplementary_review, GateOutcome, APPEAL_GAP, EPS, TAU};
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State};
 use protocol::orchestrator::{
-    expanded_ratings, review_round, run_item, ExtraRound, ItemVerdicts, Judgment,
+    expanded_ratings, review_round, run_item, weighted_ratings, ExtraRound, ItemVerdicts, Judgment,
+    ReviewerStanding, N_MIN_REVIEWS,
 };
 use scoring::bridging::{
     bridge_scores, fit, side_balanced, BridgingParams, Obs, Ratings, RatingsError,
@@ -308,7 +309,14 @@ fn the_extra_reviewers_change_the_re_decision() {
     assert_eq!(extra.len(), 20);
     let reveals_at = |r: f64| -> Vec<(Nym, f64)> { extra.iter().map(|&n| (n, r)).collect() };
 
-    let disapproving = expanded_ratings(&ratings, &rows, j, &reveals_at(0.2), |_| 1.0);
+    let disapproving = expanded_ratings(
+        &ratings,
+        &rows,
+        j,
+        &reveals_at(0.2),
+        |_| ReviewerStanding::founder(),
+        1.0,
+    );
     assert_eq!(
         disapproving.n, ratings.n,
         "the extra reviewers rate from their rows"
@@ -326,18 +334,34 @@ fn the_extra_reviewers_change_the_re_decision() {
         GateOutcome::Reject
     );
 
-    let approving = expanded_ratings(&ratings, &rows, j, &reveals_at(0.95), |_| 1.0);
+    let approving = expanded_ratings(
+        &ratings,
+        &rows,
+        j,
+        &reveals_at(0.95),
+        |_| ReviewerStanding::founder(),
+        1.0,
+    );
     assert_eq!(
         supplementary_review(&approving, &params, j, TAU, APPEAL_GAP).unwrap(),
         GateOutcome::Pass
     );
 
-    // A reviewer with no row this epoch gets one, at the weight the caller gives.
+    // A reviewer with no row this epoch gets one, from the standing the caller gives.
     let newcomer = Nym([250; 32]);
-    let with_newcomer = expanded_ratings(&ratings, &rows, j, &[(newcomer, 0.5)], |_| 0.7);
+    let with_newcomer = expanded_ratings(
+        &ratings,
+        &rows,
+        j,
+        &[(newcomer, 0.5)],
+        |_| ReviewerStanding::founder(),
+        1.0,
+    );
     assert_eq!(with_newcomer.n, ratings.n + 1);
     assert_eq!(with_newcomer.weights.len(), ratings.n + 1);
-    assert_eq!(with_newcomer.weights[ratings.n], 0.7);
+    assert_eq!(with_newcomer.weights[ratings.n], 1.0);
+    assert_eq!(with_newcomer.axis.len(), ratings.n + 1);
+    assert!(with_newcomer.axis[ratings.n]);
     assert_eq!(
         with_newcomer.obs.last().map(|o| (o.u, o.j, o.r)),
         Some((ratings.n, j, 0.5))
@@ -438,7 +462,14 @@ fn a_band_item_whose_extra_reviewers_disapprove_is_rejected() {
         }
     };
     let redecide = |reveals: &[(Nym, f64)]| {
-        let expanded = expanded_ratings(&ratings, &rows, j, reveals, |_| 1.0);
+        let expanded = expanded_ratings(
+            &ratings,
+            &rows,
+            j,
+            reveals,
+            |_| ReviewerStanding::founder(),
+            1.0,
+        );
         supplementary_review(&expanded, &params, j, TAU, APPEAL_GAP).unwrap()
     };
     assert_eq!(
@@ -464,4 +495,136 @@ fn a_re_decision_of_an_item_outside_the_batch_is_an_error_not_a_panic() {
         supplementary_review(&ratings, &BridgingParams::default(), m, TAU, APPEAL_GAP),
         Err(RatingsError::ItemOutOfRange { j: m, m })
     );
+}
+
+/// A5, AT-PRO-03: an extra reviewer without a row enters the re-decision on its standing.
+#[test]
+fn an_extra_reviewer_without_a_row_is_re_decided_on_its_standing() {
+    let params = BridgingParams::default();
+    let first_panel = [0usize, 20, 40, 60, 80, 100, 120, 140, 160];
+    let (ratings, j) = ratings_with_a_panel_rated_item(TAU + 0.02, &first_panel);
+    let rows: Vec<Nym> = (0..ratings.n).map(|u| Nym([u as u8; 32])).collect();
+    let newcomers: Vec<Nym> = (240..244u8).map(|i| Nym([i; 32])).collect();
+    let w_max = 3.0;
+    let probation = ReviewerStanding {
+        is_founder: false,
+        judgments_with_outcome: 0,
+        skill: 0.0,
+        reviews: 3,
+    };
+    let established = ReviewerStanding::established(0.02);
+
+    // A new row is the row the epoch's ratings give the same standing.
+    let standings = [
+        probation,
+        ReviewerStanding {
+            judgments_with_outcome: 10,
+            reviews: N_MIN_REVIEWS,
+            ..probation
+        },
+        ReviewerStanding::founder(),
+        established,
+    ];
+    let reveals: Vec<(Nym, f64)> = newcomers.iter().map(|&n| (n, 0.5)).collect();
+    let mixed = expanded_ratings(
+        &ratings,
+        &rows,
+        j,
+        &reveals,
+        |nym| standings[newcomers.iter().position(|n| n == nym).unwrap()],
+        w_max,
+    );
+    let epoch_rows =
+        weighted_ratings(&vec![vec![0.5]; 4], &vec![vec![true]; 4], &standings, w_max).unwrap();
+    assert_eq!(mixed.n, ratings.n + 4);
+    assert_eq!(mixed.axis[ratings.n..], [false, true, true, true]);
+    assert_eq!(mixed.axis[ratings.n..], epoch_rows.axis[..]);
+    assert_eq!(mixed.weights[ratings.n..], epoch_rows.weights[..]);
+    assert!(fit(&mixed, &params).is_ok());
+
+    let reviewed = || {
+        let first: Vec<Judgment> = first_panel
+            .iter()
+            .map(|&u| Judgment {
+                nym: rows[u],
+                prob: TAU + 0.02,
+                nonce: [u as u8; 32],
+            })
+            .collect();
+        let admitted = step(
+            deposit(true, true, true, true).unwrap(),
+            Event::Admit {
+                seed_from_beacon: true,
+            },
+        )
+        .unwrap();
+        review_round(
+            admitted,
+            cid(b"borderline"),
+            first.iter().map(|jd| jd.nym).collect(),
+            &first,
+        )
+        .unwrap()
+    };
+    let verdicts = ItemVerdicts {
+        gate: GateOutcome::SupplementaryReview,
+        appealed: false,
+        appeal_within_window: true,
+        author_reputation: 0.6,
+        appeal_floor: 0.4,
+        enough_respondents: true,
+        screen_passed: true,
+        dif_passed: true,
+        source_verified: false,
+        pilot2_batch_size: 8,
+        explored: false,
+    };
+    let extra_at = |prob: f64| {
+        let judgments: Vec<Judgment> = newcomers
+            .iter()
+            .map(|&nym| Judgment {
+                nym,
+                prob,
+                nonce: nym.0,
+            })
+            .collect();
+        ExtraRound {
+            panel: newcomers.clone(),
+            judgments,
+        }
+    };
+    let score_at = |standing: ReviewerStanding, prob: f64| {
+        let reveals: Vec<(Nym, f64)> = newcomers.iter().map(|&n| (n, prob)).collect();
+        let expanded = expanded_ratings(&ratings, &rows, j, &reveals, |_| standing, w_max);
+        side_balanced(&fit(&expanded, &params).unwrap()).score[j]
+    };
+
+    // Four disapprovals reject the item from established reviewers; from probationers,
+    // off the axis at weight 0, they move nothing.
+    for (standing, disapproved, approved) in [
+        (probation, State::ActivePool, State::ActivePool),
+        (
+            established,
+            State::Rejected(RejectReason::Borderline),
+            State::ActivePool,
+        ),
+    ] {
+        let redecide = |reveals: &[(Nym, f64)]| {
+            let expanded = expanded_ratings(&ratings, &rows, j, reveals, |_| standing, w_max);
+            supplementary_review(&expanded, &params, j, TAU, APPEAL_GAP).unwrap()
+        };
+        assert_eq!(
+            run_item(reviewed(), &verdicts, Some(&extra_at(0.1)), redecide).unwrap(),
+            disapproved
+        );
+        assert_eq!(
+            run_item(reviewed(), &verdicts, Some(&extra_at(0.95)), redecide).unwrap(),
+            approved
+        );
+    }
+    assert_eq!(
+        score_at(probation, 0.1).to_bits(),
+        score_at(probation, 0.95).to_bits()
+    );
+    assert!(score_at(established, 0.1) < score_at(established, 0.95));
 }
