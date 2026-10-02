@@ -47,6 +47,7 @@ guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
 | [`13-characterization.md`](13-characterization.md) | T24 and T25's supplement: the simulation studies that characterize the detectors and gates, the harness that runs them, and their results |
 | [`14-parameter-register.md`](14-parameter-register.md) | Every threshold's reason, calibration procedure, sensitivity, failure and location (`07` §13) |
 | [`15-phase1-review.md`](15-phase1-review.md) | Current review findings, evidence limits and correction handoff; distinguishes implemented behavior from unresolved guarantees |
+| [`16-a1-incentive-design.md`](16-a1-incentive-design.md) | A1 dossier, for design review: the exploration draw's information sequence, the adaptive counterexample, the corrected IPW theorem and the candidate fixes |
 | [`99-glossary.md`](99-glossary.md) | Every concept explained from scratch, from the problem to the formula |
 | [`sim/`](../sim/) | Historical research prototypes and scoped fixture/differential oracles; see its README for current vs retired paths |
 | [`paper/`](../paper/) | Working paper: formal statement and analysis of the scoring mechanism, with proofs, reproducible experiments and open problems |
