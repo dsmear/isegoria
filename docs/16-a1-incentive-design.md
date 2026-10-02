@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis and proposal; **A1 open** (`15`). Diagnosis confirmed; the updated analysis of the beacon's manipulability and of observations, assignments and the IPW count approved; the theorem and the overall proposal **not approved**. The band baselines (C5, §4.6) are decided by the review and implemented: implemented and verified, design review pending. The paper is not rewritten; `01` D33 carries a dated refinement and `02` §C.2 the band baselines. |
+| **Status** | Analysis and proposal; **A1 open** (`15`). Diagnosis confirmed; the updated analysis of the beacon's manipulability and of observations, assignments and the IPW count approved; the proof of properness approved as a result conditional on the joint invariance C6 and the theorem's other hypotheses, not as a guarantee of the protocol; the overall proposal **not approved**. The band baselines (C5, §4.6) **approved** on `e8fdbe7`. The pilot batch contract (C3) and missing outcomes (C2) are analyzed in [`17`](17-a1-pilot-batch-design.md). The paper is not rewritten; `01` D33 carries a dated refinement and `02` §C.2 the band baselines. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `4478f04`, revised from it. Line references are to that commit. |
 | **Scope** | The claim that randomized exploration with inverse-probability weighting (IPW) keeps the evaluator score proper (`01` D35, `02` §C.2, paper Prop. `prop:ipw`). A10 (the fallback baseline) stays a separate finding. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated exactly; **E** executed as a Rust test (`crates/protocol/tests/a1_exploration_information.rs`). |
@@ -30,6 +30,18 @@ Second review:
 - Evidence: reading of the diff and checks of the mathematics; the Rust tests were not re-run.
 - The theorem and the overall proposal are not yet approved; A1 stays open. Decided by the
   review: the band baselines' composition (§4.6).
+
+Third review (on `e8fdbe7`):
+
+- Approved: the band baselines' composition (§4.6).
+- Evidence: reading of the diff, the callers and the tests; the Rust tests were not re-run.
+  Independent recalculation with rational arithmetic of the baselines 21/40, 5/7, 7/10 and
+  53/80, of the extra-round aggregate 53/80, and of the difference scores for both outcomes.
+- The frozen weights are the caller's responsibility; no production caller exists yet. What
+  `None` does to reputation is not decided; A10 stays open.
+- The proof of properness is approved as a result conditional on the explicit joint
+  invariance C6 and the theorem's other hypotheses, not as a guarantee of the protocol.
+- A1 stays open.
 
 These records are no partial closure of the production guarantee. The conditions C1–C6 below
 are this dossier's; they are not the review findings of the same names in `15` (there, C5 is
@@ -161,7 +173,9 @@ full bridging gate, where a report moves the decision only when pivotal (not mea
 
 **Lemma (IPW, nominal against effective).** Under C2 and C3,
 `E[I_j d_uj / π_j | F_Φ] = d̄_uj` on *enters* and `(π*_j / ε) · d̄_uj` on *rejected*, where
-`d̄_uj = E[d_uj | F_Φ]`. The estimator is conditionally unbiased exactly when C1 holds.
+`d̄_uj = E[d_uj | F_Φ]`. It is conditionally unbiased for every possible score exactly when C1
+holds; for a single item whose `d̄_uj` is 0 the equality can hold with a wrong inclusion
+probability, so unbiasedness on one case does not establish C1.
 
 *Proof.* `d_uj` is a function of `o_j` and of pre-draw variables. On *enters*, `I_j/π_j = 1`
 (C2). On *rejected*, `I_j/π_j = X_j/ε` and, `X_j` being independent of `o_j` given `F_Φ` (C3),
@@ -212,9 +226,10 @@ hence `E[d | F'_u] ≥ −1`. (The earlier claim `E[d | F'_u] ≥ −(p − q')�
 an even outcome and `p = q' = ½`, `E[d] = −¼`.) Three quantities must be kept apart: the raw
 score `d`, at least −1 pointwise; the realized IPW contribution `I d / π`, at least `−1/π`
 pointwise, so `−1/ε` on an explored item; and its expected value. Going from the bound on `d`
-to a statement about `E[Ŝ_u]` under withholding needs C1 and C2 relative to `F'_u` (the draw
-independent of what `u` knows at the reveal decision), so that a revealed judgment's expected
-contribution is `E[d | F'_u] ≥ −1`; a fixed denominator (C4); and the deviation leaving the
+to a statement about `E[Ŝ_u]` under withholding needs the IPW identity conditional on `F'_u`:
+C1, C2 and C3 relative to `F'_u` (the draw independent of what `u` knows at the reveal decision
+and of the common potential outcome), so that a revealed judgment's expected contribution is
+`E[d | F'_u] ≥ −1`; a fixed denominator (C4); and the deviation leaving the
 conditional expectation of every other term of `Ŝ_u` unchanged (other items' baselines,
 outcomes and draws). Under those, a no-show score `s_ns ≤ −1` recorded at `π = 1` makes
 withholding weakly dominated in `E[Ŝ_u]` (D). Further hypotheses: the penalty does not depend
@@ -452,9 +467,8 @@ outcome at the current cost; the audit is not more robust to a manipulable sourc
    source change.
 
 **Smallest next verifiable step.** C5 was that step (§4.6: decided, implemented and
-verified, design review pending). Next: define C3's batch contract, that is, which items a
-batch may hold and how batches form so that an item's outcome depends neither on its own
-path nor on other items' paths. C2's missing-outcome policy and C4's denominator wait on
+approved on `e8fdbe7`). C3's batch contract and C2's missing outcomes are analyzed in
+[`17`](17-a1-pilot-batch-design.md), pending design review; C4's denominator waits on
 decisions not yet taken.
 
 **Trade-offs that need the owner.**
