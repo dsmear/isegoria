@@ -10,6 +10,7 @@ use proptest::test_runner::TestRunner;
 use protocol::exposure::RetirementReason;
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State, K_EXTRA_MAX, K_MIN};
+use protocol::revalidation::Recheck;
 use protocol::review::{commit, Commit};
 use std::collections::HashSet;
 
@@ -443,15 +444,29 @@ fn model_step(phase: &Phase, event: &Event, preimage: Preimage) -> Result<Phase,
         (Pool, Event::Administer) => Ok(Pool),
         (Contested, Event::Administer) => Ok(Contested),
         (
+            Pool,
+            Event::Revalidate {
+                dif: Recheck::Indeterminate,
+                ..
+            },
+        ) => Ok(Pool),
+        (
+            Contested,
+            Event::Revalidate {
+                dif: Recheck::Indeterminate,
+                ..
+            },
+        ) => Ok(Contested),
+        (
             Pool | Contested,
             Event::Revalidate {
-                emerging_dif,
+                dif,
                 source_verified,
             },
-        ) => Ok(match (emerging_dif, source_verified) {
-            (false, _) => Pool,
-            (true, true) => Contested,
-            (true, false) => Retired(RetirementReason::EmergingDif),
+        ) => Ok(match (dif, source_verified) {
+            (Recheck::Dif, true) => Contested,
+            (Recheck::Dif, false) => Retired(RetirementReason::EmergingDif),
+            _ => Pool,
         }),
         (Pool | Contested, Event::ExposureLimit) => Ok(Retired(RetirementReason::Exposure)),
 
@@ -600,7 +615,7 @@ enum Op {
     Explore(bool),
     Administer,
     /// The re-validation's DIF flag and the source check's verdict (D38).
-    Revalidate(bool, bool),
+    Revalidate(Recheck, bool),
     ExposureLimit,
 }
 
@@ -690,8 +705,9 @@ fn next_op(
         },
         Phase::Pool | Phase::Contested => match pick % 8 {
             0..=4 => Op::Administer,
-            5 => Op::Revalidate(false, bit(4)),
-            6 => Op::Revalidate(true, bit(4)),
+            5 if bit(6) => Op::Revalidate(Recheck::Indeterminate, bit(4)),
+            5 => Op::Revalidate(Recheck::NoDif, bit(4)),
+            6 => Op::Revalidate(Recheck::Dif, bit(4)),
             _ => Op::ExposureLimit,
         },
         // A gate rejection: the exploration draw (T52), half of the time, else a detour.
@@ -944,8 +960,8 @@ fn plan(op: &Op, phase: &Phase) -> (Event, Preimage) {
         }),
         Op::Explore(seed_from_beacon) => plain(Event::Explore { seed_from_beacon }),
         Op::Administer => plain(Event::Administer),
-        Op::Revalidate(emerging_dif, source_verified) => plain(Event::Revalidate {
-            emerging_dif,
+        Op::Revalidate(dif, source_verified) => plain(Event::Revalidate {
+            dif,
             source_verified,
         }),
         Op::ExposureLimit => plain(Event::ExposureLimit),
@@ -1020,7 +1036,15 @@ fn arbitrary_op() -> impl Strategy<Value = Op> {
         }),
         any::<bool>().prop_map(Op::Explore),
         Just(Op::Administer),
-        any::<(bool, bool)>().prop_map(|(dif, verified)| Op::Revalidate(dif, verified)),
+        (
+            prop_oneof![
+                Just(Recheck::Dif),
+                Just(Recheck::NoDif),
+                Just(Recheck::Indeterminate)
+            ],
+            any::<bool>()
+        )
+            .prop_map(|(dif, verified)| Op::Revalidate(dif, verified)),
         Just(Op::ExposureLimit),
     ]
 }

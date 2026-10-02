@@ -4,6 +4,7 @@
 
 use crate::exposure::RetirementReason;
 use crate::gate::GateOutcome;
+use crate::revalidation::Recheck;
 use crate::review::{reveal, Commit as Commitment};
 use identity::nym::Nym;
 use network::cid::Cid;
@@ -197,11 +198,8 @@ pub enum Event {
     Explore { seed_from_beacon: bool },
     /// The item is administered (adds exposure).
     Administer,
-    /// Periodic re-validation: `emerging_dif` = DIF flagged, `source_verified` as for stage 2.
-    Revalidate {
-        emerging_dif: bool,
-        source_verified: bool,
-    },
+    /// Periodic re-validation: `dif` the item's re-check reading, `source_verified` as for stage 2.
+    Revalidate { dif: Recheck, source_verified: bool },
     /// Exposure reached the limit.
     ExposureLimit,
 }
@@ -579,15 +577,16 @@ pub fn step(state: State, event: Event) -> Result<State, Invalid> {
 
         (pool @ (ActivePool | Contested), Administer) => Ok(pool),
         (
-            ActivePool | Contested,
+            pool @ (ActivePool | Contested),
             Revalidate {
-                emerging_dif,
+                dif,
                 source_verified,
             },
-        ) => Ok(match (emerging_dif, source_verified) {
-            (false, _) => ActivePool,
-            (true, true) => Contested,
-            (true, false) => Retired(RetirementReason::EmergingDif),
+        ) => Ok(match (dif, source_verified) {
+            (Recheck::Indeterminate, _) => pool,
+            (Recheck::NoDif, _) => ActivePool,
+            (Recheck::Dif, true) => Contested,
+            (Recheck::Dif, false) => Retired(RetirementReason::EmergingDif),
         }),
         (ActivePool | Contested, ExposureLimit) => Ok(Retired(RetirementReason::Exposure)),
 

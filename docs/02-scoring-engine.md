@@ -375,10 +375,16 @@ power (`13` §8.7.1). The misspecified populations had different results (§8.7.
 These are historical observations, not a guarantee or a post-D43 threshold decision.
 The cut remains provisional pending the candidate model's measurements and T83.
 
-**Fit status is not a clean verdict (`15` A4).** `LatentDif::flags` returns false for
-an unconverged fit as well as when no item crosses the rule. The current
-`revalidate_batch_latent` result loses that distinction. Preserving a non-evaluable
-outcome through the lifecycle is an open protocol correction.
+**Fit status is not a clean verdict (`15` A4).** A re-check reads DIF detected, none
+detected, or indeterminate. `LatentDif::flags` reads flags only from a converged selected
+fit (`DifFlags::Evaluated`, all false with one class) and is `DifFlags::Indeterminate`
+otherwise; `revalidate_batch_latent` carries the reading per item (`revalidation::Recheck`)
+to `Event::Revalidate`. None detected is the rule not firing on a converged fit, not a
+statistical guarantee that the item has no DIF. An indeterminate re-check leaves the item
+in the pool it is in, `ActivePool` or `Contested`, whatever the source check: it does not
+rehabilitate, retire for DIF or count as a passed re-check, and exposure and the other
+independent causes still retire the item. A batch the gates refuse is an input error
+(`PilotError`), not an indeterminate re-check.
 
 *Reference implementation (T40, T54).* `G ∈ {1, …, 4}` and uniform (shared `a_j`) vs
 non-uniform (per-class `a_jg`) DIF are chosen together by BIC, each candidate fitted from

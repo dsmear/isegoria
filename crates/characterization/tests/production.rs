@@ -8,7 +8,7 @@ use identity::nym::Nym;
 use protocol::admission::NullifierSet;
 use protocol::gate::{MIN_COVERAGE, TAU};
 use protocol::pilot::{PilotError, Templates};
-use protocol::revalidation::revalidate_batch_latent;
+use protocol::revalidation::{revalidate_batch_latent, Recheck};
 use scoring::latent::Formats;
 
 fn respondents(n: usize) -> NullifierSet {
@@ -19,6 +19,18 @@ fn respondents(n: usize) -> NullifierSet {
         set.spend(Nym(id)).unwrap();
     }
     set
+}
+
+/// The record's flags read with its `converged` field, as the production re-check reads them.
+fn as_rechecks(flags: &[bool], converged: bool) -> Vec<Recheck> {
+    flags
+        .iter()
+        .map(|&dif| match (converged, dif) {
+            (false, _) => Recheck::Indeterminate,
+            (true, true) => Recheck::Dif,
+            (true, false) => Recheck::NoDif,
+        })
+        .collect()
 }
 
 /// An admitted batch: the same flags as the production re-check with the same engine seed.
@@ -44,7 +56,10 @@ fn an_admitted_batch_gets_the_production_flags() {
         &Templates::none(d.anchors, d.k),
         engine_seed(seed),
     );
-    assert_eq!(Ok(outcome.flags.clone()), production);
+    assert_eq!(
+        Ok(as_rechecks(&outcome.flags, outcome.converged)),
+        production
+    );
     assert_eq!(outcome.roles, "++cc");
 }
 
@@ -98,7 +113,10 @@ fn a_batch_with_a_floor_gets_the_production_flags_of_its_format() {
         &Templates::none(d.anchors, d.k),
         engine_seed(seed),
     );
-    assert_eq!(Ok(outcome.flags.clone()), production);
+    assert_eq!(
+        Ok(as_rechecks(&outcome.flags, outcome.converged)),
+        production
+    );
     assert!(
         outcome.floors.iter().all(|c| (0.02..0.25).contains(c)),
         "{:?}",

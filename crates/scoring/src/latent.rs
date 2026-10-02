@@ -142,14 +142,23 @@ pub struct LatentDif {
     pub status: Convergence,
 }
 
+/// What a [`LatentDif`] lets the re-check read (`docs/02` §B.3, `docs/15` A4): per-item flags
+/// from a converged fit, where no flag means no DIF detected, or nothing from one that did not.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DifFlags {
+    /// Per trial item, `dif[j] > max_gap` with two or more classes; all `false` with one.
+    Evaluated(Vec<bool>),
+    /// The selected fit's status, never [`Convergence::Converged`].
+    Indeterminate(Convergence),
+}
+
 impl LatentDif {
-    /// Per item, `dif[j] > max_gap`, and only from a converged fit with two or more classes.
-    pub fn flags(&self, max_gap: f64) -> Vec<bool> {
-        let trustworthy = self.status == Convergence::Converged && self.classes >= 2;
-        self.dif
-            .iter()
-            .map(|&d| trustworthy && d > max_gap)
-            .collect()
+    pub fn flags(&self, max_gap: f64) -> DifFlags {
+        if self.status != Convergence::Converged {
+            return DifFlags::Indeterminate(self.status);
+        }
+        let mixture = self.classes >= 2;
+        DifFlags::Evaluated(self.dif.iter().map(|&d| mixture && d > max_gap).collect())
     }
 }
 

@@ -11,6 +11,7 @@ use protocol::exploration::{outcome_of, Observation, Scored, EXPLORATION_RATE};
 use protocol::exposure::{should_retire, ItemHealth, RetirementReason, EXPOSURE_LIMIT};
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{step, Event, RejectReason, State};
+use protocol::revalidation::Recheck;
 use scoring::dtf::{ClassCurves, DTF_MAX};
 use std::collections::HashSet;
 
@@ -115,16 +116,16 @@ fn at_pro_08_a_dif_item_is_contested_only_with_a_verified_source() {
         Ok(State::Contested)
     );
     assert_eq!(step(pilot2, batch(true, true)), Ok(State::ActivePool));
-    let revalidate = |emerging_dif, source_verified| Event::Revalidate {
-        emerging_dif,
+    let revalidate = |dif, source_verified| Event::Revalidate {
+        dif,
         source_verified,
     };
     assert_eq!(
-        step(State::ActivePool, revalidate(true, false)),
+        step(State::ActivePool, revalidate(Recheck::Dif, false)),
         Ok(State::Retired(RetirementReason::EmergingDif))
     );
     assert_eq!(
-        step(State::ActivePool, revalidate(true, true)),
+        step(State::ActivePool, revalidate(Recheck::Dif, true)),
         Ok(State::Contested)
     );
 }
@@ -132,8 +133,8 @@ fn at_pro_08_a_dif_item_is_contested_only_with_a_verified_source() {
 /// A contested fact is administered, re-measured, returns to the pool without DIF, and retires.
 #[test]
 fn a_contested_fact_is_re_measured_and_retires_like_a_pool_item() {
-    let revalidate = |emerging_dif, source_verified| Event::Revalidate {
-        emerging_dif,
+    let revalidate = |dif, source_verified| Event::Revalidate {
+        dif,
         source_verified,
     };
     assert_eq!(
@@ -141,15 +142,15 @@ fn a_contested_fact_is_re_measured_and_retires_like_a_pool_item() {
         Ok(State::Contested)
     );
     assert_eq!(
-        step(State::Contested, revalidate(true, true)),
+        step(State::Contested, revalidate(Recheck::Dif, true)),
         Ok(State::Contested)
     );
     assert_eq!(
-        step(State::Contested, revalidate(false, true)),
+        step(State::Contested, revalidate(Recheck::NoDif, true)),
         Ok(State::ActivePool)
     );
     assert_eq!(
-        step(State::Contested, revalidate(true, false)),
+        step(State::Contested, revalidate(Recheck::Dif, false)),
         Ok(State::Retired(RetirementReason::EmergingDif))
     );
     assert_eq!(
@@ -461,7 +462,7 @@ mod fitted {
     use protocol::revalidation::{latent_batch, target_flags, N_LATENT_MIN};
     use rand::{Rng, SeedableRng};
     use rand_chacha::ChaCha8Rng;
-    use scoring::latent::Formats;
+    use scoring::latent::{DifFlags, Formats};
 
     /// The fitted bound's estimation error at N = 3,000 (`docs/02` §B.7).
     const ESTIMATION: f64 = 0.05;
@@ -553,7 +554,9 @@ mod fitted {
             let none = Templates::none(open.anchors.len(), open.items.len());
             let fit =
                 latent_batch(&respondents, &anchors, &x, &open, &none, 0).expect("the gate admits");
-            let flags = target_flags(&fit);
+            let DifFlags::Evaluated(flags) = target_flags(&fit) else {
+                panic!("{tag}: {:?}", fit.status);
+            };
             let expect: Vec<bool> = items.iter().map(|it| it.2 != 0.0).collect();
             assert_eq!(flags, expect, "{tag}: gaps {:?}", fit.dif);
             let mut members = Vec::new();

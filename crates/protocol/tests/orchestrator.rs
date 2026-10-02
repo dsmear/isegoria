@@ -5,6 +5,7 @@ use identity::nym::Nym;
 use network::cid::{cid, Cid};
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State, K_MIN};
+use protocol::revalidation::Recheck;
 use protocol::review::commit;
 
 fn nym(i: u8) -> Nym {
@@ -136,7 +137,7 @@ fn a_full_valid_walk_reaches_the_pool_then_retires() {
     s = step(
         s,
         Event::Revalidate {
-            emerging_dif: true,
+            dif: Recheck::Dif,
             source_verified: false,
         },
     )

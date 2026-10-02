@@ -16,7 +16,8 @@ The original audit body and dated remediation entries retain their historical sc
 For the current correction pass, read them with
 [`15-phase1-review.md`](15-phase1-review.md). In particular, the historical closures
 of REPUTATION-008, DIF-011 and PROTO-008 do not settle the new A1/A2/A5 findings;
-the founder-reset contract and nonconvergence handling also remain open (A6/A4).
+the founder-reset contract remains open (A6), and the nonconvergence handling awaits
+design review (A4).
 SC-6's local difference-score result does not establish protocol-level properness
 with a draw known before the report. This documentation pass records those limits;
 it is not a new implementation fix or a replacement for T26.
@@ -1012,10 +1013,10 @@ Before any deployment: (1) the threshold OPRF composition and its DLEQ transcrip
 | `Explored{reason}` | stage-1 batch, as `Pilot1` | as `Pilot1` | `Explored{screened}` if the screen passes, else `Measured{reason, passed: false}` | — | as `Pilot1` (✓ `NotEnoughRespondents`); stage 2 before the screen (✓ `UnexpectedEvent`) |
 | `Explored{screened}` | stage-2 batch, as `Pilot2` | as `Pilot2` | `Measured{reason, passed}` — `passed` when the pilot would admit it to either pool (a contested fact counts, D38) — never `ActivePool` (✓ T52, `exploration.rs`, the model suites) | `o_j` recorded → the evaluator difference score at weight `1/ε` (`SkillTrack::record_observed`); the gate's false-negative rate (`FalseNegatives`); an unexplored gate rejection counts in the reviewer's denominator only (`record_unobserved`) | as `Pilot2` (✓ `BatchTooSmall`); any event on `Measured` (✓ terminal) |
 | `ActivePool` | administration | blueprint quotas respected; `exposure.record(cid)` | `ActivePool` | exposure++ | — |
-| `ActivePool` | periodic re-validation | batched mixture run (DIF-009 bound) on the target model — the anchors inside the likelihood, θ integrated out (D37, ✓ T54: `revalidate_batch_latent` → `scoring::latent::latent_dif`); the batch's anchors reliable: KR-20 ≥ `KR20_MIN` on its respondents (✓ T53); on emerging DIF the source check's verdict (`source_verified`, D38) | stays without DIF; `Contested` with DIF and a verified source (✓ T55); `Retired{EmergingDif}` otherwise | — | fewer than `K_MIN` items; fewer than `N_LATENT_MIN` respondents; unreliable anchors (`PilotError::UnreliableAnchors`) |
+| `ActivePool` | periodic re-validation | batched mixture run (DIF-009 bound) on the target model — the anchors inside the likelihood, θ integrated out (D37, ✓ T54: `revalidate_batch_latent` → `scoring::latent::latent_dif`); the batch's anchors reliable: KR-20 ≥ `KR20_MIN` on its respondents (✓ T53); on emerging DIF the source check's verdict (`source_verified`, D38) | stays without DIF; `Contested` with DIF and a verified source (✓ T55); `Retired{EmergingDif}` otherwise; stays, whatever the source check, when the fit did not converge (`Recheck::Indeterminate`, `docs/15` A4) | — | fewer than `K_MIN` items; fewer than `N_LATENT_MIN` respondents; unreliable anchors (`PilotError::UnreliableAnchors`) |
 | `ActivePool` | `exposure ≥ EXPOSURE_LIMIT (2000)` | — | `Retired{Exposure}` | template rotation | — |
 | `Contested` | administration | drawn into a test only by the balanced draw: `contested::ContestedPool::draw_from_beacon`, the bound `D(T) ≤ DTF_MAX` (`docs/02` §B.7, ✓ T55); `exposure.record(cid)` | `Contested` | exposure++ | a selection over the tolerance (✓ by construction: the draw fails, `NoBalancedDraw`, rather than exceed it) |
-| `Contested` | periodic re-validation | as for `ActivePool`; the fit's curves replace the item's in the pool (`ContestedPool::record`, `revalidation::latent_batch`) | `ActivePool` without DIF; stays with DIF and a verified source; `Retired{EmergingDif}` otherwise (✓ T55) | — | as for `ActivePool` |
+| `Contested` | periodic re-validation | as for `ActivePool`; the fit's curves replace the item's in the pool (`ContestedPool::record`, `revalidation::latent_batch`) | `ActivePool` without DIF; stays with DIF and a verified source; `Retired{EmergingDif}` otherwise (✓ T55); stays, whatever the source check, when the fit did not converge (`docs/15` A4) | — | as for `ActivePool` |
 | `Contested` | `exposure ≥ EXPOSURE_LIMIT` | — | `Retired{Exposure}` | — | — |
 
 ### 9.2 Reviewer (judge nym) reputation

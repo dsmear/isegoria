@@ -12,6 +12,7 @@ use protocol::events::NodeEvent;
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{step, Event, Invalid, State};
 use protocol::node::{Node, NodeError, Outcome, Rejection};
+use protocol::revalidation::Recheck;
 use protocol::review::commit;
 use std::fs;
 use std::path::PathBuf;
@@ -122,7 +123,11 @@ fn walks(items: &[Cid]) -> Vec<(Cid, Vec<Event>)> {
     pool.extend([
         Event::Administer,
         Event::Revalidate {
-            emerging_dif: false,
+            dif: Recheck::Indeterminate,
+            source_verified: true,
+        },
+        Event::Revalidate {
+            dif: Recheck::NoDif,
             source_verified: false,
         },
         Event::ExposureLimit,
@@ -313,6 +318,21 @@ fn at_pro_11_lifecycle_events_round_trip_and_bad_bytes_are_refused() {
         seed_from_beacon: true,
     })
     .encode();
+    for (dif, byte) in [
+        (Recheck::NoDif, 0u8),
+        (Recheck::Dif, 1),
+        (Recheck::Indeterminate, 2),
+    ] {
+        let revalidate = step(Event::Revalidate {
+            dif,
+            source_verified: true,
+        })
+        .encode();
+        assert_eq!(revalidate[34..], [15, byte, 1]);
+        let mut unknown = revalidate;
+        unknown[35] = 3;
+        assert!(NodeEvent::decode(&unknown).is_none());
+    }
     let mut bad_bool = admit.clone();
     *bad_bool.last_mut().unwrap() = 2;
     assert!(NodeEvent::decode(&bad_bool).is_none());

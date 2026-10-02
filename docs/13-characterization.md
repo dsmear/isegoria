@@ -105,7 +105,9 @@ retries it. One process per output directory; a study named twice runs once.
 
 **Fidelity to production.** The DIF studies fit `scoring::latent::latent_dif` with the
 production settings and read the verdict with `protocol::revalidation::target_flags`, the
-rule of `revalidate_batch_latent`. The gates are recorded, not applied: `admitted` is
+rule of `revalidate_batch_latent`. A fit that did not converge, which production reads as
+indeterminate (`15` A4), is recorded as before: no flag, beside `converged = false`. The
+gates are recorded, not applied: `admitted` is
 `K ≥ K_MIN`, `N ≥ N_LATENT_MIN` and KR-20 ≥ `KR20_MIN`, so the study also measures what
 the gates refuse. The rates are over all runs — the engine's behaviour — and every DIF
 table gives the share production would admit; `summary.csv` also gives the batch, power

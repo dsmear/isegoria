@@ -5,6 +5,7 @@ use crate::deposit::Draft;
 use crate::gate::GateOutcome;
 use crate::lifecycle::Event;
 use crate::results::{read_results, write_results, EpochResults};
+use crate::revalidation::Recheck;
 use crate::review::Commit as Commitment;
 use identity::nullifier::NullifierProof;
 use identity::nym::Nym;
@@ -140,6 +141,14 @@ fn outcome_byte(outcome: GateOutcome) -> u8 {
     }
 }
 
+fn recheck_byte(dif: Recheck) -> u8 {
+    match dif {
+        Recheck::NoDif => 0,
+        Recheck::Dif => 1,
+        Recheck::Indeterminate => 2,
+    }
+}
+
 fn nym_field(nyms: &[Nym]) -> Vec<u8> {
     nyms.iter().flat_map(|n| n.0).collect()
 }
@@ -184,11 +193,11 @@ fn write_step(w: &mut Writer, event: &Event) {
         Event::Explore { seed_from_beacon } => w.u8(13).u8(u8::from(*seed_from_beacon)),
         Event::Administer => w.u8(14),
         Event::Revalidate {
-            emerging_dif,
+            dif,
             source_verified,
         } => w
             .u8(15)
-            .u8(u8::from(*emerging_dif))
+            .u8(recheck_byte(*dif))
             .u8(u8::from(*source_verified)),
         Event::ExposureLimit => w.u8(16),
     };
@@ -208,6 +217,15 @@ fn read_outcome(r: &mut Reader) -> Option<GateOutcome> {
         1 => GateOutcome::SupplementaryReview,
         2 => GateOutcome::AppealEligible,
         3 => GateOutcome::Reject,
+        _ => return None,
+    })
+}
+
+fn read_recheck(r: &mut Reader) -> Option<Recheck> {
+    Some(match r.u8().ok()? {
+        0 => Recheck::NoDif,
+        1 => Recheck::Dif,
+        2 => Recheck::Indeterminate,
         _ => return None,
     })
 }
@@ -272,7 +290,7 @@ fn read_step(r: &mut Reader) -> Option<Event> {
         },
         14 => Event::Administer,
         15 => Event::Revalidate {
-            emerging_dif: read_bool(r)?,
+            dif: read_recheck(r)?,
             source_verified: read_bool(r)?,
         },
         16 => Event::ExposureLimit,

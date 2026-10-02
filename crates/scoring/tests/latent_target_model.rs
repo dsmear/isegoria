@@ -8,7 +8,7 @@ use scoring::dif::{mixture_dif, MIXTURE_DIF_MAX};
 use scoring::irt::{kr20, theta_from_anchors};
 #[cfg(feature = "calibration")]
 use scoring::latent::latent_dif;
-use scoring::latent::{latent_dif_with, Formats, LatentParams};
+use scoring::latent::{latent_dif_with, DifFlags, Formats, LatentParams};
 use std::time::Instant;
 
 const K: usize = 8;
@@ -109,8 +109,9 @@ fn the_target_model_finds_no_mixture_where_the_proxy_did() {
             max(&proxy.dif),
             proxy.dif.iter().filter(|&&d| d > MIXTURE_DIF_MAX).count()
         );
-        assert!(
-            res.flags(MIXTURE_DIF_MAX).iter().all(|&f| !f),
+        assert_eq!(
+            res.flags(MIXTURE_DIF_MAX),
+            DifFlags::Evaluated(vec![false; K]),
             "{n_anchor} anchors: a clean item flagged, gaps {:?}",
             res.dif
         );
@@ -150,7 +151,12 @@ fn at_dif_12_the_campaign_that_inverted_the_differential_gap_is_flagged_on_the_s
         t0.elapsed().as_secs_f64()
     );
     let expected: Vec<bool> = (0..K).map(|j| j < 6).collect();
-    assert_eq!(res.flags(MIXTURE_DIF_MAX), expected, "gaps {:?}", res.dif);
+    assert_eq!(
+        res.flags(MIXTURE_DIF_MAX),
+        DifFlags::Evaluated(expected),
+        "gaps {:?}",
+        res.dif
+    );
 }
 
 /// The paper's Table on the target model: null batches with 10, 20, 30 and 60 anchors
@@ -171,7 +177,10 @@ fn the_paper_s_null_table_on_the_target_model() {
             res.status,
             t0.elapsed().as_secs_f64()
         );
-        assert!(res.flags(MIXTURE_DIF_MAX).iter().all(|&f| !f));
+        assert_eq!(
+            res.flags(MIXTURE_DIF_MAX),
+            DifFlags::Evaluated(vec![false; K])
+        );
         assert_eq!(res.classes, 1);
     }
 }
@@ -197,7 +206,7 @@ fn at_dif_12_campaigns_of_2_4_and_6_of_8_are_flagged_exactly() {
         let expected: Vec<bool> = (0..K).map(|j| j < n_biased).collect();
         assert_eq!(
             res.flags(MIXTURE_DIF_MAX),
-            expected,
+            DifFlags::Evaluated(expected),
             "{n_biased} of 8: gaps {:?}",
             res.dif
         );
@@ -219,7 +228,10 @@ fn at_dif_01_the_item_level_false_positive_rate_on_null_batches() {
                 let (anchors, x) = batch(n, n_anchor, 0, 0.0, seed);
                 let t0 = Instant::now();
                 let res = latent_dif(&anchors, &x, &open(&anchors, &x), 0).unwrap();
-                let flags = res.flags(MIXTURE_DIF_MAX).iter().filter(|&&f| f).count();
+                let DifFlags::Evaluated(flags) = res.flags(MIXTURE_DIF_MAX) else {
+                    panic!("N = {n}, {n_anchor} anchors, seed {seed}: {:?}", res.status);
+                };
+                let flags = flags.iter().filter(|&&f| f).count();
                 items += K;
                 flagged += flags;
                 mixtures += usize::from(res.classes >= 2);

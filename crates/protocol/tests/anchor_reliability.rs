@@ -4,7 +4,7 @@
 use identity::nym::Nym;
 use protocol::admission::NullifierSet;
 use protocol::pilot::{admit_anchors, PilotError, Templates};
-use protocol::revalidation::{latent_flags, revalidate_batch_latent, N_LATENT_MIN};
+use protocol::revalidation::{latent_flags, revalidate_batch_latent, Recheck, N_LATENT_MIN};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use scoring::dif::mixture_dif;
@@ -144,7 +144,7 @@ fn at_dif_11_sixty_anchors_are_accepted_and_raise_no_flag() {
     )
     .unwrap();
     println!("60 anchors: KR-20 {r:.3}, flags {flags:?}");
-    assert_eq!(flags, vec![false; K]);
+    assert_eq!(flags, vec![Recheck::NoDif; K]);
 }
 
 /// The precondition is undefined — and therefore refused — with fewer than two anchors,

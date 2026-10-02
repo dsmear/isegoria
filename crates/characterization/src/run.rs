@@ -23,7 +23,7 @@ use rand_chacha::ChaCha8Rng;
 use scoring::bridging::{bridge_scores, fit, BridgingParams, Obs, Ratings};
 use scoring::dtf::ClassCurves;
 use scoring::irt::{kr20, KR20_MIN};
-use scoring::latent::{latent_dif, Formats, LatentDif};
+use scoring::latent::{latent_dif, DifFlags, Formats, LatentDif};
 use scoring::Convergence;
 use std::collections::BTreeSet;
 
@@ -156,6 +156,14 @@ fn latent_fit(d: &DifDesign, batch: &DifBatch, seed: u64) -> LatentDif {
     latent_dif(&batch.anchors, &batch.x, &formats, engine_seed(seed)).expect("the design's formats")
 }
 
+/// The production flags as a record stores them beside `converged`: none from an unconverged fit.
+fn recorded_flags(fit: &LatentDif) -> Vec<bool> {
+    match target_flags(fit) {
+        DifFlags::Evaluated(flags) => flags,
+        DifFlags::Indeterminate(_) => vec![false; fit.dif.len()],
+    }
+}
+
 /// Whether the gates of `latent_batch` admit the design's batch of anchor reliability `kr20`;
 /// a design's template pairs (`tl`) share a template (D43).
 pub fn admitted(d: &DifDesign, kr20: f64) -> bool {
@@ -176,7 +184,7 @@ pub fn dif(d: &DifDesign, seed: u64) -> DifOutcome {
         non_uniform: fit.non_uniform,
         converged: fit.status == Convergence::Converged,
         bic_gain: fit.bic_gain,
-        flags: target_flags(&fit),
+        flags: recorded_flags(&fit),
         anchor_floor: fit.anchor_c.iter().sum::<f64>() / fit.anchor_c.len().max(1) as f64,
         floors: fit.item_c,
         pi: fit.pi,
@@ -224,7 +232,7 @@ pub fn dtf(d: &DifDesign, seed: u64) -> DtfOutcome {
     DtfOutcome {
         classes: fit.classes,
         converged: fit.status == Convergence::Converged,
-        flags: target_flags(&fit),
+        flags: recorded_flags(&fit),
         roles: batch.roles.clone(),
         fitted: over(&fitted),
         truth: over(&truth),

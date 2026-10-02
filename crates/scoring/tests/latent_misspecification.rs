@@ -4,7 +4,7 @@
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use scoring::dif::MIXTURE_DIF_MAX;
-use scoring::latent::{latent_dif_with, Formats, LatentDif, LatentParams};
+use scoring::latent::{latent_dif_with, DifFlags, Formats, LatentDif, LatentParams};
 use std::time::Instant;
 
 const K: usize = 8;
@@ -98,7 +98,8 @@ fn moments(res: &LatentDif) -> (f64, f64, f64) {
 
 fn assert_null(res: &LatentDif, what: &str) {
     assert_eq!(res.classes, 1, "{what}: a mixture, gaps {:?}", res.dif);
-    assert!(res.flags(MIXTURE_DIF_MAX).iter().all(|&f| !f), "{what}");
+    let clean = DifFlags::Evaluated(vec![false; res.dif.len()]);
+    assert_eq!(res.flags(MIXTURE_DIF_MAX), clean, "{what}");
 }
 
 /// The skewness of the standardized skew-normal of shape −4.

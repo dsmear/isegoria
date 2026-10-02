@@ -9,7 +9,7 @@ use network::cid::Cid;
 #[cfg(feature = "calibration")]
 use scoring::dif::{logistic_dif, BETA2_MAX};
 use scoring::dif::{mixture_dif, MixtureDif, MIXTURE_DIF_MAX};
-use scoring::latent::{latent_dif, Formats, LatentDif};
+use scoring::latent::{latent_dif, DifFlags, Formats, LatentDif};
 use scoring::Convergence;
 
 pub const N_LATENT_MIN: usize = 3000;
@@ -71,8 +71,28 @@ pub fn latent_flags(res: &MixtureDif) -> Vec<bool> {
         .collect()
 }
 
-pub fn target_flags(res: &LatentDif) -> Vec<bool> {
+/// An item's reading in the latent re-check (`docs/05` [8], `docs/15` A4): DIF detected, none
+/// detected (no proof of absence), or indeterminate because the fit did not converge.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Recheck {
+    Dif,
+    NoDif,
+    Indeterminate,
+}
+
+pub fn target_flags(res: &LatentDif) -> DifFlags {
     res.flags(MIXTURE_DIF_MAX)
+}
+
+/// Per trial item, the reading of [`target_flags`]: all `Indeterminate` from an unconverged fit.
+pub fn target_rechecks(res: &LatentDif) -> Vec<Recheck> {
+    match target_flags(res) {
+        DifFlags::Evaluated(flags) => flags
+            .into_iter()
+            .map(|dif| if dif { Recheck::Dif } else { Recheck::NoDif })
+            .collect(),
+        DifFlags::Indeterminate(_) => vec![Recheck::Indeterminate; res.dif.len()],
+    }
 }
 
 /// Batch-admission gate for the production latent re-check (`docs/08` INV-8, D37): a
@@ -85,9 +105,9 @@ pub fn revalidate_batch_latent(
     formats: &Formats,
     templates: &Templates,
     seed: u64,
-) -> Result<Vec<bool>, PilotError> {
+) -> Result<Vec<Recheck>, PilotError> {
     latent_batch(respondents, anchors, responses, formats, templates, seed)
-        .map(|fit| target_flags(&fit))
+        .map(|fit| target_rechecks(&fit))
 }
 
 /// The fit [`revalidate_batch_latent`] flags from, behind the same gates: the contested pool

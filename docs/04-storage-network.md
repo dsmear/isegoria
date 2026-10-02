@@ -253,7 +253,9 @@ version byte (1), a kind byte, then its fields:
 
 A boolean is one byte, 0 or 1; a probability the eight bytes of its IEEE 754 bits; a panel
 its nyms as one field whose length is a multiple of 32; a gate outcome one byte (0 pass,
-1 supplementary review, 2 appeal-eligible, 3 reject). A deposit the node accepts starts its
+1 supplementary review, 2 appeal-eligible, 3 reject); a re-check reading one byte (0 no DIF
+detected, 1 DIF, 2 indeterminate: 0 and 1 are the bytes of the boolean the field held before
+`15` A4, so earlier logs replay unchanged). A deposit the node accepts starts its
 item in `Deposited`; a lifecycle step applies `lifecycle::step` to the item's state and is
 refused for an unknown item, for an assignment naming another item than the one it moves,
 and wherever the §9.1 table refuses it.

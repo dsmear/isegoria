@@ -5,7 +5,7 @@ use identity::nym::Nym;
 use protocol::admission::NullifierSet;
 use protocol::exposure::Template;
 use protocol::pilot::{PilotError, Templates};
-use protocol::revalidation::{revalidate_batch_latent, N_LATENT_MIN};
+use protocol::revalidation::{revalidate_batch_latent, Recheck, N_LATENT_MIN};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use scoring::latent::Formats;
@@ -35,7 +35,7 @@ fn batch(seed: u64) -> (Vec<Vec<f64>>, Vec<Vec<f64>>) {
     (anchors, x)
 }
 
-fn check(templates: &Templates) -> Result<Vec<bool>, PilotError> {
+fn check(templates: &Templates) -> Result<Vec<Recheck>, PilotError> {
     let (anchors, x) = batch(1500);
     let formats = Formats::choice(ANCHORS, K, 4);
     revalidate_batch_latent(
