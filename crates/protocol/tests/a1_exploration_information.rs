@@ -15,6 +15,7 @@ use protocol::orchestrator::{review_round, Judgment};
 use protocol::pilot::Screening;
 use protocol::probation::{SkillTrack, N_PROBATION};
 use protocol::randomness::Beacon;
+use protocol::revalidation::Recheck;
 use protocol::review::{assign_from_beacon, Reviewer};
 use scoring::reputation::{difference_score, inverse_probability_mean, CusumParams};
 
@@ -235,7 +236,7 @@ fn appeal_inclusion(appeal: bool, explored: bool) -> Option<f64> {
         s,
         Event::Pilot2Batch {
             batch_size: K_MIN,
-            passed: true,
+            dif: Recheck::NoDif,
             source_verified: false,
         },
     )

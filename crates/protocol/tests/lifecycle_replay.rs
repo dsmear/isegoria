@@ -105,27 +105,28 @@ fn reviewed(item: Cid, outcome: GateOutcome) -> Vec<Event> {
 
 /// Four walks that between them use every lifecycle event: the pool, the band with an
 /// appeal, an explored rejection, a contested fact and an expired appeal; the appealed and
-/// the explored item meet an indeterminate screen first (`docs/15` A11).
+/// the explored item meet an indeterminate screen and stage 2 first (`docs/15` A11, A4).
 fn walks(items: &[Cid]) -> Vec<(Cid, Vec<Event>)> {
     let pending = Event::Pilot1Batch {
         enough_respondents: true,
         screen: Screening::Indeterminate,
     };
-    let pilot = |passed: bool, source_verified: bool| {
-        vec![
-            Event::Pilot1Batch {
-                enough_respondents: true,
-                screen: Screening::Pass,
-            },
-            Event::Pilot2Batch {
-                batch_size: 2,
-                passed,
-                source_verified,
-            },
-        ]
+    let pilot = |dif: Recheck, source_verified: bool, first: &[Recheck]| {
+        let stage2 = |dif| Event::Pilot2Batch {
+            batch_size: 2,
+            dif,
+            source_verified,
+        };
+        let mut events = vec![Event::Pilot1Batch {
+            enough_respondents: true,
+            screen: Screening::Pass,
+        }];
+        events.extend(first.iter().map(|&reading| stage2(reading)));
+        events.push(stage2(dif));
+        events
     };
     let mut pool = reviewed(items[0], GateOutcome::Pass);
-    pool.extend(pilot(true, false));
+    pool.extend(pilot(Recheck::NoDif, false, &[]));
     pool.extend([
         Event::Administer,
         Event::Revalidate {
@@ -154,13 +155,13 @@ fn walks(items: &[Cid]) -> Vec<(Cid, Vec<Event>)> {
         },
     ]);
     band.push(pending.clone());
-    band.extend(pilot(false, true));
+    band.extend(pilot(Recheck::Dif, true, &[Recheck::Indeterminate]));
     let mut explored = reviewed(items[2], GateOutcome::Reject);
     explored.push(Event::Explore {
         seed_from_beacon: true,
     });
     explored.push(pending);
-    explored.extend(pilot(true, false));
+    explored.extend(pilot(Recheck::NoDif, false, &[Recheck::Indeterminate]));
     let mut expired = reviewed(items[3], GateOutcome::AppealEligible);
     expired.push(Event::AppealExpires);
     vec![
@@ -356,6 +357,24 @@ fn at_pro_11_lifecycle_events_round_trip_and_bad_bytes_are_refused() {
         unknown[36] = 3;
         assert!(NodeEvent::decode(&unknown).is_none());
     }
+    for (dif, byte) in [
+        (Recheck::Dif, 0u8),
+        (Recheck::NoDif, 1),
+        (Recheck::Indeterminate, 2),
+    ] {
+        let pilot2 = step(Event::Pilot2Batch {
+            batch_size: 8,
+            dif,
+            source_verified: true,
+        })
+        .encode();
+        assert_eq!(pilot2[34], 12);
+        assert_eq!(pilot2[35..43], 8u64.to_le_bytes());
+        assert_eq!(pilot2[43..], [byte, 1]);
+        let mut unknown = pilot2;
+        unknown[43] = 3;
+        assert!(NodeEvent::decode(&unknown).is_none());
+    }
     let mut bad_bool = admit.clone();
     *bad_bool.last_mut().unwrap() = 2;
     assert!(NodeEvent::decode(&bad_bool).is_none());
@@ -423,5 +442,68 @@ fn a11_stage_1_steps_logged_before_replay_unchanged() {
             .unwrap();
         let replayed = Node::open(&dir, issuer.public()).unwrap();
         assert_eq!(replayed.state().item(&item), Some(&reached));
+    }
+}
+
+/// A4: stage-2 steps logged before A4's residual, a boolean byte, replay to the states they
+/// reached; byte 2 keeps the item in `Pilot2`.
+#[test]
+fn a4_stage_2_steps_logged_before_replay_unchanged() {
+    let cases = [
+        (0u8, 0u8, Recheck::Dif, State::Rejected(RejectReason::Dif)),
+        (0, 1, Recheck::Dif, State::Contested),
+        (1, 0, Recheck::NoDif, State::ActivePool),
+        (1, 1, Recheck::NoDif, State::ActivePool),
+        (
+            2,
+            1,
+            Recheck::Indeterminate,
+            State::Pilot2 { appealed: false },
+        ),
+    ];
+    for (byte, source, read, reached) in cases {
+        let (issuer, dir) = (issuer(), scratch("stage-2"));
+        let (event, item) = deposit(&issuer, 2, "item");
+        let mut node = Node::open(&dir, issuer.public()).unwrap();
+        node.submit(event).unwrap();
+        let mut events = reviewed(item, GateOutcome::Pass);
+        events.push(Event::Pilot1Batch {
+            enough_respondents: true,
+            screen: Screening::Pass,
+        });
+        for event in events {
+            node.submit(NodeEvent::Step { item, event }).unwrap();
+        }
+        drop(node);
+        let mut logged = vec![1u8, 4];
+        logged.extend(item.0);
+        logged.push(12);
+        logged.extend(2u64.to_le_bytes());
+        logged.extend([byte, source]);
+        let decoded = match NodeEvent::decode(&logged) {
+            Some(NodeEvent::Step {
+                event:
+                    Event::Pilot2Batch {
+                        batch_size,
+                        dif,
+                        source_verified,
+                    },
+                ..
+            }) => (batch_size, dif, source_verified),
+            _ => panic!("a stage-2 step decodes"),
+        };
+        assert_eq!(decoded, (2, read, source == 1));
+        let object = ObjectStore::open(&dir.join("objects"))
+            .unwrap()
+            .0
+            .put(&logged)
+            .unwrap();
+        DurableLog::open(&dir.join("log"))
+            .unwrap()
+            .0
+            .append(object)
+            .unwrap();
+        let replayed = Node::open(&dir, issuer.public()).unwrap();
+        assert_eq!(replayed.state().item(&item), Some(&reached), "byte {byte}");
     }
 }

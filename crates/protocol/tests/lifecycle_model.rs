@@ -375,18 +375,21 @@ fn model_step(phase: &Phase, event: &Event, preimage: Preimage) -> Result<Phase,
         }
 
         (
-            Pilot2 { .. },
+            Pilot2 { appealed },
             Event::Pilot2Batch {
                 batch_size,
-                passed,
+                dif,
                 source_verified,
             },
         ) => {
             guard(&[(*batch_size < K_MIN, BatchTooSmall)])?;
-            Ok(match (passed, source_verified) {
-                (true, _) => Pool,
-                (false, true) => Contested,
-                (false, false) => Rejected(RejectReason::Dif),
+            Ok(match (dif, source_verified) {
+                (Recheck::NoDif, _) => Pool,
+                (Recheck::Dif, true) => Contested,
+                (Recheck::Dif, false) => Rejected(RejectReason::Dif),
+                (Recheck::Indeterminate, _) => Pilot2 {
+                    appealed: *appealed,
+                },
             })
         }
 
@@ -435,14 +438,24 @@ fn model_step(phase: &Phase, event: &Event, preimage: Preimage) -> Result<Phase,
             },
             Event::Pilot2Batch {
                 batch_size,
-                passed,
+                dif,
                 source_verified,
             },
         ) => {
             guard(&[(*batch_size < K_MIN, BatchTooSmall)])?;
-            Ok(Measured {
-                reason: *reason,
-                passed: *passed || *source_verified,
+            Ok(match dif {
+                Recheck::NoDif => Measured {
+                    reason: *reason,
+                    passed: true,
+                },
+                Recheck::Dif => Measured {
+                    reason: *reason,
+                    passed: *source_verified,
+                },
+                Recheck::Indeterminate => Explored {
+                    reason: *reason,
+                    screened: true,
+                },
             })
         }
 
@@ -614,7 +627,7 @@ enum Op {
     },
     Pilot2Batch {
         batch: usize,
-        passed: bool,
+        dif: Recheck,
         verified: bool,
     },
     /// The exploration draw of a gate rejection (T52), on the beacon's seed or not.
@@ -710,7 +723,11 @@ fn next_op(
             } else {
                 K_MIN + pick as usize % 8
             },
-            passed: pick % 4 != 0,
+            dif: match pick % 8 {
+                0 | 1 => Recheck::Dif,
+                2 => Recheck::Indeterminate,
+                _ => Recheck::NoDif,
+            },
             verified: bit(5),
         },
         Phase::Pool | Phase::Contested => match pick % 8 {
@@ -961,11 +978,11 @@ fn plan(op: &Op, phase: &Phase) -> (Event, Preimage) {
         }),
         Op::Pilot2Batch {
             batch,
-            passed,
+            dif,
             verified,
         } => plain(Event::Pilot2Batch {
             batch_size: batch,
-            passed,
+            dif,
             source_verified: verified,
         }),
         Op::Explore(seed_from_beacon) => plain(Event::Explore { seed_from_beacon }),
@@ -1045,13 +1062,20 @@ fn arbitrary_op() -> impl Strategy<Value = Op> {
             ]
         )
             .prop_map(|(enough, screen)| Op::Pilot1Batch { enough, screen }),
-        (0usize..=4, any::<bool>(), any::<bool>()).prop_map(|(batch, passed, verified)| {
-            Op::Pilot2Batch {
+        (
+            0usize..=4,
+            prop_oneof![
+                Just(Recheck::Dif),
+                Just(Recheck::NoDif),
+                Just(Recheck::Indeterminate)
+            ],
+            any::<bool>()
+        )
+            .prop_map(|(batch, dif, verified)| Op::Pilot2Batch {
                 batch,
-                passed,
-                verified,
-            }
-        }),
+                dif,
+                verified
+            }),
         any::<bool>().prop_map(Op::Explore),
         Just(Op::Administer),
         (
@@ -1219,16 +1243,9 @@ fn legal_transition(
             "re-decided before every extra panelist revealed (T60)"
         );
     }
-    // An indeterminate screen decides nothing: the item stays where it was (`docs/15` A11).
-    if let (
-        Event::Pilot1Batch {
-            screen: Screening::Indeterminate,
-            ..
-        },
-        Ok(next),
-    ) = (event, got)
-    {
-        prop_assert_eq!(next, before, "an indeterminate screen moved the item");
+    // An indeterminate pilot stage decides nothing: the item stays where it was (A11, A4).
+    if let (true, Ok(next)) = (indeterminate(event), got) {
+        prop_assert_eq!(next, before, "an indeterminate pilot stage moved the item");
     }
     // Either pool (D38) is entered from `Pilot2` after `Pilot1`, or from the other pool.
     match got {
@@ -1260,7 +1277,8 @@ fn legal_transition(
                 before
             );
         }
-        Ok(State::Explored { screened: true, .. }) => {
+        Ok(next @ State::Explored { screened: true, .. }) => {
+            let pending = next == before && matches!(event, Event::Pilot2Batch { .. });
             prop_assert!(
                 matches!(
                     before,
@@ -1268,7 +1286,7 @@ fn legal_transition(
                         screened: false,
                         ..
                     }
-                ),
+                ) || pending,
                 "the explored item screened from {:?}",
                 before
             );
@@ -1283,6 +1301,20 @@ fn legal_transition(
         _ => {}
     }
     Ok(())
+}
+
+/// A pilot batch whose fit did not converge, at either stage.
+fn indeterminate(event: &Event) -> bool {
+    matches!(
+        event,
+        Event::Pilot1Batch {
+            screen: Screening::Indeterminate,
+            ..
+        } | Event::Pilot2Batch {
+            dif: Recheck::Indeterminate,
+            ..
+        }
+    )
 }
 
 /// A name for the state, and for each rejection, to measure what the walks cover.
@@ -1330,11 +1362,7 @@ fn run_walk(flags: [bool; 4], ops: &[Op]) -> Result<HashSet<String>, TestCaseErr
             (Ok(next), Ok(next_phase)) => {
                 well_formed(&next)?;
                 pilot1_seen |= matches!(next, State::Pilot1 { .. });
-                if let Event::Pilot1Batch {
-                    screen: Screening::Indeterminate,
-                    ..
-                } = event
-                {
+                if indeterminate(&event) {
                     seen.insert(format!("indeterminate in {}", label(&next)));
                 }
                 seen.insert(label(&next));
@@ -1410,6 +1438,9 @@ fn the_walks_cover_every_state_and_every_rejection() {
         "indeterminate in Pilot1 { appealed: false }",
         "indeterminate in Pilot1 { appealed: true }",
         "indeterminate in Explored(screened: false)",
+        "indeterminate in Pilot2 { appealed: false }",
+        "indeterminate in Pilot2 { appealed: true }",
+        "indeterminate in Explored(screened: true)",
     ];
     let rejections = [
         "NoPrimarySource",

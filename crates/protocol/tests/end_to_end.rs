@@ -42,6 +42,8 @@ use protocol::pilot::{
 use protocol::pilot::{stage1_screen, Screening};
 use protocol::revalidation::revalidate_pool_latent;
 #[cfg(feature = "calibration")]
+use protocol::revalidation::Recheck;
+#[cfg(feature = "calibration")]
 use scoring::bridging::{bridge_scores, BridgingParams, Ratings};
 #[cfg(feature = "calibration")]
 use scoring::irt::theta_from_anchors;
@@ -294,11 +296,15 @@ fn run_epoch(
     let cols2: Vec<Vec<f64>> = after1.iter().map(|&j| column(&x, j)).collect();
     let keep2 = dif_batch(&respondents, &theta, &grp, &cols2)
         .expect("stage-2 batch and respondent floors met");
-    // Only a clean Pass advances; a Reject or an Undetermined (separated) fit does not.
-    let dif_passed: HashMap<usize, bool> = after1
+    // A separated fit decides nothing: it stays in stage 2, neither passed nor rejected.
+    let difs: HashMap<usize, Recheck> = after1
         .iter()
         .copied()
-        .zip(keep2.iter().map(|&k| k == DifVerdict::Pass))
+        .zip(keep2.iter().map(|&k| match k {
+            DifVerdict::Pass => Recheck::NoDif,
+            DifVerdict::Reject => Recheck::Dif,
+            DifVerdict::Undetermined => Recheck::Indeterminate,
+        }))
         .collect();
     let pilot2_batch_size = after1.len();
 
@@ -354,7 +360,7 @@ fn run_epoch(
             enough_respondents: respondents.len() >= N1_MIN,
             // An item off the pilot never reaches the screen: it has no reading to give.
             screen: screens.get(&j).copied().unwrap_or(Screening::Indeterminate),
-            dif_passed: *dif_passed.get(&j).unwrap_or(&false),
+            dif: difs.get(&j).copied().unwrap_or(Recheck::Indeterminate),
             source_verified: false,
             pilot2_batch_size,
             explored: explored.contains(&j),

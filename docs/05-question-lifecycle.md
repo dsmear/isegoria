@@ -108,6 +108,8 @@ author's initiative, **skip review and go straight to the pilot**:
   right against the opinion filter — there is no additive bonus
 - if it **fails**, the zero stands — it is the item's real result — and it costs the
   next appeal until the author's average has recovered
+- only the pilot's conclusion settles the appeal: while the pilot is pending, as after an
+  indeterminate stage, the escrow stays open (`15` A11 (f))
 
 It is the only way to recover "true but inconvenient", moving the decision from peer
 judgment to the data.
@@ -131,7 +133,9 @@ measured; this schedules no new attempt and does not guarantee the pilot ends (`
 3,000 distinct respondents. The 1,500 floor belongs to the group-labelled calibration
 path; it is not an alternative anonymous production guarantee. Required sample sizes
 depend on format, effects, anchors and admission gates. T25 must determine them on the
-candidate model (`02` §B.6; `13` §8.8), together with the acceptable errors of T83.
+candidate model (`02` §B.6; `13` §8.8), together with the acceptable errors of T83. A
+re-check whose fit did not converge decides nothing: the item stays in stage 2, a verified
+source or not, with no new attempt scheduled (`02` §B.3, `15` A4).
 
 Requirements:
 

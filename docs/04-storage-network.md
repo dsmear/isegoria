@@ -257,7 +257,10 @@ its nyms as one field whose length is a multiple of 32; a gate outcome one byte 
 detected, 1 DIF, 2 indeterminate: 0 and 1 are the bytes of the boolean the field held before
 `15` A4, so earlier logs replay unchanged); a stage-1 screen reading one byte (0 dropped,
 1 kept, 2 indeterminate: 0 and 1 are the bytes of the boolean `passed` before `15` A11, so
-earlier logs replay unchanged, and a decoder from before A11 refuses byte 2). A deposit
+earlier logs replay unchanged, and a decoder from before A11 refuses byte 2); a stage-2
+reading one byte in the order of the boolean `passed` it replaced, unlike the re-check's
+(0 DIF, 1 no DIF detected, 2 indeterminate: earlier logs replay unchanged, and a decoder from
+before `15` A4's residual (a) refuses byte 2). A deposit
 the node accepts starts its item in `Deposited`; a lifecycle step applies `lifecycle::step` to the item's state and is
 refused for an unknown item, for an assignment naming another item than the one it moves,
 and wherever the §9.1 table refuses it.

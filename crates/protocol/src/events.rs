@@ -158,6 +158,15 @@ fn screening_byte(screen: Screening) -> u8 {
     }
 }
 
+/// Stage 2's reading in the order of the boolean `passed` it replaced: 0 DIF, 1 none detected.
+fn stage2_byte(dif: Recheck) -> u8 {
+    match dif {
+        Recheck::Dif => 0,
+        Recheck::NoDif => 1,
+        Recheck::Indeterminate => 2,
+    }
+}
+
 fn nym_field(nyms: &[Nym]) -> Vec<u8> {
     nyms.iter().flat_map(|n| n.0).collect()
 }
@@ -192,12 +201,12 @@ fn write_step(w: &mut Writer, event: &Event) {
             .u8(screening_byte(*screen)),
         Event::Pilot2Batch {
             batch_size,
-            passed,
+            dif,
             source_verified,
         } => w
             .u8(12)
             .u64(*batch_size as u64)
-            .u8(u8::from(*passed))
+            .u8(stage2_byte(*dif))
             .u8(u8::from(*source_verified)),
         Event::Explore { seed_from_beacon } => w.u8(13).u8(u8::from(*seed_from_beacon)),
         Event::Administer => w.u8(14),
@@ -244,6 +253,15 @@ fn read_screening(r: &mut Reader) -> Option<Screening> {
         0 => Screening::Fail,
         1 => Screening::Pass,
         2 => Screening::Indeterminate,
+        _ => return None,
+    })
+}
+
+fn read_stage2(r: &mut Reader) -> Option<Recheck> {
+    Some(match r.u8().ok()? {
+        0 => Recheck::Dif,
+        1 => Recheck::NoDif,
+        2 => Recheck::Indeterminate,
         _ => return None,
     })
 }
@@ -300,7 +318,7 @@ fn read_step(r: &mut Reader) -> Option<Event> {
         },
         12 => Event::Pilot2Batch {
             batch_size: usize::try_from(r.u64().ok()?).ok()?,
-            passed: read_bool(r)?,
+            dif: read_stage2(r)?,
             source_verified: read_bool(r)?,
         },
         13 => Event::Explore {

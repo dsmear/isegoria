@@ -10,6 +10,7 @@ use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State, K_
 use protocol::orchestrator::{review_round, run_item, settle_appeal, ItemVerdicts, Judgment};
 use protocol::pilot::{stage1_verdicts, Screening, Stage1Fit};
 use protocol::probation::SkillTrack;
+use protocol::revalidation::Recheck;
 use scoring::latent::Formats;
 use scoring::reputation::{AuthorPrior, CusumParams};
 use scoring::Convergence;
@@ -168,7 +169,7 @@ fn indeterminate(gate: GateOutcome, appealed: bool, explored: bool) -> ItemVerdi
         appeal_floor: 0.4,
         enough_respondents: true,
         screen: Screening::Indeterminate,
-        dif_passed: true,
+        dif: Recheck::NoDif,
         source_verified: false,
         pilot2_batch_size: K_MIN - 1,
         explored,
@@ -205,7 +206,7 @@ fn run_item_stops_at_a_pending_screen_and_settles_no_appeal() {
         pilot2,
         Event::Pilot2Batch {
             batch_size: K_MIN,
-            passed: true,
+            dif: Recheck::NoDif,
             source_verified: false,
         },
     )

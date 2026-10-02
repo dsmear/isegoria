@@ -12,6 +12,7 @@ use protocol::honeypot::inject_from_beacon;
 use protocol::lifecycle::{step, Event, Invalid, State, K_MIN};
 use protocol::lottery::admit;
 use protocol::probation::FounderSet;
+use protocol::revalidation::Recheck;
 use protocol::review::{assign_reviewers, Reviewer};
 use std::collections::HashSet;
 
@@ -132,7 +133,7 @@ fn a_pilot2_batch_of_exactly_k_min_is_admitted() {
             pilot2.clone(),
             Event::Pilot2Batch {
                 batch_size: K_MIN,
-                passed: true,
+                dif: Recheck::NoDif,
                 source_verified: false,
             }
         ),
@@ -143,7 +144,7 @@ fn a_pilot2_batch_of_exactly_k_min_is_admitted() {
             pilot2,
             Event::Pilot2Batch {
                 batch_size: K_MIN - 1,
-                passed: true,
+                dif: Recheck::NoDif,
                 source_verified: false,
             }
         ),

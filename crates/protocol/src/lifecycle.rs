@@ -189,11 +189,12 @@ pub enum Event {
         enough_respondents: bool,
         screen: Screening,
     },
-    /// Pilot stage 2 batch of `batch_size` items; `passed` = DIF (Variant 2); on a DIF
-    /// failure `source_verified` = the source check's verdict (`docs/02` §B.5, D38).
+    /// Pilot stage 2 batch of `batch_size` items; `dif` = the latent re-check's reading, with no
+    /// decision when indeterminate (`docs/15` A4); on `Dif`, `source_verified` = the source
+    /// check's verdict (`docs/02` §B.5, D38).
     Pilot2Batch {
         batch_size: usize,
-        passed: bool,
+        dif: Recheck,
         source_verified: bool,
     },
     /// The beacon's exploration draw (D35) sends this rejection to the pilot for measurement.
@@ -503,21 +504,22 @@ pub fn step(state: State, event: Event) -> Result<State, Invalid> {
         }
 
         (
-            Pilot2 { .. },
+            Pilot2 { appealed },
             Pilot2Batch {
                 batch_size,
-                passed,
+                dif,
                 source_verified,
             },
         ) => {
             if batch_size < K_MIN {
                 Err(Invalid::BatchTooSmall)
-            } else if passed {
-                Ok(ActivePool)
-            } else if source_verified {
-                Ok(Contested)
             } else {
-                Ok(Rejected(RejectReason::Dif))
+                Ok(match (dif, source_verified) {
+                    (Recheck::NoDif, _) => ActivePool,
+                    (Recheck::Dif, true) => Contested,
+                    (Recheck::Dif, false) => Rejected(RejectReason::Dif),
+                    (Recheck::Indeterminate, _) => Pilot2 { appealed },
+                })
             }
         }
 
@@ -570,16 +572,26 @@ pub fn step(state: State, event: Event) -> Result<State, Invalid> {
             },
             Pilot2Batch {
                 batch_size,
-                passed,
+                dif,
                 source_verified,
             },
         ) => {
             if batch_size < K_MIN {
                 Err(Invalid::BatchTooSmall)
             } else {
-                Ok(Measured {
-                    reason,
-                    passed: passed || source_verified,
+                Ok(match dif {
+                    Recheck::NoDif => Measured {
+                        reason,
+                        passed: true,
+                    },
+                    Recheck::Dif => Measured {
+                        reason,
+                        passed: source_verified,
+                    },
+                    Recheck::Indeterminate => Explored {
+                        reason,
+                        screened: true,
+                    },
                 })
             }
         }

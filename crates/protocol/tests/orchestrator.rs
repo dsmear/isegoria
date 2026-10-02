@@ -128,7 +128,7 @@ fn a_full_valid_walk_reaches_the_pool_then_retires() {
         s,
         Event::Pilot2Batch {
             batch_size: 8,
-            passed: true,
+            dif: Recheck::NoDif,
             source_verified: false,
         },
     )
@@ -472,7 +472,7 @@ fn a_pilot2_batch_of_one_is_rejected() {
             State::Pilot2 { appealed: false },
             Event::Pilot2Batch {
                 batch_size: K_MIN - 1,
-                passed: true,
+                dif: Recheck::NoDif,
                 source_verified: false,
             }
         ),

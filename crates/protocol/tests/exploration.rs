@@ -16,6 +16,7 @@ use protocol::orchestrator::{review_round, run_item, ItemVerdicts, Judgment};
 use protocol::pilot::Screening;
 use protocol::probation::{SkillTrack, Status, N_PROBATION};
 use protocol::randomness::Beacon;
+use protocol::revalidation::Recheck;
 use scoring::reputation::{difference_score, CusumParams};
 
 /// The beacon of epoch 5 on network `[net; 32]`.
@@ -112,7 +113,7 @@ fn verdicts(gate: GateOutcome, explored: bool) -> ItemVerdicts {
         appeal_floor: 0.4,
         enough_respondents: true,
         screen: Screening::Pass,
-        dif_passed: true,
+        dif: Recheck::NoDif,
         source_verified: false,
         pilot2_batch_size: 8,
         explored,
@@ -154,7 +155,7 @@ fn an_explored_rejection_is_measured_and_never_enters_the_pool() {
                 explored.clone(),
                 Event::Pilot2Batch {
                     batch_size: 8,
-                    passed: true,
+                    dif: Recheck::NoDif,
                     source_verified: false,
                 }
             ),
@@ -194,7 +195,7 @@ fn an_explored_rejection_is_measured_and_never_enters_the_pool() {
                 screened.clone(),
                 Event::Pilot2Batch {
                     batch_size: K_MIN - 1,
-                    passed: true,
+                    dif: Recheck::NoDif,
                     source_verified: false,
                 }
             ),
@@ -211,12 +212,12 @@ fn an_explored_rejection_is_measured_and_never_enters_the_pool() {
             Err(Invalid::UnexpectedEvent),
             "the screen twice"
         );
-        for passed in [true, false] {
+        for (dif, passed) in [(Recheck::NoDif, true), (Recheck::Dif, false)] {
             let measured = step(
                 screened.clone(),
                 Event::Pilot2Batch {
                     batch_size: K_MIN,
-                    passed,
+                    dif,
                     source_verified: false,
                 },
             )
@@ -228,7 +229,7 @@ fn an_explored_rejection_is_measured_and_never_enters_the_pool() {
                 explore.clone(),
                 Event::Pilot2Batch {
                     batch_size: 8,
-                    passed: true,
+                    dif: Recheck::NoDif,
                     source_verified: false,
                 },
                 Event::Score {

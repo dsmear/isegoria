@@ -102,20 +102,23 @@ fn subsets(items: usize, n: usize) -> Vec<Vec<usize>> {
 #[test]
 fn at_pro_08_a_dif_item_is_contested_only_with_a_verified_source() {
     let pilot2 = State::Pilot2 { appealed: true };
-    let batch = |passed, source_verified| Event::Pilot2Batch {
+    let batch = |dif, source_verified| Event::Pilot2Batch {
         batch_size: 8,
-        passed,
+        dif,
         source_verified,
     };
     assert_eq!(
-        step(pilot2.clone(), batch(false, false)),
+        step(pilot2.clone(), batch(Recheck::Dif, false)),
         Ok(State::Rejected(RejectReason::Dif))
     );
     assert_eq!(
-        step(pilot2.clone(), batch(false, true)),
+        step(pilot2.clone(), batch(Recheck::Dif, true)),
         Ok(State::Contested)
     );
-    assert_eq!(step(pilot2, batch(true, true)), Ok(State::ActivePool));
+    assert_eq!(
+        step(pilot2, batch(Recheck::NoDif, true)),
+        Ok(State::ActivePool)
+    );
     let revalidate = |dif, source_verified| Event::Revalidate {
         dif,
         source_verified,
@@ -208,7 +211,7 @@ fn a_contested_fact_scores_as_a_pass() {
             explored,
             Event::Pilot2Batch {
                 batch_size: 8,
-                passed: false,
+                dif: Recheck::Dif,
                 source_verified: true
             }
         ),
@@ -459,7 +462,7 @@ mod fitted {
     use identity::nym::Nym;
     use protocol::admission::NullifierSet;
     use protocol::pilot::Templates;
-    use protocol::revalidation::{latent_batch, target_flags, N_LATENT_MIN};
+    use protocol::revalidation::{latent_batch, target_flags, target_rechecks, N_LATENT_MIN};
     use rand::{Rng, SeedableRng};
     use rand_chacha::ChaCha8Rng;
     use scoring::latent::{DifFlags, Formats};
@@ -559,11 +562,12 @@ mod fitted {
             };
             let expect: Vec<bool> = items.iter().map(|it| it.2 != 0.0).collect();
             assert_eq!(flags, expect, "{tag}: gaps {:?}", fit.dif);
+            let rechecks = target_rechecks(&fit);
             let mut members = Vec::new();
             for (j, item) in items.iter().enumerate() {
                 let verdict = Event::Pilot2Batch {
                     batch_size: items.len(),
-                    passed: !flags[j],
+                    dif: rechecks[j],
                     source_verified: unsourced != Some(j),
                 };
                 let terminal = step(State::Pilot2 { appealed: false }, verdict).unwrap();

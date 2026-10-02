@@ -9,6 +9,7 @@ use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State};
 use protocol::orchestrator::{review_round, run_item, settle_appeal, ItemVerdicts, Judgment};
 use protocol::pilot::Screening;
+use protocol::revalidation::Recheck;
 use scoring::reputation::AuthorPrior;
 
 /// `run_item` for an item that is not in the band: no extra round, no re-decision.
@@ -120,7 +121,7 @@ fn appealed() -> ItemVerdicts {
         appeal_floor: 0.4,
         enough_respondents: true,
         screen: Screening::Pass,
-        dif_passed: true,
+        dif: Recheck::NoDif,
         source_verified: false,
         pilot2_batch_size: 8,
         explored: false,
@@ -185,7 +186,7 @@ fn the_terminal_state_settles_the_escrow() {
     let terminal = run(
         reviewed(),
         &ItemVerdicts {
-            dif_passed: false,
+            dif: Recheck::Dif,
             source_verified: false,
             ..appealed()
         },
@@ -207,7 +208,7 @@ fn an_appeal_that_ends_in_the_contested_pool_is_promoted() {
     let terminal = run(
         reviewed(),
         &ItemVerdicts {
-            dif_passed: false,
+            dif: Recheck::Dif,
             source_verified: true,
             ..appealed()
         },

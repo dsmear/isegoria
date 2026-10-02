@@ -11,6 +11,7 @@ use protocol::gate::GateOutcome;
 use protocol::lifecycle::{Invalid, RejectReason, State, K_EXTRA_MAX, K_MIN};
 use protocol::orchestrator::{review_round, run_item, ExtraRound, ItemVerdicts, Judgment};
 use protocol::pilot::Screening;
+use protocol::revalidation::Recheck;
 use protocol::review::commit;
 use std::collections::HashSet;
 
@@ -157,9 +158,19 @@ fn model_run_item(
         if v.pilot2_batch_size < K_MIN {
             return Err(Invalid::BatchTooSmall);
         }
-        return Ok(State::Measured {
-            reason: why,
-            passed: v.dif_passed || v.source_verified,
+        return Ok(match v.dif {
+            Recheck::NoDif => State::Measured {
+                reason: why,
+                passed: true,
+            },
+            Recheck::Dif => State::Measured {
+                reason: why,
+                passed: v.source_verified,
+            },
+            Recheck::Indeterminate => State::Explored {
+                reason: why,
+                screened: true,
+            },
         });
     }
     // An appeal is filed within its window by an author whose reputation covers the
@@ -188,14 +199,14 @@ fn model_run_item(
         return Err(Invalid::BatchTooSmall);
     }
     // A DIF failure is a contested fact when the source check established the key (D38).
-    if !v.dif_passed {
-        return Ok(if v.source_verified {
-            State::Contested
-        } else {
-            State::Rejected(RejectReason::Dif)
-        });
-    }
-    Ok(State::ActivePool)
+    Ok(match (v.dif, v.source_verified) {
+        (Recheck::NoDif, _) => State::ActivePool,
+        (Recheck::Dif, true) => State::Contested,
+        (Recheck::Dif, false) => State::Rejected(RejectReason::Dif),
+        (Recheck::Indeterminate, _) => State::Pilot2 {
+            appealed: effective == GateOutcome::AppealEligible,
+        },
+    })
 }
 
 // ------------------------------------------ the rounds ------------------------------------------
@@ -459,7 +470,11 @@ fn verdicts() -> impl Strategy<Value = ItemVerdicts> {
             4 => Just(Screening::Fail),
             2 => Just(Screening::Indeterminate)
         ],
-        prop::bool::weighted(0.75),
+        prop_oneof![
+            12 => Just(Recheck::NoDif),
+            4 => Just(Recheck::Dif),
+            2 => Just(Recheck::Indeterminate)
+        ],
         prop_oneof![1 => 0..K_MIN, 5 => K_MIN..K_MIN + 10],
         any::<bool>(),
         any::<bool>(),
@@ -484,7 +499,7 @@ fn verdicts() -> impl Strategy<Value = ItemVerdicts> {
                     appeal_floor: 0.4,
                     enough_respondents: enough,
                     screen,
-                    dif_passed: dif,
+                    dif,
                     source_verified: verified,
                     pilot2_batch_size: batch,
                     explored,
@@ -692,6 +707,9 @@ fn the_rounds_cover_every_outcome() {
         "Pilot1 { appealed: false }",
         "Pilot1 { appealed: true }",
         "Explored { reason: Defect, screened: false }",
+        "Pilot2 { appealed: false }",
+        "Pilot2 { appealed: true }",
+        "Explored { reason: Defect, screened: true }",
         "PartialEpoch",
         "NoExtraPanel",
         "PanelSizeInvalid",

@@ -439,7 +439,8 @@ evidence-based outcome. Resolves Q-7 / G-15 (supplementary-review part).
 > the stake floor — the prior mean `α₀ / (α₀ + β₀)`, 0.4 with the default prior — and
 > otherwise escrows a zero-quality observation at age 0, so `C_a` falls at once;
 > `orchestrator::settle_appeal` replaces it with the item's measured quality when the
-> item reaches the pool and leaves it standing on any other terminal. `run_item` derives
+> item reaches the pool and leaves it standing on a pilot rejection; any other state, a
+> pilot still pending included, settles nothing (`15` A11 (f)). `run_item` derives
 > the appeal's two checks (window, `C_a ≥ floor`) from `ItemVerdicts` instead of taking
 > the caller's word. The ledger form (`gate::settle_appeal`: `+ gain` / `− stake`) is
 > retired: **there is no additive gain** — promotion replaces the pseudo-observation with

@@ -16,6 +16,7 @@ use protocol::panel_scores::{
 };
 use protocol::pilot::Screening;
 use protocol::probation::SkillTrack;
+use protocol::revalidation::Recheck;
 use scoring::reputation::CusumParams;
 
 fn panel() -> Vec<Forecast> {
@@ -243,7 +244,7 @@ fn a_band_item_is_scored_through_the_lifecycle() {
         },
         Event::Pilot2Batch {
             batch_size: K_MIN,
-            passed: true,
+            dif: Recheck::NoDif,
             source_verified: false,
         },
     ] {

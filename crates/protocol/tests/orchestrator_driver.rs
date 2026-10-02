@@ -11,6 +11,7 @@ use protocol::orchestrator::{
 };
 use protocol::pilot::Screening;
 use protocol::probation::N_PROBATION;
+use protocol::revalidation::Recheck;
 use scoring::bridging::{fit, side_balanced, BridgingParams, RatingsError};
 
 // ------------------------------- weights from standing -------------------------------
@@ -142,7 +143,7 @@ fn passing() -> ItemVerdicts {
         appeal_floor: 0.4,
         enough_respondents: true,
         screen: Screening::Pass,
-        dif_passed: true,
+        dif: Recheck::NoDif,
         source_verified: false,
         pilot2_batch_size: 8,
         explored: false,
@@ -225,7 +226,7 @@ fn the_screen_and_the_dif_stage_each_stop_an_item() {
         State::Rejected(RejectReason::Screen)
     );
     let dif = ItemVerdicts {
-        dif_passed: false,
+        dif: Recheck::Dif,
         source_verified: false,
         ..passing()
     };

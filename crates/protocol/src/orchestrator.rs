@@ -4,9 +4,10 @@
 
 use crate::appeal::{AppealOutcome, AuthorHistory, Escrow};
 use crate::gate::GateOutcome;
-use crate::lifecycle::{step, Event, Invalid, State};
+use crate::lifecycle::{step, Event, Invalid, RejectReason, State};
 use crate::pilot::Screening;
 use crate::probation::{effective_review_weight, status, Status};
+use crate::revalidation::Recheck;
 use crate::review::commit;
 use identity::nym::Nym;
 use network::cid::Cid;
@@ -106,8 +107,9 @@ pub struct ItemVerdicts {
     pub appeal_floor: f64,
     pub enough_respondents: bool,
     pub screen: Screening,
-    pub dif_passed: bool,
-    /// The source check's verdict on a DIF failure: a contested fact if set (D38).
+    /// Stage 2's latent re-check: no decision when indeterminate (`docs/15` A4).
+    pub dif: Recheck,
+    /// The source check's verdict on a `Dif` reading: a contested fact if set (D38).
     pub source_verified: bool,
     pub pilot2_batch_size: usize,
     /// The beacon's exploration draw for this item (D35): measurement only, never the pool.
@@ -307,7 +309,7 @@ pub fn run_item(
             s,
             Event::Pilot2Batch {
                 batch_size: v.pilot2_batch_size,
-                passed: v.dif_passed,
+                dif: v.dif,
                 source_verified: v.source_verified,
             },
         )?;
@@ -316,22 +318,32 @@ pub fn run_item(
     Ok(s)
 }
 
-/// Settles an appeal's escrow on the item's terminal state (D27): the pool, or the contested
-/// pool (D38), promotes it via `quality`; any other terminal keeps the zero standing. `Pilot1`,
-/// a screen still pending, settles nothing and hands the escrow back (`docs/15` A11).
+/// Settles an appeal's escrow on its pilot's conclusion (D27): the pool, or the contested pool
+/// (D38), promotes it via `quality`; a pilot rejection leaves the zero standing. Any other state,
+/// a pilot still pending included, settles nothing and hands the escrow back (`docs/15` A11).
 pub fn settle_appeal(
     author: &mut AuthorHistory,
     escrow: Escrow,
     terminal: &State,
     quality: f64,
 ) -> Result<(), Escrow> {
-    if matches!(terminal, State::Pilot1 { .. }) {
-        return Err(escrow);
-    }
-    let outcome = if matches!(terminal, State::ActivePool | State::Contested) {
-        AppealOutcome::Promoted { quality }
-    } else {
-        AppealOutcome::Failed
+    let outcome = match terminal {
+        State::ActivePool | State::Contested => AppealOutcome::Promoted { quality },
+        State::Rejected(RejectReason::Screen | RejectReason::Dif) => AppealOutcome::Failed,
+        State::Deposited
+        | State::Admitted
+        | State::InReview { .. }
+        | State::Revealing { .. }
+        | State::SupplementaryReview { .. }
+        | State::AppealEligible
+        | State::Pilot1 { .. }
+        | State::Pilot2 { .. }
+        | State::Rejected(
+            RejectReason::Defect | RejectReason::Polarized | RejectReason::Borderline,
+        )
+        | State::Explored { .. }
+        | State::Measured { .. }
+        | State::Retired(_) => return Err(escrow),
     };
     author.settle(escrow, outcome);
     Ok(())

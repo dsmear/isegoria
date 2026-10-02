@@ -406,7 +406,11 @@ statistical guarantee that the item has no DIF. An indeterminate re-check leaves
 in the pool it is in, `ActivePool` or `Contested`, whatever the source check: it does not
 rehabilitate, retire for DIF or count as a passed re-check, and exposure and the other
 independent causes still retire the item. A batch the gates refuse is an input error
-(`PilotError`), not an indeterminate re-check.
+(`PilotError`), not an indeterminate re-check. The pilot's stage 2 reads the same `Recheck`
+(`Event::Pilot2Batch`, `docs/15` A4 residual (a)): none detected and DIF move the item as
+before, a DIF with a verified source to `Contested`; an indeterminate reading leaves it in
+`Pilot2` or `Explored`, whatever the source check — no pool, no rejection, no observed
+outcome. Staying schedules no new attempt and does not guarantee the pilot ends.
 
 *Reference implementation (T40, T54).* `G ∈ {1, …, 4}` and uniform (shared `a_j`) vs
 non-uniform (per-class `a_jg`) DIF are chosen together by BIC, each candidate fitted from
