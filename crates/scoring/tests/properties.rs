@@ -59,8 +59,8 @@ proptest! {
         prop_assert!(same_fit(&fit(&data, &p).unwrap(), &fit(&shuffled, &p).unwrap()));
     }
 
-/// Weight 0 (probation) means absent: zeroing a reviewer's weight matches deleting
-/// their ratings, including the start point.
+/// Weight 0 (probation) means absent: zeroing a reviewer's weight matches deleting their
+/// ratings in everything collective, start point included; only its own position may differ.
     #[test]
     fn a_zero_weight_reviewer_is_the_same_as_an_absent_one(
         data in ratings(),
@@ -73,7 +73,14 @@ proptest! {
         let mut absent = data.clone().with_weights(w);
         absent.obs.retain(|o| o.u != u);
         let p = BridgingParams::default();
-        prop_assert!(same_fit(&fit(&zeroed, &p).unwrap(), &fit(&absent, &p).unwrap()));
+        let (a, b) = (fit(&zeroed, &p).unwrap(), fit(&absent, &p).unwrap());
+        let others = |f: &scoring::bridging::Fit| {
+            let keep = |v: &[f64]| bits(&[&v[..u], &v[u + 1..]].concat());
+            (keep(&f.b_u), keep(&f.f_u))
+        };
+        prop_assert!(a.mu.to_bits() == b.mu.to_bits() && bits(&a.b_j) == bits(&b.b_j));
+        prop_assert!(bits(&a.f_j) == bits(&b.f_j) && a.status == b.status);
+        prop_assert!(others(&a) == others(&b));
     }
 
     /// Finite ratings and weights give finite scores.

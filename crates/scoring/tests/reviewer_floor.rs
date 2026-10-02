@@ -73,15 +73,6 @@ fn a_reviewer_below_the_floor_is_placed_on_the_axis_it_does_not_define() {
     };
     let on = fit(&with_sleeper(true), &params).unwrap();
     let off = fit(&with_sleeper(false), &params).unwrap();
-    // The same reviewers with the sleeper's ratings removed.
-    let absent = fit(
-        &Ratings {
-            obs: obs.iter().copied().filter(|o| o.u != n).collect(),
-            ..with_sleeper(true)
-        },
-        &params,
-    )
-    .unwrap();
     let bits = |v: &[f64]| v.iter().map(|x| x.to_bits()).collect::<Vec<_>>();
     println!(
         "sleeper on the axis: f_u {:+.3}, max |Δf_j| {:.4}; off the axis: f_u {:+.3}, b_u {:+.3}",
@@ -94,13 +85,13 @@ fn a_reviewer_below_the_floor_is_placed_on_the_axis_it_does_not_define() {
         off.f_u[n],
         off.b_u[n]
     );
-    // Off the axis: the space is exactly the one fitted without the sleeper …
-    assert_eq!(bits(&off.f_j), bits(&absent.f_j), "the sleeper moved f_j");
-    assert_eq!(bits(&off.b_j), bits(&absent.b_j), "the sleeper moved b_j");
-    assert_eq!(off.mu.to_bits(), absent.mu.to_bits());
+    // Off the axis: the space is exactly the one fitted without the sleeper's row (A7) …
+    assert_eq!(bits(&off.f_j), bits(&base.f_j), "the sleeper moved f_j");
+    assert_eq!(bits(&off.b_j), bits(&base.b_j), "the sleeper moved b_j");
+    assert_eq!(off.mu.to_bits(), base.mu.to_bits());
     assert_eq!(
         bits(&off.f_u[..n]),
-        bits(&absent.f_u[..n]),
+        bits(&base.f_u),
         "the sleeper moved the others"
     );
     // … and the sleeper has the position its ratings say, on the side it leaned to.
@@ -112,7 +103,7 @@ fn a_reviewer_below_the_floor_is_placed_on_the_axis_it_does_not_define() {
         base.f_j[0]
     );
     // On the axis, the same ratings define: `f_j` and the others' positions move.
-    assert_ne!(bits(&on.f_j), bits(&absent.f_j));
+    assert_ne!(bits(&on.f_j), bits(&base.f_j));
     assert!(on.f_u[n].abs() > 0.2);
 
     // The position solves the ridge normal equations over its own ratings (T39).

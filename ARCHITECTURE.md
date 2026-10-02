@@ -72,7 +72,7 @@ between contracts, guarantees and implementation are tracked in
 
 | Module | Spec | Key items |
 |---|---|---|
-| `bridging` | §A | `Ratings` (`with_weights`, `with_axis` — the reviewer floor's mask, T39), `BridgingParams`, `Fit`, `fit`, `bridge_scores`, `side_balanced` (sides from the axis reviewers), `two_means` (the exact cut, each side at least `side_floor`, D42), `coverage` (the ratings of an item's less-rated side, D42) |
+| `bridging` | §A | `Ratings` (`with_weights`, `with_axis` — the reviewer floor's mask, T39), `BridgingParams`, `Fit`, `fit`, `bridge_scores`, `side_balanced` (sides from the participants: axis and a positive weight, `docs/15` A7), `two_means` (the exact cut, each side at least `side_floor`, D42), `coverage` (the ratings of an item's less-rated side, D42) |
 | `irt` | §B.1–B.2, B.4 | `theta_from_anchors`, `kr20` (anchor reliability, D37), `point_biserial`, `fit_2pl_item`, `A_MIN`, `R_PBIS_MIN`, `KR20_MIN` |
 | `dif` | §B.3 | `logistic_dif`, `mantel_haenszel` (`EtsClass`), `mixture_dif` (the proxy-θ model, retired from the production path by T54, kept for the fixtures; `MixtureDif::differential` is a diagnostic, D37), `BETA2_MAX`, `MIXTURE_DIF_MAX` |
 | `latent` | §B.1, §B.3 (D37, D25, D43) | `latent_dif`, `latent_dif_with`, `LatentParams`, `LatentDif::flags`, `Ability`, `Format`, `Formats`, `BadFormats`, `FLOOR_PRIOR_WEIGHT` — the target model: the anchors inside the likelihood, θ integrated on a grid, classes by BIC, an analytic gradient from the EM artificial data (T54); each column's guessing floor set by its declared format, fitted under a prior (T25); the classes' ability a shared histogram, standardized, estimated with the rest (T82), or held normal (`estimate_shape`, the pilot's screen) |

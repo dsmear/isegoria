@@ -315,7 +315,7 @@ fn an_epoch_records_each_rating_less_its_prediction() {
         b_j: vec![0.0625, -0.375],
         f_u: vec![0.5, -0.75],
         f_j: vec![0.25, 0.5],
-        axis: vec![true; 2],
+        participant: vec![true; 2],
         status: Convergence::Converged,
     };
     let mut epoch = ResidualHistory::new(0);

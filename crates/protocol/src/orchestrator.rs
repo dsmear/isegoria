@@ -46,7 +46,7 @@ impl ReviewerStanding {
     }
 }
 
-/// `n_min` of `docs/02` §A.4: below it `f_u` is fixed at 0 in the fit. Provisional (T25).
+/// `n_min` of `docs/02` §A.4: below it a reviewer is off the axis ([`axis_mask`]); provisional.
 pub const N_MIN_REVIEWS: usize = 30;
 
 /// Which reviewers define the axis this epoch (`Ratings::axis`): founders, and anyone

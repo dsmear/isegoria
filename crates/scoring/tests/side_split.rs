@@ -49,7 +49,7 @@ fn placed(f_u: &[f64], axis: &[bool]) -> Fit {
         b_j: vec![0.25],
         f_u: f_u.to_vec(),
         f_j: vec![0.125],
-        axis: axis.to_vec(),
+        participant: axis.to_vec(),
         status: Convergence::Converged,
     }
 }
@@ -100,7 +100,7 @@ fn at_br_11_no_axis_scores_the_item_level() {
     );
 }
 
-/// A reviewer of weight 0 adds nothing to an item's coverage (AT-BR-11).
+/// A reviewer of weight 0 neither counts in an item's coverage nor seats a side (AT-BR-11, A7).
 #[test]
 fn at_br_11_a_reviewer_of_weight_zero_covers_nothing() {
     let data = Ratings::from_dense(&[vec![0.5], vec![0.5]], &[vec![true], vec![true]])
@@ -112,7 +112,7 @@ fn at_br_11_a_reviewer_of_weight_zero_covers_nothing() {
         score: vec![0.5],
         gap: vec![0.0],
     };
-    assert_eq!(coverage(&data, &sides), vec![0]);
+    assert_eq!(coverage(&data, &sides), vec![1]);
 }
 
 /// A side's floor is 5% of the reviewers rounded up, at least 1, at most half (AT-BR-11).
@@ -143,7 +143,7 @@ fn at_br_11_predictions_are_clipped_to_the_rating_scale() {
         b_j: vec![0.3, -1.2, 0.0],
         f_u: vec![-1.0, -0.9, 0.9, 1.0],
         f_j: vec![0.0, 0.0, 0.5],
-        axis: vec![true; 4],
+        participant: vec![true; 4],
         status: Convergence::Converged,
     };
     let s = side_balanced(&fit);

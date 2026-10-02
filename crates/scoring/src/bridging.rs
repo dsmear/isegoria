@@ -23,9 +23,9 @@ pub struct Ratings {
     /// Per-reviewer weight `w_u`, length `n`; uniform (1.0) by default (docs/08 BRIDGE-007,
     /// G-03): the reviewer's `discount(cap(E_u))` (probation = 0) from the previous epoch.
     pub weights: Vec<f64>,
-    /// Per-reviewer flag, length `n`: whether the reviewer defines the latent axis
-    /// (`docs/02` §A.4, T39). One below the review floor is absent from the core fit and
-    /// placed on it afterwards by projection, entering no side of the side-balanced score.
+    /// Per-reviewer flag, length `n`: whether the reviewer may define the latent axis
+    /// (`docs/02` §A.4, T39). Only a row with the flag and a positive weight takes part in the
+    /// collective fit; the others are placed on it afterwards and enter nothing collective (A7).
     pub axis: Vec<bool>,
 }
 
@@ -212,8 +212,8 @@ pub struct Fit {
     pub b_j: Vec<f64>,
     pub f_u: Vec<f64>,
     pub f_j: Vec<f64>,
-    /// Which reviewers defined the axis (`Ratings::axis`); the others enter no side of the score.
-    pub axis: Vec<bool>,
+    /// Per row, whether it took part in the collective fit (`Ratings::axis`, positive weight).
+    pub participant: Vec<bool>,
     /// Convergence of the L-BFGS fit (docs/08 OPT-001).
     pub status: Convergence,
 }
@@ -261,41 +261,87 @@ pub fn fit(data: &Ratings, p: &BridgingParams) -> Result<Fit, RatingsError> {
 fn fit_validated(data: &Ratings, p: &BridgingParams) -> Fit {
     // Canonicalize: the init mean and cost/grad sums are order-dependent (INV-13).
     let data = data.canonical();
-    // The core fit uses only the axis reviewers (T39, as a zero-weight reviewer is
-    // absent, T42); with everyone on the axis, the core is the data itself.
-    let off_axis: Vec<usize> = (0..data.n).filter(|&u| !data.axis[u]).collect();
-    let core = if off_axis.is_empty() {
-        data.clone()
-    } else {
-        let mut weights = data.weights.clone();
-        for &u in &off_axis {
-            weights[u] = 0.0;
+    let core = Core::of(&data);
+    core.expand(&data, p, &fit_core(&core.data, p))
+}
+
+/// Whether row `u` takes part in the collective fit (`docs/15` A7): axis and a positive weight.
+fn participates(data: &Ratings, u: usize) -> bool {
+    data.axis.get(u).copied().unwrap_or(false) && data.weights.get(u).is_some_and(|w| *w > 0.0)
+}
+
+/// The collective fit's own problem: the participants renumbered in row order, with only their
+/// observations; `rows[k]` is participant `k`'s row in the input. Nobody else enters it.
+struct Core {
+    rows: Vec<usize>,
+    data: Ratings,
+}
+
+impl Core {
+    fn of(data: &Ratings) -> Core {
+        let rows: Vec<usize> = (0..data.n).filter(|&u| participates(data, u)).collect();
+        let mut index = vec![None; data.n];
+        for (k, &u) in rows.iter().enumerate() {
+            index[u] = Some(k);
         }
-        Ratings {
-            weights,
-            ..data.clone()
+        let obs = data
+            .obs
+            .iter()
+            .filter_map(|o| index[o.u].map(|k| Obs { u: k, ..*o }))
+            .collect();
+        Core {
+            data: Ratings {
+                n: rows.len(),
+                m: data.m,
+                obs,
+                weights: rows.iter().map(|&u| data.weights[u]).collect(),
+                axis: vec![true; rows.len()],
+            },
+            rows,
         }
-    };
+    }
+
+    /// The core's fit on every row of `data`: participants at their own parameters, the others
+    /// placed on the fixed axis by [`project`].
+    fn expand(&self, data: &Ratings, p: &BridgingParams, core: &Fit) -> Fit {
+        let mut f = Fit {
+            mu: core.mu,
+            b_u: vec![0.0; data.n],
+            b_j: core.b_j.clone(),
+            f_u: vec![0.0; data.n],
+            f_j: core.f_j.clone(),
+            participant: vec![false; data.n],
+            status: core.status,
+        };
+        for (k, &u) in self.rows.iter().enumerate() {
+            f.b_u[u] = core.b_u[k];
+            f.f_u[u] = core.f_u[k];
+            f.participant[u] = true;
+        }
+        for u in (0..data.n).filter(|&u| !f.participant[u]) {
+            (f.b_u[u], f.f_u[u]) = project(data, p, core, u);
+        }
+        f
+    }
+}
+
+/// The multi-start fit of a [`Core`]'s ratings (T48), in the canonical sign.
+fn fit_core(core: &Ratings, p: &BridgingParams) -> Fit {
     let mut best: Option<(f64, Fit)> = None;
     for k in 0..p.n_starts.max(1) {
-        let x0 = random_init(&core, p.seed.wrapping_add(k as u64));
-        let f = fit_with_init(&core, p, x0);
-        let obj = objective(&core, p, &pack(&f));
+        let x0 = random_init(core, p.seed.wrapping_add(k as u64));
+        let f = fit_with_init(core, p, x0);
+        let obj = objective(core, p, &pack(&f));
         if best.as_ref().is_none_or(|(b, _)| obj < *b) {
             best = Some((obj, f));
         }
     }
     let mut f = best.expect("at least one start").1;
     canonical_sign(&mut f);
-    for &u in &off_axis {
-        let (b_u, f_u) = project(&data, p, &f, u);
-        f.b_u[u] = b_u;
-        f.f_u[u] = f_u;
-    }
     f
 }
 
-/// The position of a reviewer off the axis (T39): its `(b_u, f_u)` on the fixed axis
+/// The position of a row outside the collective fit (T39, A7): its `(b_u, f_u)` on the fixed axis
 /// `(μ, b_j, f_j)` of the core fit, by ridge least squares over its own ratings (same
 /// `λ_b`, `λ_f` as the fit); no influence on anyone else, the origin without ratings.
 fn project(data: &Ratings, p: &BridgingParams, f: &Fit, u: usize) -> (f64, f64) {
@@ -435,7 +481,7 @@ fn fit_with_init(data: &Ratings, p: &BridgingParams, x0: Vec<f64>) -> Fit {
         b_j: lay.bj(&x).to_vec(),
         f_u: lay.fu(&x).to_vec(),
         f_j: lay.fj(&x).to_vec(),
-        axis: data.axis.clone(),
+        participant: vec![true; data.n],
         status: m.status,
     }
 }
@@ -448,7 +494,7 @@ pub enum Side {
     B,
 }
 
-/// The side-balanced bridge score (`docs/02` §A.3, D32, T49, D42): axis reviewers split by
+/// The side-balanced bridge score (`docs/02` §A.3, D32, T49, D42): the participants split by
 /// [`two_means`] on `f_u`, predicted ratings clipped to `[0, 1]` and averaged within each
 /// side, the score the mean of the two — each side counts once whatever its size.
 #[derive(Clone, Debug, PartialEq)]
@@ -515,12 +561,12 @@ pub fn two_means(f_u: &[f64]) -> Vec<Side> {
 pub fn side_balanced(fit: &Fit) -> SideScores {
     let (n, m) = (fit.b_u.len(), fit.b_j.len());
     let on_axis: Vec<usize> = (0..n)
-        .filter(|&u| fit.axis.get(u).copied().unwrap_or(true))
+        .filter(|&u| fit.participant.get(u).copied().unwrap_or(true))
         .collect();
     let side = if on_axis.len() == n {
         two_means(&fit.f_u)
     } else {
-        // Off-axis reviewers take the nearer side's label (a tie to A) and count in no average.
+        // Other rows take the nearer side's label (a tie to A) and count in no average.
         let f_axis: Vec<f64> = on_axis.iter().map(|&u| fit.f_u[u]).collect();
         let axis_sides = two_means(&f_axis);
         let (mut sum, mut count) = ([0.0_f64; 2], [0usize; 2]);
@@ -539,8 +585,8 @@ pub fn side_balanced(fit: &Fit) -> SideScores {
         let mut axis_side = axis_sides.iter();
         (0..n)
             .map(|u| {
-                if fit.axis[u] {
-                    *axis_side.next().expect("one side per axis reviewer")
+                if fit.participant[u] {
+                    *axis_side.next().expect("one side per participant")
                 } else if (fit.f_u[u] - ca).abs() <= (fit.f_u[u] - cb).abs() {
                     Side::A
                 } else {
@@ -590,22 +636,19 @@ pub fn side_balanced(fit: &Fit) -> SideScores {
     out
 }
 
-/// Per item, the ratings from its less-rated side (D42): axis reviewers with a positive weight
-/// count, a side no axis reviewer sits on is left out, indices outside the input are ignored.
+/// Per item, the ratings from its less-rated side (D42): only participants count and seat a side
+/// (`axis`, positive weight, A7); a side none sits on is left out, indices outside are ignored.
 pub fn coverage(data: &Ratings, sides: &SideScores) -> Vec<usize> {
-    let counts = |u: usize| data.axis.get(u).copied().unwrap_or(false);
     let mut seated = [false; 2];
     for (u, s) in sides.side.iter().enumerate() {
-        if counts(u) {
+        if participates(data, u) {
             seated[*s as usize] = true;
         }
     }
     let mut rated = vec![[0usize; 2]; data.m];
     for o in &data.obs {
-        let weighted = data.weights.get(o.u).is_some_and(|w| *w > 0.0);
-        if let (true, true, Some(s), Some(r)) = (
-            counts(o.u),
-            weighted,
+        if let (true, Some(s), Some(r)) = (
+            participates(data, o.u),
             sides.side.get(o.u),
             rated.get_mut(o.j),
         ) {
@@ -647,25 +690,25 @@ pub fn bridge_scores(
 
     // Warm-start each subsample from the full fit: the bilinear term makes the objective
     // non-convex, so independent random inits could land in a different minimum.
-    let full = fit_validated(&data, p);
-    let anchor = pack(&full);
-    let full_sides = side_balanced(&full);
+    let core = Core::of(&data);
+    let fitted = fit_core(&core.data, p);
+    let anchor = pack(&fitted);
+    let full_sides = side_balanced(&core.expand(&data, p, &fitted));
 
     let mut robust = full_sides.score.clone();
     for s in 0..n_bootstrap {
         let mut rng = ChaCha8Rng::seed_from_u64(p.seed.wrapping_add(100 + s as u64));
-        let sub_obs: Vec<Obs> = data
+        // Only the participants' observations and parameters draw from the stream (A7).
+        let sub_obs: Vec<Obs> = core
+            .data
             .obs
             .iter()
             .copied()
             .filter(|_| rng.gen::<f64>() < keep_frac)
             .collect();
         let sub = Ratings {
-            n: data.n,
-            m: data.m,
             obs: sub_obs,
-            weights: data.weights.clone(),
-            axis: data.axis.clone(),
+            ..core.data.clone()
         };
         let mut x0 = anchor.clone();
         for v in x0.iter_mut() {
@@ -787,7 +830,7 @@ mod tests {
                 b_j: vec![0.0; f_j.len()],
                 f_u: vec![1.0],
                 f_j,
-                axis: vec![true],
+                participant: vec![true],
                 status: Convergence::Converged,
             };
             canonical_sign(&mut f);

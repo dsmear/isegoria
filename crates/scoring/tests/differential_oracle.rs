@@ -85,7 +85,15 @@ fn objective(data: &Ratings, p: &BridgingParams, f: &Fit) -> f64 {
         se += data.weights[o.u] * e * e;
     }
     let sq = |v: &[f64]| v.iter().map(|x| x * x).sum::<f64>();
-    se + p.lam_b * (sq(&f.b_u) + sq(&f.b_j)) + p.lam_f * (sq(&f.f_u) + sq(&f.f_j))
+    // The collective objective: a row outside the fit adds no penalty for its own position.
+    let rows = |v: &[f64]| {
+        sq(&v
+            .iter()
+            .zip(&f.participant)
+            .map(|(x, &t)| if t { *x } else { 0.0 })
+            .collect::<Vec<_>>())
+    };
+    se + p.lam_b * (rows(&f.b_u) + sq(&f.b_j)) + p.lam_f * (rows(&f.f_u) + sq(&f.f_j))
 }
 
 /// A random two-camp dataset: `n` reviewers at `±1 + N(0, 0.2)`, `m` items with random

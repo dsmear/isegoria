@@ -109,7 +109,7 @@ predictions put scores outside [0, 1] (−0.28 to 1.31). The exact cut replaces 
 iteration: it does not depend on the axis' origin or scale, a sign flip swaps the sides,
 and two camps of distinct positions are separated whenever each holds at least 5% of the
 reviewers. The predictions are clipped. And an item's **coverage** — the ratings its
-less-rated side gave it, counting the axis reviewers with a positive weight — must reach
+less-rated side gave it, counting the participants of §A.4, which alone seat a side — must reach
 `MIN_COVERAGE = 1` (provisional, T25): below it the gate sends the item to the band's
 extra round whatever its score, and the re-decision cannot pass it (`05` [5]). The panels
 of `05` [4] are stratified on `f_u`, so an item one side never rated is rare; the floor
@@ -143,7 +143,8 @@ inadequate at this scale, and the useful value on the intercept was around 0.08.
   a worse one, sometimes on the other side of `τ`. Fit from several deterministic
   starts (8 in the reference implementation) and keep the lowest objective; report `f`
   in a canonical sign (it is identified only up to sign).
-- Run the fit on `m = 10` bootstrap subsamples (random removal of ~15% of judgments)
+- Run the fit on `m = 10` bootstrap subsamples (random removal of ~15% of the
+  participants' judgments, below)
   and take the minimum of the side-balanced score over them, `min_s S_j^(s)`
   (pessimistic estimate): a question must pass in all repetitions.
 - **`d = 2` is descoped** (`01` D31, recorded here by T39): the model has one latent
@@ -167,6 +168,16 @@ inadequate at this scale, and the useful value on the intercept was around 0.08.
   the row its standing gives, as the epoch's rows do: on the axis only as a founder or
   past the floor, at its review weight (`orchestrator::expanded_ratings`; `15` A5).
   Provisional (T25).
+- **Participation (`15` A7).** `Ratings::axis` is eligibility, set from the standing; a
+  row takes part in the collective computation iff it is eligible and its weight is
+  positive. That one population makes the common fit, the sides and their floor, the side
+  means, the sides that exist for the coverage and the ratings it counts, and every
+  bootstrap replica. The fit runs on the participants alone, renumbered in row order
+  (`bridging::Core`), so a non-participant moves no common parameter, participant position,
+  side, score, gap, coverage or robust score, bit for bit — not through the optimizer's
+  dimension, its seeded start or the bootstrap's draws either — and is placed on the fixed
+  axis like an off-axis reviewer. A founder after an alarm and a reviewer past the floor
+  on probation stay on the axis at weight 0 and take no part until their weight is positive.
 
 ### A.5 Optimization
 
@@ -827,7 +838,8 @@ from the informed minority.
   statistic restart, so the weight is 0 until 30 new scored outcomes and shrunk again
   afterwards. A founder is no exception: its weight 1 is the bootstrap's and ends at its
   first alarm, after which it is on probation at weight 0 like anyone, then at its skill
-  weight, never 1 again; its founder membership, which the axis reads (§A.4), stays
+  weight, never the fixed bootstrap weight again; its founder membership, which the axis
+  reads (§A.4), stays
   (`ReviewerStanding::alarms`, `15` A6). It reacts to a change, not to variance: a cautious
   reviewer with noisy scores around a good mean raises nothing. In the paper's simulation, `k = 0.03`,
   `h = 1.5` give 0.07 false alarms per 1,000 scored items and catch a reviewer who starts
