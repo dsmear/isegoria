@@ -8,6 +8,12 @@
 
 ## How to read an entry
 
+**Correction dependency.** The guarantee and model findings in
+[`15`](15-phase1-review.md) precede interpretation of the affected calibration
+procedures. In particular, choosing `DTF_MAX` cannot prove a cross-fit bound, and
+choosing an exploration rate cannot repair the information assumptions of properness.
+The register records provisional values; it does not close those findings.
+
 - **Reason** — what the threshold decides, and why the mechanism needs it.
 - **Calibration** — the procedure that sets the value: the data, the study, the criterion.
   The criterion is an **operating point**: the error rates the network accepts at the
@@ -189,5 +195,6 @@ floor prior's weight, `KR20_MIN` or a minimum number of anchors, `N_LATENT_MIN`,
 ## Level C — reputation and coordination
 
 To be written by step 4, with procedures and values provisional until the pilots (T27):
-`γ` and `k₀`, the CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the reputation half-life
-`T`, the honeypot and exploration rates, `α`, `min_shared`, `ρ_min` and `p_max`.
+`γ` and `k₀`, the CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the implemented
+reputation decay time `T` (half-life `T ln 2`; the intended convention is a decision,
+`15` C6), the honeypot and exploration rates, `α`, `min_shared`, `ρ_min` and `p_max`.

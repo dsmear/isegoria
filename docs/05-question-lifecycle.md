@@ -20,9 +20,9 @@ it neutralizes).
       ↓                          if discarded for polarization (wide side gap), not for
       │                          a defect — below the band or failing the re-decision;
       ↓                          the author stakes reputation (`01` D27)
- [6] Pilot 1        ~300 respondents: kills broken and non-discriminating questions
+ [6] Pilot 1        initial screen, provisional floor ~300 respondents
       ↓
- [7] Pilot 2        ~1500–3000 respondents, IN BATCHES: IRT + multi-axis DIF
+ [7] Pilot 2        sample by format and power, IN BATCHES: IRT + latent DIF
       ↓                 │
       │                 └──→ [7b] CONTESTED FACT
       │                          DIF, but the cited primary source establishes the key
@@ -40,13 +40,11 @@ it neutralizes).
 The cost of proposing is reputation and rate limits (rate-limiting nullifier, `03`),
 never money.
 
-**Why a lottery and not a low quota** (`01` D10). The bottleneck is validation
-capacity, under ~1 proposal/year per node:
-
-- 10,000 nodes × 50 answers/month = 500,000 available answers
-- ~1,500 answers per question → ~333 validatable questions/month
-- a quota of 2/month would produce 20,000 questions/month: 30× the capacity, an
-  infinite queue
+**Why a lottery** (`01` D10). Admission must stay within measured validation capacity.
+The original illustration used 10,000 nodes × 50 answers/month = 500,000 answers.
+Dividing that budget by a historical respondent count per trial ignores anchor answers
+and unsuccessful batches; it is not a current throughput estimate. Use the accounting
+and model-version limits in `02` §B.6 when setting admission quotas.
 
 The lottery gives equal access in expected value and keeps the queue bounded. Anyone
 can propose as much as they want; each epoch a drawn subset enters the pipeline.
@@ -118,28 +116,32 @@ judgment to the data.
 
 ## [6]-[7] Two-stage pilot
 
-**Stage 1 (~300 respondents).** Cheap screen: immediately kills questions with
-insufficient discrimination (`a < 0.6`, `r_pbis < 0.20`), too easy or too hard
-(`|b| > 2.5`), guessable (a floor more than 0.10 above chance), and those with a wrong key
-(negative `r_pbis`) — the point-biserial first, then the one-class fit of the model the
-re-check uses on the items it keeps, the ability's shape held normal at this size (`02`
-§B.2, `01` D25). Costs little.
+**Stage 1 (provisional floor: 300 respondents).** The point-biserial prefilter excludes
+items below `R_PBIS_MIN`; the survivors enter a one-class fit with declared formats,
+guessing floors and ability shape held normal. The verdict applies the provisional
+cuts on discrimination, difficulty and excess floor (`02` §B.2). The screen's study
+found losses of good items and weak detection of excess guessing at this size
+(`13` §8.7.5). These cuts are implemented; reliable exclusion of every guessable item
+is not established.
 
-**Stage 2 (~1500–3000 respondents), only for survivors.** The large sample is needed
-because **latent-class DIF** (`02` B.3) requires enough people at each competence
-level. 1500 suffices with a group signal; the fully-anonymous latent-class variant
-wants ~3000 (see `02` §B.6 for the derivation and the minimum network size).
+**Stage 2, only for survivors.** The anonymous re-check has a code admission floor of
+3,000 distinct respondents. The 1,500 floor belongs to the group-labelled calibration
+path; it is not an alternative anonymous production guarantee. Required sample sizes
+depend on format, effects, anchors and admission gates. T25 must determine them on the
+candidate model (`02` §B.6; `13` §8.8), together with the acceptable errors of T83.
+
 Requirements:
 
-- **In batches, never a single item**: an isolated distorted question is
-  unidentifiable (in testing: 1/8 invisible, 2/8 detected). Validate groups.
+- **In batches, never a single item**: retain the protocol requirement. Historical
+  single-item failures show low power in those experiments, not a general
+  non-identifiability theorem (`15` A8).
 - **One template per batch**: no two items of the same template ([9]) among a batch's
   trial items and the anchors its respondents answer — items answered alike beyond
   ability read as a latent class (`01` D43, `02` §B.3). Batches are composed with the
   templates apart, and the gate refuses one that is not.
-- **Multi-axis**: look for bias on more than one latent axis, including a
-  socio-economic one (a question neutral on the political axis can be distorted on
-  education).
+- **Coverage of latent differences**: validate the detector against multiple sources
+  of bias. Fitted anonymous classes do not identify named social attributes or
+  guarantee that every axis of bias is found (`15` B2/B6).
 
 Respondents are the scarce resource: they can be the same nodes under the third
 pseudonym (`nym_answer`), or a separate panel-style sample. Each respondent proves that
@@ -167,13 +169,14 @@ fact* and enters the contested pool; otherwise it is rejected, as before. The sa
 applies at re-validation ([8]): an active item whose DIF emerges moves to the contested
 pool if its source passes the check, and retires otherwise.
 
-**Use: only in balanced sets.** A test draws its contested facts from the beacon among
-the selections whose differential test functioning stays within the tolerance (`02`
-§B.7): facts leaning one way are drawn only with facts leaning the other way that cancel
-them, measured in the same fit — the classes of different batches are not comparable,
-so across batches their DTF only adds up. The test as a whole favours no latent class. A
-contested fact is administered, counts exposure and retires at the exposure limit like
-any pool item. The balance protects the score, not the respondent: which contested facts
+**Use: selection under a DTF cost.** A test draws contested facts from the beacon
+among selections whose implemented cost is below the tolerance (`02` §B.7).
+Contributions can cancel within one fit; the cost adds across fits. This does not
+require every item to have an opposite-leaning partner. The intended whole-test
+guarantee remains open: its cross-fit bound and the contribution of active items
+need correction (`15` A2). A contested fact is administered, counts exposure and
+retires at the exposure limit like any pool item. Even a valid score-balance guarantee
+would not protect the respondent's privacy: which contested facts
 a person misses reveals their latent class, and with a respondent pseudonym that is the
 same on every batch the answer sheets can be joined into a profile — open, `10` T69.
 

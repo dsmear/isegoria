@@ -9,6 +9,15 @@
 
 ## Why this was needed
 
+**Scope of T81 (run 22).** Its completed run covers ten files: `gate`, `appeal`,
+`exploration`, `orchestrator`, `probation`, `review`, `lifecycle` in `protocol`, and
+`collusion`, `reputation`, `bridging` in `scoring`. The target-model/T25 files are
+outside that run; other runs below have their own scopes. Mutation testing verifies
+the checks exercised by those suites, not every statistical or composed protocol
+guarantee. The new findings in [`15`](15-phase1-review.md) do not invalidate the
+recorded run totals or make T81 an indefinitely open task; subsequent fixes need
+their own targeted verification.
+
 Line coverage was already ~97% (`cargo llvm-cov`), yet the second review (`docs/10`
 P1.5) found defects in files covered at 96–100%. Coverage says a line *ran*; a mutant
 survives when the line can be changed — a `<` into `<=`, a `+` into `-`, a function

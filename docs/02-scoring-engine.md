@@ -1,8 +1,14 @@
 # Scoring engine — mathematical specification
 
 The engine is **deterministic**: given the same input (node×question ratings,
-respondent×question answers), it produces the same output. It is the piece to
-implement first; the simulations in `sim/` are its executable spec.
+respondent×question answers), it produces the same output. The Rust implementation
+has scoped Python oracles and deterministic golden-output tests; `sim/` also retains
+retired models and is not a complete executable specification of this version.
+
+**Reading status.** This document distinguishes implemented formulas from intended
+guarantees. Open disagreements and correction criteria are in
+[`15-phase1-review.md`](15-phase1-review.md). Documentation alignment does not resolve
+those findings or change the code. Measurement claims retain their model/version scope.
 
 Notation: `u,v` nodes/reviewers; `j` questions (items); `i` respondents; `θ_i` the
 respondent's latent competence.
@@ -10,8 +16,9 @@ respondent's latent competence.
 > **Revisions from the working paper (decided 2026-09-24).** The working paper
 > (`paper/`, version 0.2) found properties of this specification that `docs/01` D32–D41
 > correct; the tasks are `docs/10` Phase 1.1 (T49–T57), the first phase of the roadmap.
-> D32–D40 are implemented (T49–T57, 2026-09-24/25): the text describes the mechanism as
-> built, with the measured limits the paper does not have — the side-balanced score and
+> D32–D40 are implemented (T49–T57, 2026-09-24/25): the text describes their formulas
+> and intended contracts, subject to the open findings in `15`, with measured limits —
+> the side-balanced score and
 > the appeal by the side gap (§A.3), the target latent model and its anchor precondition
 > (§B.3), the contested-facts pool (§B.5, §B.7), the evaluator score with exploration
 > (§C.2), the change detector and the cap (§C.4), coordination on residuals and panel
@@ -321,19 +328,22 @@ grid standardized by the weights' own mean and standard deviation, so the shape 
 and variance 1 and class `g`'s ability is `η_g + u_q` with probability `w_q`. A normal cannot
 take a skewed shape and a mixture of two normals approximates it, so with a fixed normal a
 skewed ability selected classes that do not exist (`13` §8.7.2); with the shape estimated,
-one class fits. The weights' moments on the grid, which the standardized nodes leave free,
-are held near 0 and 1 by a penalty — a gauge, not a prior on the shape. `G` is chosen by
-BIC. The floors `c` follow each item's format (§B.1): 0 for an open answer, otherwise
-estimated, the same in every class — a class that guesses differently on an item is DIF,
-which the model reads in the item's difficulties. The fit minimizes the negative log-likelihood plus the floors'
-priors and the gauge; the BIC reads the likelihood at that optimum and counts the floors
-and the histogram's weights (41, less their sum, mean and variance) as parameters, the same
-count in every candidate: the histogram does not decide the number of classes. **This
-variant is what makes DIF compatible with full anonymity**: in testing, with ≥2
-distorted questions in a batch, it estimates a difficulty gap `DIF_j` of 1.7–1.9 (the
-true `2δ` = 1.8) on the defective ones when four or six of eight are shifted — 3.6 and
-1.1 when only two are — and under 0.15 on the clean ones, without ever observing the
-axis.
+one class fits in the post-D43 fixtures described in `13` §8.8; the full study is pending.
+
+**Implemented fit and selection.** The objective includes the floors' priors and a
+penalty on the histogram's raw-grid mean and variance. BIC reads the unpenalized
+likelihood at the resulting fitted parameters. The implementation counts `Q−3`
+histogram parameters (`Q=41`), the same count in each histogram candidate. A shared
+parameter-count term cancels in comparisons, but estimated shape can still change
+the likelihood differences and the selected number of classes (`13` §8.8).
+
+**Open interpretation (`15` A3, B1–B3).** Calling that penalty a pure gauge and
+subtracting two moment degrees of freedom requires justification: changing weights
+can change standardized shape. The fit/selection procedure and its sensitivity to the
+floor prior must be evaluated as implemented. The floor `c_j` is shared across
+classes; class-specific guessing can be misspecification and is not generally
+represented exactly by a difficulty shift. Fitted anonymous classes are statistical
+components, not identified social groups or a guarantee that all bias is detected.
 
 *Why the anchors are in the likelihood.* The first implementation fitted the trial items
 on a proxy — the standardized anchor total as `θ` (`dif::mixture_dif`). Error in the
@@ -355,9 +365,17 @@ measured it: on 2PL populations no clean item is flagged at any cut from 0.5 to 
 at 0.6 and below the cut no longer binds — power is then the share of fits that select a
 mixture. With a guessing floor in the population 12–17% of the clean items are flagged
 at 1.0, so T25 sets the value after the guessing correction (D25; `08` DIF-006, DIF-008),
-which the model carries since T25's first step (§B.1, `08` AT-DIF-13). On populations
-that guess the corrected model flags no clean item at any cut from 0.5 to 1.5, and a cut
-below 1.0 gains at most 3 points of power (T25 step 3, `13` §8.7.1): 1.0 can stay.
+which the model carries since T25's first step (§B.1, `08` AT-DIF-13). In the
+clean-population cells of the pre-D43 guessing supplement, no clean item was
+flagged at cuts from 0.5 to 1.5; lowering the cut below 1.0 gained at most 3 points of
+power (`13` §8.7.1). The misspecified populations had different results (§8.7.2).
+These are historical observations, not a guarantee or a post-D43 threshold decision.
+The cut remains provisional pending the candidate model's measurements and T83.
+
+**Fit status is not a clean verdict (`15` A4).** `LatentDif::flags` returns false for
+an unconverged fit as well as when no item crosses the rule. The current
+`revalidate_batch_latent` result loses that distinction. Preserving a non-evaluable
+outcome through the lifecycle is an open protocol correction.
 
 *Reference implementation (T40, T54).* `G ∈ {1, …, 4}` and uniform (shared `a_j`) vs
 non-uniform (per-class `a_jg`) DIF are chosen together by BIC, each candidate fitted from
@@ -371,13 +389,12 @@ unidentified). The verdict reads the difficulty gap only, as above: a per-class
 found that one would add detection only for a large discrimination gap in a large sample
 (`13` §7.2, §7.5); T25 decides whether to adopt it.
 
-**Critical requirement: validate in batches.** A single distorted question in
-isolation is unidentifiable: one leaning item of eight is never found, at `N` up to 6,000
-and `δ` up to 0.9, while two are found 93% of the time at `δ = 0.9`, `N = 3,000`, and
-11% at `δ = 0.7` (T24, `13` §7.1). The
-real threat is a *campaign* to tilt the bank, and it is that which becomes visible in
-batches. Periodically re-run the analysis on the whole active pool, where even
-scattered distortions add up.
+**Protocol requirement: validate in batches.** T24's no-floor study did not find one
+leaning item of eight at the tested sizes/shifts, while multiple leaning items were
+more detectable (`13` §7.1). This is evidence about power in that regime, not a proof
+that a single biased item's response curve is indistinguishable from the null family
+(`15` A8). Batch validation and periodic re-checks remain requirements; their detection
+limits must be measured on the candidate model and format.
 
 **One template per batch (`01` D43).** No two columns of a batch — its trial items and the
 anchors its respondents answered — come from the same template (`05` [9]). Items of one
@@ -386,16 +403,17 @@ that finds both easier: with pairs so answered, null batches flagged clean items
 the cases (`13` §8.7.2). Each column declares its template with its format, and the gate
 refuses a batch in which two share one (`PilotError::SharedTemplate`) before any fit.
 
-**Multi-axis.** Test on more than one latent axis, including at least one that
-captures the socio-economic fracture. Variant 2 surfaces it by itself: in testing a
-question neutral on the political axis (DIF ≈ 0) but distorted on education (DIF ≈
-0.66) was missed by looking only at the political axis. Bridging protects against
-factional capture, not against elite consensus against the general public.
+**Multiple sources of bias.** A question can be neutral on one known axis and
+distorted on another; the historical education example motivates this concern.
+The anonymous mixture does not label its classes or certify discovery of every
+social axis. Such sensitivity is a characterization question (`13`), with anchor
+invariance and misspecification limits recorded in `15` B2/B6.
 
-### B.4 Iterative purification (mandatory)
+### B.4 Anchor validity and iterative purification
 
-`θ` must be estimated on a set of **anchor items** already certified free of DIF,
-otherwise the biased items contaminate the very measure used to judge them:
+The metric depends on **anchor items** treated as invariant. Contaminated anchors
+can alter the reference against which trial-item DIF is judged. The group-labelled
+calibration/proxy procedure uses iterative purification:
 
 ```
 1. estimate θ using all items (or the anchors)
@@ -406,11 +424,12 @@ otherwise the biased items contaminate the very measure used to judge them:
 6. repeat until the set of discarded items stops changing
 ```
 
-In the prototype, `θ` is estimated on 30 anchor items external to the batch under
-validation — enough for the reference fixtures, not for the production re-check, which
-requires the anchors' KR-20 on the batch's respondents to reach 0.90 (about 40 anchors of
-this design; `01` D37, T53): the standardized total is a proxy for `θ` only as reliable as
-its anchors, and below that reliability the mixture reads proxy error as a latent class.
+The historical prototype estimates `θ` from 30 anchor totals. The current anonymous
+model instead fits anchor parameters in the likelihood and integrates over ability
+(§B.3); it does not perform that proxy loop as its production re-check. Its admission
+gate still requires `KR20_MIN = 0.90`, a provisional reliability rule. KR-20 does not
+establish anchor invariance or the absence of latent DIF; the guessing supplement
+shows why the gate needs reassessment (§B.6; `15` B2/B5).
 
 ### B.5 Upstream admissibility
 
@@ -458,86 +477,67 @@ Phase 3 work (`10` T68).
 
 ### B.6 Sample sizes and the minimum viable network
 
-The `~300` and `~1500` respondent counts are not arbitrary; they come from
-psychometric sample-size requirements. They are still **calibration targets** to be
-confirmed with a formal power analysis before a real pilot — this section states the
-reasoning and the constraints, not a proof.
+**Admission floors and required power are different quantities.** The current code
+uses the following minimum numbers of distinct respondents:
 
-**Where the two pilot sizes come from.**
+| Path | Implemented floor | Meaning |
+|---|---:|---|
+| Stage-1 screen | 300 | Initial filter with point-biserial and a one-class, format-aware fit; ability shape held normal. The floor and cuts are provisional. |
+| Group-labelled stage 2 | 1,500 | Calibration path with observed groups; not the anonymous deployment path. |
+| Anonymous latent re-check | 3,000 | `revalidation::N_LATENT_MIN`, followed by anchor/template admission. It is not a guarantee of sufficient power. |
 
-- **Pilot 1 (~300)** is a cheap classical screen (proportion correct, point-biserial,
-  a rough 2PL). Classical item statistics stabilize around 100–200 respondents; a 2PL
-  fit wants ~250–500. `~300` is the smallest count that gives a reliable first cut —
-  no larger, because respondents are the scarce resource (`01` D11).
-- **Pilot 2 (~1500)** is the full IRT + DIF stage, which needs enough people *at every
-  competence level and in every latent subgroup* (DIF compares people of equal `θ`):
-  3PL wants ~500–1000+, and Mantel–Haenszel / logistic DIF wants ≥200 per group. `1500`
-  covers this **when a grouping signal exists** (the observed group, or `f` from Level
-  A).
+Sources: `protocol::pilot::{N1_MIN,N2_MIN}` and
+`protocol::revalidation::N_LATENT_MIN`. The identity gate counts respondent
+pseudonyms, not repeated answer rows (T65). T25 must determine format-specific
+requirements on the candidate model; the historical 1,500–3,000 range is not a
+minimum viable network claim.
 
-**The anonymity ↔ sample-size tension.** The anonymity-compatible detector is the
-latent-class mixture (§B.3, Variant 2), which must estimate class membership *and*
-per-class item parameters without observing the group. It is far more data-hungry:
-`sim/latent_dif_and_capacity.py` uses **NT = 3000**, not 1500. So:
+**Historical measurements.** T24's no-floor model and T25 step 3's guessing-aware
+model both predate D43. For the supplement's equal-class cells with 60 anchors,
+8 trial items and two leaning items at `δ=0.9` (difficulty gap 1.8):
 
-> **1500 is optimistic for the fully-anonymous variant.** For latent-class,
-> multi-axis DIF, budget ~2500–3000+ respondents per batch, rising with the number of
-> axes/classes sought. Giving up observed group labels is paid for in sample size.
+| Format | N | Historical per-item power | Batch admission rate |
+|---|---:|---:|---:|
+| 5 options | 3,000 | 9% | 13% |
+| 5 options | 6,000 | 70% | 17% |
+| 5 options | 12,000 | 97% | 12% |
+| 4 options | 6,000 | 39% | 0% |
+| 4 options | 12,000 | 90% | 0% |
+| True/false | 12,000 | 5% | 0% |
 
-**Measured (T24, `13` §7.1).** On 2PL populations the target model flags at most 0.1%
-of the clean items at every sample size from 1,500 to 6,000, and its power grows with the
-sample and with the campaign: two leaning items of eight with `δ = 0.9` are found 93% of
-the time at 3,000 respondents and 99% at 6,000, with `δ = 0.7` 11% and 56%; at 1,500,
-two items with `δ = 0.9` are found 12–37% of the time. The floor `N_LATENT_MIN = 3,000`
-is T25's to confirm from these tables.
+Source: [`floor-power-summary.csv`](../verification/reports/t25/floor-power-summary.csv),
+rows with `a=60`, `k=8`, `lay=c2`, `d=0.9`, `pi=0.5` and the listed format/N;
+`13` §8.7.1 explains the design. The harness fits batches even when its recorded
+admission gate fails, so power and admission must be read together. An unadmitted
+batch is not a clean verdict. These values do not characterize D43 or set a new floor;
+the rerun and its status are in `13` §8.8.
 
-**Measured with a guessing floor (T25 step 3, `13` §8.7.1).** On populations that guess
-the corrected model flags no clean item either, and the floor costs power: two leaning
-items of eight with `δ = 0.9` are found 9% of the time at 3,000 respondents with five
-options, 70% at 6,000 and 97% at 12,000; with four options 39% and 90% at 6,000 and
-12,000; with true/false 5% at 12,000. `N_LATENT_MIN` depends on the items' format — about
-12,000 with four or five options — and true/false batches need a policy of their own
-(T25 step 4).
+**Screen and anchors.** Stage 1's historical study found that the point-biserial cut
+discards some good items and that excess guessing is poorly distinguished at N=300
+(`13` §8.7.5). The current KR-20 floor of 0.90 rejects many guessing batches; this is
+not repaired simply by assuming that a particular anchor count proves validity.
+T25 must assess anchor information, admission and the resulting decisions together
+(`15` B1–B5). An anchor-count alternative remains a proposal.
 
-**Three distinct floors on network size** (person-nodes, `04`), of different natures:
+**Capacity accounting.** A complete batch with N respondents, A anchors and K trial
+items requires `N × (A + K)` answers if each respondent answers every column, as in
+the characterization generator. Its answer cost divided among trial items is
+`N × (A + K) / K`; cost per accepted item also includes losses and repeated attempts.
+For N=12,000, A=60, K=8, that is 816,000 answers, or 102,000 per trial before such
+losses (exact arithmetic, not a deployment benchmark).
 
-1. **Evidence-filter correctness (the binding one).** Each batch needs ~1500–3000
-   *distinct* respondents — not many answers from few people: DIF needs different people
-   spread across competence and latent groups. Below ~1500–2000 active answerers in the
-   validation window, Level B cannot run as specified. The floors are enforced on
-   persons: the protocol counts the `Respond` nullifiers admitted to the batch, never the
-   answer rows (T65).
-2. **Level A identifiability.** The matrix factorization recovers the axis `f` only with
-   enough overlapping judgments; the spec already sets `n_min = 30` reviews per node to
-   enter the `f`-space (§A.4) and `k = 7–11` reviewers per item. This needs at least a
-   few hundred active reviewers spanning the axis.
-3. **Anonymity (a privacy floor, often forgotten).** Anonymity is a form of
-   k-anonymity: you hide in the crowd. In a small network, statistical deanonymization
-   (`03`: stylometry, timing, topic choice) becomes easy — a few hundred authors is not
-   enough to hide 200 questions from one ID. There is a size below which the system
-   *functions* but is no longer *anonymous*.
+The old illustration of 10,000 nodes answering 50 items/month gives 500,000 answers,
+but dividing by 1,500 and promising 333 usable items/month omits anchors and uses an
+unsupported current sample requirement. No replacement throughput promise is
+established. Reused anchor information or planned missingness would require a
+validated administration design; they are not assumed savings.
 
-**A fourth precondition, on the anchors rather than the network.** The latent re-check
-also requires the anchors the batch's respondents answered to be reliable: KR-20 ≥ 0.90
-(`01` D37, T53; `pilot::admit_anchors`). Below it the batch is refused like a short
-sample, because a noisy `θ` proxy is read by the mixture as a latent class (`08` DIF-010).
-The target model does not make that mistake: T24 found no clean item flagged at KR-20
-0.83 (20 anchors, `13` §7.1), so the floor's value is T25's to revisit. With a guessing
-floor the KR-20 of batches that flag no clean item is 0.55–0.89, and 0.90 refuses 83–100%
-of the batches of choice items (T25 step 3, `13` §8.7.1): a minimum number of anchors is
-the candidate (T25 step 4).
-
-**Throughput** (a floor on usefulness, not correctness) follows `01` D10:
-`validatable_questions/month ≈ (nodes × answers_per_node_month) / answers_per_question`.
-With 10,000 nodes × 50 answers ÷ 1500 ≈ 333 questions/month. Halving the network halves
-output; it does not break correctness.
-
-| Active person-nodes | What is possible |
-|---|---|
-| < ~1,500 | Evidence filter not runnable as specified; only a weak Level A |
-| ~2,000–3,000 | Minimum viable: one batch at a time, anonymous DIF at the edge, fragile anonymity |
-| ~10,000 | ~300 questions/month, stable latent-class DIF, good k-anonymity |
-| 100,000+ | Robust on throughput, multi-axis DIF, and privacy |
+**Separate feasibility constraints.** The network must supply the required distinct
+respondents, enough overlapping reviews for Level A, and an adequate anonymity set.
+They are different requirements. Neither a sample-size floor nor the simulations
+establish a general privacy guarantee. The lifecycle permits an external respondent
+panel (`05`); whether one is available, and the acceptable error/resource budgets,
+are owner decisions (`10` T83; `15` D2/E).
 
 ### B.7 Contested facts and differential test functioning (`01` D38)
 
@@ -553,9 +553,11 @@ ways:
   *contested pool* (from the pilot, or from the active pool at re-validation);
 - otherwise → rejected at the pilot, retired at re-validation, as before.
 
-A test draws contested facts only in sets whose differential test functioning (DTF)
-stays within a tolerance, so the test as a whole favours no latent class although each
-of its contested facts does.
+The implementation draws contested facts using the per-fit DTF cost below and a
+provisional tolerance. The intended guarantee is to control the whole test's
+differential functioning. That guarantee is **open**, for the cross-fit and
+active-item reasons below (`15` A2); selection by the implemented cost alone does
+not establish it.
 
 **DTF within one fit.** Let `F` be a target-model fit (§B.3) in which the items of a set
 `S` were trial items, with counted classes `g` (share ≥ 5%, as for `DIF_j`), shares
@@ -577,25 +579,28 @@ where their curves overlap: the absolute value inside the integral does not let 
 favour one class at low ability and the other at high ability. One item has the DTF of
 its own curves; two mirror items cancel exactly; one counted class gives 0.
 
-**Across fits: a bound, not a statistic.** The classes of two fits are not the same
-classes. Labels are arbitrary per fit and nothing links them: the anchors carry no class
-information (their parameters are class-invariant by construction), and matching
-classes through respondents who answered both batches would link a person's answers
-across batches into a latent-class profile (invariant #1, `03` statistical
-deanonymization). The DTF of items from several fits is therefore not identified; a
-bound is. For a test `T`,
+**Across fits: implemented cost and open bound claim.** Class labels are arbitrary
+per fit. Class-invariant anchor parameters do not by themselves establish a common
+class correspondence or target distribution. Matching through respondents would
+also raise the profiling concern in invariant #1 and `03`. A common-population DTF
+is not obtained merely by adding fit-local statistics. For a test `T`, the
+implementation uses the cost
 
 ```
 D(T) = Σ_F DTF_F(T ∩ F)          summed over the fits of its contested facts
 ```
 
-bounds the test's DTF between any two classes of the population, whatever the
-correspondence between the fits' classes (by the triangle inequality: at worst every
-fit's worst pair points the same way). Active-pool items enter at zero: they passed the
-DIF check. Contested facts cancel only against facts measured in the same fit, so the
-periodic re-validation (`05` [8]) re-fits contested facts together: a batch of contested
-facts from different fits gives them one set of classes, and an item's curves are
-always those of the latest fit that measured it.
+as an admissibility check. It was described as a universal upper bound by the
+triangle inequality. That interpretation is not established: the integral's target
+measure and the class correspondence must be compatible across fits before applying
+such a bound. Active-pool items are omitted from this implemented cost, but passing a
+DIF cut does not make their true contribution zero (`15` A2).
+
+Contested facts can cancel within a common fit. Periodic re-validation re-fits them
+together; an item's recorded curves are those of its latest fit. A valid whole-test
+guarantee still needs a specified target population, the contribution of every item,
+and an uncertainty treatment. Those are prerequisites to interpreting the tolerance,
+not issues solved only by changing its value.
 
 **Tolerance.** A test's contested facts are admissible when `D(T) ≤ DTF_MAX`,
 `DTF_MAX = 0.10` score points, provisional (T24/T25): about the DTF of one item of
@@ -645,21 +650,23 @@ Two **separate** scores, on unlinkable pseudonyms (see `01` D5). Never combined.
 
 ### C.1 Author score `C_a`
 
-Hierarchical Bayesian model with shrinkage. Let `q_j ∈ [0,1]` be the final quality of
-item `j` (a function of the Level B statistics):
-
-```
-q_j  ~  Beta( ψ_a · κ , (1 − ψ_a) · κ )
-ψ_a  ~  Beta( α₀ , β₀ )              weak prior, e.g. α₀ = 2, β₀ = 3
-```
-
-Point estimate (posterior mean, with time decay):
+**Implemented score.** Let `q_j ∈ [0,1]` be an item's quality input. The code uses a
+regularized, time-discounted weighted average:
 
 ```
           α₀ + Σ_j w_j q_j
-C_a  =  ─────────────────────      w_j = exp(−Δt_j / T),  T ≈ 18 months
+C_a  =  ─────────────────────      w_j = exp(−Δt_j / T)
         α₀ + β₀ + Σ_j w_j
+
+α₀ = 2, β₀ = 3; T = 18 months (exponential decay time, provisional)
 ```
+
+This is the formula in `reputation::author_score`. Its half-life is `T ln 2`, not T.
+The earlier Beta–Beta hierarchy `q_j | ψ_a ~ Beta(κψ_a, κ(1−ψ_a))`,
+`ψ_a ~ Beta(α₀,β₀)` does **not** have this posterior mean (`15` C5).
+Describing the implemented index correctly does not decide whether a different
+inferential model is wanted. The meaning of continuous `q_j` and the intended decay
+policy remain explicit design/calibration questions (`08` REPUTATION-001; `15` C5–C6).
 
 Shrinkage is indispensable: a node with 2 of 2 items accepted must not be worth as
 much as one with 180 of 200. Example with `Beta(2,3)`: author A (2/2) → 4/7 ≈ 57%;
@@ -686,14 +693,15 @@ right is the good observation itself (`protocol::appeal`, T61). Floor provisiona
 > first design is not a proper scoring rule (paper Prop. 12): it paid a dissenter to move
 > toward the crowd. Since T50 the score is the leave-one-out difference score below and
 > the weight lives on the odds scale. Since T52 the scored items are the live outcomes
-> too, with the randomized exploration that keeps the score proper when the gate decides
-> which outcomes are observed (§Exploration below).
+> too, with inverse-probability weighting intended to correct gate-dependent
+> observation. Its protocol-level incentive guarantee remains open (`15` A1).
 
 The reviewer does not give a binary judgment: they **declare a probability** `p_uj`
 that the item passes Level B empirical validation. On every scored item — a golden item
 (`05` §Golden items) or a live item whose outcome `o_j ∈ {0,1}` is known (`01` D35, T52) —
-the forecast is scored with a **strictly proper** rule, which makes honesty the optimal
-strategy whatever the crowd says:
+the difference rule below is **strictly proper conditional on a report-independent
+baseline and a fixed outcome law**. Its transfer to selected live outcomes also needs
+the information/selection assumptions discussed under Exploration:
 
 ```
 S_uj = (p̄_{−u,j} − o_j)² − (p_uj − o_j)²      p̄_{−u,j} = Σ_{v≠u} w_v p_vj / Σ_{v≠u} w_v
@@ -704,7 +712,10 @@ crowd baseline minus the reviewer scored). The score is the reviewer's Brier imp
 over the crowd: positive when they are right where the crowd is wrong, exactly 0 for a
 reviewer who reports the crowd's forecast, negative for noise or block voting. Its
 expectation is maximized by the true belief, by exactly `Σ_j (p_uj − q_uj)²` over any
-other report (`08` AT-REP-05).
+other report under those conditions (`08` AT-REP-05). With no other positive panel
+weight, the implemented fallback uses the reviewer's own forecast as baseline,
+producing zero for every report; this case is uninformative, not strictly proper
+(`15` A10).
 
 **Fundamental property.** Someone who replicates the consensus gets `S_u = 0`. You
 gain reputation only by being right **when the crowd is wrong**. This is the incentive
@@ -730,8 +741,13 @@ over every reviewed item, observed or not:
 S_u = ( Σ_{j observed} S_uj / π_j ) / N_u        N_u = the reviewer's reviewed items after the gate
 ```
 
-Its expectation is the mean with every outcome observed, whatever the gate decided
-(paper, "Exploration restores properness"), so the true belief stays the unique optimum.
+The IPW identity requires inclusion probabilities conditional on the information
+available when the report is chosen, with positive observation probability under the
+allowed strategy. The current exploration draw is computable from the same public
+epoch beacon used for assignment; domain separation does not make it unknown until
+reports are committed. The simplified adaptive-report counterexample in `15` A1
+therefore leaves the protocol-level properness claim open, despite the fixed-report
+expectation checks. No randomness schedule is changed by this documentation pass.
 `k_u`, the count that decides probation and the shrinkage, is the observed items. The
 change detector (D34) reads the *unweighted* observed scores against their own mean, so
 one explored item cannot fire it by its weight. Exploration also measures the gate's
@@ -800,8 +816,10 @@ from the informed minority.
   It runs only once the reviewer is out of probation (a mean over few items is no
   reference). On an alarm the reviewer returns to probation: the mean, the count and the
   statistic restart, so the weight is 0 until 30 new scored outcomes and shrunk again
-  afterwards. It reacts to a change, not to variance: a cautious reviewer with noisy
-  scores around a good mean raises nothing. In the paper's simulation, `k = 0.03`,
+  afterwards. This is the intended contract: the current founder path restores
+  `Founder` weight 1 after the reset, an open mismatch (`15` A6), not an approved
+  exception to that contract. It reacts to a change, not to variance: a cautious
+  reviewer with noisy scores around a good mean raises nothing. In the paper's simulation, `k = 0.03`,
   `h = 1.5` give 0.07 false alarms per 1,000 scored items and catch a reviewer who starts
   flipping 20% of forecasts after a median of 36 items (`08` AT-REP-07).
 - `w_max = 3 × median(w)`, a hard cap recomputed each epoch over the reviewers who
@@ -886,10 +904,10 @@ step 4.
 | `γ_appeal` (side gap for appeal) | 0.25 (provisional) | a rejected question with a wider gap was rejected for polarization: appealable (`05` [5b]) |
 | side floor | 5% of the reviewers, rounded up (provisional) | the fewest reviewers a side of the split holds (`MIN_SIDE_PER_MILLE = 50`, D42) |
 | `MIN_COVERAGE` | 1 rating (provisional) | an item with fewer from either side goes to supplementary review whatever its score (D42) |
-| `d` (factors) | 1 → 2 | start from 1 |
+| `d` (factors) | 1 | a second axis requires evidence and a score definition (`14`, `d`); not an automatic parameter change |
 | `k` (reviewers/item) | 7–11 | odd, random assignment stratified on `f_u` |
-| `N` pilot stage 1 | ~300 | cheap classical screen (see §B.6) |
-| `N` pilot stage 2 | ~1500–3000 | 1500 with a group signal; ≥3000 for latent-class DIF (§B.6) |
+| `N` pilot stage 1 | 300, provisional floor | point-biserial prefilter and one-class format-aware fit; limitations in §B.6 |
+| `N` pilot stage 2 | 1,500 labelled calibration; 3,000 anonymous, provisional floors | required power/sample by format remains T25 work (§B.6) |
 | `a_min` | 0.6 | minimum discrimination |
 | `\|β₂\|` max DIF | 0.40 | logistic regression |
 | `DIF_j` max (latent classes) | 1.0 logit (provisional; literature 0.5) | IRT mixture; see §B.3; characterized for 0.5–1.5 in `13` §7.5, on items with no floor |
@@ -899,7 +917,7 @@ step 4.
 | `min_shared` (coordination) | 30 | shared items before a pair's residual correlation is read (D39); at the design scale two reviewers share under one item per epoch, so a pair is read only after many epochs |
 | `ρ_min`, `p_max` (coordination) | 0.7, 0.001 | a flagged pair's residual correlation and permutation p-value (999 permutations); 0.5 flags honest pairs by chance |
 | `w_max` | 3× median | individual cap |
-| `T` (reputation half-life) | 18 months | |
+| `T` (implemented exponential decay time) | 18 months, provisional | `exp(−age/T)`; half-life `T ln 2`; intended decay policy open (`15` C6) |
 | `η` (honeypot rate) | 5% | see `05` |
 | `ε` (exploration rate) | 5% of gate rejections | measurement only, never the pool; the observed score at weight `1/ε` (D35) |
 
@@ -914,8 +932,8 @@ step 4.
 2. **The elite-consensus blind spot.** A question can pass bridging and political DIF
    yet be strongly distorted on a socio-economic axis. Mitigation: multi-axis DIF
    (B.3), which must be actively sought.
-3. **~30% survival rate.** In testing, 3 of 10 questions reach the pool. Write ~3× the
-   items you need.
+3. **Fixture yield is not production yield.** The historical example sends 3 of 10
+   questions to the pool; it does not establish a general proposal-to-acceptance ratio.
 4. **The threshold is a blade.** See the uncertainty band (A.3).
 5. **Human judgment predicts validity poorly.** Level A is in effect anti-spam against
    partisan questions, not a quality indicator. The real verdict is Level B.

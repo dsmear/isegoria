@@ -6,11 +6,11 @@ results are stated and read in `docs/13` §8.7; this directory is the evidence t
 | | |
 |---|---|
 | Runs | 19,700 — every cell of `docs/13` §8.3 at its full replicate count, every run recorded, no `errors.log` |
-| Commit | the harness of `a9cdafa` (pushed as `5f45d16` before the branch was rebased onto `master`), as the owner pulled it; every later commit keeps what the runs compute — a record of each kind is pinned (`tests/harness.rs`) |
+| Commit | the harness of `a9cdafa` (pushed as `5f45d16` before the branch was rebased onto `master`), as the owner pulled it; the DIF/DTF/floor tables precede D43. Its histogram/template change deliberately updates pinned DIF records; a later commit does not necessarily reproduce this model (`docs/13` §8.8) |
 | Date | the first pass (`--replicates 20`) on 2026-09-29, the rest by 2026-09-30 |
 | Machine | the owner's, as for T24: 8 cores, 16 threads, Linux |
 | Wall time | about 10 hours for the full run |
-| Records | kept by the owner (`characterization-t25/<study>/records.csv`); each reproduces from its seed on any machine (`docs/13` §2) |
+| Records | kept by the owner (`characterization-t25/<study>/records.csv`); numerical reproduction requires the matching model, seed and toolchain; elapsed time varies by machine (`docs/13` §2) |
 
 | File | Contents |
 |---|---|
@@ -31,7 +31,7 @@ results are stated and read in `docs/13` §8.7; this directory is the evidence t
 | Date | 2026-09-30 |
 | Machine | the cloud development container: 4 cores, Linux |
 | Wall time | 3 min 26 s, four workers |
-| Records | not kept; each reproduces from its seed on any machine (`docs/13` §2) |
+| Records | not kept; regenerate numerical outputs with the stated screen version, seeds and toolchain; elapsed time varies by machine (`docs/13` §2) |
 
 | File | Contents |
 |---|---|
@@ -39,3 +39,12 @@ results are stated and read in `docs/13` §8.7; this directory is the evidence t
 | `floor-screen-summary.csv` | per cell and kind, the share kept with its interval |
 | `floor-screen-items.csv` | per cell and item, the share of runs it entered the fit, the share kept, the mean and spread of its fitted `a`, `b`, `c` and its mean point-biserial |
 | `thresholds-screen.csv` | per threshold (`A_MIN`, `B_ABS_MAX`, `C_EXCESS_MAX`) and value, stage-1 size and format, over anchors: each kind's share kept with its interval |
+
+## Scope when using these tables
+
+The full supplement's DIF/DTF/floor results predate D43; bridging results and the
+separate stage-1 screen study retain their stated scope. The post-D43 full DIF rerun
+is not contained in this directory. `fit_seconds` reports mean harness-run elapsed
+time, including generation and other run work. It is not a current isolated-fit
+latency guarantee. See [`docs/13`](../../../docs/13-characterization.md) §8.8 and
+[`docs/15`](../../../docs/15-phase1-review.md) for the remaining calibration work.

@@ -8,18 +8,27 @@
 
 ## Priorities
 
+**Review overlay (2026-10-02).** The A–E review's findings and correction criteria
+are in [`15-phase1-review.md`](15-phase1-review.md). They add open guarantee and
+protocol-contract questions to the remaining work below. Historical task completion
+is preserved; it is not a claim that these new findings are fixed. Verify and resolve
+the affected properties before declaring Phase 1 complete. This documentation pass
+does not introduce new task IDs or choose T83's operating point.
+
 Three phases, in this order:
 
 1. **[Phase 1 — Mathematics](#phase-1--mathematics).** The scoring mechanism and the
    decisions built on it. The mechanism is built — every decision D32–D42 is implemented,
    and T24 characterized the detectors and gates it runs on (`docs/13` §7), and its
-   decision logic is mutation-tested (T81, `docs/11` run 22) — and two things are left: the
-   thresholds (T25), and a defect they wait on, fixed and to be measured again (T82). T24
+   selected decision files are mutation-tested (T81, `docs/11` run 22). Remaining work
+   includes the findings in `docs/15`, thresholds (T25), and the implemented model
+   revision to be measured again (T82). T24
    changed what T25 is: on a population that guesses, the latent re-check flags 12–17% of the clean items, and the
    system's items (true/false or multiple-choice) always guess, so T25 corrects the model
    first (D25), measures it again, and only then sets the thresholds; measuring it again
    found that templates and a skewed ability are read as bias too (T82). Every other layer consumes these numbers,
-   and changing them changes the golden outputs, the fixtures and `sim/` on purpose:
+   and changing them changes the affected golden outputs and fixtures on purpose
+   (historical `sim/` oracles keep their declared scope):
    building the rest first would mean validating it twice.
 2. **[Phase 2 — P2P network](#phase-2--p2p-network).** Nodes that persist, talk, agree,
    and draw randomness nobody can grind. A node's log survives a restart, nodes replicate
@@ -139,6 +148,12 @@ Phase 1 changed.
 
 ### 1.4 · Characterize the parameters
 
+Calibration presupposes a specified guarantee and estimator. The open incentive,
+DTF and histogram findings (`15` A1–A3) cannot be closed by selecting thresholds.
+Resolve changes that affect the candidate model before its final measurements;
+choose the error/resource criteria of T83 before final threshold selection. No new
+full characterization run is implied by this documentation update.
+
 Every value set above is provisional until it is measured: τ ≈ 0.80 (T49), the latent
 DIF cut (T35, T54), `γ` and the cap (T50), the CUSUM `k`/`h` (T51), the KR-20 floor
 (T53), `N_PROBATION`, the DTF tolerance and the bound's sampling error (T55), the side
@@ -235,6 +250,12 @@ instead of panicking on malformed input; `sim/`, the fixtures and the golden out
 regenerated on purpose; every threshold is either characterized (T24, T25) or marked
 provisional with the pilot that will set it; the mechanism's decision logic is
 mutation-tested (T81).
+
+**Completion qualification.** The label also requires resolving the critical/high
+findings in `15`, or explicitly narrowing the claimed domain with a justified decision.
+T81 covers the ten files named in its task row, not every statistical claim or composed
+path. Provisional parameters with defined pilots remain permitted; actual field
+validation remains T27. No documentation-only change closes a code or proof finding.
 
 ---
 

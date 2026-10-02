@@ -4,9 +4,27 @@
 |---|---|
 | **Status** | DRAFT — independent audit of commit `c4a09b1f778037c9d80dd7a85f3243311a1714ec` (2026-09-16). Not yet reviewed by the maintainers. |
 | **Intended path** | `docs/08-formal-specification.md` |
-| **Companion** | `docs/07-verification-and-assurance.md` (methodology), `docs/09-verification-matrix.md` (to be created from §15 of this document) |
+| **Companion** | `docs/07-verification-and-assurance.md` (methodology); §15 below (verification matrix); `docs/15-phase1-review.md` (current review and correction register) |
 | **Normative language** | MUST / MUST NOT / SHOULD / SHOULD NOT / MAY as in RFC 2119. |
 | **Evidence vocabulary** | HYPOTHESIS, IMPLEMENTED, TESTED, REPRODUCED, INDEPENDENTLY_REVIEWED, SCIENTIFICALLY_CHARACTERIZED, PRODUCTION_CANDIDATE, PRODUCTION_READY; plus **NOT ESTABLISHED** when no evidence exists. A status is never assigned above what the cited evidence supports. |
+
+---
+
+## Reading the audit after the 2026-10-02 review
+
+The original audit body and dated remediation entries retain their historical scope.
+For the current correction pass, read them with
+[`15-phase1-review.md`](15-phase1-review.md). In particular, the historical closures
+of REPUTATION-008, DIF-011 and PROTO-008 do not settle the new A1/A2/A5 findings;
+the founder-reset contract and nonconvergence handling also remain open (A6/A4).
+SC-6's local difference-score result does not establish protocol-level properness
+with a draw known before the report. This documentation pass records those limits;
+it is not a new implementation fix or a replacement for T26.
+
+The owner reports that compilation and tests pass. The review did not independently
+run Rust tests; this does not indicate a failing suite. T81 remains complete within
+its ten-file scope (`11`, run 22). Post-D43 characterization and calibration status
+are recorded in `13` §8.8 and `14`.
 
 ---
 

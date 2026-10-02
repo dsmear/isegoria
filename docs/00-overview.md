@@ -60,14 +60,14 @@ the same person.
  [3] Review         k reviewers assigned AT RANDOM, blind,
      (peer)         commit-reveal, nobody sees others' votes
       ↓
- [4] Bridging       B_j ≥ τ  →  passes;  otherwise discarded
+ [4] Bridging       S_j gate, uncertainty band, supplementary review (`02` §A.3)
       ↓                 │
       │                 └──→ appeal to evidence (if discarded for polarization)
       ↓
- [5] Pilot 1        cheap screen on ~300 respondents: immediately kills
-                    broken and non-discriminating questions
+ [5] Pilot 1        initial screen, provisional floor ~300 respondents
+                    (filter limits measured in `13` §8.7.5)
       ↓
- [6] Pilot 2        ~1500–3000 respondents: IRT + DIF on latent axes
+ [6] Pilot 2        sample by format and required power: IRT + latent DIF
                     (in batches, never a single item)
       ↓                 │
       │                 └──→ contested fact: DIF, but the primary source establishes
@@ -76,6 +76,10 @@ the same person.
       ↓
  [8] Retirement     for exposure, drift, obsolescence, or emerging DIF
 ```
+
+Sample floors and capacity are specified in `02` §B.6. They are not universal power
+guarantees; the current model still needs post-D43 characterization. Open guarantee
+and protocol-contract findings are tracked in [`15`](15-phase1-review.md).
 
 Nobody chooses what to review (prevents brigading). Nobody sees the author (prevents
 voting on the person). Nobody sees others' judgments before casting their own

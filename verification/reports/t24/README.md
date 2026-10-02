@@ -6,11 +6,11 @@ are stated and read in `docs/13` §7; this directory is the evidence they rest o
 | | |
 |---|---|
 | Runs | 54,412 — every cell of `docs/13` §4 at its full replicate count, every run recorded |
-| Commits | the DIF and DTF studies ran on `e8dcc7d`; the two bridging studies were re-run after T71, and the sixteen cells added after the first pass ran, on `9478533`, which also summarized every record. The DIF and DTF records reproduce bit for bit on the later commits (`docs/13` §6) |
+| Commits | the DIF and DTF studies ran on `e8dcc7d`; the two bridging studies were re-run after T71, and the sixteen cells added after the first pass ran, on `9478533`, which also summarized every record. The numerical results belong to these model versions. D43 deliberately changes DIF/DTF records; do not expect them to reproduce on every later commit (`docs/13` §8.8) |
 | Date | 2026-09-26 to 2026-09-28 |
 | Machine | the owner's: AMD Ryzen 7 5800X (8 cores, 16 threads), Linux |
 | Wall time | about 30 hours in all |
-| Records | kept by the owner (`characterization-results/<study>/records.csv`); each reproduces from its seed on any machine (`docs/13` §2) |
+| Records | kept by the owner (`characterization-results/<study>/records.csv`); numerical outputs reproduce with the matching code, inputs, seed and toolchain; elapsed time is machine-dependent (`docs/13` §2) |
 
 | File | Contents |
 |---|---|
@@ -22,3 +22,12 @@ are stated and read in `docs/13` §7; this directory is the evidence they rest o
 
 The per-study `summary.csv` files hold the same rows as `summary.md` with more columns
 (means beside medians, interval bounds); they stay with the records.
+
+## Scope when using these tables
+
+These are historical T24 measurements, not current D43 performance. The DIF/DTF
+studies and the re-run bridging studies have separate provenance in the table above.
+`fit_seconds`, where reported, is mean harness-run elapsed time, including generation
+and other run work, not an isolated optimizer benchmark. See
+[`docs/13`](../../../docs/13-characterization.md) §8.8 and
+[`docs/15`](../../../docs/15-phase1-review.md) before using rates to close current tasks.

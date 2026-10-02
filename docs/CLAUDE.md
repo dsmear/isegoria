@@ -48,32 +48,29 @@ them.
    `scoring::fmath` — timestamps in the computation). Reproducibility is the defense
    that unmasks a dishonest signer.
 
-8. **Empirical validation happens in batches, never on a single question.** An
-   isolated question does not allow detecting bias on latent axes (see
-   `sim/latent_dif_and_capacity.py`). Always validate groups of questions.
+8. **Empirical validation happens in batches, never on a single question.** The
+   protocol validates groups of questions with shared anchors. Historical simulations
+   show weak detection of an isolated biased item; they do not prove universal
+   non-identifiability (`15-phase1-review.md`, A8). Always validate groups of questions.
 
 ## Current priorities
 
-The crates exist — the four of the build order below, `p2p` and `characterization`; the
-work left is ordered in `10-roadmap.md`. Follow its phases in
-order — **mathematics** (every task up to the characterization T24 is done — its results
-are in `13-characterization.md` §7, its harness is `crates/characterization`; left are
-T25, in four steps (`10-roadmap.md` §1.4): the guessing correction D25 in the latent
-re-check and the pilot screen (both done), a supplement of the DIF studies on the corrected
-model (done, its results in `13-characterization.md` §8.7, the screen's study included),
-then the thresholds with their calibration procedures (Level A's register written,
-`14-parameter-register.md`); T82, the
-re-check reading templates and a skewed ability as bias, which the supplement found — decided
-(D43) and built, its DIF studies to run again on the corrected model, which the thresholds
-wait on. T81, the mutation testing of Phase 1's mechanism, is done
-(`11-mutation-testing.md` run 22). Long characterization runs go to the owner's machine: the
-cloud development container's 4 cores take three to four times as long),
-then the **P2P network** (T63, T37, T72, T13, T73, T18 and T74 are done; left are the
-defects T80, T76 and T77 — any peer reads the replicated set, votes included, against
-D17; its mechanism is the owner's choice — then T75, T78, T79 and T17, `10-roadmap.md`
-§2.3), then **the rest** (protocol boundary, distributed identity, privacy, pilots) —
-and inside a phase, fix defects in existing code before adding features. Every task
-starts with a test that fails on the current code.
+The six crates exist. Follow `10-roadmap.md`: **mathematics**, then **P2P network**,
+then **the rest**. Task status belongs there; calibration procedures belong in
+`14-parameter-register.md`; measurement provenance belongs in `13-characterization.md`.
+
+For Phase 1 corrections, read `15-phase1-review.md` before implementing. It records
+the A–E review's open guarantees, code-contract findings and completion criteria.
+Verify each finding; do not silently change the specification to approve a code defect.
+T81 remains complete for the ten files listed in its run 22. Pre-D43 DIF measurements
+remain historical evidence, not current-model validation.
+
+Inside a phase, fix defects before adding features. A code-defect correction starts
+with a test that fails on the current code. Documentation-only changes are checked
+against their sources and links; they do not require an artificial failing Rust test.
+Long characterization runs belong on the owner's machine and require explicit
+authorization; use targeted tests and the smoke grid during development. The design
+and implementation handoff is in `15-phase1-review.md`.
 
 ## Original build order (done)
 
@@ -83,8 +80,9 @@ next:
 1. **`scoring/`** — the deterministic engine. Input: a ratings file (node ×
    question) and an answers file (respondent × question). Output: bridging scores,
    IRT parameters, DIF verdicts, reputations. It must run offline, with no network
-   or identity. The simulations in `sim/` are the executable spec: your
-   implementation must reproduce their results.
+   or identity. The simulations in `sim/` supplied the original fixtures and scoped
+   differential oracles. Their retired BSS and proxy-DIF paths are historical;
+   current behavior is specified in `02` and checked by the corresponding Rust tests.
 2. **Tests against the corner cases** documented in `06` and in `sim/`: coordinated
    cartel, elite consensus, true-but-divisive question, survival rate. These are the
    engine's acceptance tests.
@@ -97,9 +95,8 @@ next:
 
 ## Suggested stack (not binding)
 
-- **Scoring engine**: Python with NumPy/SciPy for the prototype (the sims already
-  are); consider Rust for the production version when bit-for-bit reproducibility and
-  performance matter.
+- **Scoring engine**: Rust is implemented; Python with NumPy/SciPy supplies research
+  prototypes and scoped numerical oracles. Keep their contracts explicit.
 - **Identity cryptography**: prefer mature, audited libraries — Semaphore for
   nullifiers, BBS+ schemes for credentials, a threshold OPRF for anchoring. Rolling
   our own is permitted when it genuinely serves the design — no suitable library

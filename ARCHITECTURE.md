@@ -64,8 +64,11 @@ the other three.
 
 ## `scoring` — the deterministic engine
 
-The mathematical core (`docs/02`). The Python simulations in `sim/` are its
-executable specification; the Rust implementation must reproduce their results.
+The mathematical core (`docs/02`). Python scripts in `sim/` supply historical fixtures
+and scoped differential oracles; several retain retired models. Current contracts are
+specified in `docs/02` and exercised by the corresponding Rust tests. Open differences
+between contracts, guarantees and implementation are tracked in
+[`docs/15`](docs/15-phase1-review.md).
 
 | Module | Spec | Key items |
 |---|---|---|
@@ -240,14 +243,14 @@ The invariants from [`docs/CLAUDE.md`](docs/CLAUDE.md):
 
 | # | Invariant | Where |
 |---|---|---|
-| 1 | Anonymity is the base; no demographic attributes | No such fields anywhere; DIF runs on latent axes (`scoring::dif`) |
-| 2 | Quality is never decided by majority vote | `scoring::bridging` + `scoring::dif`; `protocol::gate` has no vote count |
+| 1 | Anonymity is the base; no demographic attributes in the deployment path | Anonymous DIF uses `scoring::latent`; observed-group routines are calibration-only (`docs/02` §B.3) |
+| 2 | Quality is never decided by majority vote | `scoring::bridging` + `scoring::latent`; `protocol::gate` has no vote count |
 | 3 | No money as stake | Bond is reputation (`protocol::deposit`, `scoring::reputation`) |
 | 4 | Two reputation scores, never combined | `scoring::reputation` (`author_score` vs `loo_scores`/`odds_weight`); separate role nyms in `identity::nym` |
 | 5 | One role, one deterministic non-rotatable pseudonym | `identity::nym::derive_nym` |
 | 6 | The state authenticates, does not issue | `identity::enrollment` (`UniquenessOracle`) separate from `credential::BlindIssuer` |
 | 7 | Scoring is deterministic and reproducible | `scoring` (pinned toolchain, seeded RNG); `tests/reproducibility.rs` |
-| 8 | Empirical validation happens in batches | `scoring::dif::mixture_dif`; `protocol::pilot::stage2_dif`; test proves a lone biased item is invisible |
+| 8 | Empirical validation happens in batches | `protocol::revalidation::latent_batch` and the batch admission gates; historical single-item tests show low detection in their regime, not universal non-identifiability (`docs/15` A8) |
 
 ## Reproducibility
 
@@ -268,8 +271,8 @@ signer. Measures:
 
 Note: bit-for-bit equality holds **within** the Rust engine — across platforms and
 build profiles since AT-BR-04 — not between Python and Rust: SciPy and the in-house
-optimizer differ. The Python sims are an oracle of
-*behaviour* (within tolerance), not of bits.
+optimizer differ. Each Python oracle checks a named model and numerical contract
+within tolerance; retired fixture models do not specify the current latent re-check.
 
 ## Testing strategy
 
@@ -284,7 +287,8 @@ Nine kinds of test (the per-crate counts change often; `cargo test --workspace` 
 2. **Property tests** encode the design guarantees: cross-source duplicate
    enrollment is rejected; a tampered log entry breaks `verify`; a k-of-n checkpoint
    needs k valid signatures; erasure recovers from any k of n; a 500-node cartel's
-   influence ≈ 22 independents; a lone biased item stays invisible (batch validation).
+   influence ≈ 22 independents; a lone biased item is not detected in its historical fixture.
+   These scenario checks do not prove general statistical identifiability claims.
    A `proptest` suite (`network/tests/properties.rs`, `protocol/tests/properties.rs`)
    fuzzes these over arbitrary inputs: Merkle inclusion + root sensitivity, erasure
    recovery from any survivor set, log append/verify, blueprint apportionment, lottery,
@@ -327,7 +331,8 @@ Nine kinds of test (the per-crate counts change often; `cargo test --workspace` 
 8. **`#[ignore]` guards**, run on demand: `fixture_drift` regenerates the oracle
    fixtures from the Python sims and diffs them against the committed ones (catches
    sim/fixture drift; needs numpy/scipy); `power` is a Monte-Carlo check of the
-   §B.6 sample-size claim (latent-class DIF detection rate at N≈1500 vs 3000).
+   historical no-floor sample-size scenario (latent-class DIF at N≈1500 vs 3000),
+   not the current guessing-aware power requirement (`docs/02` §B.6).
 9. **Characterization** (T24, `docs/13`): the studies run on demand through
    `crates/characterization`; its own tests pin the grid to `docs/13` §4 and §8, the generators
    to the paper's populations (the KR-20 table), the records to their tasks whatever the
@@ -365,25 +370,13 @@ to make the pipeline testable end-to-end.
 
 ## Future work
 
-- Integrate the real cryptographic and transport backends into the plug points.
-- Reputation now enters `bridging::fit`: `orchestrator::{bridging_weights, weighted_ratings}`
-  turn prior-epoch reviewer standing into the per-reviewer `w_u` the weighted objective
-  minimizes over (docs/08 BRIDGE-007, roadmap T5 — **done**), and `end_to_end.rs::run_epoch`
-  drives each item through the `lifecycle` state machine (T12 — **done**). The borderline
-  band is decided by the `docs/01` D26 mechanism — re-run bridging, re-decide the
-  side-balanced score against the plain threshold, and keep the appeal open for a
-  polarized item that fails (`gate::supplementary_review`, T10/T30/T59 — **done**, over
-  the first panel's ratings plus the extra round of T60 — **done**), replacing the retired
-  weighted-mean tie-break. An appeal's stake is a pseudo-observation inside the author's average
-  (`appeal::AuthorHistory`, D27, T61 — **done**): `run_item` derives the appeal's window
-  and reputation checks from the verdicts, and `orchestrator::settle_appeal` replaces the
-  escrowed zero with the item's measured quality on `ActivePool` and leaves it otherwise.
-  The open work is ordered in `docs/10` (mathematics → P2P network → the rest).
-  Still open here: persistence (roadmap T13); `governance`
-  sortition feeding the honeypot / blueprint committees; `revalidation` → `exposure`
-  retirement on a schedule. (Reviewer-vote dedup via the M3 ZK nullifier is done at the
-  boundary — `admission::NullifierSet` — T6.)
-- Optional engine refinements: 3PL IRT (currently 2PL), infit/outfit MNSQ, Bayesian
-  Truth Serum.
-- Robustness roadmap from `docs/01` D14: anchoring → erasure coding → multiple
-  cross-signing consortia → succinct (zk) proofs of the computation.
+[`docs/10`](docs/10-roadmap.md) is the task-status source. Start Phase 1 corrections
+from [`docs/15`](docs/15-phase1-review.md); complete parameter procedures in
+[`docs/14`](docs/14-parameter-register.md) after the relevant guarantees and model
+choices are settled. The target re-check and stage-1 screen already support guessing
+floors; 3PL is not merely a proposed future refinement.
+
+For runtime and deployment work, use the plug-point table above and `docs/10` §2–§3.
+Persistence (T13), replication (T18) and signed cuts (T74) are implemented; external
+review and real-world calibration remain separate gates. Optional research ideas
+such as Bayesian Truth Serum are not prerequisites for closing Phase 1.

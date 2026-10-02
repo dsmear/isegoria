@@ -4,7 +4,28 @@
 |---|---|
 | **Purpose** | The specification of T24: the simulation studies that measure how the production detectors and gates behave, how to run them, and what counts as done. |
 | **Derived from** | `docs/10` T24, T25 (step 3) and §1.4; `docs/08` §5.3, §12 (AT-DIF-01..09, AT-DIF-13, AT-BR-02), §16.1 (SC-2, SC-3, SC-5, SC-7); `docs/07` §12–§14; `docs/02` §B.1 (D25); the working paper's designs (`paper/scripts/common.py`). |
-| **Status** | T24 done (2026-09-28). Specified and harness built on 2026-09-26 (`crates/characterization`); the full run, 54,412 runs on the owner's machine, ended on 2026-09-28 and §7 states its results. T25 sets the thresholds from §7, the DIF ones once the model accounts for guessing (D25) and a supplement of these studies has measured it (`docs/10` T25, steps 1–3, §7.5). The supplement, T25's step 3, is specified in §8 (2026-09-28); its full run, 19,700 runs on the owner's machine, ended on 2026-09-30 and §8.7 states its results; the screen's study waits on T25's second step. T82 (`docs/01` D43, 2026-09-30) then changed the target model: the DIF results of §7 and §8.7 describe the model before it, and the supplement's DIF studies run again on it (§8.8). |
+| **Status** | T24 done (2026-09-28). Specified and harness built on 2026-09-26 (`crates/characterization`); the full run, 54,412 runs on the owner's machine, ended on 2026-09-28 and §7 states its results. T25 sets the thresholds from §7, the DIF ones once the model accounts for guessing (D25) and a supplement of these studies has measured it (`docs/10` T25, steps 1–3, §7.5). The supplement, T25's step 3, is specified in §8 (2026-09-28); its full run, 19,700 runs on the owner's machine, ended on 2026-09-30 and §8.7 states its results; the screen's study is complete too (3,600 pilots, §8.7.5). T82 (`docs/01` D43, 2026-09-30) then changed the target model: the DIF results of §7 and §8.7 describe the model before it, and the supplement's DIF studies run again on it (§8.8). |
+
+## Measurement provenance
+
+The report directories preserve historical outputs at their recorded commits:
+[`T24`](../verification/reports/t24/README.md) and
+[`T25 supplement`](../verification/reports/t25/README.md). All DIF, DTF and floor
+results in §7 and §8.7 predate D43. The post-D43 rerun is the pending work in §8.8;
+its pre-checks are not a full characterization. Bridging and stage-1 screen results
+have their own stated model and commit scope.
+
+The CSV column `fit_seconds` is the mean elapsed time around the harness's `run(task)`
+(`crates/characterization/src/runner.rs`, `summary.rs`), including generation and the
+run's other work. It is not a benchmark of the optimizer alone. Timing and record
+metadata vary across machines; numerical reproducibility requires the matching
+code, inputs, seed and toolchain. Admission, convergence and detection are distinct:
+the DIF harness records admission but also fits unadmitted batches. Read conditional
+and unconditional rates with their denominators before using them as protocol rates.
+
+Open correctness and operational interpretations of these measurements are in
+[`15`](15-phase1-review.md). Full campaigns remain owner-run or explicitly authorized;
+the commands below document reproduction, not an instruction to launch them on sight.
 
 ## 1. What T24 measures, and what it does not
 
@@ -293,8 +314,9 @@ and robust scores, and the item's plain mean rating.
 
 **The run.** 54,412 runs, every run of the grid recorded, on the owner's machine (AMD
 Ryzen 7 5800X, 8 cores; about 30 hours in all, 2026-09-26 to 2026-09-28). The DIF and
-DTF studies ran on `e8dcc7d`; their records reproduce bit for bit on the later commits —
-one cell re-run and compared, one record of each kind pinned (§6). The two bridging
+DTF studies ran on `e8dcc7d`; numerical reproduction was checked during that campaign
+(one cell re-run and records pinned, §6). D43 subsequently changes those records (§8.8),
+so that check is not a promise about every later model. The two bridging
 studies, re-run after T71, and the sixteen cells added after the first pass ran on
 `9478533`, which summarized every record. The summary and the threshold tables, with
 their provenance, are in `verification/reports/t24/`; the records stay with the owner.
@@ -703,9 +725,9 @@ out the studies with no records.
 
 **The run.** 19,700 runs, every run of §8.3 recorded, no `errors.log`, on the owner's
 machine: the first pass (`--replicates 20`) on 2026-09-29 and the rest by 2026-09-30, about
-10 hours, on the harness of `a9cdafa` — every later commit keeps what the runs compute, a
-record of each kind pinned (§6). The summary and every study's table, with their provenance,
-are in `verification/reports/t25/`; the records stay with the owner.
+10 hours, on the harness of `a9cdafa`, with records pinned at that model version (§6).
+D43 subsequently changes the DIF records (§8.8). The summary and every study's table,
+with their provenance, are in `verification/reports/t25/`; the records stay with the owner.
 
 **What every statement below assumes.** The populations of §3.1 and §8.2 and nothing else:
 two latent classes on an axis the model never sees, every item and anchor with the floor the

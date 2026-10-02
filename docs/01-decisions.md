@@ -1,8 +1,11 @@
 # Architectural decisions
 
 Each decision states: what was chosen, why, and which alternatives were rejected.
-The decisions here are the **final** state; some supersede intermediate choices made
-during design.
+The decisions here are the **recorded design choices**; amendments explicitly
+supersede earlier choices. Implementation does not establish every claim in a
+decision's rationale. The open Phase 1 review findings are tracked in
+[`15-phase1-review.md`](15-phase1-review.md); this documentation pass does not amend
+those decisions or choose new thresholds.
 
 ---
 
@@ -157,6 +160,12 @@ each competence level. Wasting them on obviously broken questions is inefficient
 Respondents are the system's scarce resource. The sizes are derived, not arbitrary,
 and set a floor on the network itself — see `02` §B.6 (the fully-anonymous
 latent-class DIF wants ~3000, not 1500).
+
+**Sizing status (2026-10-02).** The counts and throughput argument in D10–D11 record
+the original rationale. They are not current guessing-aware power or capacity
+guarantees. `02` §B.6 distinguishes implemented floors from the historical
+format-specific measurements and counts anchor costs. The two-stage/lottery choices
+are unchanged; new sizes and the operating point remain T25/T83 decisions.
 
 ---
 

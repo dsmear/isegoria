@@ -1,8 +1,15 @@
 # Simulations
 
-Research prototypes that demonstrate the behavior of the scoring engine and the
-corner cases. **They are not reference implementations** — they are the executable
-spec: the implementation in `scoring/` must reproduce their results.
+Research prototypes, fixture generators and differential oracles. Their role is
+specific to each script: they are **not a complete executable specification of the
+current engine**. The current mechanism is in [`docs/02`](../docs/02-scoring-engine.md);
+open correctness questions are in [`docs/15`](../docs/15-phase1-review.md).
+
+The bridging prototype includes D32/D42, but the BSS evaluator score and proxy-ability
+DIF paths remain historical. Rust retains those functions for scoped regression and
+oracle comparisons; the production path uses the difference score and
+`scoring::latent::latent_dif` with formats and the protocol's admission checks.
+Reproducing an old fixture does not validate the newer model.
 
 ## Requirements
 
@@ -22,11 +29,11 @@ network), 1500 respondents with 30 anchor items. Covers:
   model's predicted approval, clipped to [0, 1], averaged per side, the two averaged
   again; `docs/02` §A.3, D32, D42) with its bootstrap-min and side gap; latent axis
   recovery
-- **Level B** — IRT, point-biserial, DIF via logistic regression, purified via
-  anchors
+- **Level B (historical)** — IRT, point-biserial, DIF via logistic regression with
+  generated group labels and anchor-total ability; not the current anonymous re-check
 - **Combined verdict** of the two filters
-- **Evaluators** — Brier Skill Score for various profiles (follows-the-crowd, expert,
-  partisan…)
+- **Evaluators (historical)** — retired Brier Skill Score for various profiles
+  (follows-the-crowd, expert, partisan…); not the current difference score
 - **Corner case 1** — elite consensus (an item neutral on the political axis,
   distorted on education)
 - **Corner case 2** — cost of bipartisan corruption
@@ -35,7 +42,7 @@ network), 1500 respondents with 30 anchor items. Covers:
 Parameters editable at the top of the file: the majority camp's share (`share_B`), the
 threshold (`TAU`), the item leans.
 
-Expected results (indicative, seed-dependent):
+Historical prototype results (indicative, seed-dependent; not current-system rates):
 - latent axis recovered with correlation ~0.99
 - the consensus items score `S_j` ≈ 0.83–0.86 and pass at τ = 0.80; the partisan items
   (0.53–0.56) and the mildly partisan one (0.70) drop; the intercept `b_j` is printed
@@ -50,18 +57,20 @@ Expected results (indicative, seed-dependent):
 
 Two experiments:
 
-1. **Detecting bias without knowing which axis to look on** — latent-class IRT mixture,
+1. **Detecting bias without knowing which axis to look on** — historical proxy-ability IRT mixture,
    the distorting axis never observed. Shows that with ≥2 distorted items in a batch the
    model estimates delta ~1.0 on the defective ones and ~0.1 on the clean ones, and
-   reconstructs the hidden axis (correlation 0.5–0.8). With a single distorted item:
-   invisible. **Conclusion: validate in batches.**
+   reconstructs the hidden axis (correlation 0.5–0.8). A single distorted item is not
+   detected in this experiment; that is a finite-sample result, not a general
+   non-identifiability proof. The protocol's batch requirement remains.
 2. **Sustainable proposal quota** — shows the bottleneck is pilot respondents, not
-   reviewers, and that the sustainable quota is under ~1 proposal/year per node.
-   Motivates the choice of a lottery (`docs/01` D10).
+   reviewers under its original sample/cost assumptions. It motivated the lottery
+   (`docs/01` D10); its quota calculation is not a capacity estimate for the current
+   guessing-aware model. See `docs/02` §B.6 for the cost accounting still needed.
 
 ### `export_fixtures.py`
 
-Regenerates the oracle fixtures consumed by the Rust acceptance tests
+Regenerates the historical oracle fixtures consumed by the Rust acceptance tests
 (`crates/scoring/tests/fixtures/`). It mirrors the two simulations above on the same
 seeds and dumps the datasets and the full-fit results as CSV. Run it as:
 
@@ -84,9 +93,9 @@ python oracle_mixture.py <dir>     # reads theta.csv, X.csv; writes oracle.csv
 
 ## What these prototypes demonstrate
 
-The structural limits documented in `docs/06-threat-model.md`:
+Motivating scenarios documented in `docs/06-threat-model.md`, within these prototypes:
 - the true-but-divisive false negative (no threshold saves a polarizing fact) —
   motivates the appeal channel
 - the elite-consensus blind spot — motivates multi-axis DIF
-- the ~30% survival rate — motivates "write 3× the items you need"
+- the fixture's ~30% survival rate — an example, not an expected production yield
 - the threshold as a blade — motivates the uncertainty band

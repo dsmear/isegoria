@@ -46,8 +46,9 @@ guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
 | [`12-panic-audit.md`](12-panic-audit.md) | Panic audit and fuzzing report: every `unwrap`/`expect`/`assert` classified, every crash on hostile input fixed |
 | [`13-characterization.md`](13-characterization.md) | T24 and T25's supplement: the simulation studies that characterize the detectors and gates, the harness that runs them, and their results |
 | [`14-parameter-register.md`](14-parameter-register.md) | Every threshold's reason, calibration procedure, sensitivity, failure and location (`07` §13) |
+| [`15-phase1-review.md`](15-phase1-review.md) | Current review findings, evidence limits and correction handoff; distinguishes implemented behavior from unresolved guarantees |
 | [`99-glossary.md`](99-glossary.md) | Every concept explained from scratch, from the problem to the formula |
-| [`sim/`](../sim/) | Executable simulations that demonstrate the behavior and the corner cases |
+| [`sim/`](../sim/) | Historical research prototypes and scoped fixture/differential oracles; see its README for current vs retired paths |
 | [`paper/`](../paper/) | Working paper: formal statement and analysis of the scoring mechanism, with proofs, reproducible experiments and open problems |
 
 ## Development priorities
@@ -55,12 +56,10 @@ guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
 The reference implementation exists (see Status below); what remains is ordered in
 [`10-roadmap.md`](10-roadmap.md) in three phases:
 
-1. **Mathematics** (`02`, `01` D32–D41) — the two severe defects of the protocol
-   boundary (a replayed deposit, respondents without an identity gate) are fixed (T64,
-   T65), the engine rejects malformed input (T62) and the gate reads the side-balanced
-   score (D32, T49); now correct the rest of the mechanism (D33–D41) and the decisions
-   built on it (band, appeal), and characterize every threshold. It is the genuinely new
-   piece, and everything else consumes its numbers.
+1. **Mathematics** — the mechanism is implemented, with corrections and calibration
+   still open. Read [`15`](15-phase1-review.md) for the A–E review findings, [`10`](10-roadmap.md)
+   for T25/T82/T83 and completed tasks, and [`14`](14-parameter-register.md) for parameter
+   procedures. D32–D41 are implemented; they are not an unstarted feature list.
 2. **P2P network** (`04`) — persistence, transport and replication, a grind-free
    randomness beacon, live anchoring: a single-organization testnet.
 3. **The rest** — the protocol boundary (`05`), distributed identity and the external
@@ -74,10 +73,11 @@ operators come after the three phases.
 ## Status
 
 A reference implementation exists as a Cargo workspace (`crates/{scoring,identity,
-network,protocol}`); see the top-level `README.md` and `ARCHITECTURE.md` for the
+network,protocol,p2p,characterization}`); see the top-level `README.md` and `ARCHITECTURE.md` for the
 current state, and `docs/08-formal-specification.md` for an independent audit of what
-is implemented, tested, and still open. The simulations in `sim/` are the executable
-specification the engine reproduces, not the deployment target.
+is implemented, tested, and still open. Read its dated audit and remediation log with
+[`15`](15-phase1-review.md). Current Rust golden outputs pin bits; Python oracles
+check the particular numerical contracts their tests name, within tolerance.
 
 ## License
 

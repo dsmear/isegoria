@@ -344,11 +344,12 @@ restaurant with a single 5-star review should not top the ranking.
 
 ## Hierarchical model
 
-A two-tier model: each author has a latent ability `ψ_a`; each of their items has a
-quality drawn from a distribution centered on `ψ_a`. It is needed because the items of
-the same author are **not independent** — they share the style, habits, and defects of
-whoever wrote them, and treating them as independent observations would inflate
-confidence in the estimates.
+A model with parameters at more than one level; for example, authors have latent
+abilities and item qualities are drawn conditionally on their author's ability.
+Such a model can represent shared variation within authors. It does not automatically
+yield a closed-form posterior mean. The current author score is the regularized
+weighted average in `02` §C.1; the Beta–Beta hierarchy formerly used to justify it
+does not yield that formula (`15` C5).
 
 ---
 

@@ -6,15 +6,13 @@ single authority decides what counts as a fair question.**
 *Isegoria* (ἰσηγορία) was the ancient Athenian principle of the equal right of
 every citizen to speak in the assembly.
 
-> **Status:** a reference implementation. The scoring engine reproduces its reference
-> simulations bit for bit. The working paper in [`paper/`](paper/) found the bridge score
-> batch-relative and partly majoritarian (paper §3.3–3.4); the gate now reads the
-> side-balanced score of `docs/01` D32 (T49), and the other corrections (D33–D41) are
-> decided and are the first phase of the [roadmap](docs/10-roadmap.md): mathematics
-> first, then the P2P network, then the rest.
-> The identity, network and protocol layers are working, tested scaffolds with the heavy
-> cryptography and transport behind clean plug points. See
-> [Project status](#project-status).
+> **Status:** a research reference implementation. The Rust engine has deterministic
+> golden-output checks; Python comparisons are scoped numerical oracles, not bitwise
+> equality with every current component. Phase 1 is still open: see the
+> [review and correction register](docs/15-phase1-review.md), the
+> [roadmap](docs/10-roadmap.md), and the [parameter register](docs/14-parameter-register.md).
+> Implemented mechanisms and passing tests do not establish every claimed guarantee.
+> See [Project status](#project-status) for deployment dependencies.
 
 ---
 
@@ -145,12 +143,12 @@ flowchart TD
     B --> C["3. Admission by lottery — a random subset enters the pipeline"]
     C --> D["4. Review — k reviewers assigned at random, blind, commit-reveal"]
     D --> E{"5. Bridging gate"}
-    E -->|score above band| F["6. Pilot 1, ~300 people — kill broken / non-discriminating"]
+    E -->|score above band| F["6. Pilot 1, provisional ~300 — initial item screening"]
     E -->|inside uncertainty band| D
     E -->|rejected for a defect| X["Rejected"]
     E -->|rejected for polarization| G["5b. Appeal to evidence — stake reputation, skip to pilot"]
     G --> F
-    F --> H["7. Pilot 2, ~1500–3000 people, in batches — IRT + multi-axis DIF"]
+    F --> H["7. Pilot 2, size by format and power — batch IRT + latent DIF"]
     H --> I["8. Active pool — usable, periodically re-validated"]
     I --> J["9. Retirement — exposure, drift, obsolescence, emerging bias"]
 ```
@@ -313,8 +311,9 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
   - [`11-mutation-testing.md`](docs/11-mutation-testing.md), [`12-panic-audit.md`](docs/12-panic-audit.md) — test-quality reports
   - [`13-characterization.md`](docs/13-characterization.md) — T24 and T25's supplement: the characterization studies, their harness, and their results
   - [`14-parameter-register.md`](docs/14-parameter-register.md) — the thresholds' register: why each exists, how it is calibrated, what breaks if it moves
+  - [`15-phase1-review.md`](docs/15-phase1-review.md) — open review findings and correction handoff
   - [`99-glossary.md`](docs/99-glossary.md) — glossary, from scratch
-- **[`sim/`](sim/)** — the executable specification (research prototypes).
+- **[`sim/`](sim/)** — historical research prototypes and scoped test oracles.
 - **[`paper/`](paper/)** — working paper on the mathematics of the mechanism: formal statement,
   proofs, reproducible experiments and open problems ([PDF](paper/main.pdf)).
 
@@ -324,53 +323,25 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
 
 | Layer | State |
 |---|---|
-| Scoring engine (A + B + C + anti-collusion) | Implemented, reproducible bit-for-bit across platforms and build profiles (CI), matches the sims; the gate reads the side-balanced bridge score (D32, T49; thresholds provisional until T25) |
-| Design revisions from the working paper ([`paper/`](paper/)): side-balanced bridge score, proper evaluator score with exploration, DIF anchor precondition and target model, contested facts in a balanced pool, residual-based coordination detection (`docs/01` D32–D41) | D32–D40 done (T49–T57); D41, the commit-reveal beacon, done in process (T37); thresholds provisional until T25 |
+| Scoring engine (A + B + C + anti-collusion) | Implemented, with Rust golden-output checks across platforms/build profiles and scoped Python comparisons; open guarantees and code-contract findings in [`docs/15`](docs/15-phase1-review.md); thresholds provisional |
+| Design revisions from the working paper ([`paper/`](paper/)): side-balanced bridge score, evaluator difference score with exploration, DIF anchor precondition and target model, contested-facts selection, residual-based coordination detection (`docs/01` D32–D41) | D32–D41 implemented (T49–T57, T37); implementation completion does not close the guarantee findings in `docs/15` |
 | Findings of the third review (2026-09-24): deposit replay, respondents not identity-gated, consortium threshold, appeal stake, band items without appeal (`docs/08` §0-quinquies) | Deposit replay (T64), respondent gate (T65), band items without appeal (T59), the band's re-decision on the same panel (T60), the appeal stake (T61) and the consortium threshold (T63) fixed; the rest — no-show reviewers, a hand-built empty panel, the honeypot's fixed draw — confirmed by tests on master and planned in Phase 3 (`docs/10` T58, T66, T67) |
 | Identity, network, protocol | Working scaffolds; deterministic mechanisms + single-server & threshold OPRF label + single & threshold BBS+ credential + ZK nullifier + OpenTimestamps anchoring proofs real, remaining heavy crypto/transport behind traits |
-| Real crypto/transport integration (committee DKG/transport, libp2p, live OpenTimestamps calendar/Bitcoin) | Future work |
+| Transport and external backends | libp2p replication and consortium-signed cuts implemented (T18/T74); committee DKG/transport and live anchoring remain roadmap work |
 | Meta-level governance (stratified sortition) | Future work |
 
-**What comes next** ([`docs/10-roadmap.md`](docs/10-roadmap.md)), in order:
+**What comes next**, in order (task status lives in the [roadmap](docs/10-roadmap.md)):
 
-1. **Mathematics** — done so far: the two severe defects (a replayed deposit drained its
-   author's quota, T64; one person could fill a Level B sample, T65), the engine's input
-   validation (T62), the side-balanced bridge score (D32, T49), the appeal for
-   polarized band items (T59), the appeal stake as a pseudo-observation inside the
-   author's average (D27, T61), the anchor-reliability gate of the latent re-check
-   (D37, T53), the proper evaluator score with the change detector (D33/D34/D36,
-   T50/T51), the band re-decision with real extra reviewers (D26, T60), the
-   coordination detector on model residuals with panel diversification (D39/D40,
-   T56/T57), live outcomes with randomized exploration (D35, T52), the latent DIF
-   target model with θ inside the likelihood (D37, T54) and the contested-facts pool,
-   drawn into a test only in sets whose differential test functioning stays within a
-   tolerance (D38, T55), and the characterization of the detectors and gates (T24,
-   54,412 runs), whose first pass found and fixed a defect in the bridge score's sides
-   (D42, T71). Next, T25: the characterization showed that the latent re-check flags
-   clean items when respondents can guess — as they always can on true/false and
-   multiple-choice items — so the model gets its guessing correction first (D25): the
-   re-check has it (T25's first step), and so does the pilot screen (the second); then the
-   model is measured again — the supplement, 19,700 runs, found it specific on every format, its
-   power dependent on the format, and templates and a skewed ability read as bias, now fixed
-   (D43, T82) and to be measured again; the screen's study, 3,600 pilots, found its
-   point-biserial dropping good items that guess — and only then are the thresholds set, Level
-   A's register written (`docs/14`). The mechanism's decision logic is mutation-tested (T81).
-2. **P2P network** — done so far: the consortium's configuration check (T63), a
-   randomness beacon nobody can grind, by commit-reveal among the consortium members (D41,
-   T37, in process), draws that read their candidates as a set (T72), and a node's log and
-   objects on disk, surviving a restart (T13), and the whole protocol state rebuilt from
-   the log, the engine's outputs bound to the Merkle root of their inputs (T73), and
-   replication between nodes over libp2p, the same signed set on every node (T18), and
-   the protocol state computed from consortium-signed cuts over it, the first of
-   conflicting events winning, the members proposing and signing cuts and running the
-   beacon between nodes (T74); next the DHT (T75), a silent proposer's replacement (T76)
-   and live anchoring (T17), and four gaps a check of 2026-09-28 found: any peer reads the
-   replicated set, votes included, against D17 (T77), there is no node process (T78), no
-   epoch runs between nodes (T79), and a writer that loses its files cannot rebuild its
-   feed (T80).
-3. **The rest** — the protocol boundary (no-show reviewers, validated panels, honeypot
-   sampling), distributed identity and the external cryptographic review, statistical
-   privacy, real-world pilots.
+1. **Mathematics** — verify and correct the findings in
+   [`docs/15`](docs/15-phase1-review.md), stabilize the model, then complete T25's
+   measurements and parameter procedures. T81 is complete for its ten named files.
+   T24 and the guessing supplement are historical campaigns; their DIF/DTF/floor
+   records predate D43 and must not be presented as validation of that model.
+2. **P2P network** — finish the runtime, recovery, discovery, availability and
+   confidentiality work listed in `docs/10` §2.3. Persistence and replication already
+   exist; they are not an unstarted transport project.
+3. **The rest** — protocol-boundary completion, distributed identity, external
+   reviews, statistical privacy and empirical pilots.
 
 This is a research/specification-stage project. Nothing here is production-ready
 security; the cryptographic plug points are explicitly non-production. A `p2p` node
@@ -378,9 +349,10 @@ serves everything it replicates — the drafts under review and every reviewer's
 joined to its pseudonym included — to any peer that connects ([`docs/10`](docs/10-roadmap.md)
 T77): run it only among machines you control.
 
-**Scale.** The evidence filter needs ~1,500–3,000 distinct respondents per validation
-batch, so the network has a floor: below ~2,000 active participants it cannot run as
-specified, and anonymity itself weakens in a small crowd. See
+**Scale.** Sample-size constants are provisional admission floors, not demonstrated
+power requirements. Guessing-aware results depend strongly on format and batch design;
+the historical tables predate D43. A viable capacity estimate must count anchor answers,
+rejected/inconclusive batches and distinct respondents. See
 [`docs/02-scoring-engine.md`](docs/02-scoring-engine.md) §B.6.
 
 ---
