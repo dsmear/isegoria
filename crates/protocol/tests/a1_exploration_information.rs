@@ -5,12 +5,15 @@
 mod common;
 
 use identity::nym::Nym;
+use network::beacon::BeaconRound;
 use network::cid::cid;
+use network::consortium::{Consortium, Member};
 use protocol::exploration::{explore_from_beacon, outcome_of, Scored, EXPLORATION_RATE};
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, RejectReason, State, K_MIN};
 use protocol::orchestrator::{review_round, Judgment};
-use protocol::probation::SkillTrack;
+use protocol::probation::{SkillTrack, N_PROBATION};
+use protocol::randomness::Beacon;
 use protocol::review::{assign_from_beacon, Reviewer};
 use scoring::reputation::{difference_score, inverse_probability_mean, CusumParams};
 
@@ -258,4 +261,114 @@ fn an_appeal_that_reads_the_draw_biases_an_honest_reviewer() {
             "appeal rate {rate}: {before_the_draw}"
         );
     }
+}
+
+/// The beacon of one round of `members` at threshold `t` when exactly `revealers` reveal.
+fn round_with(members: &[Member], t: usize, revealers: &[usize]) -> Option<Beacon> {
+    let consortium = Consortium::new(members.iter().map(Member::public).collect(), t);
+    let mut round = BeaconRound::open(&consortium, [7; 32], 11);
+    let reveals: Vec<_> = members
+        .iter()
+        .enumerate()
+        .map(|(i, m)| {
+            let (commit, reveal) = m.beacon_commit(round.id(), i);
+            round.commit(&commit).expect("an honest commit");
+            reveal
+        })
+        .collect();
+    round.close_commits().expect("the commit deadline");
+    round.close_deposits().expect("the deposit deadline");
+    for &i in revealers {
+        round.reveal(&reveals[i]).expect("a valid reveal");
+    }
+    Beacon::from_outcome(&round.finish().expect("the reveal deadline"))
+}
+
+fn members(n: u8) -> Vec<Member> {
+    (1..=n).map(|i| Member::from_seed([i; 32])).collect()
+}
+
+/// A1: two colluders after three honest reveals pick among four beacons; one decides a slot.
+#[test]
+fn two_colluders_after_the_honest_reveals_choose_among_four_beacons() {
+    let five = members(5);
+    let beacons: Vec<Beacon> = [vec![], vec![3], vec![4], vec![3, 4]]
+        .iter()
+        .map(|own| {
+            let revealers: Vec<usize> = [0, 1, 2].iter().chain(own).copied().collect();
+            round_with(&five, 3, &revealers).expect("at least t reveals")
+        })
+        .collect();
+    let mut values: Vec<u64> = beacons.iter().map(|b| b.seed(b"probe", 0)).collect();
+    values.sort_unstable();
+    values.dedup();
+    assert_eq!(values.len(), 4, "four distinct valid beacons");
+    let bits = |slot: u64| -> Vec<bool> {
+        beacons
+            .iter()
+            .map(|b| explore_from_beacon(b, slot, EPS))
+            .collect()
+    };
+    let slot = (0..10_000u64)
+        .find(|&s| bits(s).contains(&true) && bits(s).contains(&false))
+        .expect("a slot the colluders decide");
+    println!(
+        "slot {slot}: the four candidates explore it as {:?}",
+        bits(slot)
+    );
+}
+
+/// A1: with two honest reveals at `t = 3`, two colluders choose among three beacons or none.
+#[test]
+fn colluders_who_can_block_choose_a_beacon_or_none() {
+    let four = members(4);
+    assert!(
+        round_with(&four, 3, &[0, 1]).is_none(),
+        "no beacon: the fallback"
+    );
+    let mut values: Vec<u64> = [vec![0, 1, 2], vec![0, 1, 3], vec![0, 1, 2, 3]]
+        .iter()
+        .map(|r| {
+            round_with(&four, 3, r)
+                .expect("t reveals")
+                .seed(b"probe", 0)
+        })
+        .collect();
+    values.sort_unstable();
+    values.dedup();
+    assert_eq!(values.len(), 3);
+}
+
+/// `P(Binomial(n, p) ≥ k)`, summed exactly.
+fn at_least(n: u32, p: f64, k: u32) -> f64 {
+    let mut pmf = (1.0 - p).powi(n as i32);
+    let mut tail = 0.0;
+    for x in 0..=n {
+        if x >= k {
+            tail += pmf;
+        }
+        pmf *= (n - x) as f64 / (x + 1) as f64 * p / (1.0 - p);
+    }
+    tail
+}
+
+/// A1: `Σ I/π` gains 1 a judgment on average on both paths yet crosses `N_PROBATION` unalike.
+#[test]
+fn an_ipw_count_does_not_cross_the_threshold_alike() {
+    let needed = (N_PROBATION as f64 * EPS).ceil() as u32;
+    assert_eq!(needed, 2, "two explorations of weight 1/ε reach 30");
+    for (n, explored) in [(10u32, 0.086_138), (30, 0.446_458), (60, 0.808_447)] {
+        let ordinary = if n as usize >= N_PROBATION { 1.0 } else { 0.0 };
+        let p = at_least(n, EPS, needed);
+        println!("{n} judgments: entering {ordinary}, explored {p:.6}; mean count {n} on both");
+        assert!((p - explored).abs() < 5e-7, "{n}: {p}");
+        let closed =
+            1.0 - (1.0 - EPS).powi(n as i32) - n as f64 * EPS * (1.0 - EPS).powi(n as i32 - 1);
+        assert!((p - closed).abs() < 1e-12);
+        assert!((ordinary - p).abs() > 0.08);
+    }
+    assert!(
+        at_least(60, EPS, N_PROBATION as u32) < 1e-20,
+        "observed count, explored path"
+    );
 }
