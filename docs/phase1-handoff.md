@@ -27,25 +27,41 @@ they win.
   implementation** (the diff read; the IPW identity checked with rational arithmetic on a
   construction with dependent draw and observed outcome meeting the corrected conditions; no Rust
   or fit run). B-b is the main candidate, the ternary score an alternative.
-- **B-b's candidate contract: `17` §8 (`44f0dbd`), a proposal, not approved, not implemented.**
-  It defines the contribution per outcome, the cases, consolidation, the counts and the joins with
-  the reputation. Astra's review of `44f0dbd` approved, **as conditional results**: B-b's identity
+- **B-b's candidate contract: `17` §8 (`44f0dbd`, rectified in `fa11791`), approved by Astra on
+  `fa11791` as a conditional analysis; as a protocol not approved, not implemented.** It defines
+  the contribution per outcome, the cases, consolidation, the counts and the joins with the
+  reputation. Astra's review of `44f0dbd` approved, **as conditional results**: B-b's identity
   for a prefixed cohort; the algebraic sufficiency of the identities on the `A` and `R`
   coordinates for the mean; the pointwise bound and the zero on conclusive verdicts; the
   distinctions between pending, terminal inconclusiveness and non-selection, and between `N_u`,
   `O_u` and `V_u` (the diff, the dossier and the relevant code read; exact rational calculations
-  on the counterexamples and the costs; no Rust or fit run). **Not approved: §8 as a whole, the
-  protocol, the implementation, the adoption of A.** Direction: A the main analytic reference for
-  deepening B-b, C kept as the comparison even if A proves sustainable; no adoption or
-  expenditure approved.
-- **Rectifications of §8 after `44f0dbd`, still to be reviewed** (documentation only; not pushed):
+  on the counterexamples and the costs; no Rust or fit run). **Not approved by that review: §8 as
+  a whole, the protocol, the implementation, the adoption of A.** Direction: A the main analytic
+  reference for deepening B-b, C kept as the comparison even if A proves sustainable; no adoption
+  or expenditure approved.
+- **Rectifications of §8 after `44f0dbd`, made in `fa11791`** (documentation only):
   consolidation (the final estimator of a prefixed cohort apart from availability, from
   conditioning on consolidation and from the cohorts consolidated by a time; Astra's
   counterexample, −5/16 against −1/16); a normalizing weight `ω` apart from the inclusion
   probability, `S` as a selection indicator, the observed and reference outcomes apart, C1's role;
-  A's guarantees narrowed; the costs with their denominator (A is not the largest increment). The
-  A1 row of `15` now records the reviews of `654dbff`, `825cee3` and `44f0dbd`. A1, C2 and A2 stay
-  open; R1 stays approved.
+  A's guarantees narrowed; the costs with their denominator (A is not the largest increment).
+- **Astra's review of `fa11791`** (it verified `fa11791` published and HEAD): `17` §8 **approved as
+  a conditional analysis, with no blocking finding**. Accepted: prefixed cohorts, availability and
+  the selection of the consolidated cohorts; algebraic weights apart from inclusion
+  probabilities; the delimitation of A's guarantees; the costs and their correct denominators.
+  **Not approved: the protocol, the implementation, the adoption of A.** A stays the main analytic
+  reference, C the comparison even if A proves sustainable. Evidence: the diff and the documents
+  read; exact rational calculations on the counterexamples and the costs; no Rust or fit run. The
+  approval of §8 as an analysis is this review's, not that of `44f0dbd`. Recorded in `17` (status,
+  §8, §8.5's direction), the A1 row of `15` (which now lists the reviews of `654dbff`, `825cee3`,
+  `44f0dbd` and `fa11791`) and this note; `17` §8.4's "without H-e it is not that either" now
+  reads "without H-e that unbiasedness is not guaranteed".
+- **Decision synthesis: `19` §6.1** (documentation only, on `fa11791`; not pushed by the session;
+  not yet reviewed by Astra). It links A1 (B-b's forecast and how the outcome is produced), A2
+  (the DTF target), B1–B3 and resources; keeps observation (A against C) apart from calibration
+  (reusable common against per form); gives the parametric accounting with its assumptions and
+  the decisions still missing. It rests on readings and targeted static checks, no new run. A1,
+  C2, A2 and Phase 1 stay open; R1 stays approved within its limits.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -89,12 +105,14 @@ they win.
   rectification of the declared guarantees, not as a realization of the whole-test DTF guarantee.
   Not approved by either review: R3 (a test-level fit) as a solution, a mandatory batch per form,
   any new calibration, selection or group policy. A reusable common calibration and a calibration
-  per form are still to be compared.
+  per form are still to be compared; `19` §6.1 states what the comparison must cover, without
+  carrying it out.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
   baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
   properness proof as a result conditional on C6 and its hypotheses (`16` §4.3); `17`'s argument and
-  comparison of batch designs as a conditional analysis (`37addca`). Open decisions: the batch
+  comparison of batch designs as a conditional analysis (`37addca`); `17` §7 (`825cee3`) and B-b's
+  candidate contract, `17` §8 (`fa11791`), as conditional analyses. Open decisions: the batch
   contract (`17`: universal pilot, group audit, prefixed groups activated by entry or draw; no
   batching policy approved); missing outcomes (C2); the denominator and no-show rule (C4, T58); the
   randomness guarantee (a behavioral model of the beacon's members, or a source change); deferred
@@ -108,10 +126,11 @@ they win.
   operating point (B7, D1, D6, E). Also open: A8, A9, A10, the register's C5 and C6, A4 (b)–(d),
   C2, C4, the full runtime.
 
-## 5. Next segment: decision synthesis
+## 5. Decision synthesis
 
-At the owner's request, the synthesis continues in the same chat with Astra; this note records
-none of its conclusions. Its scope: a short decision synthesis that links: (1) what outcome a
+Written in `19` §6.1 after Astra's approval of `17` §8 on `fa11791`, awaiting Astra's review; the
+next step is that review, and what follows it is Astra's to decide. The scope it was written to,
+as set at the owner's request: a short decision synthesis that links: (1) what outcome a
 reviewer forecasts and how it is produced — A1; (2) the population and contrasts the DTF must
 protect — A2; (3) the dependence on the model and on selection — B1–B3; (4) respondents, answers
 including anchors, fits and time. It must compare a reusable common calibration with a calibration
@@ -119,8 +138,12 @@ per form without presuming either valid or inevitable. Constraints: anonymity (n
 group attributes enter), the recovery of contested facts; the test's neutrality is not to be
 declared certified. No full new roadmap yet. Astra's candidate for linking A1, C2, A2 and the
 costs is checked in `17` §7, accepted by Astra on `825cee3` as a conditional analysis; B-b, the
-main candidate, is specified as a candidate contract in `17` §8, partly reviewed on `44f0dbd` and
-rectified since, awaiting Astra's review; A is the main analytic reference, C the comparison.
+main candidate, is specified as a candidate contract in `17` §8, partly reviewed on `44f0dbd`,
+rectified in `fa11791` and approved there as a conditional analysis; A is the main analytic
+reference, C the comparison. The synthesis adopts and funds nothing; the decisions it lists as
+missing (population and contrasts to protect, anchors' formats and substantive reference,
+tolerable errors and inconclusiveness, latency and resources) are not put to the owner before a
+sufficient comparison of the designs.
 
 ## 6. Essential reading to resume
 
@@ -203,4 +226,17 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   diff, whitespace (`git diff --check`), references and relative links of the edited docs, and
   the consistency of A2's and R1's state across `15`, `19`, `docs/README.md` and this note. No
   Rust test, fit, smoke, characterization, calibration or mutation run.
+- **Astra, review of `fa11791`** (as it records): verified `fa11791` published and HEAD; read the
+  diff and the documents; exact rational calculations on the counterexamples and the costs. No
+  Rust or fit re-run. Its decision synthesis rests on readings and targeted static checks, with
+  no new run.
+- **Claude Code, record of that review and the synthesis of `19` §6.1:** branch, HEAD `fa11791`
+  (parent `44f0dbd`) and a working tree with only `.gitignore` modified checked first; the
+  synthesis's references checked statically against `17` §§4–8, `19` §§2–5, `15` (A1, A3, B1–B5,
+  D2–D4), `16` §§5–7, `02` §B.3, `05` [7b], `01` D38 and the code symbols named
+  (`LatentParams::n_starts`, the up-to-seven candidates and the complete matrices of
+  `scoring::latent`, `PilotError`); documentation checks only: the diff, whitespace
+  (`git diff --check`), references and relative links of the edited docs, the consistency of the
+  states of A1, A2, R1 and `17` §8 across `15`, `17`, `19` and this note. No Rust test, fit,
+  script, smoke, characterization, calibration or mutation run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.

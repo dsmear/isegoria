@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources: static readings and checks only, not yet reviewed by Astra; it adopts and funds nothing. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -205,8 +205,100 @@ rectification, not a fix of the guarantee. R3 stays a candidate whose guarantee 
 on representation, specification and an uncertainty bound yet to be built. R2 removes only the
 cross-fit sum and leaves active items out. No cost is put to the owner yet: a reusable common
 calibration and a calibration per form, with more conservative bounds and a reduced declared
-guarantee as further options, must first be compared; none is developed here. `DTF_MAX` stays as
-it is; no empirical margin replaces the missing hypotheses.
+guarantee as further options, must first be compared; §6.1 states what the comparison has to
+cover, without carrying it out. `DTF_MAX` stays as it is; no empirical margin replaces the
+missing hypotheses.
+
+### 6.1 Decision synthesis: A1, A2, B1–B3 and resources
+
+**Status.** Written on `fa11791`, after Astra approved `17` §8 as a conditional analysis. It
+links results established elsewhere (`17` §§7–8; §§2–3 here) and repeats no proof. Evidence: the
+cited sections and code symbols read, with targeted static checks; no Rust, fit, script or
+campaign run. It approves, adopts and funds nothing: A1, C2, A2 and Phase 1 stay open; R1 stays
+approved within its limits (§8).
+
+**What a reviewer forecasts (A1: B-b, `17` §7.5, §§8.1–8.3).** A reference procedure is fixed per
+item before the reports. Its group, the sampling of respondents and anchors, the stage-1 screen,
+the model and thresholds, the attempts, the term and the treatment of the source check together
+produce the outcome `Y ∈ {A, R, I}` (`17` §7.3). The reviewer forecasts `P(Y = A | Y ≠ I, F_u)`:
+`A` given a conclusive outcome and the information available at the report. The binary score
+acts on `A` and `R`; a verifiable terminal inconclusiveness (`17` §7.2) adds 0 at the
+denominator `N_u` fixed by the assignments. A pending item is not a 0, and a missing record is
+not an inconclusiveness (`17` §§8.2–8.3). The result keeps its hypotheses: the observation
+identities (H-a, H-b, H-e) and the joint invariance of `(b, Y)` given `F_u` under the reviewer's
+deviation over all its reports (H-c); with a zero probability of conclusion the score is flat
+in the report (`17` §8.1, D1).
+
+**What the DTF must protect (A2, §§2–3).** The target names a population, a measure of ability
+on a common scale, a family of contrasts and the whole test's score, active and contested items
+included (§2; H3, §3). An item's admissibility (`Y = A` in its group's fit) certifies no form's DTF
+(`17` §7.6; §4, rows 1–3). Estimated classes are statistical components, not social groups by
+default (`02` §B.3); common anchors alone establish neither a common population (H1) nor the
+groups' representation (H2) (§3). `D(T)` stays R1's admission cost (§8).
+
+**What the model and selection condition (B1–B3, `15`).** Identification and finite
+information, the guessing floor's prior, the anchors' reference and invariance, the histogram's
+penalty, misspecification, and the search and selection of classes condition the verdicts,
+hence `Y`, and the DTF. A3 is closed within its scope (`15` A3); these statistical effects stay
+open. Convergence and reproducibility do not show validity (§4, row 4: a converged fit reads 0
+where the true curves give 0.78196, on a fixture outside the admission gate). Forms selected on
+the same estimates that then bound their DTF need a treatment of coverage after selection (§5,
+R3).
+
+**Two dimensions, kept apart.**
+
+1. *Observation for scoring: A against C (`17` §8.5).* A removes the observation draw from the
+   score and the entry-dependent channels listed there; it guarantees neither the records'
+   availability, nor their timing, nor conclusiveness, nor the invariance of the work actually
+   done. C modulates reputational observation at `α`, but needs a valid draw after the freeze
+   (C1, H0; `16` §6's residual) and the management of resources shared with pool-entry pilots.
+   Reusing one pilot for audit and entry is conditional on compatible procedures (`17` §4, C),
+   not presumed.
+2. *DTF calibration: reusable common against per form (`17` §7.6).* Both judged on the same
+   target (§2). A common calibration can amortize its cost over several forms, but needs the
+   items' coverage, a domain of validity and control of selection; a calibration per form covers
+   the assembled items directly, but repeats collection and fitting and keeps the problems of
+   model, representation and uncertainty. R3 is not approved as a solution; a batch per form is
+   not a demonstrated necessity.
+
+**Resources, counted apart** (C, parametric, under the assumptions stated in each line). Distinct
+persons, participations, trial answers, anchor answers, attempts, model searches and times are
+different quantities.
+
+- *Common:* `P` items, each answered `n_c` times, at most `m` trial items per participation: at
+  least `⌈P n_c/m⌉` participations and `P n_c` trial answers, plus the anchor answers actually
+  administered.
+- *Per form:* each participation answers all of its form's `t_F` trial items and `a_F` anchors;
+  summed over forms `F` and their attempts, the participations (`n_F` per complete
+  administration) and `n_F (t_F + a_F)` answers per complete administration.
+- Sums across forms, stages and periods count participations; they do not identify distinct
+  persons automatically.
+- Both counts include batches not admitted (for the pilot, `PilotError`), inconclusive
+  attempts, retries (`17` §4.1) and the cost of the uncertainty control or of a confirmation
+  sample (§5).
+- Fitting counts apart the model searches, the candidate models in each (up to seven, `02`
+  §B.3, `18` §2) and the seeded starts per candidate (`LatentParams::n_starts`). Latency includes
+  recruitment, the freeze (`16` §5), the computation and the records' availability (`17` §8.3).
+- `N1_MIN = 300` and `N_LATENT_MIN = 3,000` are floors, not power guarantees (`15` B4–B5).
+- `scoring::latent` takes complete respondent × item matrices: planned missingness and links
+  between blocks need their own justification (`17` §7.6; H1, §3).
+- A1's pilot data are not reused for A2's calibration automatically (`17` §7.6).
+- `17` §4.1's slot counts are illustrative, not validated estimates of the resources actually
+  needed; they are not converted here into persons or times.
+
+**Direction (Astra).** B-b and A stay the main analytic references, C the comparison; the two
+calibrations are to be compared before any choice. No adoption or expenditure is authorized.
+The incentives of the reputation actually used (`k_u`, shrinkage, cap, CUSUM; `16` §7, `17`
+§8.4) stay to be assessed: the result on the score's mean (`17` §8.1, D1) does not close them.
+
+**Decisions still missing (product and resources).** The population and contrasts to protect;
+the anchors' formats and substantive reference; the tolerable errors and inconclusiveness; the
+latency and resources available. No value is proposed here, and no choice between designs is
+put to the owner before a sufficient comparison exists.
+
+**Constraints.** Anonymity (`CLAUDE.md` invariant 1: no personal or group attribute enters; the
+bias analysis runs on latent axes) and the recovery of contested facts (`05` [7b], `01` D38)
+bound every option. The test's neutrality is not certified.
 
 ## 7. Open
 

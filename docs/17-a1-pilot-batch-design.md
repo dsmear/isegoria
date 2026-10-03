@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review, still to be reviewed. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -719,22 +719,32 @@ main candidate in the next design comparison, the ternary score as the alternati
 no protocol change and closes neither C2 nor A1. An admissible item certifies no form's DTF, and
 the two calibrations stay to be compared (§7.6).
 
-## 8. B-b as a candidate contract (proposal, not approved)
+## 8. B-b as a candidate contract (conditional analysis; protocol not approved)
 
 **Status.** A proposal of this check, built on §7.5's B-b (its derivation approved by Astra as a
-conditional result on `654dbff`) and on Astra's direction (§7.7); **not approved, not
-implemented**. Astra's review of `44f0dbd` approved, as conditional results: B-b's identity for
-a prefixed cohort (D1); the algebraic sufficiency of the identities on the `A` and `R`
-coordinates for the mean (D2); the pointwise bound and the zero on conclusive verdicts (D3, D4);
-the distinctions between pending, terminal inconclusiveness and non-selection, and between `N_u`,
-`O_u` and `V_u` (§8.2, §8.4). Not approved: §8 as a whole, the protocol, the implementation, the
-adoption of A. Evidence: the diff, the dossier and the relevant code read; exact rational
+conditional result on `654dbff`) and on Astra's direction (§7.7); accepted by Astra on `fa11791`
+as a conditional analysis (below); **as a protocol not approved, not implemented**. Astra's
+review of `44f0dbd` approved, as conditional results: B-b's identity for a prefixed cohort (D1);
+the algebraic sufficiency of the identities on the `A` and `R` coordinates for the mean (D2); the
+pointwise bound and the zero on conclusive verdicts (D3, D4); the distinctions between pending,
+terminal inconclusiveness and non-selection, and between `N_u`, `O_u` and `V_u` (§8.2, §8.4). Not
+approved by that review: §8 as a whole, the protocol, the implementation, the adoption of A.
+Evidence: the diff, the dossier and the relevant code read; exact rational
 calculations on the counterexamples and the costs; no Rust or fit run. Rectified after that
-review, still to be reviewed: §8.3's consolidation, §8.1's weights and inclusion probabilities
-and the definition of `S`, §8.4's statements on C1, §8.5's guarantees of A and its costs. It
-changes no code, API, threshold, golden output or policy and closes none of A1, C2, A2. **H**
-marks a hypothesis, **D** a consequence proved here or in §7 under the stated hypotheses (with C
-where an exact enumeration checks it), **Open** a decision or evidence still needed.
+review, in `fa11791`: §8.3's consolidation, §8.1's weights and inclusion probabilities and the
+definition of `S`, §8.4's statements on C1, §8.5's guarantees of A and its costs. Review on
+`fa11791` (Astra): §8 approved **as a conditional analysis, with no blocking finding**; the
+rectifications accepted — prefixed cohorts, availability and the selection of consolidated
+cohorts (§8.3); algebraic weights apart from inclusion probabilities (§8.1, D2); the
+delimitation of A's guarantees and the costs with their correct denominators (§8.5). Not
+approved: the protocol, the implementation, the adoption of A; A stays the main analytic
+reference, C the comparison even if A proves sustainable. Evidence: the diff and the documents
+read; exact rational calculations on the counterexamples and the costs; no Rust or fit run. The
+earlier approvals stay as recorded: the review of `44f0dbd` approved only the conditional results
+listed above. §8 changes no code, API, threshold, golden output or policy and closes none of A1,
+C2, A2. **H** marks a hypothesis, **D** a consequence proved here or in §7 under the stated
+hypotheses (with C where an exact enumeration checks it), **Open** a decision or evidence still
+needed.
 
 ### 8.1 Definition, hypotheses, consequences
 
@@ -846,10 +856,9 @@ is never read as 0, nor a missing record as `I` (§7.2).
 
 Counting them needs only the records, not C1. None of them is `Σ S_j/π_j`: under H-e its
 expectation given `F_Φ` is `N_u`, an estimate of the exposure, not evidence (`16` §7); without
-H-e it is not that either. A 0 comes from a
-non-selection (no observation), an observed `I` (no verdict), a verdict with `p = b` (D4: the
-report matched the baseline) or, if a rule gave it, a missing reveal; only the third is evidence
-on `p`.
+H-e that unbiasedness is not guaranteed. A 0 comes from a non-selection (no observation), an
+observed `I` (no verdict), a verdict with `p = b` (D4: the report matched the baseline) or, if a
+rule gave it, a missing reveal; only the third is evidence on `p`.
 
 | Element | Today (L) | From D1 | Open |
 |---|---|---|---|
@@ -878,9 +887,10 @@ The slot counts are illustrative, on the declared scenario (§4.1): A's incremen
 largest of the cases reported. They are no validated estimate of respondents, answers with
 anchors, fits or times, which stay unmeasured (`15` D2, D4).
 
-**Direction (Astra, review of `44f0dbd`): A is the main analytic reference for deepening B-b; C
-stays the comparison even if A proves sustainable.** No adoption or expenditure is approved, and no
-further alternative is developed now. What A gives and what it does not:
+**Direction (Astra, review of `44f0dbd`, kept on `fa11791`): A is the main analytic reference
+for deepening B-b; C stays the comparison even if A proves sustainable.** No adoption or
+expenditure is approved, and no further alternative is developed now. What A gives and what it
+does not:
 
 - it removes the observation draw from the score: C1's draw and the beacon's behavioral model for
   that draw (`16` §9) no longer enter the scoring guarantee; other roles of the beacon in the
