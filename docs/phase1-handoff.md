@@ -27,12 +27,25 @@ they win.
   implementation** (the diff read; the IPW identity checked with rational arithmetic on a
   construction with dependent draw and observed outcome meeting the corrected conditions; no Rust
   or fit run). B-b is the main candidate, the ternary score an alternative.
-- **B-b's candidate contract: `17` §8, a proposal, not approved, not implemented**, on top of
-  `825cee3`; documentation only; not pushed. It defines the contribution per outcome, the cases,
-  cohort consolidation, the counts, the joins with the reputation, and recommends to Astra
-  deepening B-b on design A (C as the comparison, D not recommended); impediments: a missing
-  availability property, A's capacity, shared residues. A1, C2 and A2 stay open; R1 stays
-  approved.
+- **B-b's candidate contract: `17` §8 (`44f0dbd`), a proposal, not approved, not implemented.**
+  It defines the contribution per outcome, the cases, consolidation, the counts and the joins with
+  the reputation. Astra's review of `44f0dbd` approved, **as conditional results**: B-b's identity
+  for a prefixed cohort; the algebraic sufficiency of the identities on the `A` and `R`
+  coordinates for the mean; the pointwise bound and the zero on conclusive verdicts; the
+  distinctions between pending, terminal inconclusiveness and non-selection, and between `N_u`,
+  `O_u` and `V_u` (the diff, the dossier and the relevant code read; exact rational calculations
+  on the counterexamples and the costs; no Rust or fit run). **Not approved: §8 as a whole, the
+  protocol, the implementation, the adoption of A.** Direction: A the main analytic reference for
+  deepening B-b, C kept as the comparison even if A proves sustainable; no adoption or
+  expenditure approved.
+- **Rectifications of §8 after `44f0dbd`, still to be reviewed** (documentation only; not pushed):
+  consolidation (the final estimator of a prefixed cohort apart from availability, from
+  conditioning on consolidation and from the cohorts consolidated by a time; Astra's
+  counterexample, −5/16 against −1/16); a normalizing weight `ω` apart from the inclusion
+  probability, `S` as a selection indicator, the observed and reference outcomes apart, C1's role;
+  A's guarantees narrowed; the costs with their denominator (A is not the largest increment). The
+  A1 row of `15` now records the reviews of `654dbff`, `825cee3` and `44f0dbd`. A1, C2 and A2 stay
+  open; R1 stays approved.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -106,7 +119,8 @@ per form without presuming either valid or inevitable. Constraints: anonymity (n
 group attributes enter), the recovery of contested facts; the test's neutrality is not to be
 declared certified. No full new roadmap yet. Astra's candidate for linking A1, C2, A2 and the
 costs is checked in `17` §7, accepted by Astra on `825cee3` as a conditional analysis; B-b, the
-main candidate, is specified as a candidate contract in `17` §8, awaiting Astra's review.
+main candidate, is specified as a candidate contract in `17` §8, partly reviewed on `44f0dbd` and
+rectified since, awaiting Astra's review; A is the main analytic reference, C the comparison.
 
 ## 6. Essential reading to resume
 
