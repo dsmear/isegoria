@@ -49,7 +49,7 @@ guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
 | [`15-phase1-review.md`](15-phase1-review.md) | Current review findings, evidence limits and correction handoff; distinguishes implemented behavior from unresolved guarantees |
 | [`16-a1-incentive-design.md`](16-a1-incentive-design.md) | A1 dossier, for design review: the exploration draw's information sequence, the adaptive counterexample, the corrected IPW theorem and the candidate fixes |
 | [`17-a1-pilot-batch-design.md`](17-a1-pilot-batch-design.md) | A1 pilot batches and missing outcomes, approved on `37addca` as a conditional analysis (no batching policy approved): what a verdict depends on, the batch contract C3 needs, four alternatives and their costs, missing outcomes |
-| [`18-a3-latent-shape-design.md`](18-a3-latent-shape-design.md) | A3 diagnosis, for design review: the latent ability histogram's parametrization, the moment penalty, the dimension and the BIC count, two corrections compared |
+| [`18-a3-latent-shape-design.md`](18-a3-latent-shape-design.md) | A3 diagnosis (reviewed on `deb4e5e`) and its correction P1, pending review: the latent ability histogram's parametrization, the moment penalty, the dimension and the BIC count |
 | [`99-glossary.md`](99-glossary.md) | Every concept explained from scratch, from the problem to the formula |
 | [`sim/`](../sim/) | Historical research prototypes and scoped fixture/differential oracles; see its README for current vs retired paths |
 | [`paper/`](../paper/) | Working paper: formal statement and analysis of the scoring mechanism, with proofs, reproducible experiments and open problems |

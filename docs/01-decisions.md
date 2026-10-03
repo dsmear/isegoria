@@ -983,7 +983,10 @@ of a side a few reviewers could form, since each side counts once.
   0, variance 1 — so D25's metric holds as declared: θ of unit variance within each class,
   its origin the first class's mean. Its weights are the same parameters in every
   candidate model and the BIC counts them in each, so they do not decide the number of
-  classes. The DTF bound integrates over the same distribution, and a contested fit's
+  classes. *Clarified 2026-10-03 (`15` A3, `18`):* the grid moments are held by a penalty that
+  grows with `n`, not by a gauge; the BIC counts the histogram's `Q − 1` logits less their
+  shift, a nominal count; that count cancels between candidates in exact arithmetic, while
+  the estimated shape itself can still move the likelihood differences. The DTF bound integrates over the same distribution, and a contested fit's
   record carries it (`04`).
 
 **Why.** The target model assumes a respondent's answers independent given θ, and θ

@@ -355,21 +355,22 @@ take a skewed shape and a mixture of two normals approximates it, so with a fixe
 skewed ability selected classes that do not exist (`13` §8.7.2); with the shape estimated,
 one class fits in the post-D43 fixtures described in `13` §8.8; the full study is pending.
 
-**Implemented fit and selection.** The objective includes the floors' priors and a
-penalty on the histogram's raw-grid mean and variance. BIC reads the unpenalized
-likelihood at the resulting fitted parameters. The implementation counts `Q−3`
-histogram parameters (`Q=41`), the same count in each histogram candidate. A shared
-parameter-count term cancels in comparisons, but estimated shape can still change
-the likelihood differences and the selected number of classes (`13` §8.8).
+**Implemented fit and selection.** The objective includes the floors' priors and the
+histogram's moment penalty `n [m² + (v − 1)²]` on its grid mean `m` and variance `v`: a
+regularizer that grows with `n`, so it keeps a non-zero weight against the likelihood at any
+sample size. It is not a gauge: the logits' shift is the histogram's only exact redundancy, and
+the standardized nodes move with the weights, so the grid moments change the represented
+distribution (`18`, `15` A3). BIC reads the unpenalized likelihood at the resulting fitted
+parameters. It counts the histogram's `Q − 1` logits less their shift (`Q = 41`, `latent.rs`
+`free_params`): the nominal dimension of the parametrized ability family, not a dimension the
+responses are shown to identify. The count is the same in every candidate of a call, so it
+cancels in the comparisons in exact arithmetic; estimated shape can still change the likelihood
+differences and the selected number of classes (`13` §8.8).
 
-**Open interpretation (`15` A3, B1–B3).** Calling that penalty a pure gauge and
-subtracting two moment degrees of freedom requires justification: changing weights
-can change standardized shape. The diagnosis (`18`, pending design review) finds that the grid
-moments are no gauge — the ability family has dimension `Q−1`, its only exact redundancy a shift
-of the logits, its identifiability from the responses not proved — and that the penalty is a
-regularizer growing with `n`; the count's offset is the same in every candidate of a call, so it
-leaves the ordering of the candidates unchanged. The fit/selection procedure and its sensitivity to the
-floor prior must be evaluated as implemented. The floor `c_j` is shared across
+**Open interpretation (`15` A3, B1–B3).** Whether the responses identify all `Q − 1` directions,
+how weakly the data inform them, what the moment penalty does to fits and mixtures, and how the
+BIC behaves on penalized mixture fits are open (`18` §7). The fit/selection procedure and its
+sensitivity to the floor prior must be evaluated as implemented. The floor `c_j` is shared across
 classes; class-specific guessing can be misspecification and is not generally
 represented exactly by a difficulty shift. Fitted anonymous classes are statistical
 components, not identified social groups or a guarantee that all bias is detected.

@@ -211,9 +211,10 @@ impl Model {
     fn item_b_idx(&self, g: usize, j: usize) -> usize {
         2 * (self.g - 1) + 2 * self.na + self.n_item_a() + g * self.k + j
     }
-    /// The histogram's weights less their sum, mean and variance.
+    /// The BIC's nominal count: every parameter, the histogram's logits less their shift (`Q − 1`),
+    /// the dimension of the parametrized family, not one the responses are shown to identify.
     fn free_params(&self) -> usize {
-        self.len() - if self.nodes > 0 { 3 } else { 0 }
+        self.len() - if self.nodes > 0 { 1 } else { 0 }
     }
     fn pi(&self, p: &[f64]) -> Vec<f64> {
         let mut z = vec![0.0; self.g];
@@ -824,9 +825,9 @@ fn penalty(model: &Model, floors: &Floors, p: &[f64], grad: &mut [f64]) -> f64 {
     total
 }
 
-/// The histogram's gauge: its moments on the grid, free under the standardized nodes, held
-/// near 0 and 1 with the weight of `n` respondents; its gradient is added into `grad`.
-fn gauge(model: &Model, grid: &Grid, n: f64, p: &[f64], grad: &mut [f64]) -> f64 {
+/// The histogram's moment penalty `n [m² + (v − 1)²]` on its grid mean and variance: a
+/// regularizer growing with `n`, not a gauge (`docs/18`); its gradient is added into `grad`.
+fn moment_penalty(model: &Model, grid: &Grid, n: f64, p: &[f64], grad: &mut [f64]) -> f64 {
     if model.nodes == 0 {
         return 0.0;
     }
@@ -860,8 +861,9 @@ fn fit_from(
             }
         }
         let (f, mut g, _) = evaluate(model, p, data, grid, floors, false);
-        let f =
-            f + penalty(model, floors, p, &mut g) + gauge(model, grid, data.n as f64, p, &mut g);
+        let f = f
+            + penalty(model, floors, p, &mut g)
+            + moment_penalty(model, grid, data.n as f64, p, &mut g);
         for v in g.iter_mut() {
             *v *= scale;
         }
@@ -1244,11 +1246,11 @@ mod tests {
         );
     }
 
-    /// The BIC counts each model shape's free parameters: floors, and the histogram less three.
+    /// The BIC counts each model shape's parameters: floors, and the histogram less its shift (A3).
     #[test]
     fn free_parameters_are_counted_as_specified() {
         let (na, k) = (5, 8);
-        for (nodes, histogram) in [(41, 38), (0, 0)] {
+        for (nodes, histogram) in [(41, 40), (0, 0)] {
             for g in 1..=4 {
                 for floors in [0, 3] {
                     let shared = Model {
@@ -1324,7 +1326,10 @@ mod tests {
                     let objective = |q: &[f64]| {
                         let (f, mut grad, _) = evaluate(&model, q, &data, &grid, &floors, false);
                         let priors = penalty(&model, &floors, q, &mut grad);
-                        (f + priors + gauge(&model, &grid, 7.0, q, &mut grad), grad)
+                        (
+                            f + priors + moment_penalty(&model, &grid, 7.0, q, &mut grad),
+                            grad,
+                        )
                     };
                     let numeric = numerical_gradient(&|q: &[f64]| objective(q).0, &p, 1e-6);
                     for (i, (a, b)) in objective(&p).1.iter().zip(&numeric).enumerate() {
@@ -1422,7 +1427,7 @@ mod tests {
         let both = |q: &[f64]| {
             let mut g = vec![0.0; q.len()];
             let f = evaluate(&model, q, &data, &grid, &floors, false).0;
-            (f, gauge(&model, &grid, 30.0, q, &mut g))
+            (f, moment_penalty(&model, &grid, 30.0, q, &mut g))
         };
         let ((f, h), (fs, hs)) = (both(&p), both(&shifted));
         assert!((f - fs).abs() <= 1e-12 * f.abs(), "NLL {f} vs {fs}");
@@ -1447,7 +1452,7 @@ mod tests {
                 floors: 0,
                 nodes: 3,
             };
-            let penalty = gauge(&model, &grid, 1.0, &w.map(ln), &mut [0.0; 3]);
+            let penalty = moment_penalty(&model, &grid, 1.0, &w.map(ln), &mut [0.0; 3]);
             (moment(1), moment(2), moment(4), s.nodes[2], penalty)
         };
         let (m1, v1, k1, top1, g1) = read([0.25, 0.5, 0.25]);
@@ -1512,7 +1517,8 @@ mod tests {
             }
             let per = n as f64;
             let nll = |v: &[f64]| evaluate(&model, v, &data, &grid, &floors, false).0 / per;
-            let held = |v: &[f64]| gauge(&model, &grid, per, v, &mut vec![0.0; v.len()]) / per;
+            let held =
+                |v: &[f64]| moment_penalty(&model, &grid, per, v, &mut vec![0.0; v.len()]) / per;
             let s = grid.shape(&p[model.hist_idx(0)..]);
             let (mean, var) = (s.mean, s.sd * s.sd);
             let lightest = s.w.iter().copied().fold(1.0, f64::min);

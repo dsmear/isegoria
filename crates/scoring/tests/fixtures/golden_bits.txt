@@ -175,9 +175,9 @@ latent.item_b,5,3febd630ea47eaf0
 latent.item_b,6,3fa097bbabcb9602
 latent.item_b,7,bfdaacce7f15b65e
 latent.bic_gain,0,0000000000000000
-latent.candidates,0,40e684623b5a42da
-latent.candidates,1,40e68472f913d208
-latent.candidates,2,40e68abe031220e6
+latent.candidates,0,40e686364727c899
+latent.candidates,1,40e6864704e157c7
+latent.candidates,2,40e68c920edfa6a6
 latent.posterior,digest,fe671988ed98fcd3
 dtf,0,0000000000000000
 dtf,1,0000000000000000
@@ -224,9 +224,9 @@ floor.item_c,5,3fd2e9bcfc2d58bb
 floor.item_c,6,3fd5a6e28813d619
 floor.item_c,7,3fce62fadf4761df
 floor.bic_gain,0,4038252f5ce03000
-floor.candidates,0,40e84ee906ff53af
-floor.candidates,1,40e84be46113b7a9
-floor.candidates,2,40e851994ea4648a
+floor.candidates,0,40e850bd12ccd96e
+floor.candidates,1,40e84db86ce13d68
+floor.candidates,2,40e8536d5a71ea4a
 floor.posterior,digest,1792b31c27595a3f
 floor.dtf,0,3fe3a4c88ee92f3d
 floor.dtf,1,3fd473dae44ff30e
