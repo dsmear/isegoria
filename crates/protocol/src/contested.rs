@@ -1,6 +1,6 @@
 //! The contested-facts pool (`docs/05` [7b], `docs/02` §B.7, `docs/01` D38): DIF items whose
-//! key the source check established, drawn into a test only in selections whose DTF bound —
-//! the sum over fits of each fit's DTF — stays within the tolerance.
+//! key the source check established, drawn only in selections whose admission cost — each fit's
+//! estimated DTF, summed — is within the tolerance; no bound on a test's DTF (`docs/15` A2).
 
 use crate::randomness::{Beacon, CONTESTED};
 use network::cid::Cid;
@@ -9,7 +9,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use scoring::dtf::ClassCurves;
 
-/// `2³²`: the bound is summed in whole units of `2⁻³²` score points, each DTF rounded up.
+/// `2³²`: the cost is summed in whole units of `2⁻³²` score points, each DTF rounded up.
 const SCALE: f64 = 4_294_967_296.0;
 
 fn units(dtf: f64) -> u64 {
@@ -123,7 +123,7 @@ impl ContestedPool {
             .sort_unstable_by_key(|f| f.members.first().map(|(c, _)| c.0));
     }
 
-    /// The bound `D(T)` of `selection`, rounded up to `2⁻³²` score points; `None` if an item is
+    /// The admission cost `D(T)` of `selection`, rounded up to `2⁻³²` points; `None` if an item is
     /// not in the pool or listed twice.
     pub fn dtf(&self, selection: &[Cid]) -> Option<f64> {
         let distinct = (1..selection.len()).all(|i| !selection[..i].contains(&selection[i]));
@@ -142,9 +142,9 @@ impl ContestedPool {
         (distinct && found == selection.len()).then(|| total as f64 / SCALE)
     }
 
-    /// Draws `n` contested facts whose bound is at most `tolerance`, at random among the
+    /// Draws `n` contested facts whose cost is at most `tolerance`, at random among the
     /// balanced selections (`docs/02` §B.7), a function of the pool's content and `seed`
-    /// alone. A negative or NaN `tolerance` admits only a bound of 0.
+    /// alone. A negative or NaN `tolerance` admits only a cost of 0.
     pub fn draw(&self, n: usize, tolerance: f64, seed: u64) -> Result<Vec<Cid>, NoBalancedDraw> {
         let budget = (tolerance * SCALE).floor() as u64;
         let mut rng = ChaCha8Rng::seed_from_u64(seed);
@@ -155,7 +155,7 @@ impl ContestedPool {
             .map(|&f| self.candidates(f, n, budget))
             .collect();
 
-        // `least[i][s]`: the least bound that takes exactly `s` facts from the fits `order[i..]`.
+        // `least[i][s]`: the least cost that takes exactly `s` facts from the fits `order[i..]`.
         let m = order.len();
         let mut least = vec![vec![None; n + 1]; m + 1];
         least[m][0] = Some(0u64);

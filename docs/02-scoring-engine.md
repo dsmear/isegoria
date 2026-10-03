@@ -630,11 +630,14 @@ implementation uses the cost
 D(T) = Σ_F DTF_F(T ∩ F)          summed over the fits of its contested facts
 ```
 
-as an admissibility check. It was described as a universal upper bound by the
-triangle inequality. That interpretation is not established: the integral's target
-measure and the class correspondence must be compatible across fits before applying
-such a bound. Active-pool items are omitted from this implemented cost, but passing a
-DIF cut does not make their true contribution zero (`15` A2).
+as the contested facts' admission cost. It was described as a universal upper bound by
+the triangle inequality. That interpretation is not established. A sufficient condition
+(`19` §3) bounds a test's DTF by per-fit terms when the test's items are partitioned among
+the fits, every fit's measure is the target population's, and the groups are represented by
+each fit's counted classes — with the per-pair maximum if their mixture weights do not vary
+with ability, the integral of the pointwise maximum otherwise; class labels need not be
+matched. The current APIs guarantee none of these. Active-pool items are omitted from this
+implemented cost, but passing a DIF cut does not make their true contribution zero (`15` A2).
 
 Contested facts can cancel within a common fit. Periodic re-validation re-fits them
 together; an item's recorded curves are those of its latest fit. A valid whole-test
@@ -648,7 +651,7 @@ negligible DIF — at the ETS class-A boundary (`|Δ_MH| = 1`, a log-odds gap of
 mid-difficulty item has 0.08. For scale, with `a = 1.25` and two equal classes: one item
 with a difficulty gap of 1.8 has 0.41 at difficulty 0 and 0.21 at difficulty 2; two such
 items leaning opposite ways have 0.00 at equal difficulty, 0.04 at 0.25 apart, 0.07 at
-0.5 and 0.14 at 1.0. The bound is computed on the fitted curves, and it is a point
+0.5 and 0.14 at 1.0. The cost is computed on the fitted curves, and it is a point
 estimate: on a batch fitted at N = 3,000 the fitted DTF of each set was within 0.03 of the
 true one, and on two batches fitted through the production gate a drawn pair with a fitted
 bound of 0.076 had a true DTF of 0.104 (`08` AT-PRO-08). T24 measured its sampling error
@@ -663,11 +666,11 @@ tolerance, and any margin below it, are T25's.
 (INV-10; `randomness::CONTESTED`, keyed on the test's number) among the selections with
 `D(T) ≤ DTF_MAX`. The fits are visited in a seeded order; for each, the candidates are
 its subsets of at most `n` contested facts whose own DTF is within the tolerance (the
-empty one included); a table of the least bound that completes `n` from the fits not yet
+empty one included); a table of the least cost that completes `n` from the fits not yet
 visited keeps only the candidates that can still be completed, and one is drawn
 uniformly among them. So the draw fails only when no balanced selection of `n` exists —
 it then reports the sizes that do — and every balanced selection has a positive
-probability. The bound is summed in fixed point (each fit's DTF rounded up to `2⁻³²`
+probability. The cost is summed in fixed point (each fit's DTF rounded up to `2⁻³²`
 score points), so the budget is exact (`protocol::contested`). The draw is a function
 of the pool's content and the seed alone: the pool keeps a canonical order — within a
 fit, the members by content id; the fits by their least member, unique since a fact

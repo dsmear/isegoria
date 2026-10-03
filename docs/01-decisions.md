@@ -787,6 +787,12 @@ as the verdict (inverted in a campaign). A threshold tuned to one anchor set.
 > recording. AT-PRO-08 passes, on hand-built fits and on two batches fitted through the
 > production gate. A contested fact scores `o_j = 1` and promotes an appeal. The source
 > check's verdict enters the protocol as an input until T68 computes it.
+>
+> *Clarified 2026-10-03 (`docs/15` A2, `docs/19`):* the sum above is the contested facts'
+> admission cost — each fit's estimated DTF over its own ability distribution and counted
+> classes — not a certified bound on the whole test's DTF: it adds statistics of different
+> batches and leaves out the active items. Within one fit the DTF and its subadditivity hold
+> as stated; the test-level guarantee is open.
 
 **Choice.** Some items show DIF although their key is established by a primary source:
 the dispute concerns knowledge of the fact, not the wording. Such an item is classified

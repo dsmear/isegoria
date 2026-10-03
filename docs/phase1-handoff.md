@@ -1,105 +1,122 @@
 # Phase 1 correction work — handoff note
 
-**Working note, not normative.** It hands work over between Claude Code sessions. The
-specification is in `docs/01`–`docs/14`; the official review register is
-[`15-phase1-review.md`](15-phase1-review.md). Where this note and those disagree, they win.
+**Working note, not normative.** It hands work over between Claude Code sessions and is meant to
+be enough to resume in a new chat. The specification is in `docs/01`–`docs/14`; the review
+register is [`15-phase1-review.md`](15-phase1-review.md). Where this note and those disagree,
+they win.
 
 ## 1. Where things stand
 
 - Repository `dsmear/isegoria`, working directory `…/rust/isegoria`, branch
-  `docs/phase1-review-alignment`.
-- HEAD: the commit that carries this note, on top of `16e862c` (`fix(scoring): the BIC counts
-  the latent histogram's Q−1 logits; its moment penalty is no gauge (A3, P1)`).
-- Uncommitted, the owner's: `.gitignore` (it ignores `/characterization*/` and `/smoke*/`).
-  Preserve it; do not restore, commit or clean it, nor the ignored result directories it covers.
-- That commit holds A3's closure record and A2's diagnosis (§6), made at the owner's request
-  before Astra's review; the push is the owner's (the session has no GitHub credentials).
+  `docs/phase1-review-alignment`; HEAD is the commit that carries this note, on top of `0519626`
+  (`docs(19): A2 diagnosis — the contested pool's per-fit DTF sum bounds no test; A3 closed`).
+- Uncommitted, the owner's: `.gitignore` (ignores `/characterization*/` and `/smoke*/`). Never
+  restore, commit or clean it, nor the ignored result directories.
+- That commit holds A2's rectification R1 and this note (§7), made at the owner's request before
+  Astra's final review; the push is the owner's (no GitHub credentials in the session).
 
-## 2. Roles
+## 2. Roles and working agreement
 
-Claude Code implements and verifies. Astra decides the design and reviews each commit. The
-owner commits when asked and pushes; the agent session has no GitHub credentials. No approval
-is inferred from green tests: a finding closes only when Astra's review says so, recorded in
-`15`.
+- **Claude Code** implements and produces evidence (tests, calculations, runs). **Astra** decides
+  the design and reviews each commit, reading diffs and recalculating; it does not re-run Rust.
+  **The owner** wants to intervene as little as possible: commits and pushes when asked (this
+  session has no GitHub credentials), decides only genuine product trade-offs.
+- A finding closes only on Astra's recorded review (`15`), never on green tests. One finding per
+  intervention; a code defect starts with a test that fails on the baseline.
+- Evidence labels: L read, D proved, C calculated, E executed; say whether a fit is real, whether a
+  composition is the API or a runtime (no epoch driver exists), and never present a counterexample
+  as a frequency.
+- Repository rules (`docs/CLAUDE.md`): comment budget enforced by `scripts/comment_budget.py`
+  (hook after every edit); docs updated with the code; English only in the repository. Build
+  scratch worktrees with a separate `CARGO_TARGET_DIR` (a shared target left stale artifacts).
 
-## 3. Findings (from `15`; nothing beyond it)
+## 3. Closed findings (`15`, each within its record's scope)
 
-- **Closed within their records' scope:** A3 (`16e862c`: the moment penalty's interpretation
-  and the nominal count), A4 (`fb8a3d4`), A5 (`afc84d0`), A6 (`f5ce98b7`), A7 (`cabdae4`), A11
-  (`dd842d6`), A4's residual (a) and the premature settlement (`af17eb3`).
-- **A3's closure:** Astra read the diff, code, tests and contracts, decoded and recalculated the
-  six golden BICs in Python (`+2 ln 1500` within rounding, `bic_gain` unchanged on the two
-  fixtures); no Rust run, no re-run of Claude's scratch captures. Two non-blocking rectifications
-  made: `18` §8's margins are unchanged at the precision reported, those towards the per-class
-  candidates move by `7.28·10⁻¹²` in their bits; `15`'s A3 record now states that the ignored A3
-  test re-executed the two diagnostic fits (assertions passed, numbers not captured).
-- **A2: open — diagnosis and design pending review** (`docs/19`). Nothing implemented.
-- **Open:** A1; A4's (b)–(d); B1–B3 (A3's residues); C2, C4; the full runtime; A8, A9, A10 and
-  the register's C5 and C6, with no progress in this work.
+| Finding | Commit | Scope and limits |
+|---|---|---|
+| A5 | `afc84d0` | an extra reviewer without a row enters the re-decision on its standing |
+| A4 | `fb8a3d4` | an unconverged latent re-check is indeterminate; residues (b)–(d) open |
+| A6 | `f5ce98b7` | an alarm ends a founder's seed weight |
+| A7 | `cabdae4` | participation = axis and positive weight, everywhere in bridging |
+| A11 | `dd842d6` | an unconverged stage-1 screen is indeterminate: no rejection, no observed outcome |
+| A4 (a), A11 (f) | `af17eb3` | stage 2 carries `Recheck`; an appeal settles only on the pilot's conclusive outcomes (a caller settling later must keep that outcome) |
+| A3 | `16e862c` | the histogram's moment penalty is an `n`-scaled regularizer, the BIC counts `Q − 1` nominally; identifiability, weak information, the penalty's choice and effects and the BIC on penalized mixtures moved to B1–B3 |
 
-## 4. What to read
+## 4. Open work
 
-1. `CLAUDE.md` and `docs/CLAUDE.md` (invariants, comment budget, workflow).
-2. `docs/15-phase1-review.md`: the A2 row.
-3. `docs/19-a2-dtf-composition-design.md`; `docs/02` §B.7; `docs/01` D38;
-   `crates/scoring/src/dtf.rs`; `crates/protocol/src/contested.rs`.
-4. Evidence: `crates/scoring/tests/dtf_composition.rs`, `crates/protocol/tests/a2_dtf_composition.rs`,
-   `sim/dtf_composition.py`.
+- **A2 (high): diagnosis approved, R1 implemented, Astra's final review pending, A2 open.**
+  Approved on `0519626`: the contested facts' cost does not certify the whole test's DTF; the
+  conditional proposition of `19` §3 (partition of the items, common measure, representation of
+  the groups; per-pair maximum for mixtures constant in ability, pointwise-maximum envelope in
+  general; no label matching needed). Not approved: R3 (a test-level fit) as a solution, a batch
+  per form, any new calibration, selection or group policy. R1 rectifies the claims only.
+- **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
+  known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
+  baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
+  properness proof as a result conditional on C6 and its hypotheses (`16` §4.3); `17`'s argument and
+  comparison of batch designs as a conditional analysis (`37addca`). Open decisions: the batch
+  contract (`17`: universal pilot, group audit, prefixed groups activated by entry or draw; no
+  batching policy approved); missing outcomes (C2); the denominator and no-show rule (C4, T58); the
+  randomness guarantee (a behavioral model of the beacon's members, or a source change); deferred
+  draw against audit; whether A1 needs the incentives of the reputation actually used (`k_u`,
+  shrinkage, cap, CUSUM).
+- **B1–B3:** identification of the floors and of the histogram through the responses, weak
+  information, the moment penalty's choice and effects, BIC under misspecification and on
+  penalized mixture fits, selection after penalized fitting.
+- **Costs and calibration:** sample floors are not power guarantees (B4–B5, C3); respondent burden
+  and runtime need budgets (D2, D4); the contested selection's enumeration cost (D3); T83's
+  operating point (B7, D1, D6, E). Also open: A8, A9, A10, the register's C5 and C6, A4 (b)–(d),
+  C2, C4, the full runtime.
 
-## 5. A2 in short (details in `19`)
+## 5. Next segment (not started)
 
-- `ContestedPool::dtf` sums per-fit DTFs of a test's contested facts, each over its batch's
-  fitted population and counted classes (share ≥ 5%, renormalized); active items never enter;
-  `draw` runs only in tests, and no code composes a full test.
-- A sufficient proposition bounds a test's DTF by the per-fit terms without matching class
-  labels, under H1 (one population measure for every fit), H2 (groups represented by each fit's
-  counted classes; the envelope when their composition varies with ability) and H3 (every item
-  covered). The current APIs guarantee none of them.
-- Evidence: hand-built curves through the real code (the measure moves one item's DTF from
-  0.094 to 0.344; the pool admits two facts at cost 0.069 whose common-population DTF is 0.416;
-  an item under the flag cut reaches 0.170 alone); a real fit with known truth (the golden open
-  batch selects one class: fitted DTF 0, true 0.782); a rational example where the envelope (1)
-  exceeds the per-pair maximum (¾). No frequency measured.
-- Directions: R1 (describe the cost honestly; no guarantee) now; R3 (a test-level fit with an
-  uncertainty bound) to realize the guarantee, with one owner trade-off (respondents per form);
-  R2 (co-measured facts) only removes the cross-fit sum.
+A short decision synthesis that links: (1) what outcome a reviewer forecasts and how it is
+produced — A1; (2) the population and contrasts the DTF must protect — A2; (3) the dependence on
+the model and on selection — B1–B3; (4) respondents, answers including anchors, fits and time. It
+must compare a reusable common calibration with a calibration per form without presuming either
+valid or inevitable. Constraints: anonymity (no personal or group attributes enter), the
+recovery of contested facts; the test's neutrality is not to be declared certified. No full new
+roadmap yet.
 
-## 6. Files
+## 6. Essential reading to resume
 
-- **A3 closure:** `docs/15` (A3 row and record: closure, review, rectified verification text),
-  `docs/18` (status, §8 margins), `docs/08` header, `docs/README.md`.
-- **A2:** new `docs/19`; `docs/15` (A2 row, closing paragraph); `docs/README.md`; new tests
-  `crates/scoring/tests/dtf_composition.rs` (three: measure, item under the cut, one-class real
-  fit) and `crates/protocol/tests/a2_dtf_composition.rs` (the pool's sum); new
-  `sim/dtf_composition.py` with its entry in `sim/README.md`. No production line changed.
+`CLAUDE.md` and `docs/CLAUDE.md`; `docs/15` (rows A1, A2, B1–B3, D2–D4 and the correction
+records); `docs/16` (A1's theorem, conditions C1–C6, beacon model) and `docs/17` (A1's batches and
+missing outcomes); `docs/18` (A3); `docs/19` (A2); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43;
+code: `scoring/src/{latent.rs,dtf.rs}`, `protocol/src/{contested.rs,lifecycle.rs,orchestrator.rs,
+exploration.rs}`.
 
-## 7. Evidence
+## 7. This intervention
 
-- **Claude Code's runs on this work:** `cargo test -p scoring --test dtf --test dtf_composition`
-  (10 and 3 passed), `cargo test -p protocol --test contested_facts --test a2_dtf_composition`
-  (10 and 1 passed), `python3 sim/dtf_composition.py`, `cargo fmt --all -- --check`,
-  `cargo clippy --workspace --all-targets -- -D warnings` with and without `--features
-  calibration`, `python3 scripts/comment_budget.py`. A2 changes no production code, so the full
-  suites were not re-run.
-- **Astra.** Reads diffs, contracts and tests and recalculates by hand or with rational
-  arithmetic; it does not re-run the Rust tests.
-- **Note:** build scratch worktrees with a separate `CARGO_TARGET_DIR`.
+- **R1:** `D(T)` described as the contested facts' admission cost, not a certified bound on the
+  test's DTF — `01` D38 (dated clarification), `08` DIF-011, its status row, AT-PRO-08 and the
+  `Contested` row, `02` §B.7 (cross-fit paragraph, "cost"), `10` T55 (dated clarification),
+  `ARCHITECTURE.md`, comments in `protocol/src/contested.rs` and `scoring/src/dtf.rs` (`DTF_MAX`),
+  `paper/sections/065-revisions.tex` (the tolerance an aim, not guaranteed). No formula, API,
+  threshold, serialization, selection, golden or historical result changed.
+- **`19`:** Astra's review of `0519626`; disjoint sets for subadditivity; the ¾-against-1 example an
+  abstract construction; R3 a candidate (estimated measure, confidence bound to be built, groups
+  absent from the model, misspecification, coverage under selection); the owner trade-off withdrawn
+  (common versus per-form calibration still to compare); the draw's law corrected (§1); the real fit
+  converged, on a fixture under the admission gate; §8 lists R1.
+- **Draw's law:** `ContestedPool::draw` picks uniformly among a fit's completable options, not among
+  whole selections: one fact from fits `[a]` and `[b, c]` at zero cost gives 5/12, 7/24, 7/24
+  (Astra's figures, C-verified by an exact enumeration added to `sim/dtf_composition.py`). No
+  current contract promised a uniform law (`02` §B.7 and `10` T55 describe the local rule), so only
+  the dossier was corrected; no separate discrepancy.
+- **Test:** `scoring/tests/dtf_composition.rs::a_one_class_fit_reads_zero_where_two_items_lean` now
+  asserts `Convergence::Converged`; it passes.
+- **Registers:** `15` (A2 row, closing paragraph), `README.md`, this note.
+
+## 8. Evidence
+
+- **Claude Code, this intervention:** that test (passed: converged, one class, fitted DTF 0, true
+  0.78196); `python3 sim/dtf_composition.py` (draw law 5/12, 7/24, 7/24); `cargo test -p protocol
+  --test a2_dtf_composition --test contested_facts` and clippy for the edited crates (comments
+  only); `cargo fmt --all -- --check`; `python3 scripts/comment_budget.py`. Full suites not re-run
+  (no behaviour change).
+- **Claude Code, earlier:** see each record in `15`; A2's diagnostic tests and script on
+  `0519626`.
+- **Astra:** reads diffs, code, tests and docs, checks proofs, runs the Python scripts and exact
+  enumerations; it has not re-run Rust or the real fits.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
-
-## 8. Next task
-
-Astra's review of A2's diagnosis and of the recommended R1/R3; implementation only after it, then
-the agreed decision synthesis (which mechanism to complete, which guarantees to pursue) before
-further structural corrections. Points Astra announced it will check (preliminary, not a review):
-the proposition's hypotheses — mixture weights independent of ability and coherent across the
-subset's items for the per-pair maximum, and H3 as a partition of the test among the summed terms;
-that a test-level fit leaves representation, misspecification and estimation open, and that a
-confidence bound on the envelope needs its own justification (a fitted zero certifies nothing);
-that a batch per form must be compared with a reusable common calibration, more conservative
-bounds and a reduced declared guarantee before any cost is put to the owner.
-
-## 9. Constraints
-
-No change to thresholds, golden outputs or historical results without a decided correction. No
-full characterization, smoke or extended campaign. No commit or push unless the owner asks.
-Anything not verifiable from the repository: "da verificare".

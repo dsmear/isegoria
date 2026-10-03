@@ -2,10 +2,31 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and design, **pending design review**. A2 stays open (`15`). No production code, threshold, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented after it, Astra's final review pending**. A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
+
+## Design review (Astra)
+
+Review on `0519626`:
+
+- Approved: the central diagnosis (the contested facts' cost does not certify the whole test's
+  DTF); §3's conditional proposition — a partition of the items, a common measure and a
+  representation of the groups; the per-pair maximum of integrals for mixtures constant in
+  ability, the integral of the pointwise maximum in general; no need to match class labels under
+  those hypotheses; R1 as the rectification of the declared guarantees.
+- Not approved: R3 as a solution already able to realize the guarantee; the need for a batch per
+  test form; any new calibration, selection or group policy.
+- Evidence: reading of the code, the tests and the docs; a check of the proof; a run of
+  `sim/dtf_composition.py` and an exact rational enumeration of the draw. Neither the Rust tests
+  nor the real fit with a true DTF of 0.78196 were re-run.
+- Preliminary reserve resolved: the proposition already partitions the test among the summed
+  terms (`T = ⋃_F S_F`, H3).
+- Corrected after the review: subadditivity is for disjoint sets; the ¾-against-1 example is an
+  abstract construction; R3 stays a candidate (§5); the coverage under selection; the draw's law
+  (§1); the owner trade-off withdrawn (§6); the real fit converged and is not an admitted pilot
+  (§4).
 
 ## 1. What the code computes (L)
 
@@ -21,8 +42,14 @@
   counted classes, over the batch's estimated population. 0 with one counted class.
 - **The pool.** `ContestedPool` holds contested facts grouped by the fit that last measured them
   (`contested.rs:31–36,75–105`). `dtf(T) = Σ_F DTF_F(T ∩ F)`, each term rounded up to `2⁻³²`
-  (`:12–17,126–143`); `draw` picks uniformly among the selections with that cost at most the
-  tolerance, by an exact dynamic programme over per-fit subsets (`:145–235`). Only contested facts
+  (`:12–17,126–143`); `draw` visits the fits in a seeded random order and at each picks uniformly
+  among its subsets that the later fits can still complete within the tolerance, by an exact
+  dynamic programme (`:145–235`): every admissible selection has a positive probability, not an
+  equal one, since a fit's options are not weighted by their completions. One fact from fits
+  `[a]` and `[b, c]`, every cost 0: `a` 5/12, `b` and `c` 7/24 each (C, exact enumeration in the
+  script; Astra's figures). `02` §B.7 and `10` T55 describe this local rule; no current contract
+  promises a uniform law over the selections, so only this dossier's earlier wording was wrong.
+  Only contested facts
   enter; active-pool items never do. The `2⁻³²` rounding makes the computed sum an upper bound of
   the real sum of the per-fit values; it says nothing about what those values bound.
 - **Persistence.** A results record `ContestedFit` carries `π`, `η`, `a`, `b`, `c`, the histogram
@@ -53,8 +80,9 @@ mean 0 and variance 1 for its first class's shape). The proposition below names 
 
 ## 3. A sufficient proposition (D)
 
-Within one fit, the per-fit statistic is subadditive: pointwise `|Δ(S ∪ S')| ≤ |Δ(S)| + |Δ(S')|`
-on the same measure and pairs, so `DTF_F(S ∪ S') ≤ DTF_F(S) + DTF_F(S')` (E API:
+Within one fit, the per-fit statistic is subadditive over disjoint sets: for `S ∩ S' = ∅`,
+pointwise `|Δ(S ∪ S')| ≤ |Δ(S)| + |Δ(S')|` on the same measure and pairs, so
+`DTF_F(S ∪ S') ≤ DTF_F(S) + DTF_F(S')` (E API:
 `scoring/tests/dtf.rs::the_dtf_is_bounded_and_subadditive`). Across fits:
 
 **Proposition.** Let `T = ⋃_F S_F` be partitioned over fits `F`. Assume
@@ -85,7 +113,8 @@ about the populations, nor H2, which is about the classes.
 **The envelope is needed when group composition varies with ability** (D, C). Three classes at
 two equally weighted points, curves `(1, 0, ½)` and `(½, 0, 1)`: the pairs' DTFs are `¾, ½, ¾`, so
 `DTF_F = ¾`; the envelope is 1; a group that is class 0 at the first point and class 2 at the
-second, against class 1, has gap 1. An API-level example of the bound's logic, not a fitted model.
+second, against class 1, has gap 1. An abstract mathematical construction — the curves' values are
+given — not a call to the API nor a fit of the model.
 
 **What the current APIs guarantee of H1–H3: none.**
 - H1: each `μ_F` is one batch's estimated population; nothing makes batches share a population,
@@ -104,12 +133,14 @@ second, against class 1, has gap 1. An API-level example of the bound's logic, n
 | 1 | the integration measure | E API, `scoring/tests/dtf_composition.rs::one_item_s_dtf_depends_on_the_population_it_is_integrated_over` | one item, `a = 1.25`, gap 1.8, two equal classes: 0.09419 at difficulty 3 (a batch for which it is hard), 0.34381 at difficulty 1 (a population two units abler) |
 | 2 | the pool's sum under different measures | E API, `protocol/tests/a2_dtf_composition.rs::per_batch_dtfs_can_admit_a_test_its_population_would_refuse` | two facts, each at difficulty 4 for its own batch: cost 0.06876, drawn; leaning the same way at difficulty 2 on a common abler population: 0.41551 |
 | 3 | an active item under the cut | E API, `dtf_composition.rs::an_item_under_the_flag_cut_can_exceed_the_tolerance`; C | gap 0.9 under the cut 1.0, floor 0.2: 0.1698619472 on the 41-node grid (`15` A2's figure), 0.1698619004 by continuous quadrature, over `DTF_MAX` alone |
-| 4 | a zero imposed by one class | E fit, `dtf_composition.rs::a_one_class_fit_reads_zero_where_two_items_lean` | `golden.rs`'s open batch (n = 1,500, two items leaning `δ = 0.9`): the fit selects one class, fitted DTF of the two items 0; their true curves 0.78196 |
+| 4 | a zero imposed by one class | E fit, `dtf_composition.rs::a_one_class_fit_reads_zero_where_two_items_lean` | `golden.rs`'s open batch (n = 1,500, two items leaning `δ = 0.9`): the fit converges and selects one class, fitted DTF of the two items 0; their true curves 0.78196 |
 | 5 | a class left out | E API, existing `dtf.rs::a_class_below_the_share_floor_does_not_count` | a class under 5% does not count and the rest is renormalized |
 | 6 | max of integrals against the envelope | D, C (rationals) | `¾` against 1, §3 |
 
-Rows 1–3 and 5–6 are mathematical constructions run through the real code where possible;
-row 4 is a real fit with known truth; **no frequency is measured**. Row 2 needs H1 to fail —
+Rows 1–3 and 5 are constructions run through the real code; row 6 is an abstract construction;
+row 4 is a real, converged fit with known truth, on a fixture of 1,500 respondents that does not
+pass the protocol's admission gate (`N_LATENT_MIN = 3,000`): neither a frequency nor an admitted
+production pilot. **No frequency is measured**. Row 2 needs H1 to fail —
 batches whose populations differ by two units of ability — which is a construction, not a
 measured distribution of batches. Label non-comparability is **not** a defect of its own here:
 under H2 the per-fit maximum absorbs it (§3); it costs only conservatism.
@@ -136,15 +167,22 @@ re-measurement already does at re-validation), so the cost is a single `DTF_F` o
   records unchanged. Cost: the per-fit enumeration only.
 - Acceptance: a test with members of two fits is refused (or re-fitted) by a test on the API.
 
-**R3 — a test-level fit (realizes the target under named hypotheses).** Fit the whole assembled
+**R3 — a test-level fit (a candidate, not a solution).** Fit the whole assembled
 test, active items and contested facts, jointly with anchors on a batch of the target population;
 accept it when an upper confidence bound of `E_F(T)` (or of `DTF_F(T)` under constant-composition
 groups) is within `DTF_MAX`.
-- Guarantee: §3 with one fit and `S_F = T`: H1 by sampling the target population, H3 by
-  construction; H2 remains a model assumption (classes capture the groups, mixtures allowed with
-  the envelope); estimation covered by the bound's uncertainty, which must be specified.
-- Data: one admissible batch (`N_LATENT_MIN` respondents, reliable anchors) per test form; no
-  cross-fit linking. Effects: new API (test-level fit, envelope, confidence bound), a form record,
+- What it would give: §3 with one fit and `S_F = T` covers the items (H3) and removes the
+  cross-fit sum. It does not make the estimated measure exact — sampling the target population
+  estimates `μ`, with error — and H2 stays a model assumption. A confidence bound on `E_F(T)` needs
+  its own construction and justification; it does not cover groups the model lacks or a
+  misspecified model, and a fitted zero certifies nothing (§4, row 4).
+- Coverage under selection: if forms are searched and kept by the same estimates that are then
+  bounded, the kept forms are those whose estimate happened to be low, and a nominal confidence
+  bound loses its coverage unless the selection is accounted for (fresh data for the check, or a
+  bound valid over the search).
+- Data: as sketched, one admissible batch (`N_LATENT_MIN` respondents, reliable anchors) per
+  test form; a reusable common calibration is an alternative to compare, not evaluated here.
+  Effects: new API (test-level fit, envelope, confidence bound), a form record,
   selection by draw-then-verify. Cost: one latent fit per form and a bootstrap or equivalent for
   the bound; respondents per form.
 - Acceptance: on a constructed population with known curves, the accepted forms' true DTF is
@@ -153,12 +191,12 @@ groups) is within `DTF_MAX`.
 ## 6. Recommendation
 
 **R1 now**, since no hypothesis of §3 is guaranteed and the docs still call `D(T)` a bound; it is a
-rectification, not a fix of the guarantee. **R3 as the design that realizes the whole-test
-guarantee**, to be specified with Astra (the envelope or the class-pair maximum, the uncertainty
-bound, how forms are drawn and verified). R2 removes only the cross-fit sum and leaves active
-items out, so it is an intermediate step at best. The one product trade-off for the owner arises
-with R3: whether a whole-test guarantee is worth a calibration batch of respondents per test form.
-`DTF_MAX` stays as it is; no empirical margin replaces the missing hypotheses.
+rectification, not a fix of the guarantee. R3 stays a candidate whose guarantee would still rest
+on representation, specification and an uncertainty bound yet to be built. R2 removes only the
+cross-fit sum and leaves active items out. No cost is put to the owner yet: a reusable common
+calibration and a calibration per form, with more conservative bounds and a reduced declared
+guarantee as further options, must first be compared; none is developed here. `DTF_MAX` stays as
+it is; no empirical margin replaces the missing hypotheses.
 
 ## 7. Open
 
@@ -167,3 +205,16 @@ social groups (classes are statistical components); the uncertainty treatment of
 of selection on it; whether small classes should count in a guarantee (they are excluded because
 their parameters are poorly identified, `02` §B.3); privacy of contested facts (`05` [7b], `10`
 T69), untouched here.
+
+## 8. R1 as implemented (after `0519626`, pending Astra's final review)
+
+`D(T)` is described as the contested facts' admission cost — the sum of each fit's estimated DTF
+over its own distribution and counted classes — and nowhere as a certified bound on the whole
+test's DTF: `01` D38 (dated clarification after the implementation note), `08` DIF-011 (the
+classification and the selector implemented, the test-level balance open), its status row,
+AT-PRO-08 and the `Contested` row of §9.1, `02` §B.7 (the cross-fit paragraph states §3's
+sufficient condition; "cost" for "bound"), `10` T55 (dated clarification), `ARCHITECTURE.md`,
+`contested.rs` (module, `SCALE`, `dtf`, `draw`, the table's comment), `dtf.rs` (`DTF_MAX`), and the
+paper (`065-revisions.tex`: the tolerance is an aim the current cost does not guarantee).
+Within-fit results are kept. No formula, API name, threshold, serialization, selection, golden
+output or historical result changes. A2 stays open: the whole-test guarantee is not realized.

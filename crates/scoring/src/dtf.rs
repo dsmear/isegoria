@@ -5,7 +5,8 @@ use crate::dif::MIN_CLASS_SHARE;
 use crate::fmath::exp;
 use crate::latent::{Ability, LatentDif};
 
-/// Tolerance on a test's DTF bound, in score points (`docs/02` §B.7); provisional (T25).
+/// Tolerance on the contested-facts admission cost, in score points (`docs/02` §B.7);
+/// provisional (T25).
 pub const DTF_MAX: f64 = 0.10;
 
 const NODES: usize = 41;

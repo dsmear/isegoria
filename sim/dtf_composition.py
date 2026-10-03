@@ -44,6 +44,28 @@ def main():
     groups = sum(F(1, 2) * abs(curves[t][0 if t < 0 else 2] - curves[t][1]) for t in curves)
     print(f"three classes, two points: per-pair {[str(v) for v in per_pair.values()]}, "
           f"max {max(per_pair.values())}, envelope {envelope}, the two groups' gap {groups}")
+    print(f"draw of one fact, fits [a] and [b, c], every cost 0: {draw_law([['a'], ['b', 'c']], 1)}")
+
+
+def draw_law(fits, n):
+    """`ContestedPool::draw`'s law when every cost is 0: a uniform visiting order, then at each
+    fit a uniform pick among its subsets of at most `left` facts that the later fits complete."""
+    from itertools import combinations, permutations
+    law = {}
+    orders = list(permutations(range(len(fits))))
+    for order in orders:
+        def walk(i, left, prob, taken):
+            if i == len(order):
+                law[taken] = law.get(taken, 0) + prob
+                return
+            later = sum(len(fits[f]) for f in order[i + 1:])
+            fit = fits[order[i]]
+            options = [s for k in range(min(left, len(fit)) + 1) for s in combinations(fit, k)
+                       if left - k <= later]
+            for s in options:
+                walk(i + 1, left - len(s), prob / len(options), taken + s)
+        walk(0, n, F(1, len(orders)), ())
+    return {"".join(sorted(k)): str(v) for k, v in sorted(law.items())}
 
 
 if __name__ == "__main__":

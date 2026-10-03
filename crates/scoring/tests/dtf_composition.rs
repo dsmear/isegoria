@@ -6,6 +6,7 @@ use rand_chacha::ChaCha8Rng;
 use scoring::dif::MIXTURE_DIF_MAX;
 use scoring::dtf::{ClassCurves, DTF_MAX};
 use scoring::latent::{latent_dif_with, Ability, Formats, LatentParams};
+use scoring::Convergence;
 
 /// The standard normal on the latent grid, 41 nodes over `[−5, 5]`.
 fn normal() -> Ability {
@@ -91,7 +92,7 @@ fn golden_batch(delta: f64) -> (Vec<Vec<f64>>, Vec<Vec<f64>>, Vec<f64>, Vec<f64>
     (anchors, responses, a, b)
 }
 
-/// A2: a fit that selects one class reads 0 for two items whose true curves lean (a real fit).
+/// A2: a converged fit that selects one class reads 0 for two items whose true curves lean.
 #[test]
 fn a_one_class_fit_reads_zero_where_two_items_lean() {
     let delta = 0.9;
@@ -102,7 +103,7 @@ fn a_one_class_fit_reads_zero_where_two_items_lean() {
         ..LatentParams::default()
     };
     let fit = latent_dif_with(&anchors, &x, &Formats::open(20, 8), &lp).unwrap();
-    assert_eq!(fit.classes, 1);
+    assert_eq!((fit.status, fit.classes), (Convergence::Converged, 1));
     let fitted = ClassCurves::of(&fit).unwrap().dtf(&[0, 1]).unwrap();
     let truth = two_classes(&[(a[0], b[0], delta, 0.0), (a[1], b[1], delta, 0.0)]);
     let true_dtf = truth.dtf(&[0, 1]).unwrap();
