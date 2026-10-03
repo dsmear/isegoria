@@ -798,16 +798,19 @@ as the verdict (inverted in a campaign). A threshold tuned to one anchor set.
 the dispute concerns knowledge of the fact, not the wording. Such an item is classified
 as a *contested fact* instead of being discarded. Its classification follows the
 evidentiary procedure on the source (`docs/02` §B.5), not a vote. Contested facts enter
-a separate pool. A test draws them only in balanced sets, so that the test as a whole
-favours no latent class (differential test functioning ≈ 0). Items that show DIF for
-any other reason (wording, framing, nuisance content) are rejected as today.
+a separate pool. A test draws them only in sets whose contested-facts admission cost
+stays within the tolerance. The aim is a test that favours no latent class (differential
+test functioning ≈ 0); the cost does not establish that guarantee (R1 clarification
+above). Items that show DIF for any other reason (wording, framing, nuisance content) are
+rejected as today.
 
 **Why.** DIF means that the item measures a secondary dimension on which the classes
 differ; whether that dimension is a nuisance is a judgment. In a civic bank, a true fact
 on which one camp is systematically misinformed shows DIF by construction. For example,
 75% versus 45% correct at equal knowledge is a log-odds gap of 1.30. Today such an item
 would be discarded, and the appeal channel could never recover it. Balancing at test
-level keeps the test neutral without banning contested facts.
+level aims to keep the test neutral without banning contested facts; realizing that
+whole-test guarantee remains open (`15` A2).
 
 **Rejected.** Rejecting every DIF item: a neutral bank that cannot contain contested
 facts. Admitting contested facts without scoring them: loses the measurement.

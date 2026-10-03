@@ -14,7 +14,7 @@
 | Coordinated cartel | Detection on the correlation of model residuals over long histories — a jittered cartel is flagged, like-minded honest reviewers are not (D39, T56); a detected cluster is never seated twice on a panel (D40, T57); the √k discount stays in the engine for analysis | `02` anti-collusion, `05` [4] |
 | Long-con (reputation accumulated and spent) | the CUSUM change detector on the per-item scores sends the reviewer back to probation (D34, T51); `w_max` cap on the odds scale (D33, T50); continuous honeypots | `02` C.4, `05` |
 | Biased item passing peer review | Field-data DIF (does not depend on opinions) | `02` B.3 |
-| Biased item passed off as a contested fact | The source check: the key must follow, by a declared rule, from a primary source cited at deposit — an interpretive key is rejected on DIF as before; and a contested fact reaches a test only in a set whose DTF is within the tolerance, balanced by facts leaning the other way measured in the same fit (D38) | `02` §B.5, §B.7 |
+| Biased item passed off as a contested fact | The source check: the key must follow, by a declared rule, from a primary source cited at deposit — an interpretive key is rejected on DIF as before; and a contested fact reaches a test only in a selection whose admission cost is within the tolerance: the sum of each fit's estimated DTF over its own distribution and counted classes (D38). Cancellation can occur within a fit; this cost does not certify the whole test's DTF (`15` A2) | `02` §B.5, §B.7 |
 | Profiling a respondent's camp from the contested facts they miss, joined across batches | **Open** (`10` T69): the respondent pseudonym is the same on every batch, and contested facts are administered continuously since D38; a batch-scoped nullifier, sheets never kept with the id, or a per-epoch rate limit are the options, none chosen | `08` §8.2 PRIV-P8, `10` T69 |
 | Grinding the public randomness (the lottery, panels, exploration, honeypot placement, sortition) | Every draw seeds from the epoch's commit-reveal beacon among consortium members, committed before the deposit window closes and revealed after, so no deposit, log order or checkpoint head moves it; the lottery reads the deposits as a set. A member that withholds its reveal is excluded from the epoch's signing set and recorded; the last revealer can still choose between two values, publicly, until the threshold signature (T19) | `04` §The epoch's beacon, `01` D41 |
 | Vote-buying | Random assignment + no verifiable receipt | `05` [4] |
@@ -72,7 +72,8 @@ the same voting pattern, and **no threshold saves it**. This is the most serious
 limitation. Partial mitigation: the appeal-to-evidence channel (`05` [5b]); when the
 division lies in knowledge of a sourced fact rather than in opinions about the item,
 Level B shows DIF too, and the contested-facts pool keeps such a fact in the bank, drawn
-only in balanced sets (`05` [7b], `01` D38).
+only in sets within the admission cost (`05` [7b], `01` D38). The whole-test DTF
+guarantee remains open (`15` A2).
 
 ### L2 — Bias of the pool, not of the single item
 

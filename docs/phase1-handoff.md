@@ -7,20 +7,23 @@ they win.
 
 ## 1. Where things stand
 
-- Repository `dsmear/isegoria`, working directory `…/rust/isegoria`, branch
-  `docs/phase1-review-alignment`; HEAD is the commit that carries this note, on top of `0519626`
-  (`docs(19): A2 diagnosis — the contested pool's per-fit DTF sum bounds no test; A3 closed`).
-- Uncommitted, the owner's: `.gitignore` (ignores `/characterization*/` and `/smoke*/`). Never
-  restore, commit or clean it, nor the ignored result directories.
-- That commit holds A2's rectification R1 and this note (§7), made at the owner's request before
-  Astra's final review; the push is the owner's (no GitHub credentials in the session).
+- Repository `dsmear/isegoria`, owner's working directory `…/rust/isegoria`, branch
+  `docs/phase1-review-alignment`. Baseline requested for R1: `0519626`. HEAD
+  `8fa07dd66698ecf1c23141b942bf8ed7ad57242f`, its direct child, publishes R1.
+- The commit that carries this note, on top of `8fa07dd`, holds the documentation follow-up of
+  Astra's review (§7), integrated by Claude Code in the owner's checkout; not pushed by the
+  session.
+- Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
+  `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
+  directories. The follow-up touches no `.gitignore`.
+- R1 does not close A2 or Phase 1.
 
 ## 2. Roles and working agreement
 
 - **Claude Code** implements and produces evidence (tests, calculations, runs). **Astra** decides
   the design and reviews each commit, reading diffs and recalculating; it does not re-run Rust.
-  **The owner** wants to intervene as little as possible: commits and pushes when asked (this
-  session has no GitHub credentials), decides only genuine product trade-offs.
+  **The owner** wants to intervene as little as possible: commits and pushes when asked (the
+  Claude Code session has no GitHub credentials), decides only genuine product trade-offs.
 - A finding closes only on Astra's recorded review (`15`), never on green tests. One finding per
   intervention; a code defect starts with a test that fails on the baseline.
 - Evidence labels: L read, D proved, C calculated, E executed; say whether a fit is real, whether a
@@ -83,8 +86,8 @@ roadmap yet.
 `CLAUDE.md` and `docs/CLAUDE.md`; `docs/15` (rows A1, A2, B1–B3, D2–D4 and the correction
 records); `docs/16` (A1's theorem, conditions C1–C6, beacon model) and `docs/17` (A1's batches and
 missing outcomes); `docs/18` (A3); `docs/19` (A2); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43;
-code: `scoring/src/{latent.rs,dtf.rs}`, `protocol/src/{contested.rs,lifecycle.rs,orchestrator.rs,
-exploration.rs}`.
+code: `crates/scoring/src/{latent.rs,dtf.rs}`,
+`crates/protocol/src/{contested.rs,lifecycle.rs,orchestrator.rs,exploration.rs}`.
 
 ## 7. This intervention
 
@@ -106,12 +109,21 @@ exploration.rs}`.
   the dossier was corrected; no separate discrepancy.
 - **Test:** `scoring/tests/dtf_composition.rs::a_one_class_fit_reads_zero_where_two_items_lean` now
   asserts `Convergence::Converged`; it passes.
-- **Registers:** `15` (A2 row, closing paragraph), `README.md`, this note.
+- **Registers:** `15` (A2 row, closing paragraph), `docs/README.md`, this note.
+- **Documentation follow-up against `8fa07dd` (Astra's patch, integrated and committed):** `01`
+  D38's choice and rationale describe an aim, `06`'s countermeasure and limitation L1 describe the
+  admission cost, `10` T55's acceptance cell no longer asserts whole-test DTF control, `08`'s
+  DIF-011 open-work cell names A2, and `19` distinguishes the old paper claim from R1. Added by
+  Claude Code in the same spirit: "cost" for "bound" in the rest of DIF-011's status row and in
+  `10`'s list of open parameters. These are A2 claim residues, not a new finding. `05` already
+  states the guarantee is open; the flow diagrams of `00` and `05` still say "balanced sets", the
+  code's name for the selections within the cost, left as they are.
 
 ## 8. Evidence
 
-- **Claude Code, this intervention:** that test (passed: converged, one class, fitted DTF 0, true
-  0.78196); `python3 sim/dtf_composition.py` (draw law 5/12, 7/24, 7/24); `cargo test -p protocol
+- **Claude Code, original R1 intervention (reported in `8fa07dd`):**
+  that test (passed: converged, one class, fitted DTF 0, true 0.78196);
+  `python3 sim/dtf_composition.py` (draw law 5/12, 7/24, 7/24); `cargo test -p protocol
   --test a2_dtf_composition --test contested_facts` and clippy for the edited crates (comments
   only); `cargo fmt --all -- --check`; `python3 scripts/comment_budget.py`. Full suites not re-run
   (no behaviour change).
@@ -120,3 +132,21 @@ exploration.rs}`.
 - **Astra:** reads diffs, code, tests and docs, checks proofs, runs the Python scripts and exact
   enumerations; it has not re-run Rust or the real fits.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
+
+- **Astra, documentation follow-up on 2026-10-03** (its patch, prepared in a Codex environment
+  without the owner's checkout; as it records): read the published diff and relevant code
+  and contracts; re-ran `python3 sim/dtf_composition.py` successfully (including exact
+  probabilities 5/12, 7/24, 7/24). The comment-budget check passed on the three Rust files and
+  Python script changed by `8fa07dd`. No explicit global-uniformity promise was found in the
+  checked current contracts (`01`–`14`, architecture and contested module); no separate issue
+  was opened. The follow-up patch passed `git apply --check --whitespace=error-all` against
+  the downloaded `8fa07dd` files. No Rust test, fit, clippy or cargo-format check was re-run:
+  cargo is unavailable here. The converged-one-class result and true DTF 0.78196 remain
+  Claude's reported execution evidence. No full suites, smoke, characterization, calibration,
+  seed campaign or mutation runs. Astra's final review of R1 remains pending.
+- **Claude Code, integration of the follow-up:** HEAD `8fa07dd` and a working tree with only
+  `.gitignore` modified checked first; `git apply --check` and `git apply --whitespace=error-all`
+  of the patch on the owner's checkout (clean); the handoff's environment lines adapted to this
+  checkout; documentation checks: `python3 scripts/comment_budget.py`, relative links of the
+  edited docs, a search of current contracts for remaining whole-test claims. No Rust, fit, script
+  or campaign re-run (documentation only).

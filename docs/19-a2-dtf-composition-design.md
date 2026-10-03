@@ -60,12 +60,14 @@ Review on `0519626`:
   (`blueprint.rs:87–121`); no code composes active items and contested facts into a test. The
   composition is an API, not a runtime.
 
-**Claims attached to it.** `01` D38's implementation note: "a test's DTF is bounded by the sum of
-its per-fit DTFs" (`01:782–785`); `08` DIF-011 "RESOLVED … drawn into a test only in selections
-whose DTF bound … is at most `DTF_MAX`" (`08:122–131`) and its status row (`08:1512`);
-`ARCHITECTURE.md:185` "DTF bound (the sum of per-fit DTFs)"; the module doc and `dtf`'s doc
-(`contested.rs:1–3,126`). `02` §B.7 (`:596–600,622–643`), `05` [7b] (`:179–184`) and the paper
-(`065-revisions.tex:321–328`) already state the whole-test guarantee as open.
+**Claims attached to it at the dossier's baseline (`16e862c`).** `01` D38's implementation note:
+"a test's DTF is bounded by the sum of its per-fit DTFs" (`01:782–785`); `08` DIF-011 "RESOLVED …
+drawn into a test only in selections whose DTF bound … is at most `DTF_MAX`" (`08:122–131`) and
+its status row (`08:1512`); `ARCHITECTURE.md:185` "DTF bound (the sum of per-fit DTFs)"; the
+module doc and `dtf`'s doc (`contested.rs:1–3,126`). `02` §B.7 (`:596–600,622–643`) and `05` [7b]
+(`:179–184`) already state the whole-test guarantee as open. The paper
+(`065-revisions.tex:321–328`) still asserted that the whole test stays within tolerance; R1
+corrects that assertion (§8).
 
 ## 2. The quantity one would want to bound
 
@@ -218,3 +220,11 @@ sufficient condition; "cost" for "bound"), `10` T55 (dated clarification), `ARCH
 paper (`065-revisions.tex`: the tolerance is an aim the current cost does not guarantee).
 Within-fit results are kept. No formula, API name, threshold, serialization, selection, golden
 output or historical result changes. A2 stays open: the whole-test guarantee is not realized.
+
+**Completion against published `8fa07dd` (2026-10-03, pending review).** The follow-up
+rectifies D38's choice and rationale as an aim, the current countermeasure in `06`, T55's
+acceptance cell in `10`, and the open-work cell of the DIF-011 matrix in `08`. These were
+remaining statements of A2's test-level guarantee, not a separate draw-law finding.
+The baseline description above also distinguishes the paper's former claim from its R1
+correction. No behavior or historical measurement changes. Evidence and access limits are
+recorded in `phase1-handoff.md` §8.
