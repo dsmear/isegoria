@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): **a proposal awaiting review**, not approved for implementation. |
-| **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and names code by symbol. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results, **not §7 as a whole nor any implementation**; §7 was rectified after that review. |
+| **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467`, rectified on `654dbff`, and names code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
 
@@ -489,10 +489,17 @@ attempts with the declared probabilities).
 
 ## 7. Proposal awaiting review: a three-category reference outcome
 
-**A candidate of Astra's, checked here; awaiting review, not approved for implementation.** It
-changes no code, API, threshold, golden output or current policy; A1 and A2 stay open. Evidence:
-L, D and C as above; every C is an exact rational enumeration whose formula is given in place. No
-fit, smoke, campaign, calibration or mutation run.
+**A candidate of Astra's, checked here; not approved for implementation.** Astra's review on
+`654dbff` approved, as conditional results: the ternary score's derivation, its binary reduction
+and the pointwise bound `[−1, 1]` (§7.1); B-b's derivation, with a fixed denominator, the joint
+invariance and a positive probability of conclusion (§7.5); the abstract constructions'
+calculations, within their stated limits. Not approved: §7 as a whole, and any implementation.
+Rectified after that review: §7.1's path conditions, §7.5's B-b, §7.6's calibrations, and
+constructions now stated as sufficient, not unique. Astra's preference for the next design
+comparison is in §7.7. Nothing here changes code, API, threshold, golden output or current
+policy; A1 and A2 stay open, R1 stays approved. Evidence: L, D and C as above; every C is an
+exact rational enumeration whose formula is given in place. No fit, smoke, campaign, calibration
+or mutation run.
 
 **The candidate.** (a) A reference procedure is attached to each item before any report: group,
 respondents' and anchors' sampling, model, attempts and term. (b) Its outcome `Y` has three
@@ -516,18 +523,35 @@ laws of `(b, Y)`.) Also:
 - with no mass on `I` and `Y ∈ {A, R}`, `d` is today's `(b − o)² − (p − o)²` exactly (C, on a
   grid of tenths): the ½ keeps the binary scale;
 - `−1 ≤ d ≤ 1` pointwise, since `½‖b − e_Y‖² ≥ 0` and `½‖p − e_Y‖² ≤ 1` on the simplex (D;
-  both bounds attained on a grid of sixths, C), so `16` §4.4's no-show bound `s_ns ≤ −1`
-  carries over.
+  both bounds attained on a grid of sixths, C). Of `16` §4.4's missing-reveal argument this keeps
+  only the step that uses `d ≥ −1`; every other condition there remains (the IPW identity
+  relative to `F'_u`, C4, the deviation leaving the other terms unchanged, a penalty free of the
+  outcome and the draw, the replacement's report, reputation beyond `Ŝ_u`, involuntary absences).
 
 The identity concerns one item's reference outcome given `F_u`: it is `16` §4.3's C6 step with
 `Y` for `o`. It uses no draw, path, inclusion probability, nor any independence of `I`. Moving it
-to the computed `Ŝ_u = (1/N_u) Σ I_j d_uj/π_j` needs `16` §4.2's conditions and §3's restated
-for a vector outcome: H0 and C1 unchanged; C2 a termination property (the procedure of an
-included item ends with a recorded `Y`, §7.2); (2) vector agreement on each path's event,
-`E[e_{Y^obs} | F_Φ] = E[e_Y | F_Φ]`, through which §3's argument runs coordinate by coordinate
-thanks to the affinity; (4) `X_j` independent of `Y_j` given `F_Φ`; C4 the assigned `N_u`. The
-two sets are logically distinct: the invariance can hold with a known draw (C1 fails, `16` §3),
-the IPW identity can hold for a `Y` that `u`'s reports move (C6 fails, §7.3).
+to the computed `Ŝ_u = (1/N_u) Σ I_j d_uj/π_j` needs `16` §4.2's conditions and §3's, with §3's
+two path conditions kept distinct, `Y^e` and `Y^x` the outcomes observed on entry and after
+exploration:
+
+- H0; C1, `E[X_j | F_Φ] = ε` on `{D_j = rejected}`; C4, the assigned `N_u`;
+- C2 as a termination property: an included item's procedure ends with a recorded `Y` (§7.2);
+- (2e) on `{D_j = enters}`: `E[e_{Y^e} | F_Φ] = E[e_Y | F_Φ]`;
+- (2x) on `{D_j = rejected}`: `E[X_j e_{Y^x} | F_Φ] = ε E[e_Y | F_Φ]`.
+
+With `d = α + ⟨β, e_Y⟩`, `α` and `β` `F_Φ`-measurable,
+`E[X_j d(Y^x) | F_Φ] = α E[X_j | F_Φ] + ⟨β, E[X_j e_{Y^x} | F_Φ]⟩`: the constant term needs C1,
+the linear term (2x); then §3's argument runs as written (C: equality on 500 random rational
+laws satisfying both). (2x) follows from C1 when `X_j` is independent of the observed `Y^x` given
+`F_Φ` and `Y^x` has `Y`'s conditional law there (§3's (4)). Independence of `X_j` from the
+reference `Y` alone does not give it, even with equal marginals. *Counterexample* (Astra; D, C):
+`X` and `Y` independent Bernoulli(½), `ε = ½`, the observed potential outcome `O = X`, so `O` and
+`Y` have one law; with `p = 1` and `b = 0`, `E[d(Y)] = 0` but `E[X d(O)/ε] = 1`, and in the
+order `(0, 1)` `E[X e_O] = (0, ½)` against `ε E[e_Y] = (¼, ¼)`.
+
+The invariance and these IPW conditions are logically distinct: the invariance can hold with a
+known draw (C1 fails, `16` §3), the IPW identity can hold for a `Y` that `u`'s reports move (C6
+fails, §7.3).
 
 ### 7.2 What makes inconclusiveness observable
 
@@ -547,17 +571,21 @@ reading absence as `I` lets that party choose it. Needed together:
 4. **Intrinsic against resource non-conclusion.** A fit failing on the data received belongs to
    the item, its group and the procedure. Data that do not arrive (respondents short of the
    floor by the term, no beacon round for a drawn group, no runner) belong to supply and timing:
-   they may count as `I` only if the resources the procedure gets within the term are fixed
-   independently of reports and paths (e.g. capacity reserved at association); otherwise they
-   are a channel of §7.3, not an outcome.
+   counting them as `I` keeps the invariance only if their law does not change with `u`'s
+   deviations. Resources fixed independently of reports and paths (e.g. capacity reserved at
+   association) are one construction that would give it, not a necessity shown here; without
+   such a property they are a channel of §7.3, not an outcome.
 5. **Liveness apart.** Who signs which record by when, and what follows if not, is a rule outside
    the score; until it holds a missing record is a pending item (§5, policy 4).
 
 ### 7.3 What can change `Y`
 
-| Dependency | How it reaches `Y` | Needed for invariance |
+The third column gives sufficient constructions, not the only ones; a design that proves the
+invariance otherwise is not excluded.
+
+| Dependency | How it reaches `Y` | A construction giving invariance |
 |---|---|---|
-| Reports, via the path | entries choose companions under dynamic batching, and activate groups under D | the group fixed at association, as in A, C, D (§4) |
+| Reports, via the path | entries choose companions under dynamic batching, and activate groups under D | the group fixed at association, as in the candidates A, C, D (§4) |
 | Path | start time (a drawn group waits for its beacon round, §4 D); a pool-entry pilot reused (§4 C) | one procedure and timing whatever the activation cause |
 | Other items | companions' content and stage-1 survival (`K_MIN`) | none while they do not depend on reports (§3); membership changes after the gate (an author's withdrawal, no lifecycle event today) do: the group's data fixed at association |
 | Load | groups piloted in a period share respondents; their number follows entries (D) and appeals; under a time term a sample's size, hence admission and convergence, follows other items' reports | resources reserved per group, or a respondent budget with no time term |
@@ -582,11 +610,11 @@ None is chosen here.
 
 | Element | Today (L) | To decide |
 |---|---|---|
-| Report | one revealed `prob` in `[0, 1]`; `review::commit` hashes its eight bytes (`isegoria/commit/v2`) | a vector commitment version; a simplex check; an exact representation (integers over a fixed denominator) so the score is bit-reproducible |
+| Report | one revealed `prob` in `[0, 1]`; `review::commit` hashes its eight bytes (`isegoria/commit/v2`) | a vector commitment version; a simplex check; a representation keeping that check exact and the score bit-reproducible (integers over a fixed denominator are one option; reproducibility alone does not impose it) |
 | Bridging | the same number is the rating `r_uj`; `τ ≈ 0.80`, the band and the polarization cut 0.25 live on its scale (`02` §A.3) | one function of the vector as rating, or a separate rating; either way a recalibration (T25, T83) |
 | Baseline | weighted means of scalar forecasts (`panel_scores`; golden items `loo_baseline`, A10's fallback) | a coordinatewise mean stays in the simplex; C5's composition carries over; A10's fallback still gives `d ≡ 0`; golden items' known outcomes (`honeypot::reviewer_skills`) stated in the three categories |
 | Denominator (C4) | `SkillTrack` counts recorded items, never a pending one | the assigned `N_u` and the no-show rule, still; a termination guarantee records every included item, but snapshots before the term read a path-dependent subset |
-| Missing reveals | `16` §4.4's proposal | the bound holds (§7.1); its other hypotheses unchanged |
+| Missing reveals | `16` §4.4's proposal | the step that uses `d ≥ −1` holds (§7.1); every other condition of `16` §4.4 remains |
 | `k_u` | observed count; increment `P(enters) + ε P(rejected)` (`16` §7) | `I` is observed, so an entered item counts at its term; the report-dependence stays; whether `I` counts toward `N_PROBATION` |
 | Shrinkage, weight | `exp(γ S_u k_u/(k_u + k₀))`, `γ = 35`, `k₀ = 100`, set on the binary score | same range, another distribution (T25) |
 | Cap | `3 × median(w)` | same formula on other weights |
@@ -606,29 +634,38 @@ Two binary targets use the same procedure:
   invariance (§7.1 on two categories). It records an unconverged procedure as outcome 0, which A11's
   closed contract excludes for stage 1: that contract would need amending. The rating then forecasts
   "admissible within the term", mixing the item's quality with its group's convergence.
-- **B-b**: `o = 1{Y = A}` on `{Y ≠ I}`, an `I` adding 0 at a fixed denominator; target
-  `q_c = P(Y = A | Y ≠ I, F_u)`. (D)
-  `E[1{Y ≠ I} d | F_u] = E[1{Y ≠ I}(b − o)² | F_u] − P(Y ≠ I | F_u)[(p − q_c)² + q_c(1 − q_c)]`,
-  so `q_c` is the unique maximizer when `P(Y ≠ I | F_u) > 0` and the joint law of `(b, Y)` given
-  `F_u` is invariant (C: exact on 2,000 random laws). The report and the rating keep today's
-  format and reading; nothing scores conclusiveness, and each item weighs `P(Y ≠ I | F_u)`, set by
-  its group's convergence.
+- **B-b**: `o = 1{Y = A}` on `{Y ≠ I}`, an `I` adding 0 at a fixed denominator; with
+  `c = P(Y ≠ I | F_u)`, target `q_c = P(Y = A | Y ≠ I, F_u)`. (D)
+  `E[1{Y ≠ I} d | F_u] = E[1{Y ≠ I}(b − o)² | F_u] − c[(p − q_c)² + q_c(1 − q_c)]`, so `q_c` is
+  the unique maximizer when `c > 0` and the joint law of `(b, Y)` given `F_u` is invariant (C:
+  exact on 2,000 random laws). When `c = 0` the term is 0 for every report: no report is
+  preferred, `q_c` is undefined, the item carries no incentive; for small `c` the incentive
+  scales with `c`. B-b keeps the scalar format, not automatically the forecast's current meaning
+  (`02` §C.2): its target is `P(A | conclusive, F_u)`, not `P(A | F_u)`. Nothing scores
+  conclusiveness, and each item weighs `c`, set by its group's convergence.
 
 What stays in all three:
 
 - **Availability.** Each needs §7.2's procedure, term and recorded `I`: B-a to record 0, B-b to
   record no contribution, the candidate to record `I`. A binary report saves none of it.
-- **Selection.** `Y`'s dependence on companions, load and time (§7.3) breaks the invariance
-  whatever the target. In §7.3's construction B-a gains `(3/5)² = 9/25`; B-b gains when `u`'s
-  truthful expected contribution is negative, e.g. `−q_c(1 − q_c) = −6/25` when the baseline
-  already equals the conclusive outcome.
-- **No independence assumed.** None of the three properness statements needs `I` independent of
-  the item's quality or the reports, and plausibly it is not (convergence is batch-level, §2; a
-  mixture fit may converge less often, §5). Only §5's policy 2 (dropping `I` from the
-  denominator) needs it, to keep the unconditional identity.
+- **Selection.** Where `u`'s deviations can move companions, load or timing (§7.3), the
+  invariance fails whatever the target. In §7.3's construction B-a gains `(3/5)² = 9/25`; B-b
+  gains when `u`'s truthful expected contribution is negative, e.g. `−q_c(1 − q_c) = −6/25` when
+  the baseline already equals the conclusive outcome.
+- **Statistical dependence against a change caused by a deviation.** `I` may depend statistically
+  on the item's quality and on the information behind the reports (convergence is batch-level,
+  §2; a mixture fit may converge less often, §5): none of the three results needs `I` independent
+  of them, and that dependence is compatible with each. A change of the joint law of `(b, Y)`
+  given `F_u` (conclusiveness or verdict) caused by `u`'s deviation is another matter: the
+  hypothesis excludes it, and nothing here lets a reviewer move either while the proof stands
+  (§7.3's construction). Only §5's policy 2 (dropping `I` from the denominator) would need
+  statistical independence, to keep the unconditional identity.
+- **Nothing validated.** `τ`, the band, the polarization cut, `k_u`'s probation count, the
+  shrinkage, the cap and the CUSUM were set on today's binary score and reading (§7.4); neither
+  B-b's unchanged format nor the ternary score validates any of them for its target.
 
-The candidate scores `R` apart from `I` and keeps A11's contract; B-b keeps the report and the
-gate's scale; B-a needs A11 amended.
+The candidate scores `R` apart from `I` and keeps A11's contract; B-b keeps the scalar format with
+a conditional target; B-a needs A11 amended.
 
 ### 7.6 Item admissibility against a form's DTF
 
@@ -640,33 +677,39 @@ the pool, `A` anchors, forms of `t = |T|` items:
 
 | | Per form (`19` §5, R3's data) | Reusable common calibration |
 |---|---|---|
-| Respondents | `n_F` per form; `N_LATENT_MIN = 3,000` a floor, not power (`15` B4–B5); a fresh batch per kept form when forms are searched on the same estimates | `⌈P n_c/m⌉` per calibration, each item answered `n_c` times, `m` items a respondent; `n_c` (power) and `m` (burden, D2) not set |
-| Answers, anchors included | `n_F(t + A)` per form, `n_F A` of them anchors | `⌈P n_c/m⌉(m + A)` per calibration, `⌈P n_c/m⌉ A` anchors |
-| Fits | a latent search (up to seven candidate models, `02` §B.3, `18` §2) per form, plus a bound not yet built | a search on incomplete data, which `scoring::latent` does not fit (complete respondent × item matrices, L), or complete fits linked by anchors, bringing back the cross-fit H1 (`19` §3); a bound valid over every form searched |
+| Respondents | `n_F` per form; `N_LATENT_MIN = 3,000` a floor, not power (`15` B4–B5); forms searched on the same estimates need a treatment of selection, e.g. an independent confirmation sample or a bound valid over the whole search (`19` §5), not an obligation for every form | at least `⌈P n_c/m⌉` per calibration when each item is answered `n_c` times and a respondent answers at most `m` items: a capacity bound under these assumptions, not a validated administration design; `m = P` is the complete design; `n_c` (power) and `m` (burden, D2) not set |
+| Answers, anchors included | per form `n_F t` trial and `n_F A` anchor answers | per calibration `P n_c` trial answers with exactly `n_c` per item (the rounded respondent count times `m` can exceed it); `A` anchor answers per respondent, if each answers the anchors |
+| Fits | a latent search (up to seven candidate models, `02` §B.3, `18` §2) per form, plus a bound not yet built | a search over the `P` items: today's code fits only the complete design (`m = P`), since `scoring::latent` takes complete respondent × item matrices (L); planned missing data needs an extension of the implementation and of the likelihood over the observed cells, to be justified, or a block or linking design with the cross-fit H1 to show (`19` §3); none validated; a bound valid over every form searched |
 | Time | recruitment and fits before each form's use | recruitment and fit before any form; new items wait for the next calibration |
-| `19` §3's hypotheses | H1 by sampling `μ` (estimated); H2 on `T`'s classes; H3 by construction | H1 for all forms at once; H2 by the pool's classes, which may separate on items outside `T`; H3 for calibrated items only; void at a pool change, a population drift, a model or threshold change |
+| `19` §3's hypotheses | sampling `μ` does not realize H1 exactly for the estimated measure: estimation error, counted classes and representation remain to treat; H2 on `T`'s classes; H3 by construction | H1 for all forms at once, with the same residues; H2 by the pool's classes, which may separate on items outside `T`; H3 for calibrated items only; a pool change, a population drift, a model or threshold change requires re-examining the domain of validity, without voiding every earlier calibration automatically |
 
-Per period, `f` forms against `r` calibrations compare `f(n_F + n'_F)` respondents, `n'_F` a
-confirmation batch when forms are searched, with `r⌈P n_c/m⌉`; `f`, `r`, `n_F`, `n_c`, `m` and the
-pool's turnover are not fixed, and fit time is measured on neither (`15` D2, D4). The A1 pilots'
-answers are not counted as calibration data: that would need one population, anchors and model, and
-the groups linked; none is established.
+Summed over forms, attempts and periods, these counts are participations, not necessarily
+distinct persons. Which design needs fewer depends on quantities not fixed here (forms per
+period, `n_F`, `n_c`, `m`, the pool's turnover, the treatment of selection); fit time is measured
+on neither (`15` D2, D4); no cost is estimated here. The A1 pilots' answers are not counted as
+calibration data: that would need one population, anchors and model, and the groups linked; none
+is established.
 
 ### 7.7 Verdict
 
-**To be rectified, not discarded.** The scoring core is coherent under explicit conditions: the
-derivation holds (§7.1) under the joint invariance of `(b, Y)` given `F_u`; it is exactly the
-current score on two categories and keeps its pointwise bounds; with the IPW conditions kept
-apart, it is `16` §4.3's step, not a guarantee of the protocol or of the reputation used. As a
-protocol candidate it needs:
+**To be rectified, not discarded** (this check's verdict; Astra's review on `654dbff` approved
+the conditional results listed at the head of §7, not §7 as a whole). The scoring core is
+coherent under explicit conditions: the derivation holds (§7.1) under the joint invariance of
+`(b, Y)` given `F_u`; it is exactly the current score on two categories and keeps its pointwise
+bounds; with the IPW conditions kept apart, it is `16` §4.3's step, not a guarantee of the
+protocol or of the reputation used. As a protocol candidate it needs:
 
 1. the term and budget in attempts and log order, `I` a positive reproducible record, and resource
-   non-arrival made report-independent or kept out of `I` (§7.2);
+   non-arrival either shown invariant to `u`'s deviations (reserved resources are one
+   construction) or kept out of `I` (§7.2);
 2. the procedure closed at association, with a rule for later membership changes (§7.3);
 3. an explicit bridging input and commitment format, with their recalibration (§7.4);
-4. one of §4's observation designs with H0, C1 and C4, and a decision on the reputation's
-   elements (§7.4), which three categories do not touch.
+4. an observation design that establishes H0, C1, (2e), (2x) and C4 (§4's A, C and D are
+   candidates; another design that proves the conditions is not excluded), and a decision on the
+   reputation's elements (§7.4), which three categories do not touch.
 
-B-b is a comparable alternative with fewer joins; B-a conflicts with A11's contract (§7.5). An
-admissible item certifies no form's DTF, and the two calibrations stay to be compared with
-parameters not fixed here (§7.6).
+B-b keeps the scalar format with a conditional target and fewer joins; B-a conflicts with A11's
+contract (§7.5). **Direction (Astra, after the review of `654dbff`):** B-b is to be deepened as the
+main candidate in the next design comparison, the ternary score as the alternative. This approves
+no protocol change and closes neither C2 nor A1. An admissible item certifies no form's DTF, and
+the two calibrations stay to be compared (§7.6).

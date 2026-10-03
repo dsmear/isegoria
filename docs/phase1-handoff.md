@@ -16,10 +16,16 @@ they win.
 - `81cd467`, on top of `d13bf09`, only records that approval: no design or behaviour change; not
   pushed by the session.
 - **Astra's three-category candidate** (a reference outcome admissible, rejected or inconclusive
-  within its term; a forecast over the three; a quadratic difference score): **checked in `17` §7,
-  a proposal awaiting Astra's review, not approved for implementation.** The check's verdict: to be
-  rectified, not discarded. Documentation only, on top of `81cd467`; not pushed. A1 and A2 stay
-  open.
+  within its term; a forecast over the three; a quadratic difference score): checked in `17` §7
+  (`654dbff`). Astra's review of `654dbff` approved, **as conditional results**, the ternary
+  derivation, its binary reduction and the pointwise bound `[−1, 1]`; B-b's derivation (fixed
+  denominator, joint invariance, positive probability of conclusion); the abstract constructions'
+  calculations within their stated limits. **Not approved: §7 as a whole, any implementation.**
+  §7 rectified on top of `654dbff` (the vector IPW's path conditions, B-b's conditional target and
+  the case `c = 0`, the calibrations, constructions sufficient rather than unique); documentation
+  only; not pushed. Astra prefers to deepen B-b as the main candidate in the next design
+  comparison, the ternary score as the alternative: no protocol change approved, C2 and A1 not
+  closed. A1 and A2 stay open; R1 stays approved.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -92,7 +98,9 @@ including anchors, fits and time. It must compare a reusable common calibration 
 per form without presuming either valid or inevitable. Constraints: anonymity (no personal or
 group attributes enter), the recovery of contested facts; the test's neutrality is not to be
 declared certified. No full new roadmap yet. Astra's candidate for linking A1, C2, A2 and the
-costs is checked in `17` §7 and awaits Astra's review; nothing in it is approved.
+costs is checked in `17` §7: its derivations and calculations are approved as conditional results,
+§7 as a whole is not; the next comparison deepens B-b as the main candidate, the ternary score as
+the alternative.
 
 ## 6. Essential reading to resume
 
