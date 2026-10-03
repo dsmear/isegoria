@@ -13,8 +13,13 @@ they win.
   approved diagnosis). Implemented in `8fa07dd66698ecf1c23141b942bf8ed7ad57242f`; completed by
   `d13bf0931fffe3615bd61ec1d890e7f8cff755f0`, the documentation follow-up of Astra's patch. The
   approved commit is `d13bf09`, with no blocking finding (§7).
-- The commit that carries this note, on top of `d13bf09`, only records that approval: no design or
-  behaviour change; not pushed by the session.
+- `81cd467`, on top of `d13bf09`, only records that approval: no design or behaviour change; not
+  pushed by the session.
+- **Astra's three-category candidate** (a reference outcome admissible, rejected or inconclusive
+  within its term; a forecast over the three; a quadratic difference score): **checked in `17` §7,
+  a proposal awaiting Astra's review, not approved for implementation.** The check's verdict: to be
+  rectified, not discarded. Documentation only, on top of `81cd467`; not pushed. A1 and A2 stay
+  open.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -86,7 +91,8 @@ protect — A2; (3) the dependence on the model and on selection — B1–B3; (4
 including anchors, fits and time. It must compare a reusable common calibration with a calibration
 per form without presuming either valid or inevitable. Constraints: anonymity (no personal or
 group attributes enter), the recovery of contested facts; the test's neutrality is not to be
-declared certified. No full new roadmap yet.
+declared certified. No full new roadmap yet. Astra's candidate for linking A1, C2, A2 and the
+costs is checked in `17` §7 and awaits Astra's review; nothing in it is approved.
 
 ## 6. Essential reading to resume
 
@@ -98,7 +104,7 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
 
 ## 7. R1 and its approval
 
-- **Approval, recorded by the commit that carries this note:** Astra approved `d13bf09` with no
+- **Approval, recorded by `81cd467`:** Astra approved `d13bf09` with no
   blocking finding. It covers R1 as implemented in `8fa07dd` and completed by `d13bf09`: a
   rectification of the declared guarantees, not a realization of the whole-test DTF guarantee.
   It is distinct from the approval of the diagnosis and conditional proposition on `0519626`.
@@ -164,7 +170,7 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   or campaign re-run (documentation only).
 - **Astra, final review of R1 on `d13bf09`** (as it records): read the diff of `d13bf09` and the
   updated documents; approved R1 with no blocking finding. No new Rust or fit run.
-- **Claude Code, record of the approval (the commit that carries this note):** HEAD `d13bf09` and
+- **Claude Code, record of the approval (`81cd467`):** HEAD `d13bf09` and
   a working tree with only `.gitignore` modified checked first; documentation checks only: the
   diff, whitespace (`git diff --check`), references and relative links of the edited docs, and
   the consistency of A2's and R1's state across `15`, `19`, `docs/README.md` and this note. No
