@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented after it, Astra's final review pending**. A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -27,6 +27,14 @@ Review on `0519626`:
   abstract construction; R3 stays a candidate (§5); the coverage under selection; the draw's law
   (§1); the owner trade-off withdrawn (§6); the real fit converged and is not an admitted pilot
   (§4).
+
+Review on `d13bf09` (R1, §8), distinct from the review above:
+
+- Approved, with no blocking finding: R1 as implemented in `8fa07dd` and completed by `d13bf09`,
+  a rectification of the declared guarantees; it does not realize the whole-test DTF guarantee.
+- Not approved: R3, a mandatory batch per test form, any new calibration, selection or group
+  policy. A2 and Phase 1 stay open.
+- Evidence: the diff of `d13bf09` and the updated documents read; no Rust test or fit run.
 
 ## 1. What the code computes (L)
 
@@ -208,7 +216,7 @@ of selection on it; whether small classes should count in a guarantee (they are 
 their parameters are poorly identified, `02` §B.3); privacy of contested facts (`05` [7b], `10`
 T69), untouched here.
 
-## 8. R1 as implemented (after `0519626`, pending Astra's final review)
+## 8. R1 as implemented (after `0519626`, approved on `d13bf09`)
 
 `D(T)` is described as the contested facts' admission cost — the sum of each fit's estimated DTF
 over its own distribution and counted classes — and nowhere as a certified bound on the whole
@@ -221,10 +229,10 @@ paper (`065-revisions.tex`: the tolerance is an aim the current cost does not gu
 Within-fit results are kept. No formula, API name, threshold, serialization, selection, golden
 output or historical result changes. A2 stays open: the whole-test guarantee is not realized.
 
-**Completion against published `8fa07dd` (2026-10-03, pending review).** The follow-up
+**Completion against published `8fa07dd` (`d13bf09`, 2026-10-03).** The follow-up
 rectifies D38's choice and rationale as an aim, the current countermeasure in `06`, T55's
 acceptance cell in `10`, and the open-work cell of the DIF-011 matrix in `08`. These were
 remaining statements of A2's test-level guarantee, not a separate draw-law finding.
 The baseline description above also distinguishes the paper's former claim from its R1
 correction. No behavior or historical measurement changes. Evidence and access limits are
-recorded in `phase1-handoff.md` §8.
+recorded in `phase1-handoff.md` §8. Astra approved R1 on `d13bf09` (design review above).

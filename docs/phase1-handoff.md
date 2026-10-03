@@ -8,22 +8,25 @@ they win.
 ## 1. Where things stand
 
 - Repository `dsmear/isegoria`, owner's working directory `…/rust/isegoria`, branch
-  `docs/phase1-review-alignment`. Baseline requested for R1: `0519626`. HEAD
-  `8fa07dd66698ecf1c23141b942bf8ed7ad57242f`, its direct child, publishes R1.
-- The commit that carries this note, on top of `8fa07dd`, holds the documentation follow-up of
-  Astra's review (§7), integrated by Claude Code in the owner's checkout; not pushed by the
-  session.
+  `docs/phase1-review-alignment`.
+- **R1 implemented and approved by Astra on `d13bf09`; A2 open.** R1's baseline: `0519626` (the
+  approved diagnosis). Implemented in `8fa07dd66698ecf1c23141b942bf8ed7ad57242f`; completed by
+  `d13bf0931fffe3615bd61ec1d890e7f8cff755f0`, the documentation follow-up of Astra's patch. The
+  approved commit is `d13bf09`, with no blocking finding (§7).
+- The commit that carries this note, on top of `d13bf09`, only records that approval: no design or
+  behaviour change; not pushed by the session.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
-  directories. The follow-up touches no `.gitignore`.
-- R1 does not close A2 or Phase 1.
+  directories. No commit of this work touches `.gitignore`.
+- R1 closes neither A2 nor Phase 1.
 
 ## 2. Roles and working agreement
 
-- **Claude Code** implements and produces evidence (tests, calculations, runs). **Astra** decides
-  the design and reviews each commit, reading diffs and recalculating; it does not re-run Rust.
-  **The owner** wants to intervene as little as possible: commits and pushes when asked (the
-  Claude Code session has no GitHub credentials), decides only genuine product trade-offs.
+- **Claude Code** implements, verifies (tests, calculations, runs) and commits when the owner
+  asks; it does not push (the session has no GitHub credentials). **The owner** orchestrates the
+  sessions and publishes (pushes); wants to intervene as little as possible and decides only
+  genuine product trade-offs. **Astra** decides the design and reviews each commit, reading diffs
+  and recalculating; it does not re-run Rust.
 - A finding closes only on Astra's recorded review (`15`), never on green tests. One finding per
   intervention; a code defect starts with a test that fails on the baseline.
 - Evidence labels: L read, D proved, C calculated, E executed; say whether a fit is real, whether a
@@ -47,12 +50,15 @@ they win.
 
 ## 4. Open work
 
-- **A2 (high): diagnosis approved, R1 implemented, Astra's final review pending, A2 open.**
-  Approved on `0519626`: the contested facts' cost does not certify the whole test's DTF; the
-  conditional proposition of `19` §3 (partition of the items, common measure, representation of
-  the groups; per-pair maximum for mixtures constant in ability, pointwise-maximum envelope in
-  general; no label matching needed). Not approved: R3 (a test-level fit) as a solution, a batch
-  per form, any new calibration, selection or group policy. R1 rectifies the claims only.
+- **A2 (high): R1 implemented and approved by Astra on `d13bf09`; A2 open.** Approved on
+  `0519626`: the contested facts' cost does not certify the whole test's DTF; the conditional
+  proposition of `19` §3 (partition of the items, common measure, representation of the groups;
+  per-pair maximum for mixtures constant in ability, pointwise-maximum envelope in general; no
+  label matching needed). Approved on `d13bf09`: R1 (`8fa07dd`, completed by `d13bf09`) as a
+  rectification of the declared guarantees, not as a realization of the whole-test DTF guarantee.
+  Not approved by either review: R3 (a test-level fit) as a solution, a mandatory batch per form,
+  any new calibration, selection or group policy. A reusable common calibration and a calibration
+  per form are still to be compared.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
   baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
@@ -71,15 +77,16 @@ they win.
   operating point (B7, D1, D6, E). Also open: A8, A9, A10, the register's C5 and C6, A4 (b)–(d),
   C2, C4, the full runtime.
 
-## 5. Next segment (not started)
+## 5. Next segment: decision synthesis
 
-A short decision synthesis that links: (1) what outcome a reviewer forecasts and how it is
-produced — A1; (2) the population and contrasts the DTF must protect — A2; (3) the dependence on
-the model and on selection — B1–B3; (4) respondents, answers including anchors, fits and time. It
-must compare a reusable common calibration with a calibration per form without presuming either
-valid or inevitable. Constraints: anonymity (no personal or group attributes enter), the
-recovery of contested facts; the test's neutrality is not to be declared certified. No full new
-roadmap yet.
+At the owner's request, the synthesis continues in the same chat with Astra; this note records
+none of its conclusions. Its scope: a short decision synthesis that links: (1) what outcome a
+reviewer forecasts and how it is produced — A1; (2) the population and contrasts the DTF must
+protect — A2; (3) the dependence on the model and on selection — B1–B3; (4) respondents, answers
+including anchors, fits and time. It must compare a reusable common calibration with a calibration
+per form without presuming either valid or inevitable. Constraints: anonymity (no personal or
+group attributes enter), the recovery of contested facts; the test's neutrality is not to be
+declared certified. No full new roadmap yet.
 
 ## 6. Essential reading to resume
 
@@ -89,14 +96,21 @@ missing outcomes); `docs/18` (A3); `docs/19` (A2); `docs/02` §B.3, §B.7; `docs
 code: `crates/scoring/src/{latent.rs,dtf.rs}`,
 `crates/protocol/src/{contested.rs,lifecycle.rs,orchestrator.rs,exploration.rs}`.
 
-## 7. This intervention
+## 7. R1 and its approval
 
-- **R1:** `D(T)` described as the contested facts' admission cost, not a certified bound on the
-  test's DTF — `01` D38 (dated clarification), `08` DIF-011, its status row, AT-PRO-08 and the
-  `Contested` row, `02` §B.7 (cross-fit paragraph, "cost"), `10` T55 (dated clarification),
-  `ARCHITECTURE.md`, comments in `protocol/src/contested.rs` and `scoring/src/dtf.rs` (`DTF_MAX`),
-  `paper/sections/065-revisions.tex` (the tolerance an aim, not guaranteed). No formula, API,
-  threshold, serialization, selection, golden or historical result changed.
+- **Approval, recorded by the commit that carries this note:** Astra approved `d13bf09` with no
+  blocking finding. It covers R1 as implemented in `8fa07dd` and completed by `d13bf09`: a
+  rectification of the declared guarantees, not a realization of the whole-test DTF guarantee.
+  It is distinct from the approval of the diagnosis and conditional proposition on `0519626`.
+  Recorded in `15` (A2 row, closing paragraph), `19` (status, design review, §8),
+  `docs/README.md` and this note.
+- **R1 (`8fa07dd`):** `D(T)` described as the contested facts' admission cost, not a certified
+  bound on the test's DTF — `01` D38 (dated clarification), `08` DIF-011, its status row,
+  AT-PRO-08 and the `Contested` row, `02` §B.7 (cross-fit paragraph, "cost"), `10` T55 (dated
+  clarification), `ARCHITECTURE.md`, comments in `protocol/src/contested.rs` and
+  `scoring/src/dtf.rs` (`DTF_MAX`), `paper/sections/065-revisions.tex` (the tolerance an aim, not
+  guaranteed). No formula, API, threshold, serialization, selection, golden or historical result
+  changed.
 - **`19`:** Astra's review of `0519626`; disjoint sets for subadditivity; the ¾-against-1 example an
   abstract construction; R3 a candidate (estimated measure, confidence bound to be built, groups
   absent from the model, misspecification, coverage under selection); the owner trade-off withdrawn
@@ -110,7 +124,7 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
 - **Test:** `scoring/tests/dtf_composition.rs::a_one_class_fit_reads_zero_where_two_items_lean` now
   asserts `Convergence::Converged`; it passes.
 - **Registers:** `15` (A2 row, closing paragraph), `docs/README.md`, this note.
-- **Documentation follow-up against `8fa07dd` (Astra's patch, integrated and committed):** `01`
+- **Documentation follow-up against `8fa07dd` (`d13bf09`; Astra's patch, integrated):** `01`
   D38's choice and rationale describe an aim, `06`'s countermeasure and limitation L1 describe the
   admission cost, `10` T55's acceptance cell no longer asserts whole-test DTF control, `08`'s
   DIF-011 open-work cell names A2, and `19` distinguishes the old paper claim from R1. Added by
@@ -131,8 +145,6 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   `0519626`.
 - **Astra:** reads diffs, code, tests and docs, checks proofs, runs the Python scripts and exact
   enumerations; it has not re-run Rust or the real fits.
-- Never run in this work: full characterization, smoke, mutation or calibration campaigns.
-
 - **Astra, documentation follow-up on 2026-10-03** (its patch, prepared in a Codex environment
   without the owner's checkout; as it records): read the published diff and relevant code
   and contracts; re-ran `python3 sim/dtf_composition.py` successfully (including exact
@@ -143,10 +155,18 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   the downloaded `8fa07dd` files. No Rust test, fit, clippy or cargo-format check was re-run:
   cargo is unavailable here. The converged-one-class result and true DTF 0.78196 remain
   Claude's reported execution evidence. No full suites, smoke, characterization, calibration,
-  seed campaign or mutation runs. Astra's final review of R1 remains pending.
+  seed campaign or mutation runs. Astra's final review of R1 was then pending.
 - **Claude Code, integration of the follow-up:** HEAD `8fa07dd` and a working tree with only
   `.gitignore` modified checked first; `git apply --check` and `git apply --whitespace=error-all`
   of the patch on the owner's checkout (clean); the handoff's environment lines adapted to this
   checkout; documentation checks: `python3 scripts/comment_budget.py`, relative links of the
   edited docs, a search of current contracts for remaining whole-test claims. No Rust, fit, script
   or campaign re-run (documentation only).
+- **Astra, final review of R1 on `d13bf09`** (as it records): read the diff of `d13bf09` and the
+  updated documents; approved R1 with no blocking finding. No new Rust or fit run.
+- **Claude Code, record of the approval (the commit that carries this note):** HEAD `d13bf09` and
+  a working tree with only `.gitignore` modified checked first; documentation checks only: the
+  diff, whitespace (`git diff --check`), references and relative links of the edited docs, and
+  the consistency of A2's and R1's state across `15`, `19`, `docs/README.md` and this note. No
+  Rust test, fit, smoke, characterization, calibration or mutation run.
+- Never run in this work: full characterization, smoke, mutation or calibration campaigns.
