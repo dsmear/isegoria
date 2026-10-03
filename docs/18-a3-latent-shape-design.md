@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis reviewed by Astra on `deb4e5e` (below); **P1 implemented and verified after `deb4e5e`, Astra's review pending** (§8). A3 stays open (`15`). The model, its objective and gradients, the selection criterion, the thresholds and the historical results are unchanged. |
+| **Status** | Diagnosis reviewed by Astra on `deb4e5e`; P1 implemented (§8) and **approved on `16e862c`: A3 closed** within the moment penalty's interpretation and the nominal count (`15`); B1–B3 keep the residues. The model, its objective and gradients, the selection criterion, the thresholds and the historical results are unchanged. |
 | **Baseline** | `docs/phase1-review-alignment`; written on `af17eb3`, first committed at `deb4e5e`. Line references in §§1–7 are to `af17eb3` (the diagnosis' tests sit after its line 1387 of `latent.rs`); §8 gives P1's lines. |
 | **Scope** | `15` A3: the histogram of `01` D43 in `scoring::latent` — what is optimized, what the "gauge" does, what the BIC counts, and whether the count affects selection. B1–B3 (identification and BIC under misspecification) are touched only where A3 needs them. |
 | **Evidence** | **L** read in the source; **D** proved here; **C** recalculated (`sim/latent_shape_dimension.py`, numpy); **E** executed as a Rust test in `crates/scoring/src/latent.rs`. |
@@ -256,10 +256,12 @@ untouched. Golden rows regenerated: `latent.candidates` and `floor.candidates`, 
 - Each increment equals `2 ln 1500 = 14.626440774180603` within rounding: four are
   `14.626440774176444` (−0.57 ulp of the new value) and two `14.62644077418372` (+0.43 ulp); the
   `ulp` at `4.6–5.0·10⁴` is `7.3·10⁻¹²`.
-- Margins of the comparisons, unchanged: on the open batch one class beats two classes with shared
-  `a` by 0.523 and with per-class `a` by 50.87; on the batch with floors two classes with shared `a`
-  beat one class by 24.15 and per-class `a` by 45.65. Each margin is at least `7·10¹⁰` times the
-  rounding error.
+- Margins of the comparisons, unchanged at the precision reported: on the open batch one class
+  beats two classes with shared `a` by 0.523 and with per-class `a` by 50.87; on the batch with
+  floors two classes with shared `a` beat one class by 24.15 and per-class `a` by 45.65. In their
+  bits the margins between candidates with the same increment are identical, and those towards
+  the per-class candidates move by `7.28·10⁻¹²`, the difference of the two increments. Each margin
+  is at least `7·10¹⁰` times that.
 - Characterization: the pinned records of five studies (`dif-power`, `dtf-error`, `floor-power`,
   `floor-dtf`, `floor-screen`, one smoke task each) are identical line by line, `bic_gain`
   included; `harness.rs::a_record_of_each_kind_is_pinned` passes with its pins unchanged.

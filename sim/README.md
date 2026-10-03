@@ -102,6 +102,16 @@ patterns of eight 2PL items at a smooth and at a rough histogram. numpy only; de
 python latent_shape_dimension.py
 ```
 
+### `dtf_composition.py`
+
+A2's calculations (`docs/19`): the DTF figures of the dossier by continuous quadrature beside
+the 41-node grid `scoring::dtf` uses, and the three-class example where a group's gap exceeds
+the per-pair maximum, in exact rationals. numpy and scipy; deterministic.
+
+```
+python dtf_composition.py
+```
+
 ## What these prototypes demonstrate
 
 Motivating scenarios documented in `docs/06-threat-model.md`, within these prototypes:
