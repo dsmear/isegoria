@@ -56,12 +56,25 @@ they win.
   §8, §8.5's direction), the A1 row of `15` (which now lists the reviews of `654dbff`, `825cee3`,
   `44f0dbd` and `fa11791`) and this note; `17` §8.4's "without H-e it is not that either" now
   reads "without H-e that unbiasedness is not guaranteed".
-- **Decision synthesis: `19` §6.1** (documentation only, on `fa11791`; not pushed by the session;
-  not yet reviewed by Astra). It links A1 (B-b's forecast and how the outcome is produced), A2
-  (the DTF target), B1–B3 and resources; keeps observation (A against C) apart from calibration
-  (reusable common against per form); gives the parametric accounting with its assumptions and
-  the decisions still missing. It rests on readings and targeted static checks, no new run. A1,
-  C2, A2 and Phase 1 stay open; R1 stays approved within its limits.
+- **Decision synthesis: `19` §6.1** (documentation only, written on `fa11791`, committed in
+  `cebcb2e`). It links A1 (B-b's forecast and how the outcome is produced), A2 (the DTF target),
+  B1–B3 and resources; keeps observation (A against C) apart from calibration (reusable common
+  against per form); gives the parametric accounting with its assumptions and the decisions still
+  missing. It rests on readings and targeted static checks, no new run. **Astra approved
+  `cebcb2e` as a documentation intervention, with no blocking finding** (the diff read and
+  compared with the documents it cites; the parametric formulas checked algebraically; no Rust,
+  fit or campaign); no protocol, calibration, adoption or expenditure approved. Its two
+  precisions are made in `19` §6.1: D1 rests on H-a–H-d, completed reports and C5 included, and
+  H-e is a distinct requirement of the contract, used for `17` §8.4's expected counts; the
+  decisions on formats concern the items ("item formats and the anchors' substantive reference").
+  A1, C2, A2 and Phase 1 stay open; R1 stays approved within its limits.
+- **Common against per-form calibration: `19` §9** (documentation only, written on `cebcb2e`;
+  not pushed by the session; **awaiting Astra's review**). Complete administrations only, on §2's
+  target kept symbolic: what makes each design pertinent (H1–H3 with one fit, model, selection);
+  the resource counts and break-even inequalities, simple and with attempts, refusals, updates
+  and uncertainty; partial administrations as extensions only; the link with D3; a conditional
+  recommendation with no winner today and the minimum information to cross the boundary. No
+  design, calibration or expenditure chosen.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -105,8 +118,8 @@ they win.
   rectification of the declared guarantees, not as a realization of the whole-test DTF guarantee.
   Not approved by either review: R3 (a test-level fit) as a solution, a mandatory batch per form,
   any new calibration, selection or group policy. A reusable common calibration and a calibration
-  per form are still to be compared; `19` §6.1 states what the comparison must cover, without
-  carrying it out.
+  per form are compared in `19` §9 under explicit assumptions, awaiting Astra's review; no
+  calibration is chosen.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
   baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
@@ -126,24 +139,31 @@ they win.
   operating point (B7, D1, D6, E). Also open: A8, A9, A10, the register's C5 and C6, A4 (b)–(d),
   C2, C4, the full runtime.
 
-## 5. Decision synthesis
+## 5. Decision synthesis and the calibration comparison
 
-Written in `19` §6.1 after Astra's approval of `17` §8 on `fa11791`, awaiting Astra's review; the
-next step is that review, and what follows it is Astra's to decide. The scope it was written to,
-as set at the owner's request: a short decision synthesis that links: (1) what outcome a
-reviewer forecasts and how it is produced — A1; (2) the population and contrasts the DTF must
-protect — A2; (3) the dependence on the model and on selection — B1–B3; (4) respondents, answers
-including anchors, fits and time. It must compare a reusable common calibration with a calibration
-per form without presuming either valid or inevitable. Constraints: anonymity (no personal or
+The synthesis is in `19` §6.1, approved by Astra on `cebcb2e` as a documentation intervention.
+The comparison of a reusable common calibration with a calibration per form is in `19` §9,
+awaiting Astra's review; the next step is that review, and what follows it is Astra's to decide.
+§9 finds no winner today: with complete administrations the common design is excluded where the
+bank and anchors exceed the tolerable load per participation, and saves answers only under its
+break-even inequalities; the minimum information to cross the boundary is the tolerable load,
+whether one population serves every form, the treatment of uncertainty and selection, the
+horizon's numbers and, only if those leave it open, the ratio of the samples at equal precision.
+The synthesis's scope, as set at the owner's request: a short decision synthesis that links:
+(1) what outcome a reviewer forecasts and how it is produced — A1; (2) the population and
+contrasts the DTF must protect — A2; (3) the dependence on the model and on selection — B1–B3;
+(4) respondents, answers including anchors, fits and time. The comparison sets a reusable common
+calibration against a calibration per form without presuming either valid or inevitable.
+Constraints: anonymity (no personal or
 group attributes enter), the recovery of contested facts; the test's neutrality is not to be
 declared certified. No full new roadmap yet. Astra's candidate for linking A1, C2, A2 and the
 costs is checked in `17` §7, accepted by Astra on `825cee3` as a conditional analysis; B-b, the
 main candidate, is specified as a candidate contract in `17` §8, partly reviewed on `44f0dbd`,
 rectified in `fa11791` and approved there as a conditional analysis; A is the main analytic
 reference, C the comparison. The synthesis adopts and funds nothing; the decisions it lists as
-missing (population and contrasts to protect, anchors' formats and substantive reference,
-tolerable errors and inconclusiveness, latency and resources) are not put to the owner before a
-sufficient comparison of the designs.
+missing (population and contrasts to protect, item formats and the anchors' substantive
+reference, tolerable errors and inconclusiveness, latency and resources) are not put to the owner
+before a sufficient comparison of the designs.
 
 ## 6. Essential reading to resume
 
@@ -239,4 +259,19 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   (`git diff --check`), references and relative links of the edited docs, the consistency of the
   states of A1, A2, R1 and `17` §8 across `15`, `17`, `19` and this note. No Rust test, fit,
   script, smoke, characterization, calibration or mutation run.
+- **Astra, review of `cebcb2e`** (as it records): the diff read and compared with the documents it
+  cites; the parametric formulas checked algebraically. No Rust, fit or campaign run.
+- **Claude Code, record of that review and the comparison of `19` §9:** branch, HEAD `cebcb2e`
+  (parent `fa11791`) and a working tree with only `.gitignore` modified checked first. Read (L):
+  `latent_dif_with` and `LatentParams` (one start for the one-class model, `n_starts` per mixture
+  candidate, the stop rule, the parameter count), `latent_batch` and its gates (`admit_dif_batch`,
+  `admit_templates`, `admit_anchors`, rows of equal length), `ClassCurves::{of, dtf}`,
+  `ContestedPool::{record, candidates}`, `blueprint::assemble_test`, `NullifierSet`. Exact
+  calculations (C), in a scratch script not kept, formulas given in `19` §9: the subset counts
+  `S(M, n)` and their superadditivity for `M₁, M₂ ≤ 30`, `n ≤ 15`; the break-even equivalences on
+  20,000 random rational cases; the share of kept forms over the tolerance (1/11, 9/19); the
+  marginal consistency of a three-item, two-class rational model under item deletion. Documentation
+  checks: the diff, whitespace (`git diff --check`), references and relative links of the edited
+  docs, the consistency of the states across `15`, `19` and this note. No Rust test, fit, smoke,
+  characterization, calibration, benchmark or mutation run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.

@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources: static readings and checks only, not yet reviewed by Astra; it adopts and funds nothing. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
-| **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, **awaiting Astra's review**; it chooses no design. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
 
@@ -35,6 +35,18 @@ Review on `d13bf09` (R1, §8), distinct from the review above:
 - Not approved: R3, a mandatory batch per test form, any new calibration, selection or group
   policy. A2 and Phase 1 stay open.
 - Evidence: the diff of `d13bf09` and the updated documents read; no Rust test or fit run.
+
+Review on `cebcb2e` (the decision synthesis of §6.1 and the recorded states), distinct from the
+reviews above:
+
+- Approved, with no blocking finding, as a documentation intervention. Not approved: any
+  protocol, calibration, adoption or expenditure.
+- Precisions, made after the review in §6.1: B-b's D1 rests on H-a–H-d, completed reports and C5
+  included, while H-e is a distinct requirement of the contract, used for `17` §8.4's expected
+  counts; H-a, H-b and H-e are not one set of "observation identities". The decisions on formats
+  concern the items, not only the anchors.
+- Evidence: the diff read and compared with the documents it cites; the parametric formulas
+  checked algebraically; no Rust, fit or campaign run.
 
 ## 1. What the code computes (L)
 
@@ -206,8 +218,8 @@ on representation, specification and an uncertainty bound yet to be built. R2 re
 cross-fit sum and leaves active items out. No cost is put to the owner yet: a reusable common
 calibration and a calibration per form, with more conservative bounds and a reduced declared
 guarantee as further options, must first be compared; §6.1 states what the comparison has to
-cover, without carrying it out. `DTF_MAX` stays as it is; no empirical margin replaces the
-missing hypotheses.
+cover, and §9 carries it out under explicit assumptions, without choosing a design. `DTF_MAX`
+stays as it is; no empirical margin replaces the missing hypotheses.
 
 ### 6.1 Decision synthesis: A1, A2, B1–B3 and resources
 
@@ -215,7 +227,8 @@ missing hypotheses.
 links results established elsewhere (`17` §§7–8; §§2–3 here) and repeats no proof. Evidence: the
 cited sections and code symbols read, with targeted static checks; no Rust, fit, script or
 campaign run. It approves, adopts and funds nothing: A1, C2, A2 and Phase 1 stay open; R1 stays
-approved within its limits (§8).
+approved within its limits (§8). Approved by Astra on `cebcb2e` as a documentation intervention
+(design review above); that review's two precisions are made below.
 
 **What a reviewer forecasts (A1: B-b, `17` §7.5, §§8.1–8.3).** A reference procedure is fixed per
 item before the reports. Its group, the sampling of respondents and anchors, the stage-1 screen,
@@ -224,10 +237,12 @@ produce the outcome `Y ∈ {A, R, I}` (`17` §7.3). The reviewer forecasts `P(Y 
 `A` given a conclusive outcome and the information available at the report. The binary score
 acts on `A` and `R`; a verifiable terminal inconclusiveness (`17` §7.2) adds 0 at the
 denominator `N_u` fixed by the assignments. A pending item is not a 0, and a missing record is
-not an inconclusiveness (`17` §§8.2–8.3). The result keeps its hypotheses: the observation
-identities (H-a, H-b, H-e) and the joint invariance of `(b, Y)` given `F_u` under the reviewer's
-deviation over all its reports (H-c); with a zero probability of conclusion the score is flat
-in the report (`17` §8.1, D1).
+not an inconclusiveness (`17` §§8.2–8.3). The result, `17` §8.1's D1, rests on H-a–H-d: H0 with
+`F_u ⊆ F_Φ` (H-a); the path identities on the conclusive coordinates (H-b); the joint invariance
+of `(b, Y)` given `F_u` under the reviewer's deviation over all its reports (H-c); completed
+reports and C5 (H-d). H-e, the recorded inclusion probability being the design's, is a distinct
+requirement of the contract, used for the expected counts of `17` §8.4. With a zero probability
+of conclusion the score is flat in the report (`17` §8.1, D1).
 
 **What the DTF must protect (A2, §§2–3).** The target names a population, a measure of ability
 on a common scale, a family of contrasts and the whole test's score, active and contested items
@@ -292,9 +307,9 @@ The incentives of the reputation actually used (`k_u`, shrinkage, cap, CUSUM; `1
 §8.4) stay to be assessed: the result on the score's mean (`17` §8.1, D1) does not close them.
 
 **Decisions still missing (product and resources).** The population and contrasts to protect;
-the anchors' formats and substantive reference; the tolerable errors and inconclusiveness; the
-latency and resources available. No value is proposed here, and no choice between designs is
-put to the owner before a sufficient comparison exists.
+the item formats and the anchors' substantive reference; the tolerable errors and
+inconclusiveness; the latency and resources available. No value is proposed here, and no choice
+between designs is put to the owner before a sufficient comparison exists.
 
 **Constraints.** Anonymity (`CLAUDE.md` invariant 1: no personal or group attribute enters; the
 bias analysis runs on latent axes) and the recovery of contested facts (`05` [7b], `01` D38)
@@ -328,3 +343,188 @@ remaining statements of A2's test-level guarantee, not a separate draw-law findi
 The baseline description above also distinguishes the paper's former claim from its R1
 correction. No behavior or historical measurement changes. Evidence and access limits are
 recorded in `phase1-handoff.md` §8. Astra approved R1 on `d13bf09` (design review above).
+
+## 9. Common against per-form calibration (comparison, awaiting review)
+
+**Status.** Written on `cebcb2e`: a comparison under stated assumptions, not a choice. No
+calibration, selector, threshold, policy or expenditure is proposed for adoption; R3 stays a
+candidate (§5). Evidence: **L** the code named, **D** derived here, **C** exact calculations whose
+formulas are given in place; no measurement, fit or run. It is separate from the A/C choice of
+observation for scoring (`17` §8.5), and A1's pilot data are not calibration data (`17` §7.6).
+
+### 9.1 Common ground
+
+- **Target** (§2), kept symbolic: for each form `T` used over a fixed horizon, `DTF_μ(T)` for the
+  population `μ` of its use, on a common ability scale, over a contrast family `𝒢`, with the
+  number-correct score over all of `T`, active and contested items. Nothing here chooses `μ`, `𝒢`
+  or a promised protection.
+- **Designs**, complete administrations only (every participation answers every column of its
+  batch, as `revalidation::latent_batch` requires). *Common*: one fit `F₀` of a fixed bank `B` of
+  `P` items with `A` anchors on `n_c` participations, a form `T ⊆ B` assessed with `F₀`'s curves
+  and measure. *Per form*: for each of `F` forms, a fit `F_T` of its `t_T` items with `a_T`
+  anchors on `n_T` participations.
+- **Estimated statistics.** The plug-in `DTF_{F₀}(T)` or `DTF_{F_T}(T)`, both available as
+  `ClassCurves::of(fit).dtf(indices)` on any subset of a fit's trial items (L; an API, composed by
+  no runtime). The envelope `E_F` (§3) and any confidence bound are not implemented.
+- **Representation and model.** §3 with a single fit: no cross-fit sum, no class matching. H1: the
+  fit's measure, counted classes renormalized, is `μ` in the fit's scale; H2: `𝒢`'s groups are
+  mixtures of the fit's counted classes on `T`'s items; H3: `T` lies in the fit. The two designs'
+  fits need not find the same classes, and the bound needs neither labels aligned across fits nor
+  the two designs' classes compared. Both rest on the D37/D43 model and on B1–B3 (§6.1).
+- **Uncertainty and selection.** A form kept because its estimate is low carries that estimate's
+  error (§5). A per-candidate error rate is not the rate among kept forms (D): if a share `s` of
+  candidates exceeds `DTF_MAX`, each kept with probability `α`, and the others are kept with
+  probability `γ`, the share over `DTF_MAX` among kept forms is `sα/(sα + (1 − s)γ)` — 1/11 at
+  `s = ½`, `α = 1/20`, `γ = ½`; 9/19 at `s = 9/10` (C; illustrative values). The common design
+  searches many forms on one set of estimates, whose errors they share; the per-form design
+  verifies each candidate on its own sample.
+
+### 9.2 Pertinence to the target
+
+| Condition | Common, for every form it serves | Per form, for each form |
+|---|---|---|
+| H1 | one population for every form of the horizon, sampled by `F₀`, without drift until each use | each form's sample drawn from the population of its use, near that use |
+| H2 | `𝒢` represented by `F₀`'s counted classes on `T`; the classes chosen by BIC over all `P` items | `𝒢` represented by `F_T`'s counted classes, chosen over `t_T` items |
+| H3 | `T ⊆ B`; a form mixing items of two fits returns to the cross-fit sum (§3) | by construction |
+| Model | the model holding on all of `B` and the anchors; a misfitting column can move the shared parameters (`π`, `η`, histogram) of every form | the model holding on `T` and its anchors |
+| Selection | a treatment valid over every form searched on `F₀` | a treatment valid over the forms drawn and verified |
+
+**Not established either way** (nothing measured). More items give the class search more
+information on membership and can separate classes that `t_T` items leave at one (§4, row 4: a
+one-class zero on two leaning items); they also add parameters, let classes be chosen on items
+outside `T` and spread one item's misfit to the shared parameters. A larger bank is not better by
+default, and a fit per form is not valid by construction: it meets H2, the model and selection on
+fewer items.
+
+**Keeping the common reference valid**, without recalibrating at every change:
+
+- *retirement*: under local independence the model of a subset of `B` is the same mixture with
+  that subset's curves, so retired items leave the others' curves as fitted (D; C on a three-item,
+  two-class rational model);
+- *new items*: outside `B` until a fit includes them with every item they will share a form with;
+  with complete administrations, a new fit of the updated bank;
+- *population*: whether the forms' respondents are still `F₀`'s population; no statistic, data
+  or tolerance for that check is defined, and anchors alone do not establish H1 (§3);
+- *items*: drift from exposure or context (`05` [8]–[9]); the periodic latent re-check returns DIF
+  readings (`revalidate_batch_latent`), not a recalibration of the bank;
+- *procedure*: model version, floors' prior, shape and class selection pinned at `F₀`; a change
+  requires re-examining the forms it affects (a change of `DTF_MAX` alone moves no estimate).
+
+A form calibrated alone faces the same questions for its own reuse.
+
+**Gates both designs must pass today** (L): `K_MIN = 2` items, `N_LATENT_MIN = 3,000` respondents
+(a floor, not power: `15` B4–B5), anchors with KR-20 at least 0.90. `admit_templates` refuses two
+columns of one template (`01` D43): one complete fit of `B` needs `P + A` distinct templates, and
+a bank holding several variants of one template (`05` [9]) splits into fits, back to the cross-fit
+sum.
+
+### 9.3 Resources
+
+`n_c` and `n_T` are set by precision requirements not yet defined; neither is assumed equal to the
+other nor sufficient for a given precision.
+
+**Simple case** (one calibration, every attempt conclusive, no form refused, no uncertainty cost):
+
+| Quantity | Common | Per form |
+|---|---|---|
+| Participations | `n_c` | `Σ_T n_T` |
+| Distinct persons per administration | `n_c` respondent pseudonyms, one per person (`NullifierSet`; `CLAUDE.md` invariant 5) | `n_T` per form; over the horizon between `max_T n_T` and `Σ_T n_T`, the overlap unspecified |
+| Trial answers | `n_c P` | `Σ_T n_T t_T` |
+| Anchor answers | `n_c A` | `Σ_T n_T a_T` |
+| Largest load per participation | `P + A` | `max_T (t_T + a_T)` |
+| Model searches | 1 | `F` |
+
+A model search (L, `latent_dif_with` with its defaults, as `latent_batch` calls it): the
+one-class model from one start; for each mixture order `g = 2, 3, 4`, two candidates (shared and
+per-class `a`), each from `n_starts = 4` seeded starts; the orders stop at the first that adds no
+converged BIC improvement. Hence 3, 5 or 7 candidates and 9, 17 or 25 optimizer runs per search,
+each over the whole batch, with parameters linear in its columns. No time follows from these
+counts.
+
+**Break-even**, the common design strictly cheaper (D; C: the equivalences on 20,000 random
+rational cases):
+
+- participations: `n_c < Σ_T n_T`;
+- trial answers: `n_c P < Σ_T n_T t_T`; with every `n_T = n_F`, `n_c/n_F < ρ`, where
+  `ρ = Σ_T t_T/P` is the bank's mean use, forms per bank item;
+- all answers, with equal `n_F`, `t`, `a`: `n_c/n_F < F(t + a)/(P + A)`; anchors are paid once
+  per common participation, once per form participation otherwise;
+- largest load: never, when the forms lie in `B` and `A ≥ a_T`;
+- searches: fewer when `F > 1`, each on a larger batch; no statement on time.
+
+Bank items that no form of the horizon uses cost answers and serve none.
+
+**With attempts, refusals, updates and uncertainty** (D), each term explicit:
+
+- *attempts*: an admission refusal or an unconverged fit repeats the administration on a fresh
+  sample; `r_c`, `r_T` expected attempts (`17` §4.1's `(1 − (1 − κ)^k)/κ` for independent attempts,
+  an illustration); `κ` is unmeasured and may change with the batch's size, and a common
+  non-conclusion repeats all `P + A` columns at once;
+- *refused forms*: per form, a drawn form whose check fails is refused after its administration,
+  `v_T` expected administrations per kept form; in the common design a refusal costs a
+  recomputation on `F₀`, no answer;
+- *updates*: `U` complete calibrations over the horizon, the `u`-th of `P_u` items on `n_{c,u}`
+  participations;
+- *uncertainty*: `b` re-fits per bound (each a whole search; a bootstrap is one construction),
+  and confirmation participations per kept form, `n'_T` in the common design and `n''_T` per
+  form, when the treatment of selection needs fresh data, each confirmation a search of its own.
+
+In answers, the common design costs `Σ_u r_{c,u} n_{c,u} (P_u + A) + Σ_T n'_T (t_T + a_T)` and the
+per-form design `Σ_T v_T r_T n_T (t_T + a_T) + Σ_T n''_T (t_T + a_T)`; in searches,
+`Σ_u (r_{c,u} + b)` and `Σ_T v_T (r_T + b)`, plus one per confirmation. A confirmation is an
+administration and a fit of the form alone: with one per kept form the common design becomes a
+screen before per-form fits, and with confirmations of one size in both designs the comparison
+reduces to the calibrations against the per-form administrations.
+
+**Partial administrations** (extensions, no saving credited): with at most `m < P` bank items per
+participation the bounds become at least `⌈P n_c/m⌉` participations and a load `m + A`, but
+`scoring::latent` takes complete matrices (`latent_batch` refuses rows of unequal length): a
+likelihood over the observed cells, or blocks linked across fits with H1 shown (§3), needs its
+own justification.
+
+**Contested selection (`15` D3).** The selector enumerates per fit the subsets of at most `n` of
+that fit's contested members, `Σ_f S(M_f, n)` sets with `S(M, n) = Σ_{r ≤ min(M, n)} C(M, r)`, each
+a DTF evaluation (L, `ContestedPool::candidates`). The bank's size `P` does not enter; the number
+`M_f` of contested members recorded in one fit does. If the common fit is recorded in the pool
+with `B`'s contested members, each moves to it (`ContestedPool::record`), and merging never
+lowers the count: `C(M₁ + M₂, r) ≥ C(M₁, r) + C(M₂, r)` for `r ≥ 1` (Vandermonde), so
+`S(M₁ + M₂, n) ≥ S(M₁, n) + S(M₂, n) − 1`, strictly for `n ≥ 2` (D; C for `M₁, M₂ ≤ 30`, `n ≤ 15`).
+At `n = 5`, two fits of 10 members visit 638 sets each, one of 20 visits 21,700; at `n = 10`, one
+of 40 visits 1,221,246,132 (C; sizes illustrative). A wider common fit does not show the current
+enumeration sustainable. A whole form can be assessed inside one fit with `ClassCurves::dtf`, but
+no selector does so (`blueprint::assemble_test` fills quotas without DTF), and an enumeration in
+the same style over the bank would visit `S(P, t)` sets. The selector is not changed here.
+
+### 9.4 Conditional recommendation
+
+| | Favours the common calibration | Favours a calibration per form | Neither yet justified |
+|---|---|---|---|
+| Population | one target population for every form of the horizon, stable until use | the population differs by form, or drifts between calibration and use | no target population named |
+| Contrasts | — | — | `𝒢` unnamed, or its groups not representable by counted latent classes (H2) |
+| Load | `P + A` within the tolerable load per participation | `P + A` beyond it | no tolerable load stated |
+| Templates | `P + A` distinct templates | several variants per template in the bank | — |
+| Horizon | high `ρ` and `F`, few bank updates, anchors heavy relative to `t` | `ρ` near 1, frequent turnover | `F`, `ρ`, `U` unknown |
+| Uncertainty, selection | a treatment valid over the whole search without data per form | confirmation data per kept form needed anyway | no treatment: both select on estimates |
+| Model | — | — | misspecification and class search unassessed (B1–B3); a converged zero certifies nothing (§4, row 4) |
+| Contested selection | few contested members per fit, or a selector that does not enumerate | — | `M_f` beyond what the enumeration sustains (D3) |
+
+**What the comparison decides now.** With complete administrations the common design never lowers
+the load per participation and is excluded where `P + A` exceeds the tolerable load; its saving in
+answers holds exactly under §9.3's inequalities; it needs `P + A` distinct templates and forms
+inside one fit; retirement leaves the remaining curves as fitted, while new items, population drift
+and procedure changes need §9.2's checks; it does not make the contested enumeration sustainable.
+Neither design is valid by construction: both need H1, H2, the model and a treatment of selection.
+
+**No winner today.** The minimum information to cross the boundary, in order:
+
+| Information | From | The choice it can change |
+|---|---|---|
+| tolerable items per participation | owner (product, resources) | below `P + A`, the complete common design is excluded today |
+| whether one population serves every form of the horizon | owner (product) | if not, a common calibration per population at most, or per form |
+| the treatment of uncertainty and selection | Astra (design) | without confirmation data the common design keeps its saving; with them it becomes a screen before per-form fits |
+| `F`, `Σ_T t_T`, `A`, `a_T` and the expected bank changes | owner (resources), with the blueprint | which side of §9.3's break-even holds |
+| `n_c/n_F` at equal precision, once the tolerable error is stated | a targeted calculation on the candidate model | needed only if the four lines above leave the break-even open |
+
+Anonymity (no personal or group attribute enters; groups only through latent classes, H2) and
+the recovery of contested facts (both designs keep them in forms, H3) bound both designs. The
+test's neutrality is not certified, and R3 is not an approved solution.
