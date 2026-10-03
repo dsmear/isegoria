@@ -21,11 +21,18 @@ they win.
   derivation, its binary reduction and the pointwise bound `[−1, 1]`; B-b's derivation (fixed
   denominator, joint invariance, positive probability of conclusion); the abstract constructions'
   calculations within their stated limits. **Not approved: §7 as a whole, any implementation.**
-  §7 rectified on top of `654dbff` (the vector IPW's path conditions, B-b's conditional target and
-  the case `c = 0`, the calibrations, constructions sufficient rather than unique); documentation
-  only; not pushed. Astra prefers to deepen B-b as the main candidate in the next design
-  comparison, the ternary score as the alternative: no protocol change approved, C2 and A1 not
-  closed. A1 and A2 stay open; R1 stays approved.
+  §7 rectified in `825cee3` (the vector IPW's path conditions, B-b's conditional target and the
+  case `c = 0`, the calibrations, constructions sufficient rather than unique). **Astra approved
+  `825cee3`: `17` §7 accepted as a conditional analysis, not as a protocol approved for
+  implementation** (the diff read; the IPW identity checked with rational arithmetic on a
+  construction with dependent draw and observed outcome meeting the corrected conditions; no Rust
+  or fit run). B-b is the main candidate, the ternary score an alternative.
+- **B-b's candidate contract: `17` §8, a proposal, not approved, not implemented**, on top of
+  `825cee3`; documentation only; not pushed. It defines the contribution per outcome, the cases,
+  cohort consolidation, the counts, the joins with the reputation, and recommends to Astra
+  deepening B-b on design A (C as the comparison, D not recommended); impediments: a missing
+  availability property, A's capacity, shared residues. A1, C2 and A2 stay open; R1 stays
+  approved.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -98,9 +105,8 @@ including anchors, fits and time. It must compare a reusable common calibration 
 per form without presuming either valid or inevitable. Constraints: anonymity (no personal or
 group attributes enter), the recovery of contested facts; the test's neutrality is not to be
 declared certified. No full new roadmap yet. Astra's candidate for linking A1, C2, A2 and the
-costs is checked in `17` §7: its derivations and calculations are approved as conditional results,
-§7 as a whole is not; the next comparison deepens B-b as the main candidate, the ternary score as
-the alternative.
+costs is checked in `17` §7, accepted by Astra on `825cee3` as a conditional analysis; B-b, the
+main candidate, is specified as a candidate contract in `17` §8, awaiting Astra's review.
 
 ## 6. Essential reading to resume
 

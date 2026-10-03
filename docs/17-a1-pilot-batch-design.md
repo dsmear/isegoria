@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results, **not §7 as a whole nor any implementation**; §7 was rectified after that review. |
-| **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467`, rectified on `654dbff`, and names code by symbol. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: **a proposal, not approved**. |
+| **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
 
@@ -496,10 +496,14 @@ invariance and a positive probability of conclusion (§7.5); the abstract constr
 calculations, within their stated limits. Not approved: §7 as a whole, and any implementation.
 Rectified after that review: §7.1's path conditions, §7.5's B-b, §7.6's calibrations, and
 constructions now stated as sufficient, not unique. Astra's preference for the next design
-comparison is in §7.7. Nothing here changes code, API, threshold, golden output or current
-policy; A1 and A2 stay open, R1 stays approved. Evidence: L, D and C as above; every C is an
-exact rational enumeration whose formula is given in place. No fit, smoke, campaign, calibration
-or mutation run.
+comparison is in §7.7. Review on `825cee3` (Astra): §7 accepted as a conditional analysis, not as
+a protocol approved for implementation; evidence: the diff read and the IPW identity checked with
+rational arithmetic on a construction whose draw and observed outcome are dependent yet meet the
+corrected conditions; no Rust or fit run. B-b the main candidate, the ternary score an
+alternative; A1, C2 and A2 open. Its non-blocking precision is made in §7.5 (*Selection*).
+Nothing here changes code, API, threshold, golden output or current policy; A1 and A2 stay open,
+R1 stays approved. Evidence: L, D and C as above; every C is an exact rational enumeration whose
+formula is given in place. No fit, smoke, campaign, calibration or mutation run.
 
 **The candidate.** (a) A reference procedure is attached to each item before any report: group,
 respondents' and anchors' sampling, model, attempts and term. (b) Its outcome `Y` has three
@@ -648,10 +652,11 @@ What stays in all three:
 
 - **Availability.** Each needs §7.2's procedure, term and recorded `I`: B-a to record 0, B-b to
   record no contribution, the candidate to record `I`. A binary report saves none of it.
-- **Selection.** Where `u`'s deviations can move companions, load or timing (§7.3), the
-  invariance fails whatever the target. In §7.3's construction B-a gains `(3/5)² = 9/25`; B-b
-  gains when `u`'s truthful expected contribution is negative, e.g. `−q_c(1 − q_c) = −6/25` when
-  the baseline already equals the conclusive outcome.
+- **Selection.** A deviation of `u` that moves companions, load or timing is a possible channel
+  (§7.3): the invariance fails when the move changes the joint law of `(b, Y)` given `F_u`, not
+  at every organizational change; when it does, it fails whatever the target. In §7.3's
+  construction B-a gains `(3/5)² = 9/25`; B-b gains when `u`'s truthful expected contribution is
+  negative, e.g. `−q_c(1 − q_c) = −6/25` when the baseline already equals the conclusive outcome.
 - **Statistical dependence against a change caused by a deviation.** `I` may depend statistically
   on the item's quality and on the information behind the reports (convergence is batch-level,
   §2; a mixture fit may converge less often, §5): none of the three results needs `I` independent
@@ -713,3 +718,145 @@ contract (§7.5). **Direction (Astra, after the review of `654dbff`):** B-b is t
 main candidate in the next design comparison, the ternary score as the alternative. This approves
 no protocol change and closes neither C2 nor A1. An admissible item certifies no form's DTF, and
 the two calibrations stay to be compared (§7.6).
+
+## 8. B-b as a candidate contract (proposal, not approved)
+
+**Status.** A proposal of this check, built on §7.5's B-b (its derivation approved by Astra as a
+conditional result on `654dbff`) and on Astra's direction (§7.7); **not approved, not
+implemented**. It changes no code, API, threshold, golden output or policy and closes none of A1,
+C2, A2. **H** marks a hypothesis, **D** a consequence proved here or in §7 under the stated
+hypotheses (with C where an exact enumeration checks it), **Open** a decision or evidence still
+needed.
+
+### 8.1 Definition, hypotheses, consequences
+
+- **Assignments.** `R_u`, fixed by the assignment record; `N_u = |R_u|` (C4).
+- **Reference procedure.** Per item, fixed before the reports (§7): group, sampling, anchors,
+  model and thresholds, attempt budget, term in log order; outcome `Y_j ∈ {A, R, I}`, `I` only on
+  §7.2's positive records.
+- **Selection.** `S_j = 1` when `j`'s reference procedure is run and scored; `π_j` its recorded
+  inclusion probability, set by the observation design (§8.5) and `F_Φ`-measurable.
+- **Contribution.** With report `p = p_uj` and baseline `b = b_uj` (C5's composition, `16` §4.6):
+  `g_uj = (b − 1)² − (p − 1)²` if `Y_j = A`; `b² − p²` if `Y_j = R`; `0` if `Y_j = I`, terminal.
+- **Score.** `Ŝ_u = (1/N_u) Σ_{j ∈ R_u} S_j g_uj / π_j`, on consolidated cohorts (§8.3).
+- **Target.** `q_c = P(Y = A | Y ≠ I, F_u)`, with `c = P(Y ≠ I | F_u)`.
+
+**H.** (H-a) H0, `F_u ⊆ F_Φ`. (H-b) On each path's event and for `k ∈ {A, R}`,
+`E[S_j 1{Y_j^obs = k} | F_Φ] = π_j P(Y_j = k | F_Φ)`: §7.1's (2e) and (2x) on the conclusive
+coordinates. (H-c) The joint law of `(b_uj, Y_j)` given `F_u` is invariant under `u`'s joint
+deviation over `R_u`. (H-d) Every report in `R_u` completed; C5.
+
+**D.**
+
+1. Under H-a–H-d, `E[Ŝ_u | F_u] = (1/N_u) Σ_j E[g_uj | F_u]`, with
+   `E[g | F_u] = E[1{Y ≠ I}(b − o)² | F_u] − c[(p − q_c)² + q_c(1 − q_c)]`: `q_c` is the unique
+   maximizer where `c > 0`; where `c = 0` every report gives 0 (§7.5).
+2. `g = ⟨γ, e_Y⟩` with `γ = ((b − 1)² − (p − 1)², b² − p², 0)` `F_Φ`-measurable: no constant
+   term, a zero coefficient on `I`. The mean therefore needs H-b on `A` and `R` only; C1 on the
+   whole selection, `E[S_j | F_Φ] = π_j`, is not needed by it, though §8.4's counts need it. (C:
+   `π = ½`, `Y` uniform, `S = 1` on `I` and Bernoulli(½) otherwise, `b = ½`, `p = ¾`:
+   `E[S] = ⅔`, and the IPW mean equals `E[g(Y)] = −1/24`.)
+3. `−1 ≤ g ≤ 1` pointwise, so a realized term `S g/π` lies in `[−1/π, 1/π]` (C, on twentieths).
+4. On a verdict, with `p, b ∈ [0, 1]`, `g = 0` exactly when `p = b`: `(b − o)² = (p − o)²` gives
+   `p = b` or `p = 2o − b`, and the second lies in `[0, 1]` only when `b = o` (D; C on twentieths).
+
+### 8.2 Cases
+
+| Case | Evidence required | Numerator | In `N_u` | Inclusion probability | Consolidable |
+|---|---|---|---|---|---|
+| 1. Assigned, not selected | the assignment, the completed report and the record fixing `S_j = 0`: the design's draw on its round under `16` §5's rule and, under D, no member's entry; the case does not arise under A | 0, the IPW term of an unobserved item, not an observation | yes | `π_j` recorded; no term uses it | yes, once `S_j = 0` is final |
+| 2. Selected, procedure pending | the selection and association records; no terminal record | none yet, never 0 | yes | `π_j` at selection | no: provisional (§8.3) |
+| 3. Positive conclusion | a reproducible terminal verdict `A` (§7.2) | `[(b − 1)² − (p − 1)²]/π_j` | yes | `π_j` | yes |
+| 4. Negative conclusion | the same, verdict `R` | `(b² − p²)/π_j` | yes | `π_j` | yes |
+| 5. Verifiable terminal inconclusiveness | §7.2's positive records for every attempt of the budget | 0, an observed outcome without a verdict | yes | none in the numerator; `π_j` in the counts (§8.4) | yes |
+| 6. Report not completed | the assignment, the reveal deadline and no valid reveal before it; a lost or censored reveal leaves the same absence | **Open**: no `p`, so no `g`; `16` §4.4's `s_ns ≤ −1` is a proposal, not approved | **Open**: C4 includes it; with a 0, withholding pays where the expected contribution is negative (§7.5's −6/25); excluded, C4 fails | — | no rule yet |
+| 7. Freeze not reached | other reports, the decision or the appeal window not final; a missing reveal freezes the item today (`PartialEpoch`, T58 not implemented) | none yet | yes | not yet set | no |
+
+Cases 1 and 5 and a verdict with `p = b` all add 0, for different reasons (§8.4). A pending item
+is never read as 0, nor a missing record as `I` (§7.2).
+
+### 8.3 Consolidation and availability
+
+- **Cohort.** A set of assignments fixed by a rule on the assignment record alone (for instance
+  `u`'s assignments of one epoch), never by outcomes or arrival times.
+- **Consolidated** when every member is in case 1, 3, 4 or 5: it then adds `Σ S_j g_uj/π_j` over
+  its size, final. D1 holds for each consolidated cohort and their union.
+- **Provisional before.** Terminal terms are fixed; with `P` the pending members, the cohort's sum
+  lies within `Σ_{j ∈ P} 1/π_j` of its known part (D3). Cases 6 and 7 have no bound until a rule
+  exists. Any use of a provisional value by the reputation is a decision outside D1.
+- **Not item by item** (D). A running mean over items as they terminate weights outcomes by their
+  time to terminate: a screen rejection ends at stage 1, a verdict `A` only after stage 2 (§1,
+  rows 5 and 8), an `I` after the whole budget. D1 is about fixed sets and does not cover it.
+- **Term against record.** The term is the log position by which the procedure's rule ends it; a
+  terminal record is a verifiable entry. Past the term without a record the item stays in case 2:
+  not `I`, not 0, not dropped.
+- **Missing availability property.** Consolidation needs every selected item's terminal record
+  within a bounded log interval after its term, every report completed or replaced (T58) and, in
+  a drawn design, the draw's beacon round formed under its rule (`16` §5). None holds today: no
+  runtime composes the pilot (§1), T58 is not implemented, a round needs `t` reveals (`16` §6).
+  Without it a cohort can stay provisional indefinitely. Not solved here: an overdue rule that
+  assigns a value (0, `I`, removal) lets whoever controls the late record choose that value,
+  unless the value is shown invariant to that choice.
+
+### 8.4 Information and reputation
+
+| Count | Definition | Measures |
+|---|---|---|
+| `N_u` | the assignments of `R_u` | exposure |
+| `O_u` | `Σ S_j` over cases 3–5 | observed terminal outcomes |
+| `V_u` | `Σ S_j` over cases 3–4 | conclusive verdicts, the only evidence on `p` |
+
+None of them is `Σ S_j/π_j`, an IPW estimate of `N_u`, not evidence (`16` §7). A 0 comes from a
+non-selection (no observation), an observed `I` (no verdict), a verdict with `p = b` (D4: the
+report matched the baseline) or, if a rule gave it, a missing reveal; only the third is evidence
+on `p`.
+
+| Element | Today (L) | From D1 | Open |
+|---|---|---|---|
+| `SkillTrack` | `record_observed(score, π)` adds `score/π` and counts reviewed and scored; `record_unobserved` counts reviewed; a pending item counts nothing; `skill()` divides by reviewed | the numerator and `N_u` on consolidated cohorts | two counters for `N_u`, `O_u`, `V_u`: an observed `I` through `record_observed(0, π)` counts as scored like a verdict, through `record_unobserved` like a non-selection; reviewed equals `N_u` only once every assignment is recorded |
+| Probation | `status` reads the scored count against `N_PROBATION = 30` | nothing | `O_u` (an `I` advances it without a verdict) or `V_u` (its pace set by groups' conclusiveness) |
+| Shrinkage | `odds_weight(S_u, k_u)`, `k_u` the scored count | nothing: the weight's incentives lie outside the proof (`16` §4.5) | which count is `k_u`; `γ`, `k₀` on B-b's distribution (T25) |
+| Cap | `3 × median` of the epoch's weights | nothing | its effect on incentives, unassessed |
+| CUSUM | each observed score against the unweighted mean of observed scores, out of probation | nothing | whether observed `I` zeros enter (each adds `reference − k` while the reference exceeds `k`, so a group failing to converge moves it with no change of skill); the order of entry (§8.3); AT-REP-07's rates do not transfer |
+
+**Counts and reports** (D, under H-c, C's draw independent of the outcomes): per judgment the
+expected increments of `O_u` and `V_u` at consolidation are 1 and `c` under A, `α` and `α c` under
+C, free of `u`'s report; under D they follow `A_G`, hence the reports (§4, D).
+
+### 8.5 Observation design
+
+| | A — fixed groups, all piloted | C — group audit at `α` | D — activated by entry or drawn |
+|---|---|---|---|
+| Inclusion; information at report | `π = 1`, no draw; outcomes hidden until the reports freeze | `π = α`, drawn after the reports freeze; C1 and H0 need a source no one reads or selects before: `16` §6's residual | `π ∈ {1, ε}`, drawn after `Φ_G`; the same residual |
+| Invariance under joint deviations | the piloted set is the admitted set, fixed before the reports: companions, load and timing need not depend on them | audited groups report-blind; pool-entry pilots of unaudited entrants share resources unless separated or reserved | activation follows entries, so the number of groups piloted and their timing follow reports (§7.3); invariance not shown |
+| Availability; consolidation | a terminal record for every assignment; no beacon | unaudited items consolidate at the draw (a beacon round); records for audited groups only | drawn groups wait for a beacon round, activated ones for their slowest member's freeze |
+| Counts and reports | increments 1 and `c`, report-independent | `α` and `α c`, report-independent; group draws change their variance (§4.1) | report-dependent through `A_G` |
+| Costs; reuse (§4.1, declared scenario) | +316.825 slots a month, 95.0% of declared capacity; pool entry from the group's verdict, no reuse condition | from +0 (`α = ε`, full reuse) to +333.5 (`α = 0.525`, separate); reuse needs one group, sampling, procedure and timing | between the reference and A, set by `K` and the unmeasured joint law of entries; reuse inside the group |
+
+Respondents, anchor answers and fit time per design stay unmeasured (`15` D2, D4).
+
+**Recommendation to submit to Astra (not approved): deepen B-b on A.** Of the three, only A
+scores without a draw (C1 and the beacon's behavioral model, a blocking premise of `16` §9, leave
+the scoring guarantee); fixes its piloted set, load and counts before the reports (§7.3's main
+channels closed by construction, the procedure's own residues apart); and makes pool entry and
+the reference one procedure (no reuse condition). C is the comparison if A's capacity is
+unavailable: constant `π` and report-independent counts, at the price of the randomness
+guarantee and of separating pool-entry pilots. D is not recommended for B-b: its counts and load
+follow the reports.
+
+**Impediments to adopting it.** (1) §8.3's availability property is missing, and under A every
+assignment depends on it. (2) A's increment is the largest on the declared scenario (95.0%), a
+resource commitment escalated with the design (`15`, working agreement 3), not before. (3)
+Residues of every design: cases 6 and 7, §8.4's counters, the procedure's closure at association
+(§7.3), the bridging rating now forecasting `q_c` with `τ`, the band and the polarization cut
+unvalidated for it (§7.5), and whether A1 needs the reputation's incentives (`16` §9).
+
+### 8.6 Acceptance criteria for any implementation
+
+1. Every assignment of `R_u` enters `N_u`; a test shows it.
+2. A selected item without a terminal record is never recorded as 0 or as `I`.
+3. The contribution matches §8.1 in each case; an `I` adds 0 and counts in `O_u`, not in `V_u`.
+4. A cohort's rule reads only the assignment record; a cohort consolidates only when every member
+   is in case 1, 3, 4 or 5.
+5. The recorded `π_j` is the design's inclusion probability; on an exact enumeration the IPW mean
+   equals the cohort's expected contribution.
