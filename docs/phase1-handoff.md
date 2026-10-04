@@ -230,16 +230,35 @@ they win.
   specification. Its non-blocking precision is made in `17` §§9.2–9.3: `g(I) = 0` does not depend
   on `p`; a missing report's assignment stays unscored because no approved rule extends B-b to
   case 6.
-- **The bridging input under B-b: `17` §10** (documentation only, not pushed by the session; **a
-  proposal awaiting review**, not covered by §9's approval). It traces the report from its
-  commitment to the gate (implemented, documented and missing layers); shows that `q_c` carries
-  nothing on `c` (with `q_c = 9/10`, `P(A | F_u)` is 9/10 at `c = 1` and 9/20 at `c = ½`, either
-  side of today's band) and that D1 prices a report's shift at `c(p − q_c)²`; compares α, `q_c`
-  as the input with a declared new meaning, and β, an unconditional probability needing `c`
-  elicited or supplied; finds that under A the gate decides pool entry only, timing being the
-  remaining possible channel to H-c, not a demonstrated violation. Missing presupposition: what
-  the gate protects under B-b. My recommendation, not a decision: settle that, then α as the
-  study's reference with β as comparison, and next the timing rule under A.
+- **The bridging input under B-b: `17` §10, `ac06d3c`** (documentation only): the path from a
+  report to the gate; what a B-b report carries; α (`q_c` as the input) against β (an
+  unconditional probability); whether the gate's decisions can move `Y`.
+- **Astra's review of `ac06d3c`: partial** (the commit, its parent and the published HEAD
+  checked; the diff, the contracts and the relevant code read, the harness's bootstrap path
+  included; small exact calculations with fractions; no Rust, fit or campaign run; Claude Code's
+  local checks not repeated, the working tree not checked through GitHub). **Approved results**,
+  under the stated hypotheses: `P(Y = A | F_u) = c q_c` for `c > 0`; `q_c` alone does not fix it;
+  at `c = 0` the score is indifferent among reports; the expected loss of contribution
+  `c(p − q_c)²`, a property of the score, not a demonstrated measure of the reputational
+  incentive or of the reviewer's overall utility. Also approved: the record of `b2a1c2f`'s
+  approval and §9's precision. Not approved: §10 as a whole. **Direction**: α the main
+  reference, β a comparison with its information obligations; no threshold, pool entry,
+  implementation or start of the study approved.
+- **Rectifications of `ac06d3c`** (documentation only, not pushed by the session; **awaiting
+  review**), in `17` §10 corrected in place: the path split into report, ratings matrix, fit and
+  side-balanced score, robust score (the bootstrap minimum, composed only by the harness), gap
+  and coverage (from the full fit), first decision (`bridging_gate`'s API apart from what feeds
+  it) and supplementary review (a fresh fit against the plain `τ`); the 9/10 against 9/20 example
+  a difference of probabilities, its comparison with `τ ± ε` a matter of scale only; empirical
+  success, conclusion and pool entry apart, so `P(Y = A | F_u)` is not an entry probability; α
+  keeps the scalar format and can keep the commitment but changes the forecast's semantic
+  contract; thresholds to revalidate, no change of value shown necessary; a public conclusion
+  frequency need not equal `c_uj` (Astra's example, checked: 9/50 and 18/25 against 9/20), so
+  `ĉ_j q_c` is a candidate indicator needing declared hypotheses; under A the prescribed set is
+  fixed, not the work, samples, timing or outcome law; production, publication and reviewers'
+  information apart in time; shared parameters moved only by participants of the collective fit
+  (A7); a term in attempts and procedures not waiting for freezes exclude no channel by
+  themselves; the claim that the waiting rule decides the channel withdrawn.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -288,7 +307,8 @@ they win.
   on `b59fd03` as a conditional analysis; §9.6 (one fixed form) approved on `00f8e2c` as a
   conditional analysis; §10, toward an experimental protocol, approved on `26593e7` as a
   preparatory synthesis; `17` §9 (cases 5–7 for a study) approved on `b2a1c2f` as the study's
-  reporting specification; `17` §10 (the bridging input) a proposal awaiting review. No
+  reporting specification; `17` §10 (the bridging input) partly approved on `ac06d3c`, its
+  rectifications awaiting review. No
   calibration is chosen, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
@@ -301,7 +321,8 @@ they win.
   randomness guarantee (a behavioral model of the beacon's members, or a source change); deferred
   draw against audit; whether A1 needs the incentives of the reputation actually used (`k_u`,
   shrinkage, cap, CUSUM). For a study's reporting, `17` §9's 6c and 7a are decided (`d31e9fa`;
-  §9 approved on `b2a1c2f`); the bridging input under `q_c` is open (`17` §10, awaiting review);
+  §9 approved on `b2a1c2f`); the bridging input under `q_c` is open (`17` §10, its results on a
+  report approved on `ac06d3c`, α the reference; rectifications awaiting review);
   T58 stays open for a procedure that must proceed despite missing reports.
 - **B1–B3:** identification of the floors and of the histogram through the responses, weak
   information, the moment penalty's choice and effects, BIC under misspecification and on
@@ -324,10 +345,12 @@ analysis. The shared aim is a circumscribed, coherent, executable and evaluable 
 protocol; that direction approves no protocol and closes no finding. `19` §10, approved on
 `26593e7` as a preparatory synthesis, sorts the decisions, measurable hypotheses and excluded
 promises toward it; `17` §9, approved on `b2a1c2f`, is the study's reporting specification for
-cases 5–7 under design A, with 6c and 7a as its basis. `17` §10 analyses the priority link Astra
-set next, the bridging input's meaning when the report forecasts `q_c`; the next step is Astra's
-review of it, with the rest of `19` §10.5's perimeter still to decide. No roadmap or campaign is
-added, and no choice or parameter is asked of the owner.
+cases 5–7 under design A, with 6c and 7a as its basis. `17` §10 analyses the bridging input's
+meaning when the report forecasts `q_c`: its results on what a report carries are approved, α is
+the main reference and β the comparison by Astra's direction. The next step is Astra's review of
+the rectified §10; the specification of timing under A comes after it, with the rest of `19`
+§10.5's perimeter still to decide. No roadmap or campaign is added, and no choice or parameter is
+asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
 break-even inequalities; the minimum information to cross the boundary is the tolerable load,
@@ -585,5 +608,21 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   shift of 1/10 at `c = 1, ½, 0`. Documentation checks: the diff, whitespace (`git diff --check`),
   line widths, `scripts/comment_budget.py`, references and relative links of the edited docs, the
   states across `15`, `17`, `19` and this note. No Rust test, fit, smoke, characterization,
+  calibration, benchmark or mutation run.
+- **Astra, review of `ac06d3c`** (as it records): the commit, its parent and the published HEAD
+  checked; the diff, the contracts and the relevant code read, the harness's bootstrap path
+  included; small exact calculations with fractions. No Rust, fit or campaign run; Claude Code's
+  local checks not repeated; the working tree not checked through GitHub.
+- **Claude Code, record of that review and the rectifications of `17` §10:** branch, HEAD
+  `ac06d3c` (parent `b2a1c2f`), no later local commit and a working tree with only `.gitignore`
+  modified checked first. Read (L), at `ac06d3c`: `scoring::bridging::{fit, participates,
+  Core::{of, expand}, side_balanced, bridge_scores, coverage}`; `characterization::run::
+  {gate_char, sweep}` with `BOOTSTRAPS` and `KEEP`; `gate::{bridging_gate,
+  supplementary_review}`; `02` §A.4; `15` A7; `17` §4 (A). Exact calculations (C), with fractions
+  in a scratch script not kept: Astra's private-signal example (public frequency ½; individual
+  probabilities of `A` 9/50 and 18/25; the public product 9/20 in both, equal to their mean only).
+  Documentation checks: the diff, whitespace (`git diff --check`), line widths,
+  `scripts/comment_budget.py`, references and relative links of the edited docs, the states
+  across `15`, `17`, `19` and this note. No Rust test, fit, smoke, characterization,
   calibration, benchmark or mutation run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.

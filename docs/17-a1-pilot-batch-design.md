@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, is **a proposal awaiting review**. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was **partly approved by Astra on `ac06d3c`** (its results on what a report carries); its rectifications **await review**. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -1122,92 +1122,131 @@ meaning when the report forecasts `q_c` (`19` §10.1), not developed here. The s
 and A1 stays open: these cases are made representable and verifiable, not settled by giving up
 its guarantees.
 
-## 10. The bridging input under B-b (proposal awaiting review)
+## 10. The bridging input under B-b (partly approved; rectifications awaiting review)
 
-**Status.** A proposal by Claude Code on the direction of Astra's reviews of `d31e9fa` and
-`b2a1c2f`, **awaiting review**; §9's approval does not cover it. It asks what information enters
-the bridging when B-b elicits `q_c = P(Y = A | Y ≠ I, F_u)`. It adopts no protocol and changes no
-code, API, commitment, threshold or calibration. **L** read at `b2a1c2f`; **D** derived here;
-**C** exact calculations with fractions in a scratch script, formulas in place.
+**Status.** A proposal by Claude Code in `ac06d3c`, on the direction of Astra's reviews of
+`d31e9fa` and `b2a1c2f`; §9's approval does not cover it. It asks what information enters the
+bridging when B-b elicits `q_c = P(Y = A | Y ≠ I, F_u)`. It adopts no protocol, changes no code,
+API, commitment, threshold or calibration, and gives `Y` no new operational definition: a
+candidate is analysed. **L** read at `ac06d3c`; **D** derived here; **C** exact calculations
+with fractions in a scratch script, formulas in place.
 
-### 10.1 The current contract
+Astra's review of `ac06d3c` (the commit, its parent and the published HEAD checked; the diff,
+the contracts and the relevant code read, the harness's bootstrap path included; small exact
+calculations with fractions; no Rust, fit or campaign run; Claude Code's local checks not
+repeated, the working tree not checked through GitHub): approved, under the stated hypotheses,
+§10.2's results — `P(Y = A | F_u) = c q_c` for `c > 0`; `q_c` alone does not fix it; at `c = 0`
+the score is indifferent among reports; the expected loss of contribution `c(p − q_c)²`, a
+property of the score, not a demonstrated measure of the reputational incentive or of the
+reviewer's overall utility. Not approved: §10 as a whole. Direction for the next specification:
+α the main reference, β a comparison with §10.3's information obligations; no threshold, pool
+entry, implementation or start of the study approved. Rectified after that review, **awaiting
+review**: the path (§10.1); the three events and the scale comparison (§10.2); the alternatives'
+meaning and the reconstruction through an estimate (§10.3); time under A and the shared
+parameters (§10.4); §10.5.
 
-| Step | Implemented (L) | Documentary contract | Operational composition |
+### 10.1 The current path, from a report to a decision
+
+| Step | Implemented (L) | Documentary contract | Composition today |
 |---|---|---|---|
-| report, commitment | one `prob` in `[0, 1]`; `review::commit` hashes its eight bytes (`isegoria/commit/v2`); the lifecycle refuses a reveal outside `[0, 1]` | `p_uj`, the probability that the item passes Level B validation (`02` §C.2) | `review::submit_review` through `NodeState::apply` |
-| bridging input | `orchestrator::weighted_ratings` builds `Ratings` from a ratings matrix, with D33's weights from the previous standing | the same number is the rating `r_uj`: the gate's input is the scored forecast (`01` D23, D33) | no path feeds it the epoch's reveals |
-| score | `scoring::bridging::{fit, side_balanced}`: `S_j = (A_j + B_j)/2`, gap `|A_j − B_j|` | `02` §A.3 | — |
-| decision | `gate::bridging_gate`: under `MIN_COVERAGE = 1` the band whatever the score; pass at `S_j ≥ τ + ε`; the band `[τ − ε, τ + ε)` to the extra round; below it appealable if the gap is at least `APPEAL_GAP`, else rejected (`TAU = 0.80`, `EPS = 0.02`, `APPEAL_GAP = 0.25`); `supplementary_review` re-decides against `τ` | provisional values, argued on the reference simulation for the current meaning (`02` §A.3; T25) | `orchestrator::run_item` steps the lifecycle on a gate outcome its caller supplies; only the characterization harness composes fit and gate |
-| scored outcome | `exploration::outcome_of`: pool, contested or retired 1; rejected at screen or DIF 0; `Measured` its pass | `o_j`, pool entry or a measured pass | — |
+| individual report | one `prob` in `[0, 1]`; `review::commit` hashes its eight bytes (`isegoria/commit/v2`); the lifecycle refuses a reveal outside `[0, 1]` | `p_uj`, the probability that the item passes Level B validation (`02` §C.2); the same number is the rating `r_uj` (`01` D23, D33) | `review::submit_review` through `NodeState::apply` |
+| ratings matrix | `orchestrator::weighted_ratings` builds `Ratings` from a matrix, with D33's weights and the axis floor (`axis_mask`) | `02` §§A.1, A.4 | no production path fills it with an epoch's reveals |
+| fit, side-balanced score | `scoring::bridging::fit`: the collective fit of the participants (on the axis, positive weight), the others placed on the fixed axis; `side_balanced`: `S_j = (A_j + B_j)/2` over the participants' sides | `02` §§A.1, A.3 | — |
+| robust score | `bridge_scores`: the minimum of the full fit's side-balanced score and of bootstrap subsamples' (participants' observations kept with probability `keep_frac`) | `02` §A.4: the minimum over `m = 10` subsamples, about 15% removed | only the characterization harness calls it (`BOOTSTRAPS = 10`, `KEEP = 0.85`) |
+| gap, coverage | the full fit's `SideScores::gap`; `coverage` over the full fit's sides | `02` §A.3 | in the harness, from the full fit |
+| first decision | `gate::bridging_gate(score, gap, coverage, τ, ε, appeal_gap)`, an API taking its values from the caller: under `MIN_COVERAGE = 1` the band; pass at `≥ τ + ε`; the band `[τ − ε, τ + ε)`; below, appealable if the gap reaches `APPEAL_GAP`, else rejected (`TAU = 0.80`, `EPS = 0.02`, `APPEAL_GAP = 0.25`) | provisional values argued on the reference simulation for the current meaning (`02` §A.3; T25) | the harness passes the robust score with the full fit's gap and coverage (`characterization::run::gate_char`); `orchestrator::run_item` steps the lifecycle on an outcome its caller supplies |
+| supplementary review | `gate::supplementary_review`: a fresh `fit` over the expanded ratings, its side-balanced score against the plain `τ` if covered, else the below-band rule | `01` D26; `02` §A.3 | in the harness; in the lifecycle, a `redecide` its caller supplies |
 
-Under design A the gate keeps a role in pool entry only: every item is piloted for measurement,
-and band and appeals change pool entry, never scoring (§4, A).
+The scored outcome today is `exploration::outcome_of`: pool, contested or retired 1, rejected at
+screen or DIF 0, `Measured` its pass. Under design A every item is piloted for measurement; band
+and appeals change pool entry, never scoring (§4, A).
 
 ### 10.2 What a B-b report carries
 
-With `c = P(Y ≠ I | F_u)` and `c > 0`: `P(Y = A | F_u) = c q_c`, `P(Y = R | F_u) = c(1 − q_c)`,
-`P(Y = I | F_u) = 1 − c`. A report of `q_c` carries nothing on `c`. Example (C): two items with
-`q_c = 9/10`, one with `c = 1`, one with `c = ½`. Then `P(A | F_u)` is 9/10 and 9/20: on today's
-scale both reports clear `τ + ε = 0.82`, while 9/20 lies below `τ − ε`. If `c = 0`, `q_c` is
-undefined and B-b prefers no report (§8.1, D1). For `c > 0`, D1 prices a report `p ≠ q_c` at
-`c(p − q_c)²`: a shift of 1/10 costs `c/100` (D; C), so the input is disciplined in proportion to
-`c`. Eliciting `c` would change the contract, the commitment and the incentive analysis — no
-proper rule scores `c` under B-b (§7.5) — and none is introduced here.
+Three events, apart: the reference procedure's empirical success, `Y = A`; its conclusion,
+`Y ≠ I`; the item's entry into the pool, which under A also needs the gate (§4): an item piloted
+for measurement only can reach `Y = A` and stay out. `P(Y = A | F_u)` is not, in general, a
+probability of entry.
 
-### 10.3 Two minimal alternatives
+With `c = c_uj = P(Y_j ≠ I | F_u)` and `c > 0`: `P(Y = A | F_u) = c q_c`,
+`P(Y = R | F_u) = c(1 − q_c)`, `P(Y = I | F_u) = 1 − c` (D). `q_c` alone does not fix
+`P(Y = A | F_u)`: with `q_c = 9/10` it is 9/10 at `c = 1` and 9/20 at `c = ½` (C). Set against
+`τ ± ε` the two numbers fall either side of today's band, a comparison on the scale only: a
+bridging decision reads the robust side-balanced score of every participant (§10.1), so it does
+not show that two reports would give different decisions. At `c = 0`, `q_c` is undefined and the
+score is indifferent among reports (§8.1, D1). For `c > 0`, D1 gives the expected loss of
+contribution from a report `p ≠ q_c` as `c(p − q_c)²` — a shift of 1/10 costs `c/100` (D; C) — a
+property of the score, not a measure of the reputational incentive or of the reviewer's overall
+utility. Eliciting `c` would change the contract, the commitment and the incentive analysis (no
+proper rule scores `c` under B-b, §7.5); none is introduced.
 
-| | α. `q_c` as the input | β. an unconditional `P(A | F_u)` reconstructed |
+### 10.3 Two alternatives
+
+| | α. `q_c` as the input | β. `P(Y = A | F_u)` reconstructed |
 |---|---|---|
-| rating's meaning | admissibility given a conclusive verdict, declared as the input's new meaning | the current meaning, kept |
-| report, commitment | unchanged: one scalar in `[0, 1]`, `commit/v2` | needs `c`: elicited from `u` (a second report, or §7's vector with a vector commitment and a simplex check, §7.4), or supplied by the system (an estimate `ĉ_j` per item from records of conclusiveness, available before the pilot and independent of the reports) |
-| incentives | D1 for `q_c` under H-a–H-d; weak where `c` is small (§10.2) | elicited: B-b does not score `c`, so a proper rule for it, or §7.1's ternary score, and its analysis; supplied: `ĉ_j q_c` is no longer `u`'s forecast, and `ĉ_j`'s error enters every decision |
-| `τ`, band, polarization | values argued on the old meaning, to recalibrate (T25, T83); the gap reads disagreement on admissibility given a verdict | today's scale, values unvalidated for a report times an estimate; the gap mixes disagreement on `q_c` with `ĉ_j` |
-| under A | pool entry needs the gate and the verdict `A`: the gate screens admissibility, the pilot conclusiveness | the gate also screens on predicted conclusiveness, which the required verdict already enforces after the pilot |
+| what the rating forecasts | the empirical success given conclusion | the empirical success, not conditioned on conclusion; neither is pool entry |
+| report, commitment | the scalar format, and the current commitment can stay; the forecast's semantic contract changes | needs `c_uj`: elicited from `u` (a second report, or §7's vector with a vector commitment and a simplex check, §7.4), or replaced by an estimate (below) |
+| incentives | D1 for `q_c` under H-a–H-d, the expected loss scaled by `c` (§10.2) | elicited: B-b does not score `c`, so a proper rule for it, or §7.1's ternary score, and its analysis; estimated: below |
+| `τ`, band, polarization | to revalidate for the new meaning (T25, T83); no change of their values is shown necessary | the same, for the quantity actually used |
+
+**Reconstruction through an estimate.** The identity needs `c_uj = P(Y_j ≠ I | F_u)`. A public
+frequency of conclusion, per item or category, rests on information other than `F_u`; even known
+exactly it need not equal `c_uj`. Astra's abstract example (C; not a fit nor a simulation of the
+protocol): two equiprobable private signals give `c_uj = 1/5` or `4/5`, with `q_c = 9/10` in both;
+the public frequency is ½; the individual probabilities of `A` are 9/50 and 18/25, while the
+public frequency times `q_c` gives 9/20 in both. Four things apart: the public probability; the
+probability given the reviewer's information; an estimate of either; its error. `ĉ_j q_c` is a
+candidate indicator. Identifying it with the individual forecast needs hypotheses to be declared,
+not presumed — that `F_u` carries nothing on conclusion beyond the public information, and a
+treatment of the estimate's error, of pending procedures and of selection; its gap would also
+mix disagreement on `q_c` with `ĉ_j`.
 
 §7.4's transformations (`p_A`, `p_A/(p_A + p_R)`, `p_A + p_I/2`) need §7's ternary vector; under
-B-b's scalar only α needs no contract change, and `p_A/(p_A + p_R)` equals `q_c` (D). A separate,
-unscored rating (§7.4) departs from D23 and D33 unless decided otherwise. Fitting the scalar API
-validates neither meaning.
+B-b's scalar only α asks for no further elicitation, and `p_A/(p_A + p_R)` equals `q_c` (D). A
+separate, unscored rating (§7.4) departs from D23 and D33 unless decided otherwise. Fitting the
+scalar API validates neither meaning.
 
 ### 10.4 Can the gate's decisions move `Y`?
 
-- **Under A** (§4, §8.5): groups are fixed at admission and every item is piloted whatever the
-  gate; the gate decides pool entry, not whether or how `Y` is produced, nor its group or load.
-- **Time remains.** The freeze `Φ_j` includes the band's extra round and the appeal window (`16`
-  §5), and outcomes stay hidden until it. If only the outcome's release waits, the gate moves when
-  `Y` is seen, not `Y`; if a group's procedure, or its term, waits for its members' freezes, a
-  band or appeal-eligible decision moves the group's timing (§7.3, *Time* and *Load*).
-- **The fit couples items**: `u`'s rating of `j` moves shared parameters (`b_u`, `f_u`, the sides,
-  `02` §A.1), so the scores of other items. A deviation of `u` on one item can send another of its
-  items to the band, and so change a freeze's timing.
+- **Under A** (§4, §8.5): the gate decides neither whether an item is piloted nor with which
+  group; A fixes the prescribed set to pilot. It does not make invariant the work actually done,
+  the samples, the timing or the outcome's law (§8.5).
+- **Three things in time**: the production of the outcome; the availability and publication of
+  its record; the information reviewers have before their reports. The freeze `Φ_j` includes the
+  band's extra round and the appeal window (`16` §5), and outcomes must stay unknown to reviewers
+  until it (§4, A). A decision that lengthens a freeze can move when a procedure runs, if it
+  waits, or only when its record is published; even then, what reviewers of other items know
+  before their reports is to be checked (§7.3, *Time* and *Load*) — an obligation, not a
+  demonstrated violation.
+- **Shared parameters.** A reviewer who participates in the collective fit (on the axis, with
+  positive weight) moves the shared parameters (`μ`, `b_j`, `f_j`, the other participants'
+  positions, the sides) through its ratings, and so other items' scores: a deviation on one item
+  can send another to the band, hence move a freeze. Reviewers outside the collective core
+  (under the axis floor, or at weight 0) are placed on the fixed axis and change none of them
+  (`02` §A.4; `15` A7, closed).
 - **A channel to H-c** exists only if such a change moves the joint law of `(b_uj, Y_j)` given
-  `F_u`. With a term in attempts and procedures that do not wait for freezes, it touches timing
-  only; under a time term or shared resources it can touch `Y` (§7.2, item 4; §7.3). A possible
-  dependence, not a demonstrated violation. Under C or the reference design the gate also decides
-  which items are piloted for entry, hence load shared with audited groups (§8.5).
+  `F_u`. A term in attempts and procedures that do not wait for freezes do not exclude one by
+  themselves: shared resources, the samples available and the rules of execution can remain
+  channels (§7.2, item 4; §7.3). A possible dependence, not a demonstrated violation. Under C or
+  the reference design the gate also decides which items are piloted for entry (§8.5).
 - **Keeping study scores out of the reputation** changes none of this: the gate reads the reports
-  whatever their score is used for, and a reviewer's preference over an item's fate stays a motive
-  that properness only prices (`16` §4.5, item 4), at `c(p − q_c)²` under B-b.
+  whatever their score is used for, and a reviewer's preference over an item's fate stays a
+  motive (`16` §4.5, item 4) that the expected loss `c(p − q_c)²` prices within the score only.
 
 ### 10.5 For Astra
 
-- **Specifiable now.** §10.1's three layers; for a study under A, every report, gate decision,
-  band and appeal recorded with its log position beside §9's records, so that timing effects are
-  visible; the gate's decisions acting on pool entry only, as §4 already states for A.
-- **Design decisions.** The input's meaning: α, with its declared new meaning and no contract
-  change, or β, with the source of `c` — elicited (contract, commitment and incentive analysis
-  change) or supplied (the rating's meaning changes). Whether a group's procedure, or only the
-  release of its outcome, waits for the freeze. Whether a study applies the gate's decisions to
-  pool entry while it runs. `τ`, `ε` and the gap stay with T25 and T83.
-- **Experimental evidence**, as measures against criteria declared beforehand: the gate's score
-  and gap on the chosen meaning; conclusiveness by item class, which bounds how far §10.2's
-  discipline reaches; the delays bands and appeals induce. None validates `τ`'s meaning by itself.
-- **Missing presupposition.** What the gate protects under B-b: admissibility given a verdict, or
-  an unconditional prospect of admission. α and β answer different questions; the choice is
-  Astra's.
-- **Recommendation** (mine, not a decision). Settle that presupposition; then specify α as the
-  study's reference, since it changes no commitment and keeps D23 and D33's link between the
-  scored forecast and the gate's input, with its weaker discipline at small `c` recorded as a
-  limit, and β kept as the comparison where `c` is supplied from records. Next documentary step
-  toward S2: the timing rule under A — whether procedures, or only releases, wait for the freeze —
-  which decides whether §10.4's channel is open.
+- **Specifiable now.** §10.1's layers; for a study under A, every report, ratings matrix, robust
+  and full-fit score, gap, coverage, gate decision, band and appeal recorded with its log position
+  beside §9's records.
+- **Design decisions.** By Astra's direction α is the main reference and β the comparison. For α:
+  the forecast's semantic contract restated (the empirical success given conclusion) and `τ`, `ε`
+  and the gap revalidated for it (T25, T83). For β: the source of `c_uj`, elicited (with its
+  contract, commitment and incentive analysis) or estimated (with §10.3's hypotheses declared).
+  What the gate protects under B-b, and whether a study applies the gate's decisions to pool entry
+  while it runs, stay design questions.
+- **Experimental evidence**, as measures against criteria declared beforehand: the gate's scores
+  and gaps under the chosen meaning; conclusion frequencies by category, public quantities that
+  bear on `c_uj` only through declared hypotheses, with pending procedures, selection and
+  uncertainty; the delays bands and appeals induce. None validates `τ`'s meaning by itself.
+- **Next.** The review of this rectified §10; the specification of timing under A comes after it.
+  Nothing here is adopted.
