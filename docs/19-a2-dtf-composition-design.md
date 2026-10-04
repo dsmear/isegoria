@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e` and rectified after a verification of `a9700fd`, **awaiting Astra's review**; it chooses no design. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review, **awaiting review**: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4, and the error control over a search (§9.5). No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -47,6 +47,25 @@ reviews above:
   concern the items, not only the anchors.
 - Evidence: the diff read and compared with the documents it cites; the parametric formulas
   checked algebraically; no Rust, fit or campaign run.
+
+Review on `63b13fa` (§9 and the three rectifications of the verification of `a9700fd`), distinct
+from the reviews above:
+
+- Approved: the three rectifications — the confirmations' cost, the count of D3's selector, the
+  load statement's conditions — and §9 as a conditional comparison of a common and a per-form
+  calibration. Not approved: any calibration, protocol, implementation or expenditure, nor any
+  guarantee as already realized. A2 stays open; this approval does not close it.
+- Decision for the comparison: a form's own sample can be its check sample, with no second
+  sample mandatory; `n''_T = 0` is a legitimate case, under conditions (§9.3, §9.5).
+- Withdrawn: reading a stricter control as confirmations in both designs. A stricter control
+  can need another bound or error budget without a second sample, and a second confirmation
+  does not by itself settle the selection among the forms that pass it.
+- Direction for the comparison, not an adopted policy: the probability of at least one false
+  acceptance over a declared horizon, at a symbolic level `α_H`, is the analytic reference
+  (§9.5).
+- Evidence: the diff, the dossier and the relevant code passages read; exact rational
+  calculations on the combinatorial counts, the confirmations and the selection; no Rust, fit or
+  campaign run.
 
 ## 1. What the code computes (L)
 
@@ -344,16 +363,20 @@ The baseline description above also distinguishes the paper's former claim from 
 correction. No behavior or historical measurement changes. Evidence and access limits are
 recorded in `phase1-handoff.md` §8. Astra approved R1 on `d13bf09` (design review above).
 
-## 9. Common against per-form calibration (comparison, awaiting review)
+## 9. Common against per-form calibration (conditional comparison, approved on `63b13fa`)
 
 **Status.** Written on `cebcb2e`: a comparison under stated assumptions, not a choice. No
 calibration, selector, threshold, policy or expenditure is proposed for adoption; R3 stays a
 candidate (§5). Evidence: **L** the code named, **D** derived here, **C** exact calculations whose
 formulas are given in place; no measurement, fit or run. It is separate from the A/C choice of
 observation for scoring (`17` §8.5), and A1's pilot data are not calibration data (`17` §7.6).
-Verified on `a9700fd` before Astra's review and rectified in three places: the confirmations'
-effect on the break-even (§9.3, §9.4), the merged enumeration's count (§9.3, D3), the load
-statement's conditions (§9.4).
+Verified on `a9700fd` and rectified in three places in `63b13fa`: the confirmations' effect on
+the break-even (§9.3, §9.4), the merged enumeration's count (§9.3, D3), the load statement's
+conditions (§9.4). **Approved by Astra on `63b13fa` as a conditional comparison**, with those
+rectifications (design review above); no calibration, protocol, implementation, expenditure or
+realized guarantee approved, and A2 stays open. Added after that review, on its decision and
+direction, **awaiting review**: the check sample's conditions and the cost hypotheses (§9.3),
+the matching lines of §9.4, and §9.5.
 
 ### 9.1 Common ground
 
@@ -380,7 +403,8 @@ statement's conditions (§9.4).
   probability `γ`, the share over `DTF_MAX` among kept forms is `sα/(sα + (1 − s)γ)` — 1/11 at
   `s = ½`, `α = 1/20`, `γ = ½`; 9/19 at `s = 9/10` (C; illustrative values). The common design
   searches many forms on one set of estimates, whose errors they share; the per-form design
-  verifies each candidate on its own sample.
+  verifies each candidate on its own sample. §9.5 separates the error per candidate, over the
+  search and among accepted forms.
 
 ### 9.2 Pertinence to the target
 
@@ -424,7 +448,11 @@ sum.
 ### 9.3 Resources
 
 `n_c` and `n_T` are set by precision requirements not yet defined; neither is assumed equal to the
-other nor sufficient for a given precision.
+other nor sufficient for a given precision. The designs are compared at one guarantee and one
+precision: the same target (§9.1), the same error notion over the same horizon (§9.5) and the
+same tolerable error; `n_c`, `n_T`, the attempts, the candidates per kept form and the re-fits
+are what each design needs to reach them. A stricter control can change these counts and costs
+without any second administration (§9.5).
 
 **Simple case** (one calibration, every attempt conclusive, no form refused, no uncertainty cost):
 
@@ -460,33 +488,54 @@ Bank items that no form of the horizon uses cost answers and serve none.
 **With attempts, refusals, updates and uncertainty** (D), each term explicit:
 
 - *attempts*: an admission refusal or an unconverged fit repeats the administration on a fresh
-  sample; `r_c`, `r_T` expected attempts (`17` §4.1's `(1 − (1 − κ)^k)/κ` for independent attempts,
-  an illustration); `κ` is unmeasured and may change with the batch's size, and a common
-  non-conclusion repeats all `P + A` columns at once;
-- *refused forms*: per form, a drawn form whose check fails is refused after its administration,
-  `v_T` expected administrations per kept form; in the common design a refusal costs a
-  recomputation on `F₀`, no answer;
+  sample; `r_c` expected attempts per calibration, `r_T` per candidate (`17` §4.1's
+  `(1 − (1 − κ)^k)/κ` for independent attempts, an illustration); `κ` is unmeasured and may change
+  with the batch's size, and a common non-conclusion repeats all `P + A` columns at once;
+- *refused forms*: per form, a candidate its check does not accept — a bound above `DTF_MAX`, or
+  attempts ending in a terminal inconclusiveness — is refused after its administrations; `v_T` is
+  the expected number of candidates verified per kept form. An inconclusive attempt followed by
+  another counts once, in `r_T`; a candidate counts once, in `v_T`, whether kept, refused or
+  terminally inconclusive. In the common design a refusal on `F₀` costs a recomputation, no
+  answer;
 - *updates*: `U` complete calibrations over the horizon, the `u`-th of `P_u` items on `n_{c,u}`
   participations;
 - *uncertainty*: `b` re-fits per bound (each a whole search; a bootstrap is one construction),
-  and expected confirmation participations per kept form, refused confirmations included, `n'_T`
-  in the common design and `n''_T` per form, when the treatment of selection needs fresh data,
-  each confirmation a search of its own. A form drawn without estimates
-  (`blueprint::assemble_test`) and checked once on its own sample is kept on data its choice did
-  not use, as a confirmed form is: if the treatment accepts that check, `n''_T = 0`; a search of
-  several forms on one per-form fit, or a bound kept apart from the decision to keep, asks more.
+  and expected confirmation participations per kept form, refused confirmations included: `n'_T`
+  when the common design checks its forms on fresh samples, `n''_T` when a per-form design adds
+  a sample to the one it verified on; each confirmation a search of its own. A form's own sample
+  can be its check sample, with no second sample mandatory (Astra, review of `63b13fa`), so
+  `n''_T = 0` is a legitimate case under §9.5's conditions: form, target and procedure fixed
+  before the check's data are seen; a sampling that gives the check the independence from the
+  earlier choices its guarantee requires; a bound valid for the actual procedure, model search
+  and indeterminate outcomes included; later attempts charged as the declared guarantee
+  requires. `blueprint::assemble_test` gives none of these by itself. A stricter control may need
+  another bound or error budget rather than a second sample, and a second confirmation does not
+  by itself settle the selection among the forms that pass it (§9.5).
 
 In answers, the common design costs `Σ_u r_{c,u} n_{c,u} (P_u + A) + Σ_T n'_T (t_T + a_T)` and the
 per-form design `Σ_T v_T r_T n_T (t_T + a_T) + Σ_T n''_T (t_T + a_T)`; in searches,
-`Σ_u (r_{c,u} + b)` and `Σ_T v_T (r_T + b)`, plus one per confirmation. A confirmation is an
-administration and a fit of the form alone, so with confirmations the common design becomes a
-screen before per-form fits. With `n'_T = n''_T` the confirmation terms cancel: the comparison
-reduces to the calibrations against the per-form administrations, the break-even unchanged. With
-`n''_T = 0` and confirmations of a per-form administration's size, `n'_T = v'_T r_T n_T` for
-`v'_T ≥ 1` confirmations per kept form, the common design saves answers only if
+`Σ_u (r_{c,u} + b)` and `Σ_T v_T (r_T + b)`, plus one per confirmation.
+
+The product `v_T r_T` assumes the candidates for `T` of one size (`n_T`, `t_T`, `a_T`) and attempts
+of one mean `r_T` given that a candidate is verified, whether it is verified depending only on the
+earlier ones (Wald's identity). In general the answers of `T`'s search are
+`Σ_i P(V ≥ i) E[R_i c_i | V ≥ i]`, with `V` the candidates verified, `R_i` the attempts and `c_i`
+the answers per attempt of the `i`-th; the product follows when every `E[R_i c_i | V ≥ i]` equals
+`r_T n_T (t_T + a_T)` (D; C on a small exact case). An error budget, a cap on candidates or a time
+limit can end a search with fewer forms than wanted, or none: `v_T` per kept form presumes one is
+kept, and otherwise the expected cost and the probability of keeping a form are stated apart.
+
+A confirmation is an administration and a fit of the form alone, so with confirmations the
+common design becomes a screen before per-form fits. With `n'_T = n''_T` the confirmation terms
+cancel: the comparison reduces to the calibrations against the per-form administrations, the
+break-even unchanged. With `n''_T = 0` and confirmations of a per-form administration's size,
+`n'_T = v'_T r_T n_T` for `v'_T ≥ 1` candidates confirmed per kept form (under the product's
+hypotheses), the common design saves answers only if
 `Σ_u r_{c,u} n_{c,u} (P_u + A) < Σ_T (v_T − v'_T) r_T n_T (t_T + a_T)`: its screen must avoid
 refused per-form administrations worth more than its calibrations, and with `v_T = 1` it saves
-none (D; C on 20,000 random rational cases).
+none (D; C on 20,000 random rational cases). These are costs at one guarantee only when the
+confirmations and the per-form checks answer to the same error control, with the screen's
+choice part of the history on which a confirmation's form is fixed (§9.5, A).
 
 **Partial administrations** (extensions, no saving credited): with at most `m < P` bank items per
 participation the bounds become at least `⌈P n_c/m⌉` participations and a load `m + A`, but
@@ -518,7 +567,7 @@ the same style over the bank would visit `S(P, t)` sets. The selector is not cha
 | Load | `P + A` within the tolerable load per participation | `P + A` beyond it | no tolerable load stated |
 | Templates | `P + A` distinct templates | several variants per template in the bank | — |
 | Horizon | high `ρ` and `F`, few bank updates, anchors heavy relative to `t` | `ρ` near 1, frequent turnover | `F`, `ρ`, `U` unknown |
-| Uncertainty, selection | a treatment valid over the whole search without data per form | confirmations needed by the common design only, a form's own sample being its check (§9.3) | no treatment: both select on estimates |
+| Uncertainty, selection | a simultaneous bound over the family searched, at the same `α_H`, without data per form (§9.5, B) | a form's own sample as its check, under §9.5's conditions and budget (A), where the common design would need confirmations | no treatment: both select on estimates; neither construction built (§9.5) |
 | Model | — | — | misspecification and class search unassessed (B1–B3); a converged zero certifies nothing (§4, row 4) |
 | Contested selection | few contested members per fit, or a selector that does not enumerate | — | `M_f` beyond what the enumeration sustains (D3) |
 
@@ -536,10 +585,96 @@ H1, H2, the model and a treatment of selection.
 |---|---|---|
 | tolerable items per participation | owner (product, resources) | below `P + A`, the complete common design is excluded today |
 | whether one population serves every form of the horizon | owner (product) | if not, a common calibration per population at most, or per form |
-| the treatment of uncertainty and selection | Astra (design) | without confirmations, or with equal ones in both designs, §9.3's break-even holds; with confirmations for the common design only, it becomes a screen that saves answers only through the refused per-form administrations it avoids |
+| the construction under §9.5's reference (a budget over per-form checks, or a simultaneous bound over a family) and its proof obligations | Astra (design), then a targeted derivation | which checks need data per form; with confirmations for the common design only, it is a screen that saves answers only through the refused per-form administrations it avoids; with equal confirmations §9.3's break-even holds |
 | `F`, `Σ_T t_T`, `A`, `a_T` and the expected bank changes | owner (resources), with the blueprint | which side of §9.3's break-even holds |
 | `n_c/n_F` at equal precision, once the tolerable error is stated | a targeted calculation on the candidate model | needed only if the four lines above leave the break-even open |
 
 Anonymity (no personal or group attribute enters; groups only through latent classes, H2) and
 the recovery of contested facts (both designs keep them in forms, H3) bound both designs. The
 test's neutrality is not certified, and R3 is not an approved solution.
+
+### 9.5 Error control over a search (awaiting review)
+
+**Status.** Added after Astra's review of `63b13fa`, on its direction: the probability of at least
+one false acceptance over a declared horizon, at a symbolic level `α_H`, is the comparison's
+analytic reference, not an adopted policy. No estimator, bootstrap, level or budget is built or
+proposed; the obligations of proof are listed. **D** derived here; **C** exact calculations in a
+scratch script, formulas in place.
+
+**Three notions.** A search verifies candidates `T_1, T_2, …` within a horizon and accepts some;
+`θ(T)` is the true target (`DTF_μ(T)`, or the envelope `E(T)` where the groups' composition varies
+with ability, §3); a false acceptance accepts `T` with `θ(T) > DTF_MAX`; `𝓗_{i−1}` is the history
+before the `i`-th verification.
+
+1. *Per candidate*: `P(accept T_i | 𝓗_{i−1})` when `θ(T_i) > DTF_MAX`.
+2. *Over the search*: the probability of at least one false acceptance within the horizon.
+3. *Among accepted forms*: a metric to specify. The expected share of false acceptances among
+   them, `E[V/max(R, 1)]` (`V` false, `R` all acceptances), is at most 2, since
+   `V/max(R, 1) ≤ 1{V ≥ 1}` (D; C); the probability that a given accepted form is out of
+   tolerance is bounded by neither 1 nor 2, as it depends on the candidates' mix (§9.1).
+
+Controlling 2 bounds the chance that the search accepts any out-of-tolerance form; it is not a
+probability of correctness of one accepted form. Astra's abstract example: every candidate out of
+tolerance, false acceptances independent at 1/20, 20 attempts; 1 is 1/20, 2 is
+`1 − (19/20)^20 ≈ 0.641514`, and every accepted form is out of tolerance (C; not a frequency of
+Isegoria). Bringing 2 under `α_H` leaves that last fact unchanged: any form the search accepts
+there is out of tolerance.
+
+**A. Per-form checks under an error budget.** At the `i`-th verification the form `T_i`, the
+target, the procedure and `α_i` are functions of `𝓗_{i−1}`, fixed before its data are seen; its
+procedure returns an upper bound `U_i` with `P(θ(T_i) > U_i | 𝓗_{i−1}) ≤ α_i`; `T_i` is accepted
+only if `U_i ≤ DTF_MAX`; and `Σ_i α_i ≤ α_H` on every path (`α_i = 0` when no `i`-th verification
+takes place). A false acceptance at `i`, `E_i`, lies in `{θ(T_i) > U_i}`, so
+`P(E_i | 𝓗_{i−1}) ≤ α_i` and `P(⋃_i E_i) ≤ Σ_i E[P(E_i | 𝓗_{i−1})] ≤ E[Σ_i α_i] ≤ α_H` (D). Only
+each check's coverage given the history and the union of the events enter; no independence
+between checks is assumed (C: an exact case with a hidden factor shared by every check and a
+budget spent adaptively stays within it).
+
+- *Opportunities of acceptance.* Every attempt that can accept a form draws on the budget: a
+  new sample after an inconclusive attempt, a retry of a refused form, a later check of a form
+  already seen. Alternatively one `α_i` covers a candidate's whole procedure when its bound's
+  coverage holds for that procedure, the choice of the attempt that concludes included.
+- *Not checks.* The optimizer's seeded starts, the candidate models of one class search (§9.3)
+  and a bootstrap's re-fits act on one sample inside one procedure: they draw nothing from the
+  budget, but the bound's coverage must hold for the procedure that contains them.
+- *The form's own sample as its check* (`n''_T = 0`, §9.3) needs: form, target and procedure
+  fixed before the check's data are seen; a sampling that gives the conditional coverage above
+  given the earlier choices (any overlap of respondents with earlier samples to be justified);
+  a bound valid for the actual procedure, the class search, the share floor, the floors' prior
+  and the indeterminate outcomes included; later attempts charged as above.
+  `blueprint::assemble_test` draws by quotas from a seed and guarantees none of these.
+- *Cost.* When `α_i` falls along the search, later checks are stricter: at a given sample fewer
+  in-tolerance forms pass (for bounds nested in their level), raising `v_T`, or the sample grows;
+  no second administration is involved. The budget can run out before the forms wanted are kept.
+- *Screen, then check.* A common fit used only to choose candidates belongs to `𝓗_{i−1}` and
+  spends no budget; the checks do (`n'_T`, §9.3). A confirmation stacked on a check is one more
+  opportunity of acceptance, charged like any other; it does not by itself settle the selection
+  among the forms that pass.
+
+**B. A common calibration with a simultaneous bound.** Before `F₀`'s data are seen, the family
+`𝒯` of forms a later search may consider is declared (subsets of `B`); `F₀`'s procedure returns
+bounds `U(T)`, `T ∈ 𝒯`, with `P(∃ T ∈ 𝒯: θ(T) > U(T)) ≤ α_B`. Any search, however adaptive, that
+accepts only forms of `𝒯` with `U(T) ≤ DTF_MAX` makes a false acceptance with probability at most
+`α_B`: when every bound holds, every accepted form is within tolerance (D). Searching again on
+`F₀` spends nothing further; retirement keeps the guarantee, a bound over `𝒯` holding on each
+subfamily; a change of `DTF_MAX` alone moves no `U(T)`.
+
+- *Field of validity.* A form outside `𝒯` — a new item, a form mixing fits (§9.2), a template
+  variant outside `B` — has no guarantee from `F₀`. A family widened after `F₀`'s data are seen
+  needs a bound valid over the wider family or data not yet seen.
+- *Updates.* Each calibration `u`, its family and level `α_{B,u}` fixed before its data, adds
+  its own event: over the horizon the probability of a false acceptance is at most `Σ_u α_{B,u}`,
+  to be kept within `α_H` (D, the same union). A change of model or procedure counts as a new
+  calibration.
+- *Precision.* A bound valid over `𝒯` is valid over each subfamily, so enlarging `𝒯` can only
+  narrow the constructions available (D); the width this costs, and the `n_c` that recovers it,
+  are not assessed.
+
+**Obligations of proof, both constructions.** The coverage concerns the true `θ(T)`, not the
+plug-in `DTF_F(T)`: a bound computed from a fit reaches the target only through H1 (the fit's
+measure is `μ`), H2 (`𝒢` represented by the counted classes, with the envelope where their
+composition varies with ability) and H3 (one fit holds `T`) (§3, §9.2), and through the model and
+its class search (B1–B3). Neither construction covers groups the model lacks or a misspecified
+model; a converged zero certifies nothing (§4, row 4); drift between a check and the form's use
+lies outside both (§9.2). A and B are compared at the same `α_H` over the same horizon, each at
+the counts it needs (§9.3); neither is preferred here.

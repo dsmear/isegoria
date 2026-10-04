@@ -68,8 +68,9 @@ they win.
   H-e is a distinct requirement of the contract, used for `17` §8.4's expected counts; the
   decisions on formats concern the items ("item formats and the anchors' substantive reference").
   A1, C2, A2 and Phase 1 stay open; R1 stays approved within its limits.
-- **Common against per-form calibration: `19` §9** (documentation only, written on `cebcb2e`;
-  not pushed by the session; **awaiting Astra's review**). Complete administrations only, on §2's
+- **Common against per-form calibration: `19` §9** (documentation only, written on `cebcb2e`,
+  rectified in `63b13fa`; **approved by Astra on `63b13fa` as a conditional comparison**, below).
+  Complete administrations only, on §2's
   target kept symbolic: what makes each design pertinent (H1–H3 with one fit, model, selection);
   the resource counts and break-even inequalities, simple and with attempts, refusals, updates
   and uncertainty; partial administrations as extensions only; the link with D3; a conditional
@@ -82,8 +83,23 @@ they win.
   favour the per-form design only when a form drawn without estimates is checked on its own
   sample (`n''_T = 0`); the common design then saves answers only through the refused per-form
   administrations its screen avoids. Merging fits lowers the enumeration's total by one empty
-  set for `n ≤ 1`. The load statement needs forms in `B` and `A ≥ a_T`. §9 still awaits Astra's
-  review; whether a form's own sample suffices as its check is Astra's to decide.
+  set for `n ≤ 1`. The load statement needs forms in `B` and `A ≥ a_T`. Committed in `63b13fa`.
+- **Astra's review of `63b13fa`** (the diff, the dossier and the relevant code passages read;
+  exact rational calculations on the combinatorial counts, the confirmations and the selection;
+  no Rust, fit or campaign run): the three rectifications and §9 **approved as a conditional
+  comparison**; no calibration, protocol, implementation, expenditure or realized guarantee
+  approved; A2 stays open. Decided for the comparison: a form's own sample can be its check
+  sample, `n''_T = 0` under conditions. Withdrawn: reading a stricter control as confirmations in
+  both designs. Direction, not a policy: the probability of at least one false acceptance over a
+  declared horizon, at a symbolic `α_H`, as the analytic reference.
+- **Deepening after that review** (documentation only, not pushed by the session; **awaiting
+  review**): `19` §9.3 states the check sample's conditions, the comparison at one guarantee and
+  precision, `v_T` (candidates verified per kept form) and `r_T` (attempts per candidate) with
+  the hypotheses of their product and the general sum; §9.4's selection rows follow; §9.5
+  separates the error per candidate, over the search and among accepted forms, and gives the
+  obligations of proof of two constructions under one guarantee: per-form checks under an error
+  budget (A) and a common calibration with a simultaneous bound (B). No estimator, level,
+  budget, sample size or winner proposed.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -127,8 +143,9 @@ they win.
   rectification of the declared guarantees, not as a realization of the whole-test DTF guarantee.
   Not approved by either review: R3 (a test-level fit) as a solution, a mandatory batch per form,
   any new calibration, selection or group policy. A reusable common calibration and a calibration
-  per form are compared in `19` §9 under explicit assumptions, awaiting Astra's review; no
-  calibration is chosen.
+  per form are compared in `19` §9 under explicit assumptions, approved by Astra on `63b13fa` as
+  a conditional comparison (§9.5, added after it, awaits review); no calibration is chosen, and
+  that approval does not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
   baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
@@ -152,13 +169,15 @@ they win.
 
 The synthesis is in `19` §6.1, approved by Astra on `cebcb2e` as a documentation intervention.
 The comparison of a reusable common calibration with a calibration per form is in `19` §9,
-rectified after a verification of `a9700fd` (§1), awaiting Astra's review; the next step is that
-review, and what follows it is Astra's to decide.
+rectified in `63b13fa` and approved there by Astra as a conditional comparison. Its deepening
+(§9.3's check conditions and cost hypotheses, §9.5's error control over a search) awaits review;
+the next step is that review, and what follows it is Astra's to decide.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
 break-even inequalities; the minimum information to cross the boundary is the tolerable load,
-whether one population serves every form, the treatment of uncertainty and selection, the
-horizon's numbers and, only if those leave it open, the ratio of the samples at equal precision.
+whether one population serves every form, the construction under §9.5's reference and its
+obligations of proof, the horizon's numbers and, only if those leave it open, the ratio of the
+samples at equal precision. `α_H` stays symbolic; no level is put to the owner.
 The synthesis's scope, as set at the owner's request: a short decision synthesis that links:
 (1) what outcome a reviewer forecasts and how it is produced — A1; (2) the population and
 contrasts the DTF must protect — A2; (3) the dependence on the model and on selection — B1–B3;
@@ -299,4 +318,17 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   (`git diff --check`), references and relative links of the edited docs, the states across
   `15`, `19` and this note. No Rust test, fit, smoke, characterization, calibration, benchmark or
   mutation run.
+- **Astra, review of `63b13fa`** (as it records): the diff, the dossier and the relevant code
+  passages read; exact rational calculations on the combinatorial counts, the confirmations and
+  the selection. No Rust, fit or campaign run.
+- **Claude Code, record of that review and the deepening of `19` §9:** branch, HEAD `63b13fa`
+  (parent `a9700fd`), no later local commit and a working tree with only `.gitignore` modified
+  checked first. Exact calculations (C), in a scratch script not kept: `1 − (19/20)^20`
+  (≈ 0.641514); the union bound on an exact case with a hidden factor shared by every check and a
+  budget spent adaptively; `E[V/max(R, 1)] ≤ P(V ≥ 1)` on 5,000 random rational laws; the expected
+  cost's sum and its product form, with a probability of keeping a form below 1 under a cap, on a
+  small exact case. Derivations (D) in `19` §9.5. Documentation checks: the diff, whitespace
+  (`git diff --check`), line widths, references and relative links of the edited docs, the states
+  across `15`, `19` and this note. No Rust test, fit, smoke, characterization, calibration,
+  benchmark or mutation run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
