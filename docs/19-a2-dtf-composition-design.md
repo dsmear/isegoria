@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review, **awaiting review**: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4, and the error control over a search (§9.5). No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), **partly approved by Astra on `6681b03`** as conditional results (below); its rectifications (§9.5: adaptive updates, two checks, target and envelope) and the rest of that deepening **await review**. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -66,6 +66,24 @@ from the reviews above:
 - Evidence: the diff, the dossier and the relevant code passages read; exact rational
   calculations on the combinatorial counts, the confirmations and the selection; no Rust, fit or
   campaign run.
+
+Review on `6681b03` (the deepening of §9 after the review above), distinct from it:
+
+- Partial. Approved as conditional results: the per-form proof under conditional coverage and a
+  budget along every path (§9.5, A); the result for a single common calibration with
+  simultaneous coverage (§9.5, B); the distinction between statistical checks and the
+  optimizer's internal operations; the general cost identity and its product form under the
+  stated hypotheses (§9.3); `E[V/max(R, 1)] ≤ P(V ≥ 1)`, distinct from a guarantee conditional on
+  one form's acceptance.
+- Not approved: the deepening as a whole, pending two rectifications and a precision on the
+  target; no calibration, implementation or realized guarantee. The approval of `63b13fa` is
+  unchanged.
+- Asked, and made after the review in §9.5: B's updates under choices that depend on the
+  history; a mandatory confirmation (`A₁ ∩ A₂`) kept apart from a new opportunity of acceptance
+  (`A₁ ∪ A₂`); `DTF_μ(T)` kept as the target, the envelope as a conservative majorant.
+- Evidence: the diff and the updated passages read; exact calculations on the counterexamples,
+  on the expected-share inequality and on the cost of a capped search; no Rust, fit or campaign
+  run.
 
 ## 1. What the code computes (L)
 
@@ -375,8 +393,9 @@ the break-even (§9.3, §9.4), the merged enumeration's count (§9.3, D3), the l
 conditions (§9.4). **Approved by Astra on `63b13fa` as a conditional comparison**, with those
 rectifications (design review above); no calibration, protocol, implementation, expenditure or
 realized guarantee approved, and A2 stays open. Added after that review, on its decision and
-direction, **awaiting review**: the check sample's conditions and the cost hypotheses (§9.3),
-the matching lines of §9.4, and §9.5.
+direction, in `6681b03`: the check sample's conditions and the cost hypotheses (§9.3), the
+matching lines of §9.4, and §9.5; **partly approved by Astra on `6681b03`** (design review above,
+§9.5's status), the rest and the rectifications made after it **awaiting review**.
 
 ### 9.1 Common ground
 
@@ -593,20 +612,24 @@ Anonymity (no personal or group attribute enters; groups only through latent cla
 the recovery of contested facts (both designs keep them in forms, H3) bound both designs. The
 test's neutrality is not certified, and R3 is not an approved solution.
 
-### 9.5 Error control over a search (awaiting review)
+### 9.5 Error control over a search (partly approved on `6681b03`; rectifications awaiting review)
 
-**Status.** Added after Astra's review of `63b13fa`, on its direction: the probability of at least
-one false acceptance over a declared horizon, at a symbolic level `α_H`, is the comparison's
-analytic reference, not an adopted policy. No estimator, bootstrap, level or budget is built or
-proposed; the obligations of proof are listed. **D** derived here; **C** exact calculations in a
-scratch script, formulas in place.
+**Status.** Added in `6681b03` after Astra's review of `63b13fa`, on its direction: the
+probability of at least one false acceptance over a declared horizon, at a symbolic level `α_H`,
+is the comparison's analytic reference, not an adopted policy. No estimator, bootstrap, level or
+budget is built or proposed; the obligations of proof are listed. **D** derived here; **C** exact
+calculations in a scratch script, formulas in place. Astra's review of `6681b03` approved as
+conditional results A's proof, B's result for a single calibration, the distinction between
+checks and the optimizer's internal operations, and the expected-share inequality as distinct
+from a guarantee on one accepted form; not §9.5 as a whole. Rectified after it, **awaiting
+review**: the target kept apart from the envelope, two checks of one form (A), B's adaptive
+updates.
 
-**Three notions.** A search verifies candidates `T_1, T_2, …` within a horizon and accepts some;
-`θ(T)` is the true target (`DTF_μ(T)`, or the envelope `E(T)` where the groups' composition varies
-with ability, §3); a false acceptance accepts `T` with `θ(T) > DTF_MAX`; `𝓗_{i−1}` is the history
-before the `i`-th verification.
+**Three notions.** A search verifies candidates `T_1, T_2, …` within a horizon and accepts some.
+The true target is `DTF_μ(T)` (§2); a false acceptance accepts `T` with `DTF_μ(T) > DTF_MAX`;
+`𝓗_{i−1}` is the history before the `i`-th verification.
 
-1. *Per candidate*: `P(accept T_i | 𝓗_{i−1})` when `θ(T_i) > DTF_MAX`.
+1. *Per candidate*: `P(accept T_i | 𝓗_{i−1})` when `DTF_μ(T_i) > DTF_MAX`.
 2. *Over the search*: the probability of at least one false acceptance within the horizon.
 3. *Among accepted forms*: a metric to specify. The expected share of false acceptances among
    them, `E[V/max(R, 1)]` (`V` false, `R` all acceptances), is at most 2, since
@@ -620,20 +643,30 @@ tolerance, false acceptances independent at 1/20, 20 attempts; 1 is 1/20, 2 is
 Isegoria). Bringing 2 under `α_H` leaves that last fact unchanged: any form the search accepts
 there is out of tolerance.
 
+**Target and envelope.** Under §3's H1–H3, with one fit `F` holding `T`, `DTF_μ(T) ≤ E_F(T)`, the
+envelope of §3's representation (its curves and measure, not their estimates), the majorant
+needed when the groups' composition varies with ability. An upper bound valid for `E_F(T)` is
+therefore a conservative bound for `DTF_μ(T)`, and A's and B's coverages may be proved for it.
+The converse fails: `E_F(T) > DTF_MAX` does not imply `DTF_μ(T) > DTF_MAX` (§3's construction,
+its three classes as the groups: target ¾, envelope 1; C). A false acceptance keeps its meaning
+on `DTF_μ(T)`; refusing a form whose envelope alone exceeds the tolerance is a cost of
+conservatism, not an error avoided.
+
 **A. Per-form checks under an error budget.** At the `i`-th verification the form `T_i`, the
 target, the procedure and `α_i` are functions of `𝓗_{i−1}`, fixed before its data are seen; its
-procedure returns an upper bound `U_i` with `P(θ(T_i) > U_i | 𝓗_{i−1}) ≤ α_i`; `T_i` is accepted
-only if `U_i ≤ DTF_MAX`; and `Σ_i α_i ≤ α_H` on every path (`α_i = 0` when no `i`-th verification
-takes place). A false acceptance at `i`, `E_i`, lies in `{θ(T_i) > U_i}`, so
+procedure returns an upper bound `U_i` with `P(DTF_μ(T_i) > U_i | 𝓗_{i−1}) ≤ α_i`; `T_i` is
+accepted only if `U_i ≤ DTF_MAX`; and `Σ_i α_i ≤ α_H` on every path (`α_i = 0` when no `i`-th
+verification takes place). A false acceptance at `i`, `E_i`, lies in `{DTF_μ(T_i) > U_i}`, so
 `P(E_i | 𝓗_{i−1}) ≤ α_i` and `P(⋃_i E_i) ≤ Σ_i E[P(E_i | 𝓗_{i−1})] ≤ E[Σ_i α_i] ≤ α_H` (D). Only
 each check's coverage given the history and the union of the events enter; no independence
 between checks is assumed (C: an exact case with a hidden factor shared by every check and a
 budget spent adaptively stays within it).
 
-- *Opportunities of acceptance.* Every attempt that can accept a form draws on the budget: a
-  new sample after an inconclusive attempt, a retry of a refused form, a later check of a form
-  already seen. Alternatively one `α_i` covers a candidate's whole procedure when its bound's
-  coverage holds for that procedure, the choice of the attempt that concludes included.
+- *Opportunities of acceptance.* An attempt that can accept a form the earlier attempts did not
+  accept draws on the budget: a new sample after an inconclusive attempt, a retry of a refused
+  form. Alternatively one `α_i` covers a candidate's whole procedure when its bound's coverage
+  holds for that procedure, the choice of the attempt that concludes included. A check that can
+  only confirm an acceptance opens no new opportunity (*Two checks of one form*, below).
 - *Not checks.* The optimizer's seeded starts, the candidate models of one class search (§9.3)
   and a bootstrap's re-fits act on one sample inside one procedure: they draw nothing from the
   budget, but the bound's coverage must hold for the procedure that contains them.
@@ -647,13 +680,20 @@ budget spent adaptively stays within it).
   in-tolerance forms pass (for bounds nested in their level), raising `v_T`, or the sample grows;
   no second administration is involved. The budget can run out before the forms wanted are kept.
 - *Screen, then check.* A common fit used only to choose candidates belongs to `𝓗_{i−1}` and
-  spends no budget; the checks do (`n'_T`, §9.3). A confirmation stacked on a check is one more
-  opportunity of acceptance, charged like any other; it does not by itself settle the selection
-  among the forms that pass.
+  spends no budget; the checks do (`n'_T`, §9.3).
+- *Two checks of one form*, `A_k` the event that check `k` accepts it while out of tolerance. If
+  acceptance requires both, the event is `A₁ ∩ A₂ ⊆ A₁`: a guarantee valid for the first bounds
+  it, and a mandatory confirmation draws no further budget by itself. If either can accept, the
+  second also after a refusal by the first, the event is `A₁ ∪ A₂`, with
+  `P(A₁ ∪ A₂) ≤ P(A₁) + P(A₂)`: the added opportunity is covered by the budget or by a guarantee
+  valid for the whole procedure. With independent errors of 1/20: 1/400 (0.25%) when both are
+  required, 39/400 (9.75%) when either can accept (C; abstract). Independence gives these exact
+  values only; the inclusion and the union bound hold without it. A second administration costs
+  answers and a search (§9.3) even when it needs no further error budget.
 
 **B. A common calibration with a simultaneous bound.** Before `F₀`'s data are seen, the family
 `𝒯` of forms a later search may consider is declared (subsets of `B`); `F₀`'s procedure returns
-bounds `U(T)`, `T ∈ 𝒯`, with `P(∃ T ∈ 𝒯: θ(T) > U(T)) ≤ α_B`. Any search, however adaptive, that
+bounds `U(T)`, `T ∈ 𝒯`, with `P(∃ T ∈ 𝒯: DTF_μ(T) > U(T)) ≤ α_B`. Any search, however adaptive, that
 accepts only forms of `𝒯` with `U(T) ≤ DTF_MAX` makes a false acceptance with probability at most
 `α_B`: when every bound holds, every accepted form is within tolerance (D). Searching again on
 `F₀` spends nothing further; retirement keeps the guarantee, a bound over `𝒯` holding on each
@@ -662,19 +702,32 @@ subfamily; a change of `DTF_MAX` alone moves no `U(T)`.
 - *Field of validity.* A form outside `𝒯` — a new item, a form mixing fits (§9.2), a template
   variant outside `B` — has no guarantee from `F₀`. A family widened after `F₀`'s data are seen
   needs a bound valid over the wider family or data not yet seen.
-- *Updates.* Each calibration `u`, its family and level `α_{B,u}` fixed before its data, adds
-  its own event: over the horizon the probability of a false acceptance is at most `Σ_u α_{B,u}`,
-  to be kept within `α_H` (D, the same union). A change of model or procedure counts as a new
-  calibration.
+- *Updates.* For a sequence fixed in advance — families, procedures and deterministic levels
+  that do not depend on what earlier calibrations showed — the marginal coverages
+  `P(∃ T ∈ 𝒯_u: DTF_μ(T) > U_u(T)) ≤ α_{B,u}` with `Σ_u α_{B,u} ≤ α_H` suffice, by the union of
+  the events (D). When the family, the procedure or the level depend on the history and later
+  data may depend on it too, fixing them before the new data does not suffice. A sufficient
+  construction: `𝓖_{u−1}` the history before calibration `u`; `𝒯_u`, the procedure and `α_{B,u}`
+  fixed as functions of it; `P(∃ T ∈ 𝒯_u: DTF_μ(T) > U_u(T) | 𝓖_{u−1}) ≤ α_{B,u}`; and
+  `Σ_u α_{B,u} ≤ α_H` on every path. A false acceptance through calibration `u`, `E^B_u`, lies in
+  that event, so `P(⋃_u E^B_u) ≤ Σ_u E[P(E^B_u | 𝓖_{u−1})] ≤ E[Σ_u α_{B,u}] ≤ α_H` (D). A guarantee
+  joint over the whole procedure is another admissible route; the conditional construction is
+  not the only one. An abstract counterexample to marginal coverage under an adaptive choice
+  (the reason A states its coverage given `𝓗_{i−1}`): `Z` uniform on 20 values and known from the
+  history; each prefixed procedure `j` errs on `{Z = j}`, with probability 1/20; choosing `j = Z`
+  from the history makes the error certain (C). It concerns the dependence between history and
+  check, not a frequency of Isegoria, and does not claim that the declared conditional coverages
+  hold. A change of model or procedure counts as a new calibration.
 - *Precision.* A bound valid over `𝒯` is valid over each subfamily, so enlarging `𝒯` can only
   narrow the constructions available (D); the width this costs, and the `n_c` that recovers it,
   are not assessed.
 
-**Obligations of proof, both constructions.** The coverage concerns the true `θ(T)`, not the
+**Obligations of proof, both constructions.** The coverage concerns the true `DTF_μ(T)`, not the
 plug-in `DTF_F(T)`: a bound computed from a fit reaches the target only through H1 (the fit's
 measure is `μ`), H2 (`𝒢` represented by the counted classes, with the envelope where their
 composition varies with ability) and H3 (one fit holds `T`) (§3, §9.2), and through the model and
-its class search (B1–B3). Neither construction covers groups the model lacks or a misspecified
-model; a converged zero certifies nothing (§4, row 4); drift between a check and the form's use
-lies outside both (§9.2). A and B are compared at the same `α_H` over the same horizon, each at
-the counts it needs (§9.3); neither is preferred here.
+its class search (B1–B3); a bound on `E_F(T)` reaches it only under the same hypotheses. Neither
+construction covers groups the model lacks or a misspecified model; a converged zero certifies
+nothing (§4, row 4); drift between a check and the form's use lies outside both (§9.2). A and B
+are compared at the same `α_H` over the same horizon, each at the counts it needs (§9.3); neither
+is preferred here.

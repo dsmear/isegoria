@@ -92,14 +92,29 @@ they win.
   sample, `n''_T = 0` under conditions. Withdrawn: reading a stricter control as confirmations in
   both designs. Direction, not a policy: the probability of at least one false acceptance over a
   declared horizon, at a symbolic `α_H`, as the analytic reference.
-- **Deepening after that review** (documentation only, not pushed by the session; **awaiting
-  review**): `19` §9.3 states the check sample's conditions, the comparison at one guarantee and
-  precision, `v_T` (candidates verified per kept form) and `r_T` (attempts per candidate) with
-  the hypotheses of their product and the general sum; §9.4's selection rows follow; §9.5
-  separates the error per candidate, over the search and among accepted forms, and gives the
-  obligations of proof of two constructions under one guarantee: per-form checks under an error
-  budget (A) and a common calibration with a simultaneous bound (B). No estimator, level,
-  budget, sample size or winner proposed.
+- **Deepening after that review, `6681b03`** (documentation only): `19` §9.3 states the check
+  sample's conditions, the comparison at one guarantee and precision, `v_T` (candidates verified
+  per kept form) and `r_T` (attempts per candidate) with the hypotheses of their product and the
+  general sum; §9.4's selection rows follow; §9.5 separates the error per candidate, over the
+  search and among accepted forms, and gives the obligations of proof of two constructions under
+  one guarantee: per-form checks under an error budget (A) and a common calibration with a
+  simultaneous bound (B). No estimator, level, budget, sample size or winner proposed.
+- **Astra's review of `6681b03`: partial** (the diff and the updated passages read; exact
+  calculations on the counterexamples, the expected-share inequality and a capped search's cost;
+  no Rust, fit or campaign run). Approved as conditional results: A's proof under conditional
+  coverage and a budget along every path; B's result for a single calibration with simultaneous
+  coverage; checks kept apart from the optimizer's internal operations; the cost identity and
+  its product form under the stated hypotheses; `E[V/max(R, 1)] ≤ P(V ≥ 1)`, distinct from a
+  guarantee conditional on one form's acceptance. Not approved: the deepening as a whole. The
+  approval of `63b13fa` is unchanged.
+- **Rectifications of `6681b03`** (documentation only, not pushed by the session; **awaiting
+  review**), in `19` §9.5: B's updates under choices that depend on the history (conditional
+  coverage given `𝓖_{u−1}` and a budget along every path as a sufficient construction; marginal
+  coverages for a sequence fixed in advance; a joint guarantee as another route; the abstract
+  `Z` counterexample); two checks of one form, `A₁ ∩ A₂` (no further budget by itself) against
+  `A₁ ∪ A₂` (a new opportunity to cover), 1/400 against 39/400 under independence; `DTF_μ(T)` as
+  the target, `E_F(T)` a conservative majorant under H1–H3 whose excess does not imply the
+  target's.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -144,8 +159,8 @@ they win.
   Not approved by either review: R3 (a test-level fit) as a solution, a mandatory batch per form,
   any new calibration, selection or group policy. A reusable common calibration and a calibration
   per form are compared in `19` §9 under explicit assumptions, approved by Astra on `63b13fa` as
-  a conditional comparison (§9.5, added after it, awaits review); no calibration is chosen, and
-  that approval does not close A2.
+  a conditional comparison (§9.5, added after it in `6681b03`, partly approved there; its
+  rectifications await review); no calibration is chosen, and that approval does not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
   baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
@@ -170,7 +185,8 @@ they win.
 The synthesis is in `19` §6.1, approved by Astra on `cebcb2e` as a documentation intervention.
 The comparison of a reusable common calibration with a calibration per form is in `19` §9,
 rectified in `63b13fa` and approved there by Astra as a conditional comparison. Its deepening
-(§9.3's check conditions and cost hypotheses, §9.5's error control over a search) awaits review;
+(`6681b03`: §9.3's check conditions and cost hypotheses, §9.5's error control over a search) was
+partly approved by Astra; the rectifications it asked for are made in §9.5 and await review;
 the next step is that review, and what follows it is Astra's to decide.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -331,4 +347,16 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   (`git diff --check`), line widths, references and relative links of the edited docs, the states
   across `15`, `19` and this note. No Rust test, fit, smoke, characterization, calibration,
   benchmark or mutation run.
+- **Astra, review of `6681b03`** (as it records): the diff and the updated passages read; exact
+  calculations on the counterexamples, the expected-share inequality and a capped search's cost.
+  No Rust, fit or campaign run.
+- **Claude Code, record of that review and the rectifications of `19` §9.5:** branch, HEAD
+  `6681b03` (parent `63b13fa`), no later local commit and a working tree with only `.gitignore`
+  modified checked first. Exact calculations (C), in a scratch script not kept: 1/400 and 39/400
+  for two checks with independent errors of 1/20; the inclusion and the union bound on 5,000
+  random joint laws of two checks; the `Z` counterexample (1/20 for each prefixed procedure, 1 for
+  `j = Z`); §3's construction (target ¾ with its classes as the groups, envelope 1). Documentation
+  checks: the diff, whitespace (`git diff --check`), line widths, references and relative links
+  of the edited docs, the states across `15`, `19` and this note. No Rust test, fit, smoke,
+  characterization, calibration, benchmark or mutation run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
