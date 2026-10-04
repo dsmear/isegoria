@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): **a proposal awaiting review**. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): **partly approved by Astra on `d31e9fa`**, with 6c and 7a decided as the basis of the study's reporting; its rectifications **await review**. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -924,63 +924,88 @@ unvalidated for it (§7.5), and whether A1 needs the reputation's incentives (`1
 5. The recorded `π_j` is the design's inclusion probability (H-e); on an exact enumeration the
    IPW mean of a prefixed cohort's final value equals its expected contribution.
 
-## 9. Cases 5–7 for a study under design A (proposal awaiting review)
+## 9. Cases 5–7 for a study under design A (partly approved; rectifications awaiting review)
 
-**Status.** A proposal by Claude Code on the direction of Astra's review of `26593e7` (`19` §10),
-**awaiting review**; no approval recorded above covers it, and it rewrites none of §§7–8.
-Reference, for a study only: design A (groups prescribed before the reports, `π = 1`, §8.5), C
-kept as the comparison; B-b as the candidate (§8.1); assignments and prefixed cohorts as in §8.3;
-any study score kept apart from the reputation. It adopts no design, starts nothing in the field
-and changes no code, API, serialization, threshold or golden output. Completed reports and a
-reached freeze are not assumed where they are the problem (cases 6 and 7). **L** read at
-`26593e7`; **D** derived here; no calculation was needed.
+**Status.** A proposal by Claude Code in `d31e9fa`, on the direction of Astra's review of
+`26593e7` (`19` §10); it rewrites none of §§7–8. Reference, for a study only: design A (groups
+prescribed before the reports, `π = 1`, §8.5), C kept as the comparison; B-b as the candidate
+(§8.1); assignments and prefixed cohorts as in §8.3; any study score kept apart from the
+reputation. It adopts no design, starts nothing in the field and changes no code, API,
+serialization, threshold or golden output. Completed reports and a reached freeze are not assumed
+where they are the problem (cases 6 and 7). **L** read at `26593e7`; **D** derived here; **C** one
+exact calculation (§9.4).
 
-### 9.1 Three objects
+Astra's review of `d31e9fa` (the commit, its parent and the published HEAD checked; the diff, the
+documents, T58 and the relevant lifecycle arms read; a small rational calculation on the
+baseline's dependence channel; no Rust, fit or campaign run): approved the distinctions between
+the procedure's term, the terminal record and the study's snapshot; the ban on turning silence
+into an outcome; the state's update kept apart from the historical snapshot. Not approved: §9 as
+a whole. Decided for the study's reporting specification only: 6c and 7a as its basis, unresolved
+cases left unresolved with no imputed value; this does not make the consolidated cohorts alone
+representative. Not approved: S2's start, an implementation, penalties or reputational policies.
+T58's deepening is no prerequisite of this perimeter; T58 stays open for a procedure that must
+proceed despite missing reports. Rectified after that review, **awaiting review**: units and
+times (§9.1), exhaustion's evidence and case 5 by unit (§9.2), freeze against consolidation and
+the baseline's dependence (§9.4), reporting (§9.5), the decision's scope (§9.6).
+
+### 9.1 Three objects, three units
 
 - **Procedure term** `τ_j`: the log position at which the reference procedure's rule ends it
   (§7.2, item 3; §8.3), fixed before the reports, in log order. A protocol object.
 - **Terminal record**: a reproducible entry stating the procedure's outcome, `A`, `R`, or `I` with
   §9.2's content. Its *existence* (the procedure produced it) and its *availability* (the log
-  position at which it appears) are two facts; past `τ_j` without it, the item is pending (case 2).
+  position at which it appears) are two facts; past `τ_j` without it, the outcome is pending.
 - **Observation close** `Ω`: a log position fixed before the study starts, at which the study takes
   its snapshot (§9.5). A study object: it ends the observation, not the procedures, and changes no
   item's state.
 
+Three units: the *item* (its procedure and outcome); a reviewer's *assignment* (`j ∈ R_u`, its
+report completed or not); a *cohort* (a prefixed set of assignments). A terminal record describes
+an item; §8.2's cases describe assignments; consolidation concerns a cohort. The cases are not
+exclusive across units: an item can end in `I` while one of its assigned reviewers has no report,
+case 6 for that assignment, which the item's record does not resolve.
+
 Protocol rules read log order only (§7.2; invariant 7). Elapsed times may be measured as
-operational quantities of the study; they enter no scoring rule. At `Ω` an item without its
-terminal record is reported pending: not `I`, not 0, not removed from the assignments.
+operational quantities of the study; they enter no scoring rule. Each interval names its origin:
+the association where it exists, the assignment otherwise (a freeze can precede the association);
+intervals of different origins are kept apart, never substituted for each other. At `Ω` an outcome
+without its terminal record is reported pending: not `I`, not 0, its assignments kept.
 
 ### 9.2 Case 5 — verifiable terminal inconclusiveness
 
-**Minimal logical content of the record** (no schema or API proposed):
+**What the record must let a verifier check** (logical content; no schema or API proposed):
 
-1. the item and the procedure fixed for it — group, sampling frame, anchors, formats and
-   templates, model version and thresholds, attempt budget `k`, term rule — by reference to the
-   record that fixed them;
+1. the item and the procedure fixed for it, with the prefixed rule that applies — attempt budget,
+   term, the condition of terminal closure — by reference to the record that fixed them;
 2. the group and its association record;
-3. the attempts, planned (`k`) and executed; for each executed attempt its status, a converged
-   verdict or a named non-conclusion (§7.2, item 1), with what a verifier needs to recompute it
-   (answers, anchors, seeds, model version; §7.2, item 2);
-4. the terminal reason and the rule that makes it terminal: the budget's last attempt ended in a
-   named non-conclusion;
-5. its log position and the references needed to verify items 1–4.
+3. every attempt the rule requires, each with its status (a converged verdict or a named
+   non-conclusion, §7.2, item 1) and the evidence to recompute it (answers, anchors, seeds, model
+   version; §7.2, item 2), and no required attempt lacking that evidence;
+4. no earlier conclusion that would already have ended the procedure;
+5. the terminal reason and the rule's condition it meets;
+6. its log position and the references needed to verify items 1–5.
 
-**Three situations, apart.** *An indeterminate attempt*: one attempt's named non-conclusion; with
-budget left the procedure continues and nothing is terminal. *Exhaustion*: the budget's last
-attempt so ends, by the prefixed rule; `Y_j = I`. *An attempt or a record that never arrived*: no
-status exists, and the item is pending (case 2). Exhaustion is never inferred from silence.
+An indeterminate last attempt does not by itself show exhaustion: items 1 and 3–5 do. Three
+situations stay apart: *an indeterminate attempt* (the procedure continues if the rule allows);
+*a procedure exhausted with evidence* (`Y_j = I`); *an attempt or a record that never arrived*
+(no status: the outcome is pending). Exhaustion is never inferred from silence.
 
-**Intrinsic against resource.** A status says whether the non-conclusion arose from the data
-received (a fit, a gate on the batch) or from data not arriving by the term (respondents short of
-a floor). By §7.2, item 4, the second counts as `I` only under the invariance stated there;
-reserving resources at association is one sufficient construction, not a requirement. Candidate
-for the study: the two classes reported apart, a resource non-conclusion counted as `I` only under
-a declared hypothesis that its law does not move with reviewers' deviations.
+**Resources.** A shortfall of data by the term (respondents short of a floor) needs a positive,
+verifiable record too: what the rule required by the term and what arrived. Three things kept
+apart: that descriptive record; its classification under a candidate rule (whether it counts as
+`I`); the conditions of the score's guarantees, among them §7.2, item 4's invariance, which a
+declared hypothesis states and does not prove. No category is made normative here, and no
+shortfall is declared to be `I`.
 
-**Consequences, with a valid record.** Under A, `S_j = 1` and `π_j = 1`: the term is
-`g_uj(I) = 0` (§8.1); the assignment stays in `N_u`; `O_u` increases and `V_u` does not (§8.4).
-This 0 is an observed outcome without a verdict, neither a non-observation (case 1, absent under
-A) nor a pending item (case 2).
+**Consequences, by unit, with a valid record.** *Item*: its outcome is `I` and available; nothing
+about that outcome stays pending. *Assignment with a completed report*: under A, `S_j = 1` and
+`π_j = 1`, so the term is `g_uj(I) = 0` (§8.1), the assignment stays in `N_u`, `O_u` increases and
+`V_u` does not (§8.4); an observed outcome without a verdict, neither a non-observation (case 1,
+absent under A) nor a pending outcome (case 2). *Assignment without a completed report*: case 6
+stays; the item's `I` gives it no 0, since `g_uj` needs `p_uj`. It is countable as an assignment
+with a missing report whose item ended in `I`, not as a score term; this specification extends
+neither B-b nor §8.4's counts to it. *Cohort*: its final value needs every member's contribution;
+one member in case 6 leaves it without one, whatever the item's outcome.
 
 ### 9.3 Case 6 — report not completed
 
@@ -988,7 +1013,8 @@ A) nor a pending item (case 2).
 of the reveal period, in log order; the absence of a valid reveal before it. **Not identified by
 the absence**: withholding, a reveal lost or censored, unavailability (§8.2). In every option
 `p_uj` does not exist, so `g_uj` is undefined; D1 needs completed reports (H-d) and is not
-extended to this case.
+extended to this case. The case belongs to the assignment and persists whatever its item's
+outcome (§9.1).
 
 | Option | `p`, `g` | Denominator | Consolidable | Withholding; hypotheses |
 |---|---|---|---|---|
@@ -997,8 +1023,9 @@ extended to this case.
 | 6c. the case kept unresolved in the study | none; reported as a missing report | the cohort keeps it, with no complete final value | no: the cohort's known part only, no value or interval for the missing member | the study scores no withholding and does not model its cause: it measures how often reports are missing, not why |
 
 `p = 0`, `p = b` (which gives `g = 0` exactly, §8.1 D4), `g = 0` or removing the item are each a
-value or a selection, not a neutral reading. Under every option the missing report also leaves
-the item's freeze unreached for the other panelists: the absent reviewer's case is 6, theirs is 7.
+value or a selection, not a neutral reading. While no rule lets the freeze pass, the missing
+report also leaves the item's freeze unreached for the other panelists: the absent reviewer's
+case is 6, theirs is 7.
 
 ### 9.4 Case 7 — freeze not reached
 
@@ -1009,53 +1036,71 @@ and the round reopens; after the second deadline the round is scored if at least
 revealed, otherwise the item returns to the admission queue (`10` T58). The freeze can also wait
 on the decision, the band's extra round or the appeal window (`16` §5).
 
+**Five things apart**: passing the freeze; the item's progress; the procedure's conclusion; the
+terminal record's availability; the availability of every contribution of a cohort. A replacement
+and a quorum (7b), or a term (7c), can let the freeze pass and the item progress; they guarantee
+none of the last three. Pilots can stay pending, records missing, other members' contributions
+incomplete, and assignments unresolved after a re-queue; the number of rounds before a re-queue
+bounds no overall delay.
+
 | What can change | 7a. pending kept | 7b. T58's replacement and quorum | 7c. a candidate term on the present reveals |
 |---|---|---|---|
-| panel, baselines | unchanged | a replacement joins: if its report, formed after the others' reveals are public, entered a first panelist's baseline, that baseline would read a report the panelist's deviation can change, against C5 (`16` §4.6); a re-queue starts another panel | a smaller panel, each baseline over fewer reports |
+| panel, baselines | unchanged | a replacement joins and reports with the others' reveals public: access to information, not by itself a dependence; C5 fails only if the panelist's deviation actually changes its baseline through the replacement's behaviour and the aggregation rule (below); a re-queue starts another panel | a smaller panel, each baseline over fewer reports |
 | reviewers' information | unchanged | the replacement reports knowing the revealed reports | unchanged for those who revealed |
 | reference outcome | under A, the procedure runs whatever the decision; its outcome stays hidden until the freeze (§8.5) | the gate decision can change with the replacement (`16` §4.4: a motive outside the score); a re-queue leaves open what happens to the first panel's `R_u` | as under 7b, from a rump decision that T58 itself refuses |
-| group association, load | if the group's pilot waits for the freeze, its companions' timing moves (§7.3) | the same, by about one round when the replacement reveals | the same, for a shorter time |
-| H-a–H-e | unchanged; the cohorts holding the item stay unconsolidated | H-d's C5 can fail as above; H-c through the panel and the timing | H-c through the panel; H-d only for the scored reports |
+| group association, load | if the group's pilot waits for the freeze, its companions' timing moves (§7.3) | the same, for a delay that no count of rounds bounds | the same |
+| H-a–H-e | unchanged; the cohorts holding the item stay unconsolidated | H-d's C5 at risk as above; H-c through the panel and the timing | H-c through the panel; H-d only for the scored reports |
+
+**The baseline's dependence channel** (D, C). An abstract construction, not a simulation of the
+protocol nor a call to the baselines' API, and no evidence that a real replacement would respond
+so: the outcome always conclusive, Bernoulli(½), independent of the report; an effective baseline
+`b(p) = min(1, max(0, 2p − ½))`; the usual differential Brier contribution. The expected
+contribution is 0 at `p = ½` and 3/16 at `p = ¾`, so the truthful forecast ½ is not a maximizer.
+The approved compositions of the baselines (`16` §4.6) stand; no rule including replacements is
+decided.
 
 No option settles incentives, availability or invariance by itself. *On the reviewer who does not
 complete*: case 6, under §9.3's options. *On the other members of the cohort*: under 7a their
-cohorts stay unconsolidated through an item they cannot complete — the block T58 names as an
-attack; under 7b and 7c they consolidate, at the costs listed.
+cohorts stay unconsolidated through an item they cannot complete, the block T58 names as an
+attack; under 7b or 7c the freeze can pass, and their cohorts consolidate only once the procedure
+concludes, its record is available and every member's contribution exists.
 
 ### 9.5 Study reporting and late records
 
-**Describable at `Ω` without consolidation**, from the records alone: assignments (`N_u`, totals);
-reports completed and missing, with or without a commitment; procedures started and attempts
-executed; terminal outcomes by category (`A`, `R`, `I` intrinsic, `I` resource where counted);
-pending cases by kind (2, 6, 7), each with its observation time from association to `Ω`. The
-share concluded by `Ω` is not a probability of eventual conclusion: pending items are censored at
-`Ω`, and conclusion times can depend on the outcome (§8.3's counterexample).
+**Describable at `Ω` without consolidation**, from the records alone, by unit. *Items*: procedures
+started, attempts executed, terminal outcomes by category (`A`, `R`, `I`, and the shortfalls
+recorded under §9.2 apart), outcomes pending. *Assignments*: `N_u` and totals; reports completed
+and missing, with or without a commitment, each with its item's state, so that a missing report
+whose item ended is counted as such. *Cohorts*: consolidated or not, and why. Pending cases by kind
+(an outcome pending, case 6, case 7), each with its observation time from a named origin (§9.1).
+The share concluded by `Ω` is not a probability of eventual conclusion: pending items are censored
+at `Ω`, and conclusion times can depend on the outcome (§8.3's counterexample).
 
-**Scores.** A final value only for consolidated prefixed cohorts. For a cohort whose pending
-members are all in case 2, its known part and §8.3's bound, within `Σ_{j∈P} 1/π_j` (under A, the
-number of pending members). Cases 6 and 7 get no value and no interval without a rule. The mean
+**Scores.** A final value only for consolidated prefixed cohorts. For a cohort whose members lack
+only pending outcomes (case 2), its known part and §8.3's bound, within `Σ_{j∈P} 1/π_j` (under A,
+the number of such members). Cases 6 and 7 get no value and no interval without a rule. The mean
 over the cohorts consolidated by `Ω` does not inherit D1 (§8.3, (iii)–(iv)).
 
-**Late records.** Two views, apart. The *state*: every valid record, in log order, moves its item
+**Late records.** Two views, apart. The *state*: every valid record, in log order, moves its unit
 to its case whenever it appears; the protocol knows no late record unless a term says so. The
 *study snapshot*: what was recorded by `Ω`, reported with `Ω`; a record after `Ω` changes the
 state, not the snapshot, and a later prefixed close `Ω'` gives a second snapshot, reported as
 such. No deletion, substitution or retroactive value without an explicit rule.
 
-### 9.6 For Astra's decision
+### 9.6 Summary and decision
 
-| Case | Evidence available | Candidate treatment in the study | Computable | Stays pending | Decision needed |
+| Case | Evidence available | Treatment in the study's reporting | Computable | Stays pending | Decision still needed |
 |---|---|---|---|---|---|
-| 5 | the record of §9.2, recomputable | `g(I) = 0`; `O_u` up, `V_u` not; intrinsic and resource classes reported apart | the term and the counts | nothing, once the record exists | whether a resource non-conclusion counts as `I`, and under which hypothesis |
-| 6 | the assignment, a commitment if any, the reveal close, the absence | 6c: a missing report, its cohort unresolved | the counts; the other members' known terms | the cohort's final value | 6a, 6b or 6c for the study; whether a penalty is ever pursued, as a reputational rule |
-| 7 | the reveals present, the deadlines, `PartialEpoch` | 7a: pending, with its observation time | the counts; the revealed reports | the item, and every panelist's cohort holding it | whether the study implements T58, and how a replacement enters the baselines |
+| 5 | §9.2's record: rule, every required attempt with evidence, no earlier conclusion | the item's outcome `I`; for assignments with a report, `g(I) = 0`, `O_u` up, `V_u` not; shortfalls recorded apart | the item's outcome; the terms and counts of completed reports | nothing for the item's outcome; any assignment of it in case 6, and its cohort's final value | whether a recorded shortfall is classified as `I`, under which candidate rule and evidence |
+| 6 | the assignment, a commitment if any, the reveal close, the absence | 6c: a missing report, its cohort unresolved (Astra's decision for the reporting) | the counts; the other members' known terms | the cohort's final value | for any score, 6a, 6b or another rule; a penalty only as a reputational rule, not approved |
+| 7 | the reveals present, the deadlines, `PartialEpoch` | 7a: pending, with its observation time (Astra's decision for the reporting) | the counts; the revealed reports | the item, and every cohort holding it | for a procedure that must proceed, T58 or another rule (open) |
 
-**Recommendation** (mine, not an approved decision). For the study, 6c and 7a: they report what
-happened and assign no value, so they distort no result; case 5's two classes reported apart.
-Then, as the next step of this specification, T58's replacement read against B-b's hypotheses —
-whether a replacement's report enters first panelists' baselines, what it knows when it reports,
-what a re-queue does to `R_u` and to the group's association — because it is the only option that
-lets an item proceed and its effect on C5 and H-c is unexamined. The study is not ready: the
-bridging input's meaning under `q_c` (`19` §10.1) and the rest of `19` §10.5's perimeter stay to
-decide. A1 stays open: these cases are made representable and verifiable, not settled by giving
-up its guarantees.
+**Scope of the decision.** 6c and 7a are the basis of the study's reporting specification, not a
+general answer to withholding or availability. They impute no value to unresolved cases; they do
+not remove selection, censoring or the dependence of times on outcomes; they do not authorize D1
+on the consolidated cohorts alone.
+
+**Next.** The review of these rectifications; then, as the priority link, the bridging input's
+meaning when the report forecasts `q_c` (`19` §10.1), not developed here. The study is not ready,
+and A1 stays open: these cases are made representable and verifiable, not settled by giving up
+its guarantees.

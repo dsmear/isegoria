@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it; the specification of cases 5–7 it led to is in [`17`](17-a1-pilot-batch-design.md) §9, **a proposal awaiting review**. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was **partly approved by Astra on `d31e9fa`**, its rectifications **awaiting review**. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -167,6 +167,20 @@ the reviews above:
   the relevant passages of `run_item`, `lifecycle`, `ResultRecord`, `SkillTrack` and
   `ClassCurves::dtf` read; no new calculation needed; no Rust, fit or campaign run; the local
   working tree as reported by Claude Code, not checked through GitHub.
+
+Review on `d31e9fa` (§10's precisions and `17` §9), distinct from the reviews above:
+
+- Approved: the record of the review of `26593e7`; §10's four precisions. `17` §9 is partly
+  approved and rectified there (its status records what); it awaits review.
+- Decided for the study's reporting specification only: `17` §9's options 6c and 7a as its
+  basis, unresolved cases left unresolved with no imputed value; not approved: S2's start, an
+  implementation, penalties or reputational policies. T58's deepening is no prerequisite of that
+  perimeter and stays open for a procedure that must proceed despite missing reports.
+- Direction: after those rectifications, the priority link is the bridging input's meaning when
+  the report forecasts `q_c` (§10.1). R1 stays approved; A1, A2, B1–B3 and Phase 1 stay open.
+- Evidence: the commit, its parent and the published HEAD checked; the diff, the documents, T58
+  and the relevant lifecycle arms read; a small rational calculation on the baseline's dependence
+  channel; no Rust, fit or campaign run.
 
 ## 1. What the code computes (L)
 
@@ -983,10 +997,10 @@ experimental protocol (§10); that direction approves no protocol and closes no 
 **approved by Astra on `26593e7` as a preparatory synthesis** (design review above), its four
 precisions made below; the S2 protocol, any implementation or experiment, penalties and new
 reputational rules not approved. It builds on §6.1, §§9.1–9.6 and `17` §§7–8 without restating
-them; the cases 5–7 it led to are specified in `17` §9, awaiting review. It adopts, funds and
-closes nothing; anonymity (no personal or group attribute enters) and the recovery of contested
-facts bound it; the test's neutrality is not certified. Evidence: **L** targeted reads at
-`00f8e2c`, named in place; no run.
+them; the cases 5–7 it led to are specified in `17` §9, partly approved on `d31e9fa`. It adopts,
+funds and closes nothing; anonymity (no personal or group attribute enters) and the recovery of
+contested facts bound it; the test's neutrality is not certified. Evidence: **L** targeted reads
+at `00f8e2c`, named in place; no run.
 
 **Three categories.** *A*: decisions needed before any run, because a claim's meaning or a
 record's content depends on them. *B*: hypotheses a circumscribed study can measure, each with the
@@ -1100,13 +1114,13 @@ My recommendation, not an approved decision.
 - **Blocks today, by strand.** *S1*: scenarios and decision criteria not yet declared;
   respondent availability and human load do not block it. *S2*: an executable path from responses
   to terminal records — a study harness may serve, not necessarily the production runtime; the
-  terminal-inconclusiveness record and the attempt term; the rules for cases 5–7 (`17` §9,
-  awaiting review); B-b's contribution and counters (§10.4); the bridging input's meaning
-  (§10.1); respondent availability and the tolerable load per participation, unknown. A general
-  availability guarantee is not needed to study delays, which the study records; the study's end
-  does not turn a pending item into a terminal `I` of the protocol (`17` §9.1). *Any DTF
-  statement beyond diagnostics*: no declared `μ` and `𝒢`, no bound. Burden and runtime stay
-  unmeasured (`15` D2, D4).
+  terminal-inconclusiveness record and the attempt term; the rules for cases 5–7 (`17` §9: 6c
+  and 7a decided as the reporting basis, its rectifications awaiting review); B-b's contribution
+  and counters (§10.4); the bridging input's meaning (§10.1); respondent availability and the
+  tolerable load per participation, unknown. A general availability guarantee is not needed to
+  study delays, which the study records; the study's end does not turn a pending item into a
+  terminal `I` of the protocol (`17` §9.1). *Any DTF statement beyond diagnostics*: no declared
+  `μ` and `𝒢`, no bound. Burden and runtime stay unmeasured (`15` D2, D4).
 - **Decisions before implementation** (Astra): S1, S2 or both; arm A, C or both; cases 5–7 and
   any overdue rule; the terminal record's content; scores kept out of reputation; the bridging
   input's meaning under `q_c`; the DTF object of each statement and the diagnostics reported; the
@@ -1115,8 +1129,8 @@ My recommendation, not an approved decision.
 - **Owner information**, only where no symbolic scenario settles it, and not asked now: available
   anonymous respondents and tolerable items per participation; the horizon's numbers only if a
   calibration arm is kept.
-- **Next intervention recommended.** A documentation-level specification of B-b's records and
-  rules for cases 5–7 under arm A, as options for Astra; the direction was confirmed on
-  `26593e7`, and the specification is `17` §9, awaiting review. The alternative was S1's
-  declaration of scenarios and criteria, which needs no respondents but whose run is a campaign
-  the owner authorizes.
+- **Next intervention.** The specification of B-b's records and rules for cases 5–7 under arm A
+  is `17` §9, partly approved on `d31e9fa` and rectified; after its review, the priority link
+  decided by Astra is the bridging input's meaning when the report forecasts `q_c` (§10.1). S1's
+  declaration of scenarios and criteria stays an alternative strand, needing no respondents but
+  a campaign the owner authorizes to run.
