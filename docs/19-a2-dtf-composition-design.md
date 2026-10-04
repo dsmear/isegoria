@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), **partly approved by Astra on `6681b03`** as conditional results (below); its rectifications (§9.5: adaptive updates, two checks, target and envelope) and the rest of that deepening **await review**. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, **awaits review**. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -84,6 +84,28 @@ Review on `6681b03` (the deepening of §9 after the review above), distinct from
 - Evidence: the diff and the updated passages read; exact calculations on the counterexamples,
   on the expected-share inequality and on the cost of a capped search; no Rust, fit or campaign
   run.
+
+Review on `b59fd03` (§9.3–§9.5 after the rectifications above), distinct from it:
+
+- Approved, with no blocking finding, as a conditional analysis: §9.3–§9.5, including the
+  conditions for a form's own sample as its check sample; the cost comparison's links at one
+  guarantee and precision; the common calibration's adaptive updates, conditional coverage and a
+  budget along every path being a sufficient construction; the alternatives already stated
+  (marginal coverages for a sequence fixed in advance, a guarantee joint over the whole
+  procedure); a mandatory confirmation kept apart from a new opportunity of acceptance; the true
+  DTF as the target, apart from the conservative envelope.
+- Not approved: any calibration, protocol, implementation or expenditure, nor any guarantee as
+  already realized. R1 stays approved; A1, A2, B1–B3 and Phase 1 stay open.
+- Non-blocking precision, made in §9.3: the check needs coverage conditional on the history, as
+  in §9.5; independence from the earlier choices is one way to obtain it, not an added
+  requirement.
+- Direction: before choosing a calibration, settle whether and under which hypotheses data can
+  support an upper bound on the true DTF of one fixed form (§9.6).
+- Evidence: the commit, its parent and the published HEAD checked; the diff and the relevant
+  passages read; exact calculations with fractions — 1/400 and 39/400, the inclusion and the
+  union on 1,771 joint laws, the `Z` counterexample, the contrasts ¾, ½, ¾ and the envelope 1, a
+  construction with adaptive levels and a shared dependence. No Rust, fit or campaign run; the
+  documentation checks Claude Code reported were not repeated.
 
 ## 1. What the code computes (L)
 
@@ -381,7 +403,7 @@ The baseline description above also distinguishes the paper's former claim from 
 correction. No behavior or historical measurement changes. Evidence and access limits are
 recorded in `phase1-handoff.md` §8. Astra approved R1 on `d13bf09` (design review above).
 
-## 9. Common against per-form calibration (conditional comparison, approved on `63b13fa`)
+## 9. Common against per-form calibration (conditional analysis; §9.6 awaiting review)
 
 **Status.** Written on `cebcb2e`: a comparison under stated assumptions, not a choice. No
 calibration, selector, threshold, policy or expenditure is proposed for adoption; R3 stays a
@@ -394,8 +416,9 @@ conditions (§9.4). **Approved by Astra on `63b13fa` as a conditional comparison
 rectifications (design review above); no calibration, protocol, implementation, expenditure or
 realized guarantee approved, and A2 stays open. Added after that review, on its decision and
 direction, in `6681b03`: the check sample's conditions and the cost hypotheses (§9.3), the
-matching lines of §9.4, and §9.5; **partly approved by Astra on `6681b03`** (design review above,
-§9.5's status), the rest and the rectifications made after it **awaiting review**.
+matching lines of §9.4, and §9.5; partly approved by Astra on `6681b03`, rectified in `b59fd03`,
+and **approved by Astra on `b59fd03` as a conditional analysis** (design review above). §9.6,
+added after that review on its direction, **awaits review**.
 
 ### 9.1 Common ground
 
@@ -524,12 +547,13 @@ Bank items that no form of the horizon uses cost answers and serve none.
   a sample to the one it verified on; each confirmation a search of its own. A form's own sample
   can be its check sample, with no second sample mandatory (Astra, review of `63b13fa`), so
   `n''_T = 0` is a legitimate case under §9.5's conditions: form, target and procedure fixed
-  before the check's data are seen; a sampling that gives the check the independence from the
-  earlier choices its guarantee requires; a bound valid for the actual procedure, model search
-  and indeterminate outcomes included; later attempts charged as the declared guarantee
-  requires. `blueprint::assemble_test` gives none of these by itself. A stricter control may need
-  another bound or error budget rather than a second sample, and a second confirmation does not
-  by itself settle the selection among the forms that pass it (§9.5).
+  before the check's data are seen; a sampling that gives the check its coverage conditional on
+  the history, as §9.5 states it (independence from the earlier choices is one way to obtain it,
+  not an added requirement); a bound valid for the actual procedure, model search and
+  indeterminate outcomes included; later attempts charged as the declared guarantee requires.
+  `blueprint::assemble_test` gives none of these by itself. A stricter control may need another
+  bound or error budget rather than a second sample, and a second confirmation does not by itself
+  settle the selection among the forms that pass it (§9.5).
 
 In answers, the common design costs `Σ_u r_{c,u} n_{c,u} (P_u + A) + Σ_T n'_T (t_T + a_T)` and the
 per-form design `Σ_T v_T r_T n_T (t_T + a_T) + Σ_T n''_T (t_T + a_T)`; in searches,
@@ -612,7 +636,7 @@ Anonymity (no personal or group attribute enters; groups only through latent cla
 the recovery of contested facts (both designs keep them in forms, H3) bound both designs. The
 test's neutrality is not certified, and R3 is not an approved solution.
 
-### 9.5 Error control over a search (partly approved on `6681b03`; rectifications awaiting review)
+### 9.5 Error control over a search (conditional analysis, approved on `b59fd03`)
 
 **Status.** Added in `6681b03` after Astra's review of `63b13fa`, on its direction: the
 probability of at least one false acceptance over a declared horizon, at a symbolic level `α_H`,
@@ -621,9 +645,9 @@ budget is built or proposed; the obligations of proof are listed. **D** derived 
 calculations in a scratch script, formulas in place. Astra's review of `6681b03` approved as
 conditional results A's proof, B's result for a single calibration, the distinction between
 checks and the optimizer's internal operations, and the expected-share inequality as distinct
-from a guarantee on one accepted form; not §9.5 as a whole. Rectified after it, **awaiting
-review**: the target kept apart from the envelope, two checks of one form (A), B's adaptive
-updates.
+from a guarantee on one accepted form; not §9.5 as a whole. Rectified after it in `b59fd03`: the
+target kept apart from the envelope, two checks of one form (A), B's adaptive updates. **Approved
+by Astra on `b59fd03` as a conditional analysis**, with §9.3–§9.4 (design review above).
 
 **Three notions.** A search verifies candidates `T_1, T_2, …` within a horizon and accepts some.
 The true target is `DTF_μ(T)` (§2); a false acceptance accepts `T` with `DTF_μ(T) > DTF_MAX`;
@@ -731,3 +755,116 @@ construction covers groups the model lacks or a misspecified model; a converged 
 nothing (§4, row 4); drift between a check and the form's use lies outside both (§9.2). A and B
 are compared at the same `α_H` over the same horizon, each at the counts it needs (§9.3); neither
 is preferred here.
+
+### 9.6 One fixed form: representation, identification, inference (awaiting review)
+
+**Status.** Added on the direction of Astra's review of `b59fd03`: whether, and under which
+hypotheses, data can support an upper bound on the true `DTF_μ(T)`, before any choice of
+calibration. Reference simplification, not a protocol: one form `T` fixed before the data,
+complete administrations, `μ` and `𝒢` symbolic, no search among forms, no drift between check and
+use, a symbolic level `α`. H1–H3 are not assumed solved. **L** code read at `b59fd03`; **D**
+derived here; no run.
+
+**Representation: what ties the target to the model.** Candidate hypotheses, none established:
+- *R-a, specification*: the law of anchor and form responses is the D37/D43 model's for some
+  parameter — at most four classes, one histogram shape shifted by `η_c`, local independence,
+  class-invariant anchors, items `c_j + (1 − c_j) σ(a_jc(θ − b_jc))` with a floor shared by the
+  classes (`latent.rs`: `Model`, `evaluate`, `LatentDif`).
+- *R-b, matching*: equal ability in the target is the model's `θ`, aligned across classes by
+  DIF-free anchors. `DTF_μ(T)` is unchanged by any increasing bijection of `θ` applied to curves
+  and measure together (change of variables): the scale is a gauge, the classes' alignment is not.
+- *R-c, groups* (H2): if every group is a `θ`-dependent mixture of classes, `DTF_μ(T) ≤ E_F(T)`
+  (§3); when every class has mass wherever `μ` has, `E_F(T)` is the supremum over all such pairs,
+  attained by groups taking at each `θ` the classes of largest and smallest expected score (D).
+  The response law does not involve the mixtures `λ_g`; without group labels, which invariant 1
+  excludes, the target for groups other than the classes is not identified, and `E_F(T)` is its
+  sharp bound (D).
+- *R-d, measure* (H1): `μ` is the mixture of the classes' ability laws.
+- *R-e, shares*: the code counts classes of share at least 5% and renormalizes the measure over
+  them (`MIN_CLASS_SHARE`, `dif.rs:142`; `ClassCurves::of`, `dtf.rs:161–185`). At the true
+  parameters this is the target only if no protected group lies in an excluded class and their
+  mass does not matter; which shares are protected is a choice of target (below).
+- *R-f, overlap*: `with_ability` puts class `g`'s mass at `η_g + u_q` and `at` evaluates every
+  class's curve at every point (`dtf.rs:107–157`): where a class carries no mass, its expected
+  score is its parametric curve's extrapolation, not its respondents'.
+
+**Identification: does the response law fix the functional?** Its parameters need not be fixed:
+- *Invariances* (D). `DTF_F` and `E_F` are unchanged by a permutation of class labels (maxima over
+  unordered pairs) and by the gauge `θ → sθ + t`, `s > 0`, with `a → a/s`, `b → sb + t`,
+  `η → sη + t`, `u → su + t` (`a(θ − b)` and the masses unchanged). Classes with equal item curves
+  can be split in many ways, all with the same curves and measure. None is a defect for the DTF.
+- *An exact non-identification* (D). With every anchor at `a = 0`, moving one class `c` by
+  `(η_c, b_jc) → (η_c + δ, b_jc + δ)` for all its items leaves every response probability unchanged
+  (the anchors are constant, the items read `θ − b`), yet turns equal curves (DTF 0) into a DTF
+  above 0 for every `δ ≠ 0` (items with `a > 0`). It lies in the model's parameter space but not
+  in the admitted procedure: anchors independent of ability have a population KR-20 of 0, which
+  `admit_anchors` refuses except by sampling chance. It shows no defect of the admitted
+  procedure; it locates the identifying hypothesis: informative class-invariant anchors fix the
+  classes' alignment, which the DTF reads.
+- *Not proved.* With informative anchors, a candidate route: the latent states (class × node) up
+  to permutation, by Kruskal-type results for latent class models with many conditionally
+  independent binary variables (Allman, Matias and Rhodes, 2009, for unstructured models; the
+  structured family may lie in their exceptional set); then each state placed on one `θ` scale
+  through the anchors' monotone curves, and each class's curve recovered from its states. `18` §3
+  leaves the histogram's identification from responses open, and the measure enters the DTF.
+
+**Inference: a bound with coverage, even if identified.**
+- *No informative upper bound counts every class* (D). Let `U` have coverage `1 − α` at every
+  model of the family, for the functional counting every class whatever its share, and let `P`
+  have fewer than four classes. Adding a class of share `ε`, `Q_ε = (1 − ε)P + εR`, so the laws of
+  `n` respondents differ by at most `nε` in total variation, and under `P`,
+  `P(U ≥ D(Q_ε)) ≥ 1 − α − nε`. As `ε → 0`, with the added class's curves near 1 or near the
+  floors, the limit of `D(Q_ε)` is at least `∫ Σ_j (1 − P_j0) dμ` or `∫ Σ_j (P_j0 − c_j) dμ`,
+  whose sum is `Σ_{j∈T} (1 − c_j)`. Hence under `P`, `U ≥ ½ Σ_{j∈T} (1 − c_j)` with probability
+  at least `1 − α`, whatever `P`'s DTF. An informative bound needs a target that leaves out groups
+  under a share `s_min` (candidate hypothesis; the code's 5% is one value), or another restriction
+  on small groups; the floor makes the functional jump at `s_min`, a conservative bound near it.
+- *Selection* (D, L). With one class `dtf` is 0 for every set (`dtf.rs:197`), so a bound computed
+  inside the BIC-selected model is 0 whenever a converged one-class model is selected: with a
+  true DTF above `DTF_MAX`, a false acceptance is at least as likely as that selection. §4, row 4
+  is such a fit (converged, one class, true 0.78196; outside the gate, not a frequency). Coverage
+  must hold over the candidate orders jointly.
+- *Regularity.* The χ² calibration of likelihood ratios fails across mixture orders (an extra
+  class's parameters are not identified under the smaller model); the functional, a maximum over
+  pairs of integrals of absolute values, is not differentiable at ties and sign changes, where
+  neither the delta method nor the ordinary bootstrap is justified. A split-likelihood region
+  (Wasserman, Ramdas and Balakrishnan, 2020) has finite-sample coverage under R-a for independent
+  respondents and any estimator fitted on the other half, the penalized fit included: a candidate
+  for obligation (i) below, its width not assessed.
+- *Penalties* (L, `18` §4). The moment penalty's weight grows with `n`, so the fit tends to a
+  penalized pseudo-true parameter, which is the truth only if its grid moments are 0 and 1; the
+  floors' priors keep a fixed weight, `FLOOR_PRIOR_WEIGHT = 20`. Coverage is to be argued on the
+  likelihood, or the gap bounded.
+
+**The procedure, element by element** (L, at `b59fd03`).
+
+| Element | Code | Bears on |
+|---|---|---|
+| order search, BIC | `latent_dif_with` (`latent.rs:913–1031`): orders 1–4, shared or per-class `a`, stop at the first order that lowers nothing, a candidate replaces the best only if converged | inference (post-selection); representation (at most four classes) |
+| regularization, priors | `penalty` (`:816–826`), `moment_penalty` (`:830–844`) | inference (the estimator's limit); representation (the family favoured) |
+| 5% floor, renormalization | `MIN_CLASS_SHARE`; `latent.rs:1036` for `DIF_j`; `ClassCurves::of` for the DTF | target (which groups count); inference (a jump at the floor) |
+| measure and curves | `Grid::shape`; `ClassCurves::{with_ability, at}` | representation (H1, overlap); identification (`18` §3); inference (estimation error) |
+| convergence, indeterminate outcomes | `fit_from` (`:848–877`: L-BFGS, `G_TOL`, `MAX_ITERS`, a status); four seeded starts; `LatentDif::flags` (`:156–162`) | computation (a stationary point at tolerance, not a certified maximum); inference (a non-conclusion must not accept; a retry is an opportunity, §9.5) |
+
+`ClassCurves::of` does not read `LatentDif::status`, which `flags` reads; no production path
+composes them today, so a procedure built on them must refuse a non-converged fit itself. A3 stays
+closed within its scope (`18`): these are B1–B3.
+
+**Reference logic, for the obligations only.** `U = sup {D(ϑ) : ϑ ∈ 𝒞}` over a region `𝒞` of
+parameters of every candidate order bounds `DTF_μ(T)` with probability `1 − α` given: (i) the
+region's coverage, `P(ϑ* ∈ 𝒞) ≥ 1 − α`, at finite samples or asymptotically and uniformly where the
+decision is close, weak identification and small classes included; (ii) representation,
+`D(ϑ*) ≥ DTF_μ(T)` (R-a–R-f, the envelope where H2's groups vary in composition, the share floor);
+(iii) a conservative supremum, a local optimizer under-estimating it. Neither an available
+construction nor an approved choice.
+
+**Next result.** The smallest useful one: identification of the share-floored DTF and of its
+envelope in the admitted model. Under R-a and informative class-invariant anchors, are the counted
+classes' curves and the measure fixed by the law of anchor and form responses, up to label
+permutation and the gauge — or is there an exact counterexample inside the gate? A first step is a
+reduction lemma: identified latent states (class × node), with their masses and response
+probabilities, identify the functional through the anchors. Both calibrations fit this model for a
+fixed form, so neither can bound an unidentified target: if the result holds, §9.3–§9.5 price a
+bound that can exist and obligations (i) and (iii) follow; if it fails, the comparison waits on a
+change of target or model, not on resources. Candidate hypotheses it needs: R-a, informative
+class-invariant anchors, the share floor `s_min`.

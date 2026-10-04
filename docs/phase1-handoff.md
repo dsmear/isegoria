@@ -107,14 +107,36 @@ they win.
   its product form under the stated hypotheses; `E[V/max(R, 1)] ≤ P(V ≥ 1)`, distinct from a
   guarantee conditional on one form's acceptance. Not approved: the deepening as a whole. The
   approval of `63b13fa` is unchanged.
-- **Rectifications of `6681b03`** (documentation only, not pushed by the session; **awaiting
-  review**), in `19` §9.5: B's updates under choices that depend on the history (conditional
-  coverage given `𝓖_{u−1}` and a budget along every path as a sufficient construction; marginal
+- **Rectifications of `6681b03`, `b59fd03`** (documentation only), in `19` §9.5: B's updates
+  under choices that depend on the history (conditional coverage given `𝓖_{u−1}` and a budget
+  along every path as a sufficient construction; marginal
   coverages for a sequence fixed in advance; a joint guarantee as another route; the abstract
   `Z` counterexample); two checks of one form, `A₁ ∩ A₂` (no further budget by itself) against
   `A₁ ∪ A₂` (a new opportunity to cover), 1/400 against 39/400 under independence; `DTF_μ(T)` as
   the target, `E_F(T)` a conservative majorant under H1–H3 whose excess does not imply the
   target's.
+- **Astra's review of `b59fd03`** (the commit, its parent and the published HEAD checked; the
+  diff and the relevant passages read; exact calculations with fractions — 1/400 and 39/400, the
+  inclusion and the union over 1,771 joint laws, the `Z` counterexample, the contrasts ¾, ½, ¾ and
+  the envelope 1, a construction with adaptive levels and a shared dependence; no Rust, fit or
+  campaign run; Claude Code's documentation checks not repeated): `19` §9.3–§9.5 **approved as a
+  conditional analysis, with no blocking finding** — the check sample's conditions, the cost links
+  at one guarantee and precision, the adaptive updates (conditional coverage and a budget along
+  every path as a sufficient construction; the alternatives already stated), the mandatory
+  confirmation apart from a new opportunity of acceptance, the true DTF apart from the envelope.
+  No calibration, protocol, implementation, expenditure or realized guarantee approved. Its
+  non-blocking precision is made in §9.3: the check needs coverage conditional on the history,
+  independence being one way to obtain it.
+- **One fixed form: `19` §9.6** (documentation only, not pushed by the session; **awaiting
+  review**), on that review's direction. Under a reference simplification (one form fixed before
+  the data, complete administrations, symbolic `μ`, `𝒢` and `α`, no search, no drift), it
+  separates representation (R-a–R-f), identification and inference, and maps the procedure's
+  elements to them. Derived: the DTF's invariances (labels, gauge); `E_F(T)` the sharp bound over
+  groups representable by classes, the target for unlabelled groups not identified otherwise; an
+  exact non-identification with uninformative anchors, outside the admitted procedure; no
+  informative upper bound for a functional that counts every class however small; a bound inside
+  the BIC-selected model fails whenever one class is selected. Not proved: the identification of
+  the share-floored functional with informative anchors, the next result proposed.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -159,8 +181,9 @@ they win.
   Not approved by either review: R3 (a test-level fit) as a solution, a mandatory batch per form,
   any new calibration, selection or group policy. A reusable common calibration and a calibration
   per form are compared in `19` §9 under explicit assumptions, approved by Astra on `63b13fa` as
-  a conditional comparison (§9.5, added after it in `6681b03`, partly approved there; its
-  rectifications await review); no calibration is chosen, and that approval does not close A2.
+  a conditional comparison; §9.3–§9.5, deepened in `6681b03` and rectified in `b59fd03`, approved
+  on `b59fd03` as a conditional analysis; §9.6 (one fixed form) awaits review. No calibration is
+  chosen, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
   baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
@@ -186,8 +209,11 @@ The synthesis is in `19` §6.1, approved by Astra on `cebcb2e` as a documentatio
 The comparison of a reusable common calibration with a calibration per form is in `19` §9,
 rectified in `63b13fa` and approved there by Astra as a conditional comparison. Its deepening
 (`6681b03`: §9.3's check conditions and cost hypotheses, §9.5's error control over a search) was
-partly approved by Astra; the rectifications it asked for are made in §9.5 and await review;
-the next step is that review, and what follows it is Astra's to decide.
+partly approved by Astra, rectified in `b59fd03` and approved there as a conditional analysis.
+§9.6 analyses, on Astra's direction, whether data can bound the true DTF of one fixed form; it
+awaits review. The next step is that review; the next result §9.6 proposes is the identification
+of the share-floored DTF and its envelope with informative class-invariant anchors. What follows
+is Astra's to decide.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
 break-even inequalities; the minimum information to cross the boundary is the tolerable load,
@@ -359,4 +385,21 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   checks: the diff, whitespace (`git diff --check`), line widths, references and relative links
   of the edited docs, the states across `15`, `19` and this note. No Rust test, fit, smoke,
   characterization, calibration, benchmark or mutation run.
+- **Astra, review of `b59fd03`** (as it records): the commit, its parent and the published HEAD
+  checked; the diff and the relevant passages read; exact calculations with fractions (1/400 and
+  39/400; the inclusion and the union over 1,771 joint laws; the `Z` counterexample; the
+  contrasts ¾, ½, ¾ and the envelope 1; adaptive levels with a shared dependence). No Rust, fit or
+  campaign run; Claude Code's documentation checks not repeated.
+- **Claude Code, record of that review and `19` §9.6:** branch, HEAD `b59fd03` (parent `6681b03`),
+  no later local commit and a working tree with only `.gitignore` modified checked first. Read
+  (L), at `b59fd03`: `scoring::latent` (`Model`, `free_params`, `Grid::shape`, `penalty`,
+  `moment_penalty`, `fit_from`, `latent_dif_with`, `LatentDif::flags`), `scoring::dtf`
+  (`ClassCurves::{with_ability, at, of, dtf}`), `MIN_CLASS_SHARE`, the callers of
+  `ClassCurves::of`; `18` §§2–5; `02` §B.3 and §B.7. Exact calculations (C), in a scratch script
+  not kept: the total variation of an added class of share `ε` and of `n` respondents' laws
+  (at most `nε`) on random rational laws; the identity of the two integrals summing to
+  `Σ_j (1 − c_j)`; the population KR-20 of anchors independent of ability, 0. Documentation
+  checks: the diff, whitespace (`git diff --check`), line widths, `scripts/comment_budget.py`,
+  references and relative links of the edited docs, the states across `15`, `19` and this note.
+  No Rust test, fit, smoke, characterization, calibration, benchmark or mutation run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
