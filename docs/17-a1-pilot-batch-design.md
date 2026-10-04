@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, is **a proposal awaiting review**. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was **partly approved by Astra on `82bdb9a`**; its rectifications **await review**, and T1 and T2 stay alternatives, neither adopted. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -1264,103 +1264,143 @@ scalar API validates neither meaning.
 - **Next.** The review of this rectified §10; the specification of timing under A comes after it.
   Nothing here is adopted.
 
-## 11. Timing under design A (proposal awaiting review)
+## 11. Timing under design A (partly approved; rectifications awaiting review)
 
-**Status.** A proposal by Claude Code on the direction of Astra's review of `111e595`, **awaiting
-review**; §10's approval does not cover it. Analytic reference: A's prefixed groups (§4), B-b
+**Status.** A proposal by Claude Code in `82bdb9a`, on the direction of Astra's review of
+`111e595`; §10's approval does not cover it. Analytic reference: A's prefixed groups (§4), B-b
 (§8), the input α (§10), §9's reporting with 6c and 7a; none authorizes starting the study. It
 aims to make the order of events verifiable and to name what a construction needs; it seeks no
 general answer to availability, scheduling or T58, and changes no code, API, serialization,
-threshold or golden output. **L** read at `111e595`; **D** derived here; **C** one exact
-calculation (§11.3).
+threshold or golden output. **L** read at `82bdb9a`; **D** derived here; **C** two exact
+calculations (§11.3).
 
-### 11.1 Units and the order of events
+Astra's review of `82bdb9a` (the commit, its parent and the published HEAD checked; the diff of
+the four documents, the relevant contracts and the replay and results code read; exact
+calculations with fractions on the timing counterexample and on the disclosure example of
+§11.3; no Rust, fit or campaign run; Claude Code's local checks and working tree not checked):
+approved the record of `111e595`'s approval; the setting of the comparison between T1 and T2;
+the timing counterexample as an abstract construction (0 and 1/25); the pending cases kept, and
+production kept apart from disclosure as problems to specify. Not approved: §11 as a whole; a
+preference for T2 as the construction adopted; a protocol, an implementation, thresholds, pool
+entry or S2's start. A and α stay analytic references within their recorded limits; T1 and T2
+stay alternatives to compare. Rectified after that review, **awaiting review**: a partial order
+with availability and disclosure apart (§§11.1–11.2); disclosure and baselines, production and
+information, D1's scope (§11.3); respondents and the records' evidentiary limits (§§11.3–11.4);
+§11.5.
+
+### 11.1 Units, objects and a partial order
 
 Units: an item `j`; an assignment `(u, j)`; a pilot group `G`, A's items fixed together; a cohort
-`K` (§8.3), which may span groups. In log order, for `j ∈ G`:
+`K` (§8.3), which may span groups. Points and objects, for `j ∈ G`:
 
 1. **Group record**: `G` and its reference procedure (rule, attempt budget, term, model version,
    thresholds), fixed before any member's assignment (§4, A). No such record exists in code.
-2. **Reports**: `AssignReviewers`, `Commit`, `CloseCommits`, `Reveal` (`lifecycle::Event`); a
-   missing reveal refuses `Score` (`PartialEpoch`).
-3. **Gate**: `Score`; for a band item `AssignExtraReviewers`, the extra reports and `Resolve`; for
-   an appealable rejection `Appeal` or `AppealExpires`. Under A they decide pool entry, not
-   piloting (§4).
-4. **`Φ_j`**, unchanged from `16` §5: the first log record after which `j`'s reports affecting
+2. **Reports and gate**: `AssignReviewers`, `Commit`, `CloseCommits`, `Reveal`; `Score` (refused
+   with `PartialEpoch` while a reveal is missing); for a band item the extra round and `Resolve`;
+   for an appealable rejection `Appeal` or `AppealExpires` (`lifecycle::Event`). Under A they
+   decide pool entry, not piloting (§4).
+3. **`Φ_j`**, unchanged from `16` §5: the first log record after which `j`'s reports affecting
    `D_j` or a scored baseline, `D_j` and its re-decision, the appeal and the memberships
    `j ∈ R_u` are irrevocable. Computable from the log; no record names it today.
-5. **`Φ_G`**: the latest `Φ_j` over `j ∈ G` — a name for a group's closure, not a change of `Φ_j`.
-6. **Production**: respondents admitted to the batch (`NodeEvent::AdmitRespondent`,
-   `pilot::submit_response`), attempts, the terminal record (§9.2). Today the stage readings are
-   lifecycle steps (`Pilot1Batch`, `Pilot2Batch`) on the replicated log: readable once recorded.
-7. **Availability and disclosure**: the record's appearance on the log, and the point `Δ` from
-   which reviewers may read it; under today's replication the two coincide.
-8. **Consolidation** of a cohort, once every member is in case 1, 3, 4 or 5 (§8.3, §9).
-9. **`Ω`**, the study's snapshot (§9.1).
+4. **`Φ_G`**: the latest `Φ_j` over `j ∈ G` — a name for a group's closure, not a change of `Φ_j`.
+5. **Objects of `G`'s procedure** — answers, attempt statuses, intermediate fits, terminal
+   records — each with four moments apart: its *production*; its *availability*, internal to
+   whoever runs or holds it, and its entry into the replicated log, a later and distinct event;
+   the *condition* that would authorize disclosing it; its *actual disclosure*.
+6. **Consolidation** of a cohort, once every member is in case 1, 3, 4 or 5 (§8.3, §9).
+7. **`Ω`**, the study's snapshot (§9.1).
 
-`Φ_G` waits on every member's reports, gate, band and appeal; production waits on what the
-construction says (§11.2); a cohort's consolidation waits on its members' items' records and on
-each member's report, across groups. Log order, attempt counts and elapsed time are different
-quantities: no finite count of rounds or attempts bounds a duration.
+These points form a partial order, not one sequence valid for both constructions. In both: the
+group record precedes its members' assignments; a member's reports precede `Score` and
+`Resolve`; `Φ_j` follows them; an object's disclosure follows both its availability and its
+condition, and if either is missing the object stays pending. Production follows `Φ_G` under T1
+and a position the group record fixes under T2 (§11.2), so under T2 it can precede `Φ_j`. `Ω`
+can precede any production, disclosure or consolidation and photographs what is pending; a freeze
+not reached by `Ω` is not a freeze that will never come. Log order, attempt counts and elapsed
+time are different quantities: no finite count of rounds or attempts bounds a duration.
+
+**Conditions of disclosure.** A record of `j` can be conditioned on `Φ_j`, or on `Φ_G`: one
+group's verdicts come from one fit and are dependent (§4.1), so a record opened after `Φ_j` but
+before `Φ_G` informs the members still before their freeze. Respecting `Φ_G` does not require
+every object of `G` to be available: a record available after `Φ_G` opens when it is available. A
+collective policy — opening `G`'s records together, so waiting for all of them — is a separate
+choice. No new rule closing reports or appeals is introduced, and `Φ_j` is not redefined.
 
 ### 11.2 Two minimal constructions
 
-| | T1. start after the freezes | T2. produce early, disclose late |
+| | T1. start after the freezes | T2. produce early, disclose under conditions |
 |---|---|---|
-| rule | `G`'s procedure starts at a log position after `Φ_G` | `G`'s procedure starts at a position the group record fixes, independent of reports; its records are disclosed at `Δ` — `Δ_G = Φ_G`, or per item `Δ_j = Φ_j` |
-| prerequisites | the group record; `Φ_j` as a rule of the log; a start rule in log order | the same, plus a capability absent today: records and intermediate results produced, kept unreadable by reviewers until `Δ` and verifiable afterwards (a commitment on the log at production, opened at `Δ`, is one shape of the requirement; no design here) |
-| missing report, freeze not reached | under 7a `Φ_G` never comes: no member's outcome is produced, the block spreading to the group | production unaffected; under `Δ_G` every member's disclosure waits; under `Δ_j` the others are disclosed while `j` stays pending |
-| samples, resources, time, outcome law | the start moves with the slowest member's freeze, so with reports, bands and appeals, and samples, shared resources and drift follow it (§7.3) | a fixed start decouples production from reports only if resources and samples are themselves fixed independently of them (§7.2, item 4); otherwise the same channels |
-| reviewers' information | no outcome of `G` exists before `Φ_G`; outcomes of groups already disclosed can be known | outcomes exist before the reports; their secrecy rests on who can reach answers, attempt statuses, fits and records before `Δ`; under `Δ_j` a disclosed companion informs a member still pending, one group's verdicts being dependent (§4.1) |
-| evidence | the log records of steps 2–4, the start after `Φ_G`, §9.2's attempts | the same, the commitment at production and its opening at `Δ`; that nothing was disclosed before `Δ` is shown by no log record and rests on the parties holding the data |
-| excludes | an outcome of `G` before its members' freezes | a start that depends on reports, under the resource condition |
-| hypotheses left | samples and resources invariant in time; availability; the group block | no disclosure before `Δ`; the resource condition; the respondent channel (§11.3) |
+| rule | `G`'s procedure starts at a log position after `Φ_G` | `G`'s procedure starts at a position the group record fixes, independent of reports; each object opens once available and its condition holds (§11.1) |
+| prerequisites | the group record; `Φ_j` as a rule of the log; a start rule in log order | the same, plus a hypothesis or a construction controlling information: what is produced before its condition stays unread by reviewers and verifiable afterwards (a commitment on the log at production, opened later, is one shape; no design here) |
+| missing report, freeze not reached | while `Φ_G` is not reached no member's procedure starts; at `Ω` the group's outcomes are pending, not lost | production unaffected; every object whose condition needs that member's freeze stays undisclosed |
+| samples, resources, time, outcome law | the start moves with the slowest member's freeze, so with reports, bands and appeals, and samples, shared resources and drift can follow it (§7.3) | a fixed log position does not make resources, samples or the outcome's law invariant: production is decoupled from reports only if they are fixed independently of them (§7.2, item 4) |
+| reviewers' information | the planned procedure does not run before `Φ_G`; reviewers may still hold private signals, answers or correlated results (§11.3) | outcomes exist before the reports; keeping them from reviewers rests on the information control |
+| evidence | the log records of the reports and the gate, the start after `Φ_G`, §9.2's attempts, within the records' limits (§11.4) | the same, the commitment at production and its opening; that nothing was disclosed early is shown by no log record (§11.4) |
+| excludes | the planned execution before the group's freezes | a start that depends on reports, under the resource condition |
+| hypotheses left | samples and resources invariant in time; no prior information on the outcome; availability | the information control; the resource condition; the respondent channel |
 
 ### 11.3 Joins with the score's conditions
 
-- **What a report may contain.** D1 holds for `q_c` given `F_u`, whatever `F_u` holds (§8.1). An
-  outcome of another group already disclosed, or a public frequency, is information a forecast
-  may legitimately include. §4 (A) requires that `Y_j` stay unknown to `j`'s reviewers until
-  `Φ_j`, since an outcome known before the report turns the forecast, and the bridging input, into
-  its echo: T1 gives this by construction, T2 by its disclosure condition. Under A no observation
-  is drawn, so H-a's H0 guards no draw here.
-- **What a deviation may change** (H-c). H-c fails when `u`'s deviation moves the joint law of
-  `(b_uj, Y_j)` given `F_u`. Under T1 it can: `u`'s report or withholding on any member of `G` can
-  move `Φ_G` (a band, an appeal, a missing reveal), hence the start, the sample and `Y_j`'s law.
-  Abstract construction (D, C; not a model of the protocol): `u`'s report alone sends `j` to the
-  band when `p ≤ ½`, as in `16` §3's simplified gate; the band moves `Φ_G` past a log position
-  after which the sample gives `A` with probability 2/5 instead of 3/5; the outcome always
-  conclusive; `b = 3/5`. The truthful report `p = 3/5` earns 0 in expectation, the deviation
-  `p = 2/5` earns 1/25. Under T2 the same deviation moves `Δ`, not `Y_j`, when the resource
-  condition holds. Neither construction changes the baselines' composition (C5, `16` §4.6); T58's
-  replacement lies outside both (§9.4).
-- **Across items.** A reviewer with assignments in several groups can learn a disclosed outcome
-  before completing another report: included information. Under T2 an intermediate result that
-  reaches it before `Δ` is a failure of the disclosure condition. A deviation on `k` that moves
-  `j`'s disclosure changes when `Y_j` is seen, not `Y_j`: a selection of what is available, not a
-  change of law.
-- **Selection.** A disclosure or consolidation that follows outcomes or report timing selects the
-  available observations and cohorts (§8.3, (iii)–(iv)); neither construction carries D1 to the
-  consolidated cohorts alone.
-- **Respondents.** Unlinkable pseudonyms keep a reviewer from being excluded from its own items'
-  samples (invariant 5; §7.3): under T2 it can answer before reporting, under T1 only after. Its
-  effect on `Y` as a respondent is not covered by C6 (§7.3), under either construction.
+- **D1's scope.** D1's target `q_c` is conditioned on the information `F_u` declared in §8.1, and
+  D1 holds under §8's hypotheses (H-a–H-d). Information wider than declared, or whose
+  availability depends on a strategy, is no automatic check of those hypotheses. Under A no
+  observation is drawn: that removes C1's role, not the need for H-c and C5. §4 (A) asks that
+  `Y_j` stay unknown to `j`'s reviewers until `Φ_j`: T1 prevents the planned execution before
+  `Φ_G`, not every source of information; T2 depends on its information control.
+- **Timing and the outcome's law** (D, C; abstract, not a model of the protocol). `u`'s report
+  alone sends `j` to the band when `p ≤ ½`, as in `16` §3's simplified gate; under T1 the band
+  moves `Φ_G` past a log position after which the sample gives `A` with probability 2/5 instead
+  of 3/5; the outcome always conclusive; `b = 3/5`. The truthful report `p = 3/5` earns 0 in
+  expectation, the deviation `p = 2/5` earns 1/25: H-c fails through the outcome's law. Under T2
+  the same deviation leaves production where the group record fixed it, but not necessarily the
+  resources or samples (§11.2).
+- **Disclosure and baselines** (D, C; Astra's abstract construction, not an attack on the
+  protocol nor a gain over a cohort). `Y_j = Z`, `Z` Bernoulli(½), the same on both paths;
+  `p_uj = ½` on both. Without a signal, the reports that form `b_uj` give `b_uj = ½`; with a
+  signal revealing `Z` before those reports, they give `b_uj = Z`. The expected contribution is 0
+  and −¼. If a deviation of `u` on another assignment decides whether that signal arrives before
+  those reports — by moving a freeze that conditions a disclosure, for instance — `b_uj` and the
+  joint law of `(b_uj, Y_j)` change: a channel toward C5 and H-c. Keeping `16` §4.6's composition
+  of the baselines, which stays as approved, does not show that the reports it reads are
+  invariant under a deviation. So moving a disclosure is not only a selection of what is
+  available.
+- **Three things apart.** Information legitimately available and fixed across the strategies
+  compared, which a forecast includes; information whose availability depends on the deviation,
+  where H-c and C5 are involved, as in the two constructions above; the selection of the
+  observations or cohorts available (§8.3, (iii)–(iv)), under which D1 does not carry to the
+  consolidated cohorts alone. Not every piece of additional information is a violation; each case
+  names the condition involved.
+- **Respondents.** Four things apart: a person may hold both roles (invariant 5: role pseudonyms
+  are not linkable); the current implementation has no check keeping a reviewer from answering
+  its own items (`pilot::submit_response` checks the role and one nullifier per batch and epoch);
+  the theorem's deviations are a reviewer's reports, and C6 does not cover a respondent's
+  (§7.3); constructions compatible with anonymity and unlinkable roles are neither excluded nor
+  designed here. §7.3's statement that sampling cannot exclude a reviewer from its items' samples
+  holds for the current implementation and for sampling that reads role pseudonyms alone; it is
+  not shown for every such construction. Under T2 a respondent can answer before reporting, under
+  T1 only after.
 - **No invariance by declaration.** A start rule with no report among its arguments shows no
   invariance by itself: its inputs — freezes, resources, samples — can depend on reports.
 
-### 11.4 Pending outcomes, anonymity, the gate
+### 11.4 Pending outcomes, records and anonymity, the gate
 
 - §9's decisions stand: a missing report imputes nothing; an unreached freeze stays pending;
   silence and the study's end are no terminal `I`; an item's outcome does not complete an
   assignment's contribution; consolidated cohorts are not representative by construction. An
   exhaustion rule needs positive, verifiable evidence (§9.2); whether a resource shortfall counts
   as `I` is not decided here.
-- **Kept for verification against published.** Answers and ratings stay off the log, committed by
-  a root with per-participant inclusion proofs (`results::{inputs_root, inclusion_proof}`).
-  Today each reveal is a lifecycle step carrying a judge's nym and rating on the replicated set,
-  which D17 rejects (`08` PRIV-004; T77): a study must not extend that publication, and S2 needs
-  either D17 enforced for reveals or a path that does not replicate them. T2's records, before
-  and after `Δ`, must link no role to a person.
+- **What the records show.** `NodeEvent::AdmitRespondent` admits a respondent (its role nullifier
+  in the batch and epoch's set): it records no answer and proves no pilot run. Lifecycle events
+  (`Score`, `Resolve`, `Pilot1Batch`, `Pilot2Batch`) carry readings their caller supplies. A
+  Merkle root and its inclusion proofs (`results::{inputs_root, inclusion_proof}`) bind and verify
+  inputs within those APIs' limits; they show neither secrecy, nor a correct verdict, nor the
+  absence of an early disclosure. A result held internally is distinct from its event entering
+  the replicated log (`NodeState::apply` checks, applies, then writes).
+- **Publication.** Answers and ratings are meant to stay off the log, committed by a root
+  (`08` PRIV-004). Each reveal, however, is a lifecycle step carrying a judge's nym and rating on
+  the replicated set, the discrepancy with D17 already recorded in `08` PRIV-004 (T73, T18; T77):
+  a known discrepancy, not a new A1 finding. A study must not extend it; T2's records, before and
+  after their disclosure, must link no role to a person.
 - **Gate and pool during S2**, not chosen here. The choice bites in three places: whether `Φ_j`
   waits for appeal windows whose only effect would be on the pool; whether pool administration
   shares respondents with pilot batches (§7.3, *Load*); what an entry tells reviewers before other
@@ -1368,18 +1408,15 @@ quantities: no finite count of rounds or attempts bounds a duration.
 
 ### 11.5 For Astra
 
-- **Recommendation** (mine, not a decision). T2 with `Δ_G` as the analytic reference, T1 as the
-  comparison. T2 makes production independent of reports by rule, so the timing channel of
-  §11.3's construction closes under a stated resource condition, while T1 moves the dependence
-  into time and samples and holds a group's production on any member. T2's price is a disclosure
-  requirement the code cannot meet today; `Δ_G` keeps a companion's outcome from informing a
-  pending member, at the cost of one pending member holding back the group's disclosure, not its
-  production.
-- **Open obligations.** The group record; `Φ_j` and `Φ_G` as log rules; T2's non-disclosure before
-  `Δ` and its verification after; the resource and sample condition; the respondent channel; D17
-  for reveals (T77); a procedure that must proceed despite missing reports (T58); the gate's
-  effect on the pool during S2.
-- **Smallest next documentary step.** T2's disclosure requirement: for each object — answers,
-  attempt statuses, fits, terminal records — who may hold it before `Δ_G`, what the log carries
-  at production, what is opened at `Δ_G` and what stays committed only; a requirement, with no
-  cryptographic design.
+- **What the comparison shows so far.** T1 moves the dependence on reports into time and samples
+  (§11.3's timing construction) and holds a group's production while any member's freeze is
+  pending. T2 decouples production from reports by rule only under a resource condition and needs
+  an information control the code does not provide. Under either, a disclosure whose timing
+  depends on a deviation can reach baselines through later reports (§11.3). Neither is adopted;
+  the earlier preference for T2 is withdrawn.
+- **Open obligations.** The group record; `Φ_j` and `Φ_G` as log rules; disclosure conditions per
+  object and any collective policy; the information control and its verification; the resource
+  and sample condition; the respondent channel; D17 for reveals (T77); a procedure that must
+  proceed despite missing reports (T58); the gate's effect on the pool during S2.
+- **Next.** The review of this rectified §11. The disclosure requirement per object is not
+  developed before it.
