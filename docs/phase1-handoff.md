@@ -75,6 +75,15 @@ they win.
   and uncertainty; partial administrations as extensions only; the link with D3; a conditional
   recommendation with no winner today and the minimum information to cross the boundary. No
   design, calibration or expenditure chosen.
+- **Verification of `a9700fd`** (Claude Code, before Astra's review; documentation only, not
+  pushed by the session). §9's counts, gates, model search, templates, nullifiers and the D3
+  numbers agree with the code and the cited sources. Three statements rectified in §9: with
+  confirmations of equal size in both designs the break-even is unchanged, so confirmations
+  favour the per-form design only when a form drawn without estimates is checked on its own
+  sample (`n''_T = 0`); the common design then saves answers only through the refused per-form
+  administrations its screen avoids. Merging fits lowers the enumeration's total by one empty
+  set for `n ≤ 1`. The load statement needs forms in `B` and `A ≥ a_T`. §9 still awaits Astra's
+  review; whether a form's own sample suffices as its check is Astra's to decide.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -143,7 +152,8 @@ they win.
 
 The synthesis is in `19` §6.1, approved by Astra on `cebcb2e` as a documentation intervention.
 The comparison of a reusable common calibration with a calibration per form is in `19` §9,
-awaiting Astra's review; the next step is that review, and what follows it is Astra's to decide.
+rectified after a verification of `a9700fd` (§1), awaiting Astra's review; the next step is that
+review, and what follows it is Astra's to decide.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
 break-even inequalities; the minimum information to cross the boundary is the tolerable load,
@@ -274,4 +284,19 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   checks: the diff, whitespace (`git diff --check`), references and relative links of the edited
   docs, the consistency of the states across `15`, `19` and this note. No Rust test, fit, smoke,
   characterization, calibration, benchmark or mutation run.
+- **Claude Code, verification of `a9700fd`:** branch, HEAD `a9700fd` (parent `cebcb2e`), no later
+  local commit and a working tree with only `.gitignore` modified checked first. The diff
+  `cebcb2e..a9700fd` read against the sections it cites (`17` §§4.1, 7.6; `15` D3; `05` [8]–[9];
+  `01` D43). Read (L): `latent_batch`, `admit_templates`, `admit_dif_batch`, `admit_anchors`,
+  `NullifierSet` and `NullifierProof::id` (one respondent id per person, independent of the
+  context), `latent_dif_with` and `LatentParams` (9, 17 or 25 optimizer runs per search),
+  `ContestedPool::{record, candidates}` (the empty set evaluated per fit),
+  `blueprint::assemble_test`, `ClassCurves::{of, dtf}`. Exact calculations (C), in a scratch
+  script not kept: `S(10, 5) = 638`, `S(20, 5) = 21,700`, `S(40, 10) = 1,221,246,132`; the merged
+  total below the separate totals only for `n ≤ 1` (`M₁, M₂ ≤ 30`, `n ≤ 15`); the kept-form
+  shares 1/11 and 9/19; the confirmation cases on a small rational example and the new
+  equivalence on 20,000 random rational cases. Documentation checks: the diff, whitespace
+  (`git diff --check`), references and relative links of the edited docs, the states across
+  `15`, `19` and this note. No Rust test, fit, smoke, characterization, calibration, benchmark or
+  mutation run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, **awaiting Astra's review**; it chooses no design. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e` and rectified after a verification of `a9700fd`, **awaiting Astra's review**; it chooses no design. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -351,6 +351,9 @@ calibration, selector, threshold, policy or expenditure is proposed for adoption
 candidate (§5). Evidence: **L** the code named, **D** derived here, **C** exact calculations whose
 formulas are given in place; no measurement, fit or run. It is separate from the A/C choice of
 observation for scoring (`17` §8.5), and A1's pilot data are not calibration data (`17` §7.6).
+Verified on `a9700fd` before Astra's review and rectified in three places: the confirmations'
+effect on the break-even (§9.3, §9.4), the merged enumeration's count (§9.3, D3), the load
+statement's conditions (§9.4).
 
 ### 9.1 Common ground
 
@@ -466,15 +469,24 @@ Bank items that no form of the horizon uses cost answers and serve none.
 - *updates*: `U` complete calibrations over the horizon, the `u`-th of `P_u` items on `n_{c,u}`
   participations;
 - *uncertainty*: `b` re-fits per bound (each a whole search; a bootstrap is one construction),
-  and confirmation participations per kept form, `n'_T` in the common design and `n''_T` per
-  form, when the treatment of selection needs fresh data, each confirmation a search of its own.
+  and expected confirmation participations per kept form, refused confirmations included, `n'_T`
+  in the common design and `n''_T` per form, when the treatment of selection needs fresh data,
+  each confirmation a search of its own. A form drawn without estimates
+  (`blueprint::assemble_test`) and checked once on its own sample is kept on data its choice did
+  not use, as a confirmed form is: if the treatment accepts that check, `n''_T = 0`; a search of
+  several forms on one per-form fit, or a bound kept apart from the decision to keep, asks more.
 
 In answers, the common design costs `Σ_u r_{c,u} n_{c,u} (P_u + A) + Σ_T n'_T (t_T + a_T)` and the
 per-form design `Σ_T v_T r_T n_T (t_T + a_T) + Σ_T n''_T (t_T + a_T)`; in searches,
 `Σ_u (r_{c,u} + b)` and `Σ_T v_T (r_T + b)`, plus one per confirmation. A confirmation is an
-administration and a fit of the form alone: with one per kept form the common design becomes a
-screen before per-form fits, and with confirmations of one size in both designs the comparison
-reduces to the calibrations against the per-form administrations.
+administration and a fit of the form alone, so with confirmations the common design becomes a
+screen before per-form fits. With `n'_T = n''_T` the confirmation terms cancel: the comparison
+reduces to the calibrations against the per-form administrations, the break-even unchanged. With
+`n''_T = 0` and confirmations of a per-form administration's size, `n'_T = v'_T r_T n_T` for
+`v'_T ≥ 1` confirmations per kept form, the common design saves answers only if
+`Σ_u r_{c,u} n_{c,u} (P_u + A) < Σ_T (v_T − v'_T) r_T n_T (t_T + a_T)`: its screen must avoid
+refused per-form administrations worth more than its calibrations, and with `v_T = 1` it saves
+none (D; C on 20,000 random rational cases).
 
 **Partial administrations** (extensions, no saving credited): with at most `m < P` bank items per
 participation the bounds become at least `⌈P n_c/m⌉` participations and a load `m + A`, but
@@ -487,8 +499,10 @@ that fit's contested members, `Σ_f S(M_f, n)` sets with `S(M, n) = Σ_{r ≤ mi
 a DTF evaluation (L, `ContestedPool::candidates`). The bank's size `P` does not enter; the number
 `M_f` of contested members recorded in one fit does. If the common fit is recorded in the pool
 with `B`'s contested members, each moves to it (`ContestedPool::record`), and merging never
-lowers the count: `C(M₁ + M₂, r) ≥ C(M₁, r) + C(M₂, r)` for `r ≥ 1` (Vandermonde), so
-`S(M₁ + M₂, n) ≥ S(M₁, n) + S(M₂, n) − 1`, strictly for `n ≥ 2` (D; C for `M₁, M₂ ≤ 30`, `n ≤ 15`).
+lowers the count of non-empty sets of a size: `C(M₁ + M₂, r) ≥ C(M₁, r) + C(M₂, r)` for `r ≥ 1`
+(Vandermonde), so `S(M₁ + M₂, n) ≥ S(M₁, n) + S(M₂, n) − 1`, the `−1` being one fit's empty set.
+The inequality is strict for `n ≥ 2` (the pool keeps no empty fit), so the total never falls
+there; for `n ≤ 1` it falls by that empty set (D; C for `M₁, M₂ ≤ 30`, `n ≤ 15`).
 At `n = 5`, two fits of 10 members visit 638 sets each, one of 20 visits 21,700; at `n = 10`, one
 of 40 visits 1,221,246,132 (C; sizes illustrative). A wider common fit does not show the current
 enumeration sustainable. A whole form can be assessed inside one fit with `ClassCurves::dtf`, but
@@ -504,16 +518,17 @@ the same style over the bank would visit `S(P, t)` sets. The selector is not cha
 | Load | `P + A` within the tolerable load per participation | `P + A` beyond it | no tolerable load stated |
 | Templates | `P + A` distinct templates | several variants per template in the bank | — |
 | Horizon | high `ρ` and `F`, few bank updates, anchors heavy relative to `t` | `ρ` near 1, frequent turnover | `F`, `ρ`, `U` unknown |
-| Uncertainty, selection | a treatment valid over the whole search without data per form | confirmation data per kept form needed anyway | no treatment: both select on estimates |
+| Uncertainty, selection | a treatment valid over the whole search without data per form | confirmations needed by the common design only, a form's own sample being its check (§9.3) | no treatment: both select on estimates |
 | Model | — | — | misspecification and class search unassessed (B1–B3); a converged zero certifies nothing (§4, row 4) |
 | Contested selection | few contested members per fit, or a selector that does not enumerate | — | `M_f` beyond what the enumeration sustains (D3) |
 
-**What the comparison decides now.** With complete administrations the common design never lowers
-the load per participation and is excluded where `P + A` exceeds the tolerable load; its saving in
-answers holds exactly under §9.3's inequalities; it needs `P + A` distinct templates and forms
-inside one fit; retirement leaves the remaining curves as fitted, while new items, population drift
-and procedure changes need §9.2's checks; it does not make the contested enumeration sustainable.
-Neither design is valid by construction: both need H1, H2, the model and a treatment of selection.
+**What the comparison decides now.** With complete administrations, forms in `B` and `A ≥ a_T`,
+the common design never lowers the load per participation and is excluded where `P + A` exceeds
+the tolerable load; its saving in answers holds exactly under §9.3's inequalities; it needs
+`P + A` distinct templates and forms inside one fit; retirement leaves the remaining curves as
+fitted, while new items, population drift and procedure changes need §9.2's checks; it does not
+make the contested enumeration sustainable. Neither design is valid by construction: both need
+H1, H2, the model and a treatment of selection.
 
 **No winner today.** The minimum information to cross the boundary, in order:
 
@@ -521,7 +536,7 @@ Neither design is valid by construction: both need H1, H2, the model and a treat
 |---|---|---|
 | tolerable items per participation | owner (product, resources) | below `P + A`, the complete common design is excluded today |
 | whether one population serves every form of the horizon | owner (product) | if not, a common calibration per population at most, or per form |
-| the treatment of uncertainty and selection | Astra (design) | without confirmation data the common design keeps its saving; with them it becomes a screen before per-form fits |
+| the treatment of uncertainty and selection | Astra (design) | without confirmations, or with equal ones in both designs, §9.3's break-even holds; with confirmations for the common design only, it becomes a screen that saves answers only through the refused per-form administrations it avoids |
 | `F`, `Σ_T t_T`, `A`, `a_T` and the expected bank changes | owner (resources), with the blueprint | which side of §9.3's break-even holds |
 | `n_c/n_F` at equal precision, once the tolerable error is stated | a targeted calculation on the candidate model | needed only if the four lines above leave the break-even open |
 
