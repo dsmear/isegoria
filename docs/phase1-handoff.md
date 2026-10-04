@@ -163,8 +163,8 @@ they win.
   computational validity, and precision, usefulness and cost; the BIC consequence is limited to a
   procedure taking the supremum over a region restricted to the selected model and accepting on
   that condition alone; a gap vanishing at an atom can give a kink, not necessarily.
-- **Toward an experimental protocol: `19` §10** (documentation only, not pushed by the session;
-  **a proposal awaiting review**, not covered by §9.6's approval). On Astra's direction, it sorts
+- **Toward an experimental protocol: `19` §10, `26593e7`** (documentation only). On Astra's
+  direction, it sorts
   A1, A2, B1–B3 and resources into decisions needed before a run, hypotheses a circumscribed study
   can measure (with what would refute them and what they would not authorize) and promises
   excluded until proved; it maps executable paths against missing ones by targeted reads. My
@@ -172,6 +172,30 @@ they win.
   truth; S2, a field pilot on a few items fixed before the data, arm A, scores kept out of any
   reputation — and, as the next intervention, a documentation-level specification of B-b's
   records and rules for cases 5–7 under arm A, as options for Astra.
+- **Astra's review of `26593e7`** (the commit, its parent and the published HEAD checked; the
+  diff, the documents and the relevant passages of `run_item`, `lifecycle`, `ResultRecord`,
+  `SkillTrack` and `ClassCurves::dtf` read; no new calculation needed; no Rust, fit or campaign
+  run; the local working tree as Claude Code reported it, not checked through GitHub): approved
+  the record of `00f8e2c`'s review, §9.6's three precisions and `19` §10 as a preparatory
+  synthesis, with four precisions now made in §10 — blocks by strand (availability and human
+  load do not block S1; S2 needs an executable path, possibly a study harness; delays can be
+  studied without an availability guarantee; the study's end does not make a pending item a
+  terminal `I`), the bridging input's meaning under `q_c` among the decisions, what
+  `ClassCurves::dtf` already computes, measures refuting hypotheses only against criteria declared
+  in advance. Not approved: the S2 protocol, any implementation, the start of an experiment,
+  penalties or new reputational rules.
+- **Cases 5–7 for a study under design A: `17` §9** (documentation only, not pushed by the
+  session; **a proposal awaiting review**, not covered by the approval of `26593e7`). It keeps
+  apart the procedure's term, the terminal record (existence and availability) and the study's
+  observation close `Ω`; gives the logical content of a terminal-inconclusiveness record and
+  separates an indeterminate attempt, exhaustion by rule and a record that never arrived, with
+  intrinsic and resource non-conclusions reported apart; compares three options for a missing
+  report (reported apart, a candidate penalty from `16` §4.4, kept unresolved) and three for an
+  unreached freeze (pending, T58's replacement and quorum, a candidate term), each by what it
+  changes; states what the study can report at `Ω` and keeps the state apart from the study's
+  snapshot for late records. My recommendation, not a decision: 6c and 7a for the study, case 5's
+  classes apart, then T58's replacement read against B-b's hypotheses (a replacement's report in
+  first panelists' baselines can break C5). The study is not ready.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -218,7 +242,8 @@ they win.
   per form are compared in `19` §9 under explicit assumptions, approved by Astra on `63b13fa` as
   a conditional comparison; §9.3–§9.5, deepened in `6681b03` and rectified in `b59fd03`, approved
   on `b59fd03` as a conditional analysis; §9.6 (one fixed form) approved on `00f8e2c` as a
-  conditional analysis; §10, toward an experimental protocol, a proposal awaiting review. No
+  conditional analysis; §10, toward an experimental protocol, approved on `26593e7` as a
+  preparatory synthesis; `17` §9 (cases 5–7 for a study) a proposal awaiting review. No
   calibration is chosen, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
@@ -249,10 +274,12 @@ partly approved by Astra, rectified in `b59fd03` and approved there as a conditi
 §9.6 analyses, on Astra's direction, whether data can bound the true DTF of one fixed form; it
 was partly approved on `907c245`, rectified and approved on `00f8e2c` as a conditional
 analysis. The shared aim is a circumscribed, coherent, executable and evaluable experimental
-protocol; that direction approves no protocol and closes no finding. `19` §10 proposes the
-decisions, measurable hypotheses and excluded promises toward it, the blocks found and a next
-intervention; the next step is Astra's review of that proposal. No roadmap or campaign is added,
-and no choice or parameter is asked of the owner.
+protocol; that direction approves no protocol and closes no finding. `19` §10, approved on
+`26593e7` as a preparatory synthesis, sorts the decisions, measurable hypotheses and excluded
+promises toward it; `17` §9 specifies cases 5–7 for a study under design A. The next step is
+Astra's review of `17` §9; the bridging input's meaning under `q_c` and the rest of `19` §10.5's
+perimeter stay to decide. No roadmap or campaign is added, and no choice or parameter is asked of
+the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
 break-even inequalities; the minimum information to cross the boundary is the tolerable load,
@@ -472,4 +499,15 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   whitespace (`git diff --check`), line widths, `scripts/comment_budget.py`, references and
   relative links of the edited docs, the states across `15`, `19` and this note. No Rust test,
   fit, smoke, characterization, calibration, benchmark or mutation run.
+- **Astra, review of `26593e7`** (as it records): the commit, its parent and the published HEAD
+  checked; the diff, the documents and the relevant passages of `run_item`, `lifecycle`,
+  `ResultRecord`, `SkillTrack` and `ClassCurves::dtf` read; no new calculation needed. No Rust,
+  fit or campaign run; the local working tree as Claude Code reported it.
+- **Claude Code, record of that review and `17` §9:** branch, HEAD `26593e7` (parent `00f8e2c`),
+  no later local commit and a working tree with only `.gitignore` modified checked first. Read
+  (L): `17` §§5, 7.2–7.5, 8; `16` §§4.2, 4.4, 4.6, 5; `10` T58; `lifecycle.rs`'s `Score` arms
+  and `PartialEpoch`. No calculation was needed for a new claim. Documentation checks: the diff,
+  whitespace (`git diff --check`), line widths, `scripts/comment_budget.py`, references and
+  relative links of the edited docs, the states across `15`, `17`, `19` and this note. No Rust
+  test, fit, smoke, characterization, calibration, benchmark or mutation run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, is **a proposal awaiting review**. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it; the specification of cases 5–7 it led to is in [`17`](17-a1-pilot-batch-design.md) §9, **a proposal awaiting review**. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -150,6 +150,23 @@ Review on `00f8e2c` (§9.6's rectifications), distinct from the partial review a
   read; exact calculations with fractions on the standardization, the population KR-20
   (≈ 0.9983783235), the filtered DTF (≈ 0.2439024373 against 0) and the rare-class consequence.
   No Rust, fit or campaign run; the documentation checks Claude Code reported were not repeated.
+
+Review on `26593e7` (the record of `00f8e2c`'s review, §9.6's precisions and §10), distinct from
+the reviews above:
+
+- Approved: the record of the review of `00f8e2c`; §9.6's three precisions; §10 as a preparatory
+  synthesis, with four precisions, made in §10: blocks by strand; the bridging input's meaning
+  under `q_c`; what `ClassCurves::dtf` already computes; measures refuting hypotheses only
+  against criteria declared in advance.
+- Not approved: the S2 protocol, any implementation, the start of an experiment, penalties or
+  new reputational rules. R1 stays approved; A1, A2, B1–B3 and Phase 1 stay open.
+- Direction confirmed: specify the records and rules of `17` §8.2's cases 5–7, design A as the
+  study's reference and C the comparison, keeping apart the procedure's term, the terminal record
+  and the close of the study's observation (`17` §9, awaiting review).
+- Evidence: the commit, its parent and the published HEAD checked; the diff, the documents and
+  the relevant passages of `run_item`, `lifecycle`, `ResultRecord`, `SkillTrack` and
+  `ClassCurves::dtf` read; no new calculation needed; no Rust, fit or campaign run; the local
+  working tree as reported by Claude Code, not checked through GitHub.
 
 ## 1. What the code computes (L)
 
@@ -960,19 +977,24 @@ widen it. *Precision, usefulness and cost*: given a valid bound, its width again
 samples and searches it needs. The shared aim is a coherent, executable and evaluable
 experimental protocol (§10); that direction approves no protocol and closes no finding.
 
-## 10. Toward a circumscribed experimental protocol (proposal awaiting review)
+## 10. Toward a circumscribed experimental protocol (preparatory synthesis, approved on `26593e7`)
 
-**Status.** A proposal by Claude Code on the direction of Astra's review of `00f8e2c`, **awaiting
-review**; the approval of §9.6 does not cover it. It builds on §6.1, §§9.1–9.6 and `17` §§7–8
-without restating them. It adopts, funds and closes nothing; anonymity (no personal or group
-attribute enters) and the recovery of contested facts bound it; the test's neutrality is not
-certified. Evidence: **L** targeted reads at `00f8e2c`, named in place; no run.
+**Status.** Written by Claude Code in `26593e7` on the direction of Astra's review of `00f8e2c`;
+**approved by Astra on `26593e7` as a preparatory synthesis** (design review above), its four
+precisions made below; the S2 protocol, any implementation or experiment, penalties and new
+reputational rules not approved. It builds on §6.1, §§9.1–9.6 and `17` §§7–8 without restating
+them; the cases 5–7 it led to are specified in `17` §9, awaiting review. It adopts, funds and
+closes nothing; anonymity (no personal or group attribute enters) and the recovery of contested
+facts bound it; the test's neutrality is not certified. Evidence: **L** targeted reads at
+`00f8e2c`, named in place; no run.
 
 **Three categories.** *A*: decisions needed before any run, because a claim's meaning or a
 record's content depends on them. *B*: hypotheses a circumscribed study can measure, each with the
 observation that could refute it and the conclusions the measure would not authorize. *C*:
 promises excluded until their proof exists. A requirement of validity stays one when a procedure
-is called experimental: the study changes which claims are made, not what those claims need.
+is called experimental: the study changes which claims are made, not what those claims need. An
+observed rate or difference is a measure: it refutes a hypothesis only against a metric, a
+tolerance and a treatment of uncertainty declared before the results; none is proposed here.
 
 ### 10.1 A1 — the forecast outcome and how it is produced
 
@@ -983,11 +1005,15 @@ is called experimental: the study changes which claims are made, not what those 
   report not completed (case 6: no `p`; C4 against withholding), a freeze not reached (case 7;
   T58), the terminal-inconclusiveness record (`17` §7.2), the availability property and any
   overdue rule (`17` §8.3), what is published before consolidation, and whether study scores feed
-  any reputation.
+  any reputation (`17` §9 specifies cases 5–7 for a study, awaiting review). The bridging input:
+  what the rating means when the report forecasts `q_c`, with `τ`, the band and the polarization
+  cut not validated for that meaning (`17` §7.5, §8.5); keeping study scores out of the reputation
+  does not settle it, and no transformation, threshold or bypass of the bridging is chosen.
 - **B.** On the study's records: every assignment in `N_u` and every case recorded as `17` §8.6
-  requires, refuted by one missing assignment or one pending item read as 0 or `I`; the share of
-  terminal inconclusiveness and the time to consolidation by verdict class (`R` can end before
-  `A`, `17` §8.3). Not authorized by them: H-c (no frequency of outcomes shows that a reviewer
+  requires, a correctness check that one missing assignment or one pending item read as 0 or `I`
+  refutes; the share of terminal inconclusiveness and the time to consolidation by verdict class
+  (`R` can end before `A`, `17` §8.3), measures that refute a hypothesis only against a criterion
+  declared beforehand. Not authorized by them: H-c (no frequency of outcomes shows that a reviewer
   cannot move `(b, Y)`), properness under deviations, or a value of `c` beyond the study's items
   and procedure.
 - **C.** Incentive claims for the reputation in use — counters, shrinkage, cap, probation, CUSUM
@@ -1010,10 +1036,11 @@ target `DTF_μ(T)` on a population (§2).
   plug-in `DTF_F` against the model's functional at the true parameters (`13` §7.3: an upward bias
   near 0, noise near the tolerance) and its sensitivity to the class search and to classes near
   the share floor or nearly coincident; on anonymous field data, the stability of fitted
-  quantities across disjoint samples and across calibration arms. A disagreement refutes
-  stability; an agreement does not show the true DTF, since both fits share model and
-  representation. Duplicated components leave the law unchanged: they are a check on the
-  functional, not a scenario.
+  quantities across disjoint samples and across calibration arms. A difference between fits does
+  not by itself refute stability: that needs a metric, a tolerance and a treatment of sampling
+  uncertainty declared before the results, none proposed here; an agreement does not show the
+  true DTF, since both fits share model and representation. Duplicated components leave the law
+  unchanged: they are a check on the functional, not a scenario.
 - **C.** A test's DTF within `DTF_MAX`, or any certified neutrality; `D(T)` as a bound; protection
   of real groups by a form that passes the filtered functional; a bound with stated coverage
   (§9.6's obligations stay open).
@@ -1030,11 +1057,11 @@ supremum, §9.6).
   decision-level criteria declared before any result; any composed procedure refusing a
   non-converged fit (§9.6, `ClassCurves::of`).
 - **B.** On those scenarios: verdict errors, convergence and indeterminacy, one-class selection
-  where the truth has DIF (§4, row 4), the plug-in error, each refuted by observed rates. They
-  verify behaviour on the scenarios run, not uniform coverage over the family and not validity in
-  the field. On field data: admission, convergence and indeterminacy rates (`15` B4–B5). The true
-  DTF is not observable in anonymous field data, and a comparison with another fit does not
-  measure it.
+  where the truth has DIF (§4, row 4), the plug-in error: measures, each refuting a hypothesis
+  only against a criterion declared beforehand. They verify behaviour on the scenarios run, not
+  uniform coverage over the family and not validity in the field. On field data: admission,
+  convergence and indeterminacy rates (`15` B4–B5). The true DTF is not observable in anonymous
+  field data, and a comparison with another fit does not measure it.
 - **C.** Coverage of any bound; identification beyond §9.6; BIC selecting the true order; a social
   meaning of the classes. No personal or group attribute is collected, so no field validation
   against labelled groups exists.
@@ -1050,10 +1077,10 @@ many respondents are available, for how many items each, are product and resourc
 | Link | Executable path today (L) | None yet (L) |
 |---|---|---|
 | respondents | `pilot::submit_response` through `NodeState::apply` | a recruitment or availability mechanism |
-| pilot | `pilot::stage1_screen`, `revalidation::latent_batch` as APIs; `orchestrator::run_item` steps the lifecycle on verdicts its caller supplies | a runtime composing responses, fits, verdicts and terminal records (`17` §1, §8.3) |
+| pilot | `pilot::stage1_screen`, `revalidation::latent_batch` as APIs; `orchestrator::run_item` steps the lifecycle on verdicts its caller supplies | an executable path composing responses, fits, verdicts and terminal records (`17` §1, §8.3); for S2 a study harness would do, not necessarily the production runtime |
 | outcomes | `Screening::Indeterminate` and `Recheck::Indeterminate` keep an item in its pilot stage (`lifecycle.rs`) | a terminal-inconclusiveness record; an attempt budget and term |
 | B-b scores | `SkillTrack` (reviewed and scored counts), `panel_scores`, `ResultRecord::{ReviewerScore, ReviewerUnobserved}` | B-b's contribution; `N_u`, `O_u`, `V_u` (`17` §8.4); T58's missing-reveal rule (`PartialEpoch` freezes today) |
-| DTF | `ClassCurves::dtf` on one fit's items; `ContestedPool`, composed by no runtime | a form's DTF with its active items, the envelope, any bound |
+| DTF | `ClassCurves::dtf` on any items of one fit, a form's active items included when the form lies in that fit; `ContestedPool`, composed by no runtime | the operational composition of a form with its fit; the envelope; any guarantee on the target |
 | scenarios | the characterization harness's generative studies (`DifMisspec`, `DtfError`, …; `DifDesign` with a class share `pi`) | scenarios and criteria declared for this study |
 
 A study harness may stand in for a service where stated; it is not operational readiness and
@@ -1070,21 +1097,26 @@ My recommendation, not an approved decision.
   `17` §8.2 recorded, scores computed and kept out of any reputation; it would show whether
   records, terminal outcomes and consolidation are produced, at which rates, times and resources —
   not incentives, the true DTF or neutrality.
-- **Blocks today.** For S2: the pilot runtime, the terminal-inconclusiveness record and the
-  attempt term; the rules for cases 6 and 7 and T58; the availability property; B-b's contribution
-  and counters (§10.4). For any DTF statement beyond diagnostics: no declared `μ` and `𝒢`, no bound.
-  For both strands: scenarios and criteria not yet declared; respondent availability and the
-  tolerable load per participation unknown; burden and runtime unmeasured (`15` D2, D4).
-- **Decisions before implementation** (Astra): S1, S2 or both; arm A, C or both; cases 6 and 7 and
-  any overdue rule; the terminal record's content; scores kept out of reputation; the DTF object
-  of each statement and the diagnostics reported; the scenarios and criteria fixed in advance;
-  whether a calibration arm belongs to S2.
+- **Blocks today, by strand.** *S1*: scenarios and decision criteria not yet declared;
+  respondent availability and human load do not block it. *S2*: an executable path from responses
+  to terminal records — a study harness may serve, not necessarily the production runtime; the
+  terminal-inconclusiveness record and the attempt term; the rules for cases 5–7 (`17` §9,
+  awaiting review); B-b's contribution and counters (§10.4); the bridging input's meaning
+  (§10.1); respondent availability and the tolerable load per participation, unknown. A general
+  availability guarantee is not needed to study delays, which the study records; the study's end
+  does not turn a pending item into a terminal `I` of the protocol (`17` §9.1). *Any DTF
+  statement beyond diagnostics*: no declared `μ` and `𝒢`, no bound. Burden and runtime stay
+  unmeasured (`15` D2, D4).
+- **Decisions before implementation** (Astra): S1, S2 or both; arm A, C or both; cases 5–7 and
+  any overdue rule; the terminal record's content; scores kept out of reputation; the bridging
+  input's meaning under `q_c`; the DTF object of each statement and the diagnostics reported; the
+  scenarios, metrics, tolerances and treatment of uncertainty fixed in advance; whether a
+  calibration arm belongs to S2.
 - **Owner information**, only where no symbolic scenario settles it, and not asked now: available
   anonymous respondents and tolerable items per participation; the horizon's numbers only if a
   calibration arm is kept.
 - **Next intervention recommended.** A documentation-level specification of B-b's records and
-  rules for cases 5–7 under arm A — the terminal-inconclusiveness record, the attempt term, case
-  6's options with their incentive consequences, case 7 against T58 — presented as options for
-  Astra. It lies on S2's critical path, needs neither respondents nor resource decisions and
-  changes no code. The alternative is S1's declaration of scenarios and criteria, which needs no
-  respondents but whose run is a campaign the owner authorizes.
+  rules for cases 5–7 under arm A, as options for Astra; the direction was confirmed on
+  `26593e7`, and the specification is `17` §9, awaiting review. The alternative was S1's
+  declaration of scenarios and criteria, which needs no respondents but whose run is a campaign
+  the owner authorizes.
