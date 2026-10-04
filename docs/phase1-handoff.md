@@ -127,16 +127,31 @@ they win.
   No calibration, protocol, implementation, expenditure or realized guarantee approved. Its
   non-blocking precision is made in §9.3: the check needs coverage conditional on the history,
   independence being one way to obtain it.
-- **One fixed form: `19` §9.6** (documentation only, not pushed by the session; **awaiting
-  review**), on that review's direction. Under a reference simplification (one form fixed before
-  the data, complete administrations, symbolic `μ`, `𝒢` and `α`, no search, no drift), it
-  separates representation (R-a–R-f), identification and inference, and maps the procedure's
-  elements to them. Derived: the DTF's invariances (labels, gauge); `E_F(T)` the sharp bound over
-  groups representable by classes, the target for unlabelled groups not identified otherwise; an
-  exact non-identification with uninformative anchors, outside the admitted procedure; no
-  informative upper bound for a functional that counts every class however small; a bound inside
-  the BIC-selected model fails whenever one class is selected. Not proved: the identification of
-  the share-floored functional with informative anchors, the next result proposed.
+- **One fixed form: `19` §9.6, `907c245`** (documentation only), on that review's direction.
+  Under a reference simplification (one form fixed before the data, complete administrations,
+  symbolic `μ`, `𝒢` and `α`, no search, no drift), it separates representation (R-a–R-f),
+  identification and inference, and maps the procedure's elements to them.
+- **Astra's review of `907c245`: partial** (the commit, its parent and the published HEAD
+  checked; the diff, the relevant code and the theoretical references read; exact calculations on
+  duplicated components, the DTF, the population KR-20 and the affine change; no Rust, fit or
+  campaign run). Approved as conditional results: the separation of representation,
+  identification and inference; the envelope as the supremum over the abstract family of admitted
+  mixtures at fixed curves and measure; the uninformative-anchor construction within its limits;
+  the rare-class argument under uniform coverage and an addable component; the scheme of a region
+  with coverage and a conservative supremum. Not approved: §9.6 as a whole, a share floor in the
+  target, a restriction to minimal representations, a policy on coincident components, any
+  calibration or implementation. The approval of `b59fd03` is unchanged.
+- **Rectifications of `907c245`** (documentation only, not pushed by the session; **awaiting
+  review**), in `19` §9.6: the 5% filter applies per component, so Astra's construction (one law,
+  a component at 8% against two exact copies at 4%, population KR-20 ≈ 0.9983783235) gives a
+  filtered DTF of ≈ 0.2439024373 and 0 — recorded for A2 and B1, not as a selector bug, with no
+  merging, minimal representation, separation or threshold chosen; point identification kept
+  apart from compatible values, valid bounds and their use, the claim that no calibration can
+  bound an unidentified target withdrawn; the rare-class result with its hypotheses, its bound
+  `U ≥ ½ Σ_{j∈T} (1 − c_j)` and its relation to `DTF_MAX`, the deduction that small groups must be
+  left out withdrawn; the coordinate change without a double shift; the BIC consequence tied to
+  the acceptance rule; regularity without universal claims; the envelope's sharpness restricted
+  to the declared family; `ClassCurves::of`'s contract an observation, not a production defect.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -182,8 +197,8 @@ they win.
   any new calibration, selection or group policy. A reusable common calibration and a calibration
   per form are compared in `19` §9 under explicit assumptions, approved by Astra on `63b13fa` as
   a conditional comparison; §9.3–§9.5, deepened in `6681b03` and rectified in `b59fd03`, approved
-  on `b59fd03` as a conditional analysis; §9.6 (one fixed form) awaits review. No calibration is
-  chosen, and these approvals do not close A2.
+  on `b59fd03` as a conditional analysis; §9.6 (one fixed form) partly approved on `907c245`, its
+  rectifications awaiting review. No calibration is chosen, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
   baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
@@ -211,9 +226,11 @@ rectified in `63b13fa` and approved there by Astra as a conditional comparison. 
 (`6681b03`: §9.3's check conditions and cost hypotheses, §9.5's error control over a search) was
 partly approved by Astra, rectified in `b59fd03` and approved there as a conditional analysis.
 §9.6 analyses, on Astra's direction, whether data can bound the true DTF of one fixed form; it
-awaits review. The next step is that review; the next result §9.6 proposes is the identification
-of the share-floored DTF and its envelope with informative class-invariant anchors. What follows
-is Astra's to decide.
+was partly approved on `907c245`, and its rectifications await review. The next step is that
+review, not a general identification lemma. The shared aim is a coherent, executable and
+evaluable experimental protocol; that direction approves no protocol and closes no finding, and
+no roadmap or campaign comes before settling which obstacles bear on the target and which only
+limit precision and usefulness. What follows is Astra's to decide.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
 break-even inequalities; the minimum information to cross the boundary is the tolerable load,
@@ -402,4 +419,21 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   checks: the diff, whitespace (`git diff --check`), line widths, `scripts/comment_budget.py`,
   references and relative links of the edited docs, the states across `15`, `19` and this note.
   No Rust test, fit, smoke, characterization, calibration, benchmark or mutation run.
+- **Astra, review of `907c245`** (as it records): the commit, its parent and the published HEAD
+  checked; the diff, the relevant code and the theoretical references read; exact calculations on
+  duplicated components, the DTF, the population KR-20 and the affine change. No Rust, fit or
+  campaign run.
+- **Claude Code, record of that review and the rectifications of `19` §9.6:** branch, HEAD
+  `907c245` (parent `b59fd03`), no later local commit and a working tree with only `.gitignore`
+  modified checked first. Exact calculations (C), with fractions in a scratch script not kept:
+  the standardization (`Var q = 140 = (2√35)²`; the code's grid with uniform logits, variance
+  35/4, gives `u_q = q/(2√35)`); the anchors' mean ½; the population KR-20 ≈ 0.9983783235 from its
+  formula and from its definition; `p_q > r_q` at every node; the filtered DTF ≈ 0.2439024373 at
+  92%/8% and 0 at 92%/4%/4%, the unfiltered one equal in both; three complete 62-answer patterns
+  equal in probability under both mixtures (an arithmetic check, not the proof, which is the
+  mixture identity); `∫_{−1}^{1} |x − t| dx = 1 + t²` at three values; the affine change keeping
+  `a(θ − b)`, a double shift not keeping it. Documentation checks: the diff, whitespace
+  (`git diff --check`), line widths, `scripts/comment_budget.py`, references and relative links of
+  the edited docs, the states across `15`, `19` and this note. No Rust test, fit, smoke,
+  characterization, calibration, benchmark or mutation run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
