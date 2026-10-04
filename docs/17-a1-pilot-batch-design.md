@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was **partly approved by Astra on `ac06d3c`** (its results on what a report carries); its rectifications **await review**. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, is **a proposal awaiting review**. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -1122,7 +1122,7 @@ meaning when the report forecasts `q_c` (`19` §10.1), not developed here. The s
 and A1 stays open: these cases are made representable and verifiable, not settled by giving up
 its guarantees.
 
-## 10. The bridging input under B-b (partly approved; rectifications awaiting review)
+## 10. The bridging input under B-b (conditional analysis, approved on `111e595`)
 
 **Status.** A proposal by Claude Code in `ac06d3c`, on the direction of Astra's reviews of
 `d31e9fa` and `b2a1c2f`; §9's approval does not cover it. It asks what information enters the
@@ -1140,10 +1140,23 @@ the score is indifferent among reports; the expected loss of contribution `c(p �
 property of the score, not a demonstrated measure of the reputational incentive or of the
 reviewer's overall utility. Not approved: §10 as a whole. Direction for the next specification:
 α the main reference, β a comparison with §10.3's information obligations; no threshold, pool
-entry, implementation or start of the study approved. Rectified after that review, **awaiting
-review**: the path (§10.1); the three events and the scale comparison (§10.2); the alternatives'
-meaning and the reconstruction through an estimate (§10.3); time under A and the shared
-parameters (§10.4); §10.5.
+entry, implementation or start of the study approved. Rectified after that review in `111e595`:
+the path (§10.1); the three events and the scale comparison (§10.2); the alternatives' meaning
+and the reconstruction through an estimate (§10.3); time under A and the shared parameters
+(§10.4); §10.5.
+
+Astra's review of `111e595` (the commit, its parent and the published HEAD checked; the diff of
+the four documents read; the relevant code and harness passages checked again; the example
+checked with fractions, 9/50 and 18/25 against the public product's 9/20; no Rust, fit or
+campaign run; Claude Code's local checks not repeated, the working tree not checked): the
+rectifications and §10 **approved as a conditional analysis of the join between B-b and the
+bridging, with no blocking finding** — the path's steps kept apart; empirical success,
+conclusion and pool entry as distinct events; α keeping the scalar format while changing the
+forecast's meaning; a public probability of conclusion no automatic substitute for the one given
+the reviewer's information; A alone guaranteeing no invariance of resources, times and outcomes;
+influence on shared parameters limited to the fit's participants, A7 preserved. Not approved: a
+protocol, thresholds, pool entry, an implementation or S2's start. Direction: the documentary
+specification of timing under A (§11), α the main reference and β the comparison.
 
 ### 10.1 The current path, from a report to a decision
 
@@ -1250,3 +1263,123 @@ scalar API validates neither meaning.
   uncertainty; the delays bands and appeals induce. None validates `τ`'s meaning by itself.
 - **Next.** The review of this rectified §10; the specification of timing under A comes after it.
   Nothing here is adopted.
+
+## 11. Timing under design A (proposal awaiting review)
+
+**Status.** A proposal by Claude Code on the direction of Astra's review of `111e595`, **awaiting
+review**; §10's approval does not cover it. Analytic reference: A's prefixed groups (§4), B-b
+(§8), the input α (§10), §9's reporting with 6c and 7a; none authorizes starting the study. It
+aims to make the order of events verifiable and to name what a construction needs; it seeks no
+general answer to availability, scheduling or T58, and changes no code, API, serialization,
+threshold or golden output. **L** read at `111e595`; **D** derived here; **C** one exact
+calculation (§11.3).
+
+### 11.1 Units and the order of events
+
+Units: an item `j`; an assignment `(u, j)`; a pilot group `G`, A's items fixed together; a cohort
+`K` (§8.3), which may span groups. In log order, for `j ∈ G`:
+
+1. **Group record**: `G` and its reference procedure (rule, attempt budget, term, model version,
+   thresholds), fixed before any member's assignment (§4, A). No such record exists in code.
+2. **Reports**: `AssignReviewers`, `Commit`, `CloseCommits`, `Reveal` (`lifecycle::Event`); a
+   missing reveal refuses `Score` (`PartialEpoch`).
+3. **Gate**: `Score`; for a band item `AssignExtraReviewers`, the extra reports and `Resolve`; for
+   an appealable rejection `Appeal` or `AppealExpires`. Under A they decide pool entry, not
+   piloting (§4).
+4. **`Φ_j`**, unchanged from `16` §5: the first log record after which `j`'s reports affecting
+   `D_j` or a scored baseline, `D_j` and its re-decision, the appeal and the memberships
+   `j ∈ R_u` are irrevocable. Computable from the log; no record names it today.
+5. **`Φ_G`**: the latest `Φ_j` over `j ∈ G` — a name for a group's closure, not a change of `Φ_j`.
+6. **Production**: respondents admitted to the batch (`NodeEvent::AdmitRespondent`,
+   `pilot::submit_response`), attempts, the terminal record (§9.2). Today the stage readings are
+   lifecycle steps (`Pilot1Batch`, `Pilot2Batch`) on the replicated log: readable once recorded.
+7. **Availability and disclosure**: the record's appearance on the log, and the point `Δ` from
+   which reviewers may read it; under today's replication the two coincide.
+8. **Consolidation** of a cohort, once every member is in case 1, 3, 4 or 5 (§8.3, §9).
+9. **`Ω`**, the study's snapshot (§9.1).
+
+`Φ_G` waits on every member's reports, gate, band and appeal; production waits on what the
+construction says (§11.2); a cohort's consolidation waits on its members' items' records and on
+each member's report, across groups. Log order, attempt counts and elapsed time are different
+quantities: no finite count of rounds or attempts bounds a duration.
+
+### 11.2 Two minimal constructions
+
+| | T1. start after the freezes | T2. produce early, disclose late |
+|---|---|---|
+| rule | `G`'s procedure starts at a log position after `Φ_G` | `G`'s procedure starts at a position the group record fixes, independent of reports; its records are disclosed at `Δ` — `Δ_G = Φ_G`, or per item `Δ_j = Φ_j` |
+| prerequisites | the group record; `Φ_j` as a rule of the log; a start rule in log order | the same, plus a capability absent today: records and intermediate results produced, kept unreadable by reviewers until `Δ` and verifiable afterwards (a commitment on the log at production, opened at `Δ`, is one shape of the requirement; no design here) |
+| missing report, freeze not reached | under 7a `Φ_G` never comes: no member's outcome is produced, the block spreading to the group | production unaffected; under `Δ_G` every member's disclosure waits; under `Δ_j` the others are disclosed while `j` stays pending |
+| samples, resources, time, outcome law | the start moves with the slowest member's freeze, so with reports, bands and appeals, and samples, shared resources and drift follow it (§7.3) | a fixed start decouples production from reports only if resources and samples are themselves fixed independently of them (§7.2, item 4); otherwise the same channels |
+| reviewers' information | no outcome of `G` exists before `Φ_G`; outcomes of groups already disclosed can be known | outcomes exist before the reports; their secrecy rests on who can reach answers, attempt statuses, fits and records before `Δ`; under `Δ_j` a disclosed companion informs a member still pending, one group's verdicts being dependent (§4.1) |
+| evidence | the log records of steps 2–4, the start after `Φ_G`, §9.2's attempts | the same, the commitment at production and its opening at `Δ`; that nothing was disclosed before `Δ` is shown by no log record and rests on the parties holding the data |
+| excludes | an outcome of `G` before its members' freezes | a start that depends on reports, under the resource condition |
+| hypotheses left | samples and resources invariant in time; availability; the group block | no disclosure before `Δ`; the resource condition; the respondent channel (§11.3) |
+
+### 11.3 Joins with the score's conditions
+
+- **What a report may contain.** D1 holds for `q_c` given `F_u`, whatever `F_u` holds (§8.1). An
+  outcome of another group already disclosed, or a public frequency, is information a forecast
+  may legitimately include. §4 (A) requires that `Y_j` stay unknown to `j`'s reviewers until
+  `Φ_j`, since an outcome known before the report turns the forecast, and the bridging input, into
+  its echo: T1 gives this by construction, T2 by its disclosure condition. Under A no observation
+  is drawn, so H-a's H0 guards no draw here.
+- **What a deviation may change** (H-c). H-c fails when `u`'s deviation moves the joint law of
+  `(b_uj, Y_j)` given `F_u`. Under T1 it can: `u`'s report or withholding on any member of `G` can
+  move `Φ_G` (a band, an appeal, a missing reveal), hence the start, the sample and `Y_j`'s law.
+  Abstract construction (D, C; not a model of the protocol): `u`'s report alone sends `j` to the
+  band when `p ≤ ½`, as in `16` §3's simplified gate; the band moves `Φ_G` past a log position
+  after which the sample gives `A` with probability 2/5 instead of 3/5; the outcome always
+  conclusive; `b = 3/5`. The truthful report `p = 3/5` earns 0 in expectation, the deviation
+  `p = 2/5` earns 1/25. Under T2 the same deviation moves `Δ`, not `Y_j`, when the resource
+  condition holds. Neither construction changes the baselines' composition (C5, `16` §4.6); T58's
+  replacement lies outside both (§9.4).
+- **Across items.** A reviewer with assignments in several groups can learn a disclosed outcome
+  before completing another report: included information. Under T2 an intermediate result that
+  reaches it before `Δ` is a failure of the disclosure condition. A deviation on `k` that moves
+  `j`'s disclosure changes when `Y_j` is seen, not `Y_j`: a selection of what is available, not a
+  change of law.
+- **Selection.** A disclosure or consolidation that follows outcomes or report timing selects the
+  available observations and cohorts (§8.3, (iii)–(iv)); neither construction carries D1 to the
+  consolidated cohorts alone.
+- **Respondents.** Unlinkable pseudonyms keep a reviewer from being excluded from its own items'
+  samples (invariant 5; §7.3): under T2 it can answer before reporting, under T1 only after. Its
+  effect on `Y` as a respondent is not covered by C6 (§7.3), under either construction.
+- **No invariance by declaration.** A start rule with no report among its arguments shows no
+  invariance by itself: its inputs — freezes, resources, samples — can depend on reports.
+
+### 11.4 Pending outcomes, anonymity, the gate
+
+- §9's decisions stand: a missing report imputes nothing; an unreached freeze stays pending;
+  silence and the study's end are no terminal `I`; an item's outcome does not complete an
+  assignment's contribution; consolidated cohorts are not representative by construction. An
+  exhaustion rule needs positive, verifiable evidence (§9.2); whether a resource shortfall counts
+  as `I` is not decided here.
+- **Kept for verification against published.** Answers and ratings stay off the log, committed by
+  a root with per-participant inclusion proofs (`results::{inputs_root, inclusion_proof}`).
+  Today each reveal is a lifecycle step carrying a judge's nym and rating on the replicated set,
+  which D17 rejects (`08` PRIV-004; T77): a study must not extend that publication, and S2 needs
+  either D17 enforced for reveals or a path that does not replicate them. T2's records, before
+  and after `Δ`, must link no role to a person.
+- **Gate and pool during S2**, not chosen here. The choice bites in three places: whether `Φ_j`
+  waits for appeal windows whose only effect would be on the pool; whether pool administration
+  shares respondents with pilot batches (§7.3, *Load*); what an entry tells reviewers before other
+  reports.
+
+### 11.5 For Astra
+
+- **Recommendation** (mine, not a decision). T2 with `Δ_G` as the analytic reference, T1 as the
+  comparison. T2 makes production independent of reports by rule, so the timing channel of
+  §11.3's construction closes under a stated resource condition, while T1 moves the dependence
+  into time and samples and holds a group's production on any member. T2's price is a disclosure
+  requirement the code cannot meet today; `Δ_G` keeps a companion's outcome from informing a
+  pending member, at the cost of one pending member holding back the group's disclosure, not its
+  production.
+- **Open obligations.** The group record; `Φ_j` and `Φ_G` as log rules; T2's non-disclosure before
+  `Δ` and its verification after; the resource and sample condition; the respondent channel; D17
+  for reveals (T77); a procedure that must proceed despite missing reports (T58); the gate's
+  effect on the pool during S2.
+- **Smallest next documentary step.** T2's disclosure requirement: for each object — answers,
+  attempt statuses, fits, terminal records — who may hold it before `Δ_G`, what the log carries
+  at production, what is opened at `Δ_G` and what stays committed only; a requirement, with no
+  cryptographic design.

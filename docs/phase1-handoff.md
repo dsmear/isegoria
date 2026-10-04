@@ -244,8 +244,8 @@ they win.
   approval and §9's precision. Not approved: §10 as a whole. **Direction**: α the main
   reference, β a comparison with its information obligations; no threshold, pool entry,
   implementation or start of the study approved.
-- **Rectifications of `ac06d3c`** (documentation only, not pushed by the session; **awaiting
-  review**), in `17` §10 corrected in place: the path split into report, ratings matrix, fit and
+- **Rectifications of `ac06d3c`, `111e595`** (documentation only), in `17` §10 corrected in
+  place: the path split into report, ratings matrix, fit and
   side-balanced score, robust score (the bootstrap minimum, composed only by the harness), gap
   and coverage (from the full fit), first decision (`bridging_gate`'s API apart from what feeds
   it) and supplementary review (a fresh fit against the plain `τ`); the 9/10 against 9/20 example
@@ -259,6 +259,25 @@ they win.
   information apart in time; shared parameters moved only by participants of the collective fit
   (A7); a term in attempts and procedures not waiting for freezes exclude no channel by
   themselves; the claim that the waiting rule decides the channel withdrawn.
+- **Astra's review of `111e595`** (the commit, its parent and the published HEAD checked; the
+  diff of the four documents read; the relevant code and harness passages checked again; the
+  example checked with fractions, 9/50 and 18/25 against the public product's 9/20; no Rust, fit
+  or campaign run; Claude Code's local checks not repeated, the working tree not checked): the
+  rectifications and `17` §10 **approved as a conditional analysis of the join between B-b and the
+  bridging, with no blocking finding**. Not approved: a protocol, thresholds, pool entry, an
+  implementation or S2's start. Direction: specify timing under A, α the main reference and β the
+  comparison.
+- **Timing under design A: `17` §11** (documentation only, not pushed by the session; **a proposal
+  awaiting review**, not covered by §10's approval). It orders the events of an item, an
+  assignment, a pilot group and a cohort in log order, keeping `16` §5's `Φ_j` and naming a
+  group's closure `Φ_G` and a disclosure point `Δ`; compares T1, starting a group's procedure
+  after `Φ_G`, with T2, producing at a report-independent position and disclosing at `Δ`, by
+  prerequisites, missing reports, samples and resources, reviewers' information, evidence, what
+  each excludes and what stays a hypothesis; shows by an abstract exact construction that under
+  T1 a report sending an item to the band can move the outcome's law (truthful 0, deviation
+  1/25); keeps §9's decisions and D17 (reveals are replicated per nym today, `08` PRIV-004, T77).
+  My recommendation, not a decision: T2 with `Δ_G` as the analytic reference, T1 as the
+  comparison; next, T2's disclosure requirement per object, with no cryptographic design.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -307,8 +326,8 @@ they win.
   on `b59fd03` as a conditional analysis; §9.6 (one fixed form) approved on `00f8e2c` as a
   conditional analysis; §10, toward an experimental protocol, approved on `26593e7` as a
   preparatory synthesis; `17` §9 (cases 5–7 for a study) approved on `b2a1c2f` as the study's
-  reporting specification; `17` §10 (the bridging input) partly approved on `ac06d3c`, its
-  rectifications awaiting review. No
+  reporting specification; `17` §10 (the bridging input) approved on `111e595` as a conditional
+  analysis; `17` §11 (timing under A) a proposal awaiting review. No
   calibration is chosen, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
@@ -321,8 +340,8 @@ they win.
   randomness guarantee (a behavioral model of the beacon's members, or a source change); deferred
   draw against audit; whether A1 needs the incentives of the reputation actually used (`k_u`,
   shrinkage, cap, CUSUM). For a study's reporting, `17` §9's 6c and 7a are decided (`d31e9fa`;
-  §9 approved on `b2a1c2f`); the bridging input under `q_c` is open (`17` §10, its results on a
-  report approved on `ac06d3c`, α the reference; rectifications awaiting review);
+  §9 approved on `b2a1c2f`); the join with the bridging is analysed (`17` §10, approved on
+  `111e595`, α the reference, β the comparison); timing under A is proposed (`17` §11);
   T58 stays open for a procedure that must proceed despite missing reports.
 - **B1–B3:** identification of the floors and of the histogram through the responses, weak
   information, the moment penalty's choice and effects, BIC under misspecification and on
@@ -345,12 +364,11 @@ analysis. The shared aim is a circumscribed, coherent, executable and evaluable 
 protocol; that direction approves no protocol and closes no finding. `19` §10, approved on
 `26593e7` as a preparatory synthesis, sorts the decisions, measurable hypotheses and excluded
 promises toward it; `17` §9, approved on `b2a1c2f`, is the study's reporting specification for
-cases 5–7 under design A, with 6c and 7a as its basis. `17` §10 analyses the bridging input's
-meaning when the report forecasts `q_c`: its results on what a report carries are approved, α is
-the main reference and β the comparison by Astra's direction. The next step is Astra's review of
-the rectified §10; the specification of timing under A comes after it, with the rest of `19`
-§10.5's perimeter still to decide. No roadmap or campaign is added, and no choice or parameter is
-asked of the owner.
+cases 5–7 under design A, with 6c and 7a as its basis. `17` §10, approved on `111e595`, analyses
+the bridging input's meaning when the report forecasts `q_c`, α the main reference and β the
+comparison. `17` §11 specifies timing under A; the next step is Astra's review of it, with the
+rest of `19` §10.5's perimeter still to decide. No roadmap or campaign is added, and no choice or
+parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
 break-even inequalities; the minimum information to cross the boundary is the tolerable load,
@@ -622,6 +640,21 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   in a scratch script not kept: Astra's private-signal example (public frequency ½; individual
   probabilities of `A` 9/50 and 18/25; the public product 9/20 in both, equal to their mean only).
   Documentation checks: the diff, whitespace (`git diff --check`), line widths,
+  `scripts/comment_budget.py`, references and relative links of the edited docs, the states
+  across `15`, `17`, `19` and this note. No Rust test, fit, smoke, characterization,
+  calibration, benchmark or mutation run.
+- **Astra, review of `111e595`** (as it records): the commit, its parent and the published HEAD
+  checked; the diff of the four documents read; the relevant code and harness passages checked
+  again; the example checked with fractions. No Rust, fit or campaign run; Claude Code's local
+  checks not repeated; the working tree not checked.
+- **Claude Code, record of that review and `17` §11:** branch, HEAD `111e595` (parent `ac06d3c`),
+  no later local commit and a working tree with only `.gitignore` modified checked first. Read
+  (L), at `111e595`: `16` §§3, 4.1–4.2, 5; `17` §§4, 4.1, 7.2–7.3, 8–10; `19` §10; the
+  lifecycle's events (`AssignReviewers` to `Pilot2Batch`) and `PartialEpoch`; `NodeEvent`
+  (`AdmitRespondent`, `Step`); `results::{rating_leaf, answer_leaf, inputs_root}`; `08`
+  PRIV-004. Exact calculation (C), with fractions in a scratch script not kept: §11.3's timing
+  construction, 0 for the truthful report and 1/25 for the deviation, the largest value on a grid
+  of step 1/100. Documentation checks: the diff, whitespace (`git diff --check`), line widths,
   `scripts/comment_budget.py`, references and relative links of the edited docs, the states
   across `15`, `17`, `19` and this note. No Rust test, fit, smoke, characterization,
   calibration, benchmark or mutation run.
