@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): **partly approved by Astra on `d31e9fa`**, with 6c and 7a decided as the basis of the study's reporting; its rectifications **await review**. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, is **a proposal awaiting review**. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -924,7 +924,7 @@ unvalidated for it (§7.5), and whether A1 needs the reputation's incentives (`1
 5. The recorded `π_j` is the design's inclusion probability (H-e); on an exact enumeration the
    IPW mean of a prefixed cohort's final value equals its expected contribution.
 
-## 9. Cases 5–7 for a study under design A (partly approved; rectifications awaiting review)
+## 9. Cases 5–7 for a study under design A (reporting specification, approved on `b2a1c2f`)
 
 **Status.** A proposal by Claude Code in `d31e9fa`, on the direction of Astra's review of
 `26593e7` (`19` §10); it rewrites none of §§7–8. Reference, for a study only: design A (groups
@@ -944,9 +944,23 @@ a whole. Decided for the study's reporting specification only: 6c and 7a as its 
 cases left unresolved with no imputed value; this does not make the consolidated cohorts alone
 representative. Not approved: S2's start, an implementation, penalties or reputational policies.
 T58's deepening is no prerequisite of this perimeter; T58 stays open for a procedure that must
-proceed despite missing reports. Rectified after that review, **awaiting review**: units and
-times (§9.1), exhaustion's evidence and case 5 by unit (§9.2), freeze against consolidation and
-the baseline's dependence (§9.4), reporting (§9.5), the decision's scope (§9.6).
+proceed despite missing reports. Rectified after that review in `b2a1c2f`: units and times
+(§9.1), exhaustion's evidence and case 5 by unit (§9.2), freeze against consolidation and the
+baseline's dependence (§9.4), reporting (§9.5), the decision's scope (§9.6).
+
+Astra's review of `b2a1c2f` (the commit, its parent and the published HEAD checked; the diff and
+the relevant documents read; the baseline example recalculated with rationals, 0 at `p = ½` and
+3/16 at `p = ¾`; no Rust, fit or campaign run; the local checks and working tree are Claude
+Code's evidence, not Astra's): the rectifications and §9 **approved as the study's reporting
+specification and a conditional analysis, with no blocking finding** — the freeze, progress,
+conclusion, record availability and consolidation kept apart; item, assignment and cohort apart;
+access to reveals apart from a baseline's dependence and from a demonstrated violation of C5;
+verifiable exhaustion apart from a resource shortfall and from silence; 6c and 7a imputing no
+value, with no representativeness of the consolidated cohorts alone. Not approved: an
+implementation, S2's start, penalties or new reputational policies; T58 stays open, no
+prerequisite of this specification. Its non-blocking precision is made in §§9.2–9.3: `g(I) = 0`
+does not depend on `p`, and an assignment with a missing report stays unscored for a contractual
+reason.
 
 ### 9.1 Three objects, three units
 
@@ -1002,9 +1016,11 @@ about that outcome stays pending. *Assignment with a completed report*: under A,
 `π_j = 1`, so the term is `g_uj(I) = 0` (§8.1), the assignment stays in `N_u`, `O_u` increases and
 `V_u` does not (§8.4); an observed outcome without a verdict, neither a non-observation (case 1,
 absent under A) nor a pending outcome (case 2). *Assignment without a completed report*: case 6
-stays; the item's `I` gives it no 0, since `g_uj` needs `p_uj`. It is countable as an assignment
-with a missing report whose item ended in `I`, not as a score term; this specification extends
-neither B-b nor §8.4's counts to it. *Cohort*: its final value needs every member's contribution;
+stays. On the inconclusive branch `g(I) = 0` whatever `p`, so a value could be computed; the
+assignment gets no term for a contractual reason: B-b is analysed for completed reports
+(H-d), and no approved rule extends it to case 6. It is countable as an assignment with a missing
+report whose item ended in `I`, not as a score term; this specification extends neither B-b nor
+§8.4's counts to it. *Cohort*: its final value needs every member's contribution;
 one member in case 6 leaves it without one, whatever the item's outcome.
 
 ### 9.3 Case 6 — report not completed
@@ -1012,9 +1028,10 @@ one member in case 6 leaves it without one, whatever the item's outcome.
 **Verifiable on the log**: the assignment (`j ∈ R_u`); a commitment, if one was recorded; the close
 of the reveal period, in log order; the absence of a valid reveal before it. **Not identified by
 the absence**: withholding, a reveal lost or censored, unavailability (§8.2). In every option
-`p_uj` does not exist, so `g_uj` is undefined; D1 needs completed reports (H-d) and is not
-extended to this case. The case belongs to the assignment and persists whatever its item's
-outcome (§9.1).
+`p_uj` does not exist. On a conclusive outcome `g_uj` cannot be computed; on `I`, where
+`g(I) = 0` needs no `p`, B-b still gives no term, since it is analysed for completed reports
+(H-d) and no approved rule extends it, or D1, to this case. The case belongs to the assignment
+and persists whatever its item's outcome (§9.1).
 
 | Option | `p`, `g` | Denominator | Consolidable | Withholding; hypotheses |
 |---|---|---|---|---|
@@ -1104,3 +1121,93 @@ on the consolidated cohorts alone.
 meaning when the report forecasts `q_c` (`19` §10.1), not developed here. The study is not ready,
 and A1 stays open: these cases are made representable and verifiable, not settled by giving up
 its guarantees.
+
+## 10. The bridging input under B-b (proposal awaiting review)
+
+**Status.** A proposal by Claude Code on the direction of Astra's reviews of `d31e9fa` and
+`b2a1c2f`, **awaiting review**; §9's approval does not cover it. It asks what information enters
+the bridging when B-b elicits `q_c = P(Y = A | Y ≠ I, F_u)`. It adopts no protocol and changes no
+code, API, commitment, threshold or calibration. **L** read at `b2a1c2f`; **D** derived here;
+**C** exact calculations with fractions in a scratch script, formulas in place.
+
+### 10.1 The current contract
+
+| Step | Implemented (L) | Documentary contract | Operational composition |
+|---|---|---|---|
+| report, commitment | one `prob` in `[0, 1]`; `review::commit` hashes its eight bytes (`isegoria/commit/v2`); the lifecycle refuses a reveal outside `[0, 1]` | `p_uj`, the probability that the item passes Level B validation (`02` §C.2) | `review::submit_review` through `NodeState::apply` |
+| bridging input | `orchestrator::weighted_ratings` builds `Ratings` from a ratings matrix, with D33's weights from the previous standing | the same number is the rating `r_uj`: the gate's input is the scored forecast (`01` D23, D33) | no path feeds it the epoch's reveals |
+| score | `scoring::bridging::{fit, side_balanced}`: `S_j = (A_j + B_j)/2`, gap `|A_j − B_j|` | `02` §A.3 | — |
+| decision | `gate::bridging_gate`: under `MIN_COVERAGE = 1` the band whatever the score; pass at `S_j ≥ τ + ε`; the band `[τ − ε, τ + ε)` to the extra round; below it appealable if the gap is at least `APPEAL_GAP`, else rejected (`TAU = 0.80`, `EPS = 0.02`, `APPEAL_GAP = 0.25`); `supplementary_review` re-decides against `τ` | provisional values, argued on the reference simulation for the current meaning (`02` §A.3; T25) | `orchestrator::run_item` steps the lifecycle on a gate outcome its caller supplies; only the characterization harness composes fit and gate |
+| scored outcome | `exploration::outcome_of`: pool, contested or retired 1; rejected at screen or DIF 0; `Measured` its pass | `o_j`, pool entry or a measured pass | — |
+
+Under design A the gate keeps a role in pool entry only: every item is piloted for measurement,
+and band and appeals change pool entry, never scoring (§4, A).
+
+### 10.2 What a B-b report carries
+
+With `c = P(Y ≠ I | F_u)` and `c > 0`: `P(Y = A | F_u) = c q_c`, `P(Y = R | F_u) = c(1 − q_c)`,
+`P(Y = I | F_u) = 1 − c`. A report of `q_c` carries nothing on `c`. Example (C): two items with
+`q_c = 9/10`, one with `c = 1`, one with `c = ½`. Then `P(A | F_u)` is 9/10 and 9/20: on today's
+scale both reports clear `τ + ε = 0.82`, while 9/20 lies below `τ − ε`. If `c = 0`, `q_c` is
+undefined and B-b prefers no report (§8.1, D1). For `c > 0`, D1 prices a report `p ≠ q_c` at
+`c(p − q_c)²`: a shift of 1/10 costs `c/100` (D; C), so the input is disciplined in proportion to
+`c`. Eliciting `c` would change the contract, the commitment and the incentive analysis — no
+proper rule scores `c` under B-b (§7.5) — and none is introduced here.
+
+### 10.3 Two minimal alternatives
+
+| | α. `q_c` as the input | β. an unconditional `P(A | F_u)` reconstructed |
+|---|---|---|
+| rating's meaning | admissibility given a conclusive verdict, declared as the input's new meaning | the current meaning, kept |
+| report, commitment | unchanged: one scalar in `[0, 1]`, `commit/v2` | needs `c`: elicited from `u` (a second report, or §7's vector with a vector commitment and a simplex check, §7.4), or supplied by the system (an estimate `ĉ_j` per item from records of conclusiveness, available before the pilot and independent of the reports) |
+| incentives | D1 for `q_c` under H-a–H-d; weak where `c` is small (§10.2) | elicited: B-b does not score `c`, so a proper rule for it, or §7.1's ternary score, and its analysis; supplied: `ĉ_j q_c` is no longer `u`'s forecast, and `ĉ_j`'s error enters every decision |
+| `τ`, band, polarization | values argued on the old meaning, to recalibrate (T25, T83); the gap reads disagreement on admissibility given a verdict | today's scale, values unvalidated for a report times an estimate; the gap mixes disagreement on `q_c` with `ĉ_j` |
+| under A | pool entry needs the gate and the verdict `A`: the gate screens admissibility, the pilot conclusiveness | the gate also screens on predicted conclusiveness, which the required verdict already enforces after the pilot |
+
+§7.4's transformations (`p_A`, `p_A/(p_A + p_R)`, `p_A + p_I/2`) need §7's ternary vector; under
+B-b's scalar only α needs no contract change, and `p_A/(p_A + p_R)` equals `q_c` (D). A separate,
+unscored rating (§7.4) departs from D23 and D33 unless decided otherwise. Fitting the scalar API
+validates neither meaning.
+
+### 10.4 Can the gate's decisions move `Y`?
+
+- **Under A** (§4, §8.5): groups are fixed at admission and every item is piloted whatever the
+  gate; the gate decides pool entry, not whether or how `Y` is produced, nor its group or load.
+- **Time remains.** The freeze `Φ_j` includes the band's extra round and the appeal window (`16`
+  §5), and outcomes stay hidden until it. If only the outcome's release waits, the gate moves when
+  `Y` is seen, not `Y`; if a group's procedure, or its term, waits for its members' freezes, a
+  band or appeal-eligible decision moves the group's timing (§7.3, *Time* and *Load*).
+- **The fit couples items**: `u`'s rating of `j` moves shared parameters (`b_u`, `f_u`, the sides,
+  `02` §A.1), so the scores of other items. A deviation of `u` on one item can send another of its
+  items to the band, and so change a freeze's timing.
+- **A channel to H-c** exists only if such a change moves the joint law of `(b_uj, Y_j)` given
+  `F_u`. With a term in attempts and procedures that do not wait for freezes, it touches timing
+  only; under a time term or shared resources it can touch `Y` (§7.2, item 4; §7.3). A possible
+  dependence, not a demonstrated violation. Under C or the reference design the gate also decides
+  which items are piloted for entry, hence load shared with audited groups (§8.5).
+- **Keeping study scores out of the reputation** changes none of this: the gate reads the reports
+  whatever their score is used for, and a reviewer's preference over an item's fate stays a motive
+  that properness only prices (`16` §4.5, item 4), at `c(p − q_c)²` under B-b.
+
+### 10.5 For Astra
+
+- **Specifiable now.** §10.1's three layers; for a study under A, every report, gate decision,
+  band and appeal recorded with its log position beside §9's records, so that timing effects are
+  visible; the gate's decisions acting on pool entry only, as §4 already states for A.
+- **Design decisions.** The input's meaning: α, with its declared new meaning and no contract
+  change, or β, with the source of `c` — elicited (contract, commitment and incentive analysis
+  change) or supplied (the rating's meaning changes). Whether a group's procedure, or only the
+  release of its outcome, waits for the freeze. Whether a study applies the gate's decisions to
+  pool entry while it runs. `τ`, `ε` and the gap stay with T25 and T83.
+- **Experimental evidence**, as measures against criteria declared beforehand: the gate's score
+  and gap on the chosen meaning; conclusiveness by item class, which bounds how far §10.2's
+  discipline reaches; the delays bands and appeals induce. None validates `τ`'s meaning by itself.
+- **Missing presupposition.** What the gate protects under B-b: admissibility given a verdict, or
+  an unconditional prospect of admission. α and β answer different questions; the choice is
+  Astra's.
+- **Recommendation** (mine, not a decision). Settle that presupposition; then specify α as the
+  study's reference, since it changes no commitment and keeps D23 and D33's link between the
+  scored forecast and the gate's input, with its weaker discipline at small `c` recorded as a
+  limit, and β kept as the comparison where `c` is supplied from records. Next documentary step
+  toward S2: the timing rule under A — whether procedures, or only releases, wait for the freeze —
+  which decides whether §10.4's channel is open.

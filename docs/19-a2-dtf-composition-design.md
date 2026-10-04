@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was **partly approved by Astra on `d31e9fa`**, its rectifications **awaiting review**. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was partly approved by Astra on `d31e9fa` and **approved on `b2a1c2f` as the study's reporting specification**; the bridging input under `q_c` is analysed in `17` §10, **a proposal awaiting review**. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -997,7 +997,7 @@ experimental protocol (§10); that direction approves no protocol and closes no 
 **approved by Astra on `26593e7` as a preparatory synthesis** (design review above), its four
 precisions made below; the S2 protocol, any implementation or experiment, penalties and new
 reputational rules not approved. It builds on §6.1, §§9.1–9.6 and `17` §§7–8 without restating
-them; the cases 5–7 it led to are specified in `17` §9, partly approved on `d31e9fa`. It adopts,
+them; the cases 5–7 it led to are specified in `17` §9, approved on `b2a1c2f`. It adopts,
 funds and closes nothing; anonymity (no personal or group attribute enters) and the recovery of
 contested facts bound it; the test's neutrality is not certified. Evidence: **L** targeted reads
 at `00f8e2c`, named in place; no run.
@@ -1019,10 +1019,12 @@ tolerance and a treatment of uncertainty declared before the results; none is pr
   report not completed (case 6: no `p`; C4 against withholding), a freeze not reached (case 7;
   T58), the terminal-inconclusiveness record (`17` §7.2), the availability property and any
   overdue rule (`17` §8.3), what is published before consolidation, and whether study scores feed
-  any reputation (`17` §9 specifies cases 5–7 for a study, awaiting review). The bridging input:
+  any reputation (`17` §9, the study's reporting specification for cases 5–7, approved on
+  `b2a1c2f`). The bridging input:
   what the rating means when the report forecasts `q_c`, with `τ`, the band and the polarization
   cut not validated for that meaning (`17` §7.5, §8.5); keeping study scores out of the reputation
-  does not settle it, and no transformation, threshold or bypass of the bridging is chosen.
+  does not settle it, and no transformation, threshold or bypass of the bridging is chosen
+  (analysed in `17` §10, awaiting review).
 - **B.** On the study's records: every assignment in `N_u` and every case recorded as `17` §8.6
   requires, a correctness check that one missing assignment or one pending item read as 0 or `I`
   refutes; the share of terminal inconclusiveness and the time to consolidation by verdict class
@@ -1114,8 +1116,8 @@ My recommendation, not an approved decision.
 - **Blocks today, by strand.** *S1*: scenarios and decision criteria not yet declared;
   respondent availability and human load do not block it. *S2*: an executable path from responses
   to terminal records — a study harness may serve, not necessarily the production runtime; the
-  terminal-inconclusiveness record and the attempt term; the rules for cases 5–7 (`17` §9: 6c
-  and 7a decided as the reporting basis, its rectifications awaiting review); B-b's contribution
+  terminal-inconclusiveness record and the attempt term; the rules for cases 5–7 (`17` §9, the
+  reporting specification approved on `b2a1c2f`, 6c and 7a its basis); B-b's contribution
   and counters (§10.4); the bridging input's meaning (§10.1); respondent availability and the
   tolerable load per participation, unknown. A general availability guarantee is not needed to
   study delays, which the study records; the study's end does not turn a pending item into a
@@ -1130,7 +1132,8 @@ My recommendation, not an approved decision.
   anonymous respondents and tolerable items per participation; the horizon's numbers only if a
   calibration arm is kept.
 - **Next intervention.** The specification of B-b's records and rules for cases 5–7 under arm A
-  is `17` §9, partly approved on `d31e9fa` and rectified; after its review, the priority link
-  decided by Astra is the bridging input's meaning when the report forecasts `q_c` (§10.1). S1's
+  is `17` §9, approved on `b2a1c2f` as the study's reporting specification; the priority link
+  Astra set next, the bridging input's meaning when the report forecasts `q_c` (§10.1), is
+  analysed in `17` §10, awaiting review. S1's
   declaration of scenarios and criteria stays an alternative strand, needing no respondents but
   a campaign the owner authorizes to run.
