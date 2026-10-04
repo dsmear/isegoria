@@ -141,9 +141,9 @@ they win.
   with coverage and a conservative supremum. Not approved: §9.6 as a whole, a share floor in the
   target, a restriction to minimal representations, a policy on coincident components, any
   calibration or implementation. The approval of `b59fd03` is unchanged.
-- **Rectifications of `907c245`** (documentation only, not pushed by the session; **awaiting
-  review**), in `19` §9.6: the 5% filter applies per component, so Astra's construction (one law,
-  a component at 8% against two exact copies at 4%, population KR-20 ≈ 0.9983783235) gives a
+- **Rectifications of `907c245`, `00f8e2c`** (documentation only), in `19` §9.6: the 5% filter
+  applies per component, so Astra's construction (one law, a component at 8% against two exact
+  copies at 4%, population KR-20 ≈ 0.9983783235) gives a
   filtered DTF of ≈ 0.2439024373 and 0 — recorded for A2 and B1, not as a selector bug, with no
   merging, minimal representation, separation or threshold chosen; point identification kept
   apart from compatible values, valid bounds and their use, the claim that no calibration can
@@ -152,6 +152,26 @@ they win.
   left out withdrawn; the coordinate change without a double shift; the BIC consequence tied to
   the acceptance rule; regularity without universal claims; the envelope's sharpness restricted
   to the declared family; `ClassCurves::of`'s contract an observation, not a production defect.
+- **Astra's review of `00f8e2c`** (the commit, its parent and the published HEAD checked; the diff
+  and the updated text read; exact calculations with fractions on the standardization, the
+  population KR-20 ≈ 0.9983783235, the filtered DTF ≈ 0.2439024373 against 0 and the rare-class
+  consequence; no Rust, fit or campaign run; Claude Code's documentation checks not repeated):
+  the rectifications and `19` §9.6 **approved as a conditional analysis**; no new target,
+  threshold, component policy, calibration, implementation or realized guarantee. The approval
+  belongs to this review, not to the partial one of `907c245`. Its three non-blocking precisions
+  are made in §9.6: the final paragraph separates target and representation, statistical and
+  computational validity, and precision, usefulness and cost; the BIC consequence is limited to a
+  procedure taking the supremum over a region restricted to the selected model and accepting on
+  that condition alone; a gap vanishing at an atom can give a kink, not necessarily.
+- **Toward an experimental protocol: `19` §10** (documentation only, not pushed by the session;
+  **a proposal awaiting review**, not covered by §9.6's approval). On Astra's direction, it sorts
+  A1, A2, B1–B3 and resources into decisions needed before a run, hypotheses a circumscribed study
+  can measure (with what would refute them and what they would not authorize) and promises
+  excluded until proved; it maps executable paths against missing ones by targeted reads. My
+  recommendation, not a decision: two separable strands — S1, generative scenarios with known
+  truth; S2, a field pilot on a few items fixed before the data, arm A, scores kept out of any
+  reputation — and, as the next intervention, a documentation-level specification of B-b's
+  records and rules for cases 5–7 under arm A, as options for Astra.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -197,8 +217,9 @@ they win.
   any new calibration, selection or group policy. A reusable common calibration and a calibration
   per form are compared in `19` §9 under explicit assumptions, approved by Astra on `63b13fa` as
   a conditional comparison; §9.3–§9.5, deepened in `6681b03` and rectified in `b59fd03`, approved
-  on `b59fd03` as a conditional analysis; §9.6 (one fixed form) partly approved on `907c245`, its
-  rectifications awaiting review. No calibration is chosen, and these approvals do not close A2.
+  on `b59fd03` as a conditional analysis; §9.6 (one fixed form) approved on `00f8e2c` as a
+  conditional analysis; §10, toward an experimental protocol, a proposal awaiting review. No
+  calibration is chosen, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
   baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
@@ -226,11 +247,12 @@ rectified in `63b13fa` and approved there by Astra as a conditional comparison. 
 (`6681b03`: §9.3's check conditions and cost hypotheses, §9.5's error control over a search) was
 partly approved by Astra, rectified in `b59fd03` and approved there as a conditional analysis.
 §9.6 analyses, on Astra's direction, whether data can bound the true DTF of one fixed form; it
-was partly approved on `907c245`, and its rectifications await review. The next step is that
-review, not a general identification lemma. The shared aim is a coherent, executable and
-evaluable experimental protocol; that direction approves no protocol and closes no finding, and
-no roadmap or campaign comes before settling which obstacles bear on the target and which only
-limit precision and usefulness. What follows is Astra's to decide.
+was partly approved on `907c245`, rectified and approved on `00f8e2c` as a conditional
+analysis. The shared aim is a circumscribed, coherent, executable and evaluable experimental
+protocol; that direction approves no protocol and closes no finding. `19` §10 proposes the
+decisions, measurable hypotheses and excluded promises toward it, the blocks found and a next
+intervention; the next step is Astra's review of that proposal. No roadmap or campaign is added,
+and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
 break-even inequalities; the minimum information to cross the boundary is the tolerable load,
@@ -436,4 +458,18 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   (`git diff --check`), line widths, `scripts/comment_budget.py`, references and relative links of
   the edited docs, the states across `15`, `19` and this note. No Rust test, fit, smoke,
   characterization, calibration, benchmark or mutation run.
+- **Astra, review of `00f8e2c`** (as it records): the commit, its parent and the published HEAD
+  checked; the diff and the updated text read; exact calculations with fractions on the
+  standardization, the population KR-20, the filtered DTF and the rare-class consequence. No
+  Rust, fit or campaign run; Claude Code's documentation checks not repeated.
+- **Claude Code, record of that review and `19` §10:** branch, HEAD `00f8e2c` (parent `907c245`),
+  no later local commit and a working tree with only `.gitignore` modified checked first. Read
+  (L), at `00f8e2c`: `17` §8 and the open rows of `15`; `pilot::{submit_response, stage1_screen}`,
+  `revalidation::latent_batch`, `orchestrator::{run_item, review_round}`, `NodeState::apply`,
+  `lifecycle::State` and its `Indeterminate` transitions, `ResultRecord`'s variants,
+  `SkillTrack`'s counters, the callers of `ContestedPool`, the characterization harness's studies
+  and `DifDesign`. No calculation was needed for a new claim. Documentation checks: the diff,
+  whitespace (`git diff --check`), line widths, `scripts/comment_budget.py`, references and
+  relative links of the edited docs, the states across `15`, `19` and this note. No Rust test,
+  fit, smoke, characterization, calibration, benchmark or mutation run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
