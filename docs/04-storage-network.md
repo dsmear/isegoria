@@ -305,7 +305,8 @@ per input — a rating (the judge's id, the item, the probability's bits) or an 
 respondent's id, the batch, the item's index in it, the answer) — the leaves sorted, so the
 root is a function of the set of inputs. Whoever holds the inputs recomputes the engine and
 the root and checks both; a reviewer or respondent holding its own leaf and an inclusion
-proof checks that its input was counted, without seeing anyone else's.
+proof checks that its input was counted without receiving anyone else's in the clear, though
+this API gives no general guarantee that the others cannot be inferred (`08` PRIV-004.1).
 
 **The ratings are on the log anyway.** A reveal is a lifecycle step (kind 4, event 5) that
 carries the judge's nym, its probability and its nonce, so the log holds every rating of a

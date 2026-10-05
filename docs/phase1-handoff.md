@@ -310,11 +310,11 @@ they win.
   Its non-blocking precision is made in §11.4: "check, apply, then write" is `Node::submit`'s,
   which calls `NodeState::apply`, itself writing nothing. R1 stays approved; A1, A2, B1–B3 and
   Phase 1 stay open.
-- **Access and disclosure per object: `17` §12** (documentation only, not pushed by the session;
-  **a proposal awaiting review**, not covered by §11's approval; T1 and T2 alternatives, neither
-  assumed adopted). Functional roles kept apart from subjects; six properties apart
-  (authenticity and integrity, availability, confidentiality, correctness, no early disclosure,
-  H-c's invariance) with what a record, an access rule or a holder's behaviour gives each; per
+- **Access and disclosure per object: `17` §12, `8af257d`** (documentation only; not covered by
+  §11's approval; T1 and T2 alternatives, neither assumed adopted). Functional roles kept apart
+  from subjects; six properties apart (authenticity and integrity, availability,
+  confidentiality, correctness, no early disclosure, H-c's invariance) with what a record, an
+  access rule or a holder's behaviour gives each; per
   object — answers and fit data, attempt statuses and reasons, intermediate results, terminal
   records, gate and pool decisions — production, readers, recipients and conditions, the log and
   what stays off it, what a record attests, the code's capabilities and gaps, T1 against T2;
@@ -330,6 +330,50 @@ they win.
   common requirements first; T1 as the reference for information handling and T2 as the
   comparison, T1's timing channel through samples and time remaining. Next: Astra's review of
   §12.
+- **Astra's review of `8af257d`: partial** (the commit, its parent and the published HEAD
+  checked; the diff and the relevant code read; the result `−δ²` checked with fractions; the
+  code's encoding and hashes reproduced in Python on a synthetic two-leaf Merkle construction; no
+  Rust, fit or campaign run; the local working tree and Claude Code's documentation checks not
+  checked). **Approved**: the record of `cf5575a`'s approval; roles as functions, kept apart from
+  persons; the setting of the matrix per object; the partly informative signal's result under
+  its stated hypotheses (`−δ²`: −1/16 at `δ = ¼`, −¼ at `δ = ½`). **Not approved**: §12 as a
+  whole; an implementation, a cryptographic solution, thresholds, pool entry or S2's start.
+  **Direction**: T1 the reference for the next comparison of informational requirements, T2 the
+  comparison; T1 not adopted as a protocol, its timing channel open; (ii) and (iv) made concrete,
+  their scope bounded; (i) may stay a declared hypothesis, no demonstration of H-c. R1 stays
+  approved; A1, A2, B1–B3 and Phase 1 stay open.
+- **Rectifications of `8af257d`** (documentation only, not pushed by the session; **awaiting
+  review**), in `17` §12 corrected in place: the general sufficiency of "(i) or (iii); or (ii)
+  with (iv)" withdrawn; each construction with the channel it excludes, its further hypotheses,
+  the channels left and its kind — (i) a statistical and a behavioural hypothesis, the
+  conditional forecast's invariance apart from the actual report's; (ii) the values of the
+  reports forming a baseline, with `16` §4.6's composition, frozen weights and rule fixed, value,
+  reveal, availability and consolidation apart, T58 not introduced; (iii) the opening's timing
+  only, content, presence, recipients and metadata left; (iv) those answers only, selection and
+  inclusion, procedure and parameters, the source check, attempts and resources left — with (ii)
+  and (iv) as per-pair predicates on recorded positions, no schedule and no common freeze
+  adopted; §12.1's primitives (a hash, commitment or root authenticates no producer and checks
+  integrity only against a reference of established provenance; a signature shows neither truth
+  nor correctness; replication and availability rules constructions, not universal
+  requirements); the matrix with the code, what the requirement asks and candidate policies
+  apart (a verifier after the group's condition, no intermediate before the terminal record:
+  options, not consequences of D1); `Node::submit`'s writes to the local store and log, the
+  replication later and distinct, also in §11.4; the shortfall's positive descriptive record apart
+  from the pilot's transition, the refused step still refused and never by itself `I`; an entry
+  implying `Y = A` a disclosure under the record's condition, an absence of entry identifying
+  neither `R` nor `I`; §12.5.
+- **Sub-finding `08` PRIV-004.1, separate from A1** (documentation only, in the same commit):
+  what an inclusion proof lets its holder infer of other inputs. Observed by Claude Code in
+  `8af257d`; confirmed by Astra by reading the code and a synthetic Python reproduction;
+  re-checked by Claude Code with a synthetic script (below). With two answer leaves, the proof's
+  one sibling is the other leaf's hash, and knowing that leaf's respondent id, batch and index and
+  that the answer is binary, exactly one candidate matches. Limits: it needs known or enumerable
+  fields; not every proof exposes every leaf directly; it shows no recovery of every input from
+  any root; no break of integrity or collision resistance; NET-003 not reopened. `04` §Events and
+  replay and `08` PRIV-004's "seeing nobody else's" qualified: no other input in the clear, no
+  general guarantee against inference. Open: no correction chosen, no salt prescribed as
+  sufficient; hashes, leaf format, serialization and tests unchanged. Not the reveals'
+  publication (T77), not an A1 finding.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -380,7 +424,8 @@ they win.
   preparatory synthesis; `17` §9 (cases 5–7 for a study) approved on `b2a1c2f` as the study's
   reporting specification; `17` §10 (the bridging input) approved on `111e595` as a conditional
   analysis; `17` §11 (timing under A) approved on `cf5575a` as a conditional comparison; `17`
-  §12 (access and disclosure per object) a proposal awaiting review. No
+  §12 (access and disclosure per object) partly approved on `8af257d`, its rectifications
+  awaiting review. No
   calibration is chosen, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
@@ -396,8 +441,11 @@ they win.
   §9 approved on `b2a1c2f`); the join with the bridging is analysed (`17` §10, approved on
   `111e595`, α the reference, β the comparison); timing under A is analysed (`17` §11, approved
   on `cf5575a` as a conditional comparison, T1 and T2 alternatives, neither adopted); access and
-  disclosure per object are proposed (`17` §12, awaiting review);
+  disclosure per object are specified (`17` §12, partly approved on `8af257d`, T1 the reference
+  and T2 the comparison by Astra's direction, its rectifications awaiting review);
   T58 stays open for a procedure that must proceed despite missing reports.
+- **`08` PRIV-004.1 (separate from A1): open.** What an inclusion proof lets its holder infer of
+  other inputs; no correction chosen.
 - **B1–B3:** identification of the floors and of the histogram through the responses, weak
   information, the moment penalty's choice and effects, BIC under misspecification and on
   penalized mixture fits, selection after penalized fitting.
@@ -422,9 +470,12 @@ promises toward it; `17` §9, approved on `b2a1c2f`, is the study's reporting sp
 cases 5–7 under design A, with 6c and 7a as its basis. `17` §10, approved on `111e595`, analyses
 the bridging input's meaning when the report forecasts `q_c`, α the main reference and β the
 comparison. `17` §11, approved on `cf5575a` as a conditional comparison, analyses timing under
-A, T1 and T2 staying alternatives; `17` §12 proposes what each needs to handle information per
-object; the next step is Astra's review of §12, with the rest of `19` §10.5's perimeter still to
-decide.
+A, T1 and T2 staying alternatives; `17` §12, partly approved on `8af257d`, specifies what each
+needs to handle information per object, T1 the reference and T2 the comparison by Astra's
+direction. Still to review: §12's rectifications and the record of `08` PRIV-004.1; the minimal
+next step after that review is, for T1, the log positions a study would record to evaluate §12.4's
+(ii) and (iv) per pair and the channels it would declare instead, with the rest of `19` §10.5's
+perimeter still to decide.
 No roadmap or campaign is added, and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -748,4 +799,23 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   `scripts/comment_budget.py`, references and relative links of the edited docs, the states
   across `15`, `17`, `19` and this note. No Rust test, fit, smoke, characterization, calibration,
   benchmark or mutation run.
+- **Astra, review of `8af257d`** (as it records): the commit, its parent and the published HEAD
+  checked; the diff and the relevant code read; the result `−δ²` checked with fractions; the
+  code's encoding and hashes reproduced in Python on a synthetic two-leaf Merkle construction. No
+  Rust, fit or campaign run; the local working tree and Claude Code's documentation checks not
+  checked.
+- **Claude Code, record of that review, the rectifications of `17` §12 and `08` PRIV-004.1:**
+  branch, HEAD `8af257d` (parent `cf5575a`), no later local commit and a working tree with only
+  `.gitignore` modified checked first. Read (L), at `8af257d`: `network::{codec::Writer,
+  hash::tagged, merkle::{leaf_hash, merkle_root, merkle_proof, verify_proof}}`,
+  `results::{answer_leaf, inputs_root, inclusion_proof}` and `answer_leaf`'s callers (tests),
+  `Node::submit` (the object store, then the log); `04` §§Events and replay, Replication between
+  nodes; `08` PRIV-004, NET-002, NET-003 and the §15 matrix rows; `16` §4.6. Synthetic
+  reproduction (C), in a scratch Python script not kept, with the code's encoding and domain tags
+  and synthetic ids: two answer leaves, for either hidden binary answer the proof verifies, its
+  one sibling is the other leaf's hash and only the true candidate matches; four leaves, one of
+  the two siblings a leaf hash. No other calculation was needed. Documentation checks: the diff,
+  whitespace (`git diff --check`), line widths, table columns, `scripts/comment_budget.py`,
+  references and relative links of the edited docs, the states across `08`, `15`, `17`, `19` and
+  this note. No Rust test, fit, smoke, characterization, calibration, benchmark or mutation run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
