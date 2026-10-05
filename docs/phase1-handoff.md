@@ -280,8 +280,8 @@ they win.
   **Not approved**: §11 as a whole; a preference for T2 as the construction adopted; a protocol,
   an implementation, thresholds, pool entry or S2's start. A and α stay analytic references
   within their limits; T1 and T2 stay alternatives.
-- **Rectifications of `82bdb9a`** (documentation only, not pushed by the session; **awaiting
-  review**), in `17` §11 corrected in place: a partial order, not one sequence for both
+- **Rectifications of `82bdb9a`, `cf5575a`** (documentation only), in `17` §11 corrected in
+  place: a partial order, not one sequence for both
   constructions, with `Ω` able to precede production, disclosure or consolidation and a freeze
   unreached at `Ω` not a freeze that never comes; per object, production, availability (internal,
   then the replicated log), the condition authorizing disclosure and the disclosure itself — the
@@ -296,6 +296,40 @@ they win.
   records' evidentiary limits; the reveals' publication kept as `08` PRIV-004's known discrepancy;
   the preference for T2 withdrawn. Next: the review of §11; the per-object disclosure requirement
   is not developed before it.
+- **Astra's review of `cf5575a`** (the commit, its parent and the published HEAD checked; the diff
+  of the four documents read; `Node::submit`'s path checked again; the disclosure–baseline
+  example checked with fractions, 0 without the signal and −¼ with it; no Rust, fit or campaign
+  run; Claude Code's local documentation checks and working tree not checked): the
+  rectifications and `17` §11 **approved as a conditional comparison between T1 and T2, with no
+  blocking finding**. Accepted, kept apart: a partial order and one total sequence; production,
+  availability, the condition of opening and the actual opening; a disclosure changing later
+  reports' information and a mere selection of the observations available; the baselines'
+  composition and the invariance of the reports feeding them; the theorem's perimeter and
+  actions in other roles; what the records attest and what they do not show. **Not approved**:
+  the adoption of T1 or T2, a protocol, an implementation, thresholds, pool entry or S2's start.
+  Its non-blocking precision is made in §11.4: "check, apply, then write" is `Node::submit`'s,
+  which calls `NodeState::apply`, itself writing nothing. R1 stays approved; A1, A2, B1–B3 and
+  Phase 1 stay open.
+- **Access and disclosure per object: `17` §12** (documentation only, not pushed by the session;
+  **a proposal awaiting review**, not covered by §11's approval; T1 and T2 alternatives, neither
+  assumed adopted). Functional roles kept apart from subjects; six properties apart
+  (authenticity and integrity, availability, confidentiality, correctness, no early disclosure,
+  H-c's invariance) with what a record, an access rule or a holder's behaviour gives each; per
+  object — answers and fit data, attempt statuses and reasons, intermediate results, terminal
+  records, gate and pool decisions — production, readers, recipients and conditions, the log and
+  what stays off it, what a record attests, the code's capabilities and gaps, T1 against T2;
+  inferences from steps, reasons, positions, resource events, pool entry and other items' gate
+  decisions, each with the hypothesis it may involve; per opening condition (`Φ_j`, `Φ_G`, a
+  collective opening) what must be complete, what follows an object not available or a freeze
+  not reached, and the boundary between groups (a partly informative signal: 0 against `−δ²`),
+  with four sufficient conditions, none shown necessary, a common freeze not proposed; §9's
+  decisions kept. Observations recorded, not fixed: today an object entering the replicated set
+  is disclosed to every peer; `results::inputs_root` hashes leaves without salt, so it binds
+  without hiding enumerable answers; a refused pilot step leaves no record, so a shortfall is
+  unrecorded; pilot steps are refused before `Score`. My recommendation, not a decision: the
+  common requirements first; T1 as the reference for information handling and T2 as the
+  comparison, T1's timing channel through samples and time remaining. Next: Astra's review of
+  §12.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -345,8 +379,8 @@ they win.
   conditional analysis; §10, toward an experimental protocol, approved on `26593e7` as a
   preparatory synthesis; `17` §9 (cases 5–7 for a study) approved on `b2a1c2f` as the study's
   reporting specification; `17` §10 (the bridging input) approved on `111e595` as a conditional
-  analysis; `17` §11 (timing under A) partly approved on `82bdb9a`, its rectifications
-  awaiting review. No
+  analysis; `17` §11 (timing under A) approved on `cf5575a` as a conditional comparison; `17`
+  §12 (access and disclosure per object) a proposal awaiting review. No
   calibration is chosen, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
@@ -360,8 +394,9 @@ they win.
   draw against audit; whether A1 needs the incentives of the reputation actually used (`k_u`,
   shrinkage, cap, CUSUM). For a study's reporting, `17` §9's 6c and 7a are decided (`d31e9fa`;
   §9 approved on `b2a1c2f`); the join with the bridging is analysed (`17` §10, approved on
-  `111e595`, α the reference, β the comparison); timing under A is analysed (`17` §11, partly
-  approved on `82bdb9a`, T1 and T2 alternatives);
+  `111e595`, α the reference, β the comparison); timing under A is analysed (`17` §11, approved
+  on `cf5575a` as a conditional comparison, T1 and T2 alternatives, neither adopted); access and
+  disclosure per object are proposed (`17` §12, awaiting review);
   T58 stays open for a procedure that must proceed despite missing reports.
 - **B1–B3:** identification of the floors and of the histogram through the responses, weak
   information, the moment penalty's choice and effects, BIC under misspecification and on
@@ -386,8 +421,10 @@ protocol; that direction approves no protocol and closes no finding. `19` §10, 
 promises toward it; `17` §9, approved on `b2a1c2f`, is the study's reporting specification for
 cases 5–7 under design A, with 6c and 7a as its basis. `17` §10, approved on `111e595`, analyses
 the bridging input's meaning when the report forecasts `q_c`, α the main reference and β the
-comparison. `17` §11 analyses timing under A, T1 and T2 staying alternatives; the next step is
-Astra's review of its rectifications, with the rest of `19` §10.5's perimeter still to decide.
+comparison. `17` §11, approved on `cf5575a` as a conditional comparison, analyses timing under
+A, T1 and T2 staying alternatives; `17` §12 proposes what each needs to handle information per
+object; the next step is Astra's review of §12, with the rest of `19` §10.5's perimeter still to
+decide.
 No roadmap or campaign is added, and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -692,4 +729,23 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   (`git diff --check`), line widths, `scripts/comment_budget.py`, references and relative links
   of the edited docs, the states across `15`, `17`, `19` and this note. No Rust test, fit, smoke,
   characterization, calibration, benchmark or mutation run.
+- **Astra, review of `cf5575a`** (as it records): the commit, its parent and the published HEAD
+  checked; the diff of the four documents read; `Node::submit`'s path checked again; the
+  disclosure–baseline example checked with fractions (0 without the signal, −¼ with it). No Rust,
+  fit or campaign run; Claude Code's local documentation checks and working tree not checked.
+- **Claude Code, record of that review and `17` §12:** branch, HEAD `cf5575a` (parent `82bdb9a`),
+  no later local commit and a working tree with only `.gitignore` modified checked first. Read
+  (L), at `cf5575a`: `Node::{submit, open}` and `NodeState::apply` (a refused event is not
+  written); `NodeEvent`; `lifecycle::Event` and the pilot transitions (refused outside `Pilot1`,
+  `Pilot2` and `Explored`; an indeterminate reading leaves the state); `pilot::{submit_response,
+  batch_id, PilotError}` and `batch_id`'s callers (tests only); `results::{answer_leaf,
+  inputs_root, inclusion_proof}`, `network::merkle::leaf_hash` and `hash::tagged` (no salt);
+  `review::commit`; `04` §§A node's own disk, Events and replay, Replication between nodes (Who
+  reads); `08` PRIV-004, PRIV-006 and Q-1; `16` §§4.6, 5; `17` §§4, 7.2–7.3, 8–11. Exact
+  calculation (C), with fractions in a scratch script not kept: a partly informative signal,
+  expected contribution 0 without it and `−δ²` with it (−1/16 at `δ = ¼`, −¼ at `δ = ½`), on a
+  grid of step 1/40. Documentation checks: the diff, whitespace (`git diff --check`), line widths,
+  `scripts/comment_budget.py`, references and relative links of the edited docs, the states
+  across `15`, `17`, `19` and this note. No Rust test, fit, smoke, characterization, calibration,
+  benchmark or mutation run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
