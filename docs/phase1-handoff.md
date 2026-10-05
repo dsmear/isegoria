@@ -418,8 +418,8 @@ they win.
   approved**: §13 as a whole; a protocol, an implementation or S2's start. T1 stays the analytic
   reference and T2 the alternative, neither adopted. R1 stays approved; A1, A2, B1–B3 and Phase 1
   stay open.
-- **Rectifications of `f38f8a4`** (documentation only, not pushed by the session; **awaiting
-  review**), in `17` §13 corrected in place: an abstract construction, checked against the cut
+- **Rectifications of `f38f8a4`, `176dd8c`** (documentation only), in `17` §13 corrected in
+  place: an abstract construction, checked against the cut
   rules (`Cut::next` marks feeds as the proposer holds them; `should_sign` needs no cut to count
   every replicated entry), where an entry carrying `O` is readable before the commitments that an
   earlier cut counts, so the replay puts them first while the information came first; three
@@ -434,6 +434,43 @@ they win.
   disclosure can bind answers from its own existence, without dating their collection, the
   absolute "every (iv) pair indeterminate" withdrawn; the minimal result a replay check, not a
   verification of (ii)'s or (iv)'s informational predicate.
+- **Astra's review of `176dd8c`** (the commit, its parent and the published HEAD checked; the
+  diff of the four documents read; the relevant passages of replication, cuts and the ledger
+  checked again; no Rust, fit, campaign or Merkle reproduction, and no local check of the working
+  tree or of the documentation checks): the rectifications and `17` §13 **approved as a
+  conditional analysis of the observable evidence**, within its stated limits and with three
+  precisions. Resolved, the substantive findings of the review of `f38f8a4`: replay kept apart
+  from the availability of information, in a construction compatible with the rules read of
+  `Cut::next`, `added` and `should_sign`; relevant commitments apart from mere entries named
+  `Commit`; disclosures that can include refused or uncounted entries; an absence in the prefix
+  apart from a contrary order and from incomplete evidence; a results root able to bind answers
+  before a later disclosure without dating their collection; the minimal result limited to the
+  replay check. **Not approved**: the adoption of T1 or T2, a protocol, an implementation or S2's
+  start. Its three precisions, made by Claude Code in `17` §13: (R) and (E) distinct checks, (E)
+  needing the relevant commitments' existence and identification but not every disclosure entry
+  examined by the replay (§13.2, aligned with §13.3; the outcome table's absent-precondition and
+  indeterminate rows now state each level's evidence); (E)'s conclusions limited to the entries
+  of `x_O` its evidence covers, every disclosure only under (I)'s coverage (§13.4, §13.5);
+  `Replica::check` accepting subject to its authenticity and integrity checks — writer,
+  signature, object size, CID — with no check of protocol validity, entries later refused by the
+  ledger staying readable (§13.1, §13.4). R1 stays approved; A1, A2, B1–B3 and Phase 1 stay open.
+- **S2's minimal perimeter: `19` §10.6** (documentation only, not pushed by the session; **a new
+  proposal awaiting review**, not covered by §13's approval; no implementation authorized). On
+  `17` §§9–13 without restating them: a question (does an executable path under A produce, at a
+  declared `Ω`, the records `17` §§9.5 and 13.5 need, at which times and resources?); what only
+  participants observe, against what a synthetic-event harness only verifies (a technical check,
+  not a field pilot); no conclusion on properness, the reputation's incentives, H-c, the true DTF
+  or neutrality, and none on A2. Recommended for Astra: study scores kept out of any reputation,
+  gate decisions recorded and none applied to the pool, with the questions this leaves aside. The
+  capabilities strictly needed (what exists, what is missing, what a harness can supply, the
+  evidence that it works), among them enrollment bound to an identity (T20, open), without which
+  a study's credentials leave uniqueness per person declared, not shown; the path issues no
+  inclusion proof, so
+  it does not meet `08` PRIV-004.1. Five blocking decisions (scores and pool, the forecast's
+  meaning, each group's procedure, a shortfall or a refused batch, pseudonyms before T20), the
+  deferrable ones apart; resources from documented floors (at least 3,300 participations for an
+  attempt reaching stage 2); the cost data to acquire before a pilot. Next deliverable
+  recommended: a documentary specification of the synthetic-event technical check.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -485,9 +522,9 @@ they win.
   reporting specification; `17` §10 (the bridging input) approved on `111e595` as a conditional
   analysis; `17` §11 (timing under A) approved on `cf5575a` as a conditional comparison; `17`
   §12 (access and disclosure per object) approved on `7d8db08` as a conditional analysis; `17`
-  §13 (observable evidence under T1) partly approved on `f38f8a4`, its rectifications awaiting
-  review. No
-  calibration is chosen, and these approvals do not close A2.
+  §13 (observable evidence under T1) approved on `176dd8c` as a conditional analysis; `19` §10.6
+  (S2's minimal perimeter) a proposal awaiting review. No calibration is chosen, S2 is not
+  claimed to settle A2, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
   baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
@@ -504,9 +541,9 @@ they win.
   on `cf5575a` as a conditional comparison, T1 and T2 alternatives, neither adopted); access and
   disclosure per object are specified (`17` §12, approved on `7d8db08` as a conditional
   analysis, T1 the reference and T2 the comparison by Astra's direction); the evidence for its
-  predicates (ii) and (iv) under T1 is specified (`17` §13, partly approved on `f38f8a4`, its
-  rectifications awaiting review);
-  T58 stays open for a procedure that must proceed despite missing reports.
+  predicates (ii) and (iv) under T1 is specified (`17` §13, approved on `176dd8c` as a
+  conditional analysis); S2's minimal perimeter is proposed (`19` §10.6, awaiting review); T58
+  stays open for a procedure that must proceed despite missing reports.
 - **`08` PRIV-004.1 (separate from A1): remediation open.** The general claim that an inclusion
   proof lets its holder infer no other input is refuted under the stated enumerable-field
   assumptions; the confidentiality goal and a construction meeting it stay to be stated; no
@@ -537,10 +574,12 @@ the bridging input's meaning when the report forecasts `q_c`, α the main refere
 comparison. `17` §11, approved on `cf5575a` as a conditional comparison, analyses timing under
 A, T1 and T2 staying alternatives; `17` §12, approved on `7d8db08` as a conditional analysis,
 specifies what each needs to handle information per object, T1 the reference and T2 the
-comparison by Astra's direction; `17` §13, partly approved on `f38f8a4`, specifies the evidence
-a study under T1 would record for §12.4's (ii) and (iv) pair by pair, its minimal result a
-replay check. The next step is Astra's review of the rectified §13, not a further deepening,
-with the rest of `19` §10.5's perimeter still to decide.
+comparison by Astra's direction; `17` §13, approved on `176dd8c` as a conditional analysis,
+specifies the evidence a study under T1 would record for §12.4's (ii) and (iv) pair by pair, its
+minimal result a replay check. `19` §10.6 proposes S2's minimal perimeter, a new proposal not
+covered by that approval. The next step is Astra's review of §10.6 and its decisions on the
+five blocking questions listed there; the study is not declared ready and no implementation is
+authorized.
 No roadmap or campaign is added, and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -916,4 +955,22 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   columns, `scripts/comment_budget.py`, references and relative links of the edited docs, the
   states across `15`, `17`, `19` and this note. No Rust test, fit, smoke, characterization,
   calibration, benchmark, mutation or Merkle reproduction run.
+- **Astra, review of `176dd8c`** (as it records): the commit, its parent and the published HEAD
+  checked; the diff of the four documents read; the relevant passages of replication, cuts and
+  the ledger checked again. No Rust, fit, campaign or Merkle reproduction; the working tree and
+  the local documentation checks not checked, they stay Claude Code's evidence.
+- **Claude Code, record of that review, its three precisions and `19` §10.6:** branch, HEAD
+  `176dd8c` (parent `f38f8a4`), no later local commit (the remote-tracking branch at the same
+  commit) and a working tree with only `.gitignore` modified checked first. Read (L), at
+  `176dd8c`: `Replica::check` and `WriterSet::check` (the writer set, the signature, `MAX_OBJECT`,
+  the object's CID against the payload; then new, duplicate or equivocation),
+  `SignedEntry::read` (the hash recomputed); `admit_dif_batch` and `latent_batch` (`K_MIN = 2`
+  items, `N_LATENT_MIN`), `N1_MIN`, the `AssignReviewers` guard (odd `k` in [7, 11]),
+  `review::K_EXTRA`; the module headers of `identity::{enrollment, credential}` and `10` T19–T20
+  (enrollment bound to an identity, open); `01` D17; `02` §B.6; `05` [6]–[7]; `08` PRIV-004.1;
+  `17` §§8–13; `19` §§6.1, 10. Calculation (C): the sum of the two floors, 300 + 3,000. No other
+  calculation was needed. Documentation checks: the diff, whitespace (`git diff --check`), line
+  widths of the new lines, table columns, `scripts/comment_budget.py`, references and relative
+  links of the edited docs, the states across `15`, `17`, `19` and this note. No Rust test, fit,
+  smoke, characterization, calibration, benchmark, mutation or Merkle reproduction run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was **partly approved by Astra on `f38f8a4`**; its rectifications **await review**. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. A minimal perimeter for a study S2 built on §§9–13 is proposed in [`19`](19-a2-dtf-composition-design.md) §10.6, **awaiting review**; that approval does not cover it. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -1655,12 +1655,12 @@ step** after that review: for T1, the log positions a study would record to eval
 (iv) per pair, and the channels it would declare instead. Nothing here is adopted; no protocol
 is ready and no neutrality is certified.
 
-## 13. Observable evidence for §12.4's (ii) and (iv) under T1 (partly approved; rectified)
+## 13. Observable evidence for (ii) and (iv) under T1 (conditional analysis, approved on `176dd8c`)
 
 **Status.** A proposal by Claude Code on the direction of Astra's review of `7d8db08`; §12's
 approval does not cover it. T1 is the analytic reference and T2 the comparison; T1 is not
 adopted as a protocol, and its timing channel (§11.3) stays open. It states what a study would
-record to evaluate (ii) and (iv) pair by pair, and what an order shown on that evidence
+record to evaluate §12.4's (ii) and (iv) pair by pair, and what an order shown on that evidence
 concludes. No clock, global consensus, ordering protocol, API schema or cryptography is
 proposed, and no code changes. **L** read at `7d8db08`; **D** derived here; no new calculation.
 
@@ -1674,10 +1674,27 @@ residual risks; in §13, the local order, the application order and disclosure a
 cryptographic references showing some precedences across feeds, and pairs not limited to
 reviewer overlaps. Not approved: §13 as a whole. T1 stays the analytic reference and T2 the
 alternative, neither adopted; no protocol, implementation or start of S2 is approved. Rectified
-after that review, **awaiting review**: replay apart from information (§13.1, §§13.4–13.5);
-accepted, refused and missing events, and the outcomes (§§13.2–13.3); the reference to answers
-for (iv) (§§13.4–13.5). **L** read again at `f38f8a4`: `Replica::insert`, `Cut::next`,
-`added`, `should_sign`, `Ledger::apply`, the lifecycle's `Commit` arm, `p2p::member`'s duties.
+after that review in `176dd8c`: replay apart from information (§13.1, §§13.4–13.5); accepted,
+refused and missing events, and the outcomes (§§13.2–13.3); the reference to answers for (iv)
+(§§13.4–13.5). **L** read again at `f38f8a4`: `Replica::insert`, `Cut::next`, `added`,
+`should_sign`, `Ledger::apply`, the lifecycle's `Commit` arm, `p2p::member`'s duties.
+
+Astra's review of `176dd8c` (the commit, its parent and the published HEAD checked; the diff of
+the four documents read; the relevant passages of replication, cuts and the ledger checked again;
+no Rust, fit, campaign or Merkle reproduction, and no local check of the working tree or of the
+documentation checks): the rectifications and §13 **approved as a conditional analysis of the
+observable evidence**, within its stated limits and with three precisions. Resolved, the
+substantive findings of the review of `f38f8a4`: a construction keeping replay apart from the
+availability of information, compatible with the rules read of `Cut::next`, `added` and
+`should_sign`; relevant commitments apart from mere entries named `Commit`; disclosures that can
+include refused or uncounted entries; an absence in the prefix apart from a contrary order and
+from incomplete evidence; a results root able to bind answers before a later disclosure without
+dating their collection; the minimal result limited to the replay check. Not approved: the
+adoption of T1 or T2, a protocol, an implementation or S2's start. The precisions, made in place:
+(R) and (E) are distinct checks, (E) not needing every disclosure entry examined by the replay
+(§13.2); (E)'s conclusions concern the entries of `x_O` its evidence covers, every disclosure
+only under (I)'s coverage (§13.4); `Replica::check`'s authenticity and integrity checks (§13.1,
+§13.4). **L** read at `176dd8c`: `Replica::check`, `WriterSet::check`.
 
 ### 13.1 Three orders
 
@@ -1686,13 +1703,16 @@ for (iv) (§§13.4–13.5). **L** read again at `f38f8a4`: `Replica::insert`, `C
   within one log a lower position existed before a higher one — relative to a head the verifier
   trusts, since a consistent rewrite by the log's holder is caught only against a signed
   checkpoint (`08` NET-004). Positions in two different logs are not comparable by number.
-- **Application order.** A `Replica` accepts every entry signed by a key of the writer set,
-  whatever its object (`Replica::insert`). `Ledger::apply` then examines the entries a signed
-  cut adds, in the cut's order — cut number, then the writers' new entries interleaved by rank
-  (`04` §Cuts) — and applies or refuses each (`CutReport::{applied, refused}`); a refused entry
-  leaves the state as it was. The order in which an entry is examined is not its accepted
-  effect. Nodes holding the same cuts examine and apply the same order. It orders state
-  transitions across writers, not when an entry first existed or became readable.
+- **Application order.** A `Replica` accepts an entry subject to the authenticity and integrity
+  checks of `Replica::check`, which `insert` calls: the writer in the writer set and its
+  signature over the entry's hash; the object within `MAX_OBJECT` and its CID equal to the
+  entry's payload. None of them checks the entry's validity as a protocol transition.
+  `Ledger::apply` then examines the entries a signed cut adds, in the cut's order — cut number,
+  then the writers' new entries interleaved by rank (`04` §Cuts) — and applies or refuses each
+  (`CutReport::{applied, refused}`); a refused entry leaves the state as it was. The order in
+  which an entry is examined is not its accepted effect. Nodes holding the same cuts examine and
+  apply the same order. It orders state transitions across writers, not when an entry first
+  existed or became readable.
 - **Effective disclosure.** An entry is readable by any peer once replicated (`04` §Who reads):
   before any cut counts it, whether the ledger later applies or refuses it, and even if no cut
   ever counts it (a feed stopped at a fork). A replica is a set and keeps no arrival time; a
@@ -1723,14 +1743,16 @@ are prefixes: a cut counting the commitments would count `O` too.
 Each pair is classified at a stated level — the replay check (R) or documented existence
 precedence (E), §13.4 — on a stated prefix: the cuts up to a named one, with the entries they
 count. A prefix is *complete* when every cut up to the named one is collected and the verifier
-holds every entry those cuts count.
+holds every entry those cuts count. The two levels are distinct checks: (R) reads the order in
+which the replay examines entries; (E) uses the prefix to identify the relevant commitments, or
+the reference, and reads each entry of `x_O` on its own feed, counted by a cut or not (§13.3).
 
 | Outcome | Evidence it needs | What it shows |
 |---|---|---|
-| **verified** | (R): a complete prefix counting every entry of `x_O`, in which every relevant commitment, or the reference, is accepted before the first examination of any of them; (E): besides, §13.1's chains and references from each of them to each entry of `x_O` | the order at that level, nothing of disclosures off the log nor of the channels left in the construction's row (§12.4); no proof of H-c |
+| **verified** | (R): a complete prefix counting every entry of `x_O`, in which every relevant commitment, or the reference, is accepted before the first examination of any of them; (E): the relevant commitments, or the reference, shown to exist and identified as such — accepted in a complete prefix (§13.3) — and §13.1's chains and references from each of them to each entry of `x_O`, which the replay need not have examined | the order at that level for the entries of `x_O` its evidence covers; nothing of other entries, of disclosures off the log or of the channels left in the construction's row (§12.4); no proof of H-c |
 | **contrary order documented** | both events present, in the reverse order at that level: an entry of `x_O` examined (R), or shown to exist (E), before an accepted relevant commitment, or the reference | the pair's channel is not excluded by (ii) or (iv); not that it was used, nor a violation of H-c |
-| **precondition absent in the prefix** | a complete prefix in which an entry of `x_O` is examined while a relevant commitment, or the reference, is not yet accepted | an absence in that prefix, not a later event observed: a later cut may bring it, or none |
-| **indeterminate** | anything less: an incomplete prefix, an entry missing from the verifier's replica, entries on different feeds with no reference of §13.1 at level (E), no trusted head | nothing |
+| **precondition absent in the prefix** | a complete prefix in which a relevant commitment, or the reference, is not yet accepted while an entry of `x_O` is examined in it (R), or held by the verifier (E) | an absence in that prefix, not a later event observed: a later cut may bring it, or none |
+| **indeterminate** | anything less: at (R), an incomplete prefix or an entry of `x_O` no cut counts; at (E), a prefix too incomplete to identify the relevant commitments or the reference, or an entry of `x_O` on another feed with no reference of §13.1 to them; at either, an entry missing from the verifier's replica, no trusted head | nothing |
 
 With several entries in `x_O`, a pair is verified only if the order holds for every entry; a
 contrary order or an absent precondition for one entry is reported as such, whatever the others.
@@ -1766,21 +1788,22 @@ declared, and no algorithm finding every dependence is proposed.
 
 Three levels, apart: **(R) the replay check** — the relevant accepted commitments, or the
 reference, precede the examination of every entry of `x_O` the replay examines; **(E) documented
-existence precedence** — they existed before every entry of `x_O`, shown by §13.1's chains and
-references; **(I) exclusion of early information** — besides (E), the coverage of disclosures
-(every disclosure of `O` is an entry of `x_O` the verifier holds) and the other declared
-hypotheses. (R) says nothing of information (§13.1's construction); (E) bounds the logged
-disclosures only; (I) is reached under declared hypotheses, never verified.
+existence precedence** — they existed before every entry of `x_O` the evidence covers, shown by
+§13.1's chains and references, whether or not the replay examined that entry; **(I) exclusion of
+early information** — besides (E), the coverage of disclosures (every disclosure of `O` is an
+entry of `x_O` the verifier holds) and the other declared hypotheses. (R) says nothing of
+information (§13.1's construction); (E) bounds only the entries of `x_O` its evidence covers,
+not every logged disclosure; (I) is reached under declared hypotheses, never verified.
 
 | | (ii) commitments before the disclosure | (iv) answers bound before the disclosure |
 |---|---|---|
 | units | `O` of `G` and its entries `x_O`; an item `k`; the first-panel assignments `(v, k)`, whose reports form every baseline of `k` (`16` §4.6) | `O` and `x_O` as in (ii); a group `G'` and its answers (its batches' sheets, anchors included) |
 | events compared | the relevant accepted commitments of `k` (§13.3), against each entry of `x_O` | a logged reference binding `G'`'s answers, against each entry of `x_O` |
 | bound values or data | the commitment `H(prob, nonce, committer, item)` carried by an accepted `Commit` and checked at `Reveal` (`review::commit`, INV-12) | the set of answers a reference of the kind `results::inputs_root` binds (binding only, §12.1); its content and its coverage of the answers used are to be checked |
-| evidence in code | `Replica` (accepts by signature) apart from `Ledger::apply` (examines, applies or refuses); the `AssignReviewers`, `Commit`, `CloseCommits` and `Reveal` steps, orchestration accepted only from consortium writers; feeds, cuts and cut signatures; the approved composition as an API (`panel_scores`: a first panelist's leave-one-out mean, an extra reviewer's first-panel mean) | `AdmitRespondent`, which records an admission and no answer (§11.4); `inputs_root` over an epoch's ratings and answers, logged only in the epoch's results event (`04` §Events and replay) |
+| evidence in code | `Replica::check` (writer, signature, object size and CID; no check of protocol validity) apart from `Ledger::apply` (examines, applies or refuses); the `AssignReviewers`, `Commit`, `CloseCommits` and `Reveal` steps, orchestration accepted only from consortium writers; feeds, cuts and cut signatures; the approved composition as an API (`panel_scores`: a first panelist's leave-one-out mean, an extra reviewer's first-panel mean) | `AdmitRespondent`, which records an admission and no answer (§11.4); `inputs_root` over an epoch's ratings and answers, logged only in the epoch's results event (`04` §Events and replay) |
 | missing | under A, `O`'s entries for a gate-rejected member and terminal records with `I` (§12.2); a record of the weights used, showing them the epoch's frozen ones (`panel_scores` takes them from its caller, which no production code is); a runtime logging an epoch (T79) | a reference logged at collection. Without one, a results root logged before `x_O` can still bind the answers, from its own existence on: it does not show when they were collected, nor that they were bound then |
 | (R) shows | the relevant commitments were accepted before every entry of `x_O` the replay examines: the state's order, not information | the reference was examined before those entries: likewise |
-| (E) shows | each relevant commitment existed before every entry of `x_O`, so no logged entry carrying `O` was readable before the commitments existed | the reference existed before every entry of `x_O`: the answers it binds were fixed before any logged disclosure of `O` |
+| (E) shows | each relevant commitment existed before every entry of `x_O` the evidence covers, so none of those entries was readable before the commitments existed; every logged disclosure only under (I)'s coverage | the reference existed before every entry of `x_O` the evidence covers: the answers it binds were fixed before those entries; before every disclosure of `O` only under (I)'s coverage |
 | (I) needs, besides (E) | the coverage of disclosures (P5, declared); the approved composition, the frozen weights and the weighted mean fixed; no report added after (T58 not introduced). Then the values forming `b_uk` were fixed before `O` could inform them | the same coverage, toward `G'`'s respondents; the reference's content and coverage checked. Then `O` did not change the answers the reference binds |
 | further hypotheses | the recorded weights are the frozen ones; `x_O` covers every entry bearing on `O`; the trusted head | `x_O` and the head as in (ii); any inclusion proof issued from an early reference falls under `08` PRIV-004.1 |
 | channels left | values committed but not revealed: a reveal withheld after `x_O` leaves case 6, and case 7 for the panel (§9.3), so availability and consolidation, not the value; disclosures off the log; pairs not verified; every channel to outcomes; T1's timing channel | answers outside the reference; their selection and inclusion in the fit; the procedure and its parameters; the source check; the attempts; computational resources; the verdict's law; disclosures off the log to respondents; every channel to baselines |
@@ -1801,7 +1824,8 @@ prefix*, not a contrary order; if the prefix is incomplete, *indeterminate*.
 **The minimal verifiable result.** For each logged opening under T1, the replay check (R) of its
 (ii) pairs on a complete prefix, from the cuts, the entries they count and the ledger's accepted
 and refused entries — not a verification of (ii)'s informational predicate; documented existence
-precedence (E) where §13.1's chains and references link the entries. For (iv), the same two
+precedence (E) where §13.1's chains and references link the entries, for the entries of `x_O`
+they cover, every disclosure only under (I)'s coverage. For (iv), the same two
 levels for a reference logged before `x_O`, a results root included, within its checked content
 and coverage; neither level says when the answers were collected. **Declared, not shown**: the
 coverage of disclosures (no disclosure off the log, P5, and every replicated entry bearing on
@@ -1811,5 +1835,6 @@ reference's coverage of the answers used; the invariance in time of T1's resourc
 (§11.3); H-c. **T2, the comparison**: the same predicates, with `x_O` the opening of a record
 produced earlier; production before `x_O` adds the holders' P5, which no order evidence covers.
 
-**Next.** Astra's review of these rectifications. Nothing here is adopted; no protocol is ready
-and no neutrality is certified.
+**Next.** §13 is approved on `176dd8c` as a conditional analysis; a minimal perimeter for S2 built
+on §§9–13 is proposed in `19` §10.6, awaiting review. Nothing here is adopted; no protocol is
+ready and no neutrality is certified.
