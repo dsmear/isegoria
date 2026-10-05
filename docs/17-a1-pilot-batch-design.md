@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, is **a proposal awaiting review**. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was **partly approved by Astra on `f38f8a4`**; its rectifications **await review**. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -1655,7 +1655,7 @@ step** after that review: for T1, the log positions a study would record to eval
 (iv) per pair, and the channels it would declare instead. Nothing here is adopted; no protocol
 is ready and no neutrality is certified.
 
-## 13. Observable evidence for §12.4's (ii) and (iv) under T1 (proposal awaiting review)
+## 13. Observable evidence for §12.4's (ii) and (iv) under T1 (partly approved; rectified)
 
 **Status.** A proposal by Claude Code on the direction of Astra's review of `7d8db08`; §12's
 approval does not cover it. T1 is the analytic reference and T2 the comparison; T1 is not
@@ -1664,6 +1664,21 @@ record to evaluate (ii) and (iv) pair by pair, and what an order shown on that e
 concludes. No clock, global consensus, ordering protocol, API schema or cryptography is
 proposed, and no code changes. **L** read at `7d8db08`; **D** derived here; no new calculation.
 
+Astra's review of `f38f8a4` (the commit, its parent and the published HEAD checked; the diff, the
+documentary links and the relevant code of `network::{cut, log, replica}`, `protocol::{ledger,
+lifecycle}` and `p2p::member` read; no Rust, fit, campaign, new Merkle reproduction or local
+documentation check; the working tree and the local checks stay Claude Code's evidence):
+**partial**. Approved: the record of `7d8db08`'s review; §12.4's (i), the whole outcome's law
+apart from the behavioural hypothesis; `08` PRIV-004.1's state and its reference among the
+residual risks; in §13, the local order, the application order and disclosure apart, the
+cryptographic references showing some precedences across feeds, and pairs not limited to
+reviewer overlaps. Not approved: §13 as a whole. T1 stays the analytic reference and T2 the
+alternative, neither adopted; no protocol, implementation or start of S2 is approved. Rectified
+after that review, **awaiting review**: replay apart from information (§13.1, §§13.4–13.5);
+accepted, refused and missing events, and the outcomes (§§13.2–13.3); the reference to answers
+for (iv) (§§13.4–13.5). **L** read again at `f38f8a4`: `Replica::insert`, `Cut::next`,
+`added`, `should_sign`, `Ledger::apply`, the lifecycle's `Commit` arm, `p2p::member`'s duties.
+
 ### 13.1 Three orders
 
 - **Local order.** A node's own log (`Node::submit`, `04` §A node's own disk) and a writer's feed
@@ -1671,14 +1686,17 @@ proposed, and no code changes. **L** read at `7d8db08`; **D** derived here; no n
   within one log a lower position existed before a higher one — relative to a head the verifier
   trusts, since a consistent rewrite by the log's holder is caught only against a signed
   checkpoint (`08` NET-004). Positions in two different logs are not comparable by number.
-- **Application order.** On the replicated set the protocol state applies entries in the order
-  of the signed cuts: cut number, then the writers' new entries interleaved by the cut's rank
-  (`04` §Cuts; `protocol::ledger::Ledger::apply` reports each cut's applied and refused entries).
-  Nodes holding the same cuts apply the same order. It orders state transitions across writers,
-  not when an entry first existed or became readable.
-- **Effective disclosure.** An entry is readable by any peer once replicated, possibly before a
-  cut names it (`04` §Who reads); a replica is a set and keeps no arrival time; a disclosure off
-  the log leaves no record (§12.1, P5).
+- **Application order.** A `Replica` accepts every entry signed by a key of the writer set,
+  whatever its object (`Replica::insert`). `Ledger::apply` then examines the entries a signed
+  cut adds, in the cut's order — cut number, then the writers' new entries interleaved by rank
+  (`04` §Cuts) — and applies or refuses each (`CutReport::{applied, refused}`); a refused entry
+  leaves the state as it was. The order in which an entry is examined is not its accepted
+  effect. Nodes holding the same cuts examine and apply the same order. It orders state
+  transitions across writers, not when an entry first existed or became readable.
+- **Effective disclosure.** An entry is readable by any peer once replicated (`04` §Who reads):
+  before any cut counts it, whether the ledger later applies or refuses it, and even if no cut
+  ever counts it (a feed stopped at a fork). A replica is a set and keeps no arrival time; a
+  disclosure off the log leaves no record (§12.1, P5).
 
 **Existence across feeds** (L, D). A cut's marks carry each writer's length and head, so a cut
 commits to every entry it counts, and a member's signature of a cut travels on the member's own
@@ -1689,27 +1707,53 @@ beacon objects): otherwise the existence order of entries on different feeds is 
 Feeds, cuts and their signatures exist in code; nothing runs an epoch between nodes yet (`10`
 T79), and only tests start a node (`10` T78).
 
+**Replay is not information** (D; an abstract construction checked against the cut rules, not
+an execution nor a demonstrated attack). Writer `W` logs an entry carrying `O`; it is replicated
+and readable. Later, `k`'s first-panel commitments are logged on another writer's feed. The
+proposer of cut `c`, whose replica does not yet hold `O`'s entry, marks that feed past the
+commitments and `W` short of `O`: `Cut::next` marks each feed as the proposer's replica holds
+it, and a member co-signs a cut that extends the last, names only entries it holds and counts
+its own beacon messages (`should_sign`) — no rule requires a cut to count every replicated
+entry. Cut `c + 1` extends `c` and counts `O`'s entry. The replay examines the commitments before
+`O`, yet `O` was readable before they existed. On one feed the construction fails, since marks
+are prefixes: a cut counting the commitments would count `O` too.
+
 ### 13.2 Outcomes of a pair
 
-Each pair is classified in a stated order kind, existence or application:
+Each pair is classified at a stated level — the replay check (R) or documented existence
+precedence (E), §13.4 — on a stated prefix: the cuts up to a named one, with the entries they
+count. A prefix is *complete* when every cut up to the named one is collected and the verifier
+holds every entry those cuts count.
 
-- **verified**: the evidence shows the predicate's order;
-- **contrary order documented**: the evidence shows the reverse order;
-- **indeterminate**: an event missing from the verifier's evidence, entries on different feeds
-  with no reference of §13.1, no trusted head, or a cut not yet collected.
+| Outcome | Evidence it needs | What it shows |
+|---|---|---|
+| **verified** | (R): a complete prefix counting every entry of `x_O`, in which every relevant commitment, or the reference, is accepted before the first examination of any of them; (E): besides, §13.1's chains and references from each of them to each entry of `x_O` | the order at that level, nothing of disclosures off the log nor of the channels left in the construction's row (§12.4); no proof of H-c |
+| **contrary order documented** | both events present, in the reverse order at that level: an entry of `x_O` examined (R), or shown to exist (E), before an accepted relevant commitment, or the reference | the pair's channel is not excluded by (ii) or (iv); not that it was used, nor a violation of H-c |
+| **precondition absent in the prefix** | a complete prefix in which an entry of `x_O` is examined while a relevant commitment, or the reference, is not yet accepted | an absence in that prefix, not a later event observed: a later cut may bring it, or none |
+| **indeterminate** | anything less: an incomplete prefix, an entry missing from the verifier's replica, entries on different feeds with no reference of §13.1 at level (E), no trusted head | nothing |
 
-A documented contrary order shows that (ii) or (iv) does not exclude the pair's channel, not
-that the channel was used: it shows no violation of H-c. A verified order shows nothing of
-disclosures off the log, nor of the channels left in the construction's row (§12.4). An
-application-order result is not an existence-order result, and neither is a disclosure result.
+With several entries in `x_O`, a pair is verified only if the order holds for every entry; a
+contrary order or an absent precondition for one entry is reported as such, whatever the others.
+No outcome shows by itself a violation of H-c, and none turns into a value.
 
 ### 13.3 The disclosure and the pairs
 
 Under T1 a group's procedure starts after `Φ_G`, so its objects are produced after its freezes
 and opened by being logged (§11.2). For an object `O` of `G`, its *disclosure entries* `x_O` are,
-conservatively, every logged entry from which part of `O` can be inferred — `O`'s own entry, a
-pilot step, an admission to a stage-2 batch, a pool entry (§12.3). A pair is verified only if
-the order holds for each of them; in application order that is the first one applied.
+conservatively, every replicated entry the verifier holds from which part of `O` can be inferred
+— `O`'s own entry, a pilot step, an admission to a stage-2 batch, a pool entry (§12.3) — whether
+the ledger applies it, refuses it (an orchestration event from outside the consortium, an
+object that is not an event, a step the lifecycle refuses) or no cut counts it. The replay check
+concerns the entries the replay examines; an entry of `x_O` that no cut counts leaves (R)
+indeterminate for the pair, and (E) is judged on its feed.
+
+**The relevant commitments** for an item `k`: its panel `P_k` fixed by its accepted
+`AssignReviewers`; each accepted `Commit { nym: v, commitment }` with `v ∈ P_k`, accepted in
+`InReview`; `k`'s accepted `CloseCommits`. The lifecycle refuses a commit by a non-panelist, a
+second commit by one panelist and any commit after `CloseCommits`, and the ledger refuses
+orchestration from outside the consortium: an entry merely named `Commit` that the ledger refused
+fixes no report of the protocol. The approved composition of the baselines, the frozen weights
+and the weighted mean (`16` §4.6) stay as they are; T58 is not introduced.
 
 The pairs considered: for (ii), `O` with every item `k` reviewed up to `Ω`; for (iv), `O` with
 every group `G'` administered up to `Ω`. The relation is not limited to reviewer overlaps: a
@@ -1720,38 +1764,52 @@ declared, and no algorithm finding every dependence is proposed.
 
 ### 13.4 The two predicates
 
+Three levels, apart: **(R) the replay check** — the relevant accepted commitments, or the
+reference, precede the examination of every entry of `x_O` the replay examines; **(E) documented
+existence precedence** — they existed before every entry of `x_O`, shown by §13.1's chains and
+references; **(I) exclusion of early information** — besides (E), the coverage of disclosures
+(every disclosure of `O` is an entry of `x_O` the verifier holds) and the other declared
+hypotheses. (R) says nothing of information (§13.1's construction); (E) bounds the logged
+disclosures only; (I) is reached under declared hypotheses, never verified.
+
 | | (ii) commitments before the disclosure | (iv) answers bound before the disclosure |
 |---|---|---|
 | units | `O` of `G` and its entries `x_O`; an item `k`; the first-panel assignments `(v, k)`, whose reports form every baseline of `k` (`16` §4.6) | `O` and `x_O` as in (ii); a group `G'` and its answers (its batches' sheets, anchors included) |
-| events compared | each first-panel `Commit` of `k`, and `k`'s `CloseCommits`, against each `x_O` | a logged reference binding `G'`'s answers, against each `x_O` |
-| bound values or data | the commitment `H(prob, nonce, committer, item)` carried by `Commit` and checked at `Reveal` (`review::commit`, INV-12) | a set of answers bound by a reference of the kind `results::inputs_root` (binding only, §12.1) |
-| evidence in code | the `Commit`, `CloseCommits` and `Reveal` steps, logged by consortium writers on the replicated set (`protocol::ledger`); feeds, cuts and cut signatures; the approved composition as an API (`panel_scores`: a first panelist's leave-one-out mean, an extra reviewer's first-panel mean) | `AdmitRespondent`, which records an admission and no answer (§11.4); `inputs_root` over an epoch's ratings and answers, logged only in the epoch's results event (`04` §Events and replay), after the fits |
-| missing | under A, `O`'s entries for a gate-rejected member and terminal records with `I` (§12.2); a record of the weights used, showing them the epoch's frozen ones (`panel_scores` takes them from its caller, which no production code is); a runtime logging an epoch (T79) | a reference binding `G'`'s answers, logged at collection: until one exists every pair is indeterminate, unless the results event whose root covers `G'`'s answers precedes `x_O` |
-| a verified order concludes | application: in the state, `k`'s commitments were applied before `O`'s entries; existence: no entry bearing on `O` existed on the log before `k`'s commitments. With the approved composition, the frozen weights and the weighted mean fixed, the values forming `b_uk` were fixed before `O`'s logged disclosure | the answers the reference binds were fixed before `O`'s logged disclosure, which therefore did not change them |
-| further hypotheses | the recorded weights are the frozen ones; no report is added after (T58 not introduced); `x_O` covers every entry bearing on `O`; the trusted head | the reference binds exactly the answers collected; `x_O` and the head as in (ii); any inclusion proof issued from an early reference falls under `08` PRIV-004.1 |
-| channels left | values committed but not revealed: a reveal withheld after `x_O` leaves case 6, and case 7 for the panel (§9.3), so availability and consolidation, not the value; disclosures off the log; pairs contrary or indeterminate; every channel to outcomes; T1's timing channel | answers outside the reference; their selection and inclusion in the fit; the procedure and its parameters; the source check; the attempts; computational resources; the verdict's law; disclosures off the log to respondents; every channel to baselines |
+| events compared | the relevant accepted commitments of `k` (§13.3), against each entry of `x_O` | a logged reference binding `G'`'s answers, against each entry of `x_O` |
+| bound values or data | the commitment `H(prob, nonce, committer, item)` carried by an accepted `Commit` and checked at `Reveal` (`review::commit`, INV-12) | the set of answers a reference of the kind `results::inputs_root` binds (binding only, §12.1); its content and its coverage of the answers used are to be checked |
+| evidence in code | `Replica` (accepts by signature) apart from `Ledger::apply` (examines, applies or refuses); the `AssignReviewers`, `Commit`, `CloseCommits` and `Reveal` steps, orchestration accepted only from consortium writers; feeds, cuts and cut signatures; the approved composition as an API (`panel_scores`: a first panelist's leave-one-out mean, an extra reviewer's first-panel mean) | `AdmitRespondent`, which records an admission and no answer (§11.4); `inputs_root` over an epoch's ratings and answers, logged only in the epoch's results event (`04` §Events and replay) |
+| missing | under A, `O`'s entries for a gate-rejected member and terminal records with `I` (§12.2); a record of the weights used, showing them the epoch's frozen ones (`panel_scores` takes them from its caller, which no production code is); a runtime logging an epoch (T79) | a reference logged at collection. Without one, a results root logged before `x_O` can still bind the answers, from its own existence on: it does not show when they were collected, nor that they were bound then |
+| (R) shows | the relevant commitments were accepted before every entry of `x_O` the replay examines: the state's order, not information | the reference was examined before those entries: likewise |
+| (E) shows | each relevant commitment existed before every entry of `x_O`, so no logged entry carrying `O` was readable before the commitments existed | the reference existed before every entry of `x_O`: the answers it binds were fixed before any logged disclosure of `O` |
+| (I) needs, besides (E) | the coverage of disclosures (P5, declared); the approved composition, the frozen weights and the weighted mean fixed; no report added after (T58 not introduced). Then the values forming `b_uk` were fixed before `O` could inform them | the same coverage, toward `G'`'s respondents; the reference's content and coverage checked. Then `O` did not change the answers the reference binds |
+| further hypotheses | the recorded weights are the frozen ones; `x_O` covers every entry bearing on `O`; the trusted head | `x_O` and the head as in (ii); any inclusion proof issued from an early reference falls under `08` PRIV-004.1 |
+| channels left | values committed but not revealed: a reveal withheld after `x_O` leaves case 6, and case 7 for the panel (§9.3), so availability and consolidation, not the value; disclosures off the log; pairs not verified; every channel to outcomes; T1's timing channel | answers outside the reference; their selection and inclusion in the fit; the procedure and its parameters; the source check; the attempts; computational resources; the verdict's law; disclosures off the log to respondents; every channel to baselines |
 
 For (ii), values committed, reveals available and consolidation stay apart: a verified pair
 concerns the first, and says nothing of the other two.
 
 ### 13.5 Reporting, and the minimal result
 
-Per pair: its outcome (§13.2) and order kind; counts by outcome. No pair, outcome or missing
-event becomes a value. §9 stands: a missing report gets no 0; silence and `Ω` produce no `I`; an
-item's outcome does not complete every assignment; the consolidated cohorts alone are not
-representative. At `Ω`, a pair whose commitments or reference are absent while an entry of `x_O`
-is applied is contrary in application order as of `Ω`, and indeterminate in existence order
-unless §13.1's references show it.
+Per pair: its outcome (§13.2), level, prefix and the evidence used; counts by outcome. No pair,
+outcome or missing event becomes a value. §9 stands: a missing report gets no 0; silence and
+`Ω` produce no `I`; an item's outcome does not complete every assignment; the consolidated
+cohorts alone are not representative. At `Ω` a pair is classified on the prefix up to `Ω`'s last
+collected cut: if that prefix is complete and an entry of `x_O` was examined while a relevant
+commitment, or the reference, is not yet accepted, the outcome is *precondition absent in the
+prefix*, not a contrary order; if the prefix is incomplete, *indeterminate*.
 
-**The minimal verifiable result.** For each logged opening under T1, the classification of its
-(ii) pairs in application order, from the cuts and the lifecycle steps alone; the existence order
-verified only where §13.1's references link the entries; for (iv), no pair beyond indeterminate
-until a reference binds answers at collection. **Declared, not shown**: no disclosure off the
-log (P5); which pairs carry information (§12.4's (i): the whole outcome's law, with its
-behavioural hypothesis); the frozen weights, where no record shows them; the reference's
-coverage of the answers used; the invariance in time of T1's resources and samples (§11.3); H-c.
-**T2, the comparison**: the same predicates, with `x_O` the opening of a record produced
-earlier; production before `x_O` adds the holders' P5, which no order evidence covers.
+**The minimal verifiable result.** For each logged opening under T1, the replay check (R) of its
+(ii) pairs on a complete prefix, from the cuts, the entries they count and the ledger's accepted
+and refused entries — not a verification of (ii)'s informational predicate; documented existence
+precedence (E) where §13.1's chains and references link the entries. For (iv), the same two
+levels for a reference logged before `x_O`, a results root included, within its checked content
+and coverage; neither level says when the answers were collected. **Declared, not shown**: the
+coverage of disclosures (no disclosure off the log, P5, and every replicated entry bearing on
+`O` held by the verifier); which pairs carry information (§12.4's (i): the whole outcome's law,
+with its behavioural hypothesis); the frozen weights, where no record shows them; the
+reference's coverage of the answers used; the invariance in time of T1's resources and samples
+(§11.3); H-c. **T2, the comparison**: the same predicates, with `x_O` the opening of a record
+produced earlier; production before `x_O` adds the holders' P5, which no order evidence covers.
 
-**Next.** Astra's review of this section. Nothing here is adopted; no protocol is ready and no
-neutrality is certified.
+**Next.** Astra's review of these rectifications. Nothing here is adopted; no protocol is ready
+and no neutrality is certified.
