@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was **partly approved by Astra on `8af257d`**; its rectifications **await review**. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, is **a proposal awaiting review**. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -1436,7 +1436,7 @@ choice. No new rule closing reports or appeals is introduced, and `Φ_j` is not 
 - **Next.** The review of this rectified §11. The disclosure requirement per object is not
   developed before it.
 
-## 12. Access and disclosure per object (partly approved; rectifications awaiting review)
+## 12. Access and disclosure per object (conditional analysis, approved on `7d8db08`)
 
 **Status.** A proposal by Claude Code on the direction of Astra's review of `cf5575a`; §11's
 approval does not cover it. References, within their recorded limits: A's prefixed groups (§4),
@@ -1457,11 +1457,25 @@ an implementation, a cryptographic solution, thresholds, pool entry or S2's star
 T1 the reference for the next comparison of informational requirements and T2 the comparison,
 T1 not adopted as a protocol and its timing channel open; (ii) and (iv) made concrete, their
 scope bounded; (i) may stay a declared hypothesis, no demonstration of H-c. The inclusion-proof
-observation of §12.1 is recorded apart from A1, as `08` PRIV-004.1. Rectified after that review,
-**awaiting review**: the properties and the code's write path (§12.1); the matrix, with the
+observation of §12.1 is recorded apart from A1, as `08` PRIV-004.1. Rectified after that review
+in `7d8db08`: the properties and the code's write path (§12.1); the matrix, with the
 code, what a requirement asks and candidate policies apart, the shortfall record and pool entry
 (§§12.2–12.3); the constructions between groups, each with its channel, hypotheses, residual
 channels and kind, the general sufficiency claimed in `8af257d` withdrawn (§12.4); §12.5.
+
+Astra's review of `7d8db08` (the commit, its parent and the published HEAD checked; the diff and
+the documents read; a small calculation with fractions on the conditional target; no Rust, fit,
+campaign, Merkle reproduction or local documentation check; the working tree and the local
+checks stay Claude Code's evidence): the substantive rectifications of §12 **approved as a
+conditional analysis of the informational requirements, with no new blocking finding on its
+setting** — the channels (i)–(iv) exclude, their further hypotheses and residual channels;
+cryptographic properties, requirements and candidate policies apart; the local write apart from
+replication; the shortfall's descriptive record apart from the refused transition and from `I`;
+an entry implying `A` apart from an absence of entry; `08` PRIV-004.1's counterexample, limits
+and provenance; the rectified promises of `04` and `08`. Not approved: the adoption of T1 or T2,
+a protocol, an implementation, a cryptographic solution, thresholds, pool entry or S2's start.
+Its two precisions are made: in §12.4, (i) states the invariance of the whole outcome's law
+(below); in `08`, PRIV-004.1's outcome reads as a refuted general claim, its remediation open.
 
 ### 12.1 Roles, properties, what the code gives
 
@@ -1574,10 +1588,16 @@ necessities, and no construction need fix everything the same way.
 
 | Construction | Channel it excludes | Further hypotheses | Channels left | Kind |
 |---|---|---|---|---|
-| (i) the opened object `O` adds no information on `Y_k` | a change of the conditional forecast of each reviewer `v` whose report forms `b_uk`: `P(Y_k = A \| F_v, O) = P(Y_k = A \| F_v)` | that `v`'s actual report depends on `O` only through that forecast — not implied: a message uninformative on `Y_k` can still prompt strategic reactions, and an analysis of incentives cannot presume truthful reports; toward outcomes, that `O` changes no answer, selection or execution of `G'`'s procedure | the actual reports whenever the behavioural hypothesis fails; every channel to outcomes outside its second part; availability and consolidation | a statistical hypothesis on laws and a behavioural one; declared, not verifiable from the order of events, no demonstration of H-c |
+| (i) the opened object `O` adds no information on `Y_k` | a change of the conditional law of the whole outcome for each reviewer `v` whose report forms `b_uk`: `P(Y_k = y \| F_v, O) = P(Y_k = y \| F_v)` for `y ∈ {A, R, I}`, so `c` and `q_c` unchanged; the equality on `A` alone does not suffice (below) | that `v`'s actual report depends on `O` only through that forecast — not implied: a message uninformative on `Y_k` can still prompt strategic reactions, and an analysis of incentives cannot presume truthful reports; toward outcomes, that `O` changes no answer, selection or execution of `G'`'s procedure | the actual reports whenever the behavioural hypothesis fails; every channel to outcomes outside its second part; availability and consolidation | a strong statistical hypothesis on laws, sufficient and not shown necessary, and a behavioural one; declared, not verifiable from the order of events, no demonstration of H-c |
 | (ii) the reports fixed before the opening | the opening's information reaching the values of the reports that form `b_uk` | the first panel's commitments on `k` closed (`CloseCommits`) before the opening; composition, weights and aggregation rule fixed — `16` §4.6's approved composition, the epoch's frozen weights, the weighted mean; no report added after (T58 not introduced) | a reveal withheld after the opening: the value stays fixed, the report unrevealed, case 6 and case 7 for the panel (§9.3), so availability and consolidation (§8.3, (ii)–(iv)); items whose commits close after the opening; a disclosure off the log; every channel to outcomes | a verifiable property of the order for logged openings (two log positions per pair); a disclosure off the log stays P5's behavioural hypothesis |
 | (iii) an opening position fixed in advance | the opening's timing as a function of the reports | `Φ_G` before that position on every path, a bound no count of rounds gives (§9.4); the content, presence, recipients and metadata (size, attempts, production positions) of what is made available invariant under the deviation | what the position does not fix: a non-opening there (a freeze unreached, a record missing), the content through `G`'s own outcome law (under T1, §11.3's timing channel), recipients, metadata | the position verifiable on the log; the invariance of the information made available a statistical hypothesis; no mechanism proposed |
 | (iv) `G'`'s answers collected before the opening | the opening changing those answers | the answers fixed at collection by a reference logged before the opening; none exists today: the root reaches the log only with an epoch's results (`04` §Events and replay), and admissions record no answer (§11.4) | the selection and inclusion of data (which sheets and rows enter, floors, gates); the procedure and its parameters unless the group record pins them (§7.3); the source check (`source_verified`, T68); the attempts and their timing; computational resources; every channel to baselines | a verifiable property of the order once such a reference exists; the rest hypotheses, or their own pinning |
+
+**On (i)** (C; Astra's example, checked with fractions). Two laws with `P(A) = 1/4`: `P(R) = 3/4`
+and `P(I) = 0` give `c = 1` and `q_c = 1/4`; `P(R) = 1/4` and `P(I) = 1/2` give `c = ½` and
+`q_c = ½`. An object leaving `P(A)` unchanged can still move B-b's target, so (i) states the
+invariance of the law on the three categories. The invariance of a forecast shows nothing of
+the reports actually made: the behavioural hypothesis stays separate.
 
 **(ii) and (iv) for a study**, bounded. Each is a predicate on a pair, checked on recorded
 positions — not a schedule imposed on every pair:
@@ -1608,8 +1628,9 @@ inform the reports still open.
 | missing in code | the group record; freeze records; attempt records with reasons; a descriptive shortfall record (the pilot step is refused and nothing is written); `I` as a terminal state; pool entry apart from the verdict step; A's pilot without `Explore`; a holder and an access rule for answers; a logged reference binding answers at collection | a start rule | a way to keep records unread before their condition and to open them (no design here); a pre-`Score` pilot path |
 
 **Declared, or checked only in part, by a study.** P5 for holders: declared; a record on the log
-before its condition is a positive finding, its absence proves nothing. §12.4's (i): declared, a
-statistical and a behavioural hypothesis, no demonstration of H-c. (ii): checkable per pair for
+before its condition is a positive finding, its absence proves nothing. §12.4's (i): declared,
+the whole outcome's law and a behavioural hypothesis, no demonstration of H-c. (ii): checkable
+per pair for
 logged openings; (iv): checkable per pair once a logged reference of the answers exists; neither
 covers the channels left in its row. Overlaps among groups' reviewers are countable on the log
 by nym; overlaps between respondents and reviewers are not, by design (invariant 5). H-c and the
@@ -1633,3 +1654,104 @@ are among them. No harness's availability would show either construction's condi
 step** after that review: for T1, the log positions a study would record to evaluate (ii) and
 (iv) per pair, and the channels it would declare instead. Nothing here is adopted; no protocol
 is ready and no neutrality is certified.
+
+## 13. Observable evidence for §12.4's (ii) and (iv) under T1 (proposal awaiting review)
+
+**Status.** A proposal by Claude Code on the direction of Astra's review of `7d8db08`; §12's
+approval does not cover it. T1 is the analytic reference and T2 the comparison; T1 is not
+adopted as a protocol, and its timing channel (§11.3) stays open. It states what a study would
+record to evaluate (ii) and (iv) pair by pair, and what an order shown on that evidence
+concludes. No clock, global consensus, ordering protocol, API schema or cryptography is
+proposed, and no code changes. **L** read at `7d8db08`; **D** derived here; no new calculation.
+
+### 13.1 Three orders
+
+- **Local order.** A node's own log (`Node::submit`, `04` §A node's own disk) and a writer's feed
+  are hash chains: an entry commits through `prev` to every earlier entry of the same log, so
+  within one log a lower position existed before a higher one — relative to a head the verifier
+  trusts, since a consistent rewrite by the log's holder is caught only against a signed
+  checkpoint (`08` NET-004). Positions in two different logs are not comparable by number.
+- **Application order.** On the replicated set the protocol state applies entries in the order
+  of the signed cuts: cut number, then the writers' new entries interleaved by the cut's rank
+  (`04` §Cuts; `protocol::ledger::Ledger::apply` reports each cut's applied and refused entries).
+  Nodes holding the same cuts apply the same order. It orders state transitions across writers,
+  not when an entry first existed or became readable.
+- **Effective disclosure.** An entry is readable by any peer once replicated, possibly before a
+  cut names it (`04` §Who reads); a replica is a set and keeps no arrival time; a disclosure off
+  the log leaves no record (§12.1, P5).
+
+**Existence across feeds** (L, D). A cut's marks carry each writer's length and head, so a cut
+commits to every entry it counts, and a member's signature of a cut travels on the member's own
+feed with the cut's encoding (`MemberObject::CutSignature`, `04` §Members' objects). So `e₁`
+existed before `e₂` when `e₂` follows, on one feed, either `e₁` itself or a cut signature whose
+cut counts `e₁`. No other format carries such a reference (`NodeEvent`, `EpochResults`, the
+beacon objects): otherwise the existence order of entries on different feeds is indeterminate.
+Feeds, cuts and their signatures exist in code; nothing runs an epoch between nodes yet (`10`
+T79), and only tests start a node (`10` T78).
+
+### 13.2 Outcomes of a pair
+
+Each pair is classified in a stated order kind, existence or application:
+
+- **verified**: the evidence shows the predicate's order;
+- **contrary order documented**: the evidence shows the reverse order;
+- **indeterminate**: an event missing from the verifier's evidence, entries on different feeds
+  with no reference of §13.1, no trusted head, or a cut not yet collected.
+
+A documented contrary order shows that (ii) or (iv) does not exclude the pair's channel, not
+that the channel was used: it shows no violation of H-c. A verified order shows nothing of
+disclosures off the log, nor of the channels left in the construction's row (§12.4). An
+application-order result is not an existence-order result, and neither is a disclosure result.
+
+### 13.3 The disclosure and the pairs
+
+Under T1 a group's procedure starts after `Φ_G`, so its objects are produced after its freezes
+and opened by being logged (§11.2). For an object `O` of `G`, its *disclosure entries* `x_O` are,
+conservatively, every logged entry from which part of `O` can be inferred — `O`'s own entry, a
+pilot step, an admission to a stage-2 batch, a pool entry (§12.3). A pair is verified only if
+the order holds for each of them; in application order that is the first one applied.
+
+The pairs considered: for (ii), `O` with every item `k` reviewed up to `Ω`; for (iv), `O` with
+every group `G'` administered up to `Ω`. The relation is not limited to reviewer overlaps: a
+participant of the collective fit can move the freeze of a group it does not review, through
+shared parameters (§10.4), so an overlap count bounds no exposure. The relation identifies no
+dependence: which pairs carry information (§12.4's (i)) and through which channel stays
+declared, and no algorithm finding every dependence is proposed.
+
+### 13.4 The two predicates
+
+| | (ii) commitments before the disclosure | (iv) answers bound before the disclosure |
+|---|---|---|
+| units | `O` of `G` and its entries `x_O`; an item `k`; the first-panel assignments `(v, k)`, whose reports form every baseline of `k` (`16` §4.6) | `O` and `x_O` as in (ii); a group `G'` and its answers (its batches' sheets, anchors included) |
+| events compared | each first-panel `Commit` of `k`, and `k`'s `CloseCommits`, against each `x_O` | a logged reference binding `G'`'s answers, against each `x_O` |
+| bound values or data | the commitment `H(prob, nonce, committer, item)` carried by `Commit` and checked at `Reveal` (`review::commit`, INV-12) | a set of answers bound by a reference of the kind `results::inputs_root` (binding only, §12.1) |
+| evidence in code | the `Commit`, `CloseCommits` and `Reveal` steps, logged by consortium writers on the replicated set (`protocol::ledger`); feeds, cuts and cut signatures; the approved composition as an API (`panel_scores`: a first panelist's leave-one-out mean, an extra reviewer's first-panel mean) | `AdmitRespondent`, which records an admission and no answer (§11.4); `inputs_root` over an epoch's ratings and answers, logged only in the epoch's results event (`04` §Events and replay), after the fits |
+| missing | under A, `O`'s entries for a gate-rejected member and terminal records with `I` (§12.2); a record of the weights used, showing them the epoch's frozen ones (`panel_scores` takes them from its caller, which no production code is); a runtime logging an epoch (T79) | a reference binding `G'`'s answers, logged at collection: until one exists every pair is indeterminate, unless the results event whose root covers `G'`'s answers precedes `x_O` |
+| a verified order concludes | application: in the state, `k`'s commitments were applied before `O`'s entries; existence: no entry bearing on `O` existed on the log before `k`'s commitments. With the approved composition, the frozen weights and the weighted mean fixed, the values forming `b_uk` were fixed before `O`'s logged disclosure | the answers the reference binds were fixed before `O`'s logged disclosure, which therefore did not change them |
+| further hypotheses | the recorded weights are the frozen ones; no report is added after (T58 not introduced); `x_O` covers every entry bearing on `O`; the trusted head | the reference binds exactly the answers collected; `x_O` and the head as in (ii); any inclusion proof issued from an early reference falls under `08` PRIV-004.1 |
+| channels left | values committed but not revealed: a reveal withheld after `x_O` leaves case 6, and case 7 for the panel (§9.3), so availability and consolidation, not the value; disclosures off the log; pairs contrary or indeterminate; every channel to outcomes; T1's timing channel | answers outside the reference; their selection and inclusion in the fit; the procedure and its parameters; the source check; the attempts; computational resources; the verdict's law; disclosures off the log to respondents; every channel to baselines |
+
+For (ii), values committed, reveals available and consolidation stay apart: a verified pair
+concerns the first, and says nothing of the other two.
+
+### 13.5 Reporting, and the minimal result
+
+Per pair: its outcome (§13.2) and order kind; counts by outcome. No pair, outcome or missing
+event becomes a value. §9 stands: a missing report gets no 0; silence and `Ω` produce no `I`; an
+item's outcome does not complete every assignment; the consolidated cohorts alone are not
+representative. At `Ω`, a pair whose commitments or reference are absent while an entry of `x_O`
+is applied is contrary in application order as of `Ω`, and indeterminate in existence order
+unless §13.1's references show it.
+
+**The minimal verifiable result.** For each logged opening under T1, the classification of its
+(ii) pairs in application order, from the cuts and the lifecycle steps alone; the existence order
+verified only where §13.1's references link the entries; for (iv), no pair beyond indeterminate
+until a reference binds answers at collection. **Declared, not shown**: no disclosure off the
+log (P5); which pairs carry information (§12.4's (i): the whole outcome's law, with its
+behavioural hypothesis); the frozen weights, where no record shows them; the reference's
+coverage of the answers used; the invariance in time of T1's resources and samples (§11.3); H-c.
+**T2, the comparison**: the same predicates, with `x_O` the opening of a record produced
+earlier; production before `x_O` adds the holders' P5, which no order evidence covers.
+
+**Next.** Astra's review of this section. Nothing here is adopted; no protocol is ready and no
+neutrality is certified.

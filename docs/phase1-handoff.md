@@ -342,8 +342,8 @@ they win.
   comparison; T1 not adopted as a protocol, its timing channel open; (ii) and (iv) made concrete,
   their scope bounded; (i) may stay a declared hypothesis, no demonstration of H-c. R1 stays
   approved; A1, A2, B1–B3 and Phase 1 stay open.
-- **Rectifications of `8af257d`** (documentation only, not pushed by the session; **awaiting
-  review**), in `17` §12 corrected in place: the general sufficiency of "(i) or (iii); or (ii)
+- **Rectifications of `8af257d`, `7d8db08`** (documentation only), in `17` §12 corrected in
+  place: the general sufficiency of "(i) or (iii); or (ii)
   with (iv)" withdrawn; each construction with the channel it excludes, its further hypotheses,
   the channels left and its kind — (i) a statistical and a behavioural hypothesis, the
   conditional forecast's invariance apart from the actual report's; (ii) the values of the
@@ -374,6 +374,40 @@ they win.
   general guarantee against inference. Open: no correction chosen, no salt prescribed as
   sufficient; hashes, leaf format, serialization and tests unchanged. Not the reveals'
   publication (T77), not an A1 finding.
+- **Astra's review of `7d8db08`** (the commit, its parent and the published HEAD checked; the
+  diff and the documents read; a small calculation with fractions on the conditional target; no
+  Rust, fit, campaign, Merkle reproduction or local documentation check; the working tree and the
+  local checks stay Claude Code's evidence): the substantive rectifications of `17` §12
+  **approved as a conditional analysis of the informational requirements, with no new blocking
+  finding on its setting** — the channels (i)–(iv) exclude, their further hypotheses and residual
+  channels; cryptographic properties, requirements and candidate policies apart; the local write
+  apart from replication; the shortfall's descriptive record apart from the refused transition
+  and from `I`; an entry implying `A` apart from an absence of entry; `08` PRIV-004.1's
+  counterexample, limits and provenance; the rectified promises of `04` and `08`. **Not
+  approved**: the adoption of T1 or T2, a protocol, an implementation, a cryptographic solution,
+  thresholds, pool entry or S2's start. Its two precisions, made by Claude Code: §12.4's (i)
+  states the invariance of the whole outcome's law on `{A, R, I}` — `P(A)` alone does not fix
+  `q_c` (two laws with `P(A) = 1/4`: `c = 1`, `q_c = 1/4` against `c = ½`, `q_c = ½`) — a
+  sufficient hypothesis, not shown necessary, the behavioural one kept apart; `08` PRIV-004.1
+  reads "general non-inference claim refuted under the stated enumerable-field assumptions;
+  remediation open", in the sub-finding and §15's matrix, with a reference among §18's residual
+  risks; every limit kept. R1 stays approved; A1, A2, B1–B3 and Phase 1 stay open.
+- **Observable evidence under T1: `17` §13** (documentation only, not pushed by the session;
+  **a proposal awaiting review**, not covered by §12's approval; T1 the analytic reference, T2
+  the comparison, T1 not adopted and its timing channel open). Three orders apart: local (one
+  hash-chained log, relative to a trusted head), application (the signed cuts), effective
+  disclosure (replicated entries readable before any cut, nothing recorded off the log); the
+  existence order across feeds shown only through a cut signature on the later entry's feed,
+  otherwise indeterminate. Each pair classified as verified, contrary order documented or
+  indeterminate, in a stated order kind; a contrary order no violation of H-c, a verified one no
+  proof against disclosures off the log. (ii): `k`'s first-panel `Commit` and `CloseCommits`
+  against every entry bearing on `O`, with the approved composition, frozen weights and weighted
+  mean, values, reveals and consolidation apart. (iv): a reference binding `G'`'s answers before
+  those entries, limited to the answers it binds; no such reference exists today, so every (iv)
+  pair is indeterminate unless the results event covering them comes first. Pairs not limited to
+  reviewer overlaps (shared parameters, §10.4); no dependence-finding algorithm. Minimal
+  verifiable result: (ii) pairs classified in application order from the cuts and the lifecycle
+  steps. Next: Astra's review of §13.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -424,8 +458,8 @@ they win.
   preparatory synthesis; `17` §9 (cases 5–7 for a study) approved on `b2a1c2f` as the study's
   reporting specification; `17` §10 (the bridging input) approved on `111e595` as a conditional
   analysis; `17` §11 (timing under A) approved on `cf5575a` as a conditional comparison; `17`
-  §12 (access and disclosure per object) partly approved on `8af257d`, its rectifications
-  awaiting review. No
+  §12 (access and disclosure per object) approved on `7d8db08` as a conditional analysis; `17`
+  §13 (observable evidence under T1) a proposal awaiting review. No
   calibration is chosen, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
@@ -441,11 +475,14 @@ they win.
   §9 approved on `b2a1c2f`); the join with the bridging is analysed (`17` §10, approved on
   `111e595`, α the reference, β the comparison); timing under A is analysed (`17` §11, approved
   on `cf5575a` as a conditional comparison, T1 and T2 alternatives, neither adopted); access and
-  disclosure per object are specified (`17` §12, partly approved on `8af257d`, T1 the reference
-  and T2 the comparison by Astra's direction, its rectifications awaiting review);
+  disclosure per object are specified (`17` §12, approved on `7d8db08` as a conditional
+  analysis, T1 the reference and T2 the comparison by Astra's direction); the evidence for its
+  predicates (ii) and (iv) under T1 is proposed (`17` §13, awaiting review);
   T58 stays open for a procedure that must proceed despite missing reports.
-- **`08` PRIV-004.1 (separate from A1): open.** What an inclusion proof lets its holder infer of
-  other inputs; no correction chosen.
+- **`08` PRIV-004.1 (separate from A1): remediation open.** The general claim that an inclusion
+  proof lets its holder infer no other input is refuted under the stated enumerable-field
+  assumptions; the confidentiality goal and a construction meeting it stay to be stated; no
+  correction chosen (`08` §18).
 - **B1–B3:** identification of the floors and of the histogram through the responses, weak
   information, the moment penalty's choice and effects, BIC under misspecification and on
   penalized mixture fits, selection after penalized fitting.
@@ -470,12 +507,11 @@ promises toward it; `17` §9, approved on `b2a1c2f`, is the study's reporting sp
 cases 5–7 under design A, with 6c and 7a as its basis. `17` §10, approved on `111e595`, analyses
 the bridging input's meaning when the report forecasts `q_c`, α the main reference and β the
 comparison. `17` §11, approved on `cf5575a` as a conditional comparison, analyses timing under
-A, T1 and T2 staying alternatives; `17` §12, partly approved on `8af257d`, specifies what each
-needs to handle information per object, T1 the reference and T2 the comparison by Astra's
-direction. Still to review: §12's rectifications and the record of `08` PRIV-004.1; the minimal
-next step after that review is, for T1, the log positions a study would record to evaluate §12.4's
-(ii) and (iv) per pair and the channels it would declare instead, with the rest of `19` §10.5's
-perimeter still to decide.
+A, T1 and T2 staying alternatives; `17` §12, approved on `7d8db08` as a conditional analysis,
+specifies what each needs to handle information per object, T1 the reference and T2 the
+comparison by Astra's direction; `17` §13 proposes the evidence a study under T1 would record to
+classify §12.4's (ii) and (iv) pair by pair. The next step is Astra's review of §13, with the rest
+of `19` §10.5's perimeter still to decide.
 No roadmap or campaign is added, and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -818,4 +854,21 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   whitespace (`git diff --check`), line widths, table columns, `scripts/comment_budget.py`,
   references and relative links of the edited docs, the states across `08`, `15`, `17`, `19` and
   this note. No Rust test, fit, smoke, characterization, calibration, benchmark or mutation run.
+- **Astra, review of `7d8db08`** (as it records): the commit, its parent and the published HEAD
+  checked; the diff and the documents read; a small calculation with fractions on the conditional
+  target. No Rust, fit, campaign, Merkle reproduction or local documentation check; the working
+  tree and the local checks are Claude Code's evidence.
+- **Claude Code, record of that review, its two precisions and `17` §13:** branch, HEAD
+  `7d8db08` (parent `8af257d`), no later local commit and a working tree with only `.gitignore`
+  modified checked first. Read (L), at `7d8db08`: `04` §§Replication between nodes (Who reads,
+  the replica, a writer's own feed), Cuts, Members' objects; `network::cut::{Cut, Mark,
+  MemberObject}` (a cut signature carries the cut's encoding and its marks); `network::log`
+  (`entry_hash`, `prev`); `protocol::ledger::Ledger::apply` (orchestration only from members,
+  each cut's applied and refused entries); the lifecycle's `Commit`, `CloseCommits` and `Reveal`
+  arms; `08` NET-004, §§15, 17, 18; `10` T78, T79. Exact calculation (C), with fractions: Astra's
+  two laws, `c = 1`, `q_c = 1/4` and `c = ½`, `q_c = ½`. Documentation checks: the diff,
+  whitespace (`git diff --check`), line widths, table columns, `scripts/comment_budget.py`,
+  references and relative links of the edited docs, the states across `08`, `15`, `17`, `19` and
+  this note. No Rust test, fit, smoke, characterization, calibration, benchmark, mutation or
+  Merkle reproduction run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
