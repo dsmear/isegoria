@@ -465,12 +465,51 @@ they win.
   capabilities strictly needed (what exists, what is missing, what a harness can supply, the
   evidence that it works), among them enrollment bound to an identity (T20, open), without which
   a study's credentials leave uniqueness per person declared, not shown; the path issues no
-  inclusion proof, so
-  it does not meet `08` PRIV-004.1. Five blocking decisions (scores and pool, the forecast's
-  meaning, each group's procedure, a shortfall or a refused batch, pseudonyms before T20), the
-  deferrable ones apart; resources from documented floors (at least 3,300 participations for an
-  attempt reaching stage 2); the cost data to acquire before a pilot. Next deliverable
-  recommended: a documentary specification of the synthetic-event technical check.
+  inclusion proof, so it does not meet `08` PRIV-004.1 (its scope stated below). Five blocking
+  decisions (scores and pool, the forecast's meaning, each group's procedure, a shortfall or a
+  refused batch, pseudonyms before T20), the deferrable ones apart; resources from documented
+  floors (at least 3,300 participations for an attempt reaching stage 2, qualified below); the
+  cost data to acquire before a pilot. Next deliverable recommended: a documentary specification
+  of the synthetic-event technical check.
+- **Astra's review of `cbcbc67`** (the commit, its parent and the published HEAD checked; the diff
+  and the relevant passages of the pilot, revalidation, enrollment, latent, harness and contracts
+  read; no Rust, fit, benchmark or campaign run; the local working tree not checked).
+  **Approved**: the record of `176dd8c`'s review; `17` §13's three precisions; the further changes
+  to `17` §13.2's classification at (R) and (E) — an absence concerns acceptance in the declared
+  prefix, without showing that the commitment or reference did not exist elsewhere. **`19` §10.6:
+  partial** — the direction accepted, the section to rectify. **Decided, for preparing the
+  specification only**: B-b's study scores outside the reputation; the gate's decisions recorded,
+  with no effect on operational pools; α the semantic reference to specify; the synthetic-event
+  technical check the next deliverable, after the rectification. **Not authorized**: an
+  implementation, recruitment, S2's start, the adoption of T1 or T2, new protocol policies. The
+  length beyond an indicative 800 words is no blocking finding. R1 stays approved; A1, A2,
+  B1–B3 and Phase 1 stay open.
+- **Rectifications of `cbcbc67`, in `19` §10.6 corrected in place** (documentation only, not
+  pushed by the session; **awaiting review**, no approval recorded): three kinds of evidence —
+  events and outcomes as fixtures (records, states, classifications and the accounting of costs
+  the fixtures supply, no cost of a fit not run), synthetic responses through the real fitters (a
+  distinct statistical execution, its own costs and authorization, outside the next perimeter),
+  human participants (behaviour, availability, delays, load); the check's promise of fit and
+  search times removed, a replay or record-handling time named for what it measures. Anonymity
+  and D17 as requirements of the path, not as holding: the access decisions left for reports,
+  answers and results, the publication T77 contests not to be extended, no cryptography designed;
+  synthetic data keep real data out of the check without validating a human study's
+  confidentiality; issuing no inclusion proof keeps `08` PRIV-004.1's vector out of the path, no
+  general guarantee, its remediation open and apart from A1. α the specification's reference, the
+  harmlessness claim withdrawn: its meaning can move reports, gate decisions, extra rounds,
+  appeals and times; `τ`, `ε` and the gap provisional, no value change approved. `N1_MIN = 300` and
+  `N_LATENT_MIN = 3,000` kept; 3,300 the sum for two distinct administrations, one passing each
+  gate, not the least cost of every attempt reaching stage 2 (a batch can be refused before the
+  fit, for `K_MIN` among others); participations, gate-counted pseudonyms, persons, answers,
+  searches actually run and attempts refused before the fit apart; no saving from reuse, no power
+  or feasibility from the floors; `pilot::screen` the size gate, `stage1_screen` its computation;
+  9, 17 or 25 runs per latent search actually run. Decisions for the synthetic-event
+  specification (the fixture's procedure with a declared synthetic budget and term, neither a
+  parameter of the human study or of the protocol; a shortfall and a refused batch distinct
+  records, neither turned into `I` automatically; synthetic pseudonyms, T20, recruitment and
+  availability no prerequisite, no enrollment chosen for the field) apart from those before a
+  human study (planning hypotheses and resource limits before authorization, the rates possibly
+  its results, a preliminary collection a separate activity). Nothing asked of the owner.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -523,8 +562,8 @@ they win.
   analysis; `17` §11 (timing under A) approved on `cf5575a` as a conditional comparison; `17`
   §12 (access and disclosure per object) approved on `7d8db08` as a conditional analysis; `17`
   §13 (observable evidence under T1) approved on `176dd8c` as a conditional analysis; `19` §10.6
-  (S2's minimal perimeter) a proposal awaiting review. No calibration is chosen, S2 is not
-  claimed to settle A2, and these approvals do not close A2.
+  (S2's minimal perimeter) partly approved on `cbcbc67`, rectified, awaiting review. No
+  calibration is chosen, S2 is not claimed to settle A2, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
   baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
@@ -542,8 +581,10 @@ they win.
   disclosure per object are specified (`17` §12, approved on `7d8db08` as a conditional
   analysis, T1 the reference and T2 the comparison by Astra's direction); the evidence for its
   predicates (ii) and (iv) under T1 is specified (`17` §13, approved on `176dd8c` as a
-  conditional analysis); S2's minimal perimeter is proposed (`19` §10.6, awaiting review); T58
-  stays open for a procedure that must proceed despite missing reports.
+  conditional analysis); S2's minimal perimeter is partly approved (`19` §10.6, `cbcbc67`; for
+  preparing its specification only: study scores outside the reputation, gate decisions recorded
+  with no pool effect, α the semantic reference) and rectified, awaiting review; T58 stays open
+  for a procedure that must proceed despite missing reports.
 - **`08` PRIV-004.1 (separate from A1): remediation open.** The general claim that an inclusion
   proof lets its holder infer no other input is refuted under the stated enumerable-field
   assumptions; the confidentiality goal and a construction meeting it stay to be stated; no
@@ -576,10 +617,11 @@ A, T1 and T2 staying alternatives; `17` §12, approved on `7d8db08` as a conditi
 specifies what each needs to handle information per object, T1 the reference and T2 the
 comparison by Astra's direction; `17` §13, approved on `176dd8c` as a conditional analysis,
 specifies the evidence a study under T1 would record for §12.4's (ii) and (iv) pair by pair, its
-minimal result a replay check. `19` §10.6 proposes S2's minimal perimeter, a new proposal not
-covered by that approval. The next step is Astra's review of §10.6 and its decisions on the
-five blocking questions listed there; the study is not declared ready and no implementation is
-authorized.
+minimal result a replay check. `19` §10.6, S2's minimal perimeter, was partly approved by Astra
+on `cbcbc67`, with decisions for preparing its specification only, and is rectified in place.
+The next step is Astra's review of the rectified §10.6; the specification of the synthetic-event
+technical check comes after it. The study is not declared ready; no implementation, recruitment
+or start is authorized.
 No roadmap or campaign is added, and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -973,4 +1015,21 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   widths of the new lines, table columns, `scripts/comment_budget.py`, references and relative
   links of the edited docs, the states across `15`, `17`, `19` and this note. No Rust test, fit,
   smoke, characterization, calibration, benchmark, mutation or Merkle reproduction run.
+- **Astra, review of `cbcbc67`** (as it records): the commit, its parent and the published HEAD
+  checked; the diff and the relevant passages of the pilot, revalidation, enrollment, latent,
+  harness and contracts read. No Rust, fit, benchmark or campaign run; the local working tree not
+  checked.
+- **Claude Code, record of that review and the rectifications of `19` §10.6:** branch, HEAD
+  `cbcbc67` (parent `176dd8c`), no later local commit (the remote-tracking branch at the same
+  commit) and a working tree with only `.gitignore` modified checked first. Read (L), at
+  `cbcbc67`: `pilot::{screen, stage1_screen, stage1_fit, admit_dif_batch, submit_response}`
+  (`screen` holds the `N1_MIN` gate, then calls `stage1_screen`), `revalidation::latent_batch` and
+  its gates before the search, `latent_dif_with` and `LatentParams`' defaults, the lifecycle's
+  `Pilot2Batch` guard (`K_MIN`), `gate::bridging_gate` (thresholds on supplied inputs);
+  `08` PRIV-004 and PRIV-004.1; `17` §§12.2, 12.5, 13; `19` §§9.3, 10. No calculation was
+  needed. Documentation checks: the diff, whitespace (`git diff --check`), line widths of the new
+  lines, table columns, `scripts/comment_budget.py`, references and relative links of the edited
+  docs, the withdrawn wordings absent from the current passages, the states across `15`, `17`,
+  `19` and this note. No Rust test, fit, smoke, characterization, calibration, benchmark,
+  mutation, Merkle reproduction or Phase 2 work run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
