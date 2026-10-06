@@ -510,6 +510,39 @@ they win.
   availability no prerequisite, no enrollment chosen for the field) apart from those before a
   human study (planning hypotheses and resource limits before authorization, the rates possibly
   its results, a preliminary collection a separate activity). Nothing asked of the owner.
+- **Astra's review of `5af22b9`** (the commit, its parent and the published HEAD checked; the diff
+  of the four documents read; the joins checked; `bridging_gate`, `supplementary_review`,
+  `screen` and `stage1_screen` read again; no Rust, fit, benchmark or campaign run; the local
+  checks and the working tree stay Claude Code's evidence): the rectifications and `19` §10.6
+  **approved as a preparatory synthesis of the experimental perimeter, with no blocking
+  finding**. Resolved: synthetic events, synthetic responses through the fitters and human
+  participants apart; anonymity and D17 as requirements; α's meaning and the provisional
+  thresholds' limits; the 3,300 participations qualified; the check's prerequisites apart from
+  the human study's. Approved: the gate check as `bridging_gate`'s decision on the fixture's
+  inputs, with no claim on how those inputs are produced. **Confirmed for the next
+  specification**: B-b's study scores outside the reputation; the gate recorded with no effect on
+  operational pools; α the semantic reference; fixtures with explicit synthetic budgets and terms,
+  small values exercising the cases, never parameters of the protocol or of a future human study.
+  **Not authorized**: an implementation, a run, the adoption of T1 or T2, data collection or S2's
+  start. Its two editorial joins, made by Claude Code: `19` §10.4 names `pilot::screen` as
+  `stage1_screen`'s gated entry; `17` §13.2's absent-precondition row stands on its own (an
+  absence of acceptance in the declared prefix, no proof that the commitment or reference does
+  not exist elsewhere), the classification unchanged.
+- **S2's synthetic-event technical check: `20`** (documentation only, not pushed by the session;
+  **a new proposal awaiting review**, not covered by the approval above; nothing implemented or
+  run). The boundary of a future execution per component — what real code would run (feeds,
+  cuts, `Ledger::apply`, the lifecycle, deposits with test credentials, `bridging_gate`, the
+  first gates of `pilot::screen` and `latent_batch`, `panel_scores`), what the fixtures supply,
+  the check code missing and the APIs left out (fitters, `supplementary_review`, pilot steps,
+  `SkillTrack`, results events, inclusion proofs). Eight conventions, synthetic and limited to the
+  check (`Ω`, cohorts, frozen weights, an attempt rule with budget 2 and terms in cuts, the reveal
+  close, records, T1 and T2 groups, numbers). A main scenario of 14 items in 7 groups on one feed
+  with fixtures F1–F9 (conclusive outcomes, a verifiable `I`, an indeterminate attempt, a shortfall
+  and a refused batch apart from `I`, a missing report beside a held `I` under T2, unreached
+  freezes, a late record, three cohorts, the gate); exact B-b values (cohort `K_v` = 443/2646;
+  `K_w` −17/98 once consolidated; `K_u` without a value); order fixtures O1–O7 for `17` §13.2's
+  outcomes at (R) and (E), on one feed and across feeds; the snapshot's content and the declared
+  costs. Five conventions flagged as open for a field study, none blocking the check.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -562,8 +595,9 @@ they win.
   analysis; `17` §11 (timing under A) approved on `cf5575a` as a conditional comparison; `17`
   §12 (access and disclosure per object) approved on `7d8db08` as a conditional analysis; `17`
   §13 (observable evidence under T1) approved on `176dd8c` as a conditional analysis; `19` §10.6
-  (S2's minimal perimeter) partly approved on `cbcbc67`, rectified, awaiting review. No
-  calibration is chosen, S2 is not claimed to settle A2, and these approvals do not close A2.
+  (S2's minimal perimeter) approved on `5af22b9` as a preparatory synthesis; `20` (its
+  synthetic-event check) a proposal awaiting review. No calibration is chosen, S2 is not
+  claimed to settle A2, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
   baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
@@ -581,10 +615,11 @@ they win.
   disclosure per object are specified (`17` §12, approved on `7d8db08` as a conditional
   analysis, T1 the reference and T2 the comparison by Astra's direction); the evidence for its
   predicates (ii) and (iv) under T1 is specified (`17` §13, approved on `176dd8c` as a
-  conditional analysis); S2's minimal perimeter is partly approved (`19` §10.6, `cbcbc67`; for
-  preparing its specification only: study scores outside the reputation, gate decisions recorded
-  with no pool effect, α the semantic reference) and rectified, awaiting review; T58 stays open
-  for a procedure that must proceed despite missing reports.
+  conditional analysis); S2's minimal perimeter is approved as a preparatory synthesis (`19`
+  §10.6, `5af22b9`; for its specification only: study scores outside the reputation, gate
+  decisions recorded with no pool effect, α the semantic reference) and its synthetic-event check
+  proposed (`20`, awaiting review); T58 stays open for a procedure that must proceed despite
+  missing reports.
 - **`08` PRIV-004.1 (separate from A1): remediation open.** The general claim that an inclusion
   proof lets its holder infer no other input is refuted under the stated enumerable-field
   assumptions; the confidentiality goal and a construction meeting it stay to be stated; no
@@ -618,10 +653,10 @@ specifies what each needs to handle information per object, T1 the reference and
 comparison by Astra's direction; `17` §13, approved on `176dd8c` as a conditional analysis,
 specifies the evidence a study under T1 would record for §12.4's (ii) and (iv) pair by pair, its
 minimal result a replay check. `19` §10.6, S2's minimal perimeter, was partly approved by Astra
-on `cbcbc67`, with decisions for preparing its specification only, and is rectified in place.
-The next step is Astra's review of the rectified §10.6; the specification of the synthetic-event
-technical check comes after it. The study is not declared ready; no implementation, recruitment
-or start is authorized.
+on `cbcbc67`, rectified and approved on `5af22b9` as a preparatory synthesis. The synthetic-event
+technical check is specified in `20`, a proposal; the next step is Astra's review of `20`. S2 is
+not declared ready; no implementation, run, recruitment, data collection or start is
+authorized.
 No roadmap or campaign is added, and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -649,7 +684,8 @@ before a sufficient comparison of the designs.
 
 `CLAUDE.md` and `docs/CLAUDE.md`; `docs/15` (rows A1, A2, B1–B3, D2–D4 and the correction
 records); `docs/16` (A1's theorem, conditions C1–C6, beacon model) and `docs/17` (A1's batches and
-missing outcomes); `docs/18` (A3); `docs/19` (A2); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43;
+missing outcomes); `docs/18` (A3); `docs/19` (A2); `docs/20` (S2's synthetic check, proposed);
+`docs/02` §B.3, §B.7; `docs/01` D33–D38, D43;
 code: `crates/scoring/src/{latent.rs,dtf.rs}`,
 `crates/protocol/src/{contested.rs,lifecycle.rs,orchestrator.rs,exploration.rs}`.
 
@@ -1032,4 +1068,26 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   docs, the withdrawn wordings absent from the current passages, the states across `15`, `17`,
   `19` and this note. No Rust test, fit, smoke, characterization, calibration, benchmark,
   mutation, Merkle reproduction or Phase 2 work run.
+- **Astra, review of `5af22b9`** (as it records): the commit, its parent and the published HEAD
+  checked; the diff of the four documents read; the joins checked; `bridging_gate`,
+  `supplementary_review`, `screen` and `stage1_screen` read again. No Rust, fit, benchmark or
+  campaign run; the local checks and the working tree are Claude Code's evidence.
+- **Claude Code, record of that review, the two joins and `20`:** branch, HEAD `5af22b9` (parent
+  `cbcbc67`), no later local commit (the remote-tracking branch at the same commit) and a working
+  tree with only `.gitignore` modified checked first. Read (L), at `5af22b9`: `lifecycle::{State,
+  Event, step}`; `NodeState::apply`, `NodeEvent`; `Ledger::{apply, apply_one}` (`NotAnEvent`,
+  orchestration only from members); `network::cut::{Cut::next, added, MemberObject, sign_cut,
+  collect, should_sign}`; `Replica`; `review::{commit, reveal}`; `panel_scores`;
+  `reputation::difference_score`; `gate::{bridging_gate, supplementary_review}` and constants;
+  `pilot::{screen, admit_dif_batch, N1_MIN}`, `NullifierSet`; `nullifier::prove` (randomized);
+  the test support of `crates/protocol/tests/ledger.rs`; `16` §§4–5; `17` §§8–13. Exact
+  calculations (C), with fractions in a scratch script not kept: §5's baselines, contributions,
+  cohort values and bounds, the unweighted counterexample 85/576, the `f64` recomputation within
+  1.2e−16; the assignments by case (102); the gate decisions on the fixture's inputs, with
+  `TAU + EPS` as evaluated; §7's declared sums. The order fixtures checked by reasoning against
+  `added`, `Ledger::apply` and `17` §13.2, not run. Documentation checks: the diff, whitespace
+  (`git diff --check`), line widths of the new lines, table columns, `scripts/comment_budget.py`,
+  references and relative links of the edited docs, the states across `15`, `17`, `19`, `20`,
+  `docs/README.md` and this note. No Rust test, fit, smoke, characterization, calibration,
+  benchmark, mutation, Merkle reproduction or Phase 2 work run; the check neither written nor run.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.

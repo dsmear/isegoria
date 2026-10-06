@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was partly approved by Astra on `d31e9fa` and **approved on `b2a1c2f` as the study's reporting specification**; the bridging input under `q_c` is analysed in `17` §10, **approved by Astra on `111e595` as a conditional analysis**; timing under A is specified in `17` §11, partly approved by Astra on `82bdb9a` and **approved on `cf5575a` as a conditional comparison between T1 and T2** (neither adopted); access and disclosure per object are specified in `17` §12, partly approved by Astra on `8af257d` and **approved on `7d8db08` as a conditional analysis of the informational requirements**; the observable evidence under T1 for its predicates (ii) and (iv) is specified in `17` §13, partly approved by Astra on `f38f8a4` and **approved on `176dd8c` as a conditional analysis of the observable evidence**. §10.6, a minimal perimeter for S2, was **partly approved by Astra on `cbcbc67`** (below), with decisions taken for preparing its specification only, and is rectified in place, **awaiting review**. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was partly approved by Astra on `d31e9fa` and **approved on `b2a1c2f` as the study's reporting specification**; the bridging input under `q_c` is analysed in `17` §10, **approved by Astra on `111e595` as a conditional analysis**; timing under A is specified in `17` §11, partly approved by Astra on `82bdb9a` and **approved on `cf5575a` as a conditional comparison between T1 and T2** (neither adopted); access and disclosure per object are specified in `17` §12, partly approved by Astra on `8af257d` and **approved on `7d8db08` as a conditional analysis of the informational requirements**; the observable evidence under T1 for its predicates (ii) and (iv) is specified in `17` §13, partly approved by Astra on `f38f8a4` and **approved on `176dd8c` as a conditional analysis of the observable evidence**. §10.6, a minimal perimeter for S2, was partly approved by Astra on `cbcbc67`, with decisions taken for preparing its specification only, rectified in `5af22b9` and **approved by Astra on `5af22b9` as a preparatory synthesis of the experimental perimeter** (below); the synthetic-event check it leads to is specified in [`20`](20-s2-synthetic-check.md), **awaiting review**, which that approval does not cover. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -203,6 +203,28 @@ from the reviews above; the reviews of `17` §§9–13 are recorded in `17`:
 - Evidence: the commit, its parent and the published HEAD checked; the diff and the relevant
   passages of the pilot, revalidation, enrollment, latent, harness and contracts read. No Rust,
   fit, benchmark or campaign run; the local working tree not checked.
+
+Review on `5af22b9` (§10.6's rectifications), distinct from the partial review above:
+
+- Approved, with no blocking finding: the rectifications and §10.6 as a preparatory synthesis of
+  the experimental perimeter. Resolved: synthetic events, synthetic responses through the fitters
+  and human participants kept apart; anonymity and D17 as requirements; α's meaning and the
+  provisional thresholds' limits; the 3,300 participations qualified; the technical check's
+  prerequisites apart from the human study's. Approved: the gate check corrected to
+  `bridging_gate`'s decision on the fixture's inputs, with no claim on how those inputs are
+  produced.
+- Confirmed for the next specification: B-b's study scores outside the reputation; the gate
+  recorded with no effect on operational pools; α the semantic reference; fixtures with explicit
+  synthetic budgets and terms, small values chosen to exercise the cases, never parameters of the
+  protocol or of a future human study.
+- Not authorized: an implementation, a run, the adoption of T1 or T2, data collection or S2's
+  start. R1 stays approved; A1, A2, B1–B3 and Phase 1 stay open.
+- Two editorial joins, made after the review: §10.4 names `pilot::screen` as the gated entry of
+  `stage1_screen`'s computation; `17` §13.2's absent-precondition row stands on its own.
+- Evidence: the commit, its parent and the published HEAD checked; the diff of the four
+  documents read; the joins checked; `bridging_gate`, `supplementary_review`, `screen` and
+  `stage1_screen` read again. No Rust, fit, benchmark or campaign run; the local checks and the
+  working tree stay Claude Code's evidence.
 
 ## 1. What the code computes (L)
 
@@ -1022,8 +1044,8 @@ reputational rules not approved. It builds on §6.1, §§9.1–9.6 and `17` §§
 them; the cases 5–7 it led to are specified in `17` §9, approved on `b2a1c2f`. It adopts,
 funds and closes nothing; anonymity (no personal or group attribute enters) and the recovery of
 contested facts bound it; the test's neutrality is not certified. Evidence: **L** targeted reads
-at `00f8e2c`, named in place; no run. §10.6, S2's minimal perimeter on `17` §§9–13, was partly
-approved on `cbcbc67` and is rectified, awaiting review.
+at `00f8e2c`, named in place; no run. §10.6, S2's minimal perimeter on `17` §§9–13, was
+approved on `5af22b9` as a preparatory synthesis; its technical check is proposed in `20`.
 
 **Three categories.** *A*: decisions needed before any run, because a claim's meaning or a
 record's content depends on them. *B*: hypotheses a circumscribed study can measure, each with the
@@ -1116,7 +1138,7 @@ many respondents are available, for how many items each, are product and resourc
 | Link | Executable path today (L) | None yet (L) |
 |---|---|---|
 | respondents | `pilot::submit_response` through `NodeState::apply` | a recruitment or availability mechanism |
-| pilot | `pilot::stage1_screen`, `revalidation::latent_batch` as APIs; `orchestrator::run_item` steps the lifecycle on verdicts its caller supplies | an executable path composing responses, fits, verdicts and terminal records (`17` §1, §8.3); for S2 a study harness would do, not necessarily the production runtime |
+| pilot | `pilot::stage1_screen`, the stage-1 computation's API, entered with its size gate through `pilot::screen`; `revalidation::latent_batch` as an API; `orchestrator::run_item` steps the lifecycle on verdicts its caller supplies | an executable path composing responses, fits, verdicts and terminal records (`17` §1, §8.3); for S2 a study harness would do, not necessarily the production runtime |
 | outcomes | `Screening::Indeterminate` and `Recheck::Indeterminate` keep an item in its pilot stage (`lifecycle.rs`) | a terminal-inconclusiveness record; an attempt budget and term |
 | B-b scores | `SkillTrack` (reviewed and scored counts), `panel_scores`, `ResultRecord::{ReviewerScore, ReviewerUnobserved}` | B-b's contribution; `N_u`, `O_u`, `V_u` (`17` §8.4); T58's missing-reveal rule (`PartialEpoch` freezes today) |
 | DTF | `ClassCurves::dtf` on any items of one fit, a form's active items included when the form lies in that fit; `ContestedPool`, composed by no runtime | the operational composition of a form with its fit; the envelope; any guarantee on the target |
@@ -1161,15 +1183,18 @@ My recommendation, not an approved decision.
   `cf5575a` as a conditional comparison; access and disclosure per object follow in `17` §12,
   approved on `7d8db08` as a conditional analysis; the evidence under T1 for its predicates (ii)
   and (iv) is in `17` §13, approved on `176dd8c` as a conditional analysis; S2's minimal
-  perimeter, §10.6, was partly approved on `cbcbc67` and is rectified, awaiting review. S1's
+  perimeter, §10.6, was approved on `5af22b9` as a preparatory synthesis, and its synthetic-event
+  check is proposed in `20`, awaiting review. S1's
   declaration of scenarios and criteria stays an alternative strand, needing no respondents but a
   campaign the owner authorizes to run.
 
-### 10.6 S2's minimal perimeter (partly approved on `cbcbc67`; rectified)
+### 10.6 S2's minimal perimeter (preparatory synthesis, approved on `5af22b9`)
 
 **Status.** Claude Code's proposal, committed in `cbcbc67`; partly approved by Astra on
 `cbcbc67` (design review above: the direction accepted, the decisions taken for preparing the
-specification and what they do not authorize), rectified below in place, **awaiting review**.
+specification and what they do not authorize), rectified below in place in `5af22b9` and
+**approved there as a preparatory synthesis of the experimental perimeter, with no blocking
+finding**; no implementation, run, data collection, adoption of T1 or T2, or start of S2.
 **L** targeted reads; **C** one sum of documented floors; no run.
 
 **A. Question, result, kinds of evidence.** Under design A, for a few items grouped and fixed
@@ -1283,8 +1308,8 @@ participation (`15` D2), pseudonyms available, computation. Refusal and attempt 
 study's results; a preliminary collection, if wanted, is a separate activity to delimit and
 authorize.
 
-**Next.** Astra's review of this rectified section. Then a documentary specification of the
-synthetic-event technical check: its fixtures (events, outcomes, refusals, the declared
-synthetic budget and term), its records, the snapshot report at `Ω`, the checks of `17` §§8.6
-and 13.2, and the accounting of the costs its fixtures supply. Not a field pilot and no fit run;
-implementing it needs its own authorization.
+**Next.** The documentary specification of the synthetic-event technical check is proposed in
+[`20`](20-s2-synthetic-check.md), awaiting Astra's review: its fixtures (events, outcomes,
+refusals, the declared synthetic budget and term), its records, the snapshot report at `Ω`, the
+checks of `17` §§8.6 and 13.2, and the accounting of the costs its fixtures supply. Not a field
+pilot and no fit run; implementing it needs its own authorization.
