@@ -77,6 +77,24 @@ where
     }
 }
 
+/// Waits until a writer has heard a peer and may write (`docs/04` §A writer's own feed).
+async fn ready(h: &Handle) {
+    until(|| async { h.caught_up().await }).await;
+}
+
+/// Inserts `n` entries of writer `i`, signed out of band, into `h`.
+async fn signed_into(h: &Handle, i: u8, n: usize, tag: &str) {
+    let mut log = TransparencyLog::new();
+    for k in 0..n {
+        let object = format!("{tag}-{k}").into_bytes();
+        let entry = log.append(cid(&object)).clone();
+        assert_eq!(
+            h.insert(writer(i).sign(&entry), object).await,
+            Ok(Accepted::New)
+        );
+    }
+}
+
 /// Waits until every node has the same digest and holds `n` entries.
 async fn converged(nodes: &[&Handle], n: usize) {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
@@ -107,6 +125,8 @@ async fn at_net_14_nodes_converge_over_libp2p() {
     let (c, _) = node(None).await;
     a.dial(b_addr.clone()).await.unwrap();
     c.dial(b_addr).await.unwrap();
+    ready(&a).await;
+    ready(&b).await;
     for i in 0..3 {
         a.publish(format!("a-{i}").into_bytes()).await.unwrap();
     }
@@ -130,7 +150,11 @@ async fn at_net_14_a_partition_heals() {
     let (a, a_addr) = node(Some((1, scratch("a")))).await;
     let (b, _) = node(None).await;
     let (c, _) = node(Some((3, scratch("c")))).await;
+    let (d, d_addr) = node(None).await;
     b.dial(a_addr.clone()).await.unwrap();
+    c.dial(d_addr).await.unwrap();
+    ready(&a).await;
+    ready(&c).await;
     for i in 0..4 {
         a.publish(format!("a-{i}").into_bytes()).await.unwrap();
     }
@@ -138,9 +162,9 @@ async fn at_net_14_a_partition_heals() {
         c.publish(format!("c-{i}").into_bytes()).await.unwrap();
     }
     converged(&[&a, &b], 4).await;
-    assert_eq!(c.replica().await.len(), 3);
+    converged(&[&c, &d], 3).await;
     c.dial(a_addr).await.unwrap();
-    converged(&[&a, &b, &c], 7).await;
+    converged(&[&a, &b, &c, &d], 7).await;
 }
 
 /// AT-NET-14: a writer's fork, shown to two sides of the network, reaches every node as
@@ -179,6 +203,7 @@ async fn at_net_14_a_restarted_writer_does_not_fork() {
     {
         let (a, _) = node(Some((1, dir.clone()))).await;
         a.dial(b_addr.clone()).await.unwrap();
+        ready(&a).await;
         a.publish(b"one".to_vec()).await.unwrap();
         a.publish(b"two".to_vec()).await.unwrap();
         converged(&[&a, &b], 2).await;
@@ -186,9 +211,10 @@ async fn at_net_14_a_restarted_writer_does_not_fork() {
     until(|| async { b.peers().await == 0 }).await;
     let (a, _) = node(Some((1, dir))).await;
     assert_eq!(a.replica().await.digest(), b.replica().await.digest());
+    a.dial(b_addr).await.unwrap();
+    ready(&a).await;
     let third = a.publish(b"three".to_vec()).await.unwrap();
     assert_eq!(third.entry.seq, 2);
-    a.dial(b_addr).await.unwrap();
     converged(&[&a, &b], 3).await;
     let r = b.replica().await;
     assert!(r.equivocations().is_empty());
@@ -236,7 +262,7 @@ async fn at_net_14_gossip_carries_new_entries() {
 async fn at_net_14_connecting_pulls_and_relays_announce() {
     let hour = Duration::from_secs(3600);
     let (a, a_addr) = node_every(Some((1, scratch("early"))), hour).await;
-    a.publish(b"early".to_vec()).await.unwrap();
+    signed_into(&a, 2, 1, "early").await;
     let (b, b_addr) = node_every(None, hour).await;
     let (c, _) = node_every(None, hour).await;
     b.dial(a_addr).await.unwrap();
@@ -244,6 +270,7 @@ async fn at_net_14_connecting_pulls_and_relays_announce() {
     c.dial(b_addr).await.unwrap();
     converged(&[&a, &b, &c], 1).await;
     until(|| async { c.peers().await == 1 && a.peers().await == 1 }).await;
+    ready(&a).await;
     tokio::time::sleep(Duration::from_secs(1)).await;
     for i in 0..3 {
         a.publish(format!("late-{i}").into_bytes()).await.unwrap();
@@ -270,10 +297,8 @@ async fn at_net_14_the_limit_and_the_topic() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn at_net_14_pulled_entries_are_announced_on() {
     let hour = Duration::from_secs(3600);
-    let (a, a_addr) = node_every(Some((1, scratch("pulled"))), hour).await;
-    for i in 0..3 {
-        a.publish(format!("old-{i}").into_bytes()).await.unwrap();
-    }
+    let (a, a_addr) = node_every(None, hour).await;
+    signed_into(&a, 1, 3, "old").await;
     let (b, b_addr) = node_every(None, hour).await;
     let (c, _) = node_every(None, hour).await;
     c.dial(b_addr).await.unwrap();
@@ -293,6 +318,7 @@ async fn at_net_15_a_stored_replica_survives_a_restart() {
     let digest = {
         let (b, _) = node_stored(None, every, Some(store.clone())).await;
         b.dial(a_addr).await.unwrap();
+        ready(&a).await;
         for i in 0..3 {
             a.publish(format!("kept-{i}").into_bytes()).await.unwrap();
         }

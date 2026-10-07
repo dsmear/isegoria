@@ -101,6 +101,9 @@ async fn at_net_17_members_cut_and_run_the_beacon_between_nodes() {
     for h in [&m1, &m2, &relay] {
         h.dial(addr.clone()).await.unwrap();
     }
+    while !relay.caught_up().await {
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
     for i in 0..3 {
         relay
             .publish(format!("relayed-{i}").into_bytes())

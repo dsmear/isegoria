@@ -150,7 +150,7 @@ Integrity without permissionless consensus (`docs/04`).
 | `beacon` | §The epoch's beacon (D41) | `BeaconRound` (`open`, `commit`, `close_commits`, `close_deposits`, `reveal`, `finish`), `Member::beacon_commit`, `BeaconCommit`, `BeaconReveal`, `BeaconOutcome` (`value`, `revealed`, `withheld`, `record`), `RoundError` — commit-reveal among the members, in process (T37) |
 | `codec` | §Events and replay | `Writer`, `Reader`, `DecodeError` — our encoding: little-endian integers, length-prefixed fields checked before sizing (T73) |
 | `store` | §A node's own disk | `DurableLog`, `ObjectStore` (content-addressed), `Recovery`, `StoreError`, `MAX_OBJECT` — append-only files synced before acknowledging; a torn tail cut, other damage refused (T13) |
-| `replica` | §Replication between nodes | `WriterSet`, `FeedWriter`, `SignedEntry`, `EntryId`, `Replica` (`insert`, `feed`, `equivocations`, `digest`, `summary`, `have_for`, `want`, `entries_for`), `Equivocation`, `Message`, `DurableReplica` (on disk, T74) — the grow-only set of writers' signed entries and the pull sync's messages (T18) |
+| `replica` | §Replication between nodes | `WriterSet`, `FeedWriter`, `SignedEntry`, `EntryId`, `Replica` (`insert`, `feed`, `feed_beyond`, `equivocations`, `digest`, `summary`, `have_for`, `want`, `entries_for`), `FeedError` (T80), `Equivocation`, `Message`, `DurableReplica` (on disk, T74) — the grow-only set of writers' signed entries and the pull sync's messages (T18) |
 | `cut` | §Cuts | `Cut` (`of`, `next`, `digest`, `checkpoint`, `encode`, `decode`), `Mark`, `added`, `CutError`, `MemberObject`, `collect`, `Collected`, `proposer`, `sign_cut`, `should_sign`, `member_objects` — the consortium-signed marks that fix which entries count and their order; the members' objects that sign them and run the beacon (T74) |
 | `anchoring` | §Anchoring | `Anchor` trait, `OtsAnchor`, `Receipt`, `AnchorState` |
 | `erasure` | §Durability | `encode`, `reconstruct`, `reconstruct_verified` (real Reed–Solomon; per-shard manifest, corrupt-shard authentication before decode, T16) |
@@ -207,11 +207,15 @@ voting).
 ## `p2p` — the libp2p transport
 
 Replication between nodes over libp2p (`docs/04` §Replication between nodes): `Handle`
-(`spawn`, `listen`, `dial`, `publish`, `insert`, `replica`, `peers`), `Config`, `Own` — a
+(`spawn`, `listen`, `dial`, `publish`, `insert`, `replica`, `peers`, `caught_up`,
+`set_aside`), `Config`, `Own` — a
 node's task drives a swarm with gossipsub (announcements of new entries) and
 request-response (`/isegoria/sync/1`: Summary→Have, Want→Entries). A writer's own feed is
-its `network::store` log, signed again on restart; given a directory, the node keeps its
-replica on disk (`DurableReplica`, T74). `member`: `MemberRole`, `collected` — a consortium
+its `network::store` log, signed again on restart; after a start it writes only once a sync
+round with a peer has ended (`caught_up`), takes back the entries its key signed past its
+log (`network::replica::Replica::feed_beyond`), sets damaged own files aside (`set_aside`)
+and refuses a fork or a gap of its feed (T80). Given a directory, the node keeps its replica
+on disk (`DurableReplica`, T74). `member`: `MemberRole`, `collected` — a consortium
 member node's duties on a timer: commit, reveal, propose cut `k` when `k mod n` is its
 index, co-sign (T74). Only `network` is a dependency: the
 engine and the protocol state stay free of I/O and of an async runtime (T18). The sync
@@ -364,7 +368,7 @@ cargo clippy --workspace --all-targets
 | Who may read the replicated set | **None** — a node serves its whole set to any peer that connects, the drafts under review and the reveals included, against D17 (T77) | D44: three tiers, two feeds per member, the circle served only to member-bound transport keys (T77); blind relays (T85); a state tree keyed by nym (T86) |
 | A node process | **None** — nodes are started by tests (`Handle::spawn`) (T78) | a binary started from a configuration file |
 | An epoch run between nodes | **None** — the draws, reviews, engine run and results are driven by tests (`end_to_end.rs::run_epoch`) (T79) | a member's epoch duties, specified first |
-| A writer's recovery | **None** — a damaged log does not start; lost files mean an equivocation at the next publish (T80) | the feed rebuilt from the replicas before writing |
+| A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80) | — |
 | Erasure-coded distribution of the public history | **None** — `network::erasure` codes and authenticates shards only | placement, audit and repair per cut segment (T84) |
 
 Reference implementations are clearly marked and provide **no** security; they exist

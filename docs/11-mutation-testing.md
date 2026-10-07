@@ -565,6 +565,21 @@ Sixteen are equivalent:
   | `bridging.rs` `bridge_scores`: `rng.gen() < keep_frac` → `<=` | A draw equals `keep_frac` with probability 2⁻⁵³ at most. |
   | `bridging.rs` `bridge_scores`: `sj < *b` → `<=` | It replaces the minimum by an equal value; a score is never −0. |
 
+## Run 23 — T80: a writer rebuilds its feed before it writes
+
+`cargo mutants --no-config` (the `mutants` profile, `--timeout-multiplier 3
+--minimum-test-timeout 60`, `-j 2`) on T80's diff, one run per crate:
+
+- `network/src/replica.rs` (`--test=own_feed`, `--test=replication`): 16 mutants — 9 caught,
+  7 unviable.
+- `p2p/src/lib.rs`: 26 mutants — 12 caught, 6 timeouts, 6 unviable, 2 missed. A timeout is a
+  writer that never counts as caught up, or a sync that stops: the tests wait until their
+  deadline. The two survivors were in the test that declares a writer caught up: `&&` → `||`
+  and `==` → `!=` both declare it caught up on a peer's first answer, before its own entries
+  arrive, which the tests' retries masked. Killed by
+  `at_net_18_caught_up_only_with_the_whole_feed`, which checks the writer's feed the moment
+  it counts as caught up; the re-run of those mutants gives 2 caught, 2 timeouts.
+
 ## Keeping it this way
 
 - New decision logic gets a hand-computed or exact-outcome test, not only a range or

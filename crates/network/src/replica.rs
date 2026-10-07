@@ -196,6 +196,15 @@ pub enum Refused {
     ObjectMismatch,
 }
 
+/// Why a writer cannot take its feed from a replica (`docs/04` §A writer's own feed).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FeedError {
+    /// The replica holds an entry of the writer at `seq` that does not chain on its log.
+    Forked { seq: u64 },
+    /// The replica holds entries of the writer past `seq` but none at `seq`.
+    Gap { seq: u64 },
+}
+
 /// One writer's part of a [`Summary`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct WriterSummary {
@@ -292,7 +301,7 @@ impl Replica {
         self.entries.keys().copied()
     }
 
-    fn of(&self, writer: &[u8; 32]) -> impl Iterator<Item = &SignedEntry> + '_ {
+    fn held(&self, writer: &[u8; 32]) -> impl Iterator<Item = &(SignedEntry, Vec<u8>)> + '_ {
         let lo = EntryId {
             writer: *writer,
             seq: 0,
@@ -303,7 +312,11 @@ impl Replica {
             seq: u64::MAX,
             hash: [0xff; 32],
         };
-        self.entries.range(lo..=hi).map(|(_, (e, _))| e)
+        self.entries.range(lo..=hi).map(|(_, held)| held)
+    }
+
+    fn of(&self, writer: &[u8; 32]) -> impl Iterator<Item = &SignedEntry> + '_ {
+        self.held(writer).map(|(e, _)| e)
     }
 
     fn at(&self, writer: &[u8; 32], seq: u64) -> impl Iterator<Item = &SignedEntry> + '_ {
@@ -350,6 +363,42 @@ impl Replica {
             feed.push(e);
         }
         feed
+    }
+
+    /// The entries of `writer`'s feed past `log`, with their objects, in `seq` order; an error
+    /// if an entry of `writer` here neither matches `log` nor chains after it.
+    pub fn feed_beyond(
+        &self,
+        writer: &[u8; 32],
+        log: &[Entry],
+    ) -> Result<Vec<(&SignedEntry, &[u8])>, FeedError> {
+        let mut at: BTreeMap<u64, Vec<(&SignedEntry, &[u8])>> = BTreeMap::new();
+        for (e, o) in self.held(writer) {
+            at.entry(e.entry.seq).or_default().push((e, o.as_slice()));
+        }
+        let len = log.len() as u64;
+        for (&seq, held) in at.range(..len) {
+            if held.iter().any(|(e, _)| e.entry != log[seq as usize]) {
+                return Err(FeedError::Forked { seq });
+            }
+        }
+        let mut head = log.last().map_or([0; 32], |e| e.hash);
+        let mut beyond = Vec::new();
+        let mut seq = len;
+        while let Some(held) = at.get(&seq) {
+            match held.as_slice() {
+                [(e, o)] if e.entry.prev == head => {
+                    head = e.entry.hash;
+                    beyond.push((*e, *o));
+                    seq += 1;
+                }
+                _ => return Err(FeedError::Forked { seq }),
+            }
+        }
+        match at.range(seq..).next() {
+            Some(_) => Err(FeedError::Gap { seq }),
+            None => Ok(beyond),
+        }
     }
 
     /// Per writer and `seq` holding several entries, the two with the smallest hashes.

@@ -217,10 +217,9 @@ object a crash lost.
    it, `hash` recomputed. A tail shorter than a record, or a final record that fails the
    check, is a write a crash tore before it was acknowledged: it is cut off and the cut is
    reported. A record that fails *before* the last refuses the file: a crash does not
-   produce it, and dropping acknowledged history quietly would hide the damage. The node
-   is then to recover its history from its peers and check it against its signed
-   checkpoint (`log::verify_extends`); nothing does it yet, and the node does not start
-   (`10` T80).
+   produce it, and dropping acknowledged history quietly would hide the damage. A writer
+   then sets the file aside, kept for inspection, and takes its history back from the
+   replicas (§A writer's own feed).
 3. In `objects`, a final record that declares more bytes than the file still holds is torn
    and cut, reported the same way; a declared length above the bound refuses the file
    before anything is sized from it. A torn object whose length survived is only an
@@ -423,11 +422,28 @@ has one encoding.
 
 **A writer's own feed** is its log on its own disk (§A node's own disk): to publish, it
 stores the object, appends the entry, then signs it. A restarted writer replays its log and
-signs every entry again — ed25519 signatures are deterministic, so they are the same — and
-continues at the next `seq`; signing a fresh feed after losing its files would be an
-equivocation. Nothing prevents it yet: a writer started with its files lost signs `seq` 0
-again at its next publish (`10` T80). A node whose writer key is not in the writer set does
-not start.
+signs every entry again — ed25519 signatures are deterministic, so they are the same. Its
+files may be lost, damaged or older than its feed, and signing a `seq` its feed already
+holds is an equivocation, so (`10` T80):
+
+1. **Its files.** A log or object file that is damaged — a record that fails before the
+   last, a length above the bound, an entry whose object is missing or altered — is set
+   aside with its companion, renamed `<name>.damaged-<n>`, and the writer starts from empty
+   files. A file with a foreign header still refuses the node.
+2. **No write before a peer.** After a start, the writer writes nothing — its member
+   duties included — until a sync round with a peer has ended in which the peer offered
+   no entry of its key that it lacks.
+3. **Its feed taken back.** Before writing, it appends to its own files the entries its key
+   signed that its replica holds past its log, each chaining on the one before
+   (`Replica::feed_beyond`); its own signature vouches for them.
+4. **A fork or a gap stops it.** If the replica holds an entry of its key that its log
+   contradicts or that does not chain, or one past a missing `seq`, it writes nothing; a gap
+   clears when the missing entry arrives, a fork does not. A stored replica that contradicts
+   the log refuses the node.
+
+The writer catches up with the first peer that answers: a peer reached later that holds a
+longer feed finds the equivocation as evidence, it does not prevent it. A node whose writer
+key is not in the writer set does not start.
 
 **Transport.** libp2p 0.56 over TCP, with Noise and Yamux: gossipsub (signed, strict
 validation) carries the announcements, at most 512 identifiers per message, on the topic

@@ -10,12 +10,12 @@ use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
 use libp2p::{identity, noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm};
 use member::MemberRole;
 use network::replica::{
-    Accepted, DiskError, DurableReplica, EntryId, FeedWriter, Message, Replica, SignedEntry,
-    WriterSet, MAX_RESPONSE,
+    Accepted, DiskError, DurableReplica, EntryId, FeedError, FeedWriter, Message, Replica,
+    SignedEntry, WriterSet, MAX_RESPONSE,
 };
 use network::store::{DurableLog, ObjectStore, StoreError};
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
 
@@ -124,8 +124,8 @@ pub enum StartError {
     NotAWriter,
     /// A member role without an own feed under the member's key.
     NotTheMember,
-    /// The own log names an object the object store lacks.
-    MissingObject(u64),
+    /// The own log and the writer's entries in the stored replica fork.
+    Feed(FeedError),
     /// The own feed was refused by the writer set (the key is not a writer).
     Replica(DiskError),
     Transport(String),
@@ -134,6 +134,10 @@ pub enum StartError {
 #[derive(Debug, PartialEq, Eq)]
 pub enum PublishError {
     NotAWriter,
+    /// No sync round with a peer has ended since the start (`docs/04` §A writer's own feed).
+    NotCaughtUp,
+    /// The replica holds an entry of this writer that its log cannot take.
+    Feed(FeedError),
     Store(String),
     Replica(DiskError),
 }
@@ -149,12 +153,14 @@ enum Command {
     ),
     Replica(oneshot::Sender<Replica>),
     Peers(oneshot::Sender<usize>),
+    CaughtUp(oneshot::Sender<bool>),
 }
 
 /// A running node; dropping it closes its command channel, which ends the node's task.
 pub struct Handle {
     peer_id: PeerId,
     commands: mpsc::UnboundedSender<Command>,
+    set_aside: Vec<PathBuf>,
 }
 
 struct Writing {
@@ -172,6 +178,7 @@ struct Node {
     member: Option<MemberRole>,
     network_id: [u8; 32],
     waited: u32,
+    caught_up: bool,
 }
 
 /// The gossip topic of a network's announcements.
@@ -180,27 +187,106 @@ pub fn topic(network_id: &[u8; 32]) -> String {
     format!("isegoria/{hex}/entries")
 }
 
-fn open_own(own: Own, replica: &mut Store) -> Result<Writing, StartError> {
+fn io_error(e: io::Error) -> StartError {
+    StartError::Store(StoreError::Io(e.kind()))
+}
+
+type Files = (DurableLog, ObjectStore, Vec<Vec<u8>>);
+
+/// The own log, its objects and the object of each entry; `None` if either file is damaged.
+fn open_files(dir: &Path) -> Result<Option<Files>, StartError> {
+    let damaged = |e| match e {
+        StoreError::Corrupt { .. } | StoreError::TooLarge { .. } => Ok(None),
+        e => Err(StartError::Store(e)),
+    };
+    let log = match DurableLog::open(&dir.join("log")) {
+        Ok((log, _)) => log,
+        Err(e) => return damaged(e),
+    };
+    let objects = match ObjectStore::open(&dir.join("objects")) {
+        Ok((objects, _)) => objects,
+        Err(e) => return damaged(e),
+    };
+    let mut named = Vec::new();
+    for entry in log.log().entries() {
+        match objects.get(&entry.payload) {
+            Ok(Some(object)) => named.push(object),
+            Ok(None) | Err(StoreError::Corrupt { .. }) => return Ok(None),
+            Err(e) => return Err(StartError::Store(e)),
+        }
+    }
+    Ok(Some((log, objects, named)))
+}
+
+/// Renames `path` to the first free `<name>.damaged-<n>`.
+fn set_aside(path: &Path) -> Result<Option<PathBuf>, StartError> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let to = (0u32..)
+        .map(|n| path.with_extension(format!("damaged-{n}")))
+        .find(|p| !p.exists())
+        .ok_or(StartError::Store(StoreError::Io(
+            io::ErrorKind::AlreadyExists,
+        )))?;
+    std::fs::rename(path, &to).map_err(io_error)?;
+    Ok(Some(to))
+}
+
+/// Opens the own feed, setting damaged files aside (`docs/04` §A node's own disk, rule 2);
+/// returns it and the paths set aside.
+fn open_own(own: Own, replica: &mut Store) -> Result<(Writing, Vec<PathBuf>), StartError> {
     if !replica.replica().writers().contains(&own.writer.public()) {
         return Err(StartError::NotAWriter);
     }
-    std::fs::create_dir_all(&own.dir).map_err(|e| StartError::Store(StoreError::Io(e.kind())))?;
-    let (log, _) = DurableLog::open(&own.dir.join("log")).map_err(StartError::Store)?;
-    let (objects, _) = ObjectStore::open(&own.dir.join("objects")).map_err(StartError::Store)?;
-    for entry in log.log().entries() {
-        let object = objects
-            .get(&entry.payload)
-            .map_err(StartError::Store)?
-            .ok_or(StartError::MissingObject(entry.seq))?;
+    std::fs::create_dir_all(&own.dir).map_err(io_error)?;
+    let mut aside = Vec::new();
+    let (log, objects, named) = match open_files(&own.dir)? {
+        Some(files) => files,
+        None => {
+            for name in ["log", "objects"] {
+                aside.extend(set_aside(&own.dir.join(name))?);
+            }
+            let (log, _) = DurableLog::open(&own.dir.join("log")).map_err(StartError::Store)?;
+            let (objects, _) =
+                ObjectStore::open(&own.dir.join("objects")).map_err(StartError::Store)?;
+            (log, objects, Vec::new())
+        }
+    };
+    let me = own.writer.public().to_bytes();
+    if let Err(e @ FeedError::Forked { .. }) =
+        replica.replica().feed_beyond(&me, log.log().entries())
+    {
+        return Err(StartError::Feed(e));
+    }
+    for (entry, object) in log.log().entries().iter().zip(named) {
         replica
             .insert(own.writer.sign(entry), object)
             .map_err(StartError::Replica)?;
     }
-    Ok(Writing {
+    let mut writing = Writing {
         writer: own.writer,
         log,
         objects,
-    })
+    };
+    let _ = writing.catch_up(replica.replica());
+    Ok((writing, aside))
+}
+
+impl Writing {
+    /// Appends to the own files the writer's entries the replica holds past its log.
+    fn catch_up(&mut self, replica: &Replica) -> Result<(), PublishError> {
+        let me = self.writer.public().to_bytes();
+        let store = |e: StoreError| PublishError::Store(format!("{e:?}"));
+        let beyond = replica
+            .feed_beyond(&me, self.log.log().entries())
+            .map_err(PublishError::Feed)?;
+        for (entry, object) in beyond {
+            self.objects.put(object).map_err(store)?;
+            self.log.append(entry.entry.payload).map_err(store)?;
+        }
+        Ok(())
+    }
 }
 
 fn build_swarm(key: identity::Keypair) -> Result<Swarm<Behaviour>, String> {
@@ -240,10 +326,13 @@ impl Handle {
             ),
             None => Store::Memory(Replica::new(config.writers.clone())),
         };
-        let writing = config
-            .own
-            .map(|own| open_own(own, &mut replica))
-            .transpose()?;
+        let (writing, set_aside) = match config.own {
+            Some(own) => {
+                let (writing, aside) = open_own(own, &mut replica)?;
+                (Some(writing), aside)
+            }
+            None => (None, Vec::new()),
+        };
         if let Some(role) = &config.member {
             let key = role.member.public();
             let mine = role.consortium.keys().get(role.index) == Some(&key);
@@ -269,9 +358,19 @@ impl Handle {
             member: config.member,
             network_id: config.writers.network_id(),
             waited: 0,
+            caught_up: false,
         };
         tokio::spawn(node.run(rx, config.sync_every));
-        Ok(Handle { peer_id, commands })
+        Ok(Handle {
+            peer_id,
+            commands,
+            set_aside,
+        })
+    }
+
+    /// The own files found damaged at the start and renamed `<name>.damaged-<n>`.
+    pub fn set_aside(&self) -> &[PathBuf] {
+        &self.set_aside
     }
 
     pub fn peer_id(&self) -> PeerId {
@@ -313,6 +412,11 @@ impl Handle {
     pub async fn peers(&self) -> usize {
         self.ask(Command::Peers).await
     }
+
+    /// Whether a sync round with a peer has ended since the start, so a writer may write.
+    pub async fn caught_up(&self) -> bool {
+        self.ask(Command::CaughtUp).await
+    }
 }
 
 impl Node {
@@ -342,7 +446,7 @@ impl Node {
     }
 
     fn duties(&mut self) {
-        let Some(role) = &self.member else {
+        let Some(role) = self.member.as_ref().filter(|_| self.caught_up) else {
             return;
         };
         let objects = role.duties(self.store.replica(), self.network_id, &mut self.waited);
@@ -375,6 +479,10 @@ impl Node {
 
     fn publish(&mut self, object: Vec<u8>) -> Result<SignedEntry, PublishError> {
         let w = self.writing.as_mut().ok_or(PublishError::NotAWriter)?;
+        if !self.caught_up {
+            return Err(PublishError::NotCaughtUp);
+        }
+        w.catch_up(self.store.replica())?;
         let store = |e: StoreError| PublishError::Store(format!("{e:?}"));
         let payload = w.objects.put(&object).map_err(store)?;
         let entry = w.log.append(payload).map_err(store)?;
@@ -406,6 +514,9 @@ impl Node {
             }
             Command::Peers(tx) => {
                 let _ = tx.send(self.swarm.connected_peers().count());
+            }
+            Command::CaughtUp(tx) => {
+                let _ = tx.send(self.caught_up);
             }
         }
     }
@@ -442,6 +553,10 @@ impl Node {
 
     fn want(&mut self, peer: PeerId, offered: &[EntryId]) {
         let want = self.store.replica().want(offered);
+        self.ask_for(peer, want);
+    }
+
+    fn ask_for(&mut self, peer: PeerId, want: Vec<EntryId>) {
         if !want.is_empty() {
             let bytes = Message::Want(want).encode();
             self.swarm.behaviour_mut().sync.send_request(&peer, bytes);
@@ -468,7 +583,17 @@ impl Node {
             }
             request_response::Message::Response { response, .. } => {
                 match Message::decode(&response) {
-                    Some(Message::Have(ids)) => self.want(peer, &ids),
+                    Some(Message::Have(ids)) => {
+                        let want = self.store.replica().want(&ids);
+                        let me = self.writing.as_ref().map(|w| w.writer.public().to_bytes());
+                        if !self.caught_up && !want.iter().any(|id| Some(id.writer) == me) {
+                            self.caught_up = true;
+                            if let Some(w) = self.writing.as_mut() {
+                                let _ = w.catch_up(self.store.replica());
+                            }
+                        }
+                        self.ask_for(peer, want);
+                    }
                     Some(Message::Entries(list)) => {
                         let mut new = Vec::new();
                         for (entry, object) in list {
