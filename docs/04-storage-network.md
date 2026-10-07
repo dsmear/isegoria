@@ -561,9 +561,40 @@ for the members collecting cuts (`network::rounds`).
 Finding an object of the public tier by its CID without a full replica, the DHT, is `10`
 T75; the circle's objects are never offered through it (§Who reads). Nothing runs an
 epoch's work between nodes yet — the draws, the reviews, the engine, and the lifecycle steps
-and results they produce, which the members log (`10` T79) — and a node is started only by
-a test (`10` T78). In code: `network::replica`, `network::cut`, `protocol::ledger`, the
-`p2p` crate.
+and results they produce, which the members log (`10` T79). In code: `network::replica`,
+`network::cut`, `protocol::ledger`, the `p2p` crate.
+
+### A node process
+
+A node runs as one operating-system process, `isegoria-node <config>` (`10` T78), until it
+is stopped, and resumes from its files when started again. Its configuration is a TOML file:
+
+| Key | What it is |
+|---|---|
+| `network_id` | the network's id, 64 hex digits |
+| `data_dir` | the node's directory |
+| `listen`, `peers` | the multiaddresses it listens on and dials |
+| `writers` | the writer set, one public key each (hex) |
+| `consortium.members`, `consortium.threshold` | the members' public keys in order, and `t` |
+| `key_file` | optional: a file holding the writer's 32-byte seed (hex); a member's key is its writer key |
+| `member` | optional: `index`, `every_ms`, `cuts_per_epoch`, `patience`, `view_patience` |
+| `sync_every_ms`, `status_every_ms` | the periodic pull, and how often the status is written |
+
+Under `data_dir`: `own/`, the writer's feed (§A node's own disk); `replica/`, its replica on
+disk (§A replica on disk); `transport.key`, the seed of its libp2p key, made at the first
+start, so its peer id stays the same across restarts; and `status`, rewritten whole at each
+period (a file written beside it, then renamed): whether it is caught up, its peers, the
+equivocations its replica holds, whether the consortium equivocated, each collected cut's
+digest from number 0, and each finished round's value and withholders. A configuration that
+does not hold — a bad key, a threshold outside `1..=n`, a member without a key — refuses to
+start. The node dials its peers at the start and again whenever it has none, so a node
+restarted later reaches the others, which dial no one.
+
+The collected cuts are kept, not collected again from number 0 at each look: a node extends
+them from the last one, counting the beacon's rounds as it goes (`p2p::member::Collector`).
+A cut signed by `t` members for a number already collected, other than the one collected,
+is the consortium equivocating: the node keeps the cuts before that number and stops there,
+as collecting from 0 would.
 
 ---
 

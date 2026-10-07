@@ -8,7 +8,8 @@ use libp2p::gossipsub::{self, IdentTopic, MessageAuthenticity, ValidationMode};
 use libp2p::request_response::{self, ProtocolSupport};
 use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
 use libp2p::{identity, noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm};
-use member::{MemberRole, Progress};
+use member::{Collector, MemberRole, Progress};
+use network::consortium::Consortium;
 use network::replica::{
     Accepted, DiskError, DurableReplica, EntryId, FeedError, FeedWriter, Message, Replica,
     SignedEntry, WriterSet, MAX_RESPONSE,
@@ -115,6 +116,23 @@ pub struct Config {
     pub store: Option<PathBuf>,
     /// A consortium member's duties; its writer key must be the member's.
     pub member: Option<MemberRole>,
+    /// The consortium whose cuts a node that is no member collects for its status.
+    pub consortium: Option<Consortium>,
+}
+
+/// What a node reports of itself (`docs/04` §A node process).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Status {
+    pub caught_up: bool,
+    pub peers: usize,
+    /// Pairs of entries one writer signed at one `seq`, in the replica.
+    pub equivocations: usize,
+    /// Whether the consortium signed two cuts for one number.
+    pub conflict: bool,
+    /// The collected cuts' digests, from number 0.
+    pub cuts: Vec<[u8; 32]>,
+    /// Each finished round, from epoch 0: its value and its withholders.
+    pub beacons: Vec<(Option<[u8; 32]>, Vec<usize>)>,
 }
 
 #[derive(Debug)]
@@ -154,6 +172,7 @@ enum Command {
     Replica(oneshot::Sender<Replica>),
     Peers(oneshot::Sender<usize>),
     CaughtUp(oneshot::Sender<bool>),
+    Status(oneshot::Sender<Status>),
 }
 
 /// A running node; dropping it closes its command channel, which ends the node's task.
@@ -179,6 +198,8 @@ struct Node {
     network_id: [u8; 32],
     progress: Progress,
     caught_up: bool,
+    consortium: Option<Consortium>,
+    collector: Collector,
 }
 
 /// The gossip topic of a network's announcements.
@@ -359,6 +380,8 @@ impl Handle {
             network_id: config.writers.network_id(),
             progress: Progress::default(),
             caught_up: false,
+            consortium: config.consortium,
+            collector: Collector::default(),
         };
         tokio::spawn(node.run(rx, config.sync_every));
         Ok(Handle {
@@ -417,6 +440,11 @@ impl Handle {
     pub async fn caught_up(&self) -> bool {
         self.ask(Command::CaughtUp).await
     }
+
+    /// The node's status; its cuts and rounds only with a consortium, its own or configured.
+    pub async fn status(&self) -> Status {
+        self.ask(Command::Status).await
+    }
 }
 
 impl Node {
@@ -442,6 +470,27 @@ impl Node {
                 }
                 event = self.swarm.select_next_some() => self.event(event),
             }
+        }
+    }
+
+    fn status(&mut self) -> Status {
+        let replica = self.store.replica();
+        let consortium = self.member.as_ref().map(|m| &m.consortium);
+        if let Some(c) = consortium.or(self.consortium.as_ref()) {
+            self.collector.update(replica, c, self.network_id);
+        }
+        Status {
+            caught_up: self.caught_up,
+            peers: self.swarm.connected_peers().count(),
+            equivocations: replica.equivocations().len(),
+            conflict: self.collector.conflict(),
+            cuts: self.collector.cuts().iter().map(|c| c.digest()).collect(),
+            beacons: self
+                .collector
+                .beacons()
+                .iter()
+                .map(|o| (o.value(), o.withheld().to_vec()))
+                .collect(),
         }
     }
 
@@ -517,6 +566,9 @@ impl Node {
             }
             Command::CaughtUp(tx) => {
                 let _ = tx.send(self.caught_up);
+            }
+            Command::Status(tx) => {
+                let _ = tx.send(self.status());
             }
         }
     }

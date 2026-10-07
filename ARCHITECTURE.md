@@ -13,6 +13,7 @@ between the conceptual specification and the Rust implementation. Read
 - [`network` — tamper-evident storage](#network--tamper-evident-storage)
 - [`protocol` — lifecycle orchestration](#protocol--lifecycle-orchestration)
 - [`p2p` — the libp2p transport](#p2p--the-libp2p-transport)
+- [`node` — the node process](#node--the-node-process)
 - [`characterization` — the characterization harness](#characterization--the-characterization-harness)
 - [Invariants and where they are enforced](#invariants-and-where-they-are-enforced)
 - [Reproducibility](#reproducibility)
@@ -51,12 +52,14 @@ protocol ──► scoring
 
 characterization ──► protocol, scoring, identity   (the characterization harness: a tool, not part of a node)
 p2p              ──► network             (the libp2p transport for replication, T18)
+node             ──► p2p, network        (the node process, T78)
 
 scoring   (no internal deps; only rand, rand_chacha)
 identity  (sha2, voprf, curve25519-dalek, bbs_plus, schnorr_pok, arkworks,
            oblivious_transfer_protocols, secret_sharing_and_dkg, dock_crypto_utils)
 network   (sha2, ed25519-dalek, reed-solomon-erasure, opentimestamps)
 p2p       (libp2p 0.56, tokio, futures, async-trait)
+node      (libp2p, tokio, serde, toml, ed25519-dalek)
 ```
 
 `scoring` sits at the bottom on purpose. `protocol` is the only crate that composes
@@ -220,8 +223,16 @@ on disk (`DurableReplica`, T74). `member`: `MemberRole`, `Progress`, `collected`
 consortium member node's duties on a timer: commit, reveal, propose cut `k` in the views
 where `(k + v) mod n` is its index, co-sign, change view (T74, T76). Only `network` is a dependency: the
 engine and the protocol state stay free of I/O and of an async runtime (T18). The sync
-answers any peer, so whoever connects reads the whole set (T77); a node is started only by
-a test (T78), and a member's duties are the cuts and the beacon, not an epoch's work (T79).
+answers any peer, so whoever connects reads the whole set (T77); a member's duties are the
+cuts and the beacon, not an epoch's work (T79). The cuts are extended from the last one
+(`member::Collector`), and `Handle::status` reports them with the finished rounds (T78).
+
+## `node` — the node process
+
+`isegoria-node <config.toml>` (`docs/04` §A node process, T78): `Config` (TOML), `plan` (the
+checked configuration: keys, consortium, transport key kept in the data directory),
+`run` (listen, dial, write the status until stopped), `render` and `parse` (the status
+file). Depends on `p2p` and `network`; the protocol state is not computed here yet (T79).
 
 ## `characterization` — the characterization harness
 
@@ -367,7 +378,7 @@ cargo clippy --workspace --all-targets
 | Protocol state from the replicated set, merge rules; cuts and beacon between nodes | **Real** — signed cuts fix the order, the first of conflicting events wins; members propose in turn, co-sign, commit and reveal on their feeds (T74); a silent proposer replaced by a change of view, single-decree Paxos over the cuts (T76, step 1); an epoch's withholders excluded from its next cuts (T76, step 2) | — |
 | DHT | Documented, not implemented (T75) | libp2p Kademlia |
 | Who may read the replicated set | **None** — a node serves its whole set to any peer that connects, the drafts under review and the reveals included, against D17 (T77) | D44: three tiers, two feeds per member, the circle served only to member-bound transport keys (T77); blind relays (T85); a state tree keyed by nym (T86) |
-| A node process | **None** — nodes are started by tests (`Handle::spawn`) (T78) | a binary started from a configuration file |
+| A node process | **Real** — `isegoria-node` from a TOML configuration, its files resumed on restart, its status on a period (T78) | an epoch's work (T79) |
 | An epoch run between nodes | **None** — the draws, reviews, engine run and results are driven by tests (`end_to_end.rs::run_epoch`) (T79) | a member's epoch duties, specified first |
 | A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80) | — |
 | Erasure-coded distribution of the public history | **None** — `network::erasure` codes and authenticates shards only | placement, audit and repair per cut segment (T84) |

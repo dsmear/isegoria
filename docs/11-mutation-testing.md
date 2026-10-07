@@ -611,6 +611,22 @@ Same settings as run 23, on the step's diff, one run per crate:
   `beacon_on_cuts.rs`; the re-run gives 3 caught.
 - `p2p/src/member.rs`: 3 mutants — 2 caught, 1 unviable.
 
+## Run 26 — T78: the node process
+
+Same settings as run 23, on the task's diff, one run per crate:
+
+- `node/src` (all its tests): 51 mutants — 33 caught, 5 timeouts, 8 unviable, 5 missed. A
+  timeout is a node that never writes its status, never dials or never stops: the tests wait
+  until their deadline. The survivors: the two default periods, never left unset by a test,
+  pinned in `config.rs` (the re-run gives 4 caught); and `write_private` of the platforms
+  that are not Unix, not compiled on Linux.
+- `p2p/src`: 24 mutants — 10 caught, 1 timeout, 6 unviable, 7 missed. `Handle::status`,
+  `Node::status`, `Collector::conflict` and `Collector::beacons`, read only by `node`'s
+  tests, are now checked in `beacon_between_nodes.rs` (the re-runs give 5 caught, 1
+  unviable). Three are equivalent: `&&` → `||` before `contested`, `contested` → `true`, and
+  `!=` → `==` in it, each making the collector collect again from 0, or check every collected
+  number, with the same cuts.
+
 ## Keeping it this way
 
 - New decision logic gets a hand-computed or exact-outcome test, not only a range or

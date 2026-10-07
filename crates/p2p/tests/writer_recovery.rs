@@ -43,6 +43,7 @@ async fn node(own: Option<&Path>) -> (Handle, Multiaddr) {
         }),
         store: None,
         member: None,
+        consortium: None,
     };
     let handle = Handle::spawn(Keypair::generate_ed25519(), config).expect("a node starts");
     let addr = handle

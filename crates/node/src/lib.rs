@@ -1,0 +1,311 @@
+//! A node as an operating-system process (`docs/04` §A node process, `docs/10` T78): its
+//! configuration, its files, its status, and the loop that runs it until it is stopped.
+
+use ed25519_dalek::VerifyingKey;
+use libp2p::identity::Keypair;
+use libp2p::Multiaddr;
+use network::consortium::{Consortium, Member};
+use network::replica::{FeedWriter, WriterSet};
+use p2p::member::MemberRole;
+use p2p::{Config as P2p, Handle, Own, StartError, Status};
+use serde::Deserialize;
+use std::collections::HashSet;
+use std::future::Future;
+use std::io;
+use std::path::{Path, PathBuf};
+use std::time::Duration;
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Config {
+    pub network_id: String,
+    pub data_dir: PathBuf,
+    pub listen: Vec<String>,
+    #[serde(default)]
+    pub peers: Vec<String>,
+    pub writers: Vec<String>,
+    pub consortium: ConsortiumConfig,
+    /// The writer's 32-byte seed in hex; a member's key is its writer key.
+    pub key_file: Option<PathBuf>,
+    pub member: Option<MemberConfig>,
+    #[serde(default = "default_sync")]
+    pub sync_every_ms: u64,
+    #[serde(default = "default_status")]
+    pub status_every_ms: u64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ConsortiumConfig {
+    pub members: Vec<String>,
+    pub threshold: usize,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MemberConfig {
+    pub index: usize,
+    pub every_ms: u64,
+    pub cuts_per_epoch: u64,
+    pub patience: u32,
+    pub view_patience: u32,
+}
+
+fn default_sync() -> u64 {
+    1000
+}
+
+fn default_status() -> u64 {
+    1000
+}
+
+/// Why a configuration does not start a node.
+#[derive(Debug, PartialEq, Eq)]
+pub enum ConfigError {
+    Read(io::ErrorKind),
+    Parse(String),
+    /// A field that is not 64 hex digits: the field's name.
+    Hex(&'static str),
+    /// A key that is no ed25519 public key, or repeated among the members.
+    Key(&'static str),
+    /// A threshold outside `1..=n`.
+    Threshold,
+    Address(String),
+    MemberWithoutKey,
+}
+
+impl Config {
+    pub fn load(path: &Path) -> Result<Config, ConfigError> {
+        let text = std::fs::read_to_string(path).map_err(|e| ConfigError::Read(e.kind()))?;
+        toml::from_str(&text).map_err(|e| ConfigError::Parse(e.to_string()))
+    }
+}
+
+pub fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn unhex(text: &str, field: &'static str) -> Result<[u8; 32], ConfigError> {
+    let text = text.trim();
+    if text.len() != 64 || !text.is_ascii() {
+        return Err(ConfigError::Hex(field));
+    }
+    let mut out = [0u8; 32];
+    for (i, b) in out.iter_mut().enumerate() {
+        *b =
+            u8::from_str_radix(&text[2 * i..2 * i + 2], 16).map_err(|_| ConfigError::Hex(field))?;
+    }
+    Ok(out)
+}
+
+fn keys(list: &[String], field: &'static str) -> Result<Vec<VerifyingKey>, ConfigError> {
+    list.iter()
+        .map(|k| VerifyingKey::from_bytes(&unhex(k, field)?).map_err(|_| ConfigError::Key(field)))
+        .collect()
+}
+
+fn addresses(list: &[String]) -> Result<Vec<Multiaddr>, ConfigError> {
+    list.iter()
+        .map(|a| a.parse().map_err(|_| ConfigError::Address(a.clone())))
+        .collect()
+}
+
+/// The node's libp2p key: its seed kept in `path`, made at the first start.
+fn transport_key(path: &Path) -> Result<Keypair, ConfigError> {
+    let read = |e: io::Error| ConfigError::Read(e.kind());
+    if path.exists() {
+        let seed = unhex(
+            &std::fs::read_to_string(path).map_err(read)?,
+            "transport.key",
+        )?;
+        return Keypair::ed25519_from_bytes(seed).map_err(|_| ConfigError::Key("transport.key"));
+    }
+    let key = Keypair::generate_ed25519();
+    let pair = key
+        .clone()
+        .try_into_ed25519()
+        .map_err(|_| ConfigError::Key("transport.key"))?;
+    write_private(path, &hex(pair.secret().as_ref())).map_err(read)?;
+    Ok(key)
+}
+
+#[cfg(unix)]
+fn write_private(path: &Path, text: &str) -> io::Result<()> {
+    use std::io::Write;
+    use std::os::unix::fs::OpenOptionsExt;
+    let mut f = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(path)?;
+    f.write_all(text.as_bytes())?;
+    f.sync_all()
+}
+
+#[cfg(not(unix))]
+fn write_private(path: &Path, text: &str) -> io::Result<()> {
+    std::fs::write(path, text)
+}
+
+/// What a checked configuration starts.
+pub struct Plan {
+    pub transport: Keypair,
+    pub p2p: P2p,
+    pub listen: Vec<Multiaddr>,
+    pub peers: Vec<Multiaddr>,
+    pub status: PathBuf,
+    pub status_every: Duration,
+}
+
+/// Checks `config` and prepares its directory; nothing runs yet.
+pub fn plan(config: Config) -> Result<Plan, ConfigError> {
+    let network_id = unhex(&config.network_id, "network_id")?;
+    let writers = keys(&config.writers, "writers")?;
+    let members = keys(&config.consortium.members, "consortium.members")?;
+    let distinct: HashSet<[u8; 32]> = members.iter().map(|k| k.to_bytes()).collect();
+    if distinct.len() != members.len() {
+        return Err(ConfigError::Key("consortium.members"));
+    }
+    let t = config.consortium.threshold;
+    if !(1..=members.len()).contains(&t) {
+        return Err(ConfigError::Threshold);
+    }
+    let seed = match &config.key_file {
+        Some(path) => {
+            let text = std::fs::read_to_string(path).map_err(|e| ConfigError::Read(e.kind()))?;
+            Some(unhex(&text, "key_file")?)
+        }
+        None => None,
+    };
+    let member = match (config.member, seed) {
+        (None, _) => None,
+        (Some(_), None) => return Err(ConfigError::MemberWithoutKey),
+        (Some(m), Some(seed)) => Some(MemberRole {
+            member: Member::from_seed(seed),
+            index: m.index,
+            consortium: Consortium::new(members.clone(), t),
+            every: Duration::from_millis(m.every_ms),
+            cuts_per_epoch: m.cuts_per_epoch,
+            patience: m.patience,
+            view_patience: m.view_patience,
+        }),
+    };
+    std::fs::create_dir_all(&config.data_dir).map_err(|e| ConfigError::Read(e.kind()))?;
+    let transport = transport_key(&config.data_dir.join("transport.key"))?;
+    let p2p = P2p {
+        writers: WriterSet::new(network_id, &writers),
+        sync_every: Duration::from_millis(config.sync_every_ms),
+        own: seed.map(|seed| Own {
+            writer: FeedWriter::from_seed(network_id, seed),
+            dir: config.data_dir.join("own"),
+        }),
+        store: Some(config.data_dir.join("replica")),
+        consortium: member.is_none().then(|| Consortium::new(members, t)),
+        member,
+    };
+    Ok(Plan {
+        transport,
+        p2p,
+        listen: addresses(&config.listen)?,
+        peers: addresses(&config.peers)?,
+        status: config.data_dir.join("status"),
+        status_every: Duration::from_millis(config.status_every_ms),
+    })
+}
+
+/// The status file's text: one line per fact, cuts and rounds in order.
+pub fn render(status: &Status) -> String {
+    let mut out = format!(
+        "caught_up {}\npeers {}\nequivocations {}\nconflict {}\n",
+        status.caught_up, status.peers, status.equivocations, status.conflict
+    );
+    for (n, digest) in status.cuts.iter().enumerate() {
+        out += &format!("cut {n} {}\n", hex(digest));
+    }
+    for (e, (value, withheld)) in status.beacons.iter().enumerate() {
+        let value = value.map_or("none".to_string(), |v| hex(&v));
+        let withheld: Vec<String> = withheld.iter().map(|m| m.to_string()).collect();
+        out += &format!("beacon {e} {value} [{}]\n", withheld.join(","));
+    }
+    out
+}
+
+/// The status a status file holds, `None` if the text is not one [`render`] writes.
+pub fn parse(text: &str) -> Option<Status> {
+    let mut status = Status::default();
+    for line in text.lines() {
+        let fields: Vec<&str> = line.split(' ').collect();
+        match fields[..] {
+            ["caught_up", v] => status.caught_up = v.parse().ok()?,
+            ["peers", v] => status.peers = v.parse().ok()?,
+            ["equivocations", v] => status.equivocations = v.parse().ok()?,
+            ["conflict", v] => status.conflict = v.parse().ok()?,
+            ["cut", n, d] => {
+                (n.parse::<usize>().ok()? == status.cuts.len()).then_some(())?;
+                status.cuts.push(unhex(d, "cut").ok()?);
+            }
+            ["beacon", e, v, w] => {
+                (e.parse::<usize>().ok()? == status.beacons.len()).then_some(())?;
+                let value = if v == "none" {
+                    None
+                } else {
+                    Some(unhex(v, "beacon").ok()?)
+                };
+                let list = w.strip_prefix('[')?.strip_suffix(']')?;
+                let withheld = list
+                    .split(',')
+                    .filter(|m| !m.is_empty())
+                    .map(|m| m.parse().ok())
+                    .collect::<Option<Vec<usize>>>()?;
+                status.beacons.push((value, withheld));
+            }
+            _ => return None,
+        }
+    }
+    Some(status)
+}
+
+/// Writes the status beside its file, then renames it over it.
+pub fn write_status(path: &Path, status: &Status) -> io::Result<()> {
+    let next = path.with_extension("next");
+    std::fs::write(&next, render(status))?;
+    std::fs::rename(next, path)
+}
+
+async fn dial(handle: &Handle, peers: &[Multiaddr]) {
+    for addr in peers {
+        let _ = handle.dial(addr.clone()).await;
+    }
+}
+
+/// Runs the node until `stop` completes: listens, dials its peers, dials them again
+/// whenever it has none, and writes its status on each period.
+pub async fn run(plan: Plan, stop: impl Future<Output = ()>) -> Result<(), StartError> {
+    let handle = Handle::spawn(plan.transport, plan.p2p)?;
+    for path in handle.set_aside() {
+        eprintln!("set aside: {}", path.display());
+    }
+    for addr in plan.listen {
+        let bound = handle.listen(addr).await.map_err(StartError::Transport)?;
+        eprintln!("listening on {bound}/p2p/{}", handle.peer_id());
+    }
+    dial(&handle, &plan.peers).await;
+    let mut tick = tokio::time::interval(plan.status_every);
+    tokio::pin!(stop);
+    loop {
+        tokio::select! {
+            _ = &mut stop => break,
+            _ = tick.tick() => {
+                let status = handle.status().await;
+                if let Err(e) = write_status(&plan.status, &status) {
+                    eprintln!("status not written: {e}");
+                }
+                if status.peers == 0 {
+                    dial(&handle, &plan.peers).await;
+                }
+            }
+        }
+    }
+    let _ = write_status(&plan.status, &handle.status().await);
+    Ok(())
+}

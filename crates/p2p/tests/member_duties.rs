@@ -7,7 +7,7 @@ use network::consortium::{Consortium, Member};
 use network::cut::{sign_cut, Cut, MemberObject};
 use network::log::TransparencyLog;
 use network::replica::{FeedWriter, Replica, WriterSet};
-use p2p::member::{collected, MemberRole, Progress};
+use p2p::member::{collected, Collector, MemberRole, Progress};
 use std::time::Duration;
 
 const NET: [u8; 32] = [2; 32];
@@ -310,4 +310,28 @@ fn at_pro_15_members_collect_without_the_withholders() {
     assert_eq!(collected(&net.replica, &consortium(), NET).len(), 2);
     net.sign(&next, &[1]);
     assert_eq!(collected(&net.replica, &consortium(), NET).len(), 3);
+}
+
+/// AT-NET-21: the collector extended look after look holds the cuts collected from number 0;
+/// a cut signed by `t` members for a number already collected keeps those before it.
+#[test]
+fn at_net_21_the_collector_matches_collecting_from_zero() {
+    let mut net = Net::new();
+    let mut collector = Collector::default();
+    let mut last: Option<Cut> = None;
+    for epoch in [0, 0, 1] {
+        let cut = Cut::next(&net.replica, last.as_ref(), epoch, false);
+        net.sign(&cut, &[0, 1]);
+        let had = collector.update(&net.replica, &consortium(), NET).to_vec();
+        assert_eq!(had, collected(&net.replica, &consortium(), NET));
+        last = Some(cut);
+    }
+    assert_eq!(collector.cuts().len(), 3);
+    net.commit(2, 9);
+    let other = Cut::next(&net.replica, Some(&collector.cuts()[0]), 0, false);
+    net.sign(&other, &[1, 2]);
+    let kept = collector.update(&net.replica, &consortium(), NET).to_vec();
+    assert_eq!(kept, collected(&net.replica, &consortium(), NET));
+    assert_eq!(kept.len(), 1);
+    assert!(collector.conflict());
 }

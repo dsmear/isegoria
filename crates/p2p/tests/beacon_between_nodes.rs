@@ -67,6 +67,7 @@ fn config_waiting(i: usize, role: bool, patience: u32, view_patience: u32) -> Co
             patience,
             view_patience,
         }),
+        consortium: (!role).then(consortium),
     }
 }
 
@@ -158,6 +159,22 @@ async fn at_net_17_members_cut_and_run_the_beacon_between_nodes() {
         outcomes.windows(2).all(|w| w[0] == w[1]),
         "every node agrees"
     );
+    for h in nodes {
+        let status = h.status().await;
+        let digests: Vec<_> = outcomes[0].0.iter().map(|c| c.digest()).collect();
+        assert_eq!(status.cuts[..5], digests[..], "the status reports the cuts");
+        let rounds: Vec<_> = [&outcomes[0].1 .0, &outcomes[0].1 .1]
+            .iter()
+            .map(|o| {
+                o.as_ref()
+                    .map(|o| (o.value(), o.withheld().to_vec()))
+                    .unwrap()
+            })
+            .collect();
+        assert_eq!(status.beacons[..2], rounds[..]);
+        assert!(status.caught_up && status.peers > 0 && !status.conflict);
+        assert_eq!(status.equivocations, 0);
+    }
     assert_ne!(
         outcomes[0].1 .0.as_ref().unwrap().value(),
         outcomes[0].1 .1.as_ref().unwrap().value()

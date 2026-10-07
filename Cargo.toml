@@ -6,6 +6,7 @@ members = [
     "crates/network",
     "crates/protocol",
     "crates/p2p",
+    "crates/node",
     "crates/characterization",
 ]
 
