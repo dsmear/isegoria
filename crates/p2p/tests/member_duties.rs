@@ -290,3 +290,24 @@ fn at_net_19_a_proposal_waits_for_t_view_changes() {
     });
     assert_eq!(named, Some(vec![1, 2]));
 }
+
+/// AT-PRO-15: a member collects no cut of the next epoch that counts the signature of a
+/// member who withheld its reveal, as the ledger does.
+#[test]
+fn at_pro_15_members_collect_without_the_withholders() {
+    let mut net = Net::new();
+    for m in 0..3 {
+        net.commit(m, 0);
+    }
+    let closing = Cut::next(&net.replica, None, 0, true);
+    net.sign(&closing, &[0, 1]);
+    net.reveal(0, 0);
+    net.reveal(1, 0);
+    let after = Cut::next(&net.replica, Some(&closing), 1, false);
+    net.sign(&after, &[0, 1]);
+    let next = Cut::next(&net.replica, Some(&after), 1, false);
+    net.sign(&next, &[0, 2]);
+    assert_eq!(collected(&net.replica, &consortium(), NET).len(), 2);
+    net.sign(&next, &[1]);
+    assert_eq!(collected(&net.replica, &consortium(), NET).len(), 3);
+}

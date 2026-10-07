@@ -13,7 +13,7 @@ use network::log::TransparencyLog;
 use network::replica::{EntryId, FeedWriter, Replica, WriterSet};
 use protocol::deposit::{deposit_context, Draft};
 use protocol::events::NodeEvent;
-use protocol::ledger::{CutReport, Ledger, Refusal};
+use protocol::ledger::{CutReport, Ledger, LedgerError, Refusal};
 
 const NET: [u8; 32] = [8; 32];
 const SEEDS: [u8; 4] = [10, 11, 12, 20];
@@ -88,6 +88,28 @@ impl Net {
 
     fn member(&mut self, w: usize, object: MemberObject) -> EntryId {
         self.publish(w, object.encode())
+    }
+
+    /// Proposes the next cut, signed by `by`, and applies it if the ledger takes it.
+    fn cut_by(&mut self, epoch: u64, closes: bool, by: &[usize]) -> Result<CutReport, LedgerError> {
+        let cut = Cut::next(&self.replica, self.ledger.last(), epoch, closes);
+        let cp = cut.checkpoint(NET, consortium().member_set_hash());
+        let sigs: Vec<_> = by.iter().map(|&i| (i, members()[i].sign(&cp))).collect();
+        self.ledger.apply(&self.replica, &cut, &sigs)
+    }
+
+    /// Epoch 0's round with every member committing and `revealing` revealing, run on cuts
+    /// 0 (closing epoch 0) and 1 (the round finishing there).
+    fn round_with(&mut self, revealing: &[usize]) {
+        for (i, m) in members().iter().enumerate() {
+            self.member(i, MemberObject::Commit(m.beacon_commit(round(0), i).0));
+        }
+        self.cut(0, true);
+        for &i in revealing {
+            let reveal = members()[i].beacon_commit(round(0), i).1;
+            self.member(i, MemberObject::Reveal { epoch: 0, reveal });
+        }
+        self.cut(1, false);
     }
 
     /// Proposes, signs with two members and applies the next cut.
@@ -240,4 +262,41 @@ fn at_pro_14_too_few_reveals_give_no_beacon() {
         (empty.value(), empty.revealed(), empty.withheld()),
         (None, &[][..], &[][..])
     );
+}
+
+/// AT-PRO-15: a member that withheld its reveal counts toward no cut of the next epoch after
+/// its round finished, its closing included; from the epoch after, it counts again.
+#[test]
+fn at_pro_15_a_withholder_does_not_sign_its_epochs_next_cuts() {
+    let mut net = Net::new();
+    net.round_with(&[0, 1]);
+    let outcome = net.ledger.beacon(0).unwrap();
+    assert!(outcome.value().is_some());
+    assert_eq!(outcome.withheld(), [2]);
+    let probe = |number, epoch| Cut {
+        number,
+        epoch,
+        closes: false,
+        marks: Vec::new(),
+    };
+    assert_eq!(net.ledger.excluded(&probe(2, 1)), vec![2]);
+    assert!(net.ledger.excluded(&probe(2, 2)).is_empty());
+    assert_eq!(net.cut_by(1, false, &[0, 2]), Err(LedgerError::Unsigned));
+    assert!(net.cut_by(1, false, &[0, 1]).is_ok());
+    assert_eq!(net.cut_by(1, true, &[1, 2]), Err(LedgerError::Unsigned));
+    assert!(net.cut_by(1, true, &[0, 1]).is_ok());
+    assert!(
+        net.cut_by(2, false, &[0, 2]).is_ok(),
+        "the next epoch counts it again"
+    );
+}
+
+/// AT-PRO-15: a round with fewer than `t` reveals yields no beacon and publishes nothing, so
+/// no signature is excluded.
+#[test]
+fn at_pro_15_no_beacon_excludes_no_one() {
+    let mut net = Net::new();
+    net.round_with(&[0]);
+    assert!(net.ledger.beacon(0).unwrap().value().is_none());
+    assert!(net.cut_by(1, false, &[0, 2]).is_ok());
 }

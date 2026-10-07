@@ -600,6 +600,17 @@ Same settings as run 23, on the step's diff, one run per crate:
   the duties directly; the re-run of those lines gives 16 caught, 1 missed, the last one
   equivalent: a view with no proposal for the cut's number is dropped by `proposal` anyway.
 
+## Run 25 — T76, second step: the withholders on cuts
+
+Same settings as run 23, on the step's diff, one run per crate:
+
+- `network/src` (`--test=rounds`, `--test=view_change`, `--test=cut_signing`): 26 mutants — 22
+  caught, 4 unviable.
+- `protocol/src/ledger.rs` (`--test=ledger`, `--test=beacon_on_cuts`): 9 mutants — 5 caught,
+  1 unviable, 3 missed: `Ledger::excluded`, read only by `p2p`'s tests. Pinned in
+  `beacon_on_cuts.rs`; the re-run gives 3 caught.
+- `p2p/src/member.rs`: 3 mutants — 2 caught, 1 unviable.
+
 ## Keeping it this way
 
 - New decision logic gets a hand-computed or exact-outcome test, not only a range or

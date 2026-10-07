@@ -622,6 +622,18 @@ pub fn collect(
     network_id: [u8; 32],
     number: u64,
 ) -> Collected {
+    collect_with(replica, consortium, network_id, number, &|_| Vec::new())
+}
+
+/// As [`collect`], counting no signature of the members `excluded` names for a cut (the
+/// withholders, `docs/04` §The withholders on cuts).
+pub fn collect_with(
+    replica: &Replica,
+    consortium: &Consortium,
+    network_id: [u8; 32],
+    number: u64,
+    excluded: &dyn Fn(&Cut) -> Vec<usize>,
+) -> Collected {
     type Group = (Cut, BTreeMap<usize, Signature>);
     let mut groups: BTreeMap<([u8; 32], u64), Group> = BTreeMap::new();
     for (_, object) in member_objects(replica, consortium) {
@@ -647,7 +659,9 @@ pub fn collect(
     }
     let mut ready: BTreeMap<[u8; 32], (u64, Group)> = BTreeMap::new();
     for ((digest, view), group) in groups {
-        if group.1.len() >= consortium.threshold() {
+        let out = excluded(&group.0);
+        let counted = group.1.keys().filter(|m| !out.contains(m)).count();
+        if counted >= consortium.threshold() {
             ready.entry(digest).or_insert((view, group));
         }
     }

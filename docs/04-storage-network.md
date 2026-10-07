@@ -181,8 +181,8 @@ key could predict every draw.
 
 The round's rules are `network::beacon` (`10` T37) and the draws `protocol::randomness`;
 commits and reveals travel between nodes as members' objects and their deadlines are cuts
-(§Cuts, `10` T74). On cuts, rule 6 is not applied yet: a withholder's signature still
-counts toward the cuts that publish its epoch's draws and results (`10` T76).
+(§Cuts, `10` T74). On cuts, rule 6 applies to the cuts that follow the round's end within
+its epoch (§The beacon on cuts, `10` T76).
 
 ---
 
@@ -548,6 +548,15 @@ commit counts when a cut of epoch `e` applies it, up to and including the cut th
 when the cut right after the closing one applies it, and at the end of that cut the round
 finishes: its outcome (the value if `t` revealed, who revealed, who withheld) is part of
 the state. A commit or reveal in any other cut, or that the round refuses, is refused.
+
+**The withholders on cuts (rule 6).** When the round of epoch `e` finishes with a value, at
+cut `r`, its withholders count toward no cut after `r` in the epoch `r` belongs to — `e + 1`
+— that epoch's closing cut included: the cuts that publish the draws `e`'s beacon seeds and
+what follows from them (`10` T79 places them there). Collecting a cut and applying it count
+no signature of theirs there. A round with no value seeds nothing and excludes no one, its
+withholders recorded all the same (rule 7). A round with a value had `t` members revealing,
+so the members left can always sign. The rounds are counted by one rule for the ledger and
+for the members collecting cuts (`network::rounds`).
 
 Finding an object of the public tier by its CID without a full replica, the DHT, is `10`
 T75; the circle's objects are never offered through it (§Who reads). Nothing runs an

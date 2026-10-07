@@ -4,11 +4,12 @@
 use network::beacon::RoundId;
 use network::consortium::{Consortium, Member};
 use network::cut::{
-    added, changed_view, collect, counts_own, forced, member_objects, promise, proposal,
+    added, changed_view, collect_with, counts_own, forced, member_objects, promise, proposal,
     proposer_in, should_sign_in, sign_cut_in, signed_in, views_change, Collected, Cut,
     MemberObject,
 };
 use network::replica::Replica;
+use network::rounds::Rounds;
 use std::time::Duration;
 
 pub struct MemberRole {
@@ -35,15 +36,32 @@ pub struct Progress {
     at: Option<(u64, u64)>,
 }
 
-/// The cuts collected from `replica`, from number 0, as far as each extends the last.
+/// The cuts collected from `replica`, from number 0, as far as each extends the last; a
+/// withholder's signature counted only where rule 6 allows, as the ledger counts it.
 pub fn collected(replica: &Replica, consortium: &Consortium, network_id: [u8; 32]) -> Vec<Cut> {
     let mut cuts: Vec<Cut> = Vec::new();
-    while let Collected::Ready(cut, _, _) =
-        collect(replica, consortium, network_id, cuts.len() as u64)
-    {
-        if added(replica, cuts.last(), &cut).is_err() {
+    let mut rounds = Rounds::new();
+    loop {
+        let number = cuts.len() as u64;
+        let ready = collect_with(replica, consortium, network_id, number, &|c| {
+            rounds.excluded(c)
+        });
+        let Collected::Ready(cut, _, _) = ready else {
             break;
+        };
+        let Ok(order) = added(replica, cuts.last(), &cut) else {
+            break;
+        };
+        for id in order {
+            let object = replica.get(&id).and_then(|(_, b)| MemberObject::decode(b));
+            let own = object.filter(|o| {
+                consortium.keys().get(o.member()).map(|k| k.to_bytes()) == Some(id.writer)
+            });
+            if let Some(o) = own {
+                let _ = rounds.count(consortium, network_id, &o, &cut, cuts.last());
+            }
         }
+        rounds.finish(consortium, network_id, &cut, cuts.last());
         cuts.push(cut);
     }
     cuts

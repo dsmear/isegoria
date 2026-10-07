@@ -4,7 +4,7 @@
 use identity::credential::Issuer;
 use libp2p::identity::Keypair;
 use network::consortium::{Consortium, Member};
-use network::cut::{collect, Collected};
+use network::cut::{collect_with, Collected};
 use network::replica::{FeedWriter, Replica, WriterSet};
 use p2p::member::{collected, MemberRole};
 use p2p::{Config, Handle, Own, StartError};
@@ -91,7 +91,8 @@ async fn start_with(config: Config) -> Handle {
 fn ledger(replica: &Replica, n: u64) -> Ledger {
     let mut l = Ledger::new(NET, consortium(), Issuer::new([1; 32]).public());
     for number in 0..n {
-        let Collected::Ready(cut, view, sigs) = collect(replica, &consortium(), NET, number) else {
+        let ready = collect_with(replica, &consortium(), NET, number, &|c| l.excluded(c));
+        let Collected::Ready(cut, view, sigs) = ready else {
             panic!("cut {number} is collected")
         };
         l.apply_in_view(replica, &cut, view, &sigs)

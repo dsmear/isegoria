@@ -12,6 +12,7 @@ pub mod erasure;
 pub mod log;
 pub mod merkle;
 pub mod replica;
+pub mod rounds;
 pub mod store;
 
 mod hash;

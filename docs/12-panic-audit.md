@@ -38,8 +38,9 @@ external input. T48, merged afterwards, adds one internal-invariant site in `sco
 (2026-09-27) three internal-invariant sites in `network::store` (§2.2), for 36; T73 four
 more — `NullifierProof::encode` (§2.1) and `codec::Reader::fixed` (§2.2) — for 40; its second step one in `protocol::events` (§2.3), for 41; its third four in
 `protocol::results` (§2.3), for 45; T18 one in `network::replica` (§2.2) and two in
-`p2p` (§2.2), for 48; T74 one in `protocol::ledger` (§2.3), for 49. Sites
-are named by function; line numbers drift.
+`p2p` (§2.2), for 48; T74 one in `protocol::ledger` (§2.3), for 49; T76 (2026-10-07) records
+in `network::rounds` (§2.2) the two the ledger's beacon round carried since T74 step 2,
+moved there, for 51. Sites are named by function; line numbers drift.
 
 ### 2.1 `identity`
 
@@ -73,6 +74,7 @@ are named by function; line numbers drift.
 | `log::TransparencyLog::append` | `last().unwrap()` | internal: an entry was just pushed | kept |
 | `codec::Reader::fixed` (T73) | `try_into().expect` | internal: `take(N)` returned exactly `N` bytes | kept |
 | `replica::Replica::entries_for` (T18) | index `self.entries[id]` | internal: `id` was kept only if `contains(id)` | kept |
+| `rounds::Rounds::count`, `Rounds::finish` (T74, moved by T76) | `replay(..).expect` on the counted commits, `.expect` on finishing the round | internal: only commits and reveals the round accepted are kept, so replaying them in the same order succeeds; a round with commits closes and finishes, with no reveal too | kept |
 | `p2p::Handle::ask` (T18) | 2 × `.expect` on the command channel and its answer | internal: the node's task runs while its handle lives (dropping the handle aborts it) and answers every command | kept |
 | `store::DurableLog::open` (T13) | 3 × `try_into().expect` on a record's fields | internal: slices of fixed width inside a `chunks_exact(104)` record; the file's bytes decide only whether the record chains | kept |
 
