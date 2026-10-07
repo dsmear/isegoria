@@ -200,7 +200,9 @@ Questions and votes live on **signed, append-only logs** replicated across a
 diverse consortium, made durable with **erasure coding** and periodically
 **anchored** to a public chain. There is no heavy global consensus: the security
 comes from operator **diversity** and from the fact that the scoring computation is
-**reproducible** — anyone can re-run it and catch a dishonest signer.
+**reproducible** — every consortium member re-runs it, so a dishonest signer is caught,
+while the votes stay with the members and the public checks commitments (`docs/01` D17,
+D44).
 
 ---
 
@@ -346,8 +348,9 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
 This is a research/specification-stage project. Nothing here is production-ready
 security; the cryptographic plug points are explicitly non-production. A `p2p` node
 serves everything it replicates — the drafts under review and every reviewer's rating
-joined to its pseudonym included — to any peer that connects ([`docs/10`](docs/10-roadmap.md)
-T77): run it only among machines you control.
+joined to its pseudonym included — to any peer that connects; the remedy is decided
+(`docs/01` D44) and not built ([`docs/10`](docs/10-roadmap.md) T77): run it only among
+machines you control.
 
 **Scale.** Sample-size constants are provisional admission floors, not demonstrated
 power requirements. Guessing-aware results depend strongly on format and batch design;

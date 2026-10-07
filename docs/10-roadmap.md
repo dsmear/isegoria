@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Purpose** | The ordered plan of work: what is left to fix or build, in priority order, and what each step must show to count as done. |
-| **Derived from** | `docs/08` §14 (gaps), §12 (adversarial tests AT-*), §16 (acceptance gate); `docs/01` D17–D42; the working paper in `paper/`; three reviews — the `docs/08` audit, the second review (2026-09-23), the third review (2026-09-24, `docs/08` §0-quinquies). |
-| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)), and Phase 1's remaining work was re-planned on 2026-09-28 from T24's results (T25 in four steps, T81). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). |
+| **Derived from** | `docs/08` §14 (gaps), §12 (adversarial tests AT-*), §16 (acceptance gate); `docs/01` D17–D44; the working paper in `paper/`; three reviews — the `docs/08` audit, the second review (2026-09-23), the third review (2026-09-24, `docs/08` §0-quinquies). |
+| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)), and Phase 1's remaining work was re-planned on 2026-09-28 from T24's results (T25 in four steps, T81). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). On 2026-10-07 the owner put Phase 2 in parallel with Phase 1's remaining work, on its own branch; decided T77's mechanism (`docs/01` D44), its work split into T77, T85 and T86; brought the erasure-coded distribution of the public history into the phase (T84); and confirmed the phase's order. Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). |
 
 ## Priorities
 
@@ -33,13 +33,23 @@ Three phases, in this order:
 2. **[Phase 2 — P2P network](#phase-2--p2p-network).** Nodes that persist, talk, agree,
    and draw randomness nobody can grind. A node's log survives a restart, nodes replicate
    the signed set over libp2p and agree on its order through consortium-signed cuts, and
-   the beacon runs between them (T13, T73, T18, T74). Still missing: finding an object by
-   its CID, a silent proposer's replacement, live anchoring, and four gaps the check of
-   2026-09-28 found — a replicated set any peer reads, against D17, no node process, no
-   epoch run between nodes, a writer that cannot rebuild its feed (T75–T80, T17).
+   the beacon runs between them (T13, T73, T18, T74). Still missing: a writer that
+   rebuilds its feed (T80), a silent proposer's replacement (T76), a node process (T78),
+   live anchoring (T17), who reads the replicated set — decided by D44, to build: the
+   tiers (T77), blind relays (T85), the state tree (T86) —, finding an object by its CID
+   (T75), the public history in erasure-coded shards (T84), and an epoch run between
+   nodes (T79).
 3. **[Phase 3 — The rest](#phase-3--the-rest).** The protocol boundary (every entry point
    checks, nothing is taken on the caller's word), distributed identity and the
    cryptographic review, statistical privacy, real-world pilots.
+
+**Phases 1 and 2 in parallel (2026-10-07).** By the owner's decision, Phase 2 proceeds on
+its own branch while Phase 1's review closes. Phase 2 reaches the scoring numbers only through
+T79, which runs the engine between nodes, so T79 comes last, once Phase 1's event formats and
+pilot path have settled. Until then Phase 2 changes `network`, `p2p` and the protocol's
+ledger, and changes Phase 1's interfaces — the event codec (`protocol::events`), the results
+event (T86, with `docs/08` PRIV-004.1), and the cuts and ledger `docs/20`'s fixtures run on —
+only together with their users.
 
 **What falls where.** Phase 1 holds everything that *computes a verdict from the data*:
 the `scoring` crate and the `protocol` rules that turn its numbers into outcomes (gate,
@@ -98,9 +108,11 @@ reference implementation / testnet.
   silent proposer's replacement (T76), live anchoring (T17) — and the four gaps of the
   Phase 2 check (2026-09-28): a replicated set any peer reads, against D17 (T77), a node
   process (T78), an epoch run between nodes (T79), a writer that rebuilds its feed (T80);
+  D44's blind relays (T85) and state tree (T86); the public history in erasure-coded shards
+  (T84);
   distributed identity; privacy hardening; everything external; the
-  [open problems](#open-problems) that wait on an owner decision (T69, T77's mechanism, and
-  the thresholds' operating point, T83).
+  [open problems](#open-problems) that wait on an owner decision (T69 and the thresholds' operating
+  point, T83).
 
 ---
 
@@ -289,27 +301,39 @@ review and the ratings joined to their judges' nyms included — against D17 and
 `docs/CLAUDE.md` (T77); a node runs only inside a test (T78); nothing runs an epoch
 between nodes — the steps and results the cuts order are produced only by tests (T79);
 and a writer that loses its files cannot rebuild its feed, and restarted empty it
-equivocates (T80). T77, T80 and T76 are defects in code that exists. Proposed order, to
-be confirmed by the owner: T80 and T76 first; T77 as soon as the owner picks its
-mechanism, and before T75 and T79 — the DHT hands objects to nodes that hold no replica,
-and the epoch's specification depends on what stays off the log; T78 before T79; T17
-alongside.
+equivocates (T80). T77, T80 and T76 are defects in code that exists.
+
+**Decided by the owner (2026-10-07).** T77's mechanism is `docs/01` D44, its work split into
+T77 (the tiers and the transport), T85 (blind relays) and T86 (the state tree and the fork).
+The erasure-coded distribution of the public history, which no task covered, is part of the
+phase (T84). The order: T80, T76, T78 with T17 alongside, then T77, T85, T86, T75, T84, and
+T79 last. The DHT and the shards hand objects to nodes outside the circle, so they follow the
+tiers; the archive holds the state tree's shape, so T84 follows T86; T79 needs the node
+process, the proposer's replacement, T85's channel for persons and Phase 1's settled event
+formats.
 
 | Task | What it means (plain) | Refs | Done when | Size |
 |---|---|---|---|---|
 | T75 | **Finding an object by its CID** (split from T18): the DHT (libp2p Kademlia) for light nodes that hold no full replica — who holds an object, fetched and checked against its CID | NET-010, `docs/04` §The four P2P structures | a light node fetches an object it was only given the CID of, from a node it did not know | M |
 | T76 | **A silent proposer and the withholders** (split from T74, 2026-09-28). Cut `k` is proposed by member `k mod n` alone: a proposer that stays silent stalls every cut after it. Specify and build its replacement (a view change: after a bounded wait, the next member proposes, and members sign at most one cut per number and view), and exclude an epoch's withholders from signing the cuts that publish its draws and results (`docs/04` §The epoch's beacon, rule 6) | PROTO-015, §9.4, NET-006 | with one member stopped, the others keep cutting; a withholder's signature does not count where rule 6 excludes it | M |
 | T17 | **Real anchoring:** submit to a calendar, read Bitcoin headers, schedule it, anchor the checkpoint head | NET-009, DS-5 | a checkpoint head is anchored and verified end to end | M |
-| T77 | **The replicated set keeps what D17 keeps private** (found 2026-09-28; a defect against D17 and `docs/CLAUDE.md`; its mechanism waits on the owner, [Open problems](#open-problems)). A node answers the Summary and Want of any peer that connects and pulls from it on connect, and a node started without a writer key replicates the whole set; the transport authenticates a libp2p key that is bound to no writer key. So any peer reads what a node holds, in the clear: the drafts under review (deposits), the panels before their verdict (assignments and reviewer admissions), every reveal with its judge's nym and rating (lifecycle steps), the batches of each respondent id (admissions), and the results' records per nym, residuals included. D17 decided that votes are never published in the clear and that, until proofs of the computation, only the consortium holds them to re-run the engine; `docs/CLAUDE.md` forbids questions under review and voting patterns on a public register in the clear; `docs/04` keeps the engine's inputs off the log — the reveals put the ratings back on it. What is open is how, and whether a relay may hold the votes. Until it is fixed, a network runs only among machines its operator controls | D17, PRIV-004, PRIV-P5, PRIV-P6, `docs/08` G-21, Q-19 | the mechanism recorded in `docs/01`; a peer outside the circle D17 allows gets no draft under review, no panel before its verdict and no rating joined to a nym (a test with such a reader); `docs/04` §Who reads and `docs/08` PRIV-P5/P6 restated | M (option a) to L (b, c) |
+| T77 | **The replicated set keeps what D17 keeps private** (found 2026-09-28, a defect against D17 and `docs/CLAUDE.md`; mechanism decided 2026-10-07, `docs/01` D44). Today a node answers the Summary and Want of any peer and pulls from it on connect, a node without a writer key replicates the whole set, and the transport authenticates a libp2p key bound to no writer key: any peer reads the drafts under review, the panels before their verdict, every reveal with its judge's nym, the batches of each respondent id and the results' records per nym. Build D44's tiers: every kind of object assigned its tier (`docs/04` §Who reads); two feeds per member, public and circle, each under its own key, a cut marking both; a member's signature binding a transport key, a circle feed's entries served and announced only to bound keys; a node without a member key holding the public tier only. Until it is done, a network runs only among machines its operator controls | D17, D44, PRIV-004, PRIV-P5, PRIV-P6, `docs/08` G-21 | a test with a reader outside the circle: it obtains no circle entry or object by sync, gossip or on connect, and learns of a circle feed only its marks; members converge on both tiers and cut them; `docs/04` §Who reads and `docs/08` PRIV-P5/P6 restated | M |
 | T78 | **A node process** (found 2026-09-28). The only binary in the workspace is `characterization`: a node is `p2p::Handle::spawn` called from a test, and the tests between nodes (AT-NET-14, AT-NET-17) run their nodes as tasks of one test process. A binary started from a configuration file — network id, writer set, consortium and threshold, its writer key and member role, its directories, listen and peer addresses, periods — that runs until stopped and resumes from its files. It keeps the collected cuts incrementally: a member's `duties` re-collects every cut from number 0 and scans every member object at each look, a cost that grows with the history | Milestone 2, NET-010 | three member processes and a relay, started as separate OS processes from their configuration files, reach the same cuts and beacon values over two epochs; one stopped and restarted rejoins without equivocating | M |
-| T79 | **An epoch run between nodes** (found 2026-09-28). The members only cut and run the beacon (`p2p::member`); nothing reads the ledger's state to do an epoch's work — the lottery at the closing cut, the reviewer draws, the commit and reveal deadlines, the engine and its results event, the band's extra round, appeals and pilots. That flow lives in `end_to_end.rs::run_epoch` and `orchestrator`, called by tests, so no question is processed between nodes. Persons have no way in either: a review's commit and reveal are lifecycle steps, which the ledger takes only from the consortium. Specify first (`docs/04`, `docs/05`): which member publishes each step, how the others check it before co-signing the cut that applies it (the same deterministic computation, invariant 7), how a person's commit and reveal reach a member, the deadlines as cuts, and what stays off the log (T77) | PROTO-015, INV-7, `docs/08` G-22, `docs/05` [3]–[6] | node processes (T78) run an epoch end to end — deposits, lottery, panels, commits, reveals, scoring, results — every node reaching the same state; a step that differs from the deterministic computation is not co-signed | L |
+| T79 | **An epoch run between nodes** (found 2026-09-28). The members only cut and run the beacon (`p2p::member`); nothing reads the ledger's state to do an epoch's work — the lottery at the closing cut, the reviewer draws, the commit and reveal deadlines, the engine and its results event, the band's extra round, appeals and pilots. That flow lives in `end_to_end.rs::run_epoch` and `orchestrator`, called by tests, so no question is processed between nodes. Persons have no way in either: a review's commit and reveal are lifecycle steps, which the ledger takes only from the consortium. Specify first (`docs/04`, `docs/05`): which member publishes each step, how the others check it before co-signing the cut that applies it (the same deterministic computation, invariant 7), how a person's commit and reveal reach a member (T85), the deadlines as cuts, and which tier each step belongs to (D44, T77) | PROTO-015, INV-7, `docs/08` G-22, `docs/05` [3]–[6] | node processes (T78) run an epoch end to end — deposits, lottery, panels, commits, reveals, scoring, results — every node reaching the same state; a step that differs from the deterministic computation is not co-signed | L |
 | T80 | **A writer rebuilds its feed before it writes** (found 2026-09-28; a defect in code that exists). `docs/04` §A node's own disk says a node whose log is damaged before its tail recovers its history from its peers: nothing does, the node refuses to start (`StartError::Store`). And a writer started with its files lost signs `seq` 0 again at its next publish — an equivocation (`docs/04` §A writer's own feed), after which its feed stops and nothing it writes counts in a cut. Before writing, the writer compares its log with its feed in its replica and a peer's, and rebuilds its log and objects from the entries its key signed | NET-010, NET-011, `docs/08` G-23 | a writer restarted with lost or damaged files rebuilds its feed from a peer and continues at the next `seq`; it never signs a `seq` that a replica it can reach already holds | S |
+| T84 | **The public history in erasure-coded shards** (found missing from every task on 2026-10-07; part of the phase by the owner's decision). `network::erasure` codes and authenticates shards (T16); nothing places a shard, audits a holder or repairs a segment. Code the public archive per cut segment — the public entries a cut adds and their objects, the state tree's shape (T86) —; bind each segment's shard manifest to a consortium-signed object; place each shard by a function of the segment, its index and the storage nodes (found through T75); audit holders on a period; rebuild a segment below its threshold and place its shards again; record `(k, m)` in `docs/14`. A circle object is never coded to a node outside the circle: the code is systematic (D44) | D14, D44, NET-007, `docs/08` G-24, DS-4 | with `m` holders of a segment stopped, a node with no replica rebuilds it and checks it against the signed cut; after holders are lost, repair restores every shard; a corrupted shard is dropped (AT-NET-06) | L |
+| T85 | **Blind relays** (D44, 2026-10-07). A person sends each event sealed to a member's key (HPKE, RFC 9180) through a relay, as Oblivious HTTP (RFC 9458): the relay forwards bytes it cannot read, the member opens the event, checks it as its entry point does and logs it on its circle feed. Relays leave the writer set; any member may log a person's event, the first in a cut winning (PROTO-015); the members' HPKE keys are part of the network's configuration. An audited HPKE library is preferred (`docs/CLAUDE.md`). It is the channel T79 uses for a review's commit and reveal | D44, invariant 4, PRIV-P4, PRIV-003 | a person's event reaches the ledger through a relay that never holds its plaintext, and the member receives it from the relay's peer, never from the person's (a test over loopback with a relay between); a relay's own entry is refused | M |
+| T86 | **The state tree and the fork** (D44, 2026-10-07). A sparse Merkle tree with one leaf per nym, at a position fixed by the nym, holding a hiding commitment to its records, re-salted each epoch from a key the nym derives per role from its credential and hands the circle once. Each epoch the members publish its root with the inputs' root, and its shape in the public archive; a nym fetches its leaf and path; a new nym proves its position empty. The results event with its records stays in the circle (`protocol::results`, together with Phase 1 and `docs/08` PRIV-004.1). Specify the fork: from a member, or from the last anchored root with each nym opening its leaf | D44, D16, invariant 5, INV-7, `docs/08` DS-9 | a nym proves its records against an anchored root; a nym with a record cannot prove its position empty; every leaf changes each epoch, so the public tree does not tell which nyms acted; a fork with no member rebuilds the state of every nym that opens its leaf, and a nym that does not cannot enter as new | L |
 
 **Milestone 2 — "nodes talk and agree".** Several processes (T78) persist, gossip,
 replicate the signed log and converge on the same checkpoint, a silent proposer
 notwithstanding (T76), and run an epoch between them from deposits to results (T79); the
 beacon is grind-free; checkpoint heads are anchored end to end (T17); no peer outside the
-circle D17 allows reads a vote, a draft under review or a panel before its verdict (T77).
+circle D17 allows reads a vote, a draft under review or a panel before its verdict (T77);
+a writer that lost its files rebuilds its feed (T80); persons reach the members through
+blind relays (T85); every nym's state is committed in a public tree a fork restarts from
+(T86); the public history is spread in erasure-coded shards a node rebuilds with holders
+missing (T84).
 
 ---
 
@@ -393,9 +417,11 @@ Not a phase; done alongside every task.
   carries the beacon's commits and reveals between nodes. T73 (done) gave T18 its codecs for proofs and events. T13 and T74 give T5's weights
   and the reputation histories of T50–T51 a durable place to live. Of the gaps found on
   2026-09-28, T80 is a defect in code that exists and comes first, with T76. T77 is a
-  defect too, against D17, whose mechanism waits on the owner's choice; it precedes T75,
-  since the DHT hands objects to nodes that hold no replica, and T79, whose specification
-  depends on whether a reveal stays on the log. T79 runs in T78's process and needs T76,
+  defect too, against D17, whose mechanism is D44 (2026-10-07); it precedes T75 and T84,
+  since the DHT and the shards hand objects to nodes that hold no replica, and T79, whose
+  specification depends on which tier each step belongs to. T85 is the channel T79's
+  persons use; T86 changes the results event T79 publishes; T84 needs T75 to find holders
+  and T86 for the tree's shape. T79 also waits on Phase 1's event formats. T79 runs in T78's process and needs T76,
   since an epoch run between nodes stalls with its proposer.
 - **Phase 3.** T66 is the minimal form of T46's `Panel`. T58 builds on T33/T43 and
   draws replacements from the beacon (T37, done). T20 supersedes T11. T37's
@@ -413,10 +439,11 @@ owner before it becomes a task with a "done when". The options are stated and no
 taken. `docs/08` §17 keeps the older unresolved questions (Q-1–Q-17) in the same spirit,
 and §18 the residual risks each one carries meanwhile.
 
+T77's mechanism, open here until 2026-10-07, was decided by the owner that day (`docs/01` D44).
+
 | Id | Problem | Options | Refs |
 |---|---|---|---|
 | T69 | **Respondent profiling through contested facts.** The respondent pseudonym is the same on every batch, so whoever holds the answer sheets with their proofs can join one person's sheets over time; since D38 the contested facts a person misses reveal their latent class, so the joined sheets are a profile. The score stays balanced; the respondent's privacy does not | (a) a batch-scoped respondent nullifier, as Semaphore's external nullifier — gives up invariant #5's single respondent pseudonym; (b) never keep or publish answer rows joined to the id — in tension with reproducibility (PRIV-004); (c) an RLN-style per-epoch rate limit in place of a stable id | PRIV-006, PRIV-P8; `docs/08` §17 Q-18, §18; the task row in [3.3](#33--statistical-privacy) |
-| T77 | **How the replicated set keeps what D17 keeps private.** Any peer that connects to a node reads everything the node replicates: the drafts under review, the panels before their verdict, every reveal with its judge's nym and rating, the batches of each respondent id. The goal is decided — D17: votes are never published in the clear, and until proofs of the computation (D14 step 4) only the consortium holds them to re-run the engine; `docs/CLAUDE.md`: no questions under review or voting patterns on a public register in the clear. The mechanism is not, nor whether a relay — a writer that is not a consortium member — may hold the votes. The options combine | (a) **closed replication**: the private objects replicate only inside the circle — the consortium, and the relays if the owner admits them — each transport key bound to a writer key and the sync served accordingly; light nodes and the public get what is published (items after their verdict, results without per-nym records, cuts), and the freedom to fork keeps only that; (b) **confidential objects**: drafts and panels encrypted to the consortium's threshold key and opened when the item is decided, reveals never — needs T19's distributed key, and replay cannot re-check a reveal without it; (c) **the voting patterns off the log**: a reveal logged as the hash of its opening, the rating and nonce kept by the members with the epoch's inputs under the results' Merkle root (as T73 did for the results), a draft logged by CID with its content held by the members until publication — replay no longer re-checks a reveal, the holders of the inputs do, and a panel is still visible before its verdict | D17, PRIV-004, PRIV-P5, PRIV-P6; `docs/08` G-21, §17 Q-19, §18; the task row in [2.3](#23--build-the-runtime) |
 | T83 | **The thresholds' operating point.** Every calibration procedure of `docs/14` sets its threshold where the error rates it controls meet a target: near `τ`, the share of items passed that should fail and of items failed that should pass; at Level B, the clean items flagged and the leaning ones missed. The studies give the rates at each value (`docs/13`); what the network accepts is not decided, and the calibration pilot cannot set a threshold without it | (a) **bounds per gate**: a ceiling on each error rate, measured at the pilot's scale — the simplest to audit; (b) **a cost ratio**: one false pass weighed against `c` false failures, each threshold at the least expected cost — one number per gate, the rates following from it; (c) **today's rates**: the provisional values kept and the rates they give at the pilot's scale adopted as the bounds — nothing to decide, but the values came before the measurements | `docs/07` §13–§14, `docs/08` SC-1, OR-3; `docs/14`; T25 step 4, T27 |
 
 ---

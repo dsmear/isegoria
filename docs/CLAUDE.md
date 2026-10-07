@@ -56,7 +56,10 @@ them.
 ## Current priorities
 
 The six crates exist. Follow `10-roadmap.md`: **mathematics**, then **P2P network**,
-then **the rest**. Task status belongs there; calibration procedures belong in
+then **the rest**. By the owner's decision of 2026-10-07, Phase 2 proceeds in parallel with
+Phase 1's review, on its own branch, in the order of `10` §2.3; it changes Phase 1's
+interfaces (the event codec, the results event, the cuts and ledger) only together with
+their users. Task status belongs in `10`; calibration procedures belong in
 `14-parameter-register.md`; measurement provenance belongs in `13-characterization.md`.
 
 For Phase 1 corrections, read `15-phase1-review.md` before implementing. It records

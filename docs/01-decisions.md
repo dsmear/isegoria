@@ -224,6 +224,10 @@ and is faithful to the separation-of-powers logic that underpins the whole desig
 
 ## D16 — Consortium selection: no purely technical solution
 
+> **Amended by D44 (2026-10-07):** what a fork takes is the public history and the state
+> tree, and the circle's data only through a member that joins it; the votes are not needed
+> to continue.
+
 **Choice.** A combination of: reserved seats per category (including categories of
 declaredly opposite orientation) + entry deposit + per-category cap. The ultimate
 defenses are the **reproducibility of the computation** (a dishonest signer unmasks
@@ -239,6 +243,8 @@ instead of permanent.
 ---
 
 ## D17 — Who may re-check the computation: consortium now, cryptographic proofs later
+
+> **Enforced on the replicated set by D44 (2026-10-07)**, to be built (`10` T77, T85, T86).
 
 **Choice.** Verifying the scores requires the votes, and votes are **never published
 in the clear** (that would enable statistical de-anonymization). Therefore:
@@ -1035,3 +1041,92 @@ decision; the supplement's DIF studies are run again on it before T25's fourth s
 them (`docs/13`). The histogram also takes an undeclared floor as a skew: a batch that
 guesses, declared open, is now one class, its discriminations a fifth low and its ability
 read skewed (`docs/02` §B.1) — the floor of D25 keeps the metric.
+
+---
+
+## D44 — Who reads the replicated set: three tiers, commitments in public, blind relays, a state tree keyed by nym
+
+> **Decided (2026-10-07)** by the owner. Answers `docs/08` §17 Q-19 and settles the mechanism
+> G-21 left open; built by `docs/10` T77 (the tiers and the transport), T85 (blind relays)
+> and T86 (the state tree and the fork). Amends D16 (what a fork takes) and `04` §Replication
+> (relays no longer write). **Not implemented yet:** until T77, a network runs only among
+> machines its operator controls.
+
+**Choice.**
+- **Three tiers, fixed per kind of object.**
+
+  | Tier | Who reads | Objects |
+  |---|---|---|
+  | public | anyone, light nodes and forks included | cuts and their signatures; the beacon's commits, reveals and outcomes; anchors; each epoch's roots (its inputs, the state tree); each decided item's outcome by content id; retired items, if governance releases them |
+  | circle | the consortium members, nobody else | deposits (the drafts), reviewer and respondent admissions, panels, commits, reveals, every lifecycle step, the engine's inputs, the results' records per nym |
+  | self | one nym, for its own records only | its leaf of the state tree and the path proving it |
+
+  An item admitted to the pool stays in the circle: it is administered, and publishing it
+  is the leakage `05` [9] guards against.
+- **Two feeds per member.** A member writes public objects on one feed and circle objects on
+  another, each under its own key in the writer set; a cut marks both. A node serves a
+  circle feed's entries only to a peer whose transport key a member's key has bound by
+  signature; anyone else learns of a circle feed its marks (length and head), never its
+  entries or their objects.
+- **Commitments in public, data in the circle.** Each epoch publishes the root of its inputs
+  (`04` §Events and replay) and the root of the state tree; the results event with its
+  records per nym stays in the circle.
+- **Blind relays.** A person sends each of its events encrypted to a member's key through a
+  relay, as Oblivious HTTP (RFC 9458) with HPKE (RFC 9180): the relay sees where a message
+  comes from and not what it says, the member what it says and not where it comes from.
+  Relays no longer write: the writer set is the members' keys (invariant #4 unchanged — a
+  person still signs nothing). Any member may log a person's event, so refusing one takes
+  every member.
+- **The state tree, keyed by nym.** A sparse Merkle tree: each nym's leaf sits at a position
+  fixed by its nym, and holds a hiding commitment to its records (the records and a salt).
+  Its shape — which positions hold a leaf, and the internal hashes — is public, kept in the
+  erasure-coded archive (`10` T84). Every leaf is re-salted each epoch, from a key the nym
+  derives per role from its credential and hands the circle once, so the public tree does
+  not show which nyms acted and the nym can open its leaf at any epoch. A nym proves its
+  records by the path to its leaf and their opening; a new nym proves its position empty.
+- **A fork.** A fork that keeps a member keeps the circle's data, negative records included.
+  A fork that keeps none restarts from the last anchored state root: a nym re-enters by
+  opening its own leaf. Its position is fixed by its credential (invariant #5) and occupied,
+  so it cannot claim to be new: a bad record cannot be left behind. The votes are not needed
+  to continue; the state is.
+
+**Why.**
+- The engine needs the votes in the clear, and every member re-runs it to co-sign (D17,
+  invariant #7). Hiding the votes from the members would need computing on encrypted data —
+  orders of magnitude slower for iterative fits with a bootstrap — or giving up the re-run.
+  What can be kept is the votes from everyone outside the members. The public checks
+  commitments instead, and the same roots are the statement a proof of the computation will
+  prove (D14 step 4).
+- A public panel with public reveals is a verifiable receipt (`05` [4], `06` vote-buying), a
+  target for brigading before the verdict, and a fingerprint of each nym's position, which
+  D17 keeps private. A public deposit names its author's id, whose quality history the
+  results publish: the review is no longer blind (`05` [4]).
+- A relay that signs persons' events sees one address behind an author's deposits and an
+  evaluator's reveals (invariant #4). A blind relay sees addresses and no content, a member
+  content and no address: the separation D15 keeps between who knows a person and who
+  issues its credential, applied to the network.
+- A fork that rebuilt the state from the records participants chose to bring would let a nym
+  leave a bad record behind (invariant #5). A public position fixed by the nym closes it.
+- The cost is a signature check per connection, an HPKE seal and open per event, and a few
+  hashes per participant per epoch. Nothing is added on the engine's path.
+
+**Rejected.**
+- Q-19 (b), drafts and panels encrypted to the consortium's threshold key: the members must
+  open them to compute, so it hides nothing the computation does not show them, and it adds
+  a threshold decryption with proofs per object, a distributed key (T19) and a re-encryption
+  of the archive at every change of members.
+- Q-19 (c) alone, the voting patterns off the log: the commits and the assignments still name
+  the panel before its verdict; inside the circle it adds nothing, and its useful part, the
+  commitments in public, is kept above.
+- Relays inside the circle: it widens D17's "only the consortium" to writers chosen with less
+  care.
+- Self-custody alone for a fork: the whitewashing above.
+
+**Residual.**
+- One member sees the whole circle, as D17's interim accepts. A proof of the computation lifts
+  it for the verifiers, not for whoever proves.
+- The volume of each circle feed per cut is public; batching the writes (`10` T28) blurs it.
+- A relay and a member that collude join an address to its content: relays are run by
+  operators other than the members.
+- How long the members keep the raw votes after an epoch's results are signed is not decided:
+  it waits on which past inputs the engine reads again.

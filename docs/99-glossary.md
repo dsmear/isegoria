@@ -510,6 +510,27 @@ authorities issued fake certificates without anyone noticing for months.
 it being visible"* without needing a blockchain, at costs and latencies orders of
 magnitude lower.
 
+## Sparse Merkle tree and proof of absence
+
+A Merkle tree with one position for every possible key, almost all of them empty: a key's
+position is fixed by the key itself. Besides proving that a record is in the tree, you can
+prove that a key has **no** record, by showing its position empty.
+
+**Why it is relevant here.** The state of every pseudonym is committed in such a tree
+(`04`, `01` D44). If the consortium vanishes, the network restarts from the last anchored
+root: each pseudonym re-enters by opening its own leaf. One with a bad record cannot claim
+to be new, because its position, fixed by its credential, is visibly occupied.
+
+## Blind relay (Oblivious HTTP)
+
+A message travels sealed for its final recipient through an intermediary. The intermediary
+knows **where** it comes from but cannot read it; the recipient reads it but sees only the
+intermediary as its sender. Standardized as Oblivious HTTP (RFC 9458), over HPKE (RFC 9180).
+
+**Why it is relevant here.** No single operator holds a person's network address together
+with what it wrote, so the address cannot join the person's author and evaluator
+pseudonyms (`04`, `01` D44).
+
 ## Content-addressed storage
 
 A file is identified by the hash of its own content rather than by a path. Consequence:

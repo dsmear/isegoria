@@ -361,10 +361,11 @@ cargo clippy --workspace --all-targets
 | Gossip transport, replication of the signed set | **Real** — libp2p gossipsub + request-response, a grow-only set with equivocation evidence (T18) | — |
 | Protocol state from the replicated set, merge rules; cuts and beacon between nodes | **Real** — signed cuts fix the order, the first of conflicting events wins; members propose in turn, co-sign, commit and reveal on their feeds (T74) | a silent proposer's replacement (T76) |
 | DHT | Documented, not implemented (T75) | libp2p Kademlia |
-| Who may read the replicated set | **None** — a node serves its whole set to any peer that connects, the drafts under review and the reveals included, against D17 (T77) | the mechanism the owner picks for T77: closed replication, confidential objects, or the voting patterns off the log |
+| Who may read the replicated set | **None** — a node serves its whole set to any peer that connects, the drafts under review and the reveals included, against D17 (T77) | D44: three tiers, two feeds per member, the circle served only to member-bound transport keys (T77); blind relays (T85); a state tree keyed by nym (T86) |
 | A node process | **None** — nodes are started by tests (`Handle::spawn`) (T78) | a binary started from a configuration file |
 | An epoch run between nodes | **None** — the draws, reviews, engine run and results are driven by tests (`end_to_end.rs::run_epoch`) (T79) | a member's epoch duties, specified first |
 | A writer's recovery | **None** — a damaged log does not start; lost files mean an equivocation at the next publish (T80) | the feed rebuilt from the replicas before writing |
+| Erasure-coded distribution of the public history | **None** — `network::erasure` codes and authenticates shards only | placement, audit and repair per cut segment (T84) |
 
 Reference implementations are clearly marked and provide **no** security; they exist
 to make the pipeline testable end-to-end.

@@ -8,7 +8,7 @@
 | Whitewashing (abandon a compromised ID) | Non-rotatable ID + deterministic pseudonyms + zero-weight probation | `03` P2, M3 |
 | Statistical deanonymization of the proposer | Text normalization, temporal mixing, domain quotas | `03` |
 | Joining the proposals register with the votes register | Unlinkable role pseudonyms | `03` M3 |
-| Brigading specific items | Random reviewer assignment; item not searchable before the verdict | `05` [4] |
+| Brigading specific items | Random reviewer assignment; item not searchable before the verdict — the drafts and the panels stay in the members' circle (`01` D44, built by `10` T77) | `05` [4], `04` |
 | Herding / information cascades | Commit-reveal, blind judgments, no visibility of others' votes | `05` [4] |
 | Majority capture | Bridging: the majority alone is not enough, cross-cutting approval is needed (on master the score still keeps part of the camp-size effect; corrected by the side-balanced score, D32/T49) | `02` A |
 | Coordinated cartel | Detection on the correlation of model residuals over long histories — a jittered cartel is flagged, like-minded honest reviewers are not (D39, T56); a detected cluster is never seated twice on a panel (D40, T57); the √k discount stays in the engine for analysis | `02` anti-collusion, `05` [4] |
@@ -17,12 +17,13 @@
 | Biased item passed off as a contested fact | The source check: the key must follow, by a declared rule, from a primary source cited at deposit — an interpretive key is rejected on DIF as before; and a contested fact reaches a test only in a selection whose admission cost is within the tolerance: the sum of each fit's estimated DTF over its own distribution and counted classes (D38). Cancellation can occur within a fit; this cost does not certify the whole test's DTF (`15` A2) | `02` §B.5, §B.7 |
 | Profiling a respondent's camp from the contested facts they miss, joined across batches | **Open** (`10` T69): the respondent pseudonym is the same on every batch, and contested facts are administered continuously since D38; a batch-scoped nullifier, sheets never kept with the id, or a per-epoch rate limit are the options, none chosen | `08` §8.2 PRIV-P8, `10` T69 |
 | Grinding the public randomness (the lottery, panels, exploration, honeypot placement, sortition) | Every draw seeds from the epoch's commit-reveal beacon among consortium members, committed before the deposit window closes and revealed after, so no deposit, log order or checkpoint head moves it; the lottery reads the deposits as a set. A member that withholds its reveal is excluded from the epoch's signing set and recorded; the last revealer can still choose between two values, publicly, until the threshold signature (T19) | `04` §The epoch's beacon, `01` D41 |
-| Vote-buying | Random assignment + no verifiable receipt | `05` [4] |
+| Vote-buying | Random assignment + no verifiable receipt: the reveals stay in the members' circle, never on a register anyone reads (`01` D44, built by `10` T77) | `05` [4], `04` |
+| Linking a person's roles by network address | Blind relays: a relay sees where an event comes from and not what it says, a member what it says and not where it comes from; relays and members are run by different operators (`01` D44, `10` T85) | `04` |
 | Author drawn onto their own item's panel | Accepted residual risk: the author's judge pseudonym is unlinkable by design, so it cannot be excluded; random assignment makes it one vote in 7–11, bridging needs agreement across camps, and honeypots measure reviewers | `05` [4], `08` §9.1 |
 | Item leakage (exposure) | Broad pool, rotation, parametric items, retirement on detection | `05` [9] |
 | Meta-level capture (parameters, honeypots, consortium) | Stratified sortition, supermajority + delay, freedom to fork | `05`, `04` |
 | Score falsification by a signer | Deterministic reproducible computation: anyone redoes the math and unmasks it | `04` |
-| Betrayal by the whole consortium | Freedom to fork: the network abandons it with all the data | `04` |
+| Betrayal by the whole consortium | Freedom to fork: the network abandons it with the public history and the state tree, each nym re-entering by opening its own leaf — a nym's position is fixed by its credential, so a bad record cannot be left behind (`01` D44, `10` T86) | `04` |
 | Rewriting the past | Hourly anchoring to a public chain | `04` |
 | Collusion of the issuing committee | Threshold t-of-n issuance with heterogeneous issuers | `03` M2 |
 

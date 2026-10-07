@@ -99,10 +99,12 @@ The **two ultimate defenses** matter more than any entry rule:
 1. **Reproducibility of the computation** — a signer signs the result of a public
    deterministic computation; if it cheats, anyone redoes the math and unmasks it. It
    need not be chosen well to be caught.
-2. **Freedom to fork** — if the consortium betrays, the data lives on every node and
-   the code is open: the community takes the whole history, abandons that consortium,
-   and restarts with a different set of signers. Not the barrier to entry, but the
-   freedom to leave, keeps the consortium honest.
+2. **Freedom to fork** — if the consortium betrays, the public history lives on every node
+   and the code is open: the community takes it, abandons that consortium, and restarts
+   with a different set of signers. The votes and the drafts under review stay with the
+   members (`01` D17); a fork keeps them through a member that joins it, and otherwise
+   restarts from the state tree, each nym opening its own leaf (`01` D44, §Who reads). Not
+   the barrier to entry, but the freedom to leave, keeps the consortium honest.
 
 System parameters and meta-level composition: **stratified sortition** (see `05`), not
 voting.
@@ -313,7 +315,8 @@ carries the judge's nym, its probability and its nonce, so the log holds every r
 first panel or an extra round joined to its judge's nym, and since replication every
 replica holds them, relays included, for any peer to read (§Who reads). The results event
 keeps the engine's inputs off the log; the reveals put the ratings on it, against `01`
-D17 (`10` T77).
+D17. `01` D44 keeps every lifecycle step, the reveals included, in the members' circle, and
+publishes the inputs' root with the state tree's (`10` T77, T86).
 
 With the four kinds before it, this is a node's whole protocol state (`10` T73); the
 issuing committee's registries are the committee's, not a node's.
@@ -323,25 +326,48 @@ issuing committee's registries are the committee's, not a node's.
 A node's log is its own; replication makes every infrastructure node hold the same **set**
 of signed entries, whatever order they arrive in, over whatever path (`10` T18).
 
-**Who writes.** Only infrastructure nodes sign entries: the consortium members and the
-relays, whose ed25519 keys form the network's **writer set** (configuration; how a relay
-joins it is the consortium's decision). A person never signs an entry: one key under a
+**Who writes.** Only infrastructure nodes sign entries, whose ed25519 keys form the
+network's **writer set** (configuration). A person never signs an entry: one key under a
 person's deposits and reviews would link its author and evaluator pseudonyms (`00`
-invariant 4). A person hands its event to a relay; the event carries its own nullifier
-proof, and the relay's signature says only that this relay logged it.
+invariant 4). The event carries its own nullifier proof, and the writer's signature says
+only that this writer logged it. Today the writer set holds the consortium members and the
+relays, and a person hands its event to a relay. `01` D44 decides that only the members
+write: a person sends its event encrypted to a member through a **blind relay**, as Oblivious
+HTTP (RFC 9458) with HPKE (RFC 9180) — the relay learns where the message comes from and not
+what it says, the member what it says and not where it comes from — and any member may log
+it (`10` T85).
 
-**Who reads.** Nothing restricts it yet. A node answers the Summary and Want of any peer
-that connects and pulls from it on connect, and a node started without a writer key
-replicates the whole set; the transport authenticates a peer's libp2p key, which is bound to
-no writer key. So any peer reads, in the clear, what the set holds: the drafts under review
-(deposits), the panels before their verdict (assignments and reviewer admissions), every
-reveal with its judge's nym and rating, the batches of each respondent id, and the results'
-records per nym — against §Why not a permissionless blockchain, `08` PRIV-P5 and
-PRIV-P6, and `01` D17: votes are never published in the clear, and until proofs of the
-computation only the consortium holds them, to re-run the engine. How the set keeps them
-— closed replication, confidential objects, or the voting patterns off the log — and
-whether a relay may hold them are open (`10` T77); until then, a network runs only among
-machines its operator controls.
+**Who reads (`01` D44).** Every kind of object belongs to one tier:
+
+| Tier | Who reads | Objects |
+|---|---|---|
+| public | anyone, light nodes and forks included | cuts and their signatures; the beacon's commits, reveals and outcomes; anchors; each epoch's roots (its inputs, the state tree); each decided item's outcome by content id; retired items, if governance releases them |
+| circle | the consortium members | deposits (the drafts), reviewer and respondent admissions, panels, commits, reveals, every lifecycle step, the engine's inputs, the results' records per nym |
+| self | one nym, for its own records | its leaf of the state tree and the path proving it |
+
+An item admitted to the pool stays in the circle: it is administered, and publishing it is
+the leakage `05` [9] guards against. A member writes public objects on one feed and circle
+objects on another, each under its own key; a cut marks both. A node serves a circle feed's
+entries only to a peer whose transport key a member's key has bound by signature, and
+anyone else learns of a circle feed its marks, never its entries (`10` T77).
+
+The **state tree** is a sparse Merkle tree with one leaf per nym, at a position fixed by
+the nym, holding a hiding commitment to its records. Its shape is public, in the
+erasure-coded archive (§Durability); every leaf is re-salted each epoch from a key the nym
+derives per role from its credential and hands the circle once, so the public tree does not
+show which nyms acted. A nym proves its records by the path to its leaf and their opening,
+and a new nym proves its position empty: a fork that keeps no member restarts from the last
+anchored state root, and a nym cannot leave a bad record behind by claiming to be new (`00`
+invariant 5, `10` T86).
+
+**Who reads, as built.** Nothing restricts it yet. A node answers the Summary and Want of
+any peer that connects and pulls from it on connect, and a node started without a writer
+key replicates the whole set; the transport authenticates a peer's libp2p key, which is
+bound to no writer key. So any peer reads, in the clear, what the set holds: the drafts
+under review, the panels before their verdict, every reveal with its judge's nym and
+rating, the batches of each respondent id, and the results' records per nym — against §Why
+not a permissionless blockchain, `08` PRIV-P5 and PRIV-P6, and `01` D17. Until T77, a
+network runs only among machines its operator controls.
 
 **A signed entry** is a writer's log entry (`seq`, `prev`, `payload`, recomputed `hash`,
 exactly as the log chains it) and the writer's signature over
@@ -480,7 +506,8 @@ when the cut right after the closing one applies it, and at the end of that cut 
 finishes: its outcome (the value if `t` revealed, who revealed, who withheld) is part of
 the state. A commit or reveal in any other cut, or that the round refuses, is refused.
 
-Finding an object by its CID without a full replica, the DHT, is `10` T75. Nothing runs an
+Finding an object of the public tier by its CID without a full replica, the DHT, is `10`
+T75; the circle's objects are never offered through it (§Who reads). Nothing runs an
 epoch's work between nodes yet — the draws, the reviews, the engine, and the lifecycle steps
 and results they produce, which the members log (`10` T79) — and a node is started only by
 a test (`10` T78). In code: `network::replica`, `network::cut`, `protocol::ledger`, the
@@ -507,6 +534,22 @@ lives only on the signers but on **all** nodes, even the light ones that come an
 Slower to write (encoding + distribution) and read (fragment gathering), but
 **simultaneously more distributed and more reliable**.
 
+**What is coded (`01` D44).** The **public archive**: the cuts and their signatures, the
+beacon's records, the anchors, each epoch's roots, the state tree's shape and the released
+items. It is the history that must outlive the consortium, so it is spread over every node.
+The circle's data is not: Reed–Solomon here is systematic, its first `k` shards are the
+object itself cut into pieces, so a shard handed to a node outside the circle discloses
+what it holds; every member keeps the circle in full, n copies in different jurisdictions.
+
+**Placement, audit, repair (`10` T84).** The archive is coded per cut — the public entries
+the cut adds and their objects, one segment — not per object. A segment's shard manifest
+(`network::erasure`, the hash of each shard) is bound to a consortium-signed object, so a
+holder checks its shard against something the members signed. Each shard's holder follows
+from the segment, the shard's index and the set of storage nodes, so any node computes who
+should hold it; holders are audited on a period, and a segment with too few shards left is
+rebuilt and its missing shards placed again. In code today: the coding and the shard
+authentication only (`network::erasure`, T16); placement, audit and repair are T84.
+
 ---
 
 ## Long-term immutability: anchoring to a public chain
@@ -530,7 +573,7 @@ schedule are `10` T17.
 | | Person-nodes | Signer-nodes (consortium) | Light-nodes |
 |---|---|---|---|
 | What they are | pseudonymous participants | always-on servers | any client |
-| What they do | propose, judge, answer | full copy + sign the state | slice of data + verify signatures |
+| What they do | propose, judge, answer; keep their own records (`01` D44) | full copy + sign the state | shards of the public archive + verify signatures |
 | How many | unlimited | a few dozen (cap ~n²) | unlimited |
 | More of them = | safer | slower | slows nothing |
 | Security from | quantity + independence | diversity of who controls them | — |
