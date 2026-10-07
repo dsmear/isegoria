@@ -580,6 +580,26 @@ Sixteen are equivalent:
   `at_net_18_caught_up_only_with_the_whole_feed`, which checks the writer's feed the moment
   it counts as caught up; the re-run of those mutants gives 2 caught, 2 timeouts.
 
+## Run 24 — T76, first step: a silent proposer replaced by a change of view
+
+Same settings as run 23, on the step's diff, one run per crate:
+
+- `network/src` (`--test=view_change`, `--test=cut_signing`, `--test=cuts`): 112 mutants — 88
+  caught, 10 unviable, 14 missed: the list of named members accepting a repeat, `changed_view`
+  (used only by `p2p`), the tie between two cuts of one view in `forced`, a signature in the
+  view of the member's own view change, a proposal looked for outside its view, and a
+  proposal carrying the forced cut. Killed in `view_change.rs`; the re-run gives 100 caught,
+  10 unviable, 2 missed, both equivalent: `<` → `<=` on two digests (equal digests are one
+  cut), and on the `seq` before a view change (that `seq` is the view change itself, never a
+  signature).
+- `protocol/src/ledger.rs` (`--test=ledger`, `--test=beacon_on_cuts`): 3 mutants, 3 caught.
+- `p2p/src/member.rs`: 46 mutants — 38 caught, 4 unviable, 4 missed, which slow the cuts
+  without stopping them, so the tests between nodes passed: a member ahead jumping back,
+  a proposal on fewer than `t` view changes, a view left one look early, and the candidate
+  views read from other numbers' signatures. Three killed by `member_duties.rs`, which calls
+  the duties directly; the re-run of those lines gives 16 caught, 1 missed, the last one
+  equivalent: a view with no proposal for the cut's number is dropped by `proposal` anyway.
+
 ## Keeping it this way
 
 - New decision logic gets a hand-computed or exact-outcome test, not only a range or

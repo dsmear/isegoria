@@ -1,10 +1,12 @@
-//! A consortium member's duties on its node (`docs/04` §Proposing and signing, §The beacon
-//! on cuts, T74): what to commit, reveal, propose or co-sign, read from the replica.
+//! A consortium member's duties on its node (`docs/04` §Proposing and signing, §Changing view,
+//! §The beacon on cuts, T74, T76): what to commit, reveal, propose, co-sign or change view.
 
 use network::beacon::RoundId;
 use network::consortium::{Consortium, Member};
 use network::cut::{
-    added, collect, member_objects, proposer, should_sign, sign_cut, Collected, Cut, MemberObject,
+    added, changed_view, collect, counts_own, forced, member_objects, promise, proposal,
+    proposer_in, should_sign_in, sign_cut_in, signed_in, views_change, Collected, Cut,
+    MemberObject,
 };
 use network::replica::Replica;
 use std::time::Duration;
@@ -19,12 +21,25 @@ pub struct MemberRole {
     pub cuts_per_epoch: u64,
     /// The looks a proposer waits for missing commits or reveals before proposing anyway.
     pub patience: u32,
+    /// The looks without the cut collected before the member changes view; above `patience`.
+    pub view_patience: u32,
+}
+
+/// A member's looks at the cut it works on; reset when the cut or its view changes.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Progress {
+    /// Looks the proposer has waited for missing commits or reveals.
+    pub waited: u32,
+    /// Looks without the cut collected in the member's view.
+    pub idle: u32,
+    at: Option<(u64, u64)>,
 }
 
 /// The cuts collected from `replica`, from number 0, as far as each extends the last.
 pub fn collected(replica: &Replica, consortium: &Consortium, network_id: [u8; 32]) -> Vec<Cut> {
     let mut cuts: Vec<Cut> = Vec::new();
-    while let Collected::Ready(cut, _) = collect(replica, consortium, network_id, cuts.len() as u64)
+    while let Collected::Ready(cut, _, _) =
+        collect(replica, consortium, network_id, cuts.len() as u64)
     {
         if added(replica, cuts.last(), &cut).is_err() {
             break;
@@ -43,13 +58,12 @@ impl MemberRole {
         }
     }
 
-    /// The objects this member publishes now; `waited` counts a proposer's looks without
-    /// proposing.
+    /// The objects this member publishes now.
     pub fn duties(
         &self,
         replica: &Replica,
         network_id: [u8; 32],
-        waited: &mut u32,
+        progress: &mut Progress,
     ) -> Vec<MemberObject> {
         let c = &self.consortium;
         let cuts = collected(replica, c, network_id);
@@ -85,43 +99,107 @@ impl MemberRole {
             out.push(MemberObject::Reveal { epoch: e, reveal });
         }
         let next = cuts.len() as u64;
-        let signed = |who: usize| {
-            has(
-                who,
-                &|o| matches!(o, MemberObject::CutSignature { cut, .. } if cut.number == next),
-            )
-        };
-        if signed(me) {
+        let view = promise(replica, c, me, next);
+        if progress.at != Some((next, view)) {
+            *progress = Progress {
+                at: Some((next, view)),
+                ..Progress::default()
+            };
+        }
+        let n = c.keys().len();
+        let changes = views_change(c);
+        let mut others: Vec<u64> = (0..n)
+            .filter(|m| *m != me)
+            .map(|m| promise(replica, c, m, next))
+            .collect();
+        others.sort_unstable_by(|a, b| b.cmp(a));
+        let joined = c.threshold().checked_sub(2).and_then(|i| others.get(i));
+        if let Some(&w) = joined.filter(|w| changes && **w > view) {
+            out.push(self.change(next, w));
             return out;
         }
-        let members = 0..c.keys().len();
-        if proposer(c, next) == me {
+
+        let members = 0..n;
+        let fresh = |waited: &mut u32| {
             let in_epoch = cuts.iter().filter(|x| x.epoch == epoch).count() as u64;
             let closes = in_epoch + 1 >= self.cuts_per_epoch;
             let reveals =
                 closed.is_none_or(|e| members.clone().all(|m| !committed(m, e) || revealed(m, e)));
             let commits = !closes || members.clone().all(|m| committed(m, epoch));
-            let ready = reveals && commits;
-            if ready || *waited >= self.patience {
+            if reveals && commits || *waited >= self.patience {
                 *waited = 0;
-                let cut = Cut::next(replica, last, epoch, closes);
-                out.push(sign_cut(&self.member, me, network_id, c, &cut));
+                Some(Cut::next(replica, last, epoch, closes))
             } else {
                 *waited += 1;
+                None
             }
+        };
+        let mine = proposer_in(c, next, view) == me && !signed_in(replica, c, me, next, view);
+        if mine {
+            let named = changed_view(replica, c, next, view);
+            let cut = match view {
+                0 => fresh(&mut progress.waited),
+                _ if named.len() < c.threshold() => None,
+                _ => match forced(replica, c, next, view, &named) {
+                    Ok(Some(cut)) => counts_own(replica, c, me, last, &cut).then_some(cut),
+                    Ok(None) => fresh(&mut progress.waited),
+                    Err(_) => None,
+                },
+            };
+            if let Some(cut) = cut {
+                let named = if view == 0 { Vec::new() } else { named };
+                out.push(sign_cut_in(
+                    &self.member,
+                    me,
+                    network_id,
+                    c,
+                    &cut,
+                    view,
+                    named,
+                ));
+                return out;
+            }
+        }
+        let mut views: Vec<u64> = objects
+            .iter()
+            .filter_map(|(_, o)| match o {
+                MemberObject::CutSignature { cut, view: v, .. } if cut.number == next => Some(*v),
+                _ => None,
+            })
+            .filter(|v| *v >= view)
+            .collect();
+        views.sort_unstable();
+        views.dedup();
+        let top = views
+            .into_iter()
+            .filter_map(|v| proposal(replica, c, next, v).map(|cut| (v, cut)))
+            .rfind(|(v, cut)| should_sign_in(replica, c, me, last, cut, *v));
+        if let Some((v, cut)) = top {
+            out.push(sign_cut_in(
+                &self.member,
+                me,
+                network_id,
+                c,
+                &cut,
+                v,
+                Vec::new(),
+            ));
             return out;
         }
-        let proposal = objects.iter().find_map(|(m, o)| match o {
-            MemberObject::CutSignature { cut, .. }
-                if *m == proposer(c, next) && cut.number == next =>
-            {
-                Some(cut)
-            }
-            _ => None,
-        });
-        if let Some(cut) = proposal.filter(|cut| should_sign(replica, c, me, last, cut)) {
-            out.push(sign_cut(&self.member, me, network_id, c, cut));
+        progress.idle += 1;
+        let with_me = 1 + others.iter().filter(|v| **v >= view).count();
+        let held = view == 0 || with_me >= c.threshold();
+        if changes && held && progress.idle > self.view_patience {
+            out.push(self.change(next, view.saturating_add(1)));
         }
         out
+    }
+
+    fn change(&self, number: u64, view: u64) -> MemberObject {
+        MemberObject::ViewChange {
+            number,
+            view,
+            member: self.index,
+        }
     }
 }

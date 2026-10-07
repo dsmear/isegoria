@@ -92,15 +92,27 @@ impl Ledger {
         }
     }
 
-    /// Applies the next cut, signed by `sigs`, once `replica` holds all it names; an error
-    /// leaves the ledger as it was.
+    /// Applies the next cut, signed by `sigs` in view 0, once `replica` holds all it names; an
+    /// error leaves the ledger as it was.
     pub fn apply(
         &mut self,
         replica: &Replica,
         cut: &Cut,
         sigs: &[(usize, Signature)],
     ) -> Result<CutReport, LedgerError> {
-        let checkpoint = cut.checkpoint(self.network_id, self.consortium.member_set_hash());
+        self.apply_in_view(replica, cut, 0, sigs)
+    }
+
+    /// As [`Self::apply`], for signatures given in `view` (`docs/04` §Changing view).
+    pub fn apply_in_view(
+        &mut self,
+        replica: &Replica,
+        cut: &Cut,
+        view: u64,
+        sigs: &[(usize, Signature)],
+    ) -> Result<CutReport, LedgerError> {
+        let msh = self.consortium.member_set_hash();
+        let checkpoint = cut.checkpoint_in(view, self.network_id, msh);
         if !self.consortium.verify(&checkpoint, sigs) {
             return Err(LedgerError::Unsigned);
         }
@@ -170,7 +182,7 @@ impl Ledger {
         }
         let network_id = self.network_id;
         match object {
-            MemberObject::CutSignature { .. } => Ok(()),
+            MemberObject::CutSignature { .. } | MemberObject::ViewChange { .. } => Ok(()),
             MemberObject::Commit(commit) => {
                 let epoch = commit.round.epoch;
                 if epoch != cut.epoch {

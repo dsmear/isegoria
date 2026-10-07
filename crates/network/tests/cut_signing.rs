@@ -5,7 +5,8 @@ use network::beacon::RoundId;
 use network::cid::cid;
 use network::consortium::{Consortium, Member};
 use network::cut::{
-    added, collect, proposer, should_sign, sign_cut, Collected, Cut, CutError, MemberObject,
+    added, collect, counts_own, proposer, should_sign, sign_cut, Collected, Cut, CutError,
+    MemberObject,
 };
 use network::log::TransparencyLog;
 use network::replica::{FeedWriter, Replica, SignedEntry, WriterSet};
@@ -96,7 +97,7 @@ fn at_net_16_member_objects_have_one_encoding() {
         tag[0] = 1;
         assert!(MemberObject::decode(&tag).is_none());
     }
-    for kind in [0u8, 4] {
+    for kind in [0u8, 4, 5, 6] {
         assert!(MemberObject::decode(&[0xC0, kind]).is_none());
     }
     let mut bad_cut = objects[0].encode();
@@ -129,7 +130,7 @@ fn at_net_16_a_cut_is_collected_from_t_members() {
     net.publish(1, misfiled.encode());
     assert_eq!(collect(&net.replica, &c, NET, 0), Collected::Pending);
     net.sign(2, &cut);
-    let Collected::Ready(got, sigs) = collect(&net.replica, &c, NET, 0) else {
+    let Collected::Ready(got, 0, sigs) = collect(&net.replica, &c, NET, 0) else {
         panic!("two members signed")
     };
     assert_eq!(got, cut);
@@ -150,8 +151,8 @@ fn at_net_16_a_cut_is_collected_from_t_members() {
     assert_eq!(collect(&net.replica, &c, NET, 0), Collected::Conflict(a, b));
 }
 
-/// AT-NET-16: the proposer rotates; a member co-signs only the proposer's cut, extending
-/// the last, whose entries it holds, and which counts its own commit and reveal.
+/// AT-NET-16: the proposer rotates; a member co-signs only the proposer's first cut, once,
+/// extending the last, whose entries it holds, and which counts its own commit and reveal.
 #[test]
 fn at_net_16_members_sign_only_what_they_should() {
     let c = consortium();
@@ -173,7 +174,11 @@ fn at_net_16_members_sign_only_what_they_should() {
         "signed by a non-proposer"
     );
     net.sign(0, &cut0);
-    assert!(should_sign(&net.replica, &c, 1, None, &cut0));
+    assert!(should_sign(&net.replica, &c, 2, None, &cut0));
+    assert!(
+        !should_sign(&net.replica, &c, 1, None, &cut0),
+        "signed in this view already"
+    );
     assert!(
         !should_sign(&net.replica, &c, 9, None, &cut0),
         "not a member"
@@ -193,32 +198,35 @@ fn at_net_16_members_sign_only_what_they_should() {
         !should_sign(&net.replica, &c, 2, Some(&cut0), &closing),
         "the closing cut leaves out member 2's commit"
     );
+    assert!(!counts_own(&net.replica, &c, 2, Some(&cut0), &closing));
     assert!(should_sign(&net.replica, &c, 0, Some(&cut0), &closing));
     let closing = Cut::next(&net.replica, Some(&cut0), 0, true);
+    assert!(counts_own(&net.replica, &c, 2, Some(&cut0), &closing));
     net.sign(1, &closing);
-    assert!(should_sign(&net.replica, &c, 2, Some(&cut0), &closing));
+    assert!(
+        !should_sign(&net.replica, &c, 2, Some(&cut0), &closing),
+        "a proposer's second cut in one view is not its proposal"
+    );
 
     let after = Cut::next(&net.replica, Some(&closing), 1, false);
-    net.sign(2, &after);
     net.publish(2, MemberObject::Reveal { epoch: 0, reveal }.encode());
     assert!(
-        !should_sign(&net.replica, &c, 2, Some(&closing), &after),
+        !counts_own(&net.replica, &c, 2, Some(&closing), &after),
         "no reveal"
     );
     let after = Cut::next(&net.replica, Some(&closing), 1, false);
-    net.sign(2, &after);
-    assert!(should_sign(&net.replica, &c, 2, Some(&closing), &after));
+    assert!(counts_own(&net.replica, &c, 2, Some(&closing), &after));
     let lacking = {
         let mut r = Net::new();
         r.publish(3, b"entry".to_vec());
         r.replica
     };
     assert!(
-        !should_sign(&lacking, &c, 2, Some(&closing), &after),
+        !counts_own(&lacking, &c, 2, Some(&closing), &after),
         "entries not held"
     );
     assert!(
-        !should_sign(&net.replica, &c, 2, Some(&cut0), &after),
+        !counts_own(&net.replica, &c, 2, Some(&cut0), &after),
         "does not extend"
     );
 }
@@ -332,6 +340,6 @@ fn at_net_16_the_commit_counts_only_inside_the_mark() {
         mark.len, commit.seq,
         "the mark ends right before the commit"
     );
-    assert!(!should_sign(&net.replica, &c, 2, Some(&cut0), &closing));
-    assert!(should_sign(&net.replica, &c, 2, Some(&cut0), &open));
+    assert!(!counts_own(&net.replica, &c, 2, Some(&cut0), &closing));
+    assert!(counts_own(&net.replica, &c, 2, Some(&cut0), &open));
 }

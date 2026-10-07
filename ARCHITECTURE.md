@@ -151,7 +151,7 @@ Integrity without permissionless consensus (`docs/04`).
 | `codec` | §Events and replay | `Writer`, `Reader`, `DecodeError` — our encoding: little-endian integers, length-prefixed fields checked before sizing (T73) |
 | `store` | §A node's own disk | `DurableLog`, `ObjectStore` (content-addressed), `Recovery`, `StoreError`, `MAX_OBJECT` — append-only files synced before acknowledging; a torn tail cut, other damage refused (T13) |
 | `replica` | §Replication between nodes | `WriterSet`, `FeedWriter`, `SignedEntry`, `EntryId`, `Replica` (`insert`, `feed`, `feed_beyond`, `equivocations`, `digest`, `summary`, `have_for`, `want`, `entries_for`), `FeedError` (T80), `Equivocation`, `Message`, `DurableReplica` (on disk, T74) — the grow-only set of writers' signed entries and the pull sync's messages (T18) |
-| `cut` | §Cuts | `Cut` (`of`, `next`, `digest`, `checkpoint`, `encode`, `decode`), `Mark`, `added`, `CutError`, `MemberObject`, `collect`, `Collected`, `proposer`, `sign_cut`, `should_sign`, `member_objects` — the consortium-signed marks that fix which entries count and their order; the members' objects that sign them and run the beacon (T74) |
+| `cut` | §Cuts | `Cut` (`of`, `next`, `digest`, `checkpoint`, `checkpoint_in`, `encode`, `decode`), `Mark`, `added`, `CutError`, `MemberObject` (view changes included), `collect`, `Collected`, `proposer`, `proposer_in`, `sign_cut`, `sign_cut_in`, `should_sign`, `should_sign_in`, `counts_own`, `promise`, `signed_in`, `changed_view`, `forced`, `MissingViewChange`, `proposal`, `views_change`, `member_objects` — the consortium-signed marks that fix which entries count and their order; the members' objects that sign them and run the beacon (T74) |
 | `anchoring` | §Anchoring | `Anchor` trait, `OtsAnchor`, `Receipt`, `AnchorState` |
 | `erasure` | §Durability | `encode`, `reconstruct`, `reconstruct_verified` (real Reed–Solomon; per-shard manifest, corrupt-shard authentication before decode, T16) |
 
@@ -167,7 +167,7 @@ roots from a Bitcoin node/SPV; here an injected block source stands in and
 **Replication** of the signed set is real (`replica`, over libp2p in `p2p`, T18). **Not
 yet implemented:** the protocol state as a function of the replicated set and its merge
 rules is `protocol::ledger` over signed cuts, and the members' cuts and beacon run between
-nodes (T74); a silent proposer's replacement is T76, the DHT T75.
+nodes (T74); a silent proposer is replaced by a change of view (T76, step 1); the DHT is T75.
 
 ## `protocol` — lifecycle orchestration
 
@@ -215,9 +215,9 @@ its `network::store` log, signed again on restart; after a start it writes only 
 round with a peer has ended (`caught_up`), takes back the entries its key signed past its
 log (`network::replica::Replica::feed_beyond`), sets damaged own files aside (`set_aside`)
 and refuses a fork or a gap of its feed (T80). Given a directory, the node keeps its replica
-on disk (`DurableReplica`, T74). `member`: `MemberRole`, `collected` — a consortium
-member node's duties on a timer: commit, reveal, propose cut `k` when `k mod n` is its
-index, co-sign (T74). Only `network` is a dependency: the
+on disk (`DurableReplica`, T74). `member`: `MemberRole`, `Progress`, `collected` — a
+consortium member node's duties on a timer: commit, reveal, propose cut `k` in the views
+where `(k + v) mod n` is its index, co-sign, change view (T74, T76). Only `network` is a dependency: the
 engine and the protocol state stay free of I/O and of an async runtime (T18). The sync
 answers any peer, so whoever connects reads the whole set (T77); a node is started only by
 a test (T78), and a member's duties are the cuts and the beacon, not an epoch's work (T79).
@@ -363,7 +363,7 @@ cargo clippy --workspace --all-targets
 | Credential issuance | **Real** (BBS+ blind; single-issuer **and** threshold t-of-n MPC) | Real DKG ceremony + network transport; selective-disclosure presentation |
 | Public-chain anchoring | **Real** (OpenTimestamps proof format + verification) | Live calendar POST + Bitcoin node/SPV block source |
 | Gossip transport, replication of the signed set | **Real** — libp2p gossipsub + request-response, a grow-only set with equivocation evidence (T18) | — |
-| Protocol state from the replicated set, merge rules; cuts and beacon between nodes | **Real** — signed cuts fix the order, the first of conflicting events wins; members propose in turn, co-sign, commit and reveal on their feeds (T74) | a silent proposer's replacement (T76) |
+| Protocol state from the replicated set, merge rules; cuts and beacon between nodes | **Real** — signed cuts fix the order, the first of conflicting events wins; members propose in turn, co-sign, commit and reveal on their feeds (T74); a silent proposer replaced by a change of view, single-decree Paxos over the cuts (T76, step 1) | withholders excluded from signing (T76, step 2) |
 | DHT | Documented, not implemented (T75) | libp2p Kademlia |
 | Who may read the replicated set | **None** — a node serves its whole set to any peer that connects, the drafts under review and the reveals included, against D17 (T77) | D44: three tiers, two feeds per member, the circle served only to member-bound transport keys (T77); blind relays (T85); a state tree keyed by nym (T86) |
 | A node process | **None** — nodes are started by tests (`Handle::spawn`) (T78) | a binary started from a configuration file |

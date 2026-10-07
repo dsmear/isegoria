@@ -498,22 +498,49 @@ is fixed by **cuts** the consortium signs, never by arrival.
   order their replicas received the entries in.
 
 **Members' objects.** The consortium's own messages travel as objects on the members'
-feeds, one byte `0xC0` then a kind, so no event decodes as one: 1 a cut signature (the
-cut's encoding, the member's index, its signature over the cut's checkpoint); 2 a beacon
-commit (network, member-set hash, epoch, index, commitment, signature: §The epoch's
-beacon); 3 a beacon reveal (epoch, index, secret). An object counts only on the feed of
-the member its index names; on any other feed it is refused as not authorized.
+feeds, one byte `0xC0` then a kind, so no event decodes as one: 1 a cut signature in view
+0 (the cut's encoding, the member's index, its signature over the cut's checkpoint); 2 a
+beacon commit (network, member-set hash, epoch, index, commitment, signature: §The epoch's
+beacon); 3 a beacon reveal (epoch, index, secret); 4 a cut signature in a view `v ≥ 1` (the
+cut's encoding, `v`, the index, the signature, and the members a proposal names, strictly
+increasing, none for a co-signer); 5 a view change (the cut's number, the view `v ≥ 1`, the
+index). An object counts only on the feed of the member its index names; on any other feed
+it is refused as not authorized.
 
 **Collecting a cut.** A node takes, for the next number, the cut that `t` distinct members
-signed on their feeds. Two different cuts each signed by `t` members for one number are the
+signed on their feeds **in one view**; signatures given in different views are not added
+up. Two different cuts each signed by `t` members for one number, in any views, are the
 consortium equivocating: the node stops there and holds both as evidence (NET-006).
 
-**Proposing and signing.** Cut `k` is proposed by member `k mod n`, who signs it first; its
-epoch and closing are its call. A member co-signs the proposer's cut for the next number
-when the cut extends the last collected one, it holds every entry the cut names, and the
-cut counts its own beacon messages: a closing cut must include its commit for the epoch,
-and the cut after it its reveal, if the member has published them. A proposer that stays
-silent stalls the cuts; replacing it is not specified yet (`10` T76).
+**Proposing and signing.** Cut `k` is proposed in **views** 0, 1, 2, …: the proposer of view
+`v` is member `(k + v) mod n`, who signs its proposal first; its epoch and closing are its
+call. A member signs a cut for `k` in view `v` — over the cut's checkpoint in that view: the
+height its number, the head its digest in view 0 and `H("isegoria/cut/view/v1" ‖ digest ‖ v)`
+in a later view — when it is that view's proposal, the cut extends the last collected one,
+the member holds every entry it names, the cut counts the member's own beacon messages (a
+closing cut its commit for the epoch, the cut after it its reveal, if the member has
+published them), the member has not signed for `k` in view `v` already, and it has not
+**promised** a later view.
+
+**Changing view (`10` T76).** A member that sees no cut `k` collected after a bounded wait
+in its view publishes a **view change** for `(k, v + 1)`, and from then on signs nothing
+for `k` in a view before `v + 1`: its promise. A member that sees `t − 1` other members
+promised to view `w` or later moves to `w` the same way, so the members stay in step. The
+proposer of a view `v ≥ 1` proposes once it holds the view changes for `(k, v)` of `t`
+members, and names them in its proposal. Among the cuts those members had signed for `k`
+before their view change — read on their own feeds, before that entry — it must propose
+the one signed in the latest view (the smallest digest among several), and only if none of
+them had signed any may it propose a new cut. A member checks the same before signing.
+
+This is single-decree Paxos, the members its acceptors. If `t` members signed cut `C` in
+view `v`, the `t` view changes behind any later proposal include one of them (`2t > n`),
+which signed `C` before it promised: every later proposal is `C`. So while every member
+follows these rules, two different cuts are never collected for one number; a member that
+signs two cuts in one view is the evidence otherwise. With a threshold at most half the
+members, two halves could each complete a different cut: there the members never leave
+view 0, and a silent proposer still stalls the cuts. **Residual:** a cut that must be
+proposed again and does not count a member's own commit or reveal, published after the cut
+was built, is refused by that member, and where its signature is needed the number waits.
 
 **The beacon on cuts.** The round of epoch `e` (§The epoch's beacon) runs on the cuts: a
 commit counts when a cut of epoch `e` applies it, up to and including the cut that closes

@@ -52,3 +52,14 @@ opt-level = 3
 # ~10 ms, and the replication property tests check thousands.
 [profile.dev.package.curve25519-dalek]
 opt-level = 3
+
+# A cut is collected by verifying every member's signature and hashing every object the
+# replica holds (T74, T76); unoptimized, the model tests of the view change take minutes.
+[profile.dev.package.network]
+opt-level = 3
+
+[profile.dev.package.sha2]
+opt-level = 3
+
+[profile.dev.package.ed25519-dalek]
+opt-level = 3

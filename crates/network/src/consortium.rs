@@ -113,7 +113,7 @@ impl Consortium {
                 .is_some_and(|pk| pk.verify(&cp.message(), sig).is_ok())
     }
 
-    pub(crate) fn threshold(&self) -> usize {
+    pub fn threshold(&self) -> usize {
         self.threshold
     }
 

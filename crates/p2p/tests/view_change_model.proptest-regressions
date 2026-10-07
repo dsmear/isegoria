@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc bced470024605ede74d8b7d936a08b8602fb9bbce29d4afe871caefab827fa4f # shrinks to (n, t) = (4, 3), schedule = [Tick(4), Tick(0), Tick(0), Tick(1), Tick(1), Tick(1), Crash(2), Tick(1), Tick(0), Tick(1), Tick(0), Tick(0), Tick(0), Tick(0), Tick(0), Tick(0), Tick(0), Tick(0), Tick(0), Tick(4)]

@@ -7,7 +7,7 @@ use network::consortium::{Consortium, Member};
 use network::cut::{sign_cut, Cut, MemberObject};
 use network::log::TransparencyLog;
 use network::replica::{FeedWriter, Replica, WriterSet};
-use p2p::member::{collected, MemberRole};
+use p2p::member::{collected, MemberRole, Progress};
 use std::time::Duration;
 
 const NET: [u8; 32] = [2; 32];
@@ -23,12 +23,21 @@ fn consortium() -> Consortium {
 
 fn role(index: usize, cuts_per_epoch: u64, patience: u32) -> MemberRole {
     MemberRole {
+        view_patience: 1000,
+        ..viewing(index, cuts_per_epoch, patience)
+    }
+}
+
+/// A member that changes view after three looks without the cut collected.
+fn viewing(index: usize, cuts_per_epoch: u64, patience: u32) -> MemberRole {
+    MemberRole {
         member: Member::from_seed([SEEDS[index]; 32]),
         index,
         consortium: consortium(),
         every: Duration::from_millis(100),
         cuts_per_epoch,
         patience,
+        view_patience: 3,
     }
 }
 
@@ -78,8 +87,8 @@ impl Net {
         }
     }
 
-    fn run(&mut self, role: &MemberRole, waited: &mut u32) -> Vec<MemberObject> {
-        let out = role.duties(&self.replica, NET, waited);
+    fn run(&mut self, role: &MemberRole, progress: &mut Progress) -> Vec<MemberObject> {
+        let out = role.duties(&self.replica, NET, progress);
         for o in &out {
             self.publish(role.index, o);
         }
@@ -111,15 +120,15 @@ fn at_net_17_the_proposer_closes_once_every_member_committed() {
     net.sign(&cut0, &[0, 2]);
     net.commit(0, 0);
     let me = role(1, 2, 5);
-    let mut waited = 0;
+    let mut waited = Progress::default();
     let out = net.run(&me, &mut waited);
     assert!(matches!(out[..], [MemberObject::Commit(_)]));
-    assert_eq!(waited, 1, "member 2 has not committed");
+    assert_eq!(waited.waited, 1, "member 2 has not committed");
     net.commit(2, 0);
     let out = net.run(&me, &mut waited);
     let cut = proposal(&out).expect("every member committed");
     assert!(cut.closes && cut.epoch == 0 && cut.number == 1);
-    assert_eq!(waited, 0);
+    assert_eq!(waited.waited, 0);
     assert!(
         net.run(&me, &mut waited).is_empty(),
         "one signature per number"
@@ -132,7 +141,7 @@ fn at_net_17_a_cut_that_does_not_close_does_not_wait() {
     let mut net = Net::new();
     let cut0 = Cut::next(&net.replica, None, 0, false);
     net.sign(&cut0, &[0, 2]);
-    let mut waited = 0;
+    let mut waited = Progress::default();
     let out = net.run(&role(1, 3, 5), &mut waited);
     let cut = proposal(&out).expect("no commit is needed yet");
     assert!(!cut.closes);
@@ -149,7 +158,7 @@ fn at_net_17_the_reveal_cut_waits_for_the_committed_reveals() {
     net.sign(&cut0, &[0, 1]);
     assert_eq!(collected(&net.replica, &consortium(), NET).len(), 1);
     let me = role(1, 2, 5);
-    let mut waited = 0;
+    let mut waited = Progress::default();
     let out = net.run(&me, &mut waited);
     assert!(out
         .iter()
@@ -168,15 +177,116 @@ fn at_net_17_patience_runs_out() {
     let cut0 = Cut::next(&net.replica, None, 0, false);
     net.sign(&cut0, &[0, 2]);
     let me = role(1, 2, 3);
-    let mut waited = 0;
+    let mut waited = Progress::default();
     for look in 1..=3 {
         assert!(
             proposal(&net.run(&me, &mut waited)).is_none(),
             "look {look}"
         );
-        assert_eq!(waited, look);
+        assert_eq!(waited.waited, look);
     }
     let out = net.run(&me, &mut waited);
     assert!(proposal(&out).is_some_and(|c| c.closes));
-    assert_eq!(waited, 0);
+    assert_eq!(waited.waited, 0);
+}
+
+fn changes(out: &[MemberObject]) -> Vec<(u64, u64)> {
+    out.iter()
+        .filter_map(|o| match o {
+            MemberObject::ViewChange { number, view, .. } => Some((*number, *view)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// AT-NET-19: a member changes view after `view_patience` looks without the cut, and leaves
+/// a view after view 0 only once `t` members reached it, its looks there counting.
+#[test]
+fn at_net_19_a_view_ends_after_its_patience() {
+    let mut net = Net::new();
+    let me = viewing(2, 2, 1);
+    let mut progress = Progress::default();
+    for look in 1..=3 {
+        assert!(
+            changes(&net.run(&me, &mut progress)).is_empty(),
+            "look {look}"
+        );
+    }
+    assert_eq!(changes(&net.run(&me, &mut progress)), vec![(0, 1)]);
+    for look in 1..=10 {
+        assert!(
+            changes(&net.run(&me, &mut progress)).is_empty(),
+            "alone in view 1, look {look}"
+        );
+    }
+    net.publish(
+        0,
+        &MemberObject::ViewChange {
+            number: 0,
+            view: 1,
+            member: 0,
+        },
+    );
+    assert_eq!(
+        changes(&net.run(&me, &mut progress)),
+        vec![(0, 2)],
+        "the looks spent alone count"
+    );
+}
+
+/// AT-NET-19: a member joins the view `t − 1` others promised, and one ahead of them does
+/// not move back.
+#[test]
+fn at_net_19_a_member_joins_and_never_moves_back() {
+    let mut net = Net::new();
+    net.publish(
+        2,
+        &MemberObject::ViewChange {
+            number: 0,
+            view: 3,
+            member: 2,
+        },
+    );
+    let mut progress = Progress::default();
+    assert_eq!(
+        changes(&net.run(&viewing(0, 2, 1), &mut progress)),
+        vec![(0, 3)]
+    );
+    let mut progress = Progress::default();
+    let ahead = viewing(2, 2, 1);
+    for _ in 1..=3 {
+        assert!(changes(&net.run(&ahead, &mut progress)).is_empty());
+    }
+}
+
+/// AT-NET-19: the proposer of a view after view 0 proposes only on `t` view changes, and
+/// names them.
+#[test]
+fn at_net_19_a_proposal_waits_for_t_view_changes() {
+    let mut net = Net::new();
+    net.publish(
+        1,
+        &MemberObject::ViewChange {
+            number: 0,
+            view: 1,
+            member: 1,
+        },
+    );
+    let me = viewing(1, 2, 1);
+    let mut progress = Progress::default();
+    assert!(proposal(&net.run(&me, &mut progress)).is_none());
+    net.publish(
+        2,
+        &MemberObject::ViewChange {
+            number: 0,
+            view: 1,
+            member: 2,
+        },
+    );
+    let out = net.run(&me, &mut progress);
+    let named = out.iter().find_map(|o| match o {
+        MemberObject::CutSignature { view: 1, named, .. } => Some(named.clone()),
+        _ => None,
+    });
+    assert_eq!(named, Some(vec![1, 2]));
 }

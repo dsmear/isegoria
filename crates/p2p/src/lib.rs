@@ -8,7 +8,7 @@ use libp2p::gossipsub::{self, IdentTopic, MessageAuthenticity, ValidationMode};
 use libp2p::request_response::{self, ProtocolSupport};
 use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
 use libp2p::{identity, noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm};
-use member::MemberRole;
+use member::{MemberRole, Progress};
 use network::replica::{
     Accepted, DiskError, DurableReplica, EntryId, FeedError, FeedWriter, Message, Replica,
     SignedEntry, WriterSet, MAX_RESPONSE,
@@ -177,7 +177,7 @@ struct Node {
     listening: Vec<oneshot::Sender<Result<Multiaddr, String>>>,
     member: Option<MemberRole>,
     network_id: [u8; 32],
-    waited: u32,
+    progress: Progress,
     caught_up: bool,
 }
 
@@ -357,7 +357,7 @@ impl Handle {
             listening: Vec::new(),
             member: config.member,
             network_id: config.writers.network_id(),
-            waited: 0,
+            progress: Progress::default(),
             caught_up: false,
         };
         tokio::spawn(node.run(rx, config.sync_every));
@@ -449,7 +449,7 @@ impl Node {
         let Some(role) = self.member.as_ref().filter(|_| self.caught_up) else {
             return;
         };
-        let objects = role.duties(self.store.replica(), self.network_id, &mut self.waited);
+        let objects = role.duties(self.store.replica(), self.network_id, &mut self.progress);
         for object in objects {
             let _ = self.publish(object.encode());
         }
