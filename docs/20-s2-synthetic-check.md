@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`), partly reviewed on `e5e0898`, and its rectifications were approved by Astra on `3559396`, within the check's perimeter** (§9), its two precisions approved on `bef891b`: no general validation of arbitrary flows, no H-c, properness, reputational incentive, confidentiality, true DTF or neutrality shown. The owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. **§10's correction of the absent baseline and §11's adaptive verification of `17` §14.6, in test code on the owner's assignment, were approved by Astra on `d7a4449`**, within their perimeter: a verification of the computation and of finite constructions, no H-c in the protocol, availability, confidentiality, reputational incentive or neutrality shown. **§12, the check's scoring path through B-b's scorer `protocol::cohort_scores` ([`17`](17-a1-pilot-batch-design.md) §14.9), on the owner's assignment after Astra's review of `23283f2`, awaits review.** |
-| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified in `3559396` and approved there; §§10–11 written on `d2be7da` and approved on `d7a4449`; §12 written on `23283f2`; code named by symbol. |
+| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`), partly reviewed on `e5e0898`, and its rectifications were approved by Astra on `3559396`, within the check's perimeter** (§9), its two precisions approved on `bef891b`: no general validation of arbitrary flows, no H-c, properness, reputational incentive, confidentiality, true DTF or neutrality shown. The owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. **§10's correction of the absent baseline and §11's adaptive verification of `17` §14.6, in test code on the owner's assignment, were approved by Astra on `d7a4449`**, within their perimeter: a verification of the computation and of finite constructions, no H-c in the protocol, availability, confidentiality, reputational incentive or neutrality shown. **§12, the check's scoring path through B-b's scorer `protocol::cohort_scores` ([`17`](17-a1-pilot-batch-design.md) §14.9), on the owner's assignment after Astra's review of `23283f2`, was partly reviewed on `7d1b19e`: the scorer not approved, for a numeric defect on its declared domain; its numeric correction, through which the check now runs, awaits review.** |
+| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified in `3559396` and approved there; §§10–11 written on `d2be7da` and approved on `d7a4449`; §12 written on `23283f2`, partly reviewed on `7d1b19e` and its scorer corrected there; code named by symbol. |
 | **Scope** | `19` §10.6's next deliverable: what a technical check on synthetic events would execute, what its fixtures supply, what it must report and when it fails. References, within their recorded limits: design A, B-b and the reporting of cases 5–7 with 6c and 7a (`17` §§8–9), α (`17` §10), T1 the analytic reference and T2 the comparison (`17` §§11–13); B-b's study scores outside the reputation and the gate's decisions recorded with no effect on operational pools (Astra, decided on `cbcbc67`, confirmed on `5af22b9`). |
-| **Evidence** | Specification (Claude Code, before `c76c035`): **L** targeted reads of the code named; **C** every expected value recalculated with exact fractions in a scratch script, not kept. Implementation and rectifications (Claude Code): **E** the check's targeted tests, §9. §§10–11 (Claude Code): **C** the expected values with fractions, before the tests; **E** the regressions before the correction and the tests after it, §11.3. §12 (Claude Code): **C** the new expected values with fractions, before the tests; **E** §12's runs. Astra's reviews: below. |
+| **Evidence** | Specification (Claude Code, before `c76c035`): **L** targeted reads of the code named; **C** every expected value recalculated with exact fractions in a scratch script, not kept. Implementation and rectifications (Claude Code): **E** the check's targeted tests, §9. §§10–11 (Claude Code): **C** the expected values with fractions, before the tests; **E** the regressions before the correction and the tests after it, §11.3. §12 (Claude Code): **C** the new expected values with fractions, before the tests; **E** §12's runs; for the numeric correction, **E** the regressions before and after it and the bit-for-bit comparison of the outputs, **D** the finiteness of the means (`17` §14.9). Astra's reviews: below. |
 
 ## Design review (Astra)
 
@@ -100,6 +100,16 @@ Code's evidence), as far as this document goes: the record of `d7a4449`'s approv
 editorial corrections **approved**; B-b's scorer with no production caller accepted as the next
 intervention, independent of O1–O3. The rest concerns `17` §14.8 (`15`, A1). §12 came after that
 review and is not covered by it.
+
+Review of `7d1b19e` (the commit, its parent and the published branch checked; the code, the diff,
+the tests and the documents read; the numeric defects reproduced with Python transcriptions of the
+floating-point operations and rational references; an independent exact enumeration of the 72
+states on the 27 report vectors, confirming −41/1728 and −91/5184; no Rust run; the 10, 39 and 7
+passing tests, Clippy and the local checks stay Claude Code's evidence), as far as this document
+goes: **partial**. The record of the review of `23283f2` approved. The scorer through which §12
+runs not approved as a whole, for a numeric defect on its declared domain (`17` §14); three of its
+contract's choices accepted there. The numeric correction (§12) awaits review; the approval covers
+neither it nor the scorer as a whole.
 
 ## 1. What the check is
 
@@ -614,10 +624,12 @@ supplied input, not a property of `panel_scores`. The values are `f64` within `1
 rationals. §10's correction covers the check's aggregation in test code only; the operational
 policy for an absent baseline stays open (`17` §14.4).
 
-## 12. The check through B-b's scorer (awaiting review)
+## 12. The check through B-b's scorer (partly reviewed on `7d1b19e`; corrected, awaiting review)
 
 On the owner's assignment after Astra's review of `23283f2`, which accepted B-b's scorer as the
-next intervention; Claude Code's, **awaiting Astra's review**. The scorer is
+next intervention; Claude Code's. Partly reviewed by Astra on `7d1b19e`, which did not approve the
+scorer for a numeric defect; its correction, at the end of this section, **awaits review**. The
+scorer is
 `protocol::cohort_scores` (`17` §14.9), a library component with no production caller; the check
 now computes its cases, terms, counts and cohorts through it. No record, fixture or expected value
 of §§4–11 changes.
@@ -676,3 +688,34 @@ constructions' expectations, and computes the weighting and the causes as `17` �
 shows no H-b, H-c or H-e in the protocol, no availability, confidentiality, reputational incentive
 or neutrality; the scorer's inputs are supplied and typed, with no record format or authentication
 behind them, and it has no production caller.
+
+**The numeric correction** (after Astra's review of `7d1b19e`, awaiting review; the contract in
+`17` §14.9, *Numerics*). `panel_scores` scales the weights it averages by the largest one's power
+of two; the scorer names a term or a pending member's `1/π_j` beyond `f64`'s range `OutOfRange`,
+as a cause of no value beside the others, and computes its sums in a common power-of-two scale,
+`known` and the bound's `sum` `OutOfRange` where they leave the range, the means never.
+
+- *Adapters*: `study::cohort` maps `NoTerm::Undefined` to the check's `Undefined` and reads
+  `known` and the bound's `sum` with `expect`. Under A, `π_j = 1`, every term lies in `[−1, 1]`
+  and every sum within `|K|`, so no `OutOfRange` arises; one would fail the check, as a case 1 or
+  an undrawn item would. `adaptive.rs` is unchanged.
+- *Kept*: every expected value of §§4–12 and their oracles. Beyond passing, every output of
+  `score`, `first_panel_baselines` and `extra_round_baseline` over the check's 39 tests and the
+  scorer's and `panel_scores`' earlier tests — 988 364 calls, recorded by a temporary
+  instrumentation, removed — is identical bit for bit before and after the correction, the new
+  types' `Ok` normalized; the scaling is exact where the former computation met no overflow and
+  no subnormal intermediate.
+- *Evidence* (E, Claude Code, 2026-10-08): nine regressions failing on `7d1b19e`'s code and
+  passing after the correction, two checks added after it, listed in `17` §14.9;
+  `cargo test -p protocol --test cohort_scores`: 19 passed; `--test panel_scores`: 9 passed;
+  `--test s2_synthetic_check`: 39 passed, P1, P2, §10's regressions and §11's constructions
+  among them, every expected value unchanged; `cargo clippy -p protocol --lib --test
+  cohort_scores --test s2_synthetic_check --test panel_scores -- -D warnings`, no warning;
+  `rustfmt --edition 2021 --check` on the changed files, `python3 scripts/comment_budget.py`,
+  `git diff --check`: clean. `panel_scores` has no caller but the scorer and its own tests; the
+  lifecycle test of `panel_scores.rs` that feeds it real bridging weights passes.
+- *Not run*: as above; nor any other target, the workspace's suite included.
+- *Limits*: the bounds and the bit-for-bit identity are properties of the computation, not of the
+  protocol; `OutOfRange` is a limit of `f64`, not a rule; an exact value may exist where it is
+  named (`17` §14.9). Nothing above shows H-b, H-c or H-e, availability, confidentiality,
+  reputational incentives or neutrality.

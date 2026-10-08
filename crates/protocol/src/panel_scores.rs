@@ -12,12 +12,18 @@ pub struct Forecast {
     pub weight: f64,
 }
 
-/// The weighted mean of `forecasts`; `None` when they carry no weight.
-fn weighted_mean(forecasts: impl Iterator<Item = Forecast>) -> Option<f64> {
-    let (sum, total) = forecasts.fold((0.0, 0.0), |(sum, total), f| {
-        (sum + f.weight * f.prob, total + f.weight)
-    });
-    (total > 0.0).then(|| sum / total)
+/// The weighted mean of `forecasts`; `None` when they carry no weight. The weights are scaled by
+/// the largest one's power of two, exactly in `f64`'s normal range (`docs/17` §14.9).
+fn weighted_mean(forecasts: impl Iterator<Item = Forecast> + Clone) -> Option<f64> {
+    let top = forecasts.clone().fold(0.0, |top: f64, f| top.max(f.weight));
+    (top > 0.0).then(|| {
+        let k = -libm::ilogb(top);
+        let (sum, total) = forecasts.fold((0.0, 0.0), |(sum, total), f| {
+            let weight = libm::scalbn(f.weight, k);
+            (sum + weight * f.prob, total + weight)
+        });
+        sum / total
+    })
 }
 
 /// Per first panelist, the weighted mean of the other first panelists' forecasts; `None` where

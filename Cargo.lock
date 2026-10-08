@@ -2675,6 +2675,7 @@ version = "0.0.0"
 dependencies = [
  "ed25519-dalek",
  "identity",
+ "libm",
  "network",
  "proptest",
  "rand 0.8.8",

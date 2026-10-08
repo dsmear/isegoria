@@ -827,7 +827,10 @@ pub fn cohort(k: &bb::CohortScore) -> Cohort {
             case: case(m.case),
             baseline: m.baseline.filter(|_| m.case.conclusive()),
             contribution: m.term.ok().flatten(),
-            undefined: m.term.err(),
+            undefined: m.term.err().map(|e| match e {
+                bb::NoTerm::Undefined(u) => u,
+                e => panic!("{e:?} under A"),
+            }),
         })
         .collect();
     let causes = match &k.value {
@@ -838,7 +841,7 @@ pub fn cohort(k: &bb::CohortScore) -> Cohort {
     let value = match (&k.value, blocking) {
         (bb::Value::Final(x), _) => Value::Final(*x),
         (bb::Value::Bound { sum, mean }, _) => Value::Bound {
-            sum: *sum,
+            sum: sum.expect("in range under A"),
             mean: *mean,
         },
         (_, None) => Value::Undefined(Undefined::NoBaseline),
@@ -853,7 +856,7 @@ pub fn cohort(k: &bb::CohortScore) -> Cohort {
         n: k.size,
         o: k.o,
         v: k.v,
-        known: k.known,
+        known: k.known.expect("in range under A"),
         undefined: without.map(|(j, _)| *j).collect(),
         value,
     }

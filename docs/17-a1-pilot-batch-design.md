@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. Astra's review of `cbcbc67` approved those precisions and the further changes to §13.2's classification (§13); the minimal perimeter for a study S2 built on §§9–13, [`19`](19-a2-dtf-composition-design.md) §10.6, was partly approved there, rectified and **approved on `5af22b9` as a preparatory synthesis**; after that review §13.2's absent-precondition row was made self-standing, its classification unchanged. The synthetic-event technical check built on §§8–13 is specified in [`20`](20-s2-synthetic-check.md), **approved by Astra on `c76c035` as the check's specification**, with four precisions made there; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §14 proposes the contract of A1's candidate guarantee, on Astra's direction after the review of `bef891b` (B-b the reference score, A the analytic reference, C the comparison, neither adopted): partly reviewed by Astra on `11deec2`, which approved its mathematical core **as a conditional result** and not §14 as a whole; its adaptive verification criterion and the absent baseline were rectified in place in `d2be7da`, and §14 **approved by Astra on `d2be7da` as a conditional candidate contract** (no protocol, adoption of A or C, substantive narrowing or closure of A1). The absent baseline's correction in `20`'s check and §14.6's verification on finite constructions, in test code (`20` §§10–11), were **approved by Astra on `d7a4449`** within that perimeter. §14.8's decision proposal on A1's path was partly reviewed by Astra on `23283f2`, which approved the record of that approval and accepted B-b's scorer as the next intervention, and rectified in place, **awaiting review**; the scorer is implemented in `protocol` with no production caller (§14.9), **awaiting review**; nothing is adopted. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. Astra's review of `cbcbc67` approved those precisions and the further changes to §13.2's classification (§13); the minimal perimeter for a study S2 built on §§9–13, [`19`](19-a2-dtf-composition-design.md) §10.6, was partly approved there, rectified and **approved on `5af22b9` as a preparatory synthesis**; after that review §13.2's absent-precondition row was made self-standing, its classification unchanged. The synthetic-event technical check built on §§8–13 is specified in [`20`](20-s2-synthetic-check.md), **approved by Astra on `c76c035` as the check's specification**, with four precisions made there; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §14 proposes the contract of A1's candidate guarantee, on Astra's direction after the review of `bef891b` (B-b the reference score, A the analytic reference, C the comparison, neither adopted): partly reviewed by Astra on `11deec2`, which approved its mathematical core **as a conditional result** and not §14 as a whole; its adaptive verification criterion and the absent baseline were rectified in place in `d2be7da`, and §14 **approved by Astra on `d2be7da` as a conditional candidate contract** (no protocol, adoption of A or C, substantive narrowing or closure of A1). The absent baseline's correction in `20`'s check and §14.6's verification on finite constructions, in test code (`20` §§10–11), were **approved by Astra on `d7a4449`** within that perimeter. §14.8's decision proposal on A1's path was partly reviewed by Astra on `23283f2`, which approved the record of that approval and accepted B-b's scorer as the next intervention, and rectified in place; **its rectifications were approved by Astra on `7d1b19e`**. B-b's scorer, implemented in `protocol` with no production caller (§14.9), was partly reviewed on `7d1b19e`, which accepted three of its contract's choices and did not approve it for a numeric defect on its declared domain; its numeric correction **awaits review**; nothing is adopted. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -1908,7 +1908,23 @@ target, the observation design and the incentives' scope kept apart, the choice 
 narrowed guarantee under A and an IPW under C withdrawn; B: T19's properties and H-e, H-b, H-c
 kept apart; D: the runtime's boundary and the caller's responsibilities; precisions on the
 absent baseline, `c > 0`, O1–O3 and adoption). The approval covers neither this rectification nor
-the scorer (§14.9), both awaiting review.
+the scorer (§14.9), both reviewed on `7d1b19e` (below).
+
+Astra's review of `7d1b19e` (the commit, its parent and the published branch checked; the code,
+the diff, the tests and the documents read; the numeric defects reproduced with Python
+transcriptions of the floating-point operations and rational references; an independent exact
+enumeration of the 72 states on the 27 report vectors, confirming −41/1728 and −91/5184; no Rust
+run; the scorer's 10 tests, the check's 39, `panel_scores`' 7, Clippy and the local checks stay
+Claude Code's evidence): **partial**. Approved: the record of the review of `23283f2`; §14.8's
+rectifications. Accepted in the scorer's contract: `Undrawn` apart from a final non-selection; a
+frozen item whose first report is missing refused, no composition over replacements introduced;
+the interval with a pending member without a baseline, only as an interval on the final value
+conditional on its coming to exist, no availability guaranteed. Not approved as a whole: the
+scorer, for a numeric defect on its declared domain — the weighted mean's sums overflowing or
+underflowing (a finite wrong baseline, a NaN, a positive weight lost), `g/π_j` and `1/π_j` beyond
+`f64` at the smallest `π_j`, a sum overflowing before its representable mean. The correction
+(§14.9, *Numerics*), on the owner's assignment, awaits review; the approval covers neither it nor
+the scorer as a whole.
 
 ### 14.1 The property
 
@@ -1999,7 +2015,8 @@ the defined terms kept; the operational policy stays open.
 *Present*, with no production caller: `difference_score`, `panel_scores`, `review::commit`, the
 lifecycle's report and gate steps, the pilots' indeterminate readings; `outcome_of` and
 `record_outcome` give `SkillTrack` a binary outcome, with no `I`; since §14.9, B-b's scorer
-`cohort_scores`, a library component on typed inputs, awaiting review. *In tests*:
+`cohort_scores`, a library component on typed inputs, partly reviewed on `7d1b19e` and
+numerically corrected, awaiting review. *In tests*:
 `panel_scores.rs` reaches `record_outcome` on one band item; `cohort_scores.rs` checks the
 scorer. *Synthetic check* (`20`): B-b by case, `N`, `O`, `V`, cohorts, freezes and terminals, on
 supplied records; through its scoring path, §14.6 on finite constructions (`20` §11), approved
@@ -2076,13 +2093,13 @@ stays open: at least the conditions to build and H-c declared with its residues 
 (+316.825 slots against the declared 333.5, §8.5) and §8.3's availability weigh on any adoption.
 A proposal, not a decision; §14.8 turns it into a decision proposal.
 
-### 14.8 A decision proposal for A1 (partly reviewed on `23283f2`; rectified, awaiting review)
+### 14.8 A decision proposal for A1 (rectified; the rectifications approved on `7d1b19e`)
 
 **Status.** Claude Code's proposal after Astra's approval of `d7a4449`; not approved as a whole on
-`23283f2` (§14) and rectified here in place, awaiting Astra's review and, for the substantive
-choices, the owner's. It adopts nothing and changes no design; `01` D35 and `02` §C.2 stand until
-a decision. Question: which decisions turn §14's contract into an implementable correction of A1,
-and what can each honestly guarantee?
+`23283f2` (§14) and rectified here in place, the rectifications approved by Astra on `7d1b19e`
+(§14); the substantive choices remain the owner's. It adopts nothing and changes no design; `01` D35
+and `02` §C.2 stand until a decision. Question: which decisions turn §14's contract into an
+implementable correction of A1, and what can each honestly guarantee?
 
 **A. Three decisions apart.**
 
@@ -2177,17 +2194,21 @@ D4). For the owner, none blocking the scorer and none needed now:
   only the score's mean (`16` §9).
 
 For Astra: whether the guarantee meets `15` A1's criterion as read on `11deec2`; T1; the direction
-for missing reports and absent baselines; §14.9's contract.
+for missing reports and absent baselines; §14.9's numeric correction.
 
-**Next deliverable**, accepted by Astra on `23283f2`: B-b's scorer, implemented in §14.9, awaiting
-review. No protocol, A, C or T1 adopted; A1 not closed.
+**Next deliverable**, accepted by Astra on `23283f2`: B-b's scorer, implemented in §14.9, partly
+reviewed on `7d1b19e` and numerically corrected, awaiting review. No protocol, A, C or T1 adopted;
+A1 not closed.
 
-### 14.9 B-b's scorer (implemented with no production caller, awaiting review)
+### 14.9 B-b's scorer (no production caller; corrected after `7d1b19e`, awaiting review)
 
 **Status.** Claude Code's implementation on the owner's assignment after Astra's review of
-`23283f2`: `protocol::cohort_scores` (`crates/protocol/src/cohort_scores.rs`), a pure,
-deterministic library component with **no caller in the production runtime**, awaiting Astra's
-review. It adopts no A, C or T1 and changes no observation design, reputation or resource; its
+`23283f2`: `protocol::cohort_scores` (`crates/protocol/src/cohort_scores.rs`), a pure, deterministic
+library component with **no caller in the production runtime**. Partly reviewed by Astra on
+`7d1b19e` (§14): `Undrawn`, the refusal of a missing first report at the freeze and the interval
+with a pending member without a baseline accepted in the contract, as stated below; the scorer not
+approved, for a numeric defect on its declared domain, corrected under *Numerics*, **awaiting
+review**. It adopts no A, C or T1 and changes no observation design, reputation or resource; its
 output reaches no `SkillTrack`, vote weight, probation, cap or CUSUM. Reading `π_j` certifies none
 of H-e, H-b, H-c. This section is its contract; the tests below and `20` §12 check it.
 
@@ -2222,19 +2243,55 @@ is decided (§9.4, T58).
 **Output, counts and values.** Every assignment, in item order, first panel then extra round,
 with its case, `π_j`, its baseline once composed and its term. `Scores::counts` gives `N_u`,
 `O_u`, `V_u` over `u`'s assignments among the items supplied; a cohort gives `|K|`, its
-denominator, with `O` and `V` over `K`, and its known sum. Its value is final, `known/|K|`, once
-every member is in case 1, 3, 4 or 5 with its term defined; with case-2 members besides, D3's
-bound, the sum within `Σ 1/π_j` of its known part, a provisional interval on the final value where
-one comes to exist (a pending member without a baseline does not block it, its term needing one
-only at a verdict); otherwise `Unavailable`, listing every member in case 6, 7, undrawn or without
-a baseline, in the cohort's order, all causes kept.
+denominator, with `O` and `V` over `K`, and its known sum, `OutOfRange` where it leaves `f64`'s
+range (*Numerics*). Its value is final, `known/|K|`, once every member is in case 1, 3, 4 or 5
+with its term defined; with case-2 members besides, D3's bound, the sum within `Σ 1/π_j` of its
+known part (the sum's ends `OutOfRange` where one leaves the range) and the mean within
+`Σ 1/π_j / |K|` of `known/|K|`, a provisional interval on the final value conditional on its
+coming to exist, no availability promised (a pending member without a baseline does not block it,
+its term needing one only at a verdict); otherwise `Unavailable`, listing every member in case 6,
+7, undrawn, without a baseline, or out of range, in the cohort's order, all causes kept.
 
 **Refused, never repaired** (`InputError`, the first found, items before cohorts): a report
 outside `[0, 1]` or not finite; a weight negative or not finite; `π_j` outside `(0, 1]`; a
 non-selection recorded at `π_j = 1`; a nym twice on one item's panels; at the freeze, a report
 still open or a first report missing; a terminal outcome before the freeze; an empty cohort; a
 member index out of range, repeated, or not an assignment of the cohort's nym. An error is an
-input the contract excludes; a cohort without value is a legitimate state.
+input the contract excludes; a cohort without value is a legitimate state; `OutOfRange` is
+neither, an input in the domain whose result no `f64` holds.
+
+**Numerics** (after Astra's review of `7d1b19e`, awaiting review). The scorer computes in `f64`,
+deterministically; it promises no exact real arithmetic. Its domain is unchanged: no threshold on
+`π_j` or the weights, no clipping, saturation, imputation, fallback to the reviewer's report or
+policy; on the inputs it accepts no output is NaN or infinite. `u = 2^−53`, `ε = 2^−52`,
+`γ_k = ku/(1 − ku)`.
+
+- *Baselines* (`panel_scores`, both compositions, one function): the weights averaged are scaled
+  by `2^−e`, `2^e ≤ w_max < 2^(e+1)` (`libm::ilogb`, `libm::scalbn`), before the sums. The largest
+  becomes `[1, 2)`, the total `[1, 2n]` and the weighted sum `[0, 2n]` for `n` forecasts: no sum
+  overflows; underflow, confined to weights or products below `2^−1022` of the largest weight,
+  moves the mean by less than `n·2^−1073`; a positive weight never leaves `None`, no weight still
+  does. `|b̂ − b| ≤ γ_{2n}·b + n·2^−1073`, within `2nε`.
+- *Terms*: `g/π_j`, one correctly rounded division of `g ∈ [−1, 1]`, `|g/π_j| ≥ |g|`; it leaves
+  the range only for `π_j` below `2^−1022`, subnormal, and is then `NoTerm::OutOfRange`, a defined
+  term no `f64` holds, apart from `NoTerm::Undefined(NoBaseline)`. For `p, b ∈ [0, 1]` and
+  `o ∈ {0, 1}`, `|t̂ − t| ≤ (2|b̂ − b| + 5ε)/π_j`, within `(4n + 5)ε/π_j`.
+- *Cohorts*: the defined terms and the pending members' `1/π_j` are scaled together by the power of
+  two of the largest magnitude, summed in the cohort's order, combined and divided by `|K|` in that
+  scale, then scaled back. A sum can leave the range while its mean does not: `known` and the
+  bound's `sum` are `Result<_, OutOfRange>`. The final value and the bound's `mean` are never out of
+  range (D): scaled, every value is below 2 in magnitude; rounding is monotone, so the largest
+  computed sum of `m` of them is that of `m` copies of `2 − ε`, which stays at least an ulp below
+  `2m`; divided by `|K| ≥ m`, it rounds to at most `2 − ε`, which scales back to at most the largest
+  `f64` (C, checked for every `m ≤ 20 000` and, for the bound's two sums, every split of
+  `m < 1 500`). The sums carry the recursive bound `γ_(m−1) Σ|x|` plus one rounding per step after.
+- *A member out of range* — its term, or a pending member's `1/π_j` (`π_j` below about
+  `5.6·10^−309`) — leaves its cohort `Unavailable` with `Cause::OutOfRange`, beside every other
+  cause, and its `known` `OutOfRange`. The exact value may exist (opposite terms cancelling, `|K|`
+  beyond `2^50`): a declared limit of the representation, not a rule of the protocol.
+- *Unchanged*: scaling by a power of two is exact while the result stays normal, so wherever the
+  former direct computation met neither an overflow nor a subnormal intermediate, every output is
+  bit for bit the same (E, below).
 
 **Left to the caller, unchecked** (§14.8 D): the inputs' authenticity and links; `R_u` complete;
 the weights frozen for the epoch; `Φ_j`; `S_j` and `π_j` recorded by the design before the outcome
@@ -2252,3 +2309,22 @@ vectors of a grid the scorer's expected cohort value equals D1's `(1/3) Σ_j E[g
 apart (−41/1728 at ½ everywhere), and a recorded `π` of ¾ against an effective ½ moves it to
 −91/5184. That checks the arithmetic under the construction's hypotheses, not C in the protocol.
 `20`'s check runs through the scorer (`20` §12).
+
+*Numeric correction* (E, Claude Code, 2026-10-08; values analytic or exact, beforehand). Nine
+regressions written against `7d1b19e`'s code and run there, all failing on their first unmet
+assertion: through the scorer, A (others ½ at weight `10^308` each: baseline 0, not ½), B (others 1:
+baseline NaN, not 1), C (one other ½ at the smallest positive weight: baseline 0, not ½), D (3/16 at
+the smallest positive `π_j`: `Ok(Some(∞))`; pending there: `Bound` with infinite ends), E (two terms
+of `1/10^−308`: `Final(∞)`; two pending at `10^−308`: an infinite mean interval); in `panel_scores`,
+A and B (first and extra baselines 0 and NaN, not ½ and 1) and C (0, not ½). A temporary probe on
+the same code read the values those assertions did not reach: terms ¾ (A, not 0), NaN (B, not −¼),
+15/16 (C, not 3/16); `Final(∞)` (D); with two smallest weights, baselines 1 and 0 for reports 0.875
+and 0.25, and 0.5 for 0.5625. After the correction all nine pass, D's and E's assertions completed
+with the explicit `OutOfRange` outcomes; two checks added after it: `OutOfRange` named beside a
+missing report and an absent baseline, kept apart from `NoBaseline`; at the range's edge, two terms
+of `2^1022` sum to `2^1023` with mean `2^1022`, exactly, and three terms near the largest `f64` have
+a finite mean within `2ε` while their sum is `OutOfRange`. A temporary instrumentation, removed,
+recorded every output of `score`, `first_panel_baselines` and `extra_round_baseline` over the
+earlier tests of the scorer and `panel_scores` and the check's 39 — 988 364 calls — before and
+after: identical bit for bit, the new types' `Ok` normalized. `cohort_scores.rs` has 19 tests,
+`panel_scores.rs` 9.

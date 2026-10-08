@@ -1,11 +1,11 @@
-//! B-b's scorer (`docs/17` §14.9): `π_j` below 1, selection apart from `I` and pending, counts
-//! and denominator, the weighted interval, refused inputs, the supported baseline compositions,
-//! and a finite enumeration with shared draws against the reference expectation.
+//! B-b's scorer (`docs/17` §14.9): `π_j` below 1, selection apart from `I` and pending, counts and
+//! denominator, the weighted interval, refused inputs, the supported baseline compositions, a
+//! finite enumeration with shared draws against the reference expectation, and `f64`'s range.
 
 use identity::nym::Nym;
 use protocol::cohort_scores::{
-    score, Case, Cause, Cohort, Counts, Extra, InputError, Item, Outcome, Panelist, Report,
-    Selection, Undefined, Value,
+    score, Case, Cause, Cohort, Counts, Extra, InputError, Item, NoTerm, OutOfRange, Outcome,
+    Panelist, Report, Selection, Undefined, Value,
 };
 
 const U: u8 = 1;
@@ -103,7 +103,7 @@ fn a_non_selection_is_neither_an_inconclusive_outcome_nor_a_pending_one() {
     assert_eq!(k(0), (1, 0, Value::Final(0.0)));
     assert_eq!(k(1), (2, 1, Value::Final(0.0)));
     let bound = Value::Bound {
-        sum: (-2.0, 2.0),
+        sum: Ok((-2.0, 2.0)),
         mean: (q(-2, 3), q(2, 3)),
     };
     assert_eq!(k(2), (3, 1, bound));
@@ -151,7 +151,7 @@ fn the_counts_cover_every_assignment_and_a_cohort_divides_by_its_size() {
     assert!(matches!(k.value, Value::Final(x) if close(x, q(17, 128))));
     let k = &s.cohorts[1];
     assert_eq!((k.size, k.o, k.v), (3, 1, 1));
-    assert!(close(k.known, q(3, 16)));
+    assert!(close(k.known.unwrap(), q(3, 16)));
     let causes = vec![(2, Cause::MissingReport), (3, Cause::Unfrozen)];
     assert_eq!(k.value, Value::Unavailable(causes));
 }
@@ -166,17 +166,20 @@ fn the_pending_interval_is_weighted_by_inclusion() {
     ];
     let s = score(&items, &[cohort(&[0, 1, 2])]).unwrap();
     let k = &s.cohorts[0];
-    assert!(close(k.known, q(3, 16)));
+    assert!(close(k.known.unwrap(), q(3, 16)));
     let (low, high) = (q(3, 16) - 6.0, q(3, 16) + 6.0);
     let want = Value::Bound {
-        sum: (low, high),
+        sum: Ok((low, high)),
         mean: (low / 3.0, high / 3.0),
     };
     assert_eq!(k.value, want);
-    let Value::Bound { sum, .. } = k.value else {
+    let Value::Bound { sum: Ok(sum), .. } = k.value else {
         unreachable!()
     };
-    assert!(!close(sum.1 - k.known, 2.0), "the count of pending members");
+    assert!(
+        !close(sum.1 - k.known.unwrap(), 2.0),
+        "the count of pending members"
+    );
 }
 
 /// A1 B-b, `17` §14.9: probabilities, weights and inclusions outside their domain are refused.
@@ -380,7 +383,7 @@ fn no_weight_left_leaves_a_verdict_undefined_and_an_inconclusive_term_zero() {
     let terms = |s: &protocol::cohort_scores::Scores| -> Vec<_> {
         s.assignments.iter().map(|a| (a.baseline, a.term)).collect()
     };
-    let none = Err(Undefined::NoBaseline);
+    let none = Err(NoTerm::Undefined(Undefined::NoBaseline));
     let s = score(&[item(1.0, Outcome::R)], &[cohort(&[0])]).unwrap();
     let read = (Some(0.75), Ok(Some(1.0)));
     assert_eq!(
@@ -388,7 +391,7 @@ fn no_weight_left_leaves_a_verdict_undefined_and_an_inconclusive_term_zero() {
         vec![(None, none), read, (Some(0.75), Ok(Some(q(5, 8))))]
     );
     let k = &s.cohorts[0];
-    assert_eq!((k.size, k.o, k.v, k.known), (1, 1, 1, 0.0));
+    assert_eq!((k.size, k.o, k.v, k.known), (1, 1, 1, Ok(0.0)));
     assert_eq!(k.value, Value::Unavailable(vec![(0, Cause::NoBaseline)]));
     let s = score(&[item(0.0, Outcome::R)], &[]).unwrap();
     assert_eq!(terms(&s), vec![(None, none); 3]);
@@ -418,7 +421,7 @@ fn coexisting_causes_are_all_named() {
     ];
     assert_eq!(k.value, Value::Unavailable(causes));
     assert_eq!((k.size, k.o, k.v), (6, 2, 2));
-    assert!(close(k.known, q(3, 8)));
+    assert!(close(k.known.unwrap(), q(3, 8)));
     let undrawn = &s.assignments[4];
     assert_eq!(
         (undrawn.case, undrawn.inclusion, undrawn.term),
@@ -540,5 +543,188 @@ fn a_shared_draw_s_weighted_mean_matches_the_reference() {
     assert!(
         close(off, q(-91, 5184)),
         "a recorded π off the effective one: {off}"
+    );
+}
+
+const EPS: f64 = f64::EPSILON;
+
+/// `17` §14.9's bounds: a baseline over `n` reports within `2nε` of its value, a verdict's term on
+/// it within `(4n + 5)ε/π`.
+fn baseline_near(b: Option<f64>, want: f64, n: usize) -> bool {
+    matches!(b, Some(b) if (b - want).abs() <= 2.0 * n as f64 * EPS)
+}
+
+fn term_near<E>(t: Result<Option<f64>, E>, want: f64, n: usize, pi: f64) -> bool {
+    matches!(t, Ok(Some(t)) if (t - want).abs() <= (4 * n + 5) as f64 * EPS / pi)
+}
+
+/// A frozen item with verdict `A` at `pi`: `u` reports `p` at weight 1, nyms 2.. `others`, each
+/// (report, weight).
+fn among(p: f64, others: &[(f64, f64)], pi: f64) -> Item {
+    let others = others
+        .iter()
+        .zip(2..)
+        .map(|(&(prob, w), n)| seat(n, prob, w));
+    Item {
+        first: std::iter::once(seat(U, p, 1.0)).chain(others).collect(),
+        extra: Vec::new(),
+        frozen: true,
+        selection: selected(pi, Some(Outcome::A)),
+    }
+}
+
+/// A1 B-b, `17` §14.9 (A): others at weight 1e308 each leave `u`'s baseline ½ and its term 0.
+#[test]
+fn weights_near_the_largest_f64_leave_the_baseline_the_others_mean() {
+    let m = &one(among(0.5, &[(0.5, 1e308); 2], 1.0))
+        .unwrap()
+        .assignments[0];
+    assert!(baseline_near(m.baseline, 0.5, 2), "{:?}", m.baseline);
+    assert!(term_near(m.term, 0.0, 2, 1.0), "{:?}", m.term);
+}
+
+/// A1 B-b, `17` §14.9 (B): others reporting 1 at weight 1e308 each give 1 and −¼, no NaN.
+#[test]
+fn weights_whose_total_overflows_give_no_nan() {
+    let m = &one(among(0.5, &[(1.0, 1e308); 2], 1.0))
+        .unwrap()
+        .assignments[0];
+    assert!(baseline_near(m.baseline, 1.0, 2), "{:?}", m.baseline);
+    assert!(term_near(m.term, -0.25, 2, 1.0), "{:?}", m.term);
+}
+
+/// A1 B-b, `17` §14.9 (C): a report at the smallest positive weight is `u`'s baseline, ½, not 0.
+#[test]
+fn the_smallest_positive_weight_still_weighs() {
+    let m = &one(among(0.75, &[(0.5, f64::from_bits(1))], 1.0))
+        .unwrap()
+        .assignments[0];
+    assert!(baseline_near(m.baseline, 0.5, 1), "{:?}", m.baseline);
+    assert!(term_near(m.term, q(3, 16), 1, 1.0), "{:?}", m.term);
+}
+
+/// A1 B-b, `17` §14.9 (D): 3/16 at the smallest positive `π`, beyond `f64`, is no infinite term.
+#[test]
+fn a_term_beyond_f64_is_not_infinite() {
+    let s = one(pair(0.75, selected(f64::from_bits(1), Some(Outcome::A)))).unwrap();
+    let k = &s.cohorts[0];
+    let term = k.members[0].term;
+    assert!(!matches!(term, Ok(Some(t)) if !t.is_finite()), "{term:?}");
+    assert!(
+        !matches!(k.value, Value::Final(x) if !x.is_finite()),
+        "{:?}",
+        k.value
+    );
+    assert_eq!(term, Err(NoTerm::OutOfRange));
+    assert_eq!(k.known, Err(OutOfRange));
+    assert_eq!(k.value, Value::Unavailable(vec![(0, Cause::OutOfRange)]));
+    assert_eq!((k.size, k.o, k.v), (1, 1, 1));
+}
+
+/// A1 B-b, `17` §14.9 (D): a pending member at the smallest positive `π` gives no infinite ends.
+#[test]
+fn a_half_width_beyond_f64_gives_no_infinite_interval() {
+    let s = one(pair(0.75, selected(f64::from_bits(1), None))).unwrap();
+    let k = &s.cohorts[0];
+    assert_eq!(k.value, Value::Unavailable(vec![(0, Cause::OutOfRange)]));
+    assert_eq!(
+        (k.members[0].case, k.members[0].term, k.known),
+        (Case::Pending, Ok(None), Ok(0.0))
+    );
+}
+
+/// A1 B-b, `17` §14.9 (E): two terms near 1e308 have their mean, though their sum leaves `f64`.
+#[test]
+fn a_mean_in_range_is_given_when_the_sum_is_not() {
+    let pi = 1e-308;
+    let item = among(1.0, &[(0.0, 1.0)], pi);
+    let s = score(&[item.clone(), item], &[cohort(&[0, 1])]).unwrap();
+    let (t, k) = (1.0 / pi, &s.cohorts[0]);
+    assert!(
+        k.members.iter().all(|m| term_near(m.term, t, 1, pi)),
+        "{k:?}"
+    );
+    let near = |x: f64| (x - t).abs() <= 11.0 * EPS * t;
+    assert!(
+        matches!(k.value, Value::Final(x) if near(x)),
+        "{:?}",
+        k.value
+    );
+    assert_eq!(k.known, Err(OutOfRange));
+}
+
+/// A1 B-b, `17` §14.9 (E): two pending at 1e-308 bound the mean within `±1/π`, the sum beyond.
+#[test]
+fn a_mean_interval_in_range_is_given_when_the_sum_s_is_not() {
+    let item = pair(0.75, selected(1e-308, None));
+    let s = score(&[item.clone(), item], &[cohort(&[0, 1])]).unwrap();
+    let r = 1.0 / 1e-308;
+    let near = |x: f64, want: f64| (x - want).abs() <= 2.0 * EPS * r;
+    let value = &s.cohorts[0].value;
+    let bound = matches!(value, Value::Bound { mean, .. } if near(mean.0, -r) && near(mean.1, r));
+    assert!(bound, "{value:?}");
+    assert!(
+        matches!(
+            value,
+            Value::Bound {
+                sum: Err(OutOfRange),
+                ..
+            }
+        ),
+        "{value:?}"
+    );
+}
+
+/// A1 B-b, `17` §14.9: out of range, a term or a half-width is named beside the other causes.
+#[test]
+fn out_of_range_is_named_apart_from_the_other_causes() {
+    let tiny = f64::from_bits(1);
+    let mut items = vec![
+        pair(0.75, selected(tiny, Some(Outcome::A))),
+        pair(0.75, selected(tiny, None)),
+        pair(0.75, selected(1.0, Some(Outcome::A))),
+        pair(0.75, selected(1.0, None)),
+    ];
+    items[2].first[1].weight = 0.0;
+    items[3].first[0].report = Report::Missing;
+    items[3].frozen = false;
+    let s = score(&items, &[cohort(&[3, 2, 1, 0])]).unwrap();
+    let k = &s.cohorts[0];
+    let causes = vec![
+        (3, Cause::MissingReport),
+        (2, Cause::NoBaseline),
+        (1, Cause::OutOfRange),
+        (0, Cause::OutOfRange),
+    ];
+    assert_eq!(k.value, Value::Unavailable(causes));
+    let terms: Vec<_> = k.members.iter().map(|m| m.term).collect();
+    let none = Err(NoTerm::Undefined(Undefined::NoBaseline));
+    assert_eq!(terms, [Ok(None), none, Ok(None), Err(NoTerm::OutOfRange)]);
+    assert_eq!((k.known, k.size, k.o, k.v), (Err(OutOfRange), 4, 2, 2));
+}
+
+/// A1 B-b, `17` §14.9: at the range's edge a sum in range is given and a mean stays finite.
+#[test]
+fn at_the_range_s_edge_sums_in_range_are_given_and_means_stay_finite() {
+    let edge = among(1.0, &[(0.0, 1.0)], f64::MIN_POSITIVE);
+    let k = score(&[edge.clone(), edge], &[cohort(&[0, 1])])
+        .unwrap()
+        .cohorts
+        .remove(0);
+    assert_eq!(k.known, Ok(2f64.powi(1023)));
+    assert_eq!(k.value, Value::Final(2f64.powi(1022)));
+    let pi = f64::from_bits((1 << 50) + 1);
+    let k = score(
+        &vec![among(1.0, &[(0.0, 1.0)], pi); 3],
+        &[cohort(&[0, 1, 2])],
+    )
+    .unwrap();
+    let (t, k) = (1.0 / pi, &k.cohorts[0]);
+    assert!(t.is_finite() && t > f64::MAX / 2.0);
+    assert_eq!(k.known, Err(OutOfRange));
+    assert!(
+        matches!(k.value, Value::Final(x) if (x - t).abs() <= 2.0 * EPS * t),
+        "{:?}",
+        k.value
     );
 }

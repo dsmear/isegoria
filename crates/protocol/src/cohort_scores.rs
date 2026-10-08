@@ -107,8 +107,21 @@ pub enum Undefined {
     NoBaseline,
 }
 
+/// A defined number that rounds beyond `f64`'s finite range: a limit of the representation, not a
+/// state of the protocol (`docs/17` §14.9).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OutOfRange;
+
+/// Why a verdict has no term: `Undefined` without a baseline (§14.4); `OutOfRange` where `g/π_j`
+/// rounds beyond `f64`'s range.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NoTerm {
+    Undefined(Undefined),
+    OutOfRange,
+}
+
 /// `term`: `Ok(Some(_))` a defined term, divided by `π_j`; `Ok(None)` none in this case; `Err`
-/// a verdict whose term is undefined. `baseline`: composed once the item is frozen.
+/// a verdict without one. `baseline`: composed once the item is frozen.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Assignment {
     pub nym: Nym,
@@ -117,27 +130,34 @@ pub struct Assignment {
     pub case: Case,
     pub inclusion: Option<f64>,
     pub baseline: Option<f64>,
-    pub term: Result<Option<f64>, Undefined>,
+    pub term: Result<Option<f64>, NoTerm>,
 }
 
+/// `OutOfRange`: a member's term, or a pending member's `1/π_j`, beyond `f64`'s range.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cause {
     MissingReport,
     Unfrozen,
     Undrawn,
     NoBaseline,
+    OutOfRange,
 }
 
-/// `Bound` holds the final value where one comes to exist; `Unavailable` names every member
-/// (item, cause) that leaves no value and no interval, in the cohort's order.
+/// `Bound` holds the final value where one comes to exist, its `sum` out of range where an end is;
+/// `Unavailable` names every member (item, cause) that leaves no value and no interval, in the
+/// cohort's order.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Final(f64),
-    Bound { sum: (f64, f64), mean: (f64, f64) },
+    Bound {
+        sum: Result<(f64, f64), OutOfRange>,
+        mean: (f64, f64),
+    },
     Unavailable(Vec<(usize, Cause)>),
 }
 
-/// `size` is `|K|`, the denominator; `o` and `v` count `K`'s members; `known` sums its terms.
+/// `size` is `|K|`, the denominator; `o` and `v` count `K`'s members; `known` sums its terms, out
+/// of range where a term or the sum is.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CohortScore {
     pub nym: Nym,
@@ -145,7 +165,7 @@ pub struct CohortScore {
     pub size: usize,
     pub o: usize,
     pub v: usize,
-    pub known: f64,
+    pub known: Result<f64, OutOfRange>,
     pub value: Value,
 }
 
@@ -261,7 +281,7 @@ fn term(
     report: Report,
     baseline: Option<f64>,
     pi: Option<f64>,
-) -> Result<Option<f64>, Undefined> {
+) -> Result<Option<f64>, NoTerm> {
     let o = match case {
         Case::Positive => 1.0,
         Case::Negative => 0.0,
@@ -271,8 +291,42 @@ fn term(
     let (Report::Revealed(p), Some(pi)) = (report, pi) else {
         unreachable!("a verdict has a revealed report and a selection")
     };
-    let b = baseline.ok_or(Undefined::NoBaseline)?;
-    Ok(Some(difference_score(p, b, o) / pi))
+    let b = baseline.ok_or(NoTerm::Undefined(Undefined::NoBaseline))?;
+    let t = difference_score(p, b, o) / pi;
+    t.is_finite().then_some(Some(t)).ok_or(NoTerm::OutOfRange)
+}
+
+/// Sums times `2^-k`, `2^k` the largest magnitude's power of two: no partial sum overflows, and in
+/// `f64`'s normal range each operation is exactly the unscaled one's (`docs/17` §14.9).
+struct Scaled {
+    k: i32,
+    terms: f64,
+    widths: f64,
+}
+
+impl Scaled {
+    fn of(terms: &[f64], widths: &[f64]) -> Scaled {
+        let top = terms
+            .iter()
+            .chain(widths)
+            .fold(0.0, |top: f64, x| top.max(x.abs()));
+        let k = if top > 0.0 { libm::ilogb(top) } else { 0 };
+        let sum = |xs: &[f64]| -> f64 { xs.iter().map(|&x| libm::scalbn(x, -k)).sum() };
+        Scaled {
+            k,
+            terms: sum(terms),
+            widths: sum(widths),
+        }
+    }
+
+    fn up(&self, x: f64) -> Option<f64> {
+        Some(libm::scalbn(x, self.k)).filter(|x| x.is_finite())
+    }
+
+    /// Finite: a mean of `size` finite values, each below 2 in magnitude once scaled (§14.9).
+    fn mean(&self, x: f64, size: f64) -> f64 {
+        libm::scalbn(x / size, self.k)
+    }
 }
 
 fn assignments(j: usize, item: &Item) -> Vec<Assignment> {
@@ -338,7 +392,7 @@ fn cohort(
         );
     }
     let counts = count(members.iter());
-    let known: f64 = members.iter().filter_map(|m| m.term.ok().flatten()).sum();
+    let width = |m: &Assignment| 1.0 / m.inclusion.expect("selected");
     let causes: Vec<(usize, Cause)> = members
         .iter()
         .filter_map(|m| {
@@ -346,24 +400,33 @@ fn cohort(
                 (Case::MissingReport, _) => Cause::MissingReport,
                 (Case::Unfrozen, _) => Cause::Unfrozen,
                 (Case::Undrawn, _) => Cause::Undrawn,
-                (_, Err(Undefined::NoBaseline)) => Cause::NoBaseline,
+                (_, Err(NoTerm::Undefined(Undefined::NoBaseline))) => Cause::NoBaseline,
+                (_, Err(NoTerm::OutOfRange)) => Cause::OutOfRange,
+                (Case::Pending, _) if !width(m).is_finite() => Cause::OutOfRange,
                 _ => return None,
             };
             Some((m.item, cause))
         })
         .collect();
+    let terms: Vec<f64> = members
+        .iter()
+        .filter_map(|m| m.term.ok().flatten())
+        .collect();
     let pending = members.iter().filter(|m| m.case == Case::Pending);
-    let radius: f64 = pending.map(|m| 1.0 / m.inclusion.expect("selected")).sum();
+    let widths: Vec<f64> = pending.map(width).filter(|w| w.is_finite()).collect();
+    let s = Scaled::of(&terms, &widths);
+    let in_range = members.iter().all(|m| m.term != Err(NoTerm::OutOfRange));
+    let known = s.up(s.terms).filter(|_| in_range).ok_or(OutOfRange);
     let size = members.len() as f64;
     let value = if !causes.is_empty() {
         Value::Unavailable(causes)
     } else if members.iter().all(|m| m.case != Case::Pending) {
-        Value::Final(known / size)
+        Value::Final(s.mean(s.terms, size))
     } else {
-        let sum = (known - radius, known + radius);
+        let (lo, hi) = (s.terms - s.widths, s.terms + s.widths);
         Value::Bound {
-            sum,
-            mean: (sum.0 / size, sum.1 / size),
+            sum: s.up(lo).zip(s.up(hi)).ok_or(OutOfRange),
+            mean: (s.mean(lo, size), s.mean(hi, size)),
         }
     };
     Ok(CohortScore {
