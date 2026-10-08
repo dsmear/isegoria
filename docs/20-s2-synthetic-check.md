@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`) was partly reviewed by Astra on `e5e0898`; its rectifications await Astra's review** (§9); the owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. |
-| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified on `e5e0898`; code named by symbol. |
+| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`), partly reviewed on `e5e0898`, and its rectifications were approved by Astra on `3559396`, within the check's perimeter** (§9): no general validation of arbitrary flows, no H-c, properness, reputational incentive, confidentiality, true DTF or neutrality shown. The owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. |
+| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified in `3559396` and approved there; code named by symbol. |
 | **Scope** | `19` §10.6's next deliverable: what a technical check on synthetic events would execute, what its fixtures supply, what it must report and when it fails. References, within their recorded limits: design A, B-b and the reporting of cases 5–7 with 6c and 7a (`17` §§8–9), α (`17` §10), T1 the analytic reference and T2 the comparison (`17` §§11–13); B-b's study scores outside the reputation and the gate's decisions recorded with no effect on operational pools (Astra, decided on `cbcbc67`, confirmed on `5af22b9`). |
 | **Evidence** | Specification (Claude Code, before `c76c035`): **L** targeted reads of the code named; **C** every expected value recalculated with exact fractions in a scratch script, not kept. Implementation and rectifications (Claude Code): **E** the check's targeted tests, §9. Astra's reviews: below. |
 
@@ -40,8 +40,25 @@ recorded first but numbered after two non-conclusions; and the classifier at (R)
 documented contrary order into `Indeterminate` once another entry of `x_O` lacked evidence. A
 precision: at (E), the unchecked member's signature inside a `CutSignature` is not by itself
 blocking; the contract is to state what is verified and what that evidence concludes. Both
-defects are rectified, and the precision made, in §9, awaiting review. The specification stays
-approved on `c76c035`; R1 stays approved; A1, A2, B1–B3 and Phase 1 stay open.
+defects are rectified, and the precision made, in §9. The specification stays approved on
+`c76c035`; R1 stays approved; A1, A2, B1–B3 and Phase 1 stay open.
+
+Review of `3559396` (the commit, its parent and the published branch checked; the diff, the
+regressions and the documentary joins read; small Python transcriptions checking the attempt
+sequences and the aggregation of evidence; no Rust run; the 28 passing tests, Clippy and the
+local checks stay Claude Code's evidence, with the failed assertions of the run before the
+rectifications kept apart from those it did not reach): **approved** — the rectifications of
+the two defects found on `e5e0898`, both findings resolved (repeated or incoherent attempts and
+the order of the registrations; contrary evidence or an absent precondition lost when other
+entries lack coverage); the implementation of the check within this document's perimeter; the
+original fixtures' results kept; the `CutSignature` precision, its authenticated reference kept
+apart from a check of its inner signature. Scope: the specification approved on `c76c035`, the
+implementation and its rectifications on `3559396`, within the synthetic check's perimeter; no
+general validation of arbitrary flows; no proof of H-c, properness, reputational incentives,
+confidentiality, the true DTF or neutrality; S2 not started. Two non-blocking precisions, made in
+§9: a terminal validated on its own prefix can stay valid when an incoherent registration comes
+later; duplicated shortfall and refused-batch identities are not checked. R1 stays approved; A1,
+A2, B1–B3 and Phase 1 stay open.
 
 ## 1. What the check is
 
@@ -284,12 +301,12 @@ before a field study:
    coexists with it only as a record held under T2 (F5); a disclosed one would need a rule letting
    the freeze pass (T58 or a term), not approved.
 
-## 9. The implementation (partly reviewed on `e5e0898`; rectifications awaiting review)
+## 9. The implementation (approved on `3559396` within the check's perimeter)
 
 Written by Claude Code on `c76c035` and committed in `e5e0898`, on the owner's assignment; the
 review of `c76c035` approved the specification above, not this implementation. Astra's review of
-`e5e0898` (above) was partial; its two defects are rectified below, on a further assignment, and
-await Astra's review.
+`e5e0898` (above) was partial; its two defects are rectified below, on a further assignment, in
+`3559396`, which Astra approved within the check's perimeter (above).
 
 **Where.** Test code only: `crates/protocol/tests/s2_synthetic_check.rs`, one test per fixture,
 common expectation or regression, and its support `crates/protocol/tests/s2/` — `fixture.rs`
@@ -327,11 +344,16 @@ checks K6 and K4 on them first and repairs nothing: one attempt logged twice (`R
 different records claiming one (group, stage, number) (`Conflicting`), or a stage's attempt
 recorded out of its number's order or numbered past the budget (`Misnumbered`) refuses the
 derivation. `k4` then reads the records in that order, the first conclusion standing; `validate`
-matches each attempt it used to the terminal's references by that attempt's own CID. A group
-with such records gets the error in its report, its items `Pending::Incoherent` and its
-terminal records `TerminalError::Sequence`; in `executed` and in the costs each distinct attempt
-counts once, however often logged, so the same records never mean two executions to one function
-and one to another.
+matches each attempt it used to the terminal's references by that attempt's own CID. A
+derivation resting on an incoherent sequence is refused: a terminal record whose earlier
+attempts include it gets `TerminalError::Sequence`. A terminal is validated on the attempts
+recorded before it, so one validated on its own prefix stays valid when an incoherent
+registration comes later; the group's report still names the incoherence, read on every attempt
+record of the prefix, and only its items with no valid terminal read `Pending::Incoherent`. In
+`executed` and in the costs each distinct attempt counts once, however often logged, so the same
+records never mean two executions to one function and one to another. Not checked, a limit of
+the perimeter verified and no guarantee: duplicated identities of shortfall and refused-batch
+records.
 
 **Order evidence** (rectification of the second defect). At each level, each entry of `x_O` is
 classified alone — not examined (R) or not held (E); held with no reference either way (E);
