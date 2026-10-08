@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. Astra's review of `cbcbc67` approved those precisions and the further changes to §13.2's classification (§13); the minimal perimeter for a study S2 built on §§9–13, [`19`](19-a2-dtf-composition-design.md) §10.6, was partly approved there, rectified and **approved on `5af22b9` as a preparatory synthesis**; after that review §13.2's absent-precondition row was made self-standing, its classification unchanged. The synthetic-event technical check built on §§8–13 is specified in [`20`](20-s2-synthetic-check.md), **approved by Astra on `c76c035` as the check's specification**, with four precisions made there; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. Astra's review of `cbcbc67` approved those precisions and the further changes to §13.2's classification (§13); the minimal perimeter for a study S2 built on §§9–13, [`19`](19-a2-dtf-composition-design.md) §10.6, was partly approved there, rectified and **approved on `5af22b9` as a preparatory synthesis**; after that review §13.2's absent-precondition row was made self-standing, its classification unchanged. The synthetic-event technical check built on §§8–13 is specified in [`20`](20-s2-synthetic-check.md), **approved by Astra on `c76c035` as the check's specification**, with four precisions made there; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §14 proposes, **awaiting review**, the contract of A1's candidate guarantee, on Astra's direction after the review of `bef891b` (B-b the reference score, A the analytic reference, C the comparison, neither adopted); no review covers it. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -1852,3 +1852,112 @@ S2's minimal perimeter built on §§9–13, `19` §10.6, was approved on `5af22b
 synthesis, and the synthetic-event check is specified in `20`, approved on `c76c035`, its
 implementation approved on `3559396` within the check's perimeter. Nothing here is
 adopted; no protocol is ready and no neutrality is certified.
+
+## 14. A1's candidate guarantee: the contract (proposal awaiting review)
+
+**Status.** Claude Code's proposal on Astra's direction after the review of `bef891b`: B-b the
+reference score, A the analytic reference, C in the comparison; no arm adopted for production, no
+expenditure or sample size authorized. It assembles approved results (`16` §4; §§7–13), proves
+nothing new and changes no code; no review covers it.
+
+### 14.1 The property
+
+For `u` and a prefixed cohort `K ⊆ R_u` (§8.3) the quantity is `E[Ŝ_K | F_u]` (§8.1; under A,
+`S_j = π_j = 1`): by D1, the mean over `K` of `E[g_uj(Y_j) | F_u]`. Where
+`c_uj = P(Y_j ≠ I | F_u) > 0` the unique maximizing report is `q_c = P(Y_j = A | Y_j ≠ I, F_u)`,
+a report `p` losing `c_uj (p − q_c)²` (§10.2); where `c_uj = 0` every report scores 0 in
+expectation: the score is flat. Kept apart: the *properness of the expected contribution*, the
+property claimed; the *cohort estimator*, whose final value D1 concerns, not its availability nor
+the cohorts consolidated by a given time (§8.3); *utility and reputation* — `k_u`, probation,
+shrinkage, weight, cap, CUSUM, a preference over the item's fate, the gate's use of the same
+report (§10.4) — outside, the study's scores kept out of the reputation (Astra, `cbcbc67`).
+
+### 14.2 Domain
+
+| Element | Inside | Outside, with no approved rule |
+|---|---|---|
+| target | `Y_j ∈ {A, R, I}`, from the reference procedure fixed for the item's group before the reports (§8.1); the rating's meaning α (§10.3) | passing Level B (`02` §C.2); pool entry |
+| information | `F_u` at commitment, its private part included (`16` §4.1) | `F'_u`, at the reveal decision |
+| units | the assignment for the contribution; a prefixed cohort for the estimator; the item and its group for `Y` (§9.1) | cohorts selected by outcomes or times |
+| reports | completed (H-d) | case 6, a missing report; case 7, a freeze not reached (§9) |
+| outcomes | `A`, `R`; `I` only on §9.2's positive records | a pending outcome, silence, `Ω`, a shortfall record |
+| availability | no condition of D1 | §8.3's property; overdue rules; values before consolidation |
+
+6c and 7a are the study's reporting (§9.6), not scores.
+
+### 14.3 Deviations
+
+*Covered*: `u`'s reports as any `F_u`-measurable rule chosen jointly over `R_u` (H-c, §8.1), the
+other roles' behaviour given; adaptive rules on `F_u` are such rules (`16` §4.3). *Not covered*:
+withholding a reveal (`16` §4.4); timing, a deviation moving freezes or disclosures; actions in
+other roles — respondent, runner, holder, verifier, beacon member, a participant moving shared
+parameters (§§10.4, 11.3, 12.1); several reviewers deviating together. Abstract constructions
+show channels for several of them, not frequencies (§§7.3, 7.5, 9.4, 11.3, 12.4). An exclusion
+from the analysis shows no deviation harmless; where one acts through H-c or C5, the contract
+assumes it away.
+
+### 14.4 Conditions
+
+Status: **code**, realized by code; **caller**, the caller's to supply; **build**, missing;
+**assumed**, declared, not shown. `20`'s check derives from supplied records and shows none of
+H-c, C5, properness or availability.
+
+| Condition (source) | Function | Status | Minimal evidence | If absent |
+|---|---|---|---|---|
+| H-a, `F_u ⊆ F_Φ` (§8.1) | D1's tower step | assumed for private information | the information model, declared | D1 not shown |
+| `Y_j` hidden from `j`'s reviewers until `Φ_j` (§4, A) | a forecast, not a reading of `Y` | build: `Φ_j`, `Φ_G` and T1's start as log rules; T1 excludes only the planned execution | those rules; §13's predicates per pair; P5 and §12.4's (i) declared | the forecast reads `Y`; an arrival a deviation decides reaches H-c and C5 (§11.3) |
+| no observation draw (§8.5) | C1 and H-e at `π = 1` | build: A's measurement pilot, pool entry apart from the verdict step (§12.5) | every assigned item's procedure recorded | C's obligations return |
+| the beacon's other roles (`16` §§2, 6) | admission, panels, the extra round | code; values unselected only under `16` §6's member model, assumed | — | a coalition chooses who reviews what: outside D1, which is given `R_u` |
+| H-b (§8.1) | the observed outcome has the reference's law | build: the group record before the assignments, the procedure pinned (§7.3) | that record; §9.2's evidence, recomputable | §7.1's counterexample |
+| H-c (§8.1), resources included (§7.2, item 4) | `c_uj` and `q_c` free of `σ_u`: uniqueness | assumed; each construction excludes named channels only (§§7.3, 12.4) | declared with its constructions and residues; no record shows it (§12.1) | §14.3's channels |
+| H-d: completed reports; C5 (`16` §4.6) | `p_uj` exists; the baseline invariant | reports: caller; `panel_scores`: code; frozen weights: caller | the reveals; `panel_scores.rs` (E); the weights used recorded (§13.4) | case 6; A10's `d ≡ 0`; §9.4's 3/16 |
+| C4, `N_u = \|R_u\|` (§8.6) | a denominator free of reports | build: `SkillTrack` counts recorded items | §8.6, test 1 | withholding chooses the denominator |
+| `I` a positive record, a term in log order (§§7.2, 9.2) | `I` not chosen by silence | build: no `I` state; test code in `20` | §9.2's record | a late record's holder chooses `I` |
+| `c_uj > 0` (§7.5) | uniqueness | uncontrolled | none; a public frequency is not `c_uj` (§10.3) | the score flat |
+
+*Under C*, two obligations apart. Inclusion (H-e, C1): a draw after the freeze from a source no
+one reads or selects before — `16` §6's member model, or uniqueness, a real DKG and a
+same-message fallback. Paths (H-b): audited groups' outcomes the reference's; unaudited entrants'
+pilots sharing no resources unless reserved; reuse only with one group, sampling, procedure and
+timing (§8.5).
+
+### 14.5 Implementation
+
+*Present*, with no production caller: `difference_score`, `panel_scores`, `review::commit`, the
+lifecycle's report and gate steps, the pilots' indeterminate readings; `outcome_of` and
+`record_outcome` give `SkillTrack` a binary outcome, with no `I`. *In tests*: `panel_scores.rs`
+reaches `record_outcome` on one band item. *Synthetic check* (`20`): B-b by case, `N`, `O`, `V`,
+cohorts, freezes and terminals, on supplied records. *Missing*: the group record; A's pilot path;
+freeze and start rules; attempt and terminal records with `I`; the scorer reading assignments,
+completed reveals, frozen weights and terminal records and recording `N_u`, `O_u`, `V_u` (§8.6) —
+the path meant to compute the score, whose arithmetic `20`'s `study.rs` composes in tests only;
+a production caller of `item_scores`; an epoch driver (`10` T79). Feeding the score to
+`SkillTrack` is a reputational decision outside the contract.
+
+### 14.6 Adaptive verification
+
+A future test compares, through the implemented scorer, the truthful `q_c` against strategies that
+read, besides a signal on `Y`, what is observable before commitment (the panel, other items' gate
+decisions, disclosures, §12.3) and act jointly over `R_u`, on freezes and disclosures too; fixed
+forecasts do not suffice. Where H-a–H-d hold by construction, an exact enumeration should find no
+strategy above the truth (as in `16` §4.3); on each construction §14.3 cites, its gain. It could
+support that the scorer computes D1's quantity there and detects the named channels; not the theorem
+in general, H-c in the protocol, nor a frequency.
+
+### 14.7 Judgment
+
+Against `15` A1's criterion: the contract *defines* the information at reporting (H-a; under A,
+`Y_j` hidden until `Φ_j`), its log rules unbuilt and its private part assumed. *Properness* is
+proved for the expected contribution under H-a–H-d, H-c assumed; but under A every inclusion
+probability is 1, so the exploration design with IPW that the criterion names is replaced, not
+proved — C would keep an IPW at `α` under C1's model — and whether that answers the criterion is
+Astra's to judge. The *adaptive test* is only specified (§14.6).
+
+Against the declared guarantee (`01` D35, `02` §C.2, paper `prop:ipw`) the contract narrows the
+promise in four places: the target, `q_c` given conclusion rather than passing Level B; every
+item piloted rather than exploration at `ε` with IPW; completed reports only; the reputation
+outside. Adopting it would be a decision changing those texts, and would realize nothing. A1
+stays open: at least the conditions to build, H-c declared with its residues and §14.6's test
+would be needed, Astra's review deciding whether they suffice; A's capacity (+316.825 slots
+against the declared 333.5, §8.5) and §8.3's availability weigh on any adoption. A proposal, not
+a decision.

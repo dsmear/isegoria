@@ -617,6 +617,16 @@ they win.
   comes later, the group's report still naming the incoherence (read in `study.rs`, behaviour
   unchanged); duplicated shortfall and refused-batch identities are not checked, a limit of the
   perimeter. R1 approved; A1, A2, B1–B3 and Phase 1 open.
+- **Astra's review of `bef891b`: partial** (the commit, its parent and the published branch
+  checked; the diff read and compared with the criteria of `15`, `10` and `08` §16.1; no Rust,
+  fit or campaign run). Approved: the record of `3559396`'s approval; `20` §9's two precisions.
+  Not approved as a whole: §5.1's closure synthesis; rectifications asked on T82 and B1–B3, the
+  later tasks' dependencies, A4's and A5's residues, the meaning of closure and T26. Direction:
+  A1 the next block — B-b the reference score, A the analytic reference, C in the comparison;
+  no adoption, expenditure or sample size. R1 approved; A1, A2, B1–B3 and Phase 1 open.
+- **§5.1 rectified in place and A1's candidate contract proposed in `17` §14** (documentation
+  only, on the owner's assignment; **awaiting Astra's review**, neither covered by the review of
+  `bef891b`).
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -695,7 +705,8 @@ they win.
   decisions recorded with no pool effect, α the semantic reference) and its synthetic-event check
   specified (`20`, approved on `c76c035`; its implementation approved on `3559396` within the
   check's perimeter); T58 stays open
-  for a procedure that must proceed despite missing reports.
+  for a procedure that must proceed despite missing reports. The contract of A1's candidate
+  guarantee is proposed in `17` §14, awaiting review.
 - **`08` PRIV-004.1 (separate from A1): remediation open.** The general claim that an inclusion
   proof lets its holder infer no other input is refuted under the stated enumerable-field
   assumptions; the confidentiality goal and a construction meeting it stay to be stated; no
@@ -733,8 +744,8 @@ on `cbcbc67`, rectified and approved on `5af22b9` as a preparatory synthesis. Th
 technical check is specified in `20`, approved by Astra on `c76c035` with four precisions, and
 implemented in test code on the owner's assignment (`e5e0898`), partly reviewed there,
 rectified and approved on `3559396` within its perimeter. S2 is not declared ready; no further
-run, recruitment, data collection or start is authorized. The next step is §5.1's closure check,
-a proposal awaiting review.
+run, recruitment, data collection or start is authorized. The next step is Astra's review of
+§5.1's rectifications and of A1's candidate contract (`17` §14).
 No roadmap or campaign is added, and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -758,57 +769,80 @@ missing (population and contrasts to protect, item formats and the anchors' subs
 reference, tolerable errors and inconclusiveness, latency and resources) are not put to the owner
 before a sufficient comparison of the designs.
 
-### 5.1 Phase 1 closure check (proposal by Claude Code, awaiting Astra's review)
+### 5.1 Phase 1 closure check (partly reviewed on `bef891b`; rectified, awaiting review)
 
-Not covered by the approval of `3559396`. Criteria used, none added: each finding's criterion in
-`15`; `10` §1.5's completion qualification (critical and high findings resolved, or the claimed
-domain narrowed by a justified decision; provisional parameters with defined pilots allowed;
-field validation is T27; no documentation-only change closes a code or proof finding); `15`'s
-working agreement 6 (proportionate evidence for every critical claim, `08` §16.1; T26 reviews
-the final candidate). Missing items by kind: **Dd** design decision, **Pr** proof, **Im**
-implementation, **Em** empirical evidence.
+Claude Code's proposal, committed in `bef891b`. **Astra's review of `bef891b`: partial** (the
+commit, its parent and the published branch checked; the diff read and compared with the criteria of
+`15`, `10` and `08` §16.1; no Rust, fit or campaign run). Approved: the record of `3559396`'s
+approval; `20` §9's two precisions. Not approved as a whole: this synthesis. Rectified in place
+below by this intervention, awaiting review: the A1, B1–B3 and A4–A5 rows; T82 and S1; the later
+tasks' dependencies; T26 and SC-8; the next block. Neither the rectified text nor A1's candidate
+contract (`17` §14) is covered by that review.
+
+**Astra's precisions on the meaning of closure.** A narrowed guarantee is not a realized one.
+`10` §1.5 allows a completion claim on an explicitly narrowed domain, not the automatic closure of
+the original technical problem: R1 corrected a promise without resolving A2. Severity alone does
+not decide whether a finding blocks; its effect on the guarantees kept does. Each exclusion needs
+its own justification. No substantive narrowing of any guarantee is approved.
+
+**Criteria used**, none added: each finding's criterion in `15`; `10` §1.5's completion
+qualification, read with the precisions above (provisional parameters with defined pilots
+allowed; field validation T27; no documentation-only change closes a code or proof finding);
+`15`'s working agreement 6 (proportionate evidence for every critical claim, `08` §16.1; T26
+reviews the final candidate). Missing items: **Dd** design decision, **Pr** proof, **Im**
+implementation, **Em** empirical evidence; for residues, **B** shown blocking, **O** an open
+decision, **L** a documented limit.
 
 | Findings, state | Closure criterion (ref) | Acquired; limits | Missing | Depends on | Minimal next deliverable |
 |---|---|---|---|---|---|
-| A1, critical, open | `15` A1: the information at reporting defined, IPW properness proved under it, an adaptive strategy tested | theorem conditional on C1–C6 (`16` §4.3); band baselines in code; B-b, arms A/C, cases 5–7, α, T1/T2 and their evidence as conditional analyses (`17` §§7–13); `20`'s check. Limits: C1 rests on a member model (`16` §6), C6/H-c only declared, no arm or contract adopted | Dd: the forecast target, the arm, the information model, missing reports (C2, C4); Pr: properness with its hypotheses realized or stated as the claim's domain; Im: the chosen contract; Em: an adaptive strategy on synthetic events | arm capacity (A: +316.825 slots, 95.0% of the declared 333.5, `17` §8.5); the beacon; T58 only if missing reports enter the claim | Astra's ruling on the claim (below) |
-| A2, high, open; R1 approved | `15` A2: target measure, linking, whole-test contribution specified; bound proved; estimation error apart; a margin alone does not close it | conditional proposition (`19` §3); R1, `D(T)` an admission cost; calibration comparison, no winner (`19` §9); one fixed form (`19` §9.6). Limits: no `μ`, `𝒢`; the filtered functional is no function of the law; no bound with coverage | Dd: `μ`, `𝒢`, contrasts, forms (`19` §6.1, §10.2); Pr: the bound and its coverage; Im | B1–B3; the calibration arm, common reusable or per form, neither valid nor inevitable; D2, D4 | a ruling of A1's kind, after it |
-| B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: scenarios and criteria declared (S1), then an owner-run campaign; Pr where identification is claimed | T82's DIF studies on D43; A2's target | S1's declaration, no run |
-| A4 (b)–(d); A5's residual | the records' "Left open" in `15` | indeterminate readings typed on the decision paths | Im: (b) `emerging_dif` typing, (c) the retired proxy path; (d) belongs to B1–B3; Dd: the extra draw's weight | — | a small Im pass, or with B1–B3 |
+| A1, critical, open | `15` A1: the information at reporting defined, IPW properness proved under it, an adaptive strategy tested | theorem conditional on C1–C6 (`16` §4.3); band baselines in code; B-b, arms A/C, cases 5–7, α, T1/T2 and their evidence as conditional analyses (`17` §§7–13); `20`'s check. Limits: C1 rests on a member model (`16` §6); H-c only declared; no arm or contract adopted | Dd: the guarantee's perimeter — target, arm, information, missing reports — each narrowing justified (`17` §14.7); Im: `17` §14.5's missing capabilities; Pr: each hypothesis realized, or declared with its residual channels; Em: `17` §14.6's adaptive test | A's capacity (+316.825 slots against the declared 333.5, `17` §8.5); the records' availability (`17` §8.3); T58 for C4 and cases 6–7 | the review of `17` §14's contract |
+| A2, high, open; R1 approved | `15` A2: target measure, linking, whole-test contribution specified; bound proved; estimation error apart; a margin alone does not close it | conditional proposition (`19` §3); R1, `D(T)` an admission cost; calibration comparison, no winner (`19` §9); one fixed form (`19` §9.6). Limits: no `μ`, `𝒢`; the filtered functional is no function of the law; no bound with coverage | Dd: `μ`, `𝒢`, contrasts, forms (`19` §6.1, §10.2); Pr: the bound and its coverage; Im | B1–B3; the calibration arm, common reusable or per form, neither valid nor inevitable; D2, D4 | a contract of A1's kind, after A1's |
+| B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: S1's scenarios and decision criteria declared, then one campaign on an identified candidate, its design declared before execution; Pr where identification or coverage is claimed, which simulations do not replace | A2's target; the owner's authorization of the campaign | S1's declaration, no run |
+| A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; (c), the retired proxy path, fixtures only: L, its listing requiring no change; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
 | A8, A9, medium | `15`: distinguishability, identifiability and power apart (A8); hypotheses or a controlled approximation (A9) | the paper a dated snapshot | Pr and the paper's text | — | a rectification of the two claims |
 | A10, low; C5, C6, medium | `15`: properness scoped or the fallback decided (A10); index or inferential model (C5); decay policy (C6) | behaviour documented | Dd, Im if changed | A1 for A10 | decisions, Astra's or the owner's |
-| B4–B5, C3; B6, D5; B7, D1, D6, E; D2, D4; D3 | `15`'s statistical table; B7: provisional values allowed with T27 procedures | T24; T25 steps 1–3; `14` Level A | Em on a frozen candidate; D3: Dd on a sustainable domain | T83 (owner), T82, T25 step 4 | D3's domain; the rest after the candidate |
+| B4–B5, C3; B6, D5; B7, D1, D6, E; D2, D4; D3 | `15`'s statistical table; B7: provisional values allowed with T27 procedures | T24; T25 steps 1–3; `14` Level A | Em on a frozen candidate; D3: Dd on a sustainable domain | T83 (owner); T25 step 4, reading T82's measures | D3's domain; the rest after the candidate |
 
-**Phase 1 outside the register** (`10` §1.5): T25 step 4 for Level B, after T82's DIF studies on
-the D43 model (owner-run) and T83's operating point (owner).
+**Phase 1 outside the register** (`10` §1.5): T25 step 4 for Level B, which reads T82's DIF
+studies on the D43 model and T83's operating point (owner). T82 is no prerequisite for writing
+S1: its measures and B1–B3's can belong to one experimental design declared before execution, on
+an identified candidate, with criteria fixed beforehand and the owner's authorization of the
+campaign. Simulations replace no proof of identification or coverage where those guarantees are
+claimed. No campaign is designed or started here.
 
 **Kept apart.** *S2*, a human study: no recorded Phase 1 criterion requires it; it would need
 respondents, a tolerable load, an executable path and `17` §12's access decisions, and would
-measure rates and costs, not H-c. *Later work*: T58, T77, T79, T17, T75, T76 (Phases 2–3), T23
-and T27 (external) block Phase 1 only if the A1 claim says the deployed protocol realizes the
-information model. Costs stay counted apart — participations, persons, answers with anchors,
-fits, times (`19` §10.4) — and D2, D4 unmeasured.
+measure rates and costs, not H-c. *Later tasks*: a dependence is assessed against each guarantee
+kept in the closure perimeter — incentives, privacy, security, empirical validity — and no later
+task moves into Phase 1 by default. Links on the record: T58 to C4 and cases 6–7 (`16` §4.4,
+`17` §9.4); T79, with T76 which it needs (`10`), to the records' availability (`17` §8.3) and to
+`17` §13.4's evidence; T19 to C1 under arm C and to the beacon's other roles (`16` §6); T77 to
+D17 and PV-5 wherever a guarantee on reveals is kept (`17` §11.4); T27 to the provisional
+parameters' field values (B7). T17, T75 and T23 stay in their perimeter unless a kept guarantee
+is shown to rest on them. Costs stay counted apart — participations, persons, answers with
+anchors, fits, times (`19` §10.4) — and D2, D4 unmeasured.
 
-**Ambiguities for Astra.** (1) Whether `10` §1.5's narrowing can close A1 or A2: R1 narrowed
-A2's claim and A2 stayed open. (2) Whether the medium and low findings, and the statistical rows
-without a severity, block the completion claim or stay documented residual risks. (3) `15`'s
-agreement 6 has T26 review the final candidate; `10` says nothing in Phases 1–2 needs the
-external gates.
+**T26 and SC-8.** `15`'s agreement 6 has T26 review the final candidate; `10`'s dependency notes
+say nothing in Phases 1–2 needs the external gates. The contrast stays visible until resolved
+explicitly, and until then T26 is not declared superfluous. Astra's internal review does not by
+itself meet SC-8 (`08` §16.1), an external psychometric review by a qualified reviewer, recorded
+in `reports/`. Neither requirement is rewritten here, and no external reviewer is contacted.
 
-**Recommendation: A1's claim next.** One ruling to ask Astra: does Phase 1 claim protocol-level
-properness under a named arm — then the target, A or C, the information model, the hypotheses
-realized, the proof, the implementation and the adaptive test form A1's closing list — or a
-narrowed, conditional claim — then the justified decision and the texts it changes; with
-ambiguity (1) settled for A1. Why: A1 is the only critical finding; its analyses are approved,
-and what it lacks is a decision rather than depth; A2's next step has the same shape; the arm's
-capacity weighs on it. Neither branch is developed here.
+**For Astra.** The first version's ambiguities (1) and (2) are answered by the precisions above.
+Left: the T26 contrast; which guarantees the closure perimeter keeps, against which the
+dependencies above are assessed.
+
+**Next block (Astra's choice): A1.** B-b the reference score, A the analytic reference, C kept in
+the comparison; no adoption of A or C in production; no expenditure or sample size. The contract
+of the candidate guarantee is proposed in `17` §14, awaiting review: it closes nothing, and its
+narrowings of the declared promise (`17` §14.7) are a proposal, not a decision.
 
 ## 6. Essential reading to resume
 
-`CLAUDE.md` and `docs/CLAUDE.md`; `docs/15` (rows A1, A2, B1–B3, D2–D4 and the correction
-records); `docs/16` (A1's theorem, conditions C1–C6, beacon model) and `docs/17` (A1's batches and
-missing outcomes); `docs/18` (A3); `docs/19` (A2); `docs/20` (S2's synthetic check: specification
-and implementation approved); `docs/02` §B.3,
-§B.7; `docs/01` D33–D38, D43;
+`CLAUDE.md` and `docs/CLAUDE.md`; `docs/15` (rows A1, A2, B1–B3, D2–D4 and the correction records);
+`docs/16` (A1's theorem, conditions C1–C6, beacon model) and `docs/17` (A1's batches and missing
+outcomes; §14, the candidate contract); `docs/18` (A3); `docs/19` (A2); `docs/20` (S2's synthetic
+check: specification and implementation approved); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43;
 code: `crates/scoring/src/{latent.rs,dtf.rs}`,
 `crates/protocol/src/{contested.rs,lifecycle.rs,orchestrator.rs,exploration.rs}`,
 `crates/protocol/tests/{s2_synthetic_check.rs,s2/}`.
@@ -1272,4 +1306,19 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   table columns, relative links and references, the states across `15`, `17`, `19`, `20`,
   `docs/README.md` and this note. No Rust test, fit, search, bootstrap, smoke, characterization,
   calibration, benchmark, mutation or Phase 2 work; no code change.
+- **Astra, review of `bef891b`** (as it records): the commit, its parent and the published
+  branch checked; the diff read and compared with the criteria of `15`, `10` and `08` §16.1. No
+  Rust, fit or campaign run.
+- **Claude Code, record of that review, §5.1's rectifications and `17` §14:** branch
+  `docs/phase1-review-alignment`, HEAD `bef891b` (parent `3559396`), the remote-tracking branch
+  at the same commit, and a working tree with only the owner's `.gitignore` modified checked
+  first; `.gitignore` and the ignored directories, `.gpt/` included, left untouched and out of
+  the commit. Read (L): `15`'s criteria, records and working agreement; `16` §§1–9; `17` §§4,
+  7–13; `19` §§6.1, 10.1, 10.5; `20`'s status and §§1–2, 9; `10` §§1.5, 3.4 and the dependency
+  notes; `08` §16; the code naming what exists (`panel_scores`, `difference_score`,
+  `exploration::{outcome_of, record_outcome}`, `SkillTrack`, the check's `study.rs`).
+  Documentation checks only: `git diff --check`, `scripts/comment_budget.py`, the widths of the
+  new lines, table columns, relative links and references, the states across `15`, `17`, `20`
+  and this note. No Rust test, fit, search, bootstrap, smoke, characterization, calibration,
+  benchmark, mutation or Phase 2 work; no code change.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
