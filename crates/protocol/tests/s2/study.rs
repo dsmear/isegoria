@@ -1,5 +1,5 @@
 //! The check's derivations (`docs/20` §§3–5, §7; `17` §§8–9): freezes, K4's procedures, the
-//! assignments' cases, B-b's contributions, counts and cohorts, the snapshot and its costs.
+//! snapshot and its costs; cases, B-b's terms, counts and cohorts through `cohort_scores` (§12).
 
 use super::fixture::{consortium, Main, ANCHORS};
 use super::order::{
@@ -9,11 +9,12 @@ use super::records::{Attempt, Construction, Group, Outcome, Reading, Reason, Rec
 use super::replay::{Examined, LogView};
 use identity::nym::Nym;
 use network::cid::{cid, Cid};
+use protocol::cohort_scores::{self as bb, score, Extra, Panelist, Report, Selection};
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{Event, State};
-use protocol::panel_scores::{first_panel_baselines, Forecast};
-use scoring::reputation::difference_score;
 use std::collections::BTreeMap;
+
+pub use protocol::cohort_scores::Undefined;
 
 /// `Φ_j` (`16` §5) from an item's applied steps: `Score` on `Pass` or `Reject`; `Resolve`
 /// unless appealable; `Appeal` or `AppealExpires` after an appealable decision.
@@ -213,52 +214,24 @@ impl Case {
     }
 }
 
-fn case_of(completed: bool, freeze: Option<u64>, state: ItemState) -> Case {
-    match (completed, freeze, state) {
-        (false, _, _) => Case::MissingReport,
-        (true, None, _) => Case::Unfrozen,
-        (true, Some(_), ItemState::Pending(_)) => Case::Pending,
-        (true, Some(_), ItemState::Terminal { outcome, .. }) => match outcome {
-            Outcome::A => Case::Positive,
-            Outcome::R => Case::Negative,
-            Outcome::I => Case::Inconclusive,
-        },
+/// The scorer's case; case 1 and a frozen item before its draw do not arise under A.
+fn case(c: bb::Case) -> Case {
+    match c {
+        bb::Case::Pending => Case::Pending,
+        bb::Case::Positive => Case::Positive,
+        bb::Case::Negative => Case::Negative,
+        bb::Case::Inconclusive => Case::Inconclusive,
+        bb::Case::MissingReport => Case::MissingReport,
+        bb::Case::Unfrozen => Case::Unfrozen,
+        c @ (bb::Case::NotSelected | bb::Case::Undrawn) => panic!("{c:?} under A"),
     }
 }
 
-/// Why a verdict's term is undefined (`17` §14.4), apart from cases 2, 6 and 7.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Undefined {
-    /// `first_panel_baselines` gave `None`: no other first panelist carries a positive weight.
-    NoBaseline,
-}
-
-/// B-b's term under A (`17` §8.1, `π = 1`): `g(I) = 0` needs no report; cases 2, 6, 7 have none.
-fn contribution(case: Case, p: Option<f64>, b: Option<f64>) -> Result<Option<f64>, Undefined> {
-    let o = match case {
-        Case::Positive => 1.0,
-        Case::Negative => 0.0,
-        Case::Inconclusive => return Ok(Some(0.0)),
-        _ => return Ok(None),
-    };
-    let p = p.expect("a verdict's case has a completed report");
-    let b = b.ok_or(Undefined::NoBaseline)?;
-    Ok(Some(difference_score(p, b, o)))
-}
-
-/// A declared member's term from its case, report and first-panel baseline, read on a verdict.
-pub fn member(item: usize, case: Case, report: Option<f64>, baseline: Option<f64>) -> Member {
-    let baseline = baseline.filter(|_| matches!(case, Case::Positive | Case::Negative));
-    let (contribution, undefined) = match contribution(case, report, baseline) {
-        Ok(g) => (g, None),
-        Err(why) => (None, Some(why)),
-    };
-    Member {
-        item,
-        case,
-        baseline,
-        contribution,
-        undefined,
+pub fn outcome(o: Outcome) -> bb::Outcome {
+    match o {
+        Outcome::A => bb::Outcome::A,
+        Outcome::R => bb::Outcome::R,
+        Outcome::I => bb::Outcome::I,
     }
 }
 
@@ -460,7 +433,7 @@ pub struct Snapshot {
     pub costs: Costs,
     pub invalid: Vec<(usize, TerminalError)>,
     pub held: Vec<(usize, Result<Outcome, TerminalError>)>,
-    /// The items whose first-panel baselines the check formed: those past their freeze.
+    /// The items whose baselines the scorer composed: those past their freeze.
     pub baselines: Vec<usize>,
 }
 
@@ -607,8 +580,7 @@ impl Snapshot {
                 .find(|(m, _)| m == n)
                 .map_or(1.0, |(_, w)| *w as f64)
         };
-        let mut assignments = Vec::new();
-        let mut baselines: BTreeMap<usize, Vec<(Nym, Option<f64>)>> = BTreeMap::new();
+        let (mut inputs, mut seats) = (Vec::new(), Vec::new());
         for (j, item) in main.items.iter().enumerate() {
             let (g, _) = group(item);
             let close = g.reveal_close[g.items.iter().position(|c| c == item).unwrap()];
@@ -625,56 +597,61 @@ impl Snapshot {
                     _ => {}
                 }
             }
-            if freezes[j].is_some() {
-                let forecasts: Vec<Forecast> = first
-                    .iter()
-                    .map(|n| Forecast {
-                        prob: reveals[n].1,
+            let report = |n: &Nym, is_extra: bool| match reveals.get(n) {
+                Some(&(pos, p)) if is_extra || pos < close => Report::Revealed(p),
+                _ => Report::Missing,
+            };
+            let outcome = match items[j].state {
+                ItemState::Terminal { outcome: o, .. } => Some(outcome(o)),
+                ItemState::Pending(_) => None,
+            };
+            inputs.push(bb::Item {
+                first: (first.iter())
+                    .map(|n| Panelist {
+                        nym: *n,
+                        report: report(n, false),
                         weight: weight(n),
                     })
-                    .collect();
-                let b = first_panel_baselines(&forecasts);
-                baselines.insert(j, first.iter().copied().zip(b).collect());
-            }
-            let panels = first
-                .iter()
-                .map(|n| (n, false))
-                .chain(extra.iter().map(|n| (n, true)));
-            for (n, is_extra) in panels {
-                let report = reveals.get(n).copied();
-                let completed = report.is_some_and(|(pos, _)| is_extra || pos < close);
-                assignments.push(Assignment {
-                    nym: *n,
-                    item: j,
-                    extra: is_extra,
-                    committed: commits.contains(n),
-                    report: report.map(|(_, p)| p),
-                    case: case_of(completed, freezes[j], items[j].state),
-                });
+                    .collect(),
+                extra: (extra.iter())
+                    .map(|n| Extra {
+                        nym: *n,
+                        report: report(n, true),
+                    })
+                    .collect(),
+                frozen: freezes[j].is_some(),
+                selection: Selection::Selected {
+                    inclusion: 1.0,
+                    outcome,
+                },
+            });
+            for n in first.iter().chain(&extra) {
+                let report = reveals.get(n).map(|&(_, p)| p);
+                seats.push((*n, j, commits.contains(n), report));
             }
         }
 
-        let cohorts = setup
-            .cohorts
-            .iter()
-            .map(|(n, declared)| {
-                let members: Vec<Member> = declared
-                    .iter()
-                    .map(|c| {
-                        let j = index(c);
-                        let a = assignments
-                            .iter()
-                            .find(|a| a.nym == *n && a.item == j && !a.extra)
-                            .expect("a declared member is a first-panel assignment");
-                        let baseline = baselines
-                            .get(&j)
-                            .and_then(|b| b.iter().find(|(m, _)| m == n).unwrap().1);
-                        member(j, a.case, a.report, baseline)
-                    })
-                    .collect();
-                cohort(*n, members)
+        let declared: Vec<bb::Cohort> = (setup.cohorts.iter())
+            .map(|(n, c)| bb::Cohort {
+                nym: *n,
+                items: c.iter().map(index).collect(),
             })
             .collect();
+        let scored = score(&inputs, &declared).expect("the check's inputs, coherent");
+        let assignments = (seats.into_iter().zip(&scored.assignments))
+            .map(|((nym, item, committed, report), a)| {
+                assert_eq!((nym, item), (a.nym, a.item));
+                Assignment {
+                    nym,
+                    item,
+                    extra: a.extra,
+                    committed,
+                    report,
+                    case: case(a.case),
+                }
+            })
+            .collect();
+        let cohorts = scored.cohorts.iter().map(cohort).collect();
 
         let mut groups = Vec::new();
         for (_, g) in &logged.groups {
@@ -834,50 +811,50 @@ impl Snapshot {
             costs,
             invalid,
             held,
-            baselines: baselines.into_keys().collect(),
+            baselines: (0..main.items.len())
+                .filter(|j| freezes[*j].is_some())
+                .collect(),
         }
     }
 }
 
-/// K2's cohort (`17` §8.3): a final value once every member is in case 3–5 with its term
-/// defined; with only case-2 members pending, D3's bound; otherwise, no value and no interval.
-pub fn cohort(nym: Nym, members: Vec<Member>) -> Cohort {
-    let n = members.len();
-    let count = |f: fn(Case) -> bool| members.iter().filter(|m| f(m.case)).count();
-    let o = count(|c| matches!(c, Case::Positive | Case::Negative | Case::Inconclusive));
-    let v = count(|c| matches!(c, Case::Positive | Case::Negative));
-    let known: f64 = members.iter().filter_map(|m| m.contribution).sum();
-    let pending = count(|c| c == Case::Pending) as f64;
-    let blocking = members
-        .iter()
-        .map(|m| m.case)
-        .find(|c| matches!(c, Case::MissingReport | Case::Unfrozen));
-    let undefined: Vec<usize> = members
-        .iter()
-        .filter(|m| m.undefined.is_some())
-        .map(|m| m.item)
+/// A scored cohort in the check's representation (`docs/20` §10): `Unresolved` names the first
+/// member in case 6 or 7; `undefined` lists the members without a baseline, whatever else blocks.
+pub fn cohort(k: &bb::CohortScore) -> Cohort {
+    let members = (k.members.iter())
+        .map(|m| Member {
+            item: m.item,
+            case: case(m.case),
+            baseline: m.baseline.filter(|_| m.case.conclusive()),
+            contribution: m.term.ok().flatten(),
+            undefined: m.term.err(),
+        })
         .collect();
-    let why = members.iter().find_map(|m| m.undefined);
-    let value = match (blocking, why) {
-        (Some(c), _) => Value::Unresolved(c),
-        (None, Some(why)) => Value::Undefined(why),
-        (None, None) if pending == 0.0 => Value::Final(known / n as f64),
-        (None, None) => {
-            let sum = (known - pending, known + pending);
-            Value::Bound {
-                sum,
-                mean: (sum.0 / n as f64, sum.1 / n as f64),
-            }
-        }
+    let causes = match &k.value {
+        bb::Value::Unavailable(causes) => causes.as_slice(),
+        _ => &[],
     };
+    let blocking = causes.iter().find(|(_, c)| *c != bb::Cause::NoBaseline);
+    let value = match (&k.value, blocking) {
+        (bb::Value::Final(x), _) => Value::Final(*x),
+        (bb::Value::Bound { sum, mean }, _) => Value::Bound {
+            sum: *sum,
+            mean: *mean,
+        },
+        (_, None) => Value::Undefined(Undefined::NoBaseline),
+        (_, Some((_, bb::Cause::MissingReport))) => Value::Unresolved(Case::MissingReport),
+        (_, Some((_, bb::Cause::Unfrozen))) => Value::Unresolved(Case::Unfrozen),
+        (_, Some(c)) => panic!("{c:?} under A"),
+    };
+    let without = causes.iter().filter(|(_, c)| *c == bb::Cause::NoBaseline);
     Cohort {
-        nym,
+        nym: k.nym,
         members,
-        n,
-        o,
-        v,
-        known,
-        undefined,
+        n: k.size,
+        o: k.o,
+        v: k.v,
+        known: k.known,
+        undefined: without.map(|(j, _)| *j).collect(),
         value,
     }
 }

@@ -6,6 +6,7 @@ mod s2;
 
 use network::cid::{cid, Cid};
 use network::cut::{Cut, CutError, Mark, MemberObject};
+use protocol::cohort_scores as bb;
 use protocol::events::NodeEvent;
 use protocol::gate::{bridging_gate, GateOutcome, APPEAL_GAP, EPS, MIN_COVERAGE, TAU};
 use protocol::ledger::{LedgerError, Refusal};
@@ -23,8 +24,8 @@ use s2::order::{
 use s2::records::{Attempt, Outcome, Reading, Reason, Record, Terminal};
 use s2::replay::LogView;
 use s2::study::{
-    cohorts_complete, member, t1_start, t2_hold, validate, Case, Cohort, CohortError, ItemState,
-    Pending, SequenceError, Snapshot, Start, StartError, TerminalError, Undefined, Value,
+    cohorts_complete, t1_start, t2_hold, validate, Case, Cohort, CohortError, ItemState, Pending,
+    SequenceError, Snapshot, Start, StartError, TerminalError, Undefined, Value,
 };
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
@@ -1129,18 +1130,56 @@ fn an_undefined_term_is_named_apart_from_pending_missing_and_unfrozen() {
     for s in [&run().at_omega, &run().after] {
         assert!(s.cohorts.iter().all(|c| c.undefined.is_empty()));
     }
-    let lacking = member(0, Case::Negative, Some(0.75), None);
-    assert_eq!(lacking.undefined, Some(Undefined::NoBaseline));
-    let i = member(2, Case::Inconclusive, Some(0.25), None);
+    let item = |report, other: (f64, f64), frozen, outcome| bb::Item {
+        first: vec![
+            bb::Panelist {
+                nym: nym(U),
+                report,
+                weight: 1.0,
+            },
+            bb::Panelist {
+                nym: nym(4),
+                report: bb::Report::Revealed(other.0),
+                weight: other.1,
+            },
+        ],
+        extra: Vec::new(),
+        frozen,
+        selection: bb::Selection::Selected {
+            inclusion: 1.0,
+            outcome,
+        },
+    };
+    let items = [
+        item(
+            bb::Report::Revealed(0.75),
+            (0.5, 0.0),
+            true,
+            Some(bb::Outcome::R),
+        ),
+        item(
+            bb::Report::Revealed(0.25),
+            (0.5, 0.0),
+            true,
+            Some(bb::Outcome::I),
+        ),
+        item(bb::Report::Missing, (0.5, 1.0), false, None),
+        item(bb::Report::Revealed(0.75), (0.25, 1.0), true, None),
+    ];
+    let k = |items: &[usize]| bb::Cohort {
+        nym: nym(U),
+        items: items.to_vec(),
+    };
+    let scores = bb::score(&items, &[k(&[0, 1]), k(&[0, 2]), k(&[0, 3])]).unwrap();
+    let [alone, both, mixed] = [0, 1, 2].map(|c| s2::study::cohort(&scores.cohorts[c]));
+    assert_eq!(alone.members[0].undefined, Some(Undefined::NoBaseline));
+    let i = &alone.members[1];
     assert_eq!((i.contribution, i.undefined), (Some(0.0), None));
-    let missing = member(10, Case::MissingReport, None, None);
-    let both = s2::study::cohort(nym(U), vec![lacking.clone(), missing]);
     assert_eq!(
         (both.value, both.undefined),
         (Value::Unresolved(Case::MissingReport), vec![0])
     );
-    let pending = member(4, Case::Pending, Some(0.75), Some(0.25));
-    let mixed = s2::study::cohort(nym(U), vec![lacking, pending]);
+    assert_eq!(mixed.members[1].case, Case::Pending);
     assert_eq!((mixed.value, mixed.undefined), (no, vec![0]));
 }
 

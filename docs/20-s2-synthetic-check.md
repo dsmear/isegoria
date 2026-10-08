@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`), partly reviewed on `e5e0898`, and its rectifications were approved by Astra on `3559396`, within the check's perimeter** (§9), its two precisions approved on `bef891b`: no general validation of arbitrary flows, no H-c, properness, reputational incentive, confidentiality, true DTF or neutrality shown. The owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. **§10's correction of the absent baseline and §11's adaptive verification of `17` §14.6, in test code on the owner's assignment, were approved by Astra on `d7a4449`**, within their perimeter: a verification of the computation and of finite constructions, no H-c in the protocol, availability, confidentiality, reputational incentive or neutrality shown. |
-| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified in `3559396` and approved there; §§10–11 written on `d2be7da` and approved on `d7a4449`; code named by symbol. |
+| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`), partly reviewed on `e5e0898`, and its rectifications were approved by Astra on `3559396`, within the check's perimeter** (§9), its two precisions approved on `bef891b`: no general validation of arbitrary flows, no H-c, properness, reputational incentive, confidentiality, true DTF or neutrality shown. The owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. **§10's correction of the absent baseline and §11's adaptive verification of `17` §14.6, in test code on the owner's assignment, were approved by Astra on `d7a4449`**, within their perimeter: a verification of the computation and of finite constructions, no H-c in the protocol, availability, confidentiality, reputational incentive or neutrality shown. **§12, the check's scoring path through B-b's scorer `protocol::cohort_scores` ([`17`](17-a1-pilot-batch-design.md) §14.9), on the owner's assignment after Astra's review of `23283f2`, awaits review.** |
+| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified in `3559396` and approved there; §§10–11 written on `d2be7da` and approved on `d7a4449`; §12 written on `23283f2`; code named by symbol. |
 | **Scope** | `19` §10.6's next deliverable: what a technical check on synthetic events would execute, what its fixtures supply, what it must report and when it fails. References, within their recorded limits: design A, B-b and the reporting of cases 5–7 with 6c and 7a (`17` §§8–9), α (`17` §10), T1 the analytic reference and T2 the comparison (`17` §§11–13); B-b's study scores outside the reputation and the gate's decisions recorded with no effect on operational pools (Astra, decided on `cbcbc67`, confirmed on `5af22b9`). |
-| **Evidence** | Specification (Claude Code, before `c76c035`): **L** targeted reads of the code named; **C** every expected value recalculated with exact fractions in a scratch script, not kept. Implementation and rectifications (Claude Code): **E** the check's targeted tests, §9. §§10–11 (Claude Code): **C** the expected values with fractions, before the tests; **E** the regressions before the correction and the tests after it, §11.3. Astra's reviews: below. |
+| **Evidence** | Specification (Claude Code, before `c76c035`): **L** targeted reads of the code named; **C** every expected value recalculated with exact fractions in a scratch script, not kept. Implementation and rectifications (Claude Code): **E** the check's targeted tests, §9. §§10–11 (Claude Code): **C** the expected values with fractions, before the tests; **E** the regressions before the correction and the tests after it, §11.3. §12 (Claude Code): **C** the new expected values with fractions, before the tests; **E** §12's runs. Astra's reviews: below. |
 
 ## Design review (Astra)
 
@@ -94,6 +94,13 @@ confidentiality, reputational incentives or neutrality. The approval is of `d7a4
 later commit. R1 and the check's earlier approvals stay within their perimeters; A1, A2, B1–B3
 and Phase 1 stay open; S2 not started.
 
+Review of `23283f2` (the commit, its parent and the published branch checked; the diff, the
+documents and the relevant code read; no Rust, fit or campaign run; the local checks stay Claude
+Code's evidence), as far as this document goes: the record of `d7a4449`'s approval and the
+editorial corrections **approved**; B-b's scorer with no production caller accepted as the next
+intervention, independent of O1–O3. The rest concerns `17` §14.8 (`15`, A1). §12 came after that
+review and is not covered by it.
+
 ## 1. What the check is
 
 The first kind of evidence of `19` §10.6 (A): events and outcomes supplied as fixtures. It checks
@@ -118,7 +125,7 @@ true DTF, neutrality, nor any cost of a fit, of human availability or of product
 | pilot gates | `pilot::screen` on a `NullifierSet` of synthetic ids with empty matrices: it refuses at `N1_MIN`, and no input reaches `stage1_screen`; `pilot::admit_dif_batch`, `latent_batch`'s first gate, at `K_MIN` | declared counts of admitted pseudonyms; per executed attempt, each item's status, a verdict or a named non-conclusion | — | `stage1_screen`, `stage1_fit`, `latent_batch` past its first gate, `latent_dif`; respondent admission (`submit_response`) |
 | study records | — | statuses, outcomes, references to evidence, declared costs; T1's synthetic starts; G6's records, held | `S0`, group, start, attempt, terminal (`A`, `R`, or `I` with `17` §9.2's content), shortfall and refused-batch records; an encoding both `NodeEvent::decode` and `MemberObject::decode` refuse; their reader | a lifecycle state or `NodeEvent` variant for them: `Ledger::apply` refuses each as `NotAnEvent`, the state unchanged |
 | freezes, starts | the applied order of `CutReport` | — | `Φ_j` from the applied steps — `Score` on `Pass` or `Reject`; `Resolve` unless appealable; `Appeal` or `AppealExpires` after an appealable decision (`16` §5) — and `Φ_G`; T1's start check against the supplied start; T2's hold | T58, or any rule letting a freeze pass |
-| B-b | `panel_scores::first_panel_baselines` on frozen weights; `difference_score` | frozen weights per nym | the contribution per outcome (`17` §8.1), `N`, `O`, `V`, the cohort rule, consolidation and the bound (§8.3) | `SkillTrack`, `exploration::record_outcome`, `ResultRecord`, probation, shrinkage, cap, CUSUM; any per-nym score on the log |
+| B-b | `panel_scores::first_panel_baselines` on frozen weights; `difference_score`; since §12 both through `cohort_scores::score`, which also forms the contributions, the counts and the cohorts | frozen weights per nym | the contribution per outcome (`17` §8.1), `N`, `O`, `V`, the cohort rule, consolidation and the bound (§8.3) | `SkillTrack`, `exploration::record_outcome`, `ResultRecord`, probation, shrinkage, cap, CUSUM; any per-nym score on the log |
 | order evidence | `CutReport::{applied, refused}`; feeds' chains; cuts' marks; `MemberObject::CutSignature` on members' feeds | — | the classifier at (R) and (E), with `17` §13.2's four outcomes; `x_O` and the relevant commitments (§13.3) | (I), declared only; any dependence finding; a results root and inclusion proofs (`08` PRIV-004.1) |
 | snapshot | — | `Ω` | the report of §7 | its publication |
 
@@ -489,7 +496,8 @@ behavioural model, no attack on the protocol, no frequency.
 **The path.** Per state: `u`'s forecast and each other first panelist's report with its frozen
 weight → `first_panel_baselines` → `study::member`, through `difference_score` → `study::cohort`,
 the prefixed cohort's final value: the functions §5's snapshot uses (§10). A construction's
-expected value is `Σ P(state) × value`, in `f64`.
+expected value is `Σ P(state) × value`, in `f64`. Since §12 that path is `cohort_scores::score`,
+which composes the same functions.
 
 **Expected values**, derived apart from that path. Per strategy, D1 (`17` §8.1) with exact
 rationals in the test:
@@ -569,7 +577,7 @@ over a cohort.
 | Construction (`17`) | Hypothesis violated | Supplied as synthetic input | Computed by the code | Reproduced | Not shown | Under A |
 |---|---|---|---|---|---|---|
 | §7.3, read for B-b (§7.5) | H-c, through load | `u`'s report on `k` decides `k`'s entry, the entry whether `k`'s group is piloted in `j`'s term, and then `j`'s group misses its floor: `Y_j = I`; otherwise `Y_j` has law (3/5, 2/5, 0); `j`'s other first panelist reports the conclusive outcome `j` would have (1 or 0); `u` reports `q_c` = 3/5 on `j` | the baseline, `j`'s term | `j`'s expected term: −6/25 truthful, 0 deviating | `k`'s term and any net over the cohort (§7.3's 19/25 against `δ²` is the ternary score's); a model of the protocol | outside design A: an entry deciding a group's piloting is the entry channel A removes (§8.5); the test concerns that construction alone. Load through the work actually done stays subordinate to H-c, not reproduced |
-| §9.4 | C5: the baseline moves with `u`'s report | the effective baseline `b(p) = min(1, max(0, 2p − ½))`, as a replacement under 7b responding so; the outcome Bernoulli(½), conclusive, independent of `p` | the term, from the supplied `b(p)`; `first_panel_baselines` not called for it | 0 at `p = ½`, 3/16 at `p = ¾` | that a replacement responds so; any effect under `16` §4.6's composition, whose baseline over the same reports does not move with `p` (checked beside) | only through a replacement rule, none decided (T58 open); the contract keeps C5 under any |
+| §9.4 | C5: the baseline moves with `u`'s report | the effective baseline `b(p) = min(1, max(0, 2p − ½))`, as a replacement under 7b responding so; the outcome Bernoulli(½), conclusive, independent of `p` | the term, from the supplied `b(p)`; `first_panel_baselines` not called for it until §12, which supplies `b(p)` as the only other first report at weight 1, returned unchanged | 0 at `p = ½`, 3/16 at `p = ¾` | that a replacement responds so; any effect under `16` §4.6's composition, whose baseline over the same reports does not move with `p` (checked beside) | only through a replacement rule, none decided (T58 open); the contract keeps C5 under any |
 | §11.3, timing | H-c, through the outcome's law | the simplified gate (`p ≤ ½` sends `j` to the band); T1's start after the moved `Φ_G` meeting a sample giving `A` with probability 2/5 instead of 3/5; always conclusive; one other first panelist reporting 3/5 | the baseline, the term | 0 at the truthful 3/5; 1/25 at 2/5, the report's own cost included | effects on other assignments; that `bridging_gate` or a T1 start behaves so | stays under A with T1 unless samples and resources are invariant in time (§11.2), a declared hypothesis |
 | §11.3, disclosure | C5 and H-c | `Y = Z`, Bernoulli(½), on both paths; `p = ½`; the other first panelist reports ½ without the signal, `Z` with it; whether the signal arrives, decided by `u`'s deviation on another assignment, is not modelled | the baseline, the term | 0 without the signal, −¼ with it | a gain over the cohort: the deviation's other changed terms are not counted | stays under A, T1 or T2; §12.4's (ii) excludes the channel to the reports' values where their commitments close before the opening |
 | §12.4, across groups | C5 and H-c | `Y_k` equiprobable; a signal, ± equiprobable, setting `P(Y_k = A)` to `½ ± δ`; the other first panelist's report equal to that posterior, the construction's hypothesis; `p = ½` | the baseline, the term | 0 without the signal; `−δ²` with it: −1/16 at `δ = ¼`, −¼ at `δ = ½` | as above; that reports equal the posterior | stays under A; (i)–(iv) each exclude one channel under their own hypotheses |
@@ -605,3 +613,66 @@ construction, a term, never a gain over a cohort, and no frequency; §9.4's depe
 supplied input, not a property of `panel_scores`. The values are `f64` within `1e−12` of exact
 rationals. §10's correction covers the check's aggregation in test code only; the operational
 policy for an absent baseline stays open (`17` §14.4).
+
+## 12. The check through B-b's scorer (awaiting review)
+
+On the owner's assignment after Astra's review of `23283f2`, which accepted B-b's scorer as the
+next intervention; Claude Code's, **awaiting Astra's review**. The scorer is
+`protocol::cohort_scores` (`17` §14.9), a library component with no production caller; the check
+now computes its cases, terms, counts and cohorts through it. No record, fixture or expected value
+of §§4–11 changes.
+
+**Adapters**, in test code. `study.rs`: `Snapshot::of` builds one scorer `Item` per item from the
+log's prefix — the first panel's reveals completed before K5's close as `Revealed`, any other as
+`Missing` (every snapshot follows the closes, so `Open` never arises), `S0`'s weights, the extra
+round's accepted reveals, `frozen` at `Φ_j`, `Selected` at `π = 1` with the validated terminal
+outcome or `None` — and `S0`'s cohorts by item index, then reads each assignment's case and each
+cohort from `score`. `study::cohort` maps a scored cohort to §10's approved representation:
+`Unresolved` with the first member in case 6 or 7, otherwise `Undefined(NoBaseline)`, and
+`undefined` listing the members without a baseline; case 1 and an undrawn item do not arise under
+A and would fail the check. `study.rs`'s own contribution and aggregation are removed: it calls
+neither `first_panel_baselines` nor `difference_score`. `adaptive.rs`: each state's seats become
+items, `u` first at weight 1, scored as `u`'s prefixed cohort over all of them; a channel's term is
+that cohort's single member; `baseline` reads the scorer's; §9.4's `b(p)` is supplied as the only
+other first report. §10's named-cause test builds its four members as scorer items — a verdict and
+an `I` with no weight left, a missing report before the freeze, a pending member — rather than
+through the removed `study::member`; its expected values are unchanged.
+
+**Kept.** Every expected value of §§4–7, §10's regressions and §11's constructions; their oracles,
+the hand values and D1 in exact rationals, computed apart from the scorer.
+
+**Added**, in `crates/protocol/tests/cohort_scores.rs`, the scorer's checks listed in `17` §14.9:
+`π < 1` with positive and negative terms; a non-selection apart from `I` and pending; `N_u`
+against `|K|`; the interval weighted by `Σ 1/π_j`; refused numbers and combinations; the supported
+compositions; four coexisting causes; a finite enumeration with a draw shared by two items, its
+effective probabilities those the construction declares, against D1's reference on 27 report
+vectors. It checks arithmetic under the construction's hypotheses, not C in the protocol, and
+reopens nothing of §11.
+
+**Evidence** (E, Claude Code, 2026-10-08; the new expected values C, with fractions, beforehand):
+
+- the new tests could not compile before the scorer existed: the component's absence, not a
+  regression; no defect of the existing code was found, so none was regressed;
+- `cargo test -p protocol --test cohort_scores`: 10 passed, 0 failed. As first written, two
+  expectations were wrong (a panelist's term when `u` alone carries weight, and the extra
+  reviewer's baseline, which that weight defines) and one construction put a missing first report
+  on a frozen item, which the contract refuses; each was recomputed by hand and with fractions,
+  the code unchanged;
+- `cargo test -p protocol --test s2_synthetic_check`: 39 passed, 0 failed, through the scorer,
+  every expected value unchanged; `cargo test -p protocol --test panel_scores`: 7 passed;
+- three temporary probes, reverted: the pending radius counted rather than weighted fails two of
+  the scorer's tests; a term not divided by `π` fails four, the enumeration among them; an absent
+  baseline read as the panelist's own report fails two of the scorer's tests and, through it, the
+  check's four tests of §10;
+- `cargo clippy -p protocol --lib --test cohort_scores --test s2_synthetic_check --test
+  panel_scores -- -D warnings`, no warning; `rustfmt --edition 2021 --check` on the new and
+  changed files, `python3 scripts/comment_budget.py`, `git diff --check`: clean.
+
+Not run: the workspace suite or other targets, any fit, latent search, bootstrap, smoke,
+characterization, calibration, benchmark, mutation campaign or Phase 2 work.
+
+**Limits.** Passing shows that the scorer reproduces the check's approved values and the
+constructions' expectations, and computes the weighting and the causes as `17` §14.9 states. It
+shows no H-b, H-c or H-e in the protocol, no availability, confidentiality, reputational incentive
+or neutrality; the scorer's inputs are supplied and typed, with no record format or authentication
+behind them, and it has no production caller.

@@ -712,23 +712,43 @@ they win.
   finite constructions; no proof of H-c in the protocol, availability, confidentiality,
   reputational incentives or neutrality. The adaptive verification is acquired within the approved
   constructions' perimeter; no further enumeration of the same kind is needed to consolidate it.
-- **A decision proposal for A1: `17` §14.8** (documentation only, on the owner's assignment;
-  **awaiting Astra's review** and, for its substantive choices, the owner's; it adopts nothing, `01`
-  D35 and `02` §C.2 unchanged). Recommended: correct A1 through a change of design — A's measurement
-  pilot with T1's start, B-b on prefixed cohorts, the promise restated as `17` §14.1's conditional
-  guarantee — since any observation draw leaves H-b and H-e on `16` §6's member model until T19,
-  while under A no draw enters the score; C stays the comparison. Kept apart: adopting A (premature:
-  A pilots every reviewed item, 667 slots a month on the illustrative scenario, twice the declared
-  333.5); a circumscribed implementation (the scorer, no production caller); resources or a study
-  (none needed). Against today's promises: the target becomes `q_c` given conclusion; exploration
-  with IPW is replaced by `π = 1`; missing reports and absent baselines leave cohorts without value,
-  which does not make the procedure proceed (T58 needed); other first panelists all on probation
-  give no baseline; the reputation stays outside. The path keeps score, records, progress and
-  reputation apart; of T79 only the log rules (deadlines as cuts, pilot steps in log order) bear on
-  the guarantee. Residual channels named; the order check and the synthetic tests show no invariance
-  of the outcome's law. For the owner: O1 the promise, O2 capacity, O3 the reputation's incentives.
-  Next deliverable proposed: B-b's scorer in `protocol`, with no production caller, verified against
-  `17` §8.6, `20`'s expected values and `20` §11's constructions.
+- **A decision proposal for A1: `17` §14.8** (documentation only, `23283f2`, on the owner's
+  assignment; **partly reviewed by Astra on `23283f2`**, below; rectified in place, awaiting review
+  and, for its substantive choices, the owner's; it adopts nothing, `01` D35 and `02` §C.2
+  unchanged). As rectified: three decisions apart — the forecast's target (`q_c` given conclusion,
+  the same under A and C), the observation design (A the analytic reference, C in the comparison
+  even if A is sustainable) and the incentives' scope (the expected contribution, not the
+  reputation actually used); the earlier choice between a narrowed guarantee under A and an IPW
+  under C withdrawn. H-e, H-b and H-c kept apart; under A a pinned procedure's record is no proof of
+  its execution; T19, a real DKG, gives none of `16` §6's properties automatically, nor H-b or H-c.
+  For the isolated scorer the inputs' authenticity and links are declared preconditions; in the
+  protocol they bear on the guarantee, the future caller's responsibilities named, T79 not taken
+  whole into A1. Precisions: other first panelists all on probation can leave no baseline, no
+  frequency at the start inferred, bootstrap founders weighing 1; `c > 0` gives uniqueness, the
+  contract admits `c = 0`. For the owner, none blocking the scorer nor needed now: O1 the target,
+  O2 the observation design and capacity, O3 the reputation's incentives.
+- **Astra's review of `23283f2`: partial** (the commit, its parent and the published branch
+  checked; the diff, the documents and the relevant code read; no Rust, fit or campaign run; the
+  local checks stay Claude Code's evidence). Approved: the record of `d7a4449`'s approval; the
+  adaptive verification reclassified as acquired within its perimeter; the editorial corrections.
+  Accepted as the next intervention, independent of O1–O3: B-b's scorer with no production caller.
+  Not approved as a whole: `17` §14.8, rectified as above. The approval covers neither the
+  rectification nor the scorer.
+- **B-b's scorer: `protocol::cohort_scores`** (library code, tests and documentation, on the
+  owner's assignment after that review, which authorized the component, the tests' adaptation, the
+  pertinent documentation, targeted checks and one commit, no push; **awaiting Astra's review**;
+  `17` §14.9, `20` §12). A pure, deterministic component with no caller in the production runtime,
+  on typed inputs: per item the first panel (reports `Revealed`, `Open` or `Missing`, frozen
+  weights), the extra round, `Φ_j` reached, an explicit selection (`Undrawn`, `NotSelected` or
+  `Selected` with `π_j` and the outcome or pending); prefixed cohorts by item index. It gives each
+  assignment's case (§8.2's 1–7 and a drawn design's frozen item before its draw), baseline through
+  `panel_scores`, term `g/π_j` (0 on `I` and on a non-selection; `NoBaseline` on a verdict without
+  a baseline); `N_u`, `O_u`, `V_u` apart from `|K|`; each cohort's final value, D3's bound with
+  radius `Σ 1/π_j`, or `Unavailable` with every cause listed. Inputs out of domain or incoherent are
+  refused (`InputError`), never repaired. `20`'s check runs through it by minimal adapters, every
+  expected value unchanged (39 tests); 10 new tests, among them an enumeration with a draw shared by
+  two items against D1's reference. No adoption of A, C or T1; nothing reaches `SkillTrack`, vote
+  weights, probation, cap or CUSUM; reading `π_j` certifies no H-e, H-b or H-c.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -816,8 +836,10 @@ they win.
   operational conditions and the production path (`17` §§14.4–14.5: the group record, A's pilot,
   freeze and start rules, terminal records with `I`, the scorer, availability, T58); (5) *not
   shown*: H-c in the protocol and the other external hypotheses with their residual channels,
-  availability, confidentiality, the reputation's incentives, neutrality (`17` §14.3, §14.8 D).
-  The decision proposal on A1's path is `17` §14.8, awaiting review.
+  availability, confidentiality, the reputation's incentives, neutrality (`17` §14.3, §14.8 E).
+  B-b's scorer, a library component with no production caller, is implemented (`17` §14.9) and
+  awaits review; the production caller stays missing. The decision proposal on A1's path, `17`
+  §14.8, partly reviewed on `23283f2`, is rectified and awaits review.
 - **`08` PRIV-004.1 (separate from A1): remediation open.** The general claim that an inclusion
   proof lets its holder infer no other input is refuted under the stated enumerable-field
   assumptions; the confidentiality goal and a construction meeting it stay to be stated; no
@@ -859,8 +881,10 @@ run, recruitment, data collection or start is authorized. §5.1's rectifications
 `11deec2`. A1's candidate contract (`17` §14) is approved on `d2be7da` as a conditional
 candidate contract. The absent baseline's correction and §14.6's adaptive verification, through
 `20`'s scoring path on finite constructions, are in test code (`20` §§10–11), approved by Astra on
-`d7a4449`. The decision proposal on A1's path is `17` §14.8; the next step is Astra's review of it
-and, for its substantive choices (O1–O3), the owner's decision.
+`d7a4449`. The decision proposal on A1's path, `17` §14.8, was partly reviewed on `23283f2` and
+rectified; B-b's scorer, accepted there as the next intervention, is implemented with no production
+caller (`17` §14.9, `20` §12). The next step is Astra's review of both; O1–O3 stay the owner's, none
+needed now.
 No roadmap or campaign is added, and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -910,7 +934,7 @@ decision, **L** a documented limit.
 
 | Findings, state | Closure criterion (ref) | Acquired; limits | Missing | Depends on | Minimal next deliverable |
 |---|---|---|---|---|---|
-| A1, critical, open | `15` A1: the information at reporting defined, IPW properness proved under it, an adaptive strategy tested | theorem conditional on C1–C6 (`16` §4.3); band baselines in code; B-b, arms A/C, cases 5–7, α, T1/T2 and their evidence as conditional analyses (`17` §§7–13); `20`'s check; `17` §14 as a conditional candidate contract (`d2be7da`); the absent baseline's correction and §14.6's adaptive verification in test code (`d7a4449`), acquired within the approved constructions' perimeter. Limits: C1 rests on a member model (`16` §6); H-c only declared; no arm or contract adopted | Dd: the guarantee's perimeter — target, arm, information, missing reports — each narrowing justified (`17` §14.7; proposed in §14.8, O1–O3 for the owner); Im: `17` §14.5's missing capabilities; Pr: each hypothesis realized, or declared with its residual channels | A's capacity (+316.825 slots against the declared 333.5, `17` §8.5); the records' availability (`17` §8.3); T58 for C4 and cases 6–7 | Astra's review of `17` §14.8, the decision proposal, and the owner's O1–O3; then, on assignment, B-b's scorer with no production caller (§14.8) |
+| A1, critical, open | `15` A1: the information at reporting defined, IPW properness proved under it, an adaptive strategy tested | theorem conditional on C1–C6 (`16` §4.3); band baselines in code; B-b, arms A/C, cases 5–7, α, T1/T2 and their evidence as conditional analyses (`17` §§7–13); `20`'s check; `17` §14 as a conditional candidate contract (`d2be7da`); the absent baseline's correction and §14.6's adaptive verification in test code (`d7a4449`), acquired within the approved constructions' perimeter. Limits: C1 rests on a member model (`16` §6); H-c only declared; no arm or contract adopted | Dd: the guarantee's perimeter — target, observation design, incentives' scope, missing reports — each narrowing justified (`17` §14.7; proposed in §14.8, rectified after `23283f2`, O1–O3 for the owner); Im: `17` §14.5's missing capabilities, B-b's scorer implemented with no production caller (§14.9, awaiting review); Pr: each hypothesis realized, or declared with its residual channels | A's capacity (+316.825 slots against the declared 333.5, `17` §8.5); the records' availability (`17` §8.3); T58 for C4 and cases 6–7 | Astra's review of the rectified `17` §14.8 and of B-b's scorer (`17` §14.9, `20` §12) |
 | A2, high, open; R1 approved | `15` A2: target measure, linking, whole-test contribution specified; bound proved; estimation error apart; a margin alone does not close it | conditional proposition (`19` §3); R1, `D(T)` an admission cost; calibration comparison, no winner (`19` §9); one fixed form (`19` §9.6). Limits: no `μ`, `𝒢`; the filtered functional is no function of the law; no bound with coverage | Dd: `μ`, `𝒢`, contrasts, forms (`19` §6.1, §10.2); Pr: the bound and its coverage; Im | B1–B3; the calibration arm, common reusable or per form, neither valid nor inevitable; D2, D4 | a contract of A1's kind, after A1's |
 | B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: S1's scenarios and decision criteria declared, then one campaign on an identified candidate, its design declared before execution; Pr where identification or coverage is claimed, which simulations do not replace | A2's target; the owner's authorization of the campaign | S1's declaration, no run |
 | A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; (c), the retired proxy path, fixtures only: L, its listing requiring no change; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
@@ -952,19 +976,21 @@ the comparison; no adoption of A or C in production; no expenditure or sample si
 of the candidate guarantee is in `17` §14, its mathematical core approved on `11deec2` as a
 conditional result, the section approved on `d2be7da` as a conditional candidate contract: it
 closes nothing, and its narrowings of the declared promise (`17` §14.7) are a proposal, not a
-decision. §14.6's verification on finite constructions (`20` §11) is approved on `d7a4449`;
-§14.8 proposes the decision on A1's path, awaiting review.
+decision. §14.6's verification on finite constructions (`20` §11) is approved on `d7a4449`.
+§14.8 proposes the decision on A1's path, partly reviewed on `23283f2` and rectified; B-b's scorer
+is implemented with no production caller (§14.9); both await review.
 
 ## 6. Essential reading to resume
 
 `CLAUDE.md` and `docs/CLAUDE.md`; `docs/15` (rows A1, A2, B1–B3, D2–D4 and the correction records);
 `docs/16` (A1's theorem, conditions C1–C6, beacon model) and `docs/17` (A1's batches and missing
-outcomes; §14, the candidate contract; §14.8, the decision proposal); `docs/18` (A3); `docs/19`
-(A2); `docs/20` (S2's synthetic check: specification and implementation approved; §§10–11, the
-absent baseline and A1's adaptive verification, approved on `d7a4449`); `docs/02` §B.3, §B.7;
-`docs/01` D33–D38, D43; code: `crates/scoring/src/{latent.rs,dtf.rs}`,
-`crates/protocol/src/{contested.rs,lifecycle.rs,orchestrator.rs,exploration.rs}`,
-`crates/protocol/tests/{s2_synthetic_check.rs,s2/}`.
+outcomes; §14, the candidate contract; §14.8, the decision proposal; §14.9, B-b's scorer); `docs/18`
+(A3); `docs/19` (A2); `docs/20` (S2's synthetic check: specification and implementation approved;
+§§10–11, the absent baseline and A1's adaptive verification, approved on `d7a4449`; §12, the check
+through the scorer); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43; code:
+`crates/scoring/src/{latent.rs,dtf.rs}`,
+`crates/protocol/src/{contested.rs,lifecycle.rs,orchestrator.rs,exploration.rs,cohort_scores.rs}`,
+`crates/protocol/tests/{s2_synthetic_check.rs,s2/,cohort_scores.rs}`.
 
 ## 7. R1 and its approval
 
@@ -1491,4 +1517,23 @@ absent baseline and A1's adaptive verification, approved on `d7a4449`); `docs/02
   unchanged), relative links and references, the states across `15`, `17`, `20`,
   `docs/README.md` and this note. No Rust test, fit, search, bootstrap, smoke, characterization,
   calibration, benchmark, probe, mutation or Phase 2 work; no code change.
+- **Astra, review of `23283f2`** (as it records): the commit, its parent and the published branch
+  checked; the diff, the documents and the relevant code read. No Rust, fit or campaign run; the
+  local checks are Claude Code's evidence.
+- **Claude Code, record of that review, §14.8's rectification and B-b's scorer:** branch
+  `docs/phase1-review-alignment`, HEAD `23283f2` (parent `d7a4449`), the remote-tracking branch at
+  the same commit, and a working tree with only the owner's `.gitignore` modified checked first;
+  `.gitignore` and the ignored directories, `.gpt/` included, left untouched and out of the
+  commit. Read (L): `CLAUDE.md`, `docs/CLAUDE.md` (no `AGENTS.md` in the repository), this note;
+  `15`'s A1 row and working agreement; `16` §§4–6; `17` §§8, 9 and 14; `20` §§2, 5, 9–11; `10`'s
+  T19, T25, T37, T58, T76–T79 and T83, for their perimeter only; code: `panel_scores`,
+  `difference_score`, `probation::{status, review_weight}`, `ReviewerStanding::founder` (weight 1
+  in the bootstrap), the check's `study.rs`, `adaptive.rs` and tests. Calculated (C), with
+  fractions in scratch scripts not kept: the new tests' expected values and the enumeration's
+  references (−41/1728, −13/216, −91/5184), before the tests. Executed (E), 2026-10-08, as `20`
+  §12 records: the scorer's 10 tests, the check's 39 and `panel_scores`' 7 passed; two expectations
+  and one construction of the new tests corrected by recomputation, the code unchanged; three
+  probes, reverted; Clippy with `-D warnings`, `rustfmt --check`, `scripts/comment_budget.py`,
+  `git diff --check` clean. Not run: the workspace suite or other targets, any fit, latent search,
+  bootstrap, smoke, characterization, calibration, benchmark, mutation or Phase 2 work.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.

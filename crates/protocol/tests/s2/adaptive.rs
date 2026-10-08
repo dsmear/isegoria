@@ -1,10 +1,12 @@
-//! `17` §14.6 on finite constructions (`docs/20` §11): the check's scoring path against D1's
-//! expected values in exact rationals (A), and one term per channel of (B).
+//! `17` §14.6 on finite constructions (`docs/20` §11): the scoring path, `cohort_scores` since
+//! §12, against D1's expected values in exact rationals (A), and one term per channel of (B).
 
 use super::fixture::{nym, U};
 use super::records::Outcome;
-use super::study::{cohort, member, Case, Member, Value};
-use protocol::panel_scores::{first_panel_baselines, Forecast};
+use super::study::outcome;
+use protocol::cohort_scores::{
+    score, Assignment, Cohort, CohortScore, Item, Panelist, Report, Selection, Value,
+};
 use std::cmp::Ordering;
 use std::ops::{Add, Div, Mul, Sub};
 
@@ -118,35 +120,52 @@ pub struct Law {
     pub t: Q,
 }
 
-fn case(o: Outcome) -> Case {
-    match o {
-        Outcome::A => Case::Positive,
-        Outcome::R => Case::Negative,
-        Outcome::I => Case::Inconclusive,
+/// `seat` as the scorer's item under A: `u` first at weight 1, then the others, frozen, `π = 1`.
+fn item(report: f64, seat: &Seat) -> Item {
+    let own = (report, 1.0);
+    let others = seat.others.iter().map(|(p, w)| (p.f(), *w as f64));
+    let first = std::iter::once(own).chain(others).enumerate();
+    Item {
+        first: (first.map(|(k, (prob, weight))| Panelist {
+            nym: nym(if k == 0 { U } else { 100 + k as u8 }),
+            report: Report::Revealed(prob),
+            weight,
+        }))
+        .collect(),
+        extra: Vec::new(),
+        frozen: true,
+        selection: Selection::Selected {
+            inclusion: 1.0,
+            outcome: Some(outcome(seat.outcome)),
+        },
     }
 }
 
-/// `first_panel_baselines` on `u`'s report, first, and the seat's others.
-pub fn baseline(report: f64, seat: &Seat) -> Option<f64> {
-    let own = Forecast {
-        prob: report,
-        weight: 1.0,
+/// `u`'s prefixed cohort over `items`, all of them, through `cohort_scores::score`.
+fn cohort(items: Vec<Item>) -> CohortScore {
+    let k = Cohort {
+        nym: nym(U),
+        items: (0..items.len()).collect(),
     };
-    let others = seat.others.iter().map(|(p, w)| Forecast {
-        prob: p.f(),
-        weight: *w as f64,
-    });
-    first_panel_baselines(&std::iter::once(own).chain(others).collect::<Vec<_>>())[0]
+    let mut scores = score(&items, &[k]).expect("a coherent construction");
+    scores.cohorts.remove(0)
 }
 
-/// `u`'s member on `seat` through the check's path: [`baseline`], then `study::member`.
-pub fn scored(item: usize, report: f64, seat: &Seat) -> Member {
-    member(
-        item,
-        case(seat.outcome),
-        Some(report),
-        baseline(report, seat),
-    )
+/// `u`'s assignment on `seat` through the scorer.
+pub fn scored(report: f64, seat: &Seat) -> Assignment {
+    cohort(vec![item(report, seat)]).members.remove(0)
+}
+
+/// The scorer's baseline for `u` on `seat`: `first_panel_baselines` over the seat's others.
+pub fn baseline(report: f64, seat: &Seat) -> Option<f64> {
+    scored(report, seat).baseline
+}
+
+fn defined(a: &Assignment) -> f64 {
+    match a.term {
+        Ok(Some(g)) => g,
+        t => panic!("a defined term: {t:?}"),
+    }
 }
 
 fn indicator(x: bool) -> Q {
@@ -161,11 +180,11 @@ impl Construction {
     /// `Σ P(state) × u's cohort value` through the path; `reports[cell × items + j]`.
     pub fn expectation(&self, reports: &[Q]) -> f64 {
         let value = |s: &State| {
-            let members = s.seats.iter().enumerate().map(|(j, seat)| {
+            let items = s.seats.iter().enumerate().map(|(j, seat)| {
                 let report = reports[s.cell * self.items + j];
-                scored(j, report.f(), seat)
+                item(report.f(), seat)
             });
-            match cohort(nym(U), members.collect()).value {
+            match cohort(items.collect()).value {
                 Value::Final(x) => x,
                 v => panic!("H-d: {v:?}"),
             }
@@ -327,12 +346,7 @@ pub fn p2() -> Construction {
 
 /// One assignment's expected term over (probability, report, seat), through [`scored`].
 pub fn expected(states: &[(Q, f64, Seat)]) -> f64 {
-    let term = |(p, report, seat): &(Q, f64, Seat)| {
-        let g = scored(0, *report, seat)
-            .contribution
-            .expect("a defined term");
-        p.f() * g
-    };
+    let term = |(p, report, seat): &(Q, f64, Seat)| p.f() * defined(&scored(*report, seat));
     states.iter().map(term).sum()
 }
 
@@ -353,16 +367,16 @@ pub fn load(entered: bool) -> Vec<(Q, f64, Seat)> {
     ]
 }
 
-/// `17` §9.4: the expected term from the supplied effective baseline `b(p)`, the outcome
-/// Bernoulli(½); `first_panel_baselines` is not called.
+/// `17` §9.4: the expected term from the effective baseline `b(p)`, supplied as the only other
+/// first report at weight 1, which the composition returns; the outcome Bernoulli(½).
 pub fn replacement(p: f64) -> f64 {
     let b = (2.0 * p - 0.5).clamp(0.0, 1.0);
-    let g = |c| {
-        member(0, c, Some(p), Some(b))
-            .contribution
-            .expect("a verdict's term")
+    let g = |o| {
+        let mut i = item(p, &seat(o, ZERO));
+        i.first[1].report = Report::Revealed(b);
+        defined(&cohort(vec![i]).members[0])
     };
-    0.5 * g(Case::Positive) + 0.5 * g(Case::Negative)
+    0.5 * g(Outcome::A) + 0.5 * g(Outcome::R)
 }
 
 /// `17` §11.3, timing: `p ≤ ½` sends `j` to the band and `A`'s probability from 3/5 to 2/5.
