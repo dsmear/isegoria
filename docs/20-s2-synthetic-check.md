@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code, by Claude Code on `c76c035`, awaits Astra's review** (§9); the owner's assignment authorized it and its targeted tests, not that review. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. |
-| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation on `c76c035`; code named by symbol. |
+| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`) was partly reviewed by Astra on `e5e0898`; its rectifications await Astra's review** (§9); the owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. |
+| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified on `e5e0898`; code named by symbol. |
 | **Scope** | `19` §10.6's next deliverable: what a technical check on synthetic events would execute, what its fixtures supply, what it must report and when it fails. References, within their recorded limits: design A, B-b and the reporting of cases 5–7 with 6c and 7a (`17` §§8–9), α (`17` §10), T1 the analytic reference and T2 the comparison (`17` §§11–13); B-b's study scores outside the reputation and the gate's decisions recorded with no effect on operational pools (Astra, decided on `cbcbc67`, confirmed on `5af22b9`). |
-| **Evidence** | Specification (Claude Code, before `c76c035`): **L** targeted reads of the code named; **C** every expected value recalculated with exact fractions in a scratch script, not kept. Implementation (Claude Code): **E** the check's targeted tests, §9. Astra's review: below. |
+| **Evidence** | Specification (Claude Code, before `c76c035`): **L** targeted reads of the code named; **C** every expected value recalculated with exact fractions in a scratch script, not kept. Implementation and rectifications (Claude Code): **E** the check's targeted tests, §9. Astra's reviews: below. |
 
 ## Design review (Astra)
 
@@ -25,6 +25,23 @@ fixture supplies, its order checked, no execution nor H-c inferred from a record
 and unused (§4). The review approves no implementation, none existing then: the implementation
 and its targeted tests (§9) rest on the owner's later assignment. R1 stays approved; A1, A2,
 B1–B3 and Phase 1 stay open.
+
+Review of `e5e0898` (the commit, its parent and the published branch checked; the seven new Rust
+files, the relevant code and the documentary joins read; minimal Python reproductions of the
+branches concerned, no Rust run; the 23 passing tests and Clippy stay Claude Code's evidence):
+**partial**. Accepted: the record of the review of `c76c035`; the four precisions made; prefixed
+cohorts and the report of a later assignment; the log, the held records and the declared costs
+kept apart; T1's starts explicitly synthetic; j12's second reading kept and unused; the check
+isolated in test code; expected values independent of the code checked. Not approved: the
+implementation as a whole, for two defects — K4 counted two registrations of one attempt as two
+executions and read a stage's attempts in their numbers' order, not the order recorded, so
+`validate` could accept an `I` resting on one non-conclusion logged twice, or on a conclusion
+recorded first but numbered after two non-conclusions; and the classifier at (R) turned a
+documented contrary order into `Indeterminate` once another entry of `x_O` lacked evidence. A
+precision: at (E), the unchecked member's signature inside a `CutSignature` is not by itself
+blocking; the contract is to state what is verified and what that evidence concludes. Both
+defects are rectified, and the precision made, in §9, awaiting review. The specification stays
+approved on `c76c035`; R1 stays approved; A1, A2, B1–B3 and Phase 1 stay open.
 
 ## 1. What the check is
 
@@ -267,17 +284,19 @@ before a field study:
    coexists with it only as a record held under T2 (F5); a disclosed one would need a rule letting
    the freeze pass (T58 or a term), not approved.
 
-## 9. The implementation (awaiting Astra's review)
+## 9. The implementation (partly reviewed on `e5e0898`; rectifications awaiting review)
 
-Written by Claude Code on `c76c035`, on the owner's assignment; the review of `c76c035` approved
-the specification above, not this implementation.
+Written by Claude Code on `c76c035` and committed in `e5e0898`, on the owner's assignment; the
+review of `c76c035` approved the specification above, not this implementation. Astra's review of
+`e5e0898` (above) was partial; its two defects are rectified below, on a further assignment, and
+await Astra's review.
 
-**Where.** Test code only: `crates/protocol/tests/s2_synthetic_check.rs`, one test per fixture
-or common expectation, and its support `crates/protocol/tests/s2/` — `fixture.rs` (the builder
-of §§4 and 6), `records.rs` (the study records and their reader), `replay.rs` (the log view),
-`study.rs` (freezes, K4, cases, B-b, cohorts, T1 and T2 checks, the snapshot, the costs),
-`order.rs` (the classifier at (R) and (E)). No production code, API, `NodeEvent` variant,
-dependency, threshold, golden output or policy changes.
+**Where.** Test code only: `crates/protocol/tests/s2_synthetic_check.rs`, one test per fixture,
+common expectation or regression, and its support `crates/protocol/tests/s2/` — `fixture.rs`
+(the builder of §§4 and 6), `records.rs` (the study records and their reader), `replay.rs` (the
+log view), `study.rs` (freezes, K4 and K6, cases, B-b, cohorts, T1 and T2 checks, the snapshot,
+the costs), `order.rs` (the classifier at (R) and (E)). No production code, API, `NodeEvent`
+variant, dependency, threshold, golden output or policy changes.
 
 **Executed**, as §2's column: `FeedWriter::sign` over `TransparencyLog` entries;
 `Replica::insert` (its `check`); `Replica::{feed, chain}`; `Cut::next`; `cut::{added, sign_cut,
@@ -300,25 +319,70 @@ as in §7; j4's second reading is `A`; evidence references are synthetic labels,
 not recomputed; `Φ_j` reads applied steps only; an extra reviewer's report counts completed on
 its accepted reveal, K5 declaring first panels' closes only; contributions are formed for the
 declared cohorts only (§7), baselines only past `Φ_j`; (iv)'s reference is an accepted results
-event, none logged; at (E), a `CutSignature` on its member's own feed counts when its cut is one
-the replay applied — the feed entry's signature authenticates the object, and the member's
-signature inside it is not checked again (`Consortium::signed_by` is crate-private).
+event, none logged.
+
+**Attempt records** (rectification of the first defect). A group's attempt records are read in
+the order recorded — log order, or the held list's — and never reordered. `study::sequence`
+checks K6 and K4 on them first and repairs nothing: one attempt logged twice (`Repeated`), two
+different records claiming one (group, stage, number) (`Conflicting`), or a stage's attempt
+recorded out of its number's order or numbered past the budget (`Misnumbered`) refuses the
+derivation. `k4` then reads the records in that order, the first conclusion standing; `validate`
+matches each attempt it used to the terminal's references by that attempt's own CID. A group
+with such records gets the error in its report, its items `Pending::Incoherent` and its
+terminal records `TerminalError::Sequence`; in `executed` and in the costs each distinct attempt
+counts once, however often logged, so the same records never mean two executions to one function
+and one to another.
+
+**Order evidence** (rectification of the second defect). At each level, each entry of `x_O` is
+classified alone — not examined (R) or not held (E); held with no reference either way (E);
+shown before a relevant entry; shown after every relevant entry — then aggregated as `17` §13.2
+says: a contrary order for one entry is reported, with its witness (that entry and the relevant
+entry it precedes), whatever the others; so is an absent precondition, with an entry examined
+(R) or held (E) while the relevant set is not closed; `Verified` needs every entry shown after
+every relevant entry; the entries lacking evidence are listed apart (`order::Evidence`: outcome,
+witness, uncovered). An incomplete prefix still leaves the relevant set unidentifiable and every
+entry indeterminate.
+
+**The `CutSignature` reference at (E)** (Astra's precision). It is used when (i) the object is an
+entry of its member's own feed — `member_objects` matches the feed's writer to the member's key —
+whose writer signature `Replica::check` verified on insertion; (ii) its cut equals a cut the
+replay applied in the prefix, one `Ledger::apply` accepted with the threshold's signatures; (iii)
+the later entry follows it on that feed, and the cut's mark of the earlier entry's writer covers
+that entry on the chain `Replica::chain` rebuilds. Not verified: the member's signature inside
+the object, over the cut's checkpoint (`Consortium::signed_by` is crate-private and stays so). It
+concludes `17` §13.1's existence precedence: the feed's writer logged an object carrying that
+cut, whose marks commit to the earlier entry's chain, before the later entry — not that the
+member signed the cut by that object, which the applied cut's threshold signatures show apart.
 
 **Negative cases**: a terminal `I` after one non-conclusion, missing an attempt's reference, or
 resting on attempts without evidence; T1 starts before `Φ_G`, records before a start or without
-one, a T2 record logged while held; and cut 6 after the main scenario — j15 assigned to `u`, G7's
+one, a T2 record logged while held; cut 6 after the main scenario — j15 assigned to `u`, G7's
 start while `Φ_G7` is unreached — which K2's check reports (`K_u` stays four) and T1's refuses.
+Since the rectifications: one attempt recorded twice, or claimed by two records; a conclusion
+numbered 3 recorded before attempts 1 and 2; G3's first stage-2 attempt logged again on M1 in a
+cut 4' (`executed` [1, 1], stage-2 participations in the log 12,000, j5 and j6 incoherent); O4's
+contrary order beside an entry no cut counts (R) or the verifier lacks (E); O5's absent
+precondition, and O1's order not verified, beside such entries.
 
 **Evidence** (E, Claude Code, 2026-10-08):
 
-- `cargo test -p protocol --test s2_synthetic_check`: 23 passed, 0 failed; the test binary ran
-  in 0.91 s, a time of these tests only, measuring no fit, availability or production;
-- `cargo clippy -p protocol --test s2_synthetic_check -- -D warnings`: no warning;
-- `rustfmt --edition 2021 --check crates/protocol/tests/s2_synthetic_check.rs` (its modules
-  included), `python3 scripts/comment_budget.py`, `git diff --check`: clean;
-- two temporary probes, reverted: K3's weight of r4 set to 1 fails F8; G6's stage-1 attempt
-  logged in cut 2 fails F5 and the costs.
+- on `e5e0898`'s implementation: `cargo test -p protocol --test s2_synthetic_check`, 23 passed,
+  0 failed (0.91 s, a time of these tests only); Clippy, rustfmt, the comment budget and
+  `git diff --check` clean; two temporary probes, reverted (K3's weight of r4 set to 1 fails F8;
+  G6's stage-1 attempt logged in cut 2 fails F5 and the costs);
+- the five regressions written before the rectifications, run on `e5e0898`'s check code: 23
+  passed, 5 failed — the repeated attempt and the misnumbered sequence each accepted j3's `I`;
+  G3's `executed` read [1, 2]; O4 with an uncounted or lacking entry read (`Indeterminate`,
+  `Indeterminate`) for (`Contrary`, `Contrary`); O5 likewise for (`Absent`, `Absent`). The
+  conflicting-record case, the costs check and O1's iteration sat after a failing assertion and
+  were not reached in that run;
+- after the rectifications: `cargo test -p protocol --test s2_synthetic_check`, 28 passed, 0
+  failed, every expected value of §§4–7 unchanged (scores, cohorts, the 102 assignments, the
+  declared costs); `cargo clippy -p protocol --test s2_synthetic_check -- -D warnings`, no
+  warning; `rustfmt --edition 2021 --check crates/protocol/tests/s2_synthetic_check.rs` (its
+  modules included), `python3 scripts/comment_budget.py`, `git diff --check`: clean.
 
-Not run: the workspace suite or other targets, any fit, smoke, characterization, calibration,
-benchmark, mutation or Phase 2 work. Passing shows what §1 says, no more: no properness, H-c,
-reputational incentive, anonymity, true DTF or neutrality, and S2 is not started.
+Not run: the workspace suite or other targets, any fit, latent search, bootstrap, smoke,
+characterization, calibration, benchmark, mutation or Phase 2 work. Passing shows what §1 says,
+no more: no properness, H-c, reputational incentive, confidentiality, anonymity, true DTF or
+neutrality, and S2 is not started.

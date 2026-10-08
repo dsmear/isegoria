@@ -4,7 +4,7 @@
 mod s2;
 
 use network::cid::{cid, Cid};
-use network::cut::{Cut, CutError, MemberObject};
+use network::cut::{Cut, CutError, Mark, MemberObject};
 use protocol::events::NodeEvent;
 use protocol::gate::{bridging_gate, GateOutcome, APPEAL_GAP, EPS, MIN_COVERAGE, TAU};
 use protocol::ledger::{LedgerError, Refusal};
@@ -12,15 +12,17 @@ use protocol::lifecycle::{Event, Invalid, RejectReason, State};
 use protocol::node::Rejection;
 use protocol::pilot::PilotError;
 use s2::fixture::{
-    consortium, deposit, draft, issuer, key, nym, order, step, Feed, Fixture, Main, Then, M0, M1,
-    OMEGA, U, V, W,
+    consortium, deposit, disclosure, draft, issuer, key, nym, order, step, Feed, Fixture, Main,
+    Then, M0, M1, OMEGA, RELAY, U, V, W,
 };
-use s2::order::{commitments, existence_level, replay_level, Precedence, References};
+use s2::order::{
+    commitments, existence_level, replay_level, Evidence, Precedence, References, Witness,
+};
 use s2::records::{Attempt, Outcome, Reading, Reason, Record, Terminal};
 use s2::replay::LogView;
 use s2::study::{
     cohorts_complete, t1_start, t2_hold, validate, Case, Cohort, CohortError, ItemState, Pending,
-    Snapshot, Start, StartError, TerminalError, Value,
+    SequenceError, Snapshot, Start, StartError, TerminalError, Value,
 };
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
@@ -732,7 +734,7 @@ fn costs_as_declared() {
     assert_eq!(at.batches, batches);
 }
 
-fn classify(fixture: Fixture) -> (LogView, Precedence, Precedence) {
+fn classify(fixture: Fixture) -> (LogView, Evidence, Evidence) {
     let o = order(fixture);
     let view = LogView::replay(&o.replica, &o.cuts, &[o.k]);
     let prefix = o.cuts.len() as u64 - 1;
@@ -747,7 +749,10 @@ fn classify(fixture: Fixture) -> (LogView, Precedence, Precedence) {
 #[test]
 fn o1_one_feed() {
     let (view, r, e) = classify(Fixture::O1);
-    assert_eq!((r, e), (Precedence::Verified, Precedence::Verified));
+    assert_eq!(
+        (r.outcome, e.outcome),
+        (Precedence::Verified, Precedence::Verified)
+    );
     let x = view.examined.last().unwrap();
     assert_eq!(view.refusal(&x.id), Some(&Refusal::NotAnEvent));
     assert!(view.examined.iter().all(|e| e.id.writer == key(M0)));
@@ -757,7 +762,10 @@ fn o1_one_feed() {
 #[test]
 fn o2_two_feeds_by_a_cut_signature() {
     let (view, r, e) = classify(Fixture::O2);
-    assert_eq!((r, e), (Precedence::Verified, Precedence::Verified));
+    assert_eq!(
+        (r.outcome, e.outcome),
+        (Precedence::Verified, Precedence::Verified)
+    );
     let on_m1: Vec<_> = view
         .examined
         .iter()
@@ -773,21 +781,30 @@ fn o2_two_feeds_by_a_cut_signature() {
 #[test]
 fn o3_a_relay() {
     let (_, r, e) = classify(Fixture::O3);
-    assert_eq!((r, e), (Precedence::Verified, Precedence::Indeterminate));
+    assert_eq!(
+        (r.outcome, e.outcome),
+        (Precedence::Verified, Precedence::Indeterminate)
+    );
 }
 
 /// O4: `CloseCommits` follows a signature of a cut counting `x`: contrary at both levels.
 #[test]
 fn o4_contrary_order() {
     let (_, r, e) = classify(Fixture::O4);
-    assert_eq!((r, e), (Precedence::Contrary, Precedence::Contrary));
+    assert_eq!(
+        (r.outcome, e.outcome),
+        (Precedence::Contrary, Precedence::Contrary)
+    );
 }
 
 /// O5: O4 through cut 0: the precondition is absent in the prefix at both levels.
 #[test]
 fn o5_precondition_absent() {
     let (_, r, e) = classify(Fixture::O5);
-    assert_eq!((r, e), (Precedence::Absent, Precedence::Absent));
+    assert_eq!(
+        (r.outcome, e.outcome),
+        (Precedence::Absent, Precedence::Absent)
+    );
 }
 
 /// O6: a commitment missing from the replica, or `x` counted by no cut: indeterminate.
@@ -797,13 +814,13 @@ fn o6_incomplete_evidence() {
     let missing = LedgerError::Cut(CutError::Missing { writer: key(M0) });
     assert_eq!(view.error, Some(missing));
     assert_eq!(
-        (r, e),
+        (r.outcome, e.outcome),
         (Precedence::Indeterminate, Precedence::Indeterminate)
     );
     let (view, r, e) = classify(Fixture::O6b);
     assert!(view.examined.iter().all(|e| e.id.writer == key(M0)));
     assert_eq!(
-        (r, e),
+        (r.outcome, e.outcome),
         (Precedence::Indeterminate, Precedence::Indeterminate)
     );
 }
@@ -814,17 +831,205 @@ fn o6_incomplete_evidence() {
 fn o7_pairs_of_the_main_scenario() {
     let s = &run().at_omega;
     assert_eq!(s.ii.len(), 70);
-    assert!(s
-        .ii
-        .iter()
-        .all(|p| (p.r, p.e) == (Precedence::Verified, Precedence::Verified)));
+    assert!(s.ii.iter().all(|p| (p.r.outcome, p.e.outcome)
+        == (Precedence::Verified, Precedence::Verified)
+        && p.r.uncovered.is_empty()
+        && p.e.uncovered.is_empty()));
     assert_eq!(s.iv.len(), 30);
     assert!(s
         .iv
         .iter()
-        .all(|p| (p.r, p.e) == (Precedence::Absent, Precedence::Absent)));
+        .all(|p| (p.r.outcome, p.e.outcome) == (Precedence::Absent, Precedence::Absent)));
     let groups: std::collections::BTreeSet<usize> = s.iv.iter().map(|p| p.target).collect();
     assert_eq!(groups, (1..=6).collect());
     let records: std::collections::BTreeSet<usize> = s.ii.iter().map(|p| p.record).collect();
     assert_eq!(records, [0, 1, 2, 3, 8].into());
+}
+
+fn g2() -> (s2::records::Group, Cid) {
+    let Some(Record::Group(group)) = Record::decode(&group_bytes(2)) else {
+        unreachable!()
+    };
+    (group, cid(&group_bytes(2)))
+}
+
+/// K4, K6: one attempt recorded twice, or two records claiming it, exhausts nothing.
+#[test]
+fn k4_a_repeated_attempt_is_not_a_second_one() {
+    let (group, rule) = g2();
+    let all = attempts(2, u64::MAX);
+    let (s1, s2) = (&all[0], &all[1]);
+    let (_, j3) = the_terminal(2);
+    let t = Terminal {
+        attempts: vec![s1.1, s2.1],
+        ..j3.clone()
+    };
+    let twice = vec![
+        (&s1.0, s1.1, s1.2),
+        (&s2.0, s2.1, s2.2),
+        (&s2.0, s2.1, s2.2),
+    ];
+    let repeated = SequenceError::Repeated {
+        stage: 2,
+        attempt: 1,
+    };
+    let refused = Err(TerminalError::Sequence(repeated));
+    assert_eq!(
+        validate(&t, &group, rule, &twice),
+        refused,
+        "a repeated record exhausted j3"
+    );
+    let other = Attempt {
+        evidence: cid(b"another reading of G2 s2 a1").0,
+        ..s2.0.clone()
+    };
+    let other_cid = Record::Attempt(other.clone()).cid();
+    let t = Terminal {
+        attempts: vec![s1.1, s2.1, other_cid],
+        ..j3
+    };
+    let claimed = vec![
+        (&s1.0, s1.1, s1.2),
+        (&s2.0, s2.1, s2.2),
+        (&other, other_cid, 3),
+    ];
+    let conflicting = SequenceError::Conflicting {
+        stage: 2,
+        attempt: 1,
+    };
+    let refused = Err(TerminalError::Sequence(conflicting));
+    assert_eq!(
+        validate(&t, &group, rule, &claimed),
+        refused,
+        "two records, one attempt"
+    );
+}
+
+/// K4: a conclusion recorded before two non-conclusions is not hidden by a higher number.
+#[test]
+fn k4_a_misnumbered_sequence_is_refused() {
+    let (group, rule) = g2();
+    let all = attempts(2, u64::MAX);
+    let early = Attempt {
+        attempt: 3,
+        readings: vec![Reading::A, Reading::R],
+        evidence: cid(b"G2 s2 a3").0,
+        ..all[1].0.clone()
+    };
+    let early_cid = Record::Attempt(early.clone()).cid();
+    let (_, j3) = the_terminal(2);
+    let recorded = vec![
+        (&all[0].0, all[0].1, all[0].2),
+        (&early, early_cid, 3),
+        (&all[1].0, all[1].1, all[1].2),
+        (&all[2].0, all[2].1, all[2].2),
+    ];
+    let misnumbered = SequenceError::Misnumbered {
+        stage: 2,
+        attempt: 3,
+    };
+    let refused = Err(TerminalError::Sequence(misnumbered));
+    assert_eq!(
+        validate(&j3, &group, rule, &recorded),
+        refused,
+        "j3's `A` hidden"
+    );
+}
+
+/// K4, K6: G3's first stage-2 attempt recorded again, on M1 in a cut 4', counts once.
+#[test]
+fn k6_a_repeated_record_counts_once() {
+    let main = &run().main;
+    let mut replica = main.replica.clone();
+    let (_, record) = logged_record(
+        |r| matches!(r, Record::Attempt(a) if (a.group, a.stage, a.attempt) == (3, 2, 1)),
+    );
+    let again = Feed::new(M1).push(&mut replica, record.encode());
+    let mut cut4 = main.cuts[3].clone();
+    cut4.number = 4;
+    cut4.marks.push(Mark {
+        writer: again.writer,
+        len: 1,
+        head: again.hash,
+    });
+    cut4.marks.sort_by_key(|m| m.writer);
+    let mut cuts = main.cuts[..=3].to_vec();
+    cuts.push(cut4);
+    let view = LogView::replay(&replica, &cuts, &main.items);
+    assert!(view.error.is_none());
+    let s = Snapshot::of(main, &view, 4);
+    let g3 = s.groups.iter().find(|g| g.group == 3).unwrap();
+    assert_eq!(g3.executed, [1, 1]);
+    assert_eq!(s.costs.participations[1].log, 12_000);
+    let repeated = SequenceError::Repeated {
+        stage: 2,
+        attempt: 1,
+    };
+    assert_eq!(g3.sequence, Err(repeated));
+    for j in [4, 5] {
+        assert_eq!(s.items[j].state, ItemState::Pending(Pending::Incoherent));
+    }
+    assert!(s
+        .groups
+        .iter()
+        .filter(|g| g.group != 3)
+        .all(|g| g.sequence.is_ok()));
+}
+
+/// `17` §13.2: O4's contrary order stays reported beside an entry of `x_O` no cut counts (R)
+/// or the verifier lacks (E).
+#[test]
+fn o4_a_contrary_order_survives_incomplete_coverage() {
+    let o = order(Fixture::O4);
+    let mut relay = Feed::new(RELAY);
+    let (uncounted, object) = relay.sign(disclosure());
+    let (lacking, _) = relay.sign(b"a disclosure the verifier lacks".to_vec());
+    let mut replica = o.replica.clone();
+    replica.insert(uncounted.clone(), object).unwrap();
+    let view = LogView::replay(&replica, &o.cuts, &[o.k]);
+    let relevant = commitments(&view, 1, o.k);
+    let refs = References::new(&replica, &consortium(), &view, 1);
+    let r = replay_level(&view, 1, &relevant, &[o.x, uncounted.id()]);
+    let e = existence_level(&view, 1, &refs, &relevant, &[o.x, lacking.id()]);
+    assert_eq!(
+        (r.outcome, e.outcome),
+        (Precedence::Contrary, Precedence::Contrary)
+    );
+    for (level, gap) in [(&r, uncounted.id()), (&e, lacking.id())] {
+        let Some(Witness::Before { x, c }) = level.witness else {
+            panic!("no witness: {level:?}");
+        };
+        assert!(x == o.x && relevant.entries.contains(&c));
+        assert_eq!(level.uncovered, vec![gap]);
+    }
+}
+
+/// `17` §13.2: O5's absent precondition stays reported beside an entry without evidence; O1's
+/// order is not verified while an entry lacks it.
+#[test]
+fn o5_and_o1_with_incomplete_coverage() {
+    for (fixture, expected) in [
+        (Fixture::O5, Precedence::Absent),
+        (Fixture::O1, Precedence::Indeterminate),
+    ] {
+        let o = order(fixture);
+        let mut relay = Feed::new(RELAY);
+        let (uncounted, object) = relay.sign(disclosure());
+        let (lacking, _) = relay.sign(b"a disclosure the verifier lacks".to_vec());
+        let mut replica = o.replica.clone();
+        replica.insert(uncounted.clone(), object).unwrap();
+        let view = LogView::replay(&replica, &o.cuts, &[o.k]);
+        let prefix = o.cuts.len() as u64 - 1;
+        let relevant = commitments(&view, prefix, o.k);
+        let refs = References::new(&replica, &consortium(), &view, prefix);
+        let r = replay_level(&view, prefix, &relevant, &[o.x, uncounted.id()]);
+        let e = existence_level(&view, prefix, &refs, &relevant, &[o.x, lacking.id()]);
+        assert_eq!((r.outcome, e.outcome), (expected, expected), "{fixture:?}");
+        let witness = (expected == Precedence::Absent).then_some(Witness::Unclosed { x: o.x });
+        assert_eq!((r.witness, e.witness), (witness, witness));
+        assert_eq!(
+            (r.uncovered, e.uncovered),
+            (vec![uncounted.id()], vec![lacking.id()])
+        );
+    }
 }

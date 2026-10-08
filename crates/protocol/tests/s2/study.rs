@@ -3,7 +3,7 @@
 
 use super::fixture::{consortium, Main, ANCHORS};
 use super::order::{
-    answers_reference, commitments, existence_level, replay_level, Precedence, References,
+    answers_reference, commitments, existence_level, replay_level, Evidence, References,
 };
 use super::records::{Attempt, Construction, Group, Outcome, Reading, Reason, Record, Terminal};
 use super::replay::{Examined, LogView};
@@ -45,41 +45,81 @@ pub enum Procedure {
     Pending,
 }
 
-/// K4 on one item: its procedure, the (stage, attempt) it used, the readings left unused.
+/// K4 on one item: its procedure, the attempts it used (stage, number, CID), the readings left
+/// unused.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct K4 {
     pub procedure: Procedure,
-    pub used: Vec<(u8, u8)>,
+    pub used: Vec<(u8, u8, Cid)>,
     pub unused: Vec<(u8, u8, Reading)>,
 }
 
-/// `attempts` are the group's, each with the cut that counts it (a held one, its production
-/// cut); one past the term, or beyond its stage's budget, is not executed.
-pub fn k4(group: &Group, item: Cid, attempts: &[(&Attempt, u64)]) -> K4 {
-    let mut list: Vec<&Attempt> = attempts
-        .iter()
-        .filter(|(a, cut)| *cut <= group.term && a.batch.contains(&item))
-        .map(|(a, _)| *a)
-        .collect();
-    list.sort_by_key(|a| (a.stage, a.attempt));
+/// Why a group's attempt records support no derivation (K4, K6); none is repaired.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SequenceError {
+    /// One attempt's record logged twice.
+    Repeated { stage: u8, attempt: u8 },
+    /// Two different records claiming one attempt.
+    Conflicting { stage: u8, attempt: u8 },
+    /// A stage's attempt recorded out of its number's order, or numbered past the budget.
+    Misnumbered { stage: u8, attempt: u8 },
+}
+
+/// K6 and K4 on a group's attempt records (record, CID, cut), in the order they were recorded:
+/// one record per attempt, each stage's numbered 1, 2, … in that order, within the budget.
+pub fn sequence(group: &Group, attempts: &[(&Attempt, Cid, u64)]) -> Result<(), SequenceError> {
+    let mut seen: Vec<(u8, u8, Cid)> = Vec::new();
+    let mut next = [1u8; 2];
+    for (a, c, _) in attempts.iter().filter(|(a, _, _)| a.group == group.group) {
+        let (stage, attempt) = (a.stage, a.attempt);
+        if let Some((_, _, first)) = seen.iter().find(|(s, n, _)| (*s, *n) == (stage, attempt)) {
+            return Err(if first == c {
+                SequenceError::Repeated { stage, attempt }
+            } else {
+                SequenceError::Conflicting { stage, attempt }
+            });
+        }
+        let expected = usize::from(stage)
+            .checked_sub(1)
+            .and_then(|i| next.get_mut(i));
+        match expected {
+            Some(n) if *n == attempt && u64::from(attempt) <= group.budget => *n += 1,
+            _ => return Err(SequenceError::Misnumbered { stage, attempt }),
+        }
+        seen.push((stage, attempt, *c));
+    }
+    Ok(())
+}
+
+/// `attempts` as [`sequence`] reads them, never reordered; one past the term is not executed.
+pub fn k4(
+    group: &Group,
+    item: Cid,
+    attempts: &[(&Attempt, Cid, u64)],
+) -> Result<K4, SequenceError> {
+    sequence(group, attempts)?;
     let mut k = K4 {
         procedure: Procedure::Pending,
         used: Vec::new(),
         unused: Vec::new(),
     };
-    let (mut stage, mut misses, mut executed) = (1u8, 0u64, [0u64; 2]);
-    for a in list {
-        let reading = a.readings[a.batch.iter().position(|c| *c == item).unwrap()];
+    let (mut stage, mut misses) = (1u8, 0u64);
+    for (a, c, cut) in attempts {
+        let Some(at) = a.batch.iter().position(|i| *i == item) else {
+            continue;
+        };
+        if a.group != group.group || *cut > group.term {
+            continue;
+        }
+        let reading = a.readings[at];
         if k.procedure != Procedure::Pending {
             k.unused.push((a.stage, a.attempt, reading));
             continue;
         }
-        let count = &mut executed[usize::from(a.stage) - 1];
-        if a.stage != stage || *count == group.budget {
+        if a.stage != stage {
             continue;
         }
-        *count += 1;
-        k.used.push((a.stage, a.attempt));
+        k.used.push((a.stage, a.attempt, *c));
         match reading {
             Reading::Survives => (stage, misses) = (2, 0),
             Reading::NotConverged => {
@@ -91,19 +131,20 @@ pub fn k4(group: &Group, item: Cid, attempts: &[(&Attempt, u64)]) -> K4 {
             r => k.procedure = Procedure::Concluded(r.verdict().unwrap()),
         }
     }
-    k
+    Ok(k)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TerminalError {
     Rule,
+    Sequence(SequenceError),
     Unreferenced(u8, u8),
     NoEvidence(u8, u8),
     Mismatch(Procedure),
 }
 
-/// `17` §9.2 on one terminal record: its rule is its group's record; K4 on the attempts before
-/// it (attempt, its CID, its cut) gives its outcome and reason; each attempt used is referenced.
+/// `17` §9.2 on one terminal record: its rule is its group's record; K4 on the attempts recorded
+/// before it gives its outcome and reason; each attempt used is referenced by its own CID.
 pub fn validate(
     t: &Terminal,
     group: &Group,
@@ -113,13 +154,9 @@ pub fn validate(
     if t.rule != rule || !group.items.contains(&t.item) {
         return Err(TerminalError::Rule);
     }
-    let cuts: Vec<(&Attempt, u64)> = before.iter().map(|(a, _, cut)| (*a, *cut)).collect();
-    let k = k4(group, t.item, &cuts);
-    for (s, n) in &k.used {
-        let (a, c, _) = before
-            .iter()
-            .find(|(a, _, _)| (a.stage, a.attempt) == (*s, *n))
-            .unwrap();
+    let k = k4(group, t.item, before).map_err(TerminalError::Sequence)?;
+    for (s, n, c) in &k.used {
+        let (a, _, _) = before.iter().find(|(_, x, _)| x == c).unwrap();
         if !t.attempts.contains(c) {
             return Err(TerminalError::Unreferenced(*s, *n));
         }
@@ -137,6 +174,8 @@ pub fn validate(
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Pending {
     NotStarted,
+    /// The group's attempt records break K4 or K6 ([`SequenceError`]): nothing is derived.
+    Incoherent,
     AttemptIndeterminate,
     Shortfall,
     RefusedBatch,
@@ -291,6 +330,8 @@ pub struct GroupReport {
     pub construction: Construction,
     pub freeze: Option<u64>,
     pub start: Result<Start, StartError>,
+    pub sequence: Result<(), SequenceError>,
+    /// Per stage, the distinct attempts recorded by the term, however often each is logged.
     pub executed: [u64; 2],
     pub refused: [u64; 2],
     pub term: u64,
@@ -364,13 +405,13 @@ pub struct ItemReport {
 }
 
 /// A pair of `17` §13.3: a logged terminal record (its item) against an item (ii) or a
-/// group (iv), with its outcome at (R) and at (E).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// group (iv), with its evidence at (R) and at (E).
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Pair {
     pub record: usize,
     pub target: usize,
-    pub r: Precedence,
-    pub e: Precedence,
+    pub r: Evidence,
+    pub e: Evidence,
 }
 
 /// `docs/20` §7's report on a prefix. Every field derives from the log's prefix except `held`,
@@ -509,6 +550,8 @@ impl Snapshot {
                 ItemState::Pending(Pending::FreezeUnreached)
             } else if !logged.starts.iter().any(|(_, s)| *s == g.group) {
                 ItemState::Pending(Pending::NotStarted)
+            } else if sequence(g, &attempts_of(g.group, u64::MAX)).is_err() {
+                ItemState::Pending(Pending::Incoherent)
             } else if in_batch(|r| matches!(r, Record::Refused(_))) {
                 ItemState::Pending(Pending::RefusedBatch)
             } else if in_batch(|r| matches!(r, Record::Shortfall(_))) {
@@ -516,15 +559,12 @@ impl Snapshot {
             } else {
                 ItemState::Pending(Pending::AttemptIndeterminate)
             };
-            let cuts: Vec<(&Attempt, u64)> = attempts_of(g.group, u64::MAX)
-                .into_iter()
-                .map(|(a, _, cut)| (a, cut))
-                .collect();
+            let k = k4(g, *item, &attempts_of(g.group, u64::MAX));
             items.push(ItemReport {
                 state,
                 lifecycle: view.state(prefix, item).cloned(),
                 freeze: freezes[j],
-                unused: k4(g, *item, &cuts).unused,
+                unused: k.map_or(Vec::new(), |k| k.unused),
             });
         }
 
@@ -640,9 +680,14 @@ impl Snapshot {
                     t2_hold(freeze, logged_first, g.production.unwrap())
                 }
             };
+            let recorded = attempts_of(g.group, u64::MAX);
             let mut executed = [0; 2];
-            for (e, a) in logged.attempts.iter().filter(|(_, a)| a.group == g.group) {
-                executed[usize::from(a.stage) - 1] += u64::from(e.cut <= g.term);
+            let mut seen = Vec::new();
+            for (a, _, _) in recorded.iter().filter(|(_, _, cut)| *cut <= g.term) {
+                if !seen.contains(&(a.stage, a.attempt)) {
+                    seen.push((a.stage, a.attempt));
+                    executed[usize::from(a.stage) - 1] += 1;
+                }
             }
             let mut refused = [0; 2];
             for (_, r) in logged.others.iter().filter(|(_, r)| of_group(r)) {
@@ -666,6 +711,7 @@ impl Snapshot {
                 construction: g.construction,
                 freeze,
                 start,
+                sequence: sequence(g, &recorded),
                 executed,
                 refused,
                 term: g.term,
@@ -719,11 +765,16 @@ impl Snapshot {
         }
 
         let mut costs = Costs::default();
-        for (_, r) in &records {
-            costs.account(r, false);
-        }
-        for r in &main.held {
-            costs.account(r, true);
+        let mut accounted = Vec::new();
+        let logged_records = records.iter().map(|(_, r)| (r, false));
+        for (r, held) in logged_records.chain(main.held.iter().map(|r| (r, true))) {
+            if let Record::Attempt(a) = r {
+                if accounted.contains(&(a.group, a.stage, a.attempt)) {
+                    continue;
+                }
+                accounted.push((a.group, a.stage, a.attempt));
+            }
+            costs.account(r, held);
         }
 
         let (g6, rule) = group(&main.items[10]);

@@ -71,31 +71,99 @@ pub fn answers_reference(view: &LogView, prefix: u64) -> Relevant {
     }
 }
 
-/// (R): the order in which the replay of a complete prefix examines the entries.
-pub fn replay_level(view: &LogView, prefix: u64, relevant: &Relevant, x: &[EntryId]) -> Precedence {
-    if !view.complete_through(prefix) {
-        return Precedence::Indeterminate;
-    }
-    let Some(xs) = x
-        .iter()
-        .map(|id| view.at(id, prefix).map(|e| e.pos))
-        .collect::<Option<Vec<u64>>>()
-    else {
-        return Precedence::Indeterminate;
+/// What a `Contrary` or an `Absent` outcome rests on.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Witness {
+    /// The entry `x` of `x_O` shown before the accepted relevant entry `c`.
+    Before { x: EntryId, c: EntryId },
+    /// The entry `x` examined (R) or held (E) while the relevant set is not closed.
+    Unclosed { x: EntryId },
+}
+
+/// A pair's result at one level (`17` §13.2): its outcome, the witness it rests on, and the
+/// entries of `x_O` whose evidence at that level is missing.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Evidence {
+    pub outcome: Precedence,
+    pub witness: Option<Witness>,
+    pub uncovered: Vec<EntryId>,
+}
+
+/// One entry of `x_O` at one level: not examined (R) or not held (E); held with no reference
+/// either way (E); shown before relevant entry `c`; shown after every relevant entry.
+enum Status {
+    Lacking,
+    Unordered,
+    Precedes(EntryId),
+    Follows,
+}
+
+/// `17` §13.2's aggregation: a contrary order or an absent precondition for one entry stands
+/// whatever the others; `Verified` needs every entry shown after every relevant entry.
+fn aggregate(relevant: &Relevant, status: Vec<(EntryId, Status)>) -> Evidence {
+    let available = |s: &Status| !matches!(s, Status::Lacking);
+    let witness = if relevant.complete {
+        status.iter().find_map(|(x, s)| match s {
+            Status::Precedes(c) => Some(Witness::Before { x: *x, c: *c }),
+            _ => None,
+        })
+    } else {
+        let held = status.iter().find(|(_, s)| available(s));
+        held.map(|(x, _)| Witness::Unclosed { x: *x })
     };
-    if !relevant.complete {
-        return Precedence::Absent;
+    let missing =
+        |s: &Status| !available(s) || (relevant.complete && matches!(s, Status::Unordered));
+    let uncovered: Vec<EntryId> = status
+        .iter()
+        .filter(|(_, s)| missing(s))
+        .map(|(x, _)| *x)
+        .collect();
+    let outcome = match witness {
+        Some(Witness::Before { .. }) => Precedence::Contrary,
+        Some(Witness::Unclosed { .. }) => Precedence::Absent,
+        None if relevant.complete && uncovered.is_empty() => Precedence::Verified,
+        None => Precedence::Indeterminate,
+    };
+    Evidence {
+        outcome,
+        witness,
+        uncovered,
     }
-    let cs: Vec<u64> = relevant
+}
+
+/// No entry can be weighed: the prefix is incomplete, so the relevant set is unidentifiable.
+fn unidentifiable(x: &[EntryId]) -> Evidence {
+    Evidence {
+        outcome: Precedence::Indeterminate,
+        witness: None,
+        uncovered: x.to_vec(),
+    }
+}
+
+/// (R): the order in which the replay of a complete prefix examines the entries.
+pub fn replay_level(view: &LogView, prefix: u64, relevant: &Relevant, x: &[EntryId]) -> Evidence {
+    if !view.complete_through(prefix) {
+        return unidentifiable(x);
+    }
+    let cs: Vec<(EntryId, u64)> = relevant
         .entries
         .iter()
-        .map(|id| view.at(id, prefix).unwrap().pos)
+        .map(|id| (*id, view.at(id, prefix).unwrap().pos))
         .collect();
-    if xs.iter().any(|x| cs.iter().any(|c| x < c)) {
-        Precedence::Contrary
-    } else {
-        Precedence::Verified
-    }
+    let status = x
+        .iter()
+        .map(|id| {
+            let s = match view.at(id, prefix) {
+                None => Status::Lacking,
+                Some(e) => cs
+                    .iter()
+                    .find(|(_, pos)| e.pos < *pos)
+                    .map_or(Status::Follows, |(c, _)| Status::Precedes(*c)),
+            };
+            (*id, s)
+        })
+        .collect();
+    aggregate(relevant, status)
 }
 
 /// `17` §13.1's references: each writer's feed, and the cut signatures members carry on theirs.
@@ -106,7 +174,9 @@ pub struct References {
 }
 
 impl References {
-    /// Only signatures of a cut the prefix applied count.
+    /// A cut signature counts when its object is on its member's own feed, authenticated by
+    /// that entry's signature, and its cut is one the prefix applied; the member's signature
+    /// inside it is not checked again.
     pub fn new(replica: &Replica, consortium: &Consortium, view: &LogView, prefix: u64) -> Self {
         let feeds = replica
             .summary()
@@ -172,19 +242,25 @@ pub fn existence_level(
     refs: &References,
     relevant: &Relevant,
     x: &[EntryId],
-) -> Precedence {
-    if !view.complete_through(prefix) || x.iter().any(|id| !refs.replica.contains(id)) {
-        return Precedence::Indeterminate;
-    }
-    if !relevant.complete {
-        return Precedence::Absent;
+) -> Evidence {
+    if !view.complete_through(prefix) {
+        return unidentifiable(x);
     }
     let c = &relevant.entries;
-    if c.iter().any(|c| x.iter().any(|x| refs.before(x, c))) {
-        Precedence::Contrary
-    } else if c.iter().all(|c| x.iter().all(|x| refs.before(c, x))) {
-        Precedence::Verified
-    } else {
-        Precedence::Indeterminate
-    }
+    let status = x
+        .iter()
+        .map(|x| {
+            let s = if !refs.replica.contains(x) {
+                Status::Lacking
+            } else if let Some(c) = c.iter().find(|c| refs.before(x, c)) {
+                Status::Precedes(*c)
+            } else if c.iter().all(|c| refs.before(c, x)) {
+                Status::Follows
+            } else {
+                Status::Unordered
+            };
+            (*x, s)
+        })
+        .collect();
+    aggregate(relevant, status)
 }
