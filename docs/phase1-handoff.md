@@ -624,9 +624,44 @@ they win.
   later tasks' dependencies, A4's and A5's residues, the meaning of closure and T26. Direction:
   A1 the next block — B-b the reference score, A the analytic reference, C in the comparison;
   no adoption, expenditure or sample size. R1 approved; A1, A2, B1–B3 and Phase 1 open.
-- **§5.1 rectified in place and A1's candidate contract proposed in `17` §14** (documentation
-  only, on the owner's assignment; **awaiting Astra's review**, neither covered by the review of
-  `bef891b`).
+- **§5.1 rectified in place and A1's candidate contract proposed in `17` §14, `11deec2`**
+  (documentation only, on the owner's assignment; neither covered by the review of `bef891b`;
+  **partly reviewed by Astra on `11deec2`**, below).
+- **Astra's review of `11deec2`: partial** (the commit, its parent and the published branch
+  checked; the diff, the contracts and the relevant code read; small examples checked with
+  rational arithmetic; no Rust, fit or campaign run; the local checks and the working tree stay
+  Claude Code's evidence). Approved: the record of `bef891b`'s review; §5.1's rectifications;
+  **as a conditional result**, the mathematical core of `17` §14.1 — under the declared
+  hypotheses B-b maximizes the expected contribution at `q_c`, a report `p` losing
+  `c(p − q_c)²`, the score flat at `c = 0`. Not approved as a whole: `17` §14, pending the
+  rectification of its adaptive verification criterion; the absent baseline a precision, not
+  blocking. On the IPW criterion: under A, `π = 1` removes the observation draw's problem, which
+  can be a legitimate way to correct A1 through a change of design, a non-trivial IPW not needed
+  only to honour the criterion's name; that verifies neither the current exploration at `ε` nor
+  arm C, and closing A1 through A would need an explicit decision on the change, its realization
+  and the pertinent checks. Not approved: an adoption of A or C, a substantive narrowing of the
+  promises, A1's closure. R1 and the synthetic check stay approved within their perimeters; A1,
+  A2, B1–B3 and Phase 1 open; S2 not started; no neutrality certified.
+- **Rectifications of `11deec2`** (documentation only, on the owner's assignment; **awaiting
+  Astra's review**, not covered by the review of `11deec2`), in `17` §14 corrected in place.
+  §14.6 separates two aims of the future test. (A) Within the theorem's domain: a prefixed cohort
+  and its denominator; one declared information for every strategy compared; adaptive joint
+  reports over the reviewer's assignments; constructions where H-a–H-d hold for every admitted
+  strategy; the truthful `q_c` on the information the model provides; the expected score over the
+  whole cohort, every changed contribution included; uniqueness where `c > 0`, indifference where
+  `c = 0`; fixed forecasts alone insufficient. (B) Per construction §14.3 cites, the condition
+  that fails, the effect shown and the test reproducing that effect only: the request for "its
+  gain" on every construction withdrawn, §11.3's 0 against −¼ an effect on one contribution, not
+  a gain over the cohort. Report-driven effects on freezes, disclosures or load kept apart from
+  direct actions on timing or in other roles (§14.3 aligned); a deviation changing the
+  information available not read as reports on one `F_u`; a strategy left out not shown harmless;
+  the enumeration's limit. §§14.2 and 14.4: the absent baseline — completed reports not enough,
+  `None` without positive weight among the reports the composition admits; no forecast, no
+  numerical 0, no score 0; apart from a terminal `I` and from `c = 0`; D1 needing `p_uj` and, on
+  `{Y_j ≠ I}`, `b_uj` defined; the operational policy open, no cohort redefined afterwards. Read
+  in `20`'s `study.rs`, unexercised by its fixtures: a verdict without a baseline reads as 0 in
+  its cohort's value — recorded, not corrected. §14.7 records Astra's judgment on the IPW
+  criterion.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -706,7 +741,8 @@ they win.
   specified (`20`, approved on `c76c035`; its implementation approved on `3559396` within the
   check's perimeter); T58 stays open
   for a procedure that must proceed despite missing reports. The contract of A1's candidate
-  guarantee is proposed in `17` §14, awaiting review.
+  guarantee is in `17` §14: its mathematical core approved on `11deec2` as a conditional result,
+  the section partly reviewed there and rectified, awaiting review; no adoption of A or C.
 - **`08` PRIV-004.1 (separate from A1): remediation open.** The general claim that an inclusion
   proof lets its holder infer no other input is refuted under the stated enumerable-field
   assumptions; the confidentiality goal and a construction meeting it stay to be stated; no
@@ -744,8 +780,11 @@ on `cbcbc67`, rectified and approved on `5af22b9` as a preparatory synthesis. Th
 technical check is specified in `20`, approved by Astra on `c76c035` with four precisions, and
 implemented in test code on the owner's assignment (`e5e0898`), partly reviewed there,
 rectified and approved on `3559396` within its perimeter. S2 is not declared ready; no further
-run, recruitment, data collection or start is authorized. The next step is Astra's review of
-§5.1's rectifications and of A1's candidate contract (`17` §14).
+run, recruitment, data collection or start is authorized. §5.1's rectifications are approved on
+`11deec2`. The next step is Astra's review of the rectifications of A1's candidate contract
+(`17` §14). The next technical result to seek is §14.6's adaptive verification on the
+computation path, reusing as much of `20`'s synthetic check as it can; this intervention does
+not start it.
 No roadmap or campaign is added, and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -769,15 +808,15 @@ missing (population and contrasts to protect, item formats and the anchors' subs
 reference, tolerable errors and inconclusiveness, latency and resources) are not put to the owner
 before a sufficient comparison of the designs.
 
-### 5.1 Phase 1 closure check (partly reviewed on `bef891b`; rectified, awaiting review)
+### 5.1 Phase 1 closure check (partly reviewed on `bef891b`; rectifications approved on `11deec2`)
 
 Claude Code's proposal, committed in `bef891b`. **Astra's review of `bef891b`: partial** (the
 commit, its parent and the published branch checked; the diff read and compared with the criteria of
 `15`, `10` and `08` §16.1; no Rust, fit or campaign run). Approved: the record of `3559396`'s
 approval; `20` §9's two precisions. Not approved as a whole: this synthesis. Rectified in place
-below by this intervention, awaiting review: the A1, B1–B3 and A4–A5 rows; T82 and S1; the later
-tasks' dependencies; T26 and SC-8; the next block. Neither the rectified text nor A1's candidate
-contract (`17` §14) is covered by that review.
+below in `11deec2`: the A1, B1–B3 and A4–A5 rows; T82 and S1; the later tasks' dependencies; T26
+and SC-8; the next block. **Astra approved these rectifications on `11deec2`** (§1); that review
+did not approve A1's candidate contract (`17` §14) as a whole.
 
 **Astra's precisions on the meaning of closure.** A narrowed guarantee is not a realized one.
 `10` §1.5 allows a completion claim on an explicitly narrowed domain, not the automatic closure of
@@ -834,8 +873,9 @@ dependencies above are assessed.
 
 **Next block (Astra's choice): A1.** B-b the reference score, A the analytic reference, C kept in
 the comparison; no adoption of A or C in production; no expenditure or sample size. The contract
-of the candidate guarantee is proposed in `17` §14, awaiting review: it closes nothing, and its
-narrowings of the declared promise (`17` §14.7) are a proposal, not a decision.
+of the candidate guarantee is in `17` §14, its mathematical core approved on `11deec2` as a
+conditional result, its rectifications awaiting review: it closes nothing, and its narrowings of
+the declared promise (`17` §14.7) are a proposal, not a decision.
 
 ## 6. Essential reading to resume
 
@@ -1321,4 +1361,20 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   new lines, table columns, relative links and references, the states across `15`, `17`, `20`
   and this note. No Rust test, fit, search, bootstrap, smoke, characterization, calibration,
   benchmark, mutation or Phase 2 work; no code change.
+- **Astra, review of `11deec2`** (as it records): the commit, its parent and the published branch
+  checked; the diff, the contracts and the relevant code read; small examples checked with
+  rational arithmetic. No Rust, fit or campaign run; the local checks and the working tree are
+  Claude Code's evidence.
+- **Claude Code, record of that review and the rectifications of `17` §14:** branch
+  `docs/phase1-review-alignment`, HEAD `11deec2` (parent `bef891b`), the remote-tracking branch
+  at the same commit, and a working tree with only the owner's `.gitignore` modified checked
+  first; `.gitignore` and the ignored directories, `.gpt/` included, left untouched and out of
+  the commit. Read (L): `15`'s A1 row and working agreement; `16` §§4.1–4.6; `17` §§7.3, 7.5,
+  8, 9.2, 9.4, 11.3, 12.3–12.4 and 14; `20`'s status and §§2, 5; `panel_scores.rs`
+  (`weighted_mean`, `first_panel_baselines`, `extra_round_baseline`, `item_scores`); the check's
+  `study.rs` (`case_of`, `contribution`, `cohort`, the baselines' composition). No calculation
+  was needed for a new claim. Documentation checks only: `git diff --check`,
+  `scripts/comment_budget.py`, the widths of the new lines, table columns, relative links and
+  references, the states across `15`, `17` and this note. No Rust test, fit, search, bootstrap,
+  smoke, characterization, calibration, benchmark, mutation or Phase 2 work; no code change.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
