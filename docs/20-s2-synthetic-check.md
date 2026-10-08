@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`), partly reviewed on `e5e0898`, and its rectifications were approved by Astra on `3559396`, within the check's perimeter** (§9), its two precisions approved on `bef891b`: no general validation of arbitrary flows, no H-c, properness, reputational incentive, confidentiality, true DTF or neutrality shown. The owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. **§10's correction of the absent baseline and §11's adaptive verification of `17` §14.6, in test code on the owner's assignment, await Astra's review**: its review of `d2be7da` confirmed that defect by reading and approved neither. |
-| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified in `3559396` and approved there; §§10–11 written on `d2be7da`; code named by symbol. |
+| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`), partly reviewed on `e5e0898`, and its rectifications were approved by Astra on `3559396`, within the check's perimeter** (§9), its two precisions approved on `bef891b`: no general validation of arbitrary flows, no H-c, properness, reputational incentive, confidentiality, true DTF or neutrality shown. The owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. **§10's correction of the absent baseline and §11's adaptive verification of `17` §14.6, in test code on the owner's assignment, were approved by Astra on `d7a4449`**, within their perimeter: a verification of the computation and of finite constructions, no H-c in the protocol, availability, confidentiality, reputational incentive or neutrality shown. |
+| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified in `3559396` and approved there; §§10–11 written on `d2be7da` and approved on `d7a4449`; code named by symbol. |
 | **Scope** | `19` §10.6's next deliverable: what a technical check on synthetic events would execute, what its fixtures supply, what it must report and when it fails. References, within their recorded limits: design A, B-b and the reporting of cases 5–7 with 6c and 7a (`17` §§8–9), α (`17` §10), T1 the analytic reference and T2 the comparison (`17` §§11–13); B-b's study scores outside the reputation and the gate's decisions recorded with no effect on operational pools (Astra, decided on `cbcbc67`, confirmed on `5af22b9`). |
 | **Evidence** | Specification (Claude Code, before `c76c035`): **L** targeted reads of the code named; **C** every expected value recalculated with exact fractions in a scratch script, not kept. Implementation and rectifications (Claude Code): **E** the check's targeted tests, §9. §§10–11 (Claude Code): **C** the expected values with fractions, before the tests; **E** the regressions before the correction and the tests after it, §11.3. Astra's reviews: below. |
 
@@ -75,7 +75,24 @@ check's approval stays valid within its perimeter and covers neither this behavi
 extension. Requiring a defined baseline makes a precondition of the formula explicit, not a new
 design of the score, and authorizes no exclusion, fallback or change of the denominator. The rest
 of that review concerns `17` §14 (`15`, A1). The correction and the adaptive verification it
-pointed to are §§10–11, awaiting review.
+pointed to are §§10–11, approved on `d7a4449` (below).
+
+Review of `d7a4449` (the commit, its parent and the published branch checked; the diff, the
+regressions, the code and the documentary joins read; independent enumerations in Python summing
+the contributions directly with exact fractions, which confirmed the truthful values, the
+strategy counts, the minimum and maximum losses, the constant strategies and P1's substitution of
+the target; no Rust run; the 39 passing tests, Clippy, the regressions failing first, the probes
+and the local checks stay Claude Code's evidence): **approved**, within §§10–11's perimeter — the
+correction of the aggregation for an absent baseline; assignments, the denominator, the counts and
+the defined contributions kept; no final value and no interval when a needed contribution is
+undefined; `g(I) = 0` kept; the adaptive verification on the two finite constructions; the five
+contrary channels reproduced within their limits. Accepted, the representation: where cases 6–7
+and undefined contributions coexist the value stays `Unresolved`; `Cohort::undefined` keeps the
+members whose term is undefined; this precedence is no reputational policy. Scope: a verification
+of the computation and of the finite constructions, no proof of H-c in the protocol, availability,
+confidentiality, reputational incentives or neutrality. The approval is of `d7a4449`, not of a
+later commit. R1 and the check's earlier approvals stay within their perimeters; A1, A2, B1–B3
+and Phase 1 stay open; S2 not started.
 
 ## 1. What the check is
 
@@ -426,12 +443,12 @@ characterization, calibration, benchmark, mutation or Phase 2 work. Passing show
 no more: no properness, H-c, reputational incentive, confidentiality, anonymity, true DTF or
 neutrality, and S2 is not started.
 
-## 10. The absent baseline: regression and correction (awaiting review)
+## 10. The absent baseline: regression and correction (approved on `d7a4449`)
 
-On the owner's assignment after Astra's review of `d2be7da`, in test code only; **awaiting
-Astra's review**. The approval on `3559396` stays valid within the check's perimeter; it does not
-cover this behaviour, which §§4–5's fixtures never reach (K3 leaves every scored verdict another
-first panelist of positive weight).
+On the owner's assignment after Astra's review of `d2be7da`, in test code only; **approved by
+Astra on `d7a4449`** (design review). The approval on `3559396` stays valid within the check's
+perimeter; it does not cover this behaviour, which §§4–5's fixtures never reach (K3 leaves every
+scored verdict another first panelist of positive weight).
 
 **The defect** (L, recorded in `17` §14.4 on `d2be7da`; confirmed by Astra by reading the code;
 E, reproduced below). `study::contribution` returned `None` for a verdict whose baseline
@@ -462,12 +479,12 @@ definitions (a verdict without a baseline is an observed, conclusive outcome), t
 No imputation, fallback, penalty, removal or reputational rule. §§4–7's expected values are all
 unchanged.
 
-## 11. A1's adaptive verification (`17` §14.6, awaiting review)
+## 11. A1's adaptive verification (`17` §14.6, approved on `d7a4449`)
 
 On the owner's assignment, in test code only (`crates/protocol/tests/s2/adaptive.rs`, tests in
-`s2_synthetic_check.rs`); described here before its execution; **awaiting Astra's review**.
-Abstract constructions, not models of the protocol; no fit, no behavioural model, no attack on the
-protocol, no frequency.
+`s2_synthetic_check.rs`); described here before its execution; **approved by Astra on
+`d7a4449`** (design review). Abstract constructions, not models of the protocol; no fit, no
+behavioural model, no attack on the protocol, no frequency.
 
 **The path.** Per state: `u`'s forecast and each other first panelist's report with its frozen
 weight → `first_panel_baselines` → `study::member`, through `difference_score` → `study::cohort`,
