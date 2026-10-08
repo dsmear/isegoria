@@ -528,10 +528,10 @@ they win.
   `stage1_screen`'s gated entry; `17` §13.2's absent-precondition row stands on its own (an
   absence of acceptance in the declared prefix, no proof that the commitment or reference does
   not exist elsewhere), the classification unchanged.
-- **S2's synthetic-event technical check: `20`** (documentation only, not pushed by the session;
-  **a new proposal awaiting review**, not covered by the approval above; nothing implemented or
-  run). The boundary of a future execution per component — what real code would run (feeds,
-  cuts, `Ledger::apply`, the lifecycle, deposits with test credentials, `bridging_gate`, the
+- **S2's synthetic-event technical check: `20`** (written on `5af22b9`, committed in `c76c035`;
+  **approved by Astra on `c76c035` as the check's specification**, below; not covered by the
+  approval above). The boundary of a future execution per component — what real code would run
+  (feeds, cuts, `Ledger::apply`, the lifecycle, deposits with test credentials, `bridging_gate`, the
   first gates of `pilot::screen` and `latent_batch`, `panel_scores`), what the fixtures supply,
   the check code missing and the APIs left out (fitters, `supplementary_review`, pilot steps,
   `SkillTrack`, results events, inclusion proofs). Eight conventions, synthetic and limited to the
@@ -543,6 +543,32 @@ they win.
   `K_w` −17/98 once consolidated; `K_u` without a value); order fixtures O1–O7 for `17` §13.2's
   outcomes at (R) and (E), on one feed and across feeds; the snapshot's content and the declared
   costs. Five conventions flagged as open for a field study, none blocking the check.
+- **Astra's review of `c76c035`** (the commit, its parent and the published branch checked; the
+  specification, its documentary joins and the relevant code read; baselines, contributions,
+  cohorts, counts and declared costs recalculated independently with exact fractions; the order
+  fixtures checked by reasoning, not run; no Rust, fit or synthetic check run by Astra; the
+  working tree and the local checks stay Claude Code's evidence): `20` **approved as the
+  specification of the synthetic technical check, with four precisions; no blocking error in the
+  expected results verified**. The precisions: (A) K2's cohorts finite sets of assignments, fixed
+  apart from the outcomes and complete for the check, no later assignment enlarging them, with no
+  new epoch-closing rule; (B) the fixture's data, held records included, the log prefix's data and
+  the results derived from each kept apart — the fixture's knowledge raising no `O` or `V`, giving
+  no contribution and consolidating no cohort, the approved totals kept with their provenance;
+  (C) T1's start a synthetic event explicitly supplied, its order checked, no real execution nor
+  H-c inferred from a record's position; (D) K4 keeping both of G6's items, j12's second reading
+  supplied and checked unused. The review approves no implementation, none existing then.
+- **The precisions and the implementation** (on the owner's assignment, which authorized the
+  circumscribed implementation, its targeted tests and the commit; not on that review; **awaiting
+  Astra's review**, no approval recorded). The precisions made in place in `20` (§§2–5, 7: the
+  three sources, K2's sets in `S0`, K6–K7's start records, G6's second reading, the costs split
+  between log and held). The check in test code only: `crates/protocol/tests/s2_synthetic_check.rs`
+  (23 tests: F1–F9, O1–O7, K5, the 102 assignments by case, the common expectations, T1's
+  starts, the costs) and `crates/protocol/tests/s2/` (fixture builder, study records and reader,
+  log view, derivations, order classifier). The real APIs of `20` §2's "Executed" column run;
+  fixtures supply the rest; nothing of the "Excluded" column is called. No production code, API,
+  event variant, dependency, threshold or golden output changes. Choices within the specification
+  and one limit (the member's signature inside a `CutSignature` not re-checked, `signed_by` being
+  crate-private) are recorded in `20` §9.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -596,7 +622,8 @@ they win.
   §12 (access and disclosure per object) approved on `7d8db08` as a conditional analysis; `17`
   §13 (observable evidence under T1) approved on `176dd8c` as a conditional analysis; `19` §10.6
   (S2's minimal perimeter) approved on `5af22b9` as a preparatory synthesis; `20` (its
-  synthetic-event check) a proposal awaiting review. No calibration is chosen, S2 is not
+  synthetic-event check) approved on `c76c035` as the check's specification, its implementation
+  in test code awaiting review. No calibration is chosen, S2 is not
   claimed to settle A2, and these approvals do not close A2.
 - **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
   known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
@@ -618,8 +645,8 @@ they win.
   conditional analysis); S2's minimal perimeter is approved as a preparatory synthesis (`19`
   §10.6, `5af22b9`; for its specification only: study scores outside the reputation, gate
   decisions recorded with no pool effect, α the semantic reference) and its synthetic-event check
-  proposed (`20`, awaiting review); T58 stays open for a procedure that must proceed despite
-  missing reports.
+  specified (`20`, approved on `c76c035`; its implementation awaiting review); T58 stays open
+  for a procedure that must proceed despite missing reports.
 - **`08` PRIV-004.1 (separate from A1): remediation open.** The general claim that an inclusion
   proof lets its holder infer no other input is refuted under the stated enumerable-field
   assumptions; the confidentiality goal and a construction meeting it stay to be stated; no
@@ -654,9 +681,10 @@ comparison by Astra's direction; `17` §13, approved on `176dd8c` as a condition
 specifies the evidence a study under T1 would record for §12.4's (ii) and (iv) pair by pair, its
 minimal result a replay check. `19` §10.6, S2's minimal perimeter, was partly approved by Astra
 on `cbcbc67`, rectified and approved on `5af22b9` as a preparatory synthesis. The synthetic-event
-technical check is specified in `20`, a proposal; the next step is Astra's review of `20`. S2 is
-not declared ready; no implementation, run, recruitment, data collection or start is
-authorized.
+technical check is specified in `20`, approved by Astra on `c76c035` with four precisions, and
+implemented in test code on the owner's assignment; the next step is Astra's review of that
+implementation (`20` §9). S2 is not declared ready; no further run, recruitment, data collection
+or start is authorized.
 No roadmap or campaign is added, and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -684,10 +712,11 @@ before a sufficient comparison of the designs.
 
 `CLAUDE.md` and `docs/CLAUDE.md`; `docs/15` (rows A1, A2, B1–B3, D2–D4 and the correction
 records); `docs/16` (A1's theorem, conditions C1–C6, beacon model) and `docs/17` (A1's batches and
-missing outcomes); `docs/18` (A3); `docs/19` (A2); `docs/20` (S2's synthetic check, proposed);
-`docs/02` §B.3, §B.7; `docs/01` D33–D38, D43;
+missing outcomes); `docs/18` (A3); `docs/19` (A2); `docs/20` (S2's synthetic check: specification
+approved, implementation awaiting review); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43;
 code: `crates/scoring/src/{latent.rs,dtf.rs}`,
-`crates/protocol/src/{contested.rs,lifecycle.rs,orchestrator.rs,exploration.rs}`.
+`crates/protocol/src/{contested.rs,lifecycle.rs,orchestrator.rs,exploration.rs}`,
+`crates/protocol/tests/{s2_synthetic_check.rs,s2/}`.
 
 ## 7. R1 and its approval
 
@@ -1090,4 +1119,26 @@ code: `crates/scoring/src/{latent.rs,dtf.rs}`,
   references and relative links of the edited docs, the states across `15`, `17`, `19`, `20`,
   `docs/README.md` and this note. No Rust test, fit, smoke, characterization, calibration,
   benchmark, mutation, Merkle reproduction or Phase 2 work run; the check neither written nor run.
+- **Astra, review of `c76c035`** (as it records): the commit, its parent and the published branch
+  checked; the specification, its documentary joins and the relevant code read; baselines,
+  contributions, cohorts, counts and declared costs recalculated independently with exact
+  fractions; the order fixtures checked by reasoning, not run. No Rust, fit or synthetic check
+  run; the working tree and the local checks are Claude Code's evidence.
+- **Claude Code, the precisions and the implementation of `20`:** branch
+  `docs/phase1-review-alignment`, HEAD `c76c035` (parent `5af22b9`), the remote-tracking branch at
+  the same commit, and a working tree with only the owner's `.gitignore` modified checked first;
+  `.gitignore` and the ignored directories, `.gpt/` included, left untouched and out of the
+  commit. Read (L): `docs/20`, `16` §§4.6–5, `17` §§8–9 and 13; `network::{cut, replica, log,
+  consortium, codec}`, `protocol::{ledger, events, node, lifecycle, review, gate, pilot,
+  admission, panel_scores}`, `scoring::reputation::difference_score`, the test support of
+  `crates/protocol/tests/ledger.rs`. Executed (E), 2026-10-08: `cargo test -p protocol --test
+  s2_synthetic_check`, 23 passed, 0 failed, the test binary in 0.91 s (a time of these tests
+  only); `cargo clippy -p protocol --test s2_synthetic_check -- -D warnings`, no warning;
+  `rustfmt --edition 2021 --check` on the test file and its modules; `scripts/comment_budget.py`;
+  `git diff --check` on the staged change; two temporary probes, reverted (r4's weight set to 1
+  fails F8; G6's stage-1 attempt logged in cut 2 fails F5 and the costs). Documentation checks:
+  references and relative links of the edited docs, the states across `15`, `17`, `19`, `20`,
+  `docs/README.md` and this note. Not run: the workspace suite or other targets, any fit, smoke,
+  characterization, calibration, benchmark, mutation or Phase 2 work. The fixtures' costs are
+  declared counts, not measured times or resources.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
