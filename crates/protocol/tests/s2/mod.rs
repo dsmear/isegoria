@@ -1,6 +1,7 @@
 //! S2's synthetic-event technical check (`docs/20`): its fixtures, study records, log view,
-//! derivations and order evidence, kept in test code.
+//! derivations, order evidence and A1's adaptive verification, kept in test code.
 
+pub mod adaptive;
 pub mod fixture;
 pub mod order;
 pub mod records;

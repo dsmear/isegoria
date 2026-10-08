@@ -362,8 +362,22 @@ fn respondent(i: usize) -> Nym {
     Nym(b)
 }
 
+/// K3's frozen weights.
+pub fn k3(b: u8) -> u64 {
+    match b {
+        4 => 2,
+        9 => 0,
+        _ => 1,
+    }
+}
+
 impl Main {
     pub fn build() -> Main {
+        Main::build_with(k3)
+    }
+
+    /// The main scenario with `S0` declaring `weight`'s frozen weights in place of K3's.
+    pub fn build_with(weight: fn(u8) -> u64) -> Main {
         let issuer = issuer();
         let specs = specs();
         let items: Vec<Cid> = (1..=14)
@@ -397,11 +411,6 @@ impl Main {
                 production: *production,
             })
             .collect();
-        let weight = |b: u8| match b {
-            4 => 2,
-            9 => 0,
-            _ => 1,
-        };
         let cohort = |js: &[usize]| js.iter().map(|j| items[*j]).collect();
         let setup = Setup {
             omega: OMEGA,

@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`), partly reviewed on `e5e0898`, and its rectifications were approved by Astra on `3559396`, within the check's perimeter** (§9), its two precisions approved on `bef891b`: no general validation of arbitrary flows, no H-c, properness, reputational incentive, confidentiality, true DTF or neutrality shown. The owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. |
-| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified in `3559396` and approved there; code named by symbol. |
+| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`), partly reviewed on `e5e0898`, and its rectifications were approved by Astra on `3559396`, within the check's perimeter** (§9), its two precisions approved on `bef891b`: no general validation of arbitrary flows, no H-c, properness, reputational incentive, confidentiality, true DTF or neutrality shown. The owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. **§10's correction of the absent baseline and §11's adaptive verification of `17` §14.6, in test code on the owner's assignment, await Astra's review**: its review of `d2be7da` confirmed that defect by reading and approved neither. |
+| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified in `3559396` and approved there; §§10–11 written on `d2be7da`; code named by symbol. |
 | **Scope** | `19` §10.6's next deliverable: what a technical check on synthetic events would execute, what its fixtures supply, what it must report and when it fails. References, within their recorded limits: design A, B-b and the reporting of cases 5–7 with 6c and 7a (`17` §§8–9), α (`17` §10), T1 the analytic reference and T2 the comparison (`17` §§11–13); B-b's study scores outside the reputation and the gate's decisions recorded with no effect on operational pools (Astra, decided on `cbcbc67`, confirmed on `5af22b9`). |
-| **Evidence** | Specification (Claude Code, before `c76c035`): **L** targeted reads of the code named; **C** every expected value recalculated with exact fractions in a scratch script, not kept. Implementation and rectifications (Claude Code): **E** the check's targeted tests, §9. Astra's reviews: below. |
+| **Evidence** | Specification (Claude Code, before `c76c035`): **L** targeted reads of the code named; **C** every expected value recalculated with exact fractions in a scratch script, not kept. Implementation and rectifications (Claude Code): **E** the check's targeted tests, §9. §§10–11 (Claude Code): **C** the expected values with fractions, before the tests; **E** the regressions before the correction and the tests after it, §11.3. Astra's reviews: below. |
 
 ## Design review (Astra)
 
@@ -64,6 +64,18 @@ Review of `bef891b` (the commit, its parent and the published branch checked; th
 Rust, fit or campaign run): the record of the approval of `3559396` and §9's two precisions
 **approved**. The rest of that review concerns the handoff's closure synthesis (`15`, A1). R1
 stays approved; A1, A2, B1–B3 and Phase 1 stay open.
+
+Review of `d2be7da` (the commit, its parent and the published branch checked; the diffs of
+three documents, the constructions they cite and the relevant code read; no Rust, fit or campaign
+run; the local checks and the working tree stay Claude Code's evidence), as far as this document
+goes: confirmed by reading the code, a defect of the check's aggregation — `contribution` gives
+`None` for a verdict without a baseline, and `cohort` sums through `filter_map` without making
+that case blocking, so it can give `Final(0)`. The approved fixtures do not exercise it; the
+check's approval stays valid within its perimeter and covers neither this behaviour nor an
+extension. Requiring a defined baseline makes a precondition of the formula explicit, not a new
+design of the score, and authorizes no exclusion, fallback or change of the denominator. The rest
+of that review concerns `17` §14 (`15`, A1). The correction and the adaptive verification it
+pointed to are §§10–11, awaiting review.
 
 ## 1. What the check is
 
@@ -413,3 +425,166 @@ Not run: the workspace suite or other targets, any fit, latent search, bootstrap
 characterization, calibration, benchmark, mutation or Phase 2 work. Passing shows what §1 says,
 no more: no properness, H-c, reputational incentive, confidentiality, anonymity, true DTF or
 neutrality, and S2 is not started.
+
+## 10. The absent baseline: regression and correction (awaiting review)
+
+On the owner's assignment after Astra's review of `d2be7da`, in test code only; **awaiting
+Astra's review**. The approval on `3559396` stays valid within the check's perimeter; it does not
+cover this behaviour, which §§4–5's fixtures never reach (K3 leaves every scored verdict another
+first panelist of positive weight).
+
+**The defect** (L, recorded in `17` §14.4 on `d2be7da`; confirmed by Astra by reading the code;
+E, reproduced below). `study::contribution` returned `None` for a verdict whose baseline
+`first_panel_baselines` left `None`, and `study::cohort` summed the members' terms through
+`filter_map` without treating that `None` as blocking: a cohort otherwise in cases 3–5 got a
+final value, one with members in case 2 got D3's bound, the undefined term read as 0.
+
+**The regression**, written before the correction and run on `d2be7da`'s check code: the main
+scenario with `S0` weighing `w` 1 and every other nym 0 (`Main::build_with`; nothing else
+changes). (w, j1), (v, j2) and (w, j5) get no baseline; (u, j1) and (v, j1) get ½, (u, j5) ¼,
+`w`'s reports. Expected values worked by hand, checked with fractions.
+
+| Cohort | Members | `N`, `O`, `V` | Known sum | Before | After |
+|---|---|---|---|---|---|
+| `K_w`, after cut 5 | j1 `R`, j5 `A`, both without a baseline | 2, 2, 2 | 0 | `Final(0)` | `Undefined(NoBaseline)`; j1, j5 listed |
+| `K_v`, at `Ω` and after | j1 `R`: 3/16; j2 `A` without a baseline; j3 `I`: 0 | 3, 3, 2 | 3/16 | `Final(1/16)`, j2 dropped from the sum | `Undefined(NoBaseline)`; j2 listed |
+| `K_w`, at `Ω` | j1 `R` without a baseline; j5 pending | 2, 1, 1 | 0 | `Bound`, sum in [−1, 1]: j1 absorbed into j5's interval | `Undefined(NoBaseline)`; j1 listed |
+| `K_u`, at `Ω`; after cut 5 | j1 `R`: −5/16; j3 `I`: 0; j5 pending, then `A`: ½; j11 case 6 | 4, 2, 1; 4, 3, 2 | −5/16; 3/16 | `Unresolved(6)` | unchanged |
+
+**The correction.** `contribution` keeps `g(I) = 0` without a baseline and no term for cases 2,
+6 and 7, and names a verdict without a baseline `Undefined::NoBaseline`; `study::member` builds a
+member's term (§11 calls it too) and records that cause in `Member::undefined`. `study::cohort`
+keeps `Unresolved` for a member in case 6 or 7 (6c, 7a); otherwise a member with an undefined term
+gives `Value::Undefined`, never a final value nor a bound; `Cohort::undefined` lists those members
+whatever else blocks the value; `known` stays the sum of the defined terms. Unchanged:
+assignments, cohort membership, `|K|` as the denominator, the cases, `N`, `O` and `V` by their
+definitions (a verdict without a baseline is an observed, conclusive outcome), the defined terms.
+No imputation, fallback, penalty, removal or reputational rule. §§4–7's expected values are all
+unchanged.
+
+## 11. A1's adaptive verification (`17` §14.6, awaiting review)
+
+On the owner's assignment, in test code only (`crates/protocol/tests/s2/adaptive.rs`, tests in
+`s2_synthetic_check.rs`); described here before its execution; **awaiting Astra's review**.
+Abstract constructions, not models of the protocol; no fit, no behavioural model, no attack on the
+protocol, no frequency.
+
+**The path.** Per state: `u`'s forecast and each other first panelist's report with its frozen
+weight → `first_panel_baselines` → `study::member`, through `difference_score` → `study::cohort`,
+the prefixed cohort's final value: the functions §5's snapshot uses (§10). A construction's
+expected value is `Σ P(state) × value`, in `f64`.
+
+**Expected values**, derived apart from that path. Per strategy, D1 (`17` §8.1) with exact
+rationals in the test:
+`E[Ŝ_K] = (1/|K|) Σ_cells P(cell) Σ_j (t_j − c_j[(p − q_c)² + q_c(1 − q_c)])`, the term 0 where
+`c_j = 0`, with `c`, `q_c` and `t = E[1{Y ≠ I}(b − o)² | cell]` read from the
+construction's states, `b` the weighted mean of the other first panelists' reports (`16` §4.6). The
+headline values below were enumerated beforehand with fractions in a scratch script. Tolerance
+`1e−12` (K8): the path sums at most 36 states' terms in `[−1, 1]`, with probabilities in halves,
+quarters and thirds, so its rounding stays near `1e−15`; the smallest strict loss below, 1/768,
+exceeds the tolerance by nine orders of magnitude, so no comparison is decided by rounding.
+
+### 11.1 Within the theorem's domain: (A)
+
+Each construction: `u`'s prefixed cohort holds all its assignments, `|K| = N_u` fixed; design A
+(`π = 1`, every item piloted); `F_u` one cell per value of `u`'s signals, observed before it
+commits and the same for every strategy compared; the other first panelists' reports formed from
+their own information, never from `u`'s report; frozen weights 1. H-a: the signals precede the
+freeze (declared). H-b: `π = 1`, the observed outcome the construction's `Y` (declared). H-c: the
+states' law, outcomes and other reports included, reads no report of `u`'s, by construction; C5 is
+checked pathwise: each state's baseline is identical for every grid report of `u`. H-d: every
+strategy reports on every assignment, every baseline has positive weight; checked: every state's
+cohort value is `Final`.
+
+**Strategies enumerated**: every map from (cell, item) to the grid — joint over `u`'s
+assignments, adaptive to every signal, the constant maps (fixed forecasts) among them. Truthful:
+`q_c` where `c > 0`, ½ where `c = 0` (`q_c` undefined). *Strict*: differing from the truthful
+strategy at some (cell, item) with `P(cell) > 0` and `c > 0`; *indifferent*: differing only where
+`c = 0`. Checked for every strategy: the path's value equals D1's within the tolerance; none
+exceeds the truthful value; each strict one falls below it, each indifferent one equals it.
+
+**P1 — two groups, a private and a public signal.** 24 states.
+
+| Element | Law |
+|---|---|
+| latent | `Z` Bernoulli(½), a quality shared by j1 ∈ G1 and j2 ∈ G2 |
+| `u`'s signals | private `s`, `P(s = Z \| Z) = ¾`; public `d` Bernoulli(½), independent of `Z`, `s`, `t` |
+| conclusion | G1 always on `d = 0`, with probability ⅔ on `d = 1`; G2 always on `d = 0`, never on `d = 1`; independent of `Z`, `s`, `t` given `d` |
+| verdicts | on conclusion, `A` if `Z = 1`, `R` if `Z = 0`, for both items |
+| first panels | j1: `u`; `r`, ¾ if its private `t` is 1, ¼ if 0, `P(t = Z \| Z) = ¾`, independent of `s` given `Z`; `r′`, ½. j2: `u`; `r″`, ½ |
+| `F_u` | `(s, d)`: four cells of probability ¼ |
+
+| `(s, d)` | j1: `c`, `q_c`, `t` | j2: `c`, `q_c`, `t` |
+|---|---|---|
+| (0, 0) | 1, ¼, 13/64 | 1, ¼, ¼ |
+| (0, 1) | ⅔, ¼, 13/96 | 0, —, 0 |
+| (1, 0) | 1, ¾, 13/64 | 1, ¾, ¼ |
+| (1, 1) | ⅔, ¾, 13/96 | 0, —, 0 |
+
+Grid {¼, ½, ¾}: `3^8` = 6,561 strategies. Expected: truthful `E[Ŝ_K]` = 17/768; 6,552 strict
+strategies below it, by at least 1/192 and at most 1/6; 8 indifferent, equal to it (only j2's
+reports at `d = 1` changed). Named: ½ everywhere, −5/256; j1 reporting `P(A | F_u) = ½` rather
+than `q_c = ¾` in cell (1, 1), 13/768 — a loss `¼ × ⅔ × (¼)² / 2 = 1/192`, `17` §10.2's
+`c(p − q_c)²` over the cohort.
+
+**P2 — one group, three items, another item's gate decision.** 36 states.
+
+| Element | Law |
+|---|---|
+| latent | `Z` Bernoulli(½), G's quality |
+| `u`'s signal | `D`, the gate decision on an item of G that `u` does not review, logged before `u` commits: a pass with probability ¾ if `Z = 1`, ¼ if `Z = 0` |
+| conclusion | one fit: the three items all conclusive with probability ½, all `I` otherwise; independent of `Z` and `D` |
+| verdicts | on conclusion, independent given `Z`: `A` with probability ¾ if `Z = 1`, ¼ if `Z = 0` |
+| first panels | each item: `u`; `r1`, ⅝ on a pass and ⅜ on a rejection; `r2`, ½ |
+| `F_u` | `D`: two cells of probability ½ |
+
+Every item and cell: `c` = ½, `t` = 61/512; `q_c` = ⅝ on a pass, ⅜ on a rejection
+(`P(A | F_u)` = 5/16, 3/16). Grid {⅜, ½, ⅝}: `3^6` = 729 strategies. Expected: truthful
+1/512; 728 strict strategies below it, by at least 1/768 and at most 1/32; none indifferent. ½
+everywhere: −3/512.
+
+### 11.2 The channels outside the hypotheses: (B)
+
+Each test reproduces the effect `17` §14.6 (B) names, under that construction's hypotheses, and
+nothing stronger: one assignment's expected term, through the path above unless stated; no net
+over a cohort.
+
+| Construction (`17`) | Hypothesis violated | Supplied as synthetic input | Computed by the code | Reproduced | Not shown | Under A |
+|---|---|---|---|---|---|---|
+| §7.3, read for B-b (§7.5) | H-c, through load | `u`'s report on `k` decides `k`'s entry, the entry whether `k`'s group is piloted in `j`'s term, and then `j`'s group misses its floor: `Y_j = I`; otherwise `Y_j` has law (3/5, 2/5, 0); `j`'s other first panelist reports the conclusive outcome `j` would have (1 or 0); `u` reports `q_c` = 3/5 on `j` | the baseline, `j`'s term | `j`'s expected term: −6/25 truthful, 0 deviating | `k`'s term and any net over the cohort (§7.3's 19/25 against `δ²` is the ternary score's); a model of the protocol | outside design A: an entry deciding a group's piloting is the entry channel A removes (§8.5); the test concerns that construction alone. Load through the work actually done stays subordinate to H-c, not reproduced |
+| §9.4 | C5: the baseline moves with `u`'s report | the effective baseline `b(p) = min(1, max(0, 2p − ½))`, as a replacement under 7b responding so; the outcome Bernoulli(½), conclusive, independent of `p` | the term, from the supplied `b(p)`; `first_panel_baselines` not called for it | 0 at `p = ½`, 3/16 at `p = ¾` | that a replacement responds so; any effect under `16` §4.6's composition, whose baseline over the same reports does not move with `p` (checked beside) | only through a replacement rule, none decided (T58 open); the contract keeps C5 under any |
+| §11.3, timing | H-c, through the outcome's law | the simplified gate (`p ≤ ½` sends `j` to the band); T1's start after the moved `Φ_G` meeting a sample giving `A` with probability 2/5 instead of 3/5; always conclusive; one other first panelist reporting 3/5 | the baseline, the term | 0 at the truthful 3/5; 1/25 at 2/5, the report's own cost included | effects on other assignments; that `bridging_gate` or a T1 start behaves so | stays under A with T1 unless samples and resources are invariant in time (§11.2), a declared hypothesis |
+| §11.3, disclosure | C5 and H-c | `Y = Z`, Bernoulli(½), on both paths; `p = ½`; the other first panelist reports ½ without the signal, `Z` with it; whether the signal arrives, decided by `u`'s deviation on another assignment, is not modelled | the baseline, the term | 0 without the signal, −¼ with it | a gain over the cohort: the deviation's other changed terms are not counted | stays under A, T1 or T2; §12.4's (ii) excludes the channel to the reports' values where their commitments close before the opening |
+| §12.4, across groups | C5 and H-c | `Y_k` equiprobable; a signal, ± equiprobable, setting `P(Y_k = A)` to `½ ± δ`; the other first panelist's report equal to that posterior, the construction's hypothesis; `p = ½` | the baseline, the term | 0 without the signal; `−δ²` with it: −1/16 at `δ = ¼`, −¼ at `δ = ½` | as above; that reports equal the posterior | stays under A; (i)–(iv) each exclude one channel under their own hypotheses |
+
+### 11.3 Evidence and limits
+
+**Evidence** (E, Claude Code, 2026-10-08; the expected values C, with fractions, beforehand):
+
+- the three regressions of §10, written first and run on `d2be7da`'s check code, only
+  `Main::build_with` added to the fixture, with `cargo test -p protocol --test
+  s2_synthetic_check`: 28 passed, 3 failed, each at its value
+  assertion after its counts, members and known sum had passed — `K_w` after cut 5 read
+  `Final(-0.0)`, `K_v` at `Ω` `Final(0.0625)` (1/16), `K_w` at `Ω` `Bound` with sum
+  [−1, 1] and mean [−½, ½];
+- after the correction, the same command: 32 passed (the 28 original tests with every expected
+  value of §§4–7 unchanged, the three regressions, one test of the named cause); with §11's seven
+  tests, 39 passed, 0 failed (1.04 s, a time of these tests only);
+- two temporary probes, reverted: the path reading `A` as 0 fails every test of §11; D1's loss
+  without its factor `c` fails P1 and P2;
+- `cargo clippy -p protocol --test s2_synthetic_check -- -D warnings`, no warning; `rustfmt
+  --edition 2021 --check crates/protocol/tests/s2_synthetic_check.rs` (its modules included),
+  `python3 scripts/comment_budget.py`, `git diff --check`: clean.
+
+Not run: the workspace suite or other targets, any fit, latent search, bootstrap, smoke,
+characterization, calibration, benchmark, mutation or Phase 2 work.
+
+**Limits.** A finite grid checks only the strategies enumerated, on two abstract constructions;
+the theorem rests on its proof (`16` §4.3, `17` §§7.5 and 8.1), not on these tests. H-a and H-b
+are declared, H-c holds by construction and is shown for no protocol, H-d holds on the
+constructions; nothing here shows availability, confidentiality, anonymity, reputational
+incentives, the gate's or the bridging's behaviour, or neutrality. (B) reproduces one effect per
+construction, a term, never a gain over a cohort, and no frequency; §9.4's dependence is a
+supplied input, not a property of `panel_scores`. The values are `f64` within `1e−12` of exact
+rationals. §10's correction covers the check's aggregation in test code only; the operational
+policy for an absent baseline stays open (`17` §14.4).

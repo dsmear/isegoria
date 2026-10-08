@@ -226,13 +226,39 @@ fn case_of(completed: bool, freeze: Option<u64>, state: ItemState) -> Case {
     }
 }
 
+/// Why a verdict's term is undefined (`17` §14.4), apart from cases 2, 6 and 7.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Undefined {
+    /// `first_panel_baselines` gave `None`: no other first panelist carries a positive weight.
+    NoBaseline,
+}
+
 /// B-b's term under A (`17` §8.1, `π = 1`): `g(I) = 0` needs no report; cases 2, 6, 7 have none.
-fn contribution(case: Case, p: Option<f64>, b: Option<f64>) -> Option<f64> {
-    match case {
-        Case::Positive => Some(difference_score(p?, b?, 1.0)),
-        Case::Negative => Some(difference_score(p?, b?, 0.0)),
-        Case::Inconclusive => Some(0.0),
-        _ => None,
+fn contribution(case: Case, p: Option<f64>, b: Option<f64>) -> Result<Option<f64>, Undefined> {
+    let o = match case {
+        Case::Positive => 1.0,
+        Case::Negative => 0.0,
+        Case::Inconclusive => return Ok(Some(0.0)),
+        _ => return Ok(None),
+    };
+    let p = p.expect("a verdict's case has a completed report");
+    let b = b.ok_or(Undefined::NoBaseline)?;
+    Ok(Some(difference_score(p, b, o)))
+}
+
+/// A declared member's term from its case, report and first-panel baseline, read on a verdict.
+pub fn member(item: usize, case: Case, report: Option<f64>, baseline: Option<f64>) -> Member {
+    let baseline = baseline.filter(|_| matches!(case, Case::Positive | Case::Negative));
+    let (contribution, undefined) = match contribution(case, report, baseline) {
+        Ok(g) => (g, None),
+        Err(why) => (None, Some(why)),
+    };
+    Member {
+        item,
+        case,
+        baseline,
+        contribution,
+        undefined,
     }
 }
 
@@ -252,6 +278,7 @@ pub struct Member {
     pub case: Case,
     pub baseline: Option<f64>,
     pub contribution: Option<f64>,
+    pub undefined: Option<Undefined>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -263,6 +290,8 @@ pub enum Value {
         mean: (f64, f64),
     },
     Unresolved(Case),
+    /// No case 6 or 7, but a member's term undefined: no value and no interval.
+    Undefined(Undefined),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -272,7 +301,10 @@ pub struct Cohort {
     pub n: usize,
     pub o: usize,
     pub v: usize,
+    /// The sum of the defined terms.
     pub known: f64,
+    /// The members whose term is undefined, whatever else blocks the value.
+    pub undefined: Vec<usize>,
     pub value: Value,
 }
 
@@ -634,17 +666,10 @@ impl Snapshot {
                             .iter()
                             .find(|a| a.nym == *n && a.item == j && !a.extra)
                             .expect("a declared member is a first-panel assignment");
-                        let verdict = matches!(a.case, Case::Positive | Case::Negative);
                         let baseline = baselines
                             .get(&j)
-                            .filter(|_| verdict)
                             .and_then(|b| b.iter().find(|(m, _)| m == n).unwrap().1);
-                        Member {
-                            item: j,
-                            case: a.case,
-                            baseline,
-                            contribution: contribution(a.case, a.report, baseline),
-                        }
+                        member(j, a.case, a.report, baseline)
                     })
                     .collect();
                 cohort(*n, members)
@@ -814,9 +839,9 @@ impl Snapshot {
     }
 }
 
-/// K2's cohort (`17` §8.3): a final value once every member is in case 3–5; with only case-2
-/// members pending, D3's bound; otherwise, no value and no interval.
-fn cohort(nym: Nym, members: Vec<Member>) -> Cohort {
+/// K2's cohort (`17` §8.3): a final value once every member is in case 3–5 with its term
+/// defined; with only case-2 members pending, D3's bound; otherwise, no value and no interval.
+pub fn cohort(nym: Nym, members: Vec<Member>) -> Cohort {
     let n = members.len();
     let count = |f: fn(Case) -> bool| members.iter().filter(|m| f(m.case)).count();
     let o = count(|c| matches!(c, Case::Positive | Case::Negative | Case::Inconclusive));
@@ -827,10 +852,17 @@ fn cohort(nym: Nym, members: Vec<Member>) -> Cohort {
         .iter()
         .map(|m| m.case)
         .find(|c| matches!(c, Case::MissingReport | Case::Unfrozen));
-    let value = match blocking {
-        Some(c) => Value::Unresolved(c),
-        None if pending == 0.0 => Value::Final(known / n as f64),
-        None => {
+    let undefined: Vec<usize> = members
+        .iter()
+        .filter(|m| m.undefined.is_some())
+        .map(|m| m.item)
+        .collect();
+    let why = members.iter().find_map(|m| m.undefined);
+    let value = match (blocking, why) {
+        (Some(c), _) => Value::Unresolved(c),
+        (None, Some(why)) => Value::Undefined(why),
+        (None, None) if pending == 0.0 => Value::Final(known / n as f64),
+        (None, None) => {
             let sum = (known - pending, known + pending);
             Value::Bound {
                 sum,
@@ -845,6 +877,7 @@ fn cohort(nym: Nym, members: Vec<Member>) -> Cohort {
         o,
         v,
         known,
+        undefined,
         value,
     }
 }

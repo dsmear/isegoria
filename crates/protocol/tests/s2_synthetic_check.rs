@@ -1,5 +1,6 @@
 //! S2's synthetic-event technical check (`docs/20`): fixtures F1–F9 and O1–O7 through the real
-//! feeds, cuts, ledger, lifecycle, gates and baselines, against `docs/20`'s expected values.
+//! feeds, cuts, ledger, lifecycle, gates and baselines, against `docs/20`'s expected values; the
+//! absent baseline (§10) and A1's adaptive verification (§11) through its scoring path.
 
 mod s2;
 
@@ -11,6 +12,7 @@ use protocol::ledger::{LedgerError, Refusal};
 use protocol::lifecycle::{Event, Invalid, RejectReason, State};
 use protocol::node::Rejection;
 use protocol::pilot::PilotError;
+use s2::adaptive::{self, Construction, Law, ONE, Q, ZERO};
 use s2::fixture::{
     consortium, deposit, disclosure, draft, issuer, key, nym, order, step, Feed, Fixture, Main,
     Then, M0, M1, OMEGA, RELAY, U, V, W,
@@ -21,8 +23,8 @@ use s2::order::{
 use s2::records::{Attempt, Outcome, Reading, Reason, Record, Terminal};
 use s2::replay::LogView;
 use s2::study::{
-    cohorts_complete, t1_start, t2_hold, validate, Case, Cohort, CohortError, ItemState, Pending,
-    SequenceError, Snapshot, Start, StartError, TerminalError, Value,
+    cohorts_complete, member, t1_start, t2_hold, validate, Case, Cohort, CohortError, ItemState,
+    Pending, SequenceError, Snapshot, Start, StartError, TerminalError, Undefined, Value,
 };
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
@@ -35,25 +37,34 @@ struct Run {
     after: Snapshot,
 }
 
-/// The main scenario, built once: the snapshot at `Ω` taken before cut 5 is applied, then
-/// again from the replay through cut 5, and the state after cut 5.
+/// The snapshot at `Ω` taken before cut 5 is applied, then again from the replay through cut
+/// 5, and the state after cut 5.
+fn replayed(main: Main) -> Run {
+    let through_omega = LogView::replay(&main.replica, &main.cuts[..=4], &main.items);
+    let at_omega = Snapshot::of(&main, &through_omega, OMEGA);
+    let view = LogView::replay(&main.replica, &main.cuts, &main.items);
+    let omega_later = Snapshot::of(&main, &view, OMEGA);
+    let after = Snapshot::of(&main, &view, 5);
+    Run {
+        main,
+        view,
+        at_omega,
+        omega_later,
+        after,
+    }
+}
+
+/// The main scenario, built once.
 fn run() -> &'static Run {
     static RUN: OnceLock<Run> = OnceLock::new();
-    RUN.get_or_init(|| {
-        let main = Main::build();
-        let through_omega = LogView::replay(&main.replica, &main.cuts[..=4], &main.items);
-        let at_omega = Snapshot::of(&main, &through_omega, OMEGA);
-        let view = LogView::replay(&main.replica, &main.cuts, &main.items);
-        let omega_later = Snapshot::of(&main, &view, OMEGA);
-        let after = Snapshot::of(&main, &view, 5);
-        Run {
-            main,
-            view,
-            at_omega,
-            omega_later,
-            after,
-        }
-    })
+    RUN.get_or_init(|| replayed(Main::build()))
+}
+
+/// `docs/20` §10's variant: `S0` weighs `w` 1 and every other nym 0, so (w, j1), (v, j2) and
+/// (w, j5) get no baseline.
+fn only_w() -> &'static Run {
+    static RUN: OnceLock<Run> = OnceLock::new();
+    RUN.get_or_init(|| replayed(Main::build_with(|b| u64::from(b == W))))
 }
 
 fn q(num: i64, den: i64) -> f64 {
@@ -1031,5 +1042,251 @@ fn o5_and_o1_with_incomplete_coverage() {
             (r.uncovered, e.uncovered),
             (vec![uncounted.id()], vec![lacking.id()])
         );
+    }
+}
+
+/// The member `(n, j)` of `n`'s cohort: its case, baseline and term.
+fn term(s: &Snapshot, n: u8, j: usize) -> (Case, Option<f64>, Option<f64>) {
+    let m = cohort(s, n).members.iter().find(|m| m.item == j).unwrap();
+    (m.case, m.baseline, m.contribution)
+}
+
+/// `17` §14.4: verdicts without a baseline leave `K_w` with no final value, never `Final(0)`.
+#[test]
+fn a_cohort_of_verdicts_without_baselines_has_no_final_value() {
+    let s = &only_w().after;
+    assert_eq!(term(s, W, 0), (Case::Negative, None, None));
+    assert_eq!(term(s, W, 4), (Case::Positive, None, None));
+    let k_w = cohort(s, W);
+    assert_eq!((k_w.n, k_w.o, k_w.v), (2, 2, 2));
+    assert_eq!(k_w.known, 0.0);
+    assert!(
+        !matches!(k_w.value, Value::Final(_) | Value::Bound { .. }),
+        "{:?}",
+        k_w.value
+    );
+}
+
+/// `17` §14.4: (v, j2)'s undefined term does not vanish from `K_v`'s sum beside defined ones.
+#[test]
+fn an_undefined_term_does_not_vanish_from_a_mixed_cohort() {
+    let r = only_w();
+    for s in [&r.at_omega, &r.after] {
+        let k_u = cohort(s, U);
+        assert_eq!(k_u.value, Value::Unresolved(Case::MissingReport));
+        let (case, b, g) = term(s, U, 0);
+        assert!(case == Case::Negative && b == Some(0.5) && near(g.unwrap(), -5, 16));
+        let (case, b, g) = term(s, V, 0);
+        assert!(case == Case::Negative && b == Some(0.5) && near(g.unwrap(), 3, 16));
+        assert_eq!(term(s, V, 1), (Case::Positive, None, None));
+        assert_eq!(term(s, V, 2), (Case::Inconclusive, None, Some(0.0)));
+    }
+    assert!(near(cohort(&r.at_omega, U).known, -5, 16));
+    assert!(near(cohort(&r.after, U).known, 3, 16));
+    let k_v = cohort(&r.at_omega, V);
+    assert_eq!((k_v.n, k_v.o, k_v.v), (3, 3, 2));
+    assert!(near(k_v.known, 3, 16));
+    assert!(
+        !matches!(k_v.value, Value::Final(_) | Value::Bound { .. }),
+        "{:?}",
+        k_v.value
+    );
+}
+
+/// `17` §14.4: (w, j1)'s undefined term is not absorbed into the bound of the pending (w, j5).
+#[test]
+fn an_undefined_term_is_not_absorbed_into_a_pending_bound() {
+    let s = &only_w().at_omega;
+    assert_eq!(term(s, W, 0), (Case::Negative, None, None));
+    assert_eq!(term(s, W, 4), (Case::Pending, None, None));
+    let k_w = cohort(s, W);
+    assert_eq!((k_w.n, k_w.o, k_w.v), (2, 1, 1));
+    assert_eq!(k_w.known, 0.0);
+    assert!(
+        !matches!(k_w.value, Value::Final(_) | Value::Bound { .. }),
+        "{:?}",
+        k_w.value
+    );
+}
+
+/// `17` §14.4: the undefined term is named apart from cases 2, 6 and 7, and listed beside them.
+#[test]
+fn an_undefined_term_is_named_apart_from_pending_missing_and_unfrozen() {
+    let r = only_w();
+    let no = Value::Undefined(Undefined::NoBaseline);
+    for (s, n, items) in [
+        (&r.at_omega, V, vec![1]),
+        (&r.after, V, vec![1]),
+        (&r.at_omega, W, vec![0]),
+        (&r.after, W, vec![0, 4]),
+    ] {
+        let k = cohort(s, n);
+        assert_eq!((&k.value, &k.undefined), (&no, &items));
+        let named = k.members.iter().filter(|m| m.undefined.is_some());
+        assert!(named.map(|m| m.item).eq(items));
+    }
+    assert!(cohort(&r.after, U).undefined.is_empty());
+    for s in [&run().at_omega, &run().after] {
+        assert!(s.cohorts.iter().all(|c| c.undefined.is_empty()));
+    }
+    let lacking = member(0, Case::Negative, Some(0.75), None);
+    assert_eq!(lacking.undefined, Some(Undefined::NoBaseline));
+    let i = member(2, Case::Inconclusive, Some(0.25), None);
+    assert_eq!((i.contribution, i.undefined), (Some(0.0), None));
+    let missing = member(10, Case::MissingReport, None, None);
+    let both = s2::study::cohort(nym(U), vec![lacking.clone(), missing]);
+    assert_eq!(
+        (both.value, both.undefined),
+        (Value::Unresolved(Case::MissingReport), vec![0])
+    );
+    let pending = member(4, Case::Pending, Some(0.75), Some(0.25));
+    let mixed = s2::study::cohort(nym(U), vec![lacking, pending]);
+    assert_eq!((mixed.value, mixed.undefined), (no, vec![0]));
+}
+
+const TOL: f64 = 1e-12;
+
+fn fr(n: i128, d: i128) -> Q {
+    Q::new(n, d)
+}
+
+/// `docs/20` §11.1's checks on every strategy of `k`: the truthful value, the strict and
+/// indifferent counts, the least and the greatest strict loss.
+fn verified(k: &Construction) -> (Q, [usize; 2], Q, Q) {
+    assert!(k.baselines_invariant(), "C5, pathwise");
+    let laws = k.laws();
+    let truthful = adaptive::truthful(&laws);
+    assert!(laws.iter().filter_map(|l| l.q).all(|q| k.grid.contains(&q)));
+    let best = k.predicted(&laws, &truthful);
+    let top = k.expectation(&truthful);
+    assert!((top - best.f()).abs() <= TOL);
+    let (mut counts, mut losses) = ([0, 0], Vec::new());
+    for s in k.strategies() {
+        let (exact, path) = (k.predicted(&laws, &s), k.expectation(&s));
+        assert!(
+            (path - exact.f()).abs() <= TOL,
+            "{s:?}: {path} against {exact:?}"
+        );
+        assert!(path <= top + TOL, "{s:?} beats the truthful strategy");
+        let mut changed = laws
+            .iter()
+            .zip(s.iter().zip(&truthful))
+            .filter(|(_, (a, b))| a != b);
+        let changed: Vec<&Law> = changed.by_ref().map(|(l, _)| l).collect();
+        if changed.is_empty() {
+            continue;
+        }
+        if changed.iter().any(|l| l.cell > ZERO && l.c > ZERO) {
+            assert!(top - path > TOL && exact < best, "{s:?}");
+            counts[0] += 1;
+            losses.push(best - exact);
+        } else {
+            assert!((path - top).abs() <= TOL && exact == best, "{s:?}");
+            counts[1] += 1;
+        }
+    }
+    let (least, most) = (losses.iter().min(), losses.iter().max());
+    (best, counts, *least.unwrap(), *most.unwrap())
+}
+
+/// `17` §14.6 (A), P1: no joint rule on `(s, d)` beats `q_c`; strict where `c > 0`, equal at 0.
+#[test]
+fn p1_no_adaptive_joint_rule_beats_the_truthful_reports() {
+    let k = adaptive::p1();
+    let law = |c, q: Option<Q>, t| Law {
+        cell: fr(1, 4),
+        c,
+        q,
+        t,
+    };
+    let (low, high) = (Some(fr(1, 4)), Some(fr(3, 4)));
+    let laws = vec![
+        law(ONE, low, fr(13, 64)),
+        law(ONE, low, fr(1, 4)),
+        law(fr(2, 3), low, fr(13, 96)),
+        law(ZERO, None, ZERO),
+        law(ONE, high, fr(13, 64)),
+        law(ONE, high, fr(1, 4)),
+        law(fr(2, 3), high, fr(13, 96)),
+        law(ZERO, None, ZERO),
+    ];
+    assert_eq!(k.laws(), laws);
+    assert_eq!((k.states.len(), k.strategies().count()), (24, 6_561));
+    assert_eq!(
+        verified(&k),
+        (fr(17, 768), [6_552, 8], fr(1, 192), fr(1, 6))
+    );
+    let half = vec![fr(1, 2); 8];
+    let mut unconditional = adaptive::truthful(&laws);
+    unconditional[6] = fr(1, 2);
+    for (s, value) in [(half, fr(-5, 256)), (unconditional, fr(13, 768))] {
+        assert_eq!(k.predicted(&laws, &s), value);
+        assert!((k.expectation(&s) - value.f()).abs() <= TOL);
+    }
+}
+
+/// `17` §14.6 (A), P2: three items of one group, `D` another item's gate decision; strict loss.
+#[test]
+fn p2_no_rule_on_a_gate_decision_beats_the_truthful_reports() {
+    let k = adaptive::p2();
+    let law = |cell, q| Law {
+        cell,
+        c: fr(1, 2),
+        q: Some(q),
+        t: fr(61, 512),
+    };
+    let laws: Vec<Law> = [fr(3, 8), fr(5, 8)]
+        .into_iter()
+        .flat_map(|q| [law(fr(1, 2), q); 3])
+        .collect();
+    assert_eq!(k.laws(), laws);
+    assert_eq!((k.states.len(), k.strategies().count()), (36, 729));
+    assert_eq!(verified(&k), (fr(1, 512), [728, 0], fr(1, 768), fr(1, 32)));
+    let half = vec![fr(1, 2); 6];
+    assert_eq!(k.predicted(&laws, &half), fr(-3, 512));
+    assert!((k.expectation(&half) - fr(-3, 512).f()).abs() <= TOL);
+}
+
+/// `17` §14.6 (B), §7.3 for B-b, outside design A: `j`'s term −6/25, and 0 once `k` enters.
+#[test]
+fn b_an_entry_channel_moves_one_term() {
+    assert!(near(adaptive::expected(&adaptive::load(false)), -6, 25));
+    assert_eq!(adaptive::expected(&adaptive::load(true)), 0.0);
+}
+
+/// `17` §14.6 (B), §9.4: a supplied `b(p)` gives 3/16 at ¾, 0 at ½; `panel_scores`' stays put.
+#[test]
+fn b_a_report_dependent_baseline_moves_one_term() {
+    assert_eq!(adaptive::replacement(0.5), 0.0);
+    assert!(near(adaptive::replacement(0.75), 3, 16));
+    let other = adaptive::Seat {
+        outcome: Outcome::A,
+        others: vec![(fr(1, 2), 1)],
+    };
+    let b = |p| adaptive::baseline(p, &other);
+    assert_eq!((b(0.5), b(0.75)), (Some(0.5), Some(0.5)));
+}
+
+/// `17` §14.6 (B), §11.3's timing: the band moves the outcome's law, 1/25 at 2/5 against 0.
+#[test]
+fn b_a_timing_channel_moves_one_term() {
+    assert_eq!(adaptive::expected(&adaptive::timing(fr(3, 5).f())), 0.0);
+    assert!(near(adaptive::expected(&adaptive::timing(0.4)), 1, 25));
+}
+
+/// `17` §14.6 (B), §11.3's disclosure: a signal reaching the baseline's reports, −¼ against 0.
+#[test]
+fn b_a_disclosure_moves_one_term() {
+    assert_eq!(adaptive::expected(&adaptive::disclosure(false)), 0.0);
+    assert!(near(adaptive::expected(&adaptive::disclosure(true)), -1, 4));
+}
+
+/// `17` §14.6 (B), §12.4: a partly informative signal across groups, `−δ²` against 0.
+#[test]
+fn b_a_signal_across_groups_moves_one_term() {
+    assert_eq!(adaptive::expected(&adaptive::across(None)), 0.0);
+    for (delta, loss) in [(fr(1, 4), 16), (fr(1, 2), 4)] {
+        let e = adaptive::expected(&adaptive::across(Some(delta)));
+        assert!(near(e, -1, loss), "{delta:?}: {e}");
     }
 }

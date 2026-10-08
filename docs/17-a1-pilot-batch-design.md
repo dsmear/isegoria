@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. Astra's review of `cbcbc67` approved those precisions and the further changes to §13.2's classification (§13); the minimal perimeter for a study S2 built on §§9–13, [`19`](19-a2-dtf-composition-design.md) §10.6, was partly approved there, rectified and **approved on `5af22b9` as a preparatory synthesis**; after that review §13.2's absent-precondition row was made self-standing, its classification unchanged. The synthetic-event technical check built on §§8–13 is specified in [`20`](20-s2-synthetic-check.md), **approved by Astra on `c76c035` as the check's specification**, with four precisions made there; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §14 proposes the contract of A1's candidate guarantee, on Astra's direction after the review of `bef891b` (B-b the reference score, A the analytic reference, C the comparison, neither adopted): partly reviewed by Astra on `11deec2`, which approved its mathematical core **as a conditional result** and not §14 as a whole; its adaptive verification criterion and the absent baseline are rectified in place, **awaiting review**. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. Astra's review of `cbcbc67` approved those precisions and the further changes to §13.2's classification (§13); the minimal perimeter for a study S2 built on §§9–13, [`19`](19-a2-dtf-composition-design.md) §10.6, was partly approved there, rectified and **approved on `5af22b9` as a preparatory synthesis**; after that review §13.2's absent-precondition row was made self-standing, its classification unchanged. The synthetic-event technical check built on §§8–13 is specified in [`20`](20-s2-synthetic-check.md), **approved by Astra on `c76c035` as the check's specification**, with four precisions made there; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §14 proposes the contract of A1's candidate guarantee, on Astra's direction after the review of `bef891b` (B-b the reference score, A the analytic reference, C the comparison, neither adopted): partly reviewed by Astra on `11deec2`, which approved its mathematical core **as a conditional result** and not §14 as a whole; its adaptive verification criterion and the absent baseline were rectified in place in `d2be7da`, and §14 **approved by Astra on `d2be7da` as a conditional candidate contract** (no protocol, adoption of A or C, substantive narrowing or closure of A1). The absent baseline's correction in `20`'s check and §14.6's verification on finite constructions, in test code (`20` §§10–11), **await review**. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -1853,7 +1853,7 @@ synthesis, and the synthetic-event check is specified in `20`, approved on `c76c
 implementation approved on `3559396` within the check's perimeter. Nothing here is
 adopted; no protocol is ready and no neutrality is certified.
 
-## 14. A1's candidate guarantee (partly reviewed on `11deec2`; rectified, awaiting review)
+## 14. A1's candidate guarantee (approved on `d2be7da` as a conditional candidate contract)
 
 **Status.** Claude Code's proposal on Astra's direction after the review of `bef891b`: B-b the
 reference score, A the analytic reference, C in the comparison; no arm adopted for production, no
@@ -1869,9 +1869,21 @@ declared hypotheses B-b maximizes the expected contribution at `q_c`, a report `
 rectification of the adaptive verification's criterion; the absent baseline needs a precision,
 not blocking. On the IPW criterion, Astra's judgment is recorded in §14.7. No adoption of A or C,
 no substantive narrowing of the promises and no closure of A1 approved. Rectified after that
-review, in place and awaiting review: §14.6's two aims (§14.3 aligned on report-driven effects);
-the absent baseline (§§14.2, 14.4). The approval belongs to that review, not to these
-rectifications.
+review, in place, in `d2be7da`: §14.6's two aims (§14.3 aligned on report-driven effects); the
+absent baseline (§§14.2, 14.4).
+
+Astra's review of `d2be7da` (the commit, its parent and the published branch checked; the diffs
+of the three documents, the constructions cited and the relevant code read; no Rust, fit or
+campaign run; the local checks and the working tree stay Claude Code's evidence): **approved** —
+the documentary rectifications; §14 **as a conditional candidate contract**; the separation of
+a verification within the hypotheses from the reproduction of the contrary channels (§14.6); the
+precision on the absent baseline. The finding on the adaptive criterion is resolved. Confirmed by
+reading the code: the aggregation defect §14.4 records (below). Requiring a defined baseline makes
+a precondition of D1's formula explicit, not a new design of the score; it authorizes no
+exclusion, fallback or change of the denominator. Not approved: the protocol, an adoption of A or
+C, a substantive narrowing of the promises, A1's closure. The correction of that defect and
+§14.6's verification are in test code (`20` §§10–11), on the owner's assignment, awaiting
+review.
 
 ### 14.1 The property
 
@@ -1951,8 +1963,11 @@ cohort holding a member without them. The operational policy is open: no imputat
 penalty, exclusion from assignments or change of the denominator is decided, and no cohort is
 redefined afterwards by removing the members without a baseline. `20`'s fixtures produce no such
 case (K3 leaves every other first panelist a positive weight); read in its `study.rs`, a verdict
-without a baseline gets no contribution while its cohort still gets a final value or a bound,
-which reads that member as 0 — outside the check's approved perimeter, recorded, not corrected.
+without a baseline got no contribution while its cohort still got a final value or a bound,
+which read that member as 0 — outside the check's approved perimeter. Confirmed by Astra on
+`d2be7da` by reading; regressed and corrected in test code (`20` §10, awaiting review): the
+cohort gets no value and no interval, the cause named apart from cases 2, 6 and 7, the counts and
+the defined terms kept; the operational policy stays open.
 
 ### 14.5 Implementation
 
@@ -1960,7 +1975,8 @@ which reads that member as 0 — outside the check's approved perimeter, recorde
 lifecycle's report and gate steps, the pilots' indeterminate readings; `outcome_of` and
 `record_outcome` give `SkillTrack` a binary outcome, with no `I`. *In tests*: `panel_scores.rs`
 reaches `record_outcome` on one band item. *Synthetic check* (`20`): B-b by case, `N`, `O`, `V`,
-cohorts, freezes and terminals, on supplied records. *Missing*: the group record; A's pilot path;
+cohorts, freezes and terminals, on supplied records; through its scoring path, §14.6 on finite
+constructions (`20` §11). *Missing*: the group record; A's pilot path;
 freeze and start rules; attempt and terminal records with `I`; the scorer reading assignments,
 completed reveals, frozen weights and terminal records and recording `N_u`, `O_u`, `V_u` (§8.6) —
 the path meant to compute the score, whose arithmetic `20`'s `study.rs` composes in tests only;
@@ -1969,8 +1985,9 @@ a production caller of `item_scores`; an epoch driver (`10` T79). Feeding the sc
 
 ### 14.6 Adaptive verification
 
-A future test, through the implemented scorer, with two aims kept apart; neither is implemented
-nor run here.
+A test through the scorer, with two aims kept apart. Implemented in test code through `20`'s
+check's scoring path, on finite constructions, on the owner's assignment and awaiting review
+(`20` §11): (A) on two constructions, P1 and P2; (B) on the five constructions below.
 
 **(A) Within the theorem's domain.** The comparison fixes a prefixed cohort and its denominator
 (§8.3, C4); gives every strategy compared the same declared information `F_u`; admits adaptive
@@ -2017,7 +2034,9 @@ under A, `π = 1` removes the observation draw's problem, which can be a legitim
 A1 through a change of design; a non-trivial IPW need not be kept only to honour the original
 criterion's name. That verifies neither the current exploration at `ε` nor arm C; closing A1
 through A would need an explicit decision on the change, its realization and the pertinent
-checks, none taken. The *adaptive test* is only specified (§14.6).
+checks, none taken. The *adaptive test* is implemented on finite constructions, awaiting review
+(§14.6, `20` §11): within the strategies enumerated none beats the truthful reports, strictly
+where `c > 0`; it checks the computation, not the theorem in general nor H-c in the protocol.
 
 Against the declared guarantee (`01` D35, `02` §C.2, paper `prop:ipw`) the contract narrows the
 promise in four places: the target, `q_c` given conclusion rather than passing Level B; every
