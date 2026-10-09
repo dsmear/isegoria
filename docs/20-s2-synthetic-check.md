@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`), partly reviewed on `e5e0898`, and its rectifications were approved by Astra on `3559396`, within the check's perimeter** (§9), its two precisions approved on `bef891b`: no general validation of arbitrary flows, no H-c, properness, reputational incentive, confidentiality, true DTF or neutrality shown. The owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. **§10's correction of the absent baseline and §11's adaptive verification of `17` §14.6, in test code on the owner's assignment, were approved by Astra on `d7a4449`**, within their perimeter: a verification of the computation and of finite constructions, no H-c in the protocol, availability, confidentiality, reputational incentive or neutrality shown. **§12, the check's scoring path through B-b's scorer `protocol::cohort_scores` ([`17`](17-a1-pilot-batch-design.md) §14.9), on the owner's assignment after Astra's review of `23283f2`, was partly reviewed on `7d1b19e` and `0ca81e9`: the scorer not approved, for numeric defects on its declared domain; the corrections of the first review's cases approved on `0ca81e9`; the correction of `known`'s scale, through which the check now runs, awaits review.** |
-| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified in `3559396` and approved there; §§10–11 written on `d2be7da` and approved on `d7a4449`; §12 written on `23283f2`, partly reviewed on `7d1b19e` and `0ca81e9`, its scorer corrected after each; code named by symbol. |
+| **Status** | **Approved by Astra on `c76c035` as the specification of the synthetic technical check**, with four precisions, made in place (below). **Its implementation in test code (`e5e0898`), partly reviewed on `e5e0898`, and its rectifications were approved by Astra on `3559396`, within the check's perimeter** (§9), its two precisions approved on `bef891b`: no general validation of arbitrary flows, no H-c, properness, reputational incentive, confidentiality, true DTF or neutrality shown. The owner's assignments authorized the implementation, the rectifications and their targeted tests, not those reviews. The approvals of [`19`](19-a2-dtf-composition-design.md) §10.6 and of [`17`](17-a1-pilot-batch-design.md) §§8–13 do not cover it. No data collection, adoption of T1 or T2, or start of S2. **§10's correction of the absent baseline and §11's adaptive verification of `17` §14.6, in test code on the owner's assignment, were approved by Astra on `d7a4449`**, within their perimeter: a verification of the computation and of finite constructions, no H-c in the protocol, availability, confidentiality, reputational incentive or neutrality shown. **§12, the check's scoring path through B-b's scorer `protocol::cohort_scores` ([`17`](17-a1-pilot-batch-design.md) §14.9), on the owner's assignment after Astra's review of `23283f2`, was partly reviewed on `7d1b19e` and `0ca81e9`, the scorer corrected after each; the scorer and the check's passage through it were approved by Astra on `6b9f42a`.** The contract of the scorer's future caller is a proposal awaiting review (`17` §14.10). |
+| **Baseline** | specification written on `5af22b9` and approved on `c76c035`; implementation in `e5e0898`, rectified in `3559396` and approved there; §§10–11 written on `d2be7da` and approved on `d7a4449`; §12 written on `23283f2`, partly reviewed on `7d1b19e` and `0ca81e9`, its scorer corrected after each, approved on `6b9f42a`; code named by symbol. |
 | **Scope** | `19` §10.6's next deliverable: what a technical check on synthetic events would execute, what its fixtures supply, what it must report and when it fails. References, within their recorded limits: design A, B-b and the reporting of cases 5–7 with 6c and 7a (`17` §§8–9), α (`17` §10), T1 the analytic reference and T2 the comparison (`17` §§11–13); B-b's study scores outside the reputation and the gate's decisions recorded with no effect on operational pools (Astra, decided on `cbcbc67`, confirmed on `5af22b9`). |
 | **Evidence** | Specification (Claude Code, before `c76c035`): **L** targeted reads of the code named; **C** every expected value recalculated with exact fractions in a scratch script, not kept. Implementation and rectifications (Claude Code): **E** the check's targeted tests, §9. §§10–11 (Claude Code): **C** the expected values with fractions, before the tests; **E** the regressions before the correction and the tests after it, §11.3. §12 (Claude Code): **C** the new expected values with fractions, before the tests; **E** §12's runs; for the numeric correction, **E** the regressions before and after it and the bit-for-bit comparison of the outputs, **D** the finiteness of the means (`17` §14.9); for the correction of `known`'s scale, **E** the regression before and after it and the comparison of the outputs, **D** the bounds and the narrowed identity, **C** their scratch check (`17` §14.9). Astra's reviews: below. |
 
@@ -117,8 +117,19 @@ the regressions, the 19, 9 and 39 tests, the comparison of 988 364 calls, Clippy
 checks stay Claude Code's evidence), as far as this document goes: **partial**. The record of the
 review of `7d1b19e` and the corrections of that review's cases A–E approved (`17` §14). The scorer
 through which §12 runs not approved as a whole: its scale common to the defined terms and the
-pending radii could cancel a term from `known`. Its correction (§12) awaits review; the approval
-covers neither it nor every numeric claim of `17` §14.9.
+pending radii could cancel a term from `known`. Its correction (§12) was reviewed on `6b9f42a`; the
+approval covers neither it nor every numeric claim of `17` §14.9.
+
+Review of `6b9f42a` (the diff, the code, the regression and the documents read; the numeric cases
+transcribed in Python and 1 200 sums checked against exact rationals, 210 of them where the
+narrowed identity applied; no Rust run; those checks do not replace the general derivation; the
+20, 9 and 39 tests, Clippy and the comparative traces stay Claude Code's evidence), as far as this
+document goes: **approved, with no further blocking finding** — the correction of `known`'s scale,
+the record of the review of `0ca81e9`, the scorer as an isolated component within `17` §14.9's
+contract and numeric limits, and §12's passage of the check through it. Acquired within that
+perimeter: no further enumeration or comparison is needed for this approval; a later change needs
+checks pertinent to it. Not shown: A1's closure, an adoption of A, C or T1, the hypotheses in the
+protocol, availability, confidentiality, reputational incentives or neutrality.
 
 ## 1. What the check is
 
@@ -633,15 +644,15 @@ supplied input, not a property of `panel_scores`. The values are `f64` within `1
 rationals. §10's correction covers the check's aggregation in test code only; the operational
 policy for an absent baseline stays open (`17` §14.4).
 
-## 12. The check through B-b's scorer (corrected after `0ca81e9`, awaiting review)
+## 12. The check through B-b's scorer (approved on `6b9f42a`)
 
-On the owner's assignment after Astra's review of `23283f2`, which accepted B-b's scorer as the
-next intervention; Claude Code's. Partly reviewed by Astra on `7d1b19e` and `0ca81e9`, neither
-approving the scorer as a whole — first for a numeric defect, then for a scale common to terms and
-pending radii that could cancel a term from `known`; the corrections are at the end of this
-section, the second **awaiting review**. The scorer is `protocol::cohort_scores` (`17` §14.9), a
-library component with no production caller; the check now computes its cases, terms, counts and
-cohorts through it. No record, fixture or expected value
+On the owner's assignment after Astra's review of `23283f2`, which accepted B-b's scorer as the next
+intervention; Claude Code's. Partly reviewed by Astra on `7d1b19e` and `0ca81e9`, neither approving
+the scorer as a whole — first for a numeric defect, then for a scale common to terms and pending
+radii that could cancel a term from `known`; the corrections are at the end of this section.
+**Approved on `6b9f42a`**: the scorer as an isolated component and the check through it. The scorer
+is `protocol::cohort_scores` (`17` §14.9), a library component with no production caller; the check
+now computes its cases, terms, counts and cohorts through it. No record, fixture or expected value
 of §§4–11 changes.
 
 **Adapters**, in test code. `study.rs`: `Snapshot::of` builds one scorer `Item` per item from the
@@ -732,10 +743,10 @@ range, the means never.
   above shows H-b, H-c or H-e, availability, confidentiality, reputational incentives or
   neutrality.
 
-**The correction of `known`'s scale** (after Astra's review of `0ca81e9`, **awaiting review**;
+**The correction of `known`'s scale** (after Astra's review of `0ca81e9`; **approved on `6b9f42a`**;
 `17` §14.9, *Numerics*). The scorer sums the defined terms in their own power-of-two scale and the
-pending members' `1/π_j` in theirs; `known` and the final value come from the terms' sum alone,
-the bound moves both sums to the coarser scale. No threshold, clipping, imputation or domain
+pending members' `1/π_j` in theirs; `known` and the final value come from the terms' sum alone, the
+bound moves both sums to the coarser scale. No threshold, clipping, imputation or domain
 restriction; formula, denominator, counts, members' order, causes and `OutOfRange` unchanged.
 
 - *Adapters*: unchanged. Under A every `π_j` and radius is 1 and every term lies in `[−1, 1]`:
