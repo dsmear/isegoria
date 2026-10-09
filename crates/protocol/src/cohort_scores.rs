@@ -296,37 +296,35 @@ fn term(
     t.is_finite().then_some(Some(t)).ok_or(NoTerm::OutOfRange)
 }
 
-/// Sums times `2^-k`, `2^k` the largest magnitude's power of two: no partial sum overflows, and in
-/// `f64`'s normal range each operation is exactly the unscaled one's (`docs/17` §14.9).
+/// `Σ x·2^−k` in order, `2^k` the power of two of its own largest `|x|` (`k = 0` for none): no
+/// partial sum overflows; its rounding and underflow are bounded in `docs/17` §14.9.
+#[derive(Clone, Copy)]
 struct Scaled {
     k: i32,
-    terms: f64,
-    widths: f64,
+    sum: f64,
 }
 
 impl Scaled {
-    fn of(terms: &[f64], widths: &[f64]) -> Scaled {
-        let top = terms
-            .iter()
-            .chain(widths)
-            .fold(0.0, |top: f64, x| top.max(x.abs()));
+    fn of(xs: &[f64]) -> Scaled {
+        let top = xs.iter().fold(0.0, |top: f64, x| top.max(x.abs()));
         let k = if top > 0.0 { libm::ilogb(top) } else { 0 };
-        let sum = |xs: &[f64]| -> f64 { xs.iter().map(|&x| libm::scalbn(x, -k)).sum() };
-        Scaled {
-            k,
-            terms: sum(terms),
-            widths: sum(widths),
-        }
+        let sum = xs.iter().map(|&x| libm::scalbn(x, -k)).sum();
+        Scaled { k, sum }
     }
 
-    fn up(&self, x: f64) -> Option<f64> {
-        Some(libm::scalbn(x, self.k)).filter(|x| x.is_finite())
+    /// The sum at the coarser scale `2^k`, `k ≥ self.k`.
+    fn at(self, k: i32) -> f64 {
+        libm::scalbn(self.sum, self.k - k)
     }
+}
 
-    /// Finite: a mean of `size` finite values, each below 2 in magnitude once scaled (§14.9).
-    fn mean(&self, x: f64, size: f64) -> f64 {
-        libm::scalbn(x / size, self.k)
-    }
+fn up(x: f64, k: i32) -> Option<f64> {
+    Some(libm::scalbn(x, k)).filter(|x| x.is_finite())
+}
+
+/// Finite: a mean of `size` finite values, each below 2 in magnitude once scaled (§14.9).
+fn mean(x: f64, size: f64, k: i32) -> f64 {
+    libm::scalbn(x / size, k)
 }
 
 fn assignments(j: usize, item: &Item) -> Vec<Assignment> {
@@ -414,19 +412,21 @@ fn cohort(
         .collect();
     let pending = members.iter().filter(|m| m.case == Case::Pending);
     let widths: Vec<f64> = pending.map(width).filter(|w| w.is_finite()).collect();
-    let s = Scaled::of(&terms, &widths);
+    let t = Scaled::of(&terms);
     let in_range = members.iter().all(|m| m.term != Err(NoTerm::OutOfRange));
-    let known = s.up(s.terms).filter(|_| in_range).ok_or(OutOfRange);
+    let known = up(t.sum, t.k).filter(|_| in_range).ok_or(OutOfRange);
     let size = members.len() as f64;
     let value = if !causes.is_empty() {
         Value::Unavailable(causes)
     } else if members.iter().all(|m| m.case != Case::Pending) {
-        Value::Final(s.mean(s.terms, size))
+        Value::Final(mean(t.sum, size, t.k))
     } else {
-        let (lo, hi) = (s.terms - s.widths, s.terms + s.widths);
+        let w = Scaled::of(&widths);
+        let k = t.k.max(w.k);
+        let (lo, hi) = (t.at(k) - w.at(k), t.at(k) + w.at(k));
         Value::Bound {
-            sum: s.up(lo).zip(s.up(hi)).ok_or(OutOfRange),
-            mean: (s.mean(lo, size), s.mean(hi, size)),
+            sum: up(lo, k).zip(up(hi, k)).ok_or(OutOfRange),
+            mean: (mean(lo, size, k), mean(hi, size, k)),
         }
     };
     Ok(CohortScore {

@@ -738,8 +738,9 @@ they win.
 - **B-b's scorer: `protocol::cohort_scores`** (library code, tests and documentation, on the
   owner's assignment after that review, which authorized the component, the tests' adaptation, the
   pertinent documentation, targeted checks and one commit, no push; committed in `7d1b19e`,
-  **partly reviewed there and numerically corrected, awaiting review**, below; `17` §14.9, `20`
-  §12). A pure, deterministic component with no caller in the production runtime,
+  **partly reviewed there and on `0ca81e9`, corrected after each, the last correction awaiting
+  review**, below; `17` §14.9, `20` §12). A pure, deterministic component with no caller in the
+  production runtime,
   on typed inputs: per item the first panel (reports `Revealed`, `Open` or `Missing`, frozen
   weights), the extra round, `Φ_j` reached, an explicit selection (`Undrawn`, `NotSelected` or
   `Selected` with `π_j` and the outcome or pending); prefixed cohorts by item index. It gives each
@@ -766,8 +767,9 @@ they win.
   `π_j`, a sum overflowing before its representable mean.
 - **The scorer's numeric correction** (code, tests and documentation, on the owner's assignment
   after that review, which authorized the necessary corrections, targeted tests, the pertinent
-  documentation and one commit, no push; **awaiting Astra's review**; `17` §14.9 *Numerics*, `20`
-  §12). Nine regressions written against `7d1b19e` failed there and pass now. `panel_scores`'
+  documentation and one commit, no push; committed in `0ca81e9`, **partly reviewed there**, below;
+  `17` §14.9 *Numerics*, `20` §12). Nine regressions written against `7d1b19e` failed there and
+  pass now. `panel_scores`'
   weighted mean scales the weights by the largest one's power of two (`libm::ilogb`,
   `libm::scalbn`, `libm` now a dependency of `protocol`): no overflow, a positive weight never lost,
   `None` only without weight. A verdict's term beyond `f64` is `NoTerm::OutOfRange`, apart from
@@ -777,6 +779,30 @@ they win.
   every other cause. No threshold, clipping, saturation, imputation or fallback; no NaN or infinity
   returned; a declared limit of the representation, not a protocol rule. Every output on the
   earlier tests and the check identical bit for bit; every expected value unchanged.
+- **Astra's review of `0ca81e9`: partial** (the code, the diff, the tests and the documents read;
+  the counterexample reproduced with a Python transcription of the operations and a rational
+  reference; no Rust run; the regressions, the 19, 9 and 39 tests, the comparison of 988 364
+  calls, Clippy and the local checks stay Claude Code's evidence). Approved: the record of the
+  review of `7d1b19e`; the corrections of its cases A–E — the baselines stabilized, `OutOfRange`
+  apart from an absent baseline, a representable mean kept where its sum leaves the range. Not
+  approved as a whole: the scorer, the scale common to the defined terms and the pending radii
+  cancelling a term from `known` — a term of −2^−100 beside a pending member at `π_j = 2^−1022`
+  scaled to −2^−1122, rounded to 0, `known = Ok(0)`. The approval covers the interventions
+  examined on `0ca81e9`, not the correction below nor every numeric claim of `17` §14.9.
+- **`known`'s own scale** (code, a regression and documentation, on the owner's assignment after
+  that review, which authorized code, targeted tests, documentation and one commit, no push;
+  **awaiting Astra's review**; `17` §14.9 *Numerics*, `20` §12). The regression, Astra's
+  counterexample through `score`, failed on `0ca81e9`'s code (`Ok(-0.0)` against `Ok(−2^−100)`)
+  and passes now. The defined terms are summed in their own power-of-two scale, the pending radii
+  in theirs; `known` and the final value come from the terms' sum alone, the bound moves both sums
+  to the coarser scale. Formula, denominator, counts, members' order, causes, `NoBaseline` and
+  `OutOfRange` kept; no threshold, clipping, imputation or domain restriction. Absolute error
+  bounds for `known`, the final value and the interval apart, the scaling's underflow included,
+  no exactness or absence of cancellation promised; a pending `1/π_j` out of range leaves the
+  cohort `Unavailable`, not necessarily `known` (`Ok(0)` with no defined term). `0ca81e9`'s
+  general bit-for-bit claim withdrawn, narrowed to stated conditions; its 988 364-call comparison
+  kept as evidence on the fixtures run. Every output of the earlier tests and the check unchanged
+  (186 509 `score` calls traced); every expected value unchanged.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -866,9 +892,9 @@ they win.
   shown*: H-c in the protocol and the other external hypotheses with their residual channels,
   availability, confidentiality, the reputation's incentives, neutrality (`17` §14.3, §14.8 E).
   B-b's scorer, a library component with no production caller, is implemented (`17` §14.9),
-  partly reviewed on `7d1b19e` and numerically corrected, awaiting review; the production caller
-  stays missing. The decision proposal on A1's path, `17` §14.8, partly reviewed on `23283f2`, is
-  rectified, the rectifications approved on `7d1b19e`.
+  partly reviewed on `7d1b19e` and `0ca81e9`, the correction of `known`'s scale awaiting review;
+  the production caller stays missing. The decision proposal on A1's path, `17` §14.8, partly
+  reviewed on `23283f2`, is rectified, the rectifications approved on `7d1b19e`.
 - **`08` PRIV-004.1 (separate from A1): remediation open.** The general claim that an inclusion
   proof lets its holder infer no other input is refuted under the stated enumerable-field
   assumptions; the confidentiality goal and a construction meeting it stay to be stated; no
@@ -913,8 +939,8 @@ candidate contract. The absent baseline's correction and §14.6's adaptive verif
 `d7a4449`. The decision proposal on A1's path, `17` §14.8, was partly reviewed on `23283f2` and
 rectified, the rectifications approved on `7d1b19e`; B-b's scorer, accepted on `23283f2` as the next
 intervention, is implemented with no production caller (`17` §14.9, `20` §12), partly reviewed on
-`7d1b19e` and numerically corrected. The next step is Astra's review of that correction; O1–O3 stay
-the owner's, none needed now.
+`7d1b19e` and `0ca81e9`, `known`'s scale corrected. The next step is Astra's review of that
+correction; O1–O3 stay the owner's, none needed now.
 No roadmap or campaign is added, and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -964,7 +990,7 @@ decision, **L** a documented limit.
 
 | Findings, state | Closure criterion (ref) | Acquired; limits | Missing | Depends on | Minimal next deliverable |
 |---|---|---|---|---|---|
-| A1, critical, open | `15` A1: the information at reporting defined, IPW properness proved under it, an adaptive strategy tested | theorem conditional on C1–C6 (`16` §4.3); band baselines in code; B-b, arms A/C, cases 5–7, α, T1/T2 and their evidence as conditional analyses (`17` §§7–13); `20`'s check; `17` §14 as a conditional candidate contract (`d2be7da`); the absent baseline's correction and §14.6's adaptive verification in test code (`d7a4449`), acquired within the approved constructions' perimeter. Limits: C1 rests on a member model (`16` §6); H-c only declared; no arm or contract adopted | Dd: the guarantee's perimeter — target, observation design, incentives' scope, missing reports — each narrowing justified (`17` §14.7; proposed in §14.8, its rectifications approved on `7d1b19e`, O1–O3 for the owner); Im: `17` §14.5's missing capabilities, B-b's scorer implemented with no production caller (§14.9, partly reviewed on `7d1b19e`, numerically corrected, awaiting review); Pr: each hypothesis realized, or declared with its residual channels | A's capacity (+316.825 slots against the declared 333.5, `17` §8.5); the records' availability (`17` §8.3); T58 for C4 and cases 6–7 | Astra's review of the scorer's numeric correction (`17` §14.9 *Numerics*, `20` §12) |
+| A1, critical, open | `15` A1: the information at reporting defined, IPW properness proved under it, an adaptive strategy tested | theorem conditional on C1–C6 (`16` §4.3); band baselines in code; B-b, arms A/C, cases 5–7, α, T1/T2 and their evidence as conditional analyses (`17` §§7–13); `20`'s check; `17` §14 as a conditional candidate contract (`d2be7da`); the absent baseline's correction and §14.6's adaptive verification in test code (`d7a4449`), acquired within the approved constructions' perimeter. Limits: C1 rests on a member model (`16` §6); H-c only declared; no arm or contract adopted | Dd: the guarantee's perimeter — target, observation design, incentives' scope, missing reports — each narrowing justified (`17` §14.7; proposed in §14.8, its rectifications approved on `7d1b19e`, O1–O3 for the owner); Im: `17` §14.5's missing capabilities, B-b's scorer implemented with no production caller (§14.9, partly reviewed on `7d1b19e` and `0ca81e9`, `known`'s scale corrected, awaiting review); Pr: each hypothesis realized, or declared with its residual channels | A's capacity (+316.825 slots against the declared 333.5, `17` §8.5); the records' availability (`17` §8.3); T58 for C4 and cases 6–7 | Astra's review of the correction of the scorer's `known` (`17` §14.9 *Numerics*, `20` §12) |
 | A2, high, open; R1 approved | `15` A2: target measure, linking, whole-test contribution specified; bound proved; estimation error apart; a margin alone does not close it | conditional proposition (`19` §3); R1, `D(T)` an admission cost; calibration comparison, no winner (`19` §9); one fixed form (`19` §9.6). Limits: no `μ`, `𝒢`; the filtered functional is no function of the law; no bound with coverage | Dd: `μ`, `𝒢`, contrasts, forms (`19` §6.1, §10.2); Pr: the bound and its coverage; Im | B1–B3; the calibration arm, common reusable or per form, neither valid nor inevitable; D2, D4 | a contract of A1's kind, after A1's |
 | B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: S1's scenarios and decision criteria declared, then one campaign on an identified candidate, its design declared before execution; Pr where identification or coverage is claimed, which simulations do not replace | A2's target; the owner's authorization of the campaign | S1's declaration, no run |
 | A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; (c), the retired proxy path, fixtures only: L, its listing requiring no change; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
@@ -1009,7 +1035,7 @@ closes nothing, and its narrowings of the declared promise (`17` §14.7) are a p
 decision. §14.6's verification on finite constructions (`20` §11) is approved on `d7a4449`.
 §14.8 proposes the decision on A1's path, partly reviewed on `23283f2` and rectified, the
 rectifications approved on `7d1b19e`; B-b's scorer is implemented with no production caller
-(§14.9), partly reviewed on `7d1b19e` and numerically corrected, awaiting review.
+(§14.9), partly reviewed on `7d1b19e` and `0ca81e9`, `known`'s scale corrected, awaiting review.
 
 ## 6. Essential reading to resume
 
@@ -1589,4 +1615,33 @@ through the scorer); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43; code:
   identical bit for bit; Clippy with `-D warnings`, `rustfmt --check`, `scripts/comment_budget.py`,
   `git diff --check` clean. Not run: the workspace suite or other targets, any fit, latent search,
   bootstrap, smoke, characterization, calibration, benchmark, mutation or Phase 2 work.
+- **Astra, review of `0ca81e9`** (as it records): the code, the diff, the tests and the documents
+  read; the counterexample reproduced with a Python transcription of the operations and a rational
+  reference. No Rust run; the regressions, the 19, 9 and 39 tests, the 988 364-call comparison,
+  Clippy and the local checks are Claude Code's evidence.
+- **Claude Code, record of that review and the correction of `known`'s scale:** branch
+  `docs/phase1-review-alignment`, HEAD `0ca81e9` (parent `7d1b19e`), the remote-tracking branch at
+  the same commit, no later commit, and a working tree with only the owner's `.gitignore` modified
+  checked first; `.gitignore` and the ignored directories, `.gpt/` included, left untouched and out
+  of the commit. Read (L): `CLAUDE.md`, `docs/CLAUDE.md`, this note; `15`'s A1 row; `17` §§14,
+  14.5, 14.8–14.9; `20` §12; `cohort_scores`, `panel_scores`, `difference_score`, `7d1b19e`'s
+  direct sums; the scorer's tests. Calculated (C) beforehand: the regression's values (−2^−100,
+  ±2^1022, ±2^1021). Executed (E), 2026-10-09: the regression on `0ca81e9`'s code, failing at the
+  two-member cohort's `known` (`Ok(-0.0)` against `Ok(−2^−100)`), the one-member cohort's
+  assertions passing; run there again after `rustfmt` laid one assertion over several lines, the
+  same failure; after the correction, passing. A temporary trace of `score`, removed: a first,
+  multi-threaded run interleaved the lines of its file and was discarded; single-threaded, the
+  186 509 calls of the scorer's 19 earlier tests and the check's 39 (1 604 distinct inputs;
+  `panel_scores`' 9 make none) gave the same output for every input before and after, and told
+  the regression's two outputs apart (its interval ±2^1022 and ±2^1021 on both). Derived (D): the
+  bounds and the narrowed identity of `17` §14.9; checked (C) in a Python transcription against
+  exact rationals, not kept: 60 000 random cohorts, 20 000 adversarial ones (widths rounded by
+  their scaling, the radius rounded when moved to the terms' scale), and the cancellation example
+  (2^1000, −2^1000, 2^−100 give 0, a direct sum in that order 2^−100). `cargo test -p protocol`:
+  `--test cohort_scores` 20 passed, `--test panel_scores` 9, `--test s2_synthetic_check` 39;
+  Clippy with `-D warnings`, `rustfmt --check`, `scripts/comment_budget.py`, `git diff --check`
+  clean; documentation checks: the new lines' widths, table columns, relative links, the states
+  across `15`, `17`, `20`, `docs/README.md` and this note. Not run: the workspace suite or other
+  targets, any fit, latent search, bootstrap, smoke, characterization, calibration, benchmark,
+  mutation or Phase 2 work.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.

@@ -1923,8 +1923,21 @@ conditional on its coming to exist, no availability guaranteed. Not approved as 
 scorer, for a numeric defect on its declared domain — the weighted mean's sums overflowing or
 underflowing (a finite wrong baseline, a NaN, a positive weight lost), `g/π_j` and `1/π_j` beyond
 `f64` at the smallest `π_j`, a sum overflowing before its representable mean. The correction
-(§14.9, *Numerics*), on the owner's assignment, awaits review; the approval covers neither it nor
-the scorer as a whole.
+(§14.9, *Numerics*), on the owner's assignment, was partly reviewed on `0ca81e9` (below); the
+approval covers neither it nor the scorer as a whole.
+
+Astra's review of `0ca81e9` (the code, the diff, the tests and the documents read; the
+counterexample reproduced with a Python transcription of the operations and a rational
+reference; no Rust run; the regressions, the 19, 9 and 39 tests, the comparison of 988 364 calls,
+Clippy and the local checks stay Claude Code's evidence): **partial**. Approved: the record of
+the review of `7d1b19e`; the corrections of that review's cases A–E — the baselines stabilized,
+`OutOfRange` kept apart from an absent baseline, a representable mean kept where its sum leaves
+the range. Not approved as a whole: the scorer, because the scale common to the defined terms and
+the pending members' radii can cancel a term from `known`: a term of −2^−100 beside a pending
+member at `π_j = 2^−1022` was scaled by `2^−1022` to −2^−1122, which rounds to 0, and `known` was
+`Ok(0)`. The approval covers the interventions examined on `0ca81e9`, not the correction that
+followed (§14.9, *Numerics*, on the owner's assignment, awaiting review) nor every numeric claim
+of §14.9.
 
 ### 14.1 The property
 
@@ -2016,7 +2029,7 @@ the defined terms kept; the operational policy stays open.
 lifecycle's report and gate steps, the pilots' indeterminate readings; `outcome_of` and
 `record_outcome` give `SkillTrack` a binary outcome, with no `I`; since §14.9, B-b's scorer
 `cohort_scores`, a library component on typed inputs, partly reviewed on `7d1b19e` and
-numerically corrected, awaiting review. *In tests*:
+`0ca81e9`, `known`'s scale corrected, awaiting review. *In tests*:
 `panel_scores.rs` reaches `record_outcome` on one band item; `cohort_scores.rs` checks the
 scorer. *Synthetic check* (`20`): B-b by case, `N`, `O`, `V`, cohorts, freezes and terminals, on
 supplied records; through its scoring path, §14.6 on finite constructions (`20` §11), approved
@@ -2194,20 +2207,23 @@ D4). For the owner, none blocking the scorer and none needed now:
   only the score's mean (`16` §9).
 
 For Astra: whether the guarantee meets `15` A1's criterion as read on `11deec2`; T1; the direction
-for missing reports and absent baselines; §14.9's numeric correction.
+for missing reports and absent baselines; §14.9's correction of `known`'s scale.
 
 **Next deliverable**, accepted by Astra on `23283f2`: B-b's scorer, implemented in §14.9, partly
-reviewed on `7d1b19e` and numerically corrected, awaiting review. No protocol, A, C or T1 adopted;
+reviewed on `7d1b19e` and `0ca81e9`, `known`'s scale corrected, awaiting review. No protocol, A,
+C or T1 adopted;
 A1 not closed.
 
-### 14.9 B-b's scorer (no production caller; corrected after `7d1b19e`, awaiting review)
+### 14.9 B-b's scorer (no production caller; corrected after `0ca81e9`, awaiting review)
 
 **Status.** Claude Code's implementation on the owner's assignment after Astra's review of
 `23283f2`: `protocol::cohort_scores` (`crates/protocol/src/cohort_scores.rs`), a pure, deterministic
 library component with **no caller in the production runtime**. Partly reviewed by Astra on
 `7d1b19e` (§14): `Undrawn`, the refusal of a missing first report at the freeze and the interval
 with a pending member without a baseline accepted in the contract, as stated below; the scorer not
-approved, for a numeric defect on its declared domain, corrected under *Numerics*, **awaiting
+approved, for a numeric defect on its declared domain, corrected under *Numerics*. Partly reviewed
+on `0ca81e9` (§14): the corrections of cases A–E approved; the scorer not approved, the common
+scale cancelling a term from `known`; `known` given its own scale under *Numerics*, **awaiting
 review**. It adopts no A, C or T1 and changes no observation design, reputation or resource; its
 output reaches no `SkillTrack`, vote weight, probation, cap or CUSUM. Reading `π_j` certifies none
 of H-e, H-b, H-c. This section is its contract; the tests below and `20` §12 check it.
@@ -2260,11 +2276,11 @@ member index out of range, repeated, or not an assignment of the cohort's nym. A
 input the contract excludes; a cohort without value is a legitimate state; `OutOfRange` is
 neither, an input in the domain whose result no `f64` holds.
 
-**Numerics** (after Astra's review of `7d1b19e`, awaiting review). The scorer computes in `f64`,
-deterministically; it promises no exact real arithmetic. Its domain is unchanged: no threshold on
-`π_j` or the weights, no clipping, saturation, imputation, fallback to the reviewer's report or
-policy; on the inputs it accepts no output is NaN or infinite. `u = 2^−53`, `ε = 2^−52`,
-`γ_k = ku/(1 − ku)`.
+**Numerics** (after Astra's reviews of `7d1b19e` and `0ca81e9`; awaiting review). The scorer
+computes in `f64`, deterministically; it promises no exact real arithmetic. Its domain is
+unchanged: no threshold on `π_j` or the weights, no clipping, saturation, imputation, fallback to
+the reviewer's report or policy; on the inputs it accepts no output is NaN or infinite.
+`u = 2^−53`, `ε = 2^−52`, `γ_k = ku/(1 − ku)`.
 
 - *Baselines* (`panel_scores`, both compositions, one function): the weights averaged are scaled
   by `2^−e`, `2^e ≤ w_max < 2^(e+1)` (`libm::ilogb`, `libm::scalbn`), before the sums. The largest
@@ -2276,22 +2292,53 @@ policy; on the inputs it accepts no output is NaN or infinite. `u = 2^−53`, `�
   the range only for `π_j` below `2^−1022`, subnormal, and is then `NoTerm::OutOfRange`, a defined
   term no `f64` holds, apart from `NoTerm::Undefined(NoBaseline)`. For `p, b ∈ [0, 1]` and
   `o ∈ {0, 1}`, `|t̂ − t| ≤ (2|b̂ − b| + 5ε)/π_j`, within `(4n + 5)ε/π_j`.
-- *Cohorts*: the defined terms and the pending members' `1/π_j` are scaled together by the power of
-  two of the largest magnitude, summed in the cohort's order, combined and divided by `|K|` in that
-  scale, then scaled back. A sum can leave the range while its mean does not: `known` and the
-  bound's `sum` are `Result<_, OutOfRange>`. The final value and the bound's `mean` are never out of
-  range (D): scaled, every value is below 2 in magnitude; rounding is monotone, so the largest
-  computed sum of `m` of them is that of `m` copies of `2 − ε`, which stays at least an ulp below
-  `2m`; divided by `|K| ≥ m`, it rounds to at most `2 − ε`, which scales back to at most the largest
-  `f64` (C, checked for every `m ≤ 20 000` and, for the bound's two sums, every split of
-  `m < 1 500`). The sums carry the recursive bound `γ_(m−1) Σ|x|` plus one rounding per step after.
-- *A member out of range* — its term, or a pending member's `1/π_j` (`π_j` below about
-  `5.6·10^−309`) — leaves its cohort `Unavailable` with `Cause::OutOfRange`, beside every other
-  cause, and its `known` `OutOfRange`. The exact value may exist (opposite terms cancelling, `|K|`
-  beyond `2^50`): a declared limit of the representation, not a rule of the protocol.
-- *Unchanged*: scaling by a power of two is exact while the result stays normal, so wherever the
-  former direct computation met neither an overflow nor a subnormal intermediate, every output is
-  bit for bit the same (E, below).
+- *Cohorts*: two sums in the cohort's order, each scaled by the power of two of its own largest
+  magnitude — the defined terms' by `2^−k_t`, the pending members' `1/π_j` by `2^−k_w` (`k = 0`
+  for an empty or zero sum). `known` and the final value come from the terms' sum alone, scaled
+  back by `2^k_t`, the final value divided by `|K|` in that scale: no pending member enters them or
+  their scale (corrected after `0ca81e9`, whose scale common to both sums turned a term of
+  −2^−100 beside a radius of 2^1022 into −2^−1122, rounded to 0). The bound moves both sums to the
+  coarser scale `2^k`, `k = max(k_t, k_w)`, adds and subtracts them there, divides by `|K|` and
+  scales back. A sum can leave the range while its mean does not: `known` and the bound's `sum`
+  are `Result<_, OutOfRange>`. The final value and the bound's `mean` are never out of range (D):
+  in its own scale every value is below 2 in magnitude, and moving a sum to a coarser scale only
+  shrinks it; rounding is monotone, so the largest computed sum of `m` of them is that of `m`
+  copies of `2 − ε`, which stays at least an ulp below `2m`; divided by `|K| ≥ m`, it rounds to at
+  most `2 − ε`, which scales back to at most the largest `f64` (C, checked for every `m ≤ 20 000`
+  and, for the bound's two sums, every split of `m < 1 500`).
+- *Rounding and underflow of `known`* (D; `m` terms `t`, `m_u` of them rounded by their scaling):
+  scaling up (`k_t ≤ 0`) is exact; scaling down (`k_t ≥ 1`) is exact for a term of at least
+  `2^(k_t−1022)` in magnitude and otherwise rounds it to the subnormal grid, within
+  `2^(k_t−1075)`; scaling the sum back is exact for `k_t ≥ 0`, unless `OutOfRange`, and within
+  `2^−1075` for `k_t < 0`. Hence `|known − Σt| ≤ γ_(m−1) Σ|t| + (1 + γ_(m−1)) m_u 2^(k_t−1075)`,
+  plus `2^−1075` for `k_t < 0`; a single term is exact. The bound is absolute: neither exactness
+  nor the absence of cancellation is promised. A small sum among large opposite terms has no
+  relative bound, and a term of at most `2^(k_t−1075)` rounds to 0 — terms 2^1000, −2^1000 and
+  2^−100 give `known = 0`, where a direct sum in that order gives 2^−100.
+- *The final value* adds its quotient's rounding, within `u` relatively or, where the scaled
+  quotient is subnormal, `2^(k_t−1075)`; for `k_t < 0`, one more within `2^−1075` scaling back.
+- *The interval* adds, to the two sums' bounds (the widths' as the terms', with `k_w`; a width is
+  rounded by its scaling only for `k_w = 1023` and a width below 2; each `1/π_j`, one correctly
+  rounded division, within `u` relatively): moving a sum to `2^k`, a rounding within `2^(k−1075)`
+  where it falls below `2^(k−1022)` there; each end, a rounding within `u` relatively; each mean,
+  its quotient's, within `u` relatively or `2^(k−1075)`; scaling back, `k ≥ 0`, is exact. Its
+  centre is `known` only within these bounds: in the counterexample −2^−100 moved to `2^1022`
+  rounds to 0, the ends ±2^1022 are the exact ends rounded, and `known` keeps −2^−100.
+- *A member out of range*: a term beyond the range leaves its cohort `Unavailable` with
+  `Cause::OutOfRange`, beside every other cause, and its `known` `OutOfRange`. A pending member
+  whose `1/π_j` leaves the range (`π_j` below about `5.6·10^−309`) leaves its cohort
+  `Unavailable` with the same cause, but not necessarily `known`, the defined terms' sum: with no
+  defined term, `known = Ok(0)` is the correct sum. Where `OutOfRange` is named, an exact value may
+  exist (opposite terms cancelling, `|K|` beyond `2^50`): a declared limit of the representation,
+  not a rule of the protocol.
+- *Identity with `7d1b19e`'s direct computation* (D, narrowed after `0ca81e9`): `known` equals the
+  direct sum of the terms in the cohort's order, bit for bit, wherever that sum stays finite and
+  no term is rounded by its scaling — scaling then commutes with every rounded addition, a sum
+  below `2^−1022` being exact in both scales; the final value equals that sum divided by `|K|`
+  where, besides, neither exact quotient, scaled or not, is nonzero below `2^−1022`. No identity
+  is claimed for the interval. Withdrawn: `0ca81e9`'s identity wherever the former computation met
+  neither an overflow nor a subnormal intermediate, a condition the counterexample meets. Its
+  comparison of 988 364 calls stays empirical evidence on the fixtures run (E, below).
 
 **Left to the caller, unchecked** (§14.8 D): the inputs' authenticity and links; `R_u` complete;
 the weights frozen for the epoch; `Φ_j`; `S_j` and `π_j` recorded by the design before the outcome
@@ -2328,3 +2375,19 @@ recorded every output of `score`, `first_panel_baselines` and `extra_round_basel
 earlier tests of the scorer and `panel_scores` and the check's 39 — 988 364 calls — before and
 after: identical bit for bit, the new types' `Ok` normalized. `cohort_scores.rs` has 19 tests,
 `panel_scores.rs` 9.
+
+*Correction of `known`'s scale* (E, Claude Code, 2026-10-09; values exact, beforehand). A regression
+through `score`, `a_pending_radius_does_not_round_away_the_known_sum`: `u`'s report 2^−50 on a
+frozen item, the other first panelist's 0 at weight 1 giving the baseline 0, selected at `π = 1`
+with `R`, a term of −2^−100; and a frozen item selected at `π = 2^−1022`, pending. Expected:
+`known = Ok(−2^−100)` for the cohort of the first item, `Final(−2^−100)`, and for the cohort of
+both, with the bound's `sum` ±2^1022 and `mean` ±2^1021, by exact equality. On `0ca81e9`'s code it
+failed at the second cohort's `known`: `Ok(-0.0)` against `Ok(−2^−100)`, the first cohort's
+assertions passing; a temporary trace read that cohort's interval, ±2^1022 and ±2^1021, the same
+before and after. After the correction it passes. A temporary trace, removed, hashed the inputs and
+output of every `score` call over the scorer's 19 earlier tests and the check's 39 (`panel_scores`'
+9 make none) — 186 509 calls, 1 604 distinct inputs — before and after: the same output for every
+input; it tells the regression's two outputs apart. Calculated (C), in a Python transcription of the
+sums against exact rationals, not kept: the bounds above and the narrowed identity, on 60 000 random
+cohorts and 20 000 built to round widths by their scaling and the radius moved to the terms' scale;
+and the cancellation example. `cohort_scores.rs` has 20 tests.

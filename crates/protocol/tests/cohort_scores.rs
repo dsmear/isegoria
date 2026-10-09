@@ -633,6 +633,33 @@ fn a_half_width_beyond_f64_gives_no_infinite_interval() {
     );
 }
 
+/// A1 B-b, `17` §14.9: a pending member's `1/π` of `2^1022` leaves `known` −2^−100, not 0.
+#[test]
+fn a_pending_radius_does_not_round_away_the_known_sum() {
+    let tiny = 2f64.powi(-100);
+    let mut verdict = pair(2f64.powi(-50), selected(1.0, Some(Outcome::R)));
+    verdict.first[1] = seat(2, 0.0, 1.0);
+    let pending = pair(0.75, selected(2f64.powi(-1022), None));
+    let s = score(&[verdict, pending], &[cohort(&[0]), cohort(&[0, 1])]).unwrap();
+    let (alone, both) = (&s.cohorts[0], &s.cohorts[1]);
+    let m = &alone.members[0];
+    assert_eq!((m.baseline, m.term), (Some(0.0), Ok(Some(-tiny))));
+    assert_eq!((alone.size, alone.o, alone.v), (1, 1, 1));
+    assert_eq!(
+        (alone.known, &alone.value),
+        (Ok(-tiny), &Value::Final(-tiny))
+    );
+    assert_eq!(both.members[1].case, Case::Pending);
+    assert_eq!((both.size, both.o, both.v), (2, 1, 1));
+    assert_eq!(both.known, Ok(-tiny));
+    let r = 2f64.powi(1022);
+    let bound = Value::Bound {
+        sum: Ok((-r, r)),
+        mean: (-r / 2.0, r / 2.0),
+    };
+    assert_eq!(both.value, bound);
+}
+
 /// A1 B-b, `17` §14.9 (E): two terms near 1e308 have their mean, though their sum leaves `f64`.
 #[test]
 fn a_mean_in_range_is_given_when_the_sum_is_not() {
