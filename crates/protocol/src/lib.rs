@@ -6,6 +6,7 @@ pub mod admission;
 pub mod appeal;
 pub mod blueprint;
 pub mod cohort_scores;
+pub mod cohort_snapshot;
 pub mod contested;
 pub mod deposit;
 pub mod events;
