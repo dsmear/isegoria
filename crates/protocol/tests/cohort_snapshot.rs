@@ -129,9 +129,14 @@ fn rule(tag: &str) -> Cid {
     cid(format!("rule of {tag}").as_bytes())
 }
 
+fn group(tag: &str) -> Cid {
+    cid(format!("group of {tag}").as_bytes())
+}
+
 fn design(tag: &str, design: Design) -> Proposed {
     Proposed::Design {
         item: item(tag),
+        group: group(tag),
         design,
         rule: rule(tag),
     }
@@ -151,6 +156,7 @@ fn unit_weights(epoch: u64) -> Proposed {
 fn terminal(tag: &str, outcome: Outcome, evidence: &str) -> Proposed {
     Proposed::Terminal {
         item: item(tag),
+        group: group(tag),
         rule: rule(tag),
         outcome,
         references: vec![cid(evidence.as_bytes())],
@@ -1006,6 +1012,7 @@ fn terminals() -> Vec<CutInput> {
         .steps("j3", decided_round("j3"));
     let unreferenced = Proposed::Terminal {
         item: item("j2"),
+        group: group("j2"),
         rule: rule("j2"),
         outcome: Outcome::I,
         references: Vec::new(),
@@ -1013,6 +1020,7 @@ fn terminals() -> Vec<CutInput> {
     };
     let failed = Proposed::Terminal {
         item: item("j2"),
+        group: group("j2"),
         rule: rule("j2"),
         outcome: Outcome::I,
         references: vec![cid(b"e2")],
@@ -1020,6 +1028,7 @@ fn terminals() -> Vec<CutInput> {
     };
     let foreign = Proposed::Terminal {
         item: item("j2"),
+        group: group("j2"),
         rule: rule("j1"),
         outcome: Outcome::A,
         references: vec![cid(b"e2")],
@@ -1075,6 +1084,76 @@ fn a_premature_second_or_invalid_terminal_keeps_the_state_before_it() {
             outcome: Some(Outcome::A)
         }
     );
+}
+
+fn grouped_terminal() -> Log {
+    let mut log = Log::new();
+    log.cut(0, true)
+        .deposit("j1", 2)
+        .record(unit_weights(0))
+        .record(design("j1", Design::A))
+        .steps("j1", first_round(item("j1"), &J1))
+        .steps("j1", vec![decided(GateOutcome::Pass)]);
+    log.cut(1, false);
+    log
+}
+
+/// A1 `17` §14.10: a matching rule cannot admit a terminal declaring another group.
+#[test]
+fn a_terminal_with_the_right_rule_and_wrong_group_keeps_the_previous_state() {
+    let mut log = grouped_terminal();
+    let mut wrong = terminal("j1", Outcome::A, "e1");
+    if let Proposed::Terminal {
+        group: declared, ..
+    } = &mut wrong
+    {
+        *declared = group("j2");
+    }
+    let prior = snap(&log.cuts);
+    log.record(wrong.clone());
+    let mut rejected = snap(&log.cuts);
+    assert_eq!(
+        rejected.records.last().unwrap().refused,
+        Some(Refused::Group)
+    );
+    assert_eq!(case_of(&rejected, U, 0), Case::Pending);
+    assert_eq!(rejected.records.pop().unwrap().id, wrong.id());
+    assert_eq!(rejected, prior);
+    log.record(wrong);
+    log.record(terminal("j1", Outcome::A, "e1"));
+    let accepted = snap(&log.cuts);
+    assert_eq!(
+        accepted.records[3].refused,
+        Some(Refused::Duplicate { first: at(1, 0) })
+    );
+    assert_eq!(accepted.records[4].refused, None);
+    assert_eq!(case_of(&accepted, U, 0), Case::Positive);
+    invariants(&log.cuts);
+}
+
+/// A1 `17` §14.10: a terminal with the declared item, group and rule is accepted.
+#[test]
+fn a_terminal_with_the_declared_group_and_rule_is_accepted() {
+    let mut log = grouped_terminal();
+    let record = terminal("j1", Outcome::A, "e1");
+    log.record(record.clone());
+    let s = snap(&log.cuts);
+    assert_eq!(
+        s.records.last(),
+        Some(&Judged {
+            at: at(1, 0),
+            id: record.id(),
+            refused: None
+        })
+    );
+    assert_eq!(
+        s.inputs[0].selection,
+        Selection::Selected {
+            inclusion: 1.0,
+            outcome: Some(Outcome::A)
+        }
+    );
+    assert_eq!(case_of(&s, U, 0), Case::Positive);
 }
 
 /// j1 reviewed, decided and terminal `A` in cut 0 of epoch 0, not closing; `then` the next cut.
@@ -1392,7 +1471,7 @@ fn a_cohort_record_is_checked_against_the_rule() {
 fn a_proposed_record_s_encoding_is_canonical_and_decodes_as_no_ledger_object() {
     let forward: BTreeMap<Nym, f64> = [(nym(2), 1.0), (nym(1), 0.5)].into_iter().collect();
     let backward: BTreeMap<Nym, f64> = [(nym(1), 0.5), (nym(2), 1.0)].into_iter().collect();
-    let records = vec![
+    let mut records = vec![
         Proposed::Weights {
             epoch: 0,
             weights: forward,
@@ -1413,6 +1492,44 @@ fn a_proposed_record_s_encoding_is_canonical_and_decodes_as_no_ledger_object() {
         weights: backward,
     };
     assert_eq!(records[0].encode(), reordered.encode());
+    let design_bytes = [
+        &[0xE0, 2][..],
+        &item("j1").0,
+        &group("j1").0,
+        &rule("j1").0,
+        &[0],
+    ]
+    .concat();
+    assert_eq!(records[1].encode(), design_bytes);
+    let terminal_bytes = [
+        &[0xE0, 4][..],
+        &item("j1").0,
+        &group("j1").0,
+        &rule("j1").0,
+        &[2],
+        &1_u64.to_le_bytes(),
+        &cid(b"e1").0,
+        &[1],
+    ]
+    .concat();
+    assert_eq!(records[5].encode(), terminal_bytes);
+    for i in [1, 5] {
+        let mut other_group = records[i].clone();
+        match &mut other_group {
+            Proposed::Design {
+                group: declared, ..
+            }
+            | Proposed::Terminal {
+                group: declared, ..
+            } => {
+                *declared = group("j2");
+            }
+            _ => unreachable!(),
+        }
+        assert_ne!(records[i].encode(), other_group.encode());
+        assert_ne!(records[i].id(), other_group.id());
+        records.push(other_group);
+    }
     let ids: BTreeSet<Cid> = records.iter().map(Proposed::id).collect();
     assert_eq!(ids.len(), records.len());
     for r in &records {
@@ -1436,6 +1553,158 @@ fn forward(a: Case, b: Case) -> bool {
             Pending => matches!(b, Positive | Negative | Inconclusive),
             _ => false,
         }
+}
+
+fn reordered_assignments(invalid: bool) -> Vec<CutInput> {
+    let pi = f64::from_bits(23_u64 << 52);
+    let first0 = seats(&[2, 3, 4, 5, 6, 7, 8], 0.0);
+    let mut first1 = seats(&PANEL, 1.0);
+    first1[0].1 = 0.0;
+    let mut first2 = seats(&PANEL, 0.0);
+    first2[0].1 = 1.0;
+    let mut log = Log::new();
+    log.cut(0, false)
+        .deposit("j0", 2)
+        .deposit("j1", 3)
+        .deposit("j2", 4)
+        .record(weights(0, &seats(&[1, 2, 3, 4, 5, 6, 7, 8], 1.0)));
+    for (tag, inclusion) in [("j0", pi), ("j1", pi), ("j2", 1.0)] {
+        if !invalid || tag == "j2" {
+            log.record(design(tag, Design::C { inclusion }));
+        }
+    }
+    log.steps("j0", first_round(item("j0"), &first0))
+        .steps("j0", vec![decided(GateOutcome::SupplementaryReview)]);
+    log.cut(0, false);
+    for (tag, first) in [("j1", first1), ("j2", first2)] {
+        log.steps(tag, first_round(item(tag), &first))
+            .steps(tag, vec![decided(GateOutcome::Pass)]);
+        if !invalid || tag == "j2" {
+            log.record(draw(tag, 1, true))
+                .record(terminal(tag, Outcome::A, tag));
+        }
+    }
+    log.cut(0, false)
+        .steps("j0", extra_round(item("j0"), &[(U, 1.0)]))
+        .steps(
+            "j0",
+            vec![Event::Resolve {
+                outcome: GateOutcome::Pass,
+            }],
+        );
+    if !invalid {
+        log.record(draw("j0", 1, true))
+            .record(terminal("j0", Outcome::A, "j0"));
+    }
+    log.cut(0, true).cut(1, false);
+    log.cuts
+}
+
+/// A1 `17` §14.10: an extra assignment can insert an earlier item into an open cohort.
+#[test]
+fn an_extra_assignment_keeps_members_in_item_register_order() {
+    let cuts = reordered_assignments(false);
+    let before = snap(&cuts[..2]);
+    assert_eq!(cohort_of(&before, U, 0).members, [1, 2]);
+    let after = snap(&cuts[..3]);
+    assert_eq!(cohort_of(&after, U, 0).members, [0, 1, 2]);
+    assert!(!cohort_of(&after, U, 0).closed);
+    assert!(after.register.starts_with(&before.register));
+    invariants(&cuts);
+}
+
+/// A1 `17` §14.10: the scorer sums in item register order, retaining the unit after cancellation.
+#[test]
+fn item_register_order_reaches_the_scorer() {
+    let cuts = reordered_assignments(false);
+    let s = snap(&cuts);
+    let k = cohort_of(&s, U, 0).scored.unwrap();
+    let c = &s.scores.cohorts[k];
+    assert_eq!(c.known, Ok(1.0));
+    assert_eq!(c.value, Value::Final(1.0 / 3.0));
+    assert_eq!(s.scorer_cohorts[k].items, [0, 1, 2]);
+    let pi = f64::from_bits(23_u64 << 52);
+    let large = f64::from_bits(2023_u64 << 52);
+    let first = |panel: &[u8], p: &dyn Fn(u8) -> f64| {
+        panel
+            .iter()
+            .map(|&n| Panelist {
+                nym: nym(n),
+                report: Report::Revealed(p(n)),
+                weight: 1.0,
+            })
+            .collect()
+    };
+    let selected = |inclusion| Selection::Selected {
+        inclusion,
+        outcome: Some(Outcome::A),
+    };
+    let inputs = vec![
+        Item {
+            first: first(&[2, 3, 4, 5, 6, 7, 8], &|_| 0.0),
+            extra: vec![Extra {
+                nym: nym(U),
+                report: Report::Revealed(1.0),
+            }],
+            frozen: true,
+            selection: selected(pi),
+        },
+        Item {
+            first: first(&PANEL, &|n| if n == U { 0.0 } else { 1.0 }),
+            extra: Vec::new(),
+            frozen: true,
+            selection: selected(pi),
+        },
+        Item {
+            first: first(&PANEL, &|n| if n == U { 1.0 } else { 0.0 }),
+            extra: Vec::new(),
+            frozen: true,
+            selection: selected(1.0),
+        },
+    ];
+    assert_eq!(s.inputs, inputs);
+    let expected = score(
+        &inputs,
+        &[Cohort {
+            nym: nym(U),
+            items: vec![0, 1, 2],
+        }],
+    )
+    .unwrap();
+    assert_eq!(*c, expected.cohorts[0]);
+    assert_eq!(
+        c.members.iter().map(|a| a.baseline).collect::<Vec<_>>(),
+        [Some(0.0), Some(1.0), Some(0.0)]
+    );
+    assert_eq!(
+        c.members.iter().map(|a| a.term).collect::<Vec<_>>(),
+        [Ok(Some(large)), Ok(Some(-large)), Ok(Some(1.0))]
+    );
+    let chronological = score(
+        &inputs,
+        &[Cohort {
+            nym: nym(U),
+            items: vec![1, 2, 0],
+        }],
+    )
+    .unwrap();
+    assert_eq!(chronological.cohorts[0].known, Ok(0.0));
+    assert_eq!(chronological.cohorts[0].value, Value::Final(0.0));
+}
+
+/// A1 `17` §14.10: invalid members use item register order and keep the cohort unscored.
+#[test]
+fn invalid_members_also_follow_item_register_order() {
+    let cuts = reordered_assignments(true);
+    let s = snap(&cuts);
+    let c = cohort_of(&s, U, 0);
+    assert_eq!(c.invalid, [0, 1]);
+    assert_eq!(c.members, [0, 1, 2]);
+    assert_eq!(c.scored, None);
+    assert_eq!(s.scored, [2]);
+    assert_eq!(s.counts(nym(U)).assignments, 3);
+    assert_eq!(s.counts(nym(U)).unscored, 2);
+    invariants(&cuts);
 }
 
 /// `17` §14.10's invariants between the snapshots of every truncation of `cuts`.
@@ -1470,7 +1739,9 @@ fn invariants(cuts: &[CutInput]) {
                     .iter()
                     .find(|d| (d.nym, d.epoch) == (c.nym, c.epoch))
                     .unwrap();
-                assert!(d.members.starts_with(&c.members));
+                assert!(c.members.iter().all(|m| d.members.contains(m)));
+                assert!(c.members.windows(2).all(|w| w[0] < w[1]));
+                assert!(d.members.windows(2).all(|w| w[0] < w[1]));
                 assert!(!c.closed || (d.closed && d.members == c.members));
                 assert!(c.invalid.is_empty() || !d.invalid.is_empty());
             }

@@ -32,9 +32,10 @@ pub enum Proposed {
         epoch: u64,
         weights: BTreeMap<Nym, f64>,
     },
-    /// `rule` names the item's procedure, which its terminal must name.
+    /// `group` and `rule` declare the item's association, which its terminal must name.
     Design {
         item: Cid,
+        group: Cid,
         design: Design,
         rule: Cid,
     },
@@ -47,6 +48,7 @@ pub enum Proposed {
     /// `references` and `verified` are the verifier's, supplied: no verifier runs here.
     Terminal {
         item: Cid,
+        group: Cid,
         rule: Cid,
         outcome: Outcome,
         references: Vec<Cid>,
@@ -70,8 +72,13 @@ impl Proposed {
                     w.fixed(&nym.0).u64(x.to_bits());
                 }
             }
-            Proposed::Design { item, design, rule } => {
-                w.u8(2).fixed(&item.0).fixed(&rule.0);
+            Proposed::Design {
+                item,
+                group,
+                design,
+                rule,
+            } => {
+                w.u8(2).fixed(&item.0).fixed(&group.0).fixed(&rule.0);
                 match design {
                     Design::A => w.u8(0),
                     Design::C { inclusion } => w.u8(1).u64(inclusion.to_bits()),
@@ -86,6 +93,7 @@ impl Proposed {
             }
             Proposed::Terminal {
                 item,
+                group,
                 rule,
                 outcome,
                 references,
@@ -96,7 +104,7 @@ impl Proposed {
                     Outcome::R => 1,
                     Outcome::I => 2,
                 };
-                w.u8(4).fixed(&item.0).fixed(&rule.0).u8(o);
+                w.u8(4).fixed(&item.0).fixed(&group.0).fixed(&rule.0).u8(o);
                 w.u64(references.len() as u64);
                 for r in references {
                     w.fixed(&r.0);
@@ -203,6 +211,7 @@ pub enum Refused {
     BeforeFreeze,
     NotSelectedAtCertainty,
     Unselected,
+    Group,
     Rule,
     Unreferenced,
     Unverified,
@@ -304,7 +313,7 @@ struct Walk {
     register: Vec<Assigned>,
     started: BTreeSet<u64>,
     weights: BTreeMap<u64, (Position, BTreeMap<Nym, f64>)>,
-    designs: BTreeMap<Cid, (Position, Design, Cid)>,
+    designs: BTreeMap<Cid, (Position, Design, Cid, Cid)>,
     draws: BTreeMap<Cid, (Position, bool)>,
     terminals: BTreeMap<Cid, (Position, Outcome)>,
     cohorts: BTreeMap<(Nym, u64), Position>,
@@ -428,7 +437,7 @@ impl Walk {
 
     fn assign(&mut self, at: Position, epoch: u64, item: Cid, panel: &[Nym]) {
         let mut invalid = Vec::new();
-        let design = self.designs.get(&item).map(|&(_, d, _)| d);
+        let design = self.designs.get(&item).map(|&(_, d, ..)| d);
         if design.is_none() {
             invalid.push(Invalidity::NoDesign);
         }
@@ -520,7 +529,12 @@ impl Walk {
                 }
                 self.weights.insert(*epoch, (at, weights.clone()));
             }
-            Proposed::Design { item, design, rule } => {
+            Proposed::Design {
+                item,
+                group,
+                design,
+                rule,
+            } => {
                 if let Some((p, ..)) = self.designs.get(item) {
                     return Err(conflict(p));
                 }
@@ -531,13 +545,13 @@ impl Walk {
                 if self.index.contains_key(item) {
                     return Err(Refused::Late);
                 }
-                self.designs.insert(*item, (at, *design, *rule));
+                self.designs.insert(*item, (at, *design, *group, *rule));
             }
             Proposed::Draw { item, selected, .. } => {
                 if let Some((p, _)) = self.draws.get(item) {
                     return Err(conflict(p));
                 }
-                let &(_, design, _) = self.designs.get(item).ok_or(Refused::NoDesign)?;
+                let &(_, design, ..) = self.designs.get(item).ok_or(Refused::NoDesign)?;
                 let Design::C { inclusion } = design else {
                     return Err(Refused::Shape);
                 };
@@ -551,6 +565,7 @@ impl Walk {
             }
             Proposed::Terminal {
                 item,
+                group,
                 rule,
                 outcome,
                 references,
@@ -559,8 +574,12 @@ impl Walk {
                 if let Some((p, _)) = self.terminals.get(item) {
                     return Err(conflict(p));
                 }
-                let &(_, design, own) = self.designs.get(item).ok_or(Refused::NoDesign)?;
-                if *rule != own {
+                let &(_, design, own_group, own_rule) =
+                    self.designs.get(item).ok_or(Refused::NoDesign)?;
+                if *group != own_group {
+                    return Err(Refused::Group);
+                }
+                if *rule != own_rule {
                     return Err(Refused::Rule);
                 }
                 if !self.frozen(item) {
@@ -662,7 +681,8 @@ impl Walk {
             groups.entry((a.epoch, a.nym)).or_default().push(a.item);
         }
         let (mut cohorts, mut scorer_cohorts) = (Vec::new(), Vec::new());
-        for ((epoch, nym), members) in groups {
+        for ((epoch, nym), mut members) in groups {
+            members.sort_unstable();
             let closed = cuts.iter().any(|c| ends(c, epoch));
             let invalid: Vec<usize> = members
                 .iter()
