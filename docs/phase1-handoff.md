@@ -815,7 +815,8 @@ they win.
   the protocol, availability, confidentiality, reputational incentives, neutrality.
 - **The scorer's future caller: a contract proposal** (documentation only, on the owner's
   assignment after that review, which authorized recording it, the caller's specification and one
-  commit, no push, no caller implemented; **awaiting Astra's review**; `17` §14.10). Per input of
+  commit, no push, no caller implemented; **partly reviewed on `3e34f6f`**, below, rectified in
+  place; `17` §14.10). Per input of
   `score`: meaning and invariants, the source in code by symbol, the checks made and missing, the
   behaviour when evidence is absent, incoherent or not yet available. Sources exist for items,
   assignments, commits, reveals and the applied order (`NodeEvent::Step` through `Ledger::apply`);
@@ -828,6 +829,39 @@ they win.
   before its first assignment, refused records and invalid items apart from legitimate incomplete
   states), acceptance criteria, and that component as the next deliverable, with no production
   caller and needing none of O1–O3.
+- **Astra's review of `3e34f6f`: partial** (the contract read and compared with the cuts, the
+  ledger, `NodeState`, `NodeEvent`, the lifecycle and the freeze of `20`'s check; no Rust run).
+  Approved: the record of the scorer's approval on `6b9f42a`; the scorer stays acquired within its
+  perimeter. Accepted for the isolated component, as its direction: cohorts `K(u, e)`; weights
+  recorded before the assignments; the freeze derived from today's lifecycle. They show no
+  invariance of the assignments and adopt no protocol. Not approved as a whole: `17` §14.10, for
+  incomplete inputs and inconsistent acceptance criteria — the cuts' metadata the cohorts' closure
+  reads, the boundary with the ledger, the state a refused record keeps and the progression of a
+  pure function, the counts over a filtered set of items.
+- **§14.10 rectified in place** (documentation only, on the owner's assignment after that review,
+  which authorized the record, the rectification, targeted checks and one commit, no push; no
+  snapshot implemented; **awaiting Astra's review**, that review's approval covering none of it).
+  (1) The input carries every cut of the prefix with `number`, `epoch`, `closes` and its digest,
+  those applying no `NodeEvent` included, and each applied entry's position (cut, slot rank);
+  `K(u, e)` closes on a cut of `e` with `closes` or a cut of a later epoch, metadata only; three
+  criteria (a closing cut, a later epoch, the same events under other metadata); the cohort's
+  closure kept apart from a reveal close, still missing. (2) Three parts of the input kept apart:
+  the ledger's applied cuts and entries, validated upstream; its refusals, supplied as evidence
+  (`CutReport::refused`), never derived from `CutReport::applied`; proposed records, not
+  `NodeEvent` variants nor accepted by the ledger, with identity (the `Cid` of their encoding),
+  placement (slots interleaved in a cut), inclusion (cut up to `n`), duplicates and conflicts
+  refused. Preconditions assumed upstream (signatures, writers, authorization, proofs, the order
+  within a cut) apart from the snapshot's checks (cut metadata, entries once, the lifecycle
+  replay); the criteria test the component's reading of refusals, not the ledger's
+  authentication. (3) One rule: a refused record keeps the previous state — a second terminal
+  keeps the first, a terminal before `Φ_j` leaves case 7, pending only where pending was the state;
+  a refused record apart from an incoherent prefix (no snapshot); no earlier output read,
+  progression stated as invariants checked on truncated prefixes; an item's validity settled at
+  its first assignment, the design record placed before it under A or C. (4) A register of every
+  assignment, invalid items included, `|R_u|` apart from `Scores::counts` over the valid subset,
+  no `O` or `V` for invalid items, cohorts holding one unscored with their denominator, scorer
+  indices linked to `Cid` and register index; a criterion with valid and invalid assignments of
+  one reviewer.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -918,7 +952,8 @@ they win.
   availability, confidentiality, the reputation's incentives, neutrality (`17` §14.3, §14.8 E).
   B-b's scorer, a library component with no production caller, is implemented (`17` §14.9),
   approved on `6b9f42a` as an isolated component; the production caller stays missing, its
-  contract proposed in `17` §14.10, awaiting review. The decision proposal on A1's path, `17`
+  contract proposed in `17` §14.10, partly reviewed on `3e34f6f`, rectified in place and awaiting
+  review. The decision proposal on A1's path, `17`
   §14.8, partly reviewed on `23283f2`, is rectified, the rectifications approved on `7d1b19e`.
 - **`08` PRIV-004.1 (separate from A1): remediation open.** The general claim that an inclusion
   proof lets its holder infer no other input is refuted under the stated enumerable-field
@@ -964,8 +999,9 @@ candidate contract. The absent baseline's correction and §14.6's adaptive verif
 `d7a4449`. The decision proposal on A1's path, `17` §14.8, was partly reviewed on `23283f2` and
 rectified, the rectifications approved on `7d1b19e`; B-b's scorer, accepted on `23283f2` as the next
 intervention, is implemented with no production caller (`17` §14.9, `20` §12), partly reviewed on
-`7d1b19e` and `0ca81e9` and approved on `6b9f42a`. The next step is Astra's review of its caller's
-contract (`17` §14.10); O1–O3 stay the owner's, none needed now.
+`7d1b19e` and `0ca81e9` and approved on `6b9f42a`. Its caller's contract (`17` §14.10) was partly
+reviewed on `3e34f6f` and rectified in place; the next step is Astra's review of the rectified
+contract; O1–O3 stay the owner's, none needed now.
 No roadmap or campaign is added, and no choice or parameter is asked of the owner.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -1015,7 +1051,7 @@ decision, **L** a documented limit.
 
 | Findings, state | Closure criterion (ref) | Acquired; limits | Missing | Depends on | Minimal next deliverable |
 |---|---|---|---|---|---|
-| A1, critical, open | `15` A1: the information at reporting defined, IPW properness proved under it, an adaptive strategy tested | theorem conditional on C1–C6 (`16` §4.3); band baselines in code; B-b, arms A/C, cases 5–7, α, T1/T2 and their evidence as conditional analyses (`17` §§7–13); `20`'s check; `17` §14 as a conditional candidate contract (`d2be7da`); the absent baseline's correction and §14.6's adaptive verification in test code (`d7a4449`), acquired within the approved constructions' perimeter. Limits: C1 rests on a member model (`16` §6); H-c only declared; no arm or contract adopted | Dd: the guarantee's perimeter — target, observation design, incentives' scope, missing reports — each narrowing justified (`17` §14.7; proposed in §14.8, its rectifications approved on `7d1b19e`, O1–O3 for the owner); Im: `17` §14.5's missing capabilities, B-b's scorer implemented with no production caller (§14.9, approved on `6b9f42a` as an isolated component), its caller's contract proposed (§14.10, awaiting review); Pr: each hypothesis realized, or declared with its residual channels | A's capacity (+316.825 slots against the declared 333.5, `17` §8.5); the records' availability (`17` §8.3); T58 for C4 and cases 6–7 | Astra's review of the caller's contract (`17` §14.10) |
+| A1, critical, open | `15` A1: the information at reporting defined, IPW properness proved under it, an adaptive strategy tested | theorem conditional on C1–C6 (`16` §4.3); band baselines in code; B-b, arms A/C, cases 5–7, α, T1/T2 and their evidence as conditional analyses (`17` §§7–13); `20`'s check; `17` §14 as a conditional candidate contract (`d2be7da`); the absent baseline's correction and §14.6's adaptive verification in test code (`d7a4449`), acquired within the approved constructions' perimeter. Limits: C1 rests on a member model (`16` §6); H-c only declared; no arm or contract adopted | Dd: the guarantee's perimeter — target, observation design, incentives' scope, missing reports — each narrowing justified (`17` §14.7; proposed in §14.8, its rectifications approved on `7d1b19e`, O1–O3 for the owner); Im: `17` §14.5's missing capabilities, B-b's scorer implemented with no production caller (§14.9, approved on `6b9f42a` as an isolated component), its caller's contract proposed (§14.10, partly reviewed on `3e34f6f`, rectified, awaiting review); Pr: each hypothesis realized, or declared with its residual channels | A's capacity (+316.825 slots against the declared 333.5, `17` §8.5); the records' availability (`17` §8.3); T58 for C4 and cases 6–7 | Astra's review of the caller's contract as rectified after `3e34f6f` (`17` §14.10) |
 | A2, high, open; R1 approved | `15` A2: target measure, linking, whole-test contribution specified; bound proved; estimation error apart; a margin alone does not close it | conditional proposition (`19` §3); R1, `D(T)` an admission cost; calibration comparison, no winner (`19` §9); one fixed form (`19` §9.6). Limits: no `μ`, `𝒢`; the filtered functional is no function of the law; no bound with coverage | Dd: `μ`, `𝒢`, contrasts, forms (`19` §6.1, §10.2); Pr: the bound and its coverage; Im | B1–B3; the calibration arm, common reusable or per form, neither valid nor inevitable; D2, D4 | a contract of A1's kind, after A1's |
 | B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: S1's scenarios and decision criteria declared, then one campaign on an identified candidate, its design declared before execution; Pr where identification or coverage is claimed, which simulations do not replace | A2's target; the owner's authorization of the campaign | S1's declaration, no run |
 | A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; (c), the retired proxy path, fixtures only: L, its listing requiring no change; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
@@ -1061,7 +1097,7 @@ decision. §14.6's verification on finite constructions (`20` §11) is approved 
 §14.8 proposes the decision on A1's path, partly reviewed on `23283f2` and rectified, the
 rectifications approved on `7d1b19e`; B-b's scorer is implemented with no production caller
 (§14.9), approved on `6b9f42a` as an isolated component; its caller's contract is proposed in
-§14.10, awaiting review.
+§14.10, partly reviewed on `3e34f6f`, rectified in place and awaiting review.
 
 ## 6. Essential reading to resume
 
@@ -1694,4 +1730,24 @@ through the scorer); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43; code:
   the code, the states across `15`, `17`, `20`, `docs/README.md` and this note. No Rust run, test,
   fit, search, bootstrap, smoke, characterization, calibration, benchmark, mutation or Phase 2
   work; no code, dependency, formula or expected value changed.
+- **Astra, review of `3e34f6f`** (as it records): the contract of `17` §14.10 read and compared with
+  the cuts, the ledger, `NodeState`, `NodeEvent`, the lifecycle and the freeze of `20`'s check. No
+  Rust run.
+- **Claude Code, record of that review and §14.10's rectification:** branch
+  `docs/phase1-review-alignment`, HEAD `3e34f6f` (parent `6b9f42a`), no later commit, and a working
+  tree with only the owner's `.gitignore` modified checked first; `.gitignore` and the ignored
+  directories, `.gpt/` included, left untouched and out of the commit. Read (L), at `3e34f6f`:
+  `CLAUDE.md`, `docs/CLAUDE.md`, this note; `15`'s A1 row; `17` §§14, 14.9–14.10; `20`'s status and
+  reviews; code: `network::cut` (`Cut`, `Cut::next`, `cut::added`, `CutError`), `network::replica`
+  (`EntryId`, `Replica::get`), `network::cid::cid`, `ledger` (`Ledger::apply`, `apply_one`,
+  `member_object`, `CutReport`, `Refusal`, `Ledger::refused`), `node` (`NodeState::apply`,
+  `NodeState::step`, `Rejection`), `events::NodeEvent`, `lifecycle` (`State`, `Event`, `step`),
+  `cohort_scores` (`Case`, `Counts`, `Scores::counts`, `InputError`, `check`, `case`), the check's
+  `study::freeze`, `tests/ledger.rs`. No calculation beyond the counts of the new criterion
+  (`N = 3`, `O = 2`, `V = 1`, `Final(0)`), by hand. Documentation checks: `git diff --check`,
+  `scripts/comment_budget.py`, the new lines' widths, table columns, relative links, every code
+  symbol newly cited in §14.10 found in the code, the states across `15`, `17`, `20`,
+  `docs/README.md` and this note. No Rust run, test, fit, search, bootstrap, smoke,
+  characterization, calibration, benchmark, mutation or Phase 2 work; no code, dependency,
+  formula, expected value or scorer changed.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
