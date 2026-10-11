@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was partly approved by Astra on `d31e9fa` and **approved on `b2a1c2f` as the study's reporting specification**; the bridging input under `q_c` is analysed in `17` §10, **approved by Astra on `111e595` as a conditional analysis**; timing under A is specified in `17` §11, partly approved by Astra on `82bdb9a` and **approved on `cf5575a` as a conditional comparison between T1 and T2** (neither adopted); access and disclosure per object are specified in `17` §12, partly approved by Astra on `8af257d` and **approved on `7d8db08` as a conditional analysis of the informational requirements**; the observable evidence under T1 for its predicates (ii) and (iv) is specified in `17` §13, partly approved by Astra on `f38f8a4` and **approved on `176dd8c` as a conditional analysis of the observable evidence**. §10.6, a minimal perimeter for S2, was partly approved by Astra on `cbcbc67`, with decisions taken for preparing its specification only, rectified in `5af22b9` and **approved by Astra on `5af22b9` as a preparatory synthesis of the experimental perimeter** (below); the synthetic-event check it leads to is specified in [`20`](20-s2-synthetic-check.md), which that approval does not cover, **approved by Astra on `c76c035` as the check's specification**; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §11 adds a **candidate A2 guarantee contract, awaiting review**; A2 remains open. A1’s subsequent conditional closure on `1bd865c` is recorded only in `17` §14.15; it supplies none of A2’s missing obligations. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was partly approved by Astra on `d31e9fa` and **approved on `b2a1c2f` as the study's reporting specification**; the bridging input under `q_c` is analysed in `17` §10, **approved by Astra on `111e595` as a conditional analysis**; timing under A is specified in `17` §11, partly approved by Astra on `82bdb9a` and **approved on `cf5575a` as a conditional comparison between T1 and T2** (neither adopted); access and disclosure per object are specified in `17` §12, partly approved by Astra on `8af257d` and **approved on `7d8db08` as a conditional analysis of the informational requirements**; the observable evidence under T1 for its predicates (ii) and (iv) is specified in `17` §13, partly approved by Astra on `f38f8a4` and **approved on `176dd8c` as a conditional analysis of the observable evidence**. §10.6, a minimal perimeter for S2, was partly approved by Astra on `cbcbc67`, with decisions taken for preparing its specification only, rectified in `5af22b9` and **approved by Astra on `5af22b9` as a preparatory synthesis of the experimental perimeter** (below); the synthetic-event check it leads to is specified in [`20`](20-s2-synthetic-check.md), which that approval does not cover, **approved by Astra on `c76c035` as the check's specification**; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §11’s **candidate A2 guarantee contract approved by Astra on `5e600be`** as a specification of obligations; §12’s split-likelihood region and coverage proof await review. A2 remains open. A1’s subsequent conditional closure on `1bd865c` is recorded only in `17` §14.15; it supplies none of A2’s missing obligations. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -225,6 +225,17 @@ Review on `5af22b9` (§10.6's rectifications), distinct from the partial review 
   documents read; the joins checked; `bridging_gate`, `supplementary_review`, `screen` and
   `stage1_screen` read again. No Rust, fit, benchmark or campaign run; the local checks and the
   working tree stay Claude Code's evidence.
+
+Review on `5e600be`:
+
+- **Approved, with no blocking finding:** the record of A1’s conditional closure and §11
+  as a candidate A2 contract. This approves the specification of obligations, not an A2
+  guarantee already demonstrated; representation, coverage and conservative computation
+  remain distinct. A2, A12 and Phase 1 remain open.
+- **Astra’s evidence:** diff read and compared with §§3 and 9.6. No Rust, fit or new numerical
+  check. Separate from Codex’s documentation work and checks in the handoff.
+- Subsequent §12’s mathematical construction/proof is not covered by that approval and
+  awaits review; no implementation is supplied.
 
 ## 1. What the code computes (L)
 
@@ -1321,8 +1332,9 @@ Astra on `e5e0898`, was rectified and approved on `3559396` within the check's p
 
 ## 11. Candidate A2 guarantee contract
 
-**Status:** candidate, awaiting Astra’s review; **A2 remains open**. This specifies an
-obligation, not a realized bound or an implementation. It reuses §3’s proposition and
+**Status:** **approved by Astra on `5e600be` as a candidate contract**, without blocking
+findings; **A2 remains open**. This specifies obligations, not a demonstrated A2 guarantee
+or an implementation. The subsequent construction/proof for b in §12 awaits review. It reuses §3’s proposition and
 §9.6’s approved conditional analysis, with §10.2’s separation of objects. Neither calibration
 arm is chosen. The earlier reviews, calculations and counterexamples remain as recorded;
 no new numerical evidence or component policy is introduced.
@@ -1470,6 +1482,8 @@ Verifiable acceptance criteria for a future realization are:
 | conservative bound | specification and proof of c, certified numerical error treatment, and explicit trivial/no-certificate outputs; a local optimum or agreement across starts fails this criterion |
 | decision and scope | false-acceptance statement derived from a–c; failed gates/computations cannot accept; useful-width and cost evidence distinguished from validity; no certification of another population, form search or current runtime |
 
+**Historical next-deliverable recommendation on `5e600be`, now addressed by §12.**
+
 **Single recommended next deliverable, after review of this contract:** a short mathematical
 specification and coverage proof for **one all-order uncertainty region** for the fixed-form,
 complete-administration reference, with `α` symbolic. The split-likelihood route already named
@@ -1481,3 +1495,184 @@ a coverage deliverable, not a choice of calibration or an assertion that the reg
 or its supremum computable. Representation and conservative computation remain separate open
 obligations, and model/sampling premises remain conditional until justified for use. No code,
 fit, campaign or resource authorization is required by this recommended next step.
+
+## 12. Split-likelihood region and finite-sample coverage
+
+**Status:** mathematical specification and proof, awaiting review. This supplies a construction
+for §11’s obligation **b under the assumptions below**, not a realized A2 guarantee. §11 was
+approved as a candidate contract on `5e600be`; obligations a and c, useful precision and cost
+remain separate. No implementation, calibration arm or operational parameter is chosen.
+
+### 12.1 Observable family and target-linkage parameters
+
+Keep §11.1’s fixed `T`, population `Π`, complete administrations, fixed compatible anchor
+columns `H`, and `α ∈ (0,1)` symbolic. One observation is the correctness vector
+`Z = (X_j : j∈J) ∈ 𝒵 = {0,1}^d`, where `J` contains all active/contested test and anchor
+columns, each once, and `d = |J|`. Keys, formats and column order are fixed before data;
+missing or duplicate response columns are not complete administrations of this experiment.
+No personal or group attributes are observed. Assume `Z_1,…,Z_n` are i.i.d. from the law
+below and that this law is the declared population’s, with no transport or drift inferred.
+
+For the R-a/D37–D43 reference, let `β` range over **every order `k = 1,…,4`** and both
+admitted alternatives for item slopes (shared or per class), including coincident orders.
+For each order, `β` includes positive mixing weights `π_r` summing to one, shifts `η_r`
+(`η_1 = 0` as coordinates), the common histogram shape, item and anchor slopes/difficulties,
+and the format-dependent floors. No minimum share is imposed: positive shares can be
+arbitrarily small. These are the finite-logit weights of `Model::pi` and `Grid::shape`,
+not the 5% filtering of a fitted DTF.
+
+More explicitly, for a finite nondegenerate base grid `v_q`, `q=1,…,Q`, `Q≥2`, fixed before data,
+the shape has
+positive weights `w_q` summing to one, `u_q = (v_q − Σ_t w_t v_t)/s_w`, where
+`s_w² = Σ_q w_q(v_q − Σ_t w_t v_t)² > 0`. Then
+`ν_{r,β} = Σ_q w_q δ_{η_r+u_q}` is a probability ability law. Grid size/range stay symbolic;
+the normal-shape API option is the specified fixed-weight subcase, not permission to omit
+the free shape when it is admitted. With `σ(x) = 1/(1+exp(−x))`, the response curve is
+`p_{jr,β}(t) = c_j + (1 − c_j) σ(a_{jr}(t − b_{jr}))`:
+anchor `a,b` are class-invariant; item `b` may vary by class, and `a` follows either admitted
+alternative; `c_j = 0` for open formats and `0 < c_j < 1` for choice formats, shared across
+classes. Finite curve/floor-logit parameters and a valid shape define this reference family;
+no prior, penalty or admission threshold is a likelihood factor.
+
+With `b(x;p) = p` if `x=1` and `1−p` if `x=0`, local independence conditional on class and
+ability gives the **marginal observable probability**
+
+`f_β(z) = Σ_{r=1}^k π_r ∫ ∏_{j∈J} b(z_j;p_{jr,β}(t)) dν_{r,β}(t)`
+`          = Σ_r π_r Σ_q w_q ∏_{j∈J} b(z_j;p_{jr,β}(η_r+u_q))`.
+
+Both latent variables are integrated out, not replaced by estimated respondent abilities or
+hard class labels. Summing over `z∈𝒵` gives `Σ_r π_r Σ_q w_q = 1`, because each product of
+Bernoulli probabilities sums to one. This is the mathematical law behind `latent::evaluate`,
+`Model` and `Grid::shape`; it is not the penalized objective or a claim of exact numerical
+likelihood evaluation by the APIs. Specifying a law on the fixed columns adopts neither
+common nor per-test calibration.
+
+Write the full family as `Ξ = {(β,γ): β∈⋃_{k=1,…,4; s∈{shared,per-class}} ℬ_{k,s}, γ∈Γ_β}`.
+Here `γ` is the **target linkage**: any unknown scale maps, reference measure and conditional
+contrast mixtures needed for §11’s target, subject to the target-linkage hypotheses explicitly
+declared for that experiment (§11, H1–H3/R-b–R-d where retained). R-e/R-f locate filter/support
+boundaries, not implicit restrictions on `Γ_β`. The family is fixed before data, not selected
+by favourable responses or restricted by the fitted 5% filter.
+The contrasts `𝒢` remain the fixed abstract family, not data-dependent labels. The law
+`f_(β,γ) = f_β` does not observe arbitrary `λ_g(θ)` or external scale/measure linkages.
+Those parameters must remain free within `Γ_β`. If R-d makes `μ = Σ_r π_r ν_{r,β}`, it varies
+with `β` throughout the region; it is not an independent free measure or a fitted value held
+fixed. An externally prescribed `μ` is fixed by that prescription; an unknown external
+linkage is not estimated by this likelihood. No linkage, support condition or actual target
+representation is proved merely by this definition; an operational target still needs §11.5’s
+declarations. The coverage argument covers every admitted pair, whether identifiable or not.
+
+### 12.2 Independent split and normalized training prediction
+
+Before responses, fix disjoint index sets `I_tr, I_v` partitioning the observations, with
+symbolic positive sizes `n_tr, n_v`. A randomized partition must be independent of responses;
+include it in the conditioning. Let `𝒜` be the training data, partition and any fixed or
+independent training seed. Validation responses retain product law
+`L_β(z_v) = ∏_{i∈I_v} f_β(z_i)` conditionally on `𝒜`.
+
+Using **only** `𝒜`, construct a measurable normalized probability mass function `q_𝒜` on
+`𝒵`; for example `q_𝒜 = f_{β_hat(𝒜)}` for any measurable valid fitted parameter. Define
+`Q_𝒜(z_v) = ∏_{i∈I_v} q_𝒜(z_i)`, so `Σ_{z_v} Q_𝒜(z_v) = 1`. A deterministic algorithm
+with specified tie-breaking supplies measurability on the finite training alphabet. The
+proof requires this normalization, measurability and independence from validation data;
+it requires **neither correct BIC selection, global optimality, convergence nor consistency**.
+A penalized/local estimator can supply a valid prediction; this mathematical sufficiency
+changes no existing API refusal/status contract. Invalid parameters or numerical
+outputs do not supply a normalized law merely because a fit returned them.
+
+Choose the **no-certificate convention** for training failure in this mathematical
+specification. Failure is `𝒜`-measurable, including inability to supply a valid `q_𝒜`.
+On that branch set the bookkeeping region to `Ξ` and return no certificate (`U=+∞` for
+§11.3’s probability accounting); no acceptance is possible. There is no deletion of failed
+training samples or repetition of the experiment until one succeeds. This convention prescribes no production
+retry/resource policy.
+
+### 12.3 Ratio, support and proof
+
+On a successful training branch, for **each** `ϑ=(β,γ)∈Ξ`, define
+`R_ϑ(z_v;𝒜) = Q_𝒜(z_v)/L_β(z_v)` when `L_β(z_v)>0`;
+if `L_β=0<Q_𝒜`, set `R_ϑ=+∞`; if both are zero, set `R_ϑ=0`.
+The region is `𝒞(𝒜,z_v) = {ϑ∈Ξ: R_ϑ(z_v;𝒜) ≤ 1/α}`.
+Equality is included; rejection uses `R_ϑ>1/α`. Only the **numerator** may use the training
+model selector. Every order, slope alternative and admitted linkage remains in the denominator
+family; no BIC winner, visited-candidate list or 5% filter restricts this inversion.
+
+Finite parameters in §12.1 give `0<p_{jr,β}(t)<1` at each grid point, hence positive probability
+for every response vector. There is no uniform lower bound away from zero across parameters.
+The proof below does **not** rely on full support: it also applies if a separately declared
+normalized family admits structural zeros. No boundary extension of the reference family is
+adopted here. Denominator-zero events have probability zero under that candidate’s own law;
+the conventions specify the region even there, not evidence that impossible data occurred
+under the truth. Floating-point underflow is not a structural zero and does not justify
+these conventions in a future implementation; exact likelihoods or conservative numerical
+error treatment would be required.
+
+**Proposition (conditional and uniform finite-sample coverage).** For every admitted truth
+`ϑ*=(β*,γ*)∈Ξ`,
+`P_{ϑ*}(ϑ*∈𝒞 | 𝒜) ≥ 1−α` almost surely, and consequently
+`inf_{ϑ*∈Ξ} P_{ϑ*}(ϑ*∈𝒞) ≥ 1−α`.
+
+**Proof.** Fix a training realization on the successful branch. Under the truth, validation
+has law `L_{β*}` independently of that realization. For the nonnegative ratio,
+
+`E_{ϑ*}[R_{ϑ*} | 𝒜] = Σ_{z_v:L_{β*}(z_v)>0} L_{β*}(z_v) Q_𝒜(z_v)/L_{β*}(z_v)`
+`                          = Σ_{z_v:L_{β*}(z_v)>0} Q_𝒜(z_v) ≤ 1`.
+
+Zero-probability validation vectors contribute zero to the expectation even if the assigned
+ratio there is infinite; no `0·∞` arithmetic is needed. Equality holds when `Q_𝒜` places
+no mass outside the truth’s support. Conditional Markov’s inequality therefore gives
+`P_{ϑ*}(R_{ϑ*}>1/α | 𝒜) ≤ α E_{ϑ*}[R_{ϑ*}|𝒜] ≤ α`.
+This rejection event is exactly `ϑ*∉𝒞`. On the training-failure branch `𝒞=Ξ`, so the
+conditional noncoverage probability is zero. Averaging these conditional inequalities gives
+`P_{ϑ*}(ϑ*∉𝒞) ≤ α P_{ϑ*}(training succeeds) ≤ α`. The proof applies to every admitted truth
+with the same constant `α`; it uses no lower share bound, identification or asymptotics, hence
+the stated uniform bound. It is conditional on training for each truth, not a posterior claim
+or a simultaneous confidence statement about all parameters. ∎
+
+### 12.4 What the coverage supplies, and what it does not
+
+The region includes **whole linkage fibres** `Γ_β` when `β` passes; it cannot fix unobserved
+linkages to fitted values. Representations with identical observable laws have identical
+ratios and are retained/rejected together, regardless of their order or labels. Rare components,
+coincident orders and weak identification do not invalidate the expectation calculation.
+They may leave a large region and a useless upper bound, as already scoped in §9.6; no
+counterexample or numerical check is repeated here.
+
+| Layer | Result / remaining boundary |
+|---|---|
+| region coverage, §11 b | proved above for the exact mathematical region and declared i.i.d. reference, pending review; no implementation certified |
+| target domination, §11 a | still needs a declared target linkage and `DTF_μ(T) ≤ B_T(β,γ)` on that family; §3’s conditional result is reusable, not a property of today’s filtered functional |
+| conservative supremum, §11 c | still needs a certified upper bound on `sup_{ϑ∈𝒞} B_T(ϑ)`, including likelihood-region evaluation and integration errors; no local fit or convergence certificate suffices |
+| useful precision and cost | not established by coverage; a trivial `m` bound or no certificate remains possible, with no sample/resource commitment |
+
+No coverage **conditional on passing an anchor gate** follows. If a gate uses only `𝒜`, the
+conditional statement can survive conditioning on that training-only event, under this same
+experiment; it does not authorize a changed population or training response law for validation.
+A gate using validation or pooled data has no such implication. Returning no certificate on
+its failure can only reduce the *unconditional* false-certification event for this one fixed
+check, but conditioning on success, discarding/replacing respondents, refitting the numerator
+on validation, or reusing that set for a favourable split does not inherit the proof. Previously
+seen data are eligible only if the stated training/validation independence and data-use
+restrictions actually hold. Test search, sequential collection/stopping, multiple splits,
+updates and retries for another chance of acceptance need their own error argument (§9.5);
+none is implicitly covered, and no new procedure is designed here.
+
+### 12.5 Exact result and one next deliverable
+
+**Demonstrated:** an exact split-likelihood region with conditional-on-training and uniform
+finite-sample coverage `1−α`, under the declared response-law family, i.i.d. complete
+administrations of one fixed test with fixed anchors, an independent split, and a measurable
+normalized training-only prediction (or the no-certificate failure branch). The proof has no
+identification, BIC-optimality, asymptotic or positive-support prerequisite beyond those stated.
+It does not validate R-a for actual responses, identify the target linkage, certify a computed
+supremum, guarantee useful width/affordable execution, or close A2. **This section awaits review;
+A2, A12 and Phase 1 remain open.**
+
+**Single next deliverable recommended after review:** a compact **target-linkage and majorant
+specification on this `Ξ`**: state `Γ_β` for the symbolic `μ`, scale and contrasts, which parts
+are determined by `β` and which remain free, and instantiate §3’s acquired domination result
+for all active/contested items without relying on the fitted filter or BIC order. Acceptance:
+`DTF_μ(T) ≤ B_T(β,γ)` for every admitted pair with support/measure/alignment hypotheses explicit,
+and no plug-in collapse of unidentified linkages. This is obligation a; it reuses the acquired
+proof instead of repeating its examples, and adopts no calibration/component policy. The
+certified supremum, useful precision and cost remain subsequent distinct obligations.
