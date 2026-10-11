@@ -3606,8 +3606,19 @@ why. Then state and prove the intended incentive property for that objective und
 composed mechanism, with every condition realized or explicitly accepted in review; check
 the pertinent implementation if a runtime guarantee is claimed. The review must accept the
 objective, strategy scope, proof and residual limits, and assess any exclusions against
-Phase 1's claims. No objective, strategy class, reputational policy or proof is chosen here;
-the score's theorem alone cannot close A12. No general claim of protocol sincerity is authorized.
+Phase 1's claims. At this O3 decision no objective, strategy class, reputational policy or
+proof was chosen; the score's theorem alone cannot close A12. No general claim of protocol
+sincerity is authorized.
+
+**Subsequent study decision and result.** The owner approved for study only expected cumulative
+effective weight available in assigned opportunities over a fixed finite horizon, not causal
+influence on a verdict. Astra accepted the complete-report A/R counterexample in
+[`16` §7.1](16-a1-incentive-design.md#71-a12-finite-effective-weight-counterexample), on its
+declared item-level bridge with real cap and CUSUM transitions. It refutes the general
+sincerity claim for that composition, not A1's conditional expected-score claim or every
+future bridge. The original closure criterion above remains; **A12 is open and a correction
+decision is necessary**. No correction, policy, implementation or campaign is chosen or
+authorized by this registration.
 
 #### 14.14.2 O2 — one decision brief for the owner
 

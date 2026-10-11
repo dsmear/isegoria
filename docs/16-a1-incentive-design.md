@@ -391,7 +391,8 @@ shares. None of the four follows from the others.
 **Status after the owner's O3 decision following `a14364c`.** This incentive requirement is
 tracked as **A12, open** (`15`), separately from A1's expected-score closure objective.
 Decision and precise closure criterion: [`17` §14.14.1](17-a1-pilot-batch-design.md#14141-o3--owners-decision-after-a14364c).
-It is neither waived nor automatically non-blocking for Phase 1; no proof added here.
+It is neither waived nor automatically non-blocking for Phase 1. The subsequently approved
+study objective and accepted finite counterexample are recorded in §7.1; no correction is chosen.
 
 The IPW lemma concerns the score's mean. Probation and shrinkage read `k_u`, the count of
 observed items (`probation.rs:84–110`); the weight is `exp(γ S_u k_u/(k_u + k₀))`, capped; the
@@ -418,8 +419,121 @@ CUSUM reads the unweighted observed scores.
 - **Three quantities that are not interchangeable.** The number of real observations
   `Σ I_j` is the evidence available. The number of assigned judgments `N_u` is the exposure.
   `Σ I_j/π_j` is an IPW estimate of `N_u`, not evidence.
-- **Open:** the convex weight, the cap and the CUSUM's selection. No claim on the size of their
-  effects is made without a quantitative check.
+- **Open:** correction of the effective-weight incentives. §7.1 supplies a finite quantitative
+  counterexample with the cap and CUSUM included, not a general assessment of their effects.
+
+### 7.1 A12 finite effective-weight counterexample
+
+**Status.** The owner subsequently approved, for study only, the objective of maximizing
+expected cumulative **effective weight available in assigned review opportunities** over a
+prefixed finite horizon. Weight here is not causal influence on a verdict. Astra accepted the
+counterexample below after independently checking the formulas and states against the code,
+the rational scores and companion baselines, Decimal expectations and the rational Taylor
+certificate. **A12 remains open; a correction decision is necessary.** No correction,
+implementation, campaign or next implementation step is chosen or authorized.
+
+**Declared bridge and horizon.** In this complete-report, A/R-only subdomain, `π = 1` and
+each assignment contributes exactly once its
+`d(p,b,Y) = (b − Y)² − (p − Y)²` to `SkillTrack::record_observed(d, 1, params)`.
+The current cohort of the examined reviewer `u` is a singleton; exposure, denominators
+and update order are identical across strategies. A singleton reviewer cohort does not
+prescribe single-item empirical validation: the item may belong to its prefixed pilot group.
+This is an explicit item-level bridge
+for the study, **not an existing production composition of `cohort_scores` into `SkillTrack`**.
+The finite horizon is two epochs with one prefixed opportunity for `u` in each. Current
+weight is frozen at 1; next-epoch weight uses the updated prior-epoch standing. Thus
+`U = E[1 + w_eff,next]`; the next opportunity occurs before its own score update.
+
+**Reachable shared history and roster.** There are 19 reviewers, each with 30 observed
+zero-score updates, `reviewed = scored = 30`, both sums and CUSUM zero, and no alarm.
+Such a history is reached by complete A/R assignments with reports and baselines
+`p = b = 1/2`, yielding zero for either outcome. Bootstrap founders can supply the positive
+unit baseline weights before probation ends. After the 30th update all are Established
+with raw weight 1, even if their founder membership persists. These are reachable track
+states, not authenticated historical records or a reconstructed empirical pilot.
+
+The current first panel consists of `u` and eight other reviewers; the remaining ten
+receive no current assignment and retain weight 1. Frozen panel weights are all 1, and
+the eight companions each report `1/2`. Hence `u`'s leave-one-out baseline is `b = 1/2`,
+independent of `u`'s report and never its own-report fallback. With complete reports and
+`c = 1`, the reference terminal law is `P(A | F_u) = q = 4/5`, `P(R | F_u) = 1/5`.
+The fixed procedure, outcome law, information and assigned opportunities are unchanged
+by the deviation. No extra round, disclosure, delay or change of sample/resources is used.
+The terminal is a reference random variable, not a fit executed for this example.
+
+**Actual track transitions.** Compare the sincere report `p = 4/5` with `p = 41/50`.
+Defaults are `γ = 35`, `k₀ = 100`, `N_PROBATION = 30`, CUSUM allowance `0.03` and
+threshold `1.5`. CUSUM is active on this update and compares the score to the pre-item
+reference 0. No alarm fires: its largest statistic for `u` is `0.3924`, below `1.5`.
+After the update `reviewed = scored = 31` and `S_u = d/31`; the raw next weight is
+`exp(35 (d/31) 31/131) = exp(λd)`, where `λ = 35/131`.
+
+| Report | Terminal | `d_u` | New `S_u` | New CUSUM | Raw next weight |
+|---|---|---:|---:|---:|---:|
+| `0.80` | R | `−0.39` | `−0.39/31` | `0.36` | `0.901046446027404` |
+| `0.80` | A | `0.21` | `0.21/31` | `0` | `1.057710715483027` |
+| `0.82` | R | `−0.4224` | `−0.4224/31` | `0.3924` | `0.893280210446096` |
+| `0.82` | A | `0.2176` | `0.2176/31` | `0` | `1.059860615408532` |
+
+**Companion updates and real cap.** The report of `u` enters each companion's baseline,
+so their scores are updated too; they are not held falsely invariant.
+
+| Report of `u` | Each companion's baseline | Score on R | Score on A | CUSUM on A |
+|---|---:|---:|---:|---:|
+| `0.80` | `43/80` | `249/6400` | `−231/6400` | `39/6400` |
+| `0.82` | `27/50` | `26/625` | `−24/625` | `21/2500` |
+
+Companion CUSUM on R is zero; all eight remain Established with 31 updates and no alarm.
+The ten unassigned reviewers remain Established at weight 1 with 30 updates. Consequently
+the full 19-member roster's median raw weight is exactly 1 on every branch, and the actual
+`orchestrator::epoch_weight_cap` is `3 × 1 = 3`. Every updated weight is below 3
+(the largest is about `1.059861`); the cap is slack. Current frozen weights are not
+recomputed mid-epoch. Next weights use the full updated roster, not an exogenous cap.
+
+**Expectations and exact sign certificate.** The relevant expressions are
+
+`W_truth = (4/5) exp[(35/131)(21/100)] + (1/5) exp[−(35/131)(39/100)]`,
+
+`W_dev = (4/5) exp[(35/131)(136/625)] + (1/5) exp[−(35/131)(264/625)]`.
+
+| Report | Expected current score | Expected next effective weight | Total utility `1 + E[w_eff,next]` |
+|---|---:|---:|---:|
+| `0.80` | `0.09` | `1.02637786159190225735` | `2.02637786159190225735` |
+| `0.82` | `0.0896` | `1.02654453441604506557` | `2.02654453441604506557` |
+
+The gain is `Δ = W_dev − W_truth = 0.00016667282414280822… > 0`.
+For all four exponents `|x| < 1/8`. With
+`P₈(x) = Σ_{k=0}^8 x^k/k!`, the absolute exponential remainder is at most
+`r = 2/(8⁹ 9!)` (Taylor remainder and `exp(1/8) < 2`). Each expected-weight approximation
+has error at most `r`, and their difference at most `2r`. Exact Fraction arithmetic gives
+the interval `[0.0001666728240615…, 0.0001666728242258…]` and verifies
+`1/6000 < lower ≤ Δ ≤ upper < 1/5900`. The strict gain therefore does not depend on
+floating-point printing. The expected-score loss is exactly `(0.82 − 0.80)² = 0.0004`,
+as required by A1 with `c = 1`; A1's conditional expected-score closure is preserved.
+
+**Scope and evidence.** One deterministic complete-report deviation is sufficient to refute
+the general sincerity claim for this objective, bridge and current parameters; adaptive
+strategies include it. It neither refutes every future bridge nor establishes a protocol
+attack, end-to-end execution, empirical fit, authenticated history or collusion result.
+It needs no conclusion on I/pending, withholding or timing to refute the broader claim;
+those semantics remain necessary for any future general incentive specification.
+The control holds the other reviewers' behavior fixed and uses no coalition, direct action
+in another role, withholding or timing deviation; its utility includes no external value
+of the item's fate. These boundaries prove none of those channels harmless and do not
+restrict the strategies that a future general guarantee must address.
+
+The code reference is `f5b39b5c6c0526d99f0fabffd6fed6719644d084`:
+`scoring/src/reputation.rs::{difference_score,odds_weight,Cusum::observe,weight_cap}`,
+`protocol/src/probation.rs::{SkillTrack,status,effective_review_weight}`,
+`protocol/src/panel_scores.rs::first_panel_baselines` and
+`protocol/src/orchestrator.rs::{epoch_weight_cap,bridging_weights}`.
+The mathematical reproducer [`sim/a12_weight_counterexample.py`](../sim/a12_weight_counterexample.py)
+uses only the Python standard library: Fraction states/scores/CUSUM and Taylor bounds,
+Decimal65 exponential values. It is a checked transcription, **not a Rust test or a
+bitwise check of `scoring::fmath`**. The finite calculations were executed; no Rust test,
+fit or campaign was run. A2 remains open, its certifier suspended; `19` §12 still awaits
+review. T26 remains separate. The next outcome is a correction decision, not an
+implementation authorization or closure of A12 or Phase 1.
 
 ## 8. Alternatives under the same hypotheses
 

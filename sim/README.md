@@ -19,6 +19,19 @@ pip install numpy scipy
 
 ## Files
 
+### `a12_weight_counterexample.py`
+
+A12's accepted finite counterexample ([`docs/16` §7.1](../docs/16-a1-incentive-design.md#71-a12-finite-effective-weight-counterexample)):
+exact Fraction scores, track/CUSUM transitions, full-roster cap and a rational Taylor8
+certificate, with Decimal expectations. A mathematical transcription of the declared
+item-level bridge, not a Rust test, bitwise `fmath` check or end-to-end protocol run.
+Deterministic; Python standard library only, with no additional dependencies. From the
+repository root:
+
+```
+python3 sim/a12_weight_counterexample.py
+```
+
 ### `bridging_irt_dif.py`
 
 End-to-end simulation over 10 civic questions, 200 reviewers (a 60/40 unbalanced
