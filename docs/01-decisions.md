@@ -649,7 +649,7 @@ reacts slowly to a long con.
 
 ## D35 — Scored outcomes: live items with randomized exploration; golden items at 5%
 
-**O1 amendment (owner's explicit decision, 2026-10-11; text awaiting review).** For A1's
+**O1 amendment (owner's explicit decision, 2026-10-11; approved by Astra on `e735a8e`).** For A1's
 correction the forecast target is `q_c = P(Y = A | Y ≠ I, F_u)`, defined only where
 `c = P(Y ≠ I | F_u) > 0`. At `c = 0` the score is flat and `q_c` stays undefined, with no
 conventional value. The decided specification concerns the expected score under the declared

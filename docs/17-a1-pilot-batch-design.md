@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. Astra's review of `cbcbc67` approved those precisions and the further changes to §13.2's classification (§13); the minimal perimeter for a study S2 built on §§9–13, [`19`](19-a2-dtf-composition-design.md) §10.6, was partly approved there, rectified and **approved on `5af22b9` as a preparatory synthesis**; after that review §13.2's absent-precondition row was made self-standing, its classification unchanged. The synthetic-event technical check built on §§8–13 is specified in [`20`](20-s2-synthetic-check.md), **approved by Astra on `c76c035` as the check's specification**, with four precisions made there; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §14 proposes the contract of A1's candidate guarantee, on Astra's direction after the review of `bef891b` (B-b the reference score, A the analytic reference, C the comparison, neither adopted): partly reviewed by Astra on `11deec2`, which approved its mathematical core **as a conditional result** and not §14 as a whole; its adaptive verification criterion and the absent baseline were rectified in place in `d2be7da`, and §14 **approved by Astra on `d2be7da` as a conditional candidate contract** (no protocol, adoption of A or C, substantive narrowing or closure of A1). The absent baseline's correction in `20`'s check and §14.6's verification on finite constructions, in test code (`20` §§10–11), were **approved by Astra on `d7a4449`** within that perimeter. §14.8's decision proposal on A1's path was partly reviewed by Astra on `23283f2`, which approved the record of that approval and accepted B-b's scorer as the next intervention, and rectified in place; **its rectifications were approved by Astra on `7d1b19e`**. B-b's scorer, implemented in `protocol` with no production caller (§14.9), was partly reviewed on `7d1b19e`, which accepted three of its contract's choices and did not approve it for a numeric defect on its declared domain, and on `0ca81e9`; corrected, **it was approved by Astra on `6b9f42a` as an isolated component**, within §14.9's contract and numeric limits. The contract of its future caller, §14.10, was partly reviewed by Astra on `3e34f6f`, which approved the record of the scorer's approval and accepted the direction of three of the contract's choices for the isolated component, not the section; rectified in place, it was **approved by Astra on `8dc7087` as the specification of the isolated snapshot component**, with one precision on the digest and the prefixes. That component, implemented with no production caller (§14.11), was partly reviewed on `9c7cb23`; its two corrections and the **isolated snapshot component were approved on `93f3f7c`, with no further blocking finding**; O1 was decided by the owner on 2026-10-11 (§14.12), its semantic amendment awaiting review; O2/O3 remain open, no observation design adopted. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. Astra's review of `cbcbc67` approved those precisions and the further changes to §13.2's classification (§13); the minimal perimeter for a study S2 built on §§9–13, [`19`](19-a2-dtf-composition-design.md) §10.6, was partly approved there, rectified and **approved on `5af22b9` as a preparatory synthesis**; after that review §13.2's absent-precondition row was made self-standing, its classification unchanged. The synthetic-event technical check built on §§8–13 is specified in [`20`](20-s2-synthetic-check.md), **approved by Astra on `c76c035` as the check's specification**, with four precisions made there; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §14 proposes the contract of A1's candidate guarantee, on Astra's direction after the review of `bef891b` (B-b the reference score, A the analytic reference, C the comparison, neither adopted): partly reviewed by Astra on `11deec2`, which approved its mathematical core **as a conditional result** and not §14 as a whole; its adaptive verification criterion and the absent baseline were rectified in place in `d2be7da`, and §14 **approved by Astra on `d2be7da` as a conditional candidate contract** (no protocol, adoption of A or C, substantive narrowing or closure of A1). The absent baseline's correction in `20`'s check and §14.6's verification on finite constructions, in test code (`20` §§10–11), were **approved by Astra on `d7a4449`** within that perimeter. §14.8's decision proposal on A1's path was partly reviewed by Astra on `23283f2`, which approved the record of that approval and accepted B-b's scorer as the next intervention, and rectified in place; **its rectifications were approved by Astra on `7d1b19e`**. B-b's scorer, implemented in `protocol` with no production caller (§14.9), was partly reviewed on `7d1b19e`, which accepted three of its contract's choices and did not approve it for a numeric defect on its declared domain, and on `0ca81e9`; corrected, **it was approved by Astra on `6b9f42a` as an isolated component**, within §14.9's contract and numeric limits. The contract of its future caller, §14.10, was partly reviewed by Astra on `3e34f6f`, which approved the record of the scorer's approval and accepted the direction of three of the contract's choices for the isolated component, not the section; rectified in place, it was **approved by Astra on `8dc7087` as the specification of the isolated snapshot component**, with one precision on the digest and the prefixes. That component, implemented with no production caller (§14.11), was partly reviewed on `9c7cb23`; its two corrections and the **isolated snapshot component were approved on `93f3f7c`, with no further blocking finding**; O1 was decided by the owner on 2026-10-11 (§14.12), its amendment approved on `e735a8e`; the experimental terminal verifier contract is proposed in §14.13, awaiting review; O2/O3 remain open, no observation design adopted. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -989,7 +989,8 @@ without its terminal record is reported pending: not `I`, not 0, its assignments
 
 ### 9.2 Case 5 — verifiable terminal inconclusiveness
 
-**What the record must let a verifier check** (logical content; no schema or API proposed):
+**What the record must let a verifier check** (approved logical content; the concrete
+experimental contract is proposed in §14.13, awaiting review):
 
 1. the item and the procedure fixed for it, with the prefixed rule that applies — attempt budget,
    term, the condition of terminal closure — by reference to the record that fixed them;
@@ -2012,6 +2013,14 @@ and the handoff's §5.2 as an analysis of the open requirements. This is Astra's
 separate from Codex's document checks. The owner's subsequent O1 decision is recorded in
 §14.12; its semantic amendment awaits review and is not covered by this judgment.
 
+Astra's review of `e735a8e` (the diff and pertinent texts read; **144 rational Python checks**
+of the decomposition and loss; **no Rust run or PDF compilation**): **the O1 amendment is
+approved, with no new blocking finding**. Acquired: `q_c` only for `c > 0`, the separate
+`c = 0` branch without a conventional target; IPW and H-c hypotheses retained; decided
+specification apart from the current binary path. These are Astra's evidence, separate from
+Codex's document checks. O2/O3, A1 and Phase 1 stay open. The subsequent experimental terminal
+verifier contract (§14.13) is a new proposal, not covered by this approval.
+
 ### 14.1 The property
 
 For `u` and a prefixed cohort `K ⊆ R_u` (§8.3) the quantity is `E[Ŝ_K | F_u]` (§8.1; under A,
@@ -2185,7 +2194,8 @@ capacity and §8.3's availability still bear on any later observation-design ado
 
 **Status.** Claude Code's proposal after Astra's approval of `d7a4449`; not approved as a whole on
 `23283f2` (§14) and rectified here in place, the rectifications approved by Astra on `7d1b19e`
-(§14). **O1 decided by the owner on 2026-10-11**, semantic amendment in §14.12 awaiting review;
+(§14). **O1 decided by the owner on 2026-10-11**, semantic amendment in §14.12 approved on
+`e735a8e`;
 O2/O3 remain the owner's. No A, C or T1 adopted. The question remains which further decisions
 and realizations turn the contract into A1's correction.
 
@@ -2276,7 +2286,7 @@ no equal precision. Slots are not persons, answers with anchors, fits or measure
 D4). O1 is resolved; O2/O3 stay the owner's and block neither isolated library:
 
 - **O1, the target: decided (2026-10-11)**; the semantic amendment of D35, §C.2 and
-  `prop:ipw` is recorded in §14.12, awaiting review. No decision of O2/O3 follows.
+  `prop:ipw` is recorded in §14.12, approved on `e735a8e`. No decision of O2/O3 follows.
 - **O2, the observation design and capacity**: A's capacity, or C with its draw's source and reuse
   conditions; C stays in the comparison either way.
 - **O3, reputation**: whether A1's closure needs the incentives of the reputation actually used or
@@ -2983,7 +2993,8 @@ H-b, H-c, H-e; a reveal close, so no `Missing`.
 ### 14.12 O1 target amendment (owner's decision, 2026-10-11)
 
 **Status and authority.** The owner explicitly approved O1 after `13b5aad`. This section
-records that decision and the semantic amendment; **the amendment awaits independent review**.
+records that decision and the semantic amendment; **Astra approved the amendment on `e735a8e`**
+(§14's review record).
 Astra's approval of `13b5aad` covers the previous review record and the handoff analysis, not
 this subsequent decision or its wording. O1 is resolved; O2/O3 and A1 remain open. No A, C or
 T1 is adopted, no protocol or production path is approved, and no code or test expectation is
@@ -3045,25 +3056,402 @@ production producer supplying authenticated group/rule/attempt evidence. The for
 not been adapted to O1; the latter components are acquired but do not compose that missing
 path. This decision changes the specification, not an outcome law or an execution.
 
-**One next intervention recommended.** Specify the concrete experimental rule and record
-contract needed by §9.2's terminal verifier, before implementing that verifier. O1 now fixes
-the semantic target; the next missing input is a reproducible reference `Y`, rather than more
-verification of the acquired scorer or snapshot. The deliverable must bind the group and its
-items to a rule/version; define supported attempt/stage numbering, retry and term conditions,
-answers/anchors/seeds/model references, evidence completeness, canonical identities and the
-terminal reason; distinguish an earlier conclusion, documented exhaustion and a missing
-attempt/record that remains pending. A positively recorded resource shortfall stays distinct;
-its classification under a concrete rule remains undecided (§9.2), and O1 does not make it `I`.
-The contract must state who authenticates each association and record, and which
-unsupported or unverifiable records leave the state unchanged.
+**Recommendation recorded with O1.** The next intervention was the concrete experimental
+rule/record contract for §9.2's terminal verifier, before code. It is now proposed in §14.13,
+with its dependencies, acceptance/refusal criteria and precise API gaps collected there.
+That new contract awaits review; no producer, verifier, runtime or A1 closure follows.
 
-Dependencies: the approved §9.2 obligations and existing pilot APIs; explicit rule parameters
-and supported computations recorded before assignment. An experimental contract may take those
-parameters as inputs, specifying their semantics without choosing production budgets, terms,
-thresholds or an observation design. If concrete policy choices are needed, name them for the
-owner rather than importing the synthetic K4 fixture as a protocol decision. O2/O3 remain
-separate prerequisites of their retained production guarantees. Acceptance: each §9.2 check has
-concrete record fields, ordering and a defined recomputation; complete evidence and corrupted,
-missing or premature evidence have unambiguous judgments; a valid `I` needs positive evidence,
-never silence; the contract passes independent design review. No producer, verifier, runtime,
-Rust run, campaign or A1 closure is authorized by this recommendation.
+### 14.13 Experimental terminal verifier contract (proposal awaiting review)
+
+**Scope and evidence.** Proposed after the owner's assignment on `e735a8e`; **documentation
+only, not an approved contract or an implemented verifier**. §9.2's logical obligations,
+O1 (§14.12), the scorer and snapshot remain acquired. This section is the single specification
+of the proposed records, numerical replay, judgments and future adapter. Read at this baseline:
+[`pilot.rs`](../crates/protocol/src/pilot.rs),
+[`revalidation.rs`](../crates/protocol/src/revalidation.rs),
+[`latent.rs`](../crates/scoring/src/latent.rs),
+[`admission.rs`](../crates/protocol/src/admission.rs),
+[`nullifier.rs`](../crates/identity/src/nullifier.rs),
+[`cohort_snapshot.rs`](../crates/protocol/src/cohort_snapshot.rs) and the corresponding pilot
+tests; no calculation, Rust execution or PDF build supplies evidence for this proposal.
+It verifies a pinned experimental procedure on recorded inputs, not pool admission, a source's
+truth, sampling representativeness or H-b/H-c/H-e. No A/C/T1, T58, O2/O3 or production value is
+adopted. Resource shortfalls retain §9.2's open classification.
+
+#### 14.13.1 Fixed rule and supported numerical profile
+
+`Rule` is immutable and recorded before **every member's first assignment**, as is
+`Association`. `group` is the CID of `Association`, whose ordered distinct item CIDs are the
+stage-1 columns; `Association.rule` is the `Rule` CID. There is no circular self-reference.
+For each item the snapshot's declared `group` and `rule` must match these identities.
+`Association` also fixes the ordered anchor item/key-version CIDs, `Formats` and `Templates`
+for anchors and items; the response coding is complete binary correctness, without missing
+cells. Anchor/item text and key changes require another association, never a mutation.
+
+Required `Rule` fields, in this order: schema version; numerical profile CID; response-coding
+version; stage-1 and stage-2 target row counts `n1`, `n2`; positive attempt budgets `B1`, `B2`;
+the ordered stage-1 and stage-2 plans; log-order term `T`; authorization-policy CID.
+Each plan has exactly its budget's entries, numbered `1..=B_s`, each specifying an epoch,
+inclusive opening and closing positions `(cut, slot)`, and fit seed. Windows within a stage
+are ordered and disjoint; stage-2 windows follow all stage-1 windows, and all close by `T`.
+These are explicit experimental inputs, with no default budget, deadline or sample size.
+An early conclusion cancels later planned attempts; no absence in a cancelled slot is missing
+evidence. An elapsed term with required attempts absent does **not** permit `I`.
+The schedule bounds recorded inputs and attempts; it asserts no production/disclosure order
+relative to `Φ_j`, reserves no resources, and is not a choice of T1 or T2.
+
+The supported profile is **statistical two-stage replay**, with the existing numerical
+operators. Its explicit compatibility manifest names the source revision, source-object CIDs,
+`Cargo.lock` CID, Rust toolchain/target/features/build settings, and the following settings:
+
+| Stage / gate | Settings bound by the profile | Actual API boundary |
+|---|---|---|
+| stage 1 | `n1 ≥ N1_MIN`; initial group size at least `K_MIN`; `R_PBIS_MIN`, `A_MIN`, `B_ABS_MAX`, `C_EXCESS_MAX` exactly from the pinned code | `screen` checks respondent floor and rectangular rows; the group floor is an additional explicit contract check using `admit_dif_batch` |
+| stage-1 model | `LatentParams`: `max_classes=1`, `estimate_shape=false`, `n_starts=4`, `seed=0`, `nodes=41`, `theta_max=5`, `floor_weight=20` at this revision | `stage1_fit` fixes these internally; stage-1 plan seeds must be 0, not an advertised configurable seed |
+| stage 2 | `n2 ≥ N_LATENT_MIN`; stage-1 survivor batch at least `K_MIN`; `KR20_MIN`, `MIN_CLASS_SHARE`, `MIXTURE_DIF_MAX` exactly from the pinned code | `latent_batch` checks floors, rows, formats, templates and anchor reliability; `target_rechecks` uses the fixed DIF threshold |
+| stage-2 model | `LatentParams`: `max_classes=4`, `n_starts=4`, `nodes=41`, `theta_max=5`, `floor_weight=20`, `estimate_shape=true`; seed from that attempt's plan | `latent_batch` calls `latent_dif`, with defaults except seed |
+| both optimizations | iteration bound 1000, history 10, gradient tolerance `1e-5`; initialization, candidate order/BIC selection and stopping rules bound by source | these are internal settings, not parameters of either protocol wrapper; no wall-clock timeout may stand for non-convergence |
+
+The constants and defaults above describe compatibility with code, not chosen production
+operating points. Reject an initial group below `K_MIN`, bad parameter domains, unrecognized
+profile/version, or a manifest inconsistent with the executable; never reinterpret those as
+an inconclusive experiment. The supported profile requires nonempty anchors and finite,
+positive model settings; input dimensions and byte lengths are bounded by the profile's
+explicit object-size limit before allocation. Custom wrapper settings are not silently
+honored: see §14.13.8. No synthetic K4 fixture becomes a rule.
+
+For this **proposed statistical profile**, stage-1 `Fail` concludes `R` for that item;
+`Pass` proceeds to stage 2. Stage-2 `NoDif` concludes `A` and `Dif` concludes `R`, meaning
+the pinned statistical procedure's readings, not absence of real DIF or membership in a pool.
+This table is part of the profile and awaits review. The current lifecycle can instead turn
+`Dif` into `Contested` with `source_verified=true`; no API computes that source check (T68).
+A rule requiring it is **unsupported**, not satisfied by supplying that boolean or by assuming
+`false`. This limited profile supplies no verified outcome for that alternative procedure.
+
+#### 14.13.2 Payloads, identities, placements and authentication
+
+The following are proposed experimental objects, **not `NodeEvent`s**. Within each row the
+listed fields are the encoding order. All references name exact content, not mutable URLs.
+
+| Object | Concrete fields |
+|---|---|
+| numerical profile | version; source revision and source CIDs; dependency/build manifest; resolved numerical settings; supported error/reading mapping; maximum object bytes |
+| authorization policy | version; network ID; trusted study-authority reference; allowed 32-byte writer keys separately for rule/association, sheets, data closes, attempts, terminal claims and complete indexes; issuer-key object CID; required authentication scheme for a sheet's identity–answer binding |
+| `Rule` | fields of §14.13.1, including complete finite plans; a profile CID, not a free-form model name |
+| `Association` | version; rule CID; ordered item CIDs; ordered anchor/key-version CIDs; anchor/item format vectors; anchor/item optional template CIDs |
+| `Sheet` | version; association CID; stage and attempt number; response epoch; respondent nym; nullifier-proof object CID; ordered anchor bits and trial-item bits; identity–answer authentication evidence CID |
+| `DataClose` | version; association CID; stage and attempt number; source observed-through position; ordered selected sheet CIDs; have/need counts |
+| `Attempt` | version; association CID; stage and attempt number; previous accepted attempt CID (absent only for the first); optional stage-1 decision-attempt CID (present exactly for stage 2); data-close CID; ordered selected sheet CIDs; derived matrix CID; claimed API error or fit status/readings; replay-output CID |
+| `Sequence` | version; association CID; ordered attempt CIDs by stage/index for this item's required prefix; first stage-1 decision CID if any; stopping attempt CID; closed-through position |
+| `TerminalClaim` | version; association CID; rule CID; item CID; claimed `A/R/I`; reason tag (`ScreenFail`, `NoDif`, `Dif`, `BudgetExhausted`); sequence CID; stopping attempt CID |
+| derived matrix | version; association CID; stage/attempt; ordered row nyms, anchor CIDs and trial CIDs; row/anchor/item counts; row-major anchor bits then trial bits |
+| complete view index | version; network ID; through-position; cuts in order, each with number/epoch/closing flag/ledger digest and ordered slots; applied slots carry `EntryId` and object CID, experimental slots payload CID/writer/provenance CID |
+
+`Sheet` trial columns are the association's full list at stage 1 and the recomputed ordered
+survivors at stage 2. It contains no personal/demographic attributes, no declared latent class
+and no link between respondent and evaluator/author roles. Correctness bits and the pinned
+keys are inputs to the numerical verification; proving an open answer was marked correctly,
+or that a human gave it, requires the declared upstream evidence and is not an IRT calculation.
+
+**Canonical encoding.** Prefix each object with the length-prefixed ASCII domain
+`isegoria/terminal-replay/v1` and its type tag (`Profile=0`, `Policy=1`, `Rule=2`,
+`Association=3`, `Sheet=4`, `Attempt=5`, `Sequence=6`, `TerminalClaim=7`, `ReplayOutput=8`,
+`Matrix=9`, `ViewIndex=10`, `DataClose=11`, `ReplayResult=12`).
+Use `network::codec::Writer`: integers and lengths `u64` little-endian, tags/booleans `u8`,
+32-byte CIDs/keys/nyms fixed-width; absent/present options `0/1`; vectors length then elements;
+positions cut then slot; text/opaque bytes length then bytes. Reject trailing bytes, duplicate
+keys/items and non-canonical encodings. Preserve declared column/attempt order; sort allowed
+key sets lexicographically and require that order. `Format` tags are `Open=0`, `Choice=1`
+followed by `m:u8`, `m≥2`; input bits are exactly `0/1`. Version, stage, error, convergence and
+reason tags have a closed vocabulary bound by the profile, never an arbitrary status string.
+For v1: stages `1/2`; outcomes `A/R/I=0/1/2`; convergence
+`Converged/MaxIters/LineSearchFailed=0/1/2`; screening `Pass/Fail/Indeterminate=0/1/2`;
+rechecks `Dif/NoDif/Indeterminate=0/1/2`; terminal reasons in the table's order `0..=3`.
+API result tags are `Error/Stage1Fit/LatentDif=0/1/2`; `PilotError` tags follow its pinned
+declaration order `0..=6`, with all variant fields retained. Schema version is `u64=1`.
+Slot tags are applied/experimental `0/1`; `EntryId` is writer/sequence/hash, as in the
+existing network codec. Source-path lists are sorted by path bytes; model settings use
+`LatentParams`' declaration order, followed by optimizer bound/history/tolerance and the
+named gate constants in §14.13.1's table order. Profile/build data must resolve to one exact
+supported manifest; unknown fields/settings are unsupported, not ignored.
+Object identity is `network::cid::cid(encoding)`. Another signature or placement over identical
+bytes does not change that CID; another parameter, sheet, order or reference does.
+
+`ReplayOutput` encodes the API result variant and all returned fields, in their Rust
+declaration order: `Stage1Fit {status,rpb,a,b,c}` and readings, or `LatentDif`'s `classes`,
+`non_uniform`, `pi`, `eta`, `ability {nodes,weights}`, `anchor_a/b/c`, `item_a/b/c`, `dif`,
+`a_gap`, `posterior`, `bic_gain`, `candidates`, `status` and rechecks, or the exact `PilotError`
+variant and fields. Numeric outputs use tag `0` then finite `f64::to_bits()` as `u64`,
+`1` for NaN, `2/3` for negative/positive infinity; input settings must be finite and encode
+by bits. The NaNs in stage-1 `a/b/c` for columns not fitted are legitimate diagnostics, never
+filled with zero. A conclusive reading requires finite fitted coefficients and decision gaps;
+an otherwise uninterpretable numerical result is unsupported, not a new reason for `I`.
+This output codec is proposed here; no API currently serializes these fit structures.
+
+**Placement is separate from content identity.** The input is a complete ordered view through
+the claim's position, with each placed object's CID, `(cut, slot)`, writer and provenance
+reference, plus the applied ledger entries identifying every member's first assignment and
+the relevant `Φ_j`. Object-store resolution supplies the bytes of every dependency. The
+view's canonical index has its own CID; no payload contains its own position/index CID.
+Rules, associations, policies and profiles precede assignments; input windows, data closes,
+attempts and claims obey their rule and reference order. Dependencies outside the supplied
+prefix are missing evidence. Positions are evidence of order, not physical production time.
+
+**Upstream authenticated preconditions.** A trusted experimental authority anchors the policy;
+the rule cannot authorize its own writer without that root. Before numerical replay, the
+authentication layer must bind writer signatures to payload CIDs and authorized roles, the
+complete view to its cuts/positions, and each sheet's respondent to its answers and attempt.
+`SignedEntry`/`Replica::check` can bind a writer and a payload; issuer/nullifier APIs can check
+`Respond` admission. Neither implies the other bindings. No new supplied `verified` flag or
+signature over a claimed numerical verdict replaces replay. The verifier checks CIDs,
+canonical structure, policy/key equality, all semantic references and all order predicates;
+signature/provenance validity and completeness of the authenticated view are preconditions,
+with concrete evidence references, not conclusions of a fit. If they are absent or cannot be
+validated upstream, the contract is not satisfied (§14.13.8).
+
+#### 14.13.3 Data reconstruction and numerical replay
+
+For each stage/attempt use its fixed window and epoch. Enumerate the authenticated sheet
+records in position order, validate scope, key versions, shape and binary cells, and apply
+`pilot::submit_response` with the pinned `IssuerPublic`, decoded `NullifierProof`,
+`pilot::batch_id(trial_item_CIDs)` and epoch to a fresh `NullifierSet`. Check its returned nym
+against the sheet; reject repeated nyms within this attempt. Sampling in this profile is the
+first `n_s` admitted complete sheets in that window, not a runner-chosen subset. Record each
+known admission refusal (bad proof, wrong role, duplicate) with its reason; it contributes no
+row. An unresolved/authentication-unsupported earlier sheet is missing/unsupported evidence,
+not a sheet to skip. A referenced selected sheet failing validation refuses the attempt.
+The full view must justify that none was skipped. Once selected, sort their rows by nym bytes,
+and use that same order for both matrices and the selected-sheet vector. The set is only for admission and
+counting, never a source of matrix iteration order. Reuse across attempts/stages is allowed
+by this experimental profile, with no claim of independence; there is no new person or role.
+The sheet's response epoch must equal the plan's epoch and its cut's epoch; an attempt window
+cannot silently import responses from another epoch/context. `batch_id` sorts/deduplicates
+item CIDs and binds neither anchors nor column order: check both explicitly against the
+association and survivor projection, not by relying on that batch identifier.
+
+`DataClose` is positive evidence, not an assertion to trust: compare its sheet list and
+have/need with that enumeration, its observed-through boundary with the complete view, and
+its position with the window. A complete sample may close once `n_s` valid sheets have
+arrived. A shortfall may be reported only at the planned closing boundary with that whole
+window covered; a missing close is missing evidence. Sheets must precede their data close;
+the closing boundary's slot is reserved for the close, not another sheet. Attempt and close
+sheet lists must be identical; an asserted count or a close signature does not replace this
+enumeration.
+The observed-through position must be the view's last slot before the data close. Enumerate
+the window through that boundary, including every relevant earlier sheet, and select the
+first `n_s` valid distinct rows; `have` is that selected count, at most `n_s`. Sheets after
+an accepted close cannot change its data. The close's writer/provenance is authenticated
+upstream under the policy just as an attempt's is; absent evidence is not an implicit close.
+
+Reconstruct matrices as respondents × anchors and respondents × trial items; convert each
+bit to `f64` exactly. A derived matrix object encodes row nyms, column CIDs, dimensions and
+bits; its CID must match `Attempt.matrix`. Resolve every format and template from the fixed
+association and project them by survivor indices, without reordering or updating companions.
+Use all and only the selected rows; zero-imputation, shortest-row truncation and unrecorded
+answer/key conversions are incompatible evidence. The APIs check dimensions/counts but do not
+bind individual row identities to answers; the extra checks above and upstream binding are
+necessary even if a numerical wrapper returns `Ok`.
+
+| Replay | Operation on these inputs | Comparisons deciding the judgment |
+|---|---|---|
+| stage 1 | `admit_dif_batch(k, n, N1_MIN)` for the initial group floor; `screen(&respondents, anchors, responses, formats)`; `stage1_fit` and `stage1_verdicts` on the same admitted matrices to recover diagnostics | match exact fit status, `rpb/a/b/c` output CID and all item readings; lower-level readings must equal `screen`'s vector; the fit drops columns below `R_PBIS_MIN` itself, not at the runner's discretion |
+| survivor derivation | from the first converged stage-1 attempt, select exactly `Screening::Pass` in original column order; keep every `Fail` as an earlier `R` | compare stage-2 item CIDs, formats/templates projection, batch context and stage-1 decision reference; a different survivor set is incompatible |
+| stage 2 | `revalidation::latent_batch(&respondents, anchors, responses, formats, templates, planned_seed)`, then `target_rechecks(&fit)` on `Ok` | match the exact API error, or selected model/convergence, all returned fields' CID and `Recheck` vector; selection/BIC, latent parameters, anchor reliability and template checks are rerun, not read as asserted verdicts |
+
+The stage-1 diagnostic call reruns its fit because `screen` returns only readings; no API is
+changed here to avoid that duplicate calculation. Stage 2 reuses the returned fit, not the
+legacy proxy-θ `revalidate_pool_latent`, `latent_flags`, or calibration-only `dif_batch`.
+The supported latent path needs no external θ, declared classes or demographic axis.
+
+Required reproducibility: the same canonical inputs, row/column order, pinned code,
+dependencies/build manifest and seeds yield identical canonical replay output; finite values
+compare by bits and tags/statuses exactly, not by a tolerance that could cross a threshold.
+Use the code's `scoring::fmath`/`libm` and deterministic optimizer/RNG sequence; no platform
+transcendental substitution, parallel reduction, seed retry outside the plan or elapsed-time
+stopping. A supported build must have independent replay evidence for this identity before
+implementation acceptance; this documentation read establishes none. A mismatch refuses the
+claim as `ReproductionMismatch`; it is not fit non-convergence and cannot consume an attempt
+as evidence for `I`. An unsupported execution profile returns `Unsupported`.
+
+#### 14.13.4 Sequence completeness and terminal judgments
+
+The verifier derives the accepted attempt sequence from **the entire authenticated view**,
+not just `Sequence`'s list. Slots have unique positions; exact duplicates are identified by
+CID, and a conflicting second valid record for an accepted stage/index is refused, the first
+kept. A malformed, unsupported or irreproducible attempt is refused without advancing the
+attempt counter; a later valid record at that required index may still be accepted within
+the plan's term/order constraints. `Sequence` must match the derived chain and terminal
+stopping point exactly. A predecessor CID proves linkage, not completeness of the view.
+The first stage-1 predecessor is absent; later stage-1 predecessors name index `a-1`.
+Stage-2 index 1 names the stage-1 decision as its predecessor; subsequent ones name the
+previous stage-2 index. `Sequence` is the item's required prefix, not every later computation
+for other group members: an item failing stage 1 requires no later stage-2 evidence.
+Completeness is over the authoritative recorded procedure and required positive statuses;
+it cannot show an unrecorded private fit was never run or withheld. Such activity and resource
+availability remain outside this replay's guarantees.
+
+Stage 1 starts at index 1 and admits only consecutive indices. An admitted non-converged fit
+(`MaxIters` or `LineSearchFailed`, all readings `Indeterminate`) consumes one attempt and
+permits the next. The **first converged** fit ends stage 1: every `Fail` concludes `R`, and
+only the fixed survivors enter stage 2. If all `B1` accepted fits are non-converged, every
+still-unconcluded member may conclude `I` by documented budget exhaustion. If none survive,
+all are already `R` and no stage-2 attempt is required.
+
+Stage 2 also starts at 1, bound to that stage-1 decision, with no gap. `NoDif`/`Dif` from a
+converged fit end it with the profile's `A/R` table. Supported positive non-conclusions are
+an admitted fit's `MaxIters`/`LineSearchFailed`, `UnreliableAnchors` on a complete sample,
+or `BatchTooSmall` for the **derived survivors**, with complete stage-2 inputs and `n2` rows.
+Each consumes an attempt and permits the next. All `B2` such attempts, with no earlier
+conclusion, justify `I` for the survivors. The last indeterminate result alone does not.
+Later retries cannot replace or ignore a conclusion from either stage, even if its terminal
+claim was not yet submitted. A current pool event is not proof of this reference outcome.
+
+For both stages the referenced data-close position is in the planned window, after its sheets;
+the attempt is recorded after that close and by `T`. `closed-through` must cover all accepted
+attempts needed by the stopping rule and precede the terminal claim. A claim may follow `T`
+to verify work already completed by it; `T` never supplies missing work. Exhaustion permits a
+claim after the last required attempt without waiting for `T`. No later planned attempt is
+required after a legitimate early conclusion. An unexplained omission, an unclosed data set or
+an attempt after `T` cannot fill the sequence. A terminal before its stopping attempt is
+premature. Neither a runner's counter nor a signature proves the absence of earlier attempts.
+
+Judgments carry the offending CID/position/index and a reason, not a new score value:
+
+| Judgment | Evidence and consequence |
+|---|---|
+| `VerifiedTerminal(A/R)` | first recomputed conclusive result, exact profile mapping and complete required prefix; return item/group/rule, claim CID, view CID, stopping position and evidence references |
+| `VerifiedTerminal(I)` | every required accepted attempt through the applicable budget positively non-conclusive; no earlier conclusion; same linked result, reason `BudgetExhausted` |
+| `IncompleteProcedure` | a valid prefix is still before a stopping condition, with a next required attempt/data close; no terminal result; a claim calling it terminal is refused as premature |
+| `MissingEvidence` | a referenced object/attempt/close or authenticated completeness evidence absent, including a gap at the term; no terminal; distinguish this from a valid but unfinished prefix |
+| `ResourceShortfall` | a complete authenticated window shows fewer admitted complete rows than `n_s`; any `NotEnoughRespondents` reading describes its code-floor failure; report have/need/window and required work, with no terminal classification |
+| `CorruptEvidence` / `IncompatibleEvidence` | CID or canonical decode failure / wrong scope, shape, versioned keys, matrix, settings, group or claimed reading; refuse claim, preserve prior state |
+| `Unsupported` / `ReproductionMismatch` | missing execution/authentication capability, unrecognized policy/model/error, or failed exact replay; no substituted attestations and no `I` |
+
+`BadFormats`, `BadTemplates`, `SharedTemplate` and `RowCountMismatch` are incompatible inputs,
+not exhausted fits. A `BatchTooSmall` initial group is likewise invalid. A short sample is a
+resource record, even though `latent_batch` may check survivor count first: require the
+complete sample before counting that error as an intrinsic survivor non-conclusion. No runner,
+no fit/output, no source-verification API or a silent interval becomes `I`. Resources do not
+consume the budget as intrinsic attempts under this profile. Descriptive shortfall evidence
+is checkable, its terminal classification remains an owner/design question (§9.2).
+
+#### 14.13.5 Coverage of every §9.2 check
+
+| §9.2 check | Concrete input | Operation | Expected result | Boundary |
+|---|---|---|---|---|
+| 1. item/procedure/rule | `Rule`, numerical profile, `Association`, applied assignments and their positions | verify canonical identities, explicit plans/settings, membership and precedence before every first assignment | one supported immutable procedure for the named item | association/writer authentication is upstream; no proof of formation/sampling law |
+| 2. group/association | association's ordered members/anchors, rule CID, snapshot design identifiers | compare item membership and exact group/rule identities; map every column | association matches all evidence and proposed terminal | equality does not prove an unauthorized association authentic |
+| 3. all required attempts/evidence | complete positioned view, sheets/proofs, matrices, attempts, sequence | derive required consecutive indices and selected rows; resolve/recompute both API stages; compare output bytes/readings | exact required sequence and reconstructible statuses, or a named missing/corrupt/unsupported result | no API by itself proves complete logging, respondent–answer authorship or availability |
+| 4. no earlier conclusion | every derived attempt, including one omitted from the claim's list | replay in order and stop at first conclusive stage/item reading; reject any later replacement/exhaustion claim | preserve the first `A/R`; skip cancelled planned attempts only | requires the authenticated complete view, not a claimed last-attempt pointer |
+| 5. terminal reason/condition | per-item claim, derived stage state, budgets, windows and term | compare the reason tag to earliest conclusion or all-budget intrinsic non-conclusions; keep resources apart | exact `A/R/I`, valid incompleteness, or refusal | no availability/withholding policy, source truth or H-c inference |
+| 6. position/references | object-store bytes, positioned index/provenance, dependency graph, claim position and `Φ_j` | verify CIDs, reference order and prefix inclusion, data closes/term, then adapter prerequisites | all dependencies visible to this prefix; no premature terminal application | cut digest alone authenticates neither experimental records nor their slot placement |
+
+#### 14.13.6 Future snapshot adapter, with current APIs unchanged
+
+Only a **computed** `VerifiedTerminal` for this exact claim and authenticated prefix may be
+projected by a future caller into the existing
+`Proposed::Terminal {item, group, rule, outcome, references, verified: true}`. Here the boolean
+would be the adapter's result of the replay above, never trusted from the claim. `references`
+is the ordered pair `[claim CID, computed replay-result CID]`; the result binds the rule,
+association, input-view CID, stopping attempt and complete dependency/sequence references.
+It is reproducible output, not another signed numerical assertion. It has no position in its
+own input view, avoiding a content/placement cycle. Current snapshot encoding/identities are
+unchanged; the projected terminal has the existing `Proposed::id`.
+The computed `ReplayResult` codec uses: version; `A/R/I` tag; item, association, rule and
+claim CIDs; view CID; claim and stopping positions; reason tag; sequence CID; the ordered
+dependency CIDs in type/identity order. It is derived from successful replay and returned
+out of band; it is never an additional claim to accept instead of the underlying objects.
+
+The adapter preserves the claim's logical position and checks the snapshot's admitted design,
+selection and `Φ_j` conditions at that prefix. A numerical result alone grants no selection
+or right to apply before `Φ_j`. An incomplete, refused or unsupported claim supplies no
+accepted terminal; an optional projection with `verified:false` is diagnostic only and is
+refused by the current snapshot. Every refusal preserves the previous item/terminal state,
+including an earlier accepted `A/R/I`; valid later evidence follows existing duplicate/conflict
+rules. Membership/order, baselines, invalid-item lists, counts and scorer cases do not change.
+
+Today no adapter enforces this route: `cohort_snapshot` accepts a supplied boolean and opaque
+references within its approved isolated contract. No producer, authentication layer, record
+schema implementation or verifier is added here. The proposal does not upgrade that current
+input to authenticated production evidence, feed `SkillTrack`, choose π or establish H-c.
+Checking declared experimental matrices without the upstream bindings may return replay
+diagnostics alongside `Unsupported`; it supplies no `VerifiedTerminal` for this adapter.
+
+#### 14.13.7 Future acceptance/refusal criteria
+
+These are **criteria for future tests**, not executed tests or evidence of API compositions.
+Use explicit small budgets/plans in those tests, supported inputs and independent expected
+readings; obtaining a fit and comparing it with itself is not an independent oracle.
+
+| Case | Expected judgment / preserved state |
+|---|---|
+| complete first conclusive stage 1 `Fail`, or stage 1 `Pass` then stage 2 `NoDif` / `Dif` | `R`, `A` / `R` respectively; cancelled later attempts not required; adapter only after snapshot prerequisites |
+| all required consecutive attempts recompute supported intrinsic non-conclusions | `I` only after the last budgeted attempt, with positive complete evidence |
+| valid non-conclusive prefix below budget with a future window | `IncompleteProcedure`, item still pending; an exhaustion claim refused |
+| middle attempt omitted from `Sequence` but present in view; middle attempt absent altogether | incompatible sequence / `MissingEvidence`, respectively; no `I`, previous state kept |
+| altered answer/seed/model bytes under original CID; new CID outside frozen rule or selected sheets | corruption / incompatibility, respectively; state kept |
+| selected rows skip an earlier admissible sheet, or omit a data close / its authentication | incompatible selection / missing evidence; no terminal and no budget exhaustion |
+| an earlier `A/R` concealed, later results/`I` claimed | first conclusion found from full view; later claim refused; prior accepted terminal unchanged |
+| terminal before stopping attempt, before `Φ_j`, or at term with a required attempt missing | premature / snapshot refusal / missing evidence; none makes `I` |
+| complete shortfall record below `n_s`; enough rows but a reproducible unreliable-anchor result | `ResourceShortfall` with no terminal category / supported non-conclusion consuming a stage-2 attempt |
+| wrong declared group with correct rule; duplicate/conflicting terminal after a valid one | refused, state kept in all cases; a correct later claim may follow the first refusal |
+| source-dependent rule, custom hidden stage-1 seed/threshold, unknown version, or unavailable identity–answer authentication | `Unsupported`, no replacement boolean or attestation |
+| canonical input reproduces under two supported build manifests; output differs under one | exact output identity required for supported builds; mismatch refused, not `I` |
+
+#### 14.13.8 Precise gaps and decisions left outside
+
+**Numerical reuse is real but bounded.** Stage-1 `screen`/`stage1_fit` and stage-2
+`latent_batch`/`target_rechecks` can replay the profile on complete typed matrices. They accept
+no rule, attempt number, terminal condition, log position or record provenance. Those are the
+proposed verifier's explicit logic above. `stage1_fit` exposes no seed/settings override;
+`latent_batch` exposes only stage-2 seed, not full `LatentParams` or thresholds. A custom
+stage-2 model could use public `latent_dif_with` plus explicitly repeated admission checks
+and `LatentDif::flags(max_gap)` under another reviewed profile. It must not be described as
+the current wrapper. Custom stage-1 fitting/optimizer controls need a distinct specified
+implementation/API; this proposal marks them unsupported instead of inventing one.
+
+**Identity–answer binding is missing.** `submit_response` validates a proof bound to
+`response_context(batch_id(items), epoch)` and spends its stable `Respond` nym. That context
+does not bind order, anchors, rule, stage, attempt or answer bytes; `NullifierSet` retains a
+set, not a row mapping. A valid proof beside any sheet does not prove its authorship. The
+proposed `Sheet` requires such authentication upstream, with a named evidence scheme; there
+is no existing entry point producing/verifying that binding. Until it is specified and
+implemented, a production claim needing respondent-authenticated rows is unsupported. The
+numerical replay may still check declared experimental matrices, with that provenance limit
+explicit, but cannot issue the stronger authenticated terminal by substituting an admission
+proof, a row count or a runner's statement.
+
+`IssuerPublic` is another precise transport gap: `credential.rs` exposes it as an in-memory
+type with private parameters/key and no public canonical encode/decode. A caller with a
+trusted instance can use `submit_response`; portable reconstruction from the policy's issuer
+CID needs a key/parameter codec and an authenticated binding to that instance. This contract
+requires that boundary, not reconstruction from the issuer's secret setup seed. It is not
+implemented by declaring an issuer CID or signing an admission count.
+
+**Complete authenticated record view is missing.** The ledger/replica authenticate their own
+entries; arbitrary experimental payloads are not accepted `NodeEvent`s. The snapshot's cut
+digest binds only the ledger prefix (§14.10), not the proposed records/index. Existing APIs
+produce no authenticated rule/association, attempt/data-close/sequence stream or proof that
+the experimental view enumerates all admissible sheets and attempts. Signed content alone
+does not prove complete enumeration. The verifier requires an upstream accepted record/index
+mechanism with the above field/position/authorization checks; no optional witness or asserted
+`closed=true` discharges it. Without that mechanism it can prove a sequence's internal
+consistency on supplied objects, not absence of an omitted earlier conclusion in production.
+
+**Other unsupported boundaries.** No canonical codec for these payloads, fit-output codec or
+snapshot adapter exists yet. A build/version being declared does not establish bitwise
+reproducibility; the future implementation must pin and validate the supported execution
+profile. Source checking (`source_verified`, T68) has no reconstructible citation/template
+key API and cannot be folded into the statistical profile. No personal attributes or role
+linking may fill these gaps. The original model-identification/calibration limits remain.
+
+No new owner decision is required to review this parameterized **statistical** proposal;
+the profile and all experimental inputs must be accepted/pinned before implementation or
+assignments. A concrete experiment needs chosen `n1/n2`, budgets, windows/term, stage-2 seeds,
+group/anchors and trusted writer/issuer inputs, not inferred production defaults. A broader
+procedure would require separate decisions: which authentication/complete-index mechanism
+supplies the missing preconditions, whether source-dependent outcomes are retained with a real
+source verifier, and whether any positively documented resource shortfall may become a
+terminal outcome. This contract leaves the last question open and never converts it to `I`.
+O2/O3 remain the owner's; no verifier proves their selection law, reputational incentives or
+H-c. The proposal awaits independent design review before verifier code.

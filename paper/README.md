@@ -56,7 +56,7 @@ comes with a proof or a reproducible experiment and a candidate correction:
 ## Since version 0.2
 
 The September results and the stored PDF remain a dated snapshot. The LaTeX sources now have
-an explicit **O1 target amendment (owner's decision, 2026-10-11; wording awaiting review)**:
+an explicit **O1 target amendment (owner's decision, 2026-10-11; approved on `e735a8e`)**:
 `prop:ipw` states the conditional mean for `q_c`, defined only where `c > 0`; at `c = 0` it
 is undefined and the score is flat. The binary analysis is labelled historical / conclusive.
 Motivation, limits and the affected promises are recorded once in

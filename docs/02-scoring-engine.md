@@ -740,7 +740,7 @@ right is the good observation itself (`protocol::appeal`, T61). Floor provisiona
 > too, with inverse-probability weighting intended to correct gate-dependent
 > observation. Its protocol-level incentive guarantee remains open (`15` A1).
 
-**Decided target for A1 (O1, 2026-10-11; amendment awaiting review).** The scalar forecast
+**Decided target for A1 (O1, 2026-10-11; amendment approved on `e735a8e`).** The scalar forecast
 `p_uj` targets `q_c = P(Y_j = A | Y_j ≠ I, F_u)` where `c = P(Y_j ≠ I | F_u) > 0`.
 For `c = 0` the expected score is flat and `q_c` is undefined; no target value is imputed.
 B-b's terminal contribution is the difference below on `A` (`o = 1`) or `R` (`o = 0`),
