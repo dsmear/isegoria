@@ -663,7 +663,7 @@ not been adapted to the new target or design.
 **O2 decision (owner, after `af42035`).** A is the design of A1's conditional correction:
 each reviewed item prescribed to the pilot in its prefixed group, `π=1`, no observation draw
 in the score. Sustainability is a premise to evaluate; no operational commitment, sample
-choice or T1 adoption. Decision, conditions and proposed judgment:
+choice or T1 adoption. Decision, conditions and Astra’s conditional A1 closure on `1bd865c`:
 [`17` §14.15](17-a1-pilot-batch-design.md#1415-o2-decision-and-proposed-conditional-a1-closure).
 
 > **Implemented (2026-09-25, T52):** `protocol::exploration` — the beacon's draw

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis and proposal; **A1 open** (`15`). Diagnosis confirmed; the updated analysis of the beacon's manipulability and of observations, assignments and the IPW count approved; the proof of properness approved as a result conditional on the joint invariance C6 and the theorem's other hypotheses, not as a guarantee of the protocol; the overall proposal **not approved**. The band baselines (C5, §4.6) **approved** on `e8fdbe7`. The pilot batch contract (C3) and missing outcomes (C2) are analyzed in [`17`](17-a1-pilot-batch-design.md): not approved on `164fff6`; its revision approved on `37addca` as a conditional analysis, with no batching policy approved for implementation. The paper is not rewritten; `01` D33 carries a dated refinement and `02` §C.2 the band baselines. |
+| **Status** | Analysis and proposal; **A1 closed conditionally on `1bd865c`** (`17` §14.15); current runtime not certified, A12 and Phase 1 open (`15`). Diagnosis confirmed; the updated analysis of the beacon's manipulability and of observations, assignments and the IPW count approved; the proof of properness approved as a result conditional on the joint invariance C6 and the theorem's other hypotheses, not as a guarantee of the protocol; the overall proposal **not approved**. The band baselines (C5, §4.6) **approved** on `e8fdbe7`. The pilot batch contract (C3) and missing outcomes (C2) are analyzed in [`17`](17-a1-pilot-batch-design.md): not approved on `164fff6`; its revision approved on `37addca` as a conditional analysis, with no batching policy approved for implementation. The paper is not rewritten; `01` D33 carries a dated refinement and `02` §C.2 the band baselines. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `4478f04`, revised from it. Line references are to that commit. |
 | **Scope** | The claim that randomized exploration with inverse-probability weighting (IPW) keeps the evaluator score proper (`01` D35, `02` §C.2, paper Prop. `prop:ipw`). A10 (the fallback baseline) stays a separate finding. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated exactly; **E** executed as a Rust test (`crates/protocol/tests/a1_exploration_information.rs`). |
@@ -494,7 +494,8 @@ batching policy approved; C4's denominator waits on decisions not yet taken.
 
 The owner subsequently resolved item 3 as O3 after `a14364c`; the decision and A12's
 remaining requirement are recorded only in `17` §14.14; approved on `af42035`. O2 is
-subsequently chosen as conditional A, decision and proposed A1 judgment in `17` §14.15.
+subsequently chosen as conditional A; decision and Astra’s restricted A1 closure on
+`1bd865c` in `17` §14.15. This dossier’s earlier review entries remain historical.
 
 A10 remains separate. Related, outside A1: golden-item placement also derives from the public
 beacon (`honeypot.rs:14–25`) and a golden item is absent from the public deposit set, so golden

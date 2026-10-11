@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. Astra's review of `cbcbc67` approved those precisions and the further changes to §13.2's classification (§13); the minimal perimeter for a study S2 built on §§9–13, [`19`](19-a2-dtf-composition-design.md) §10.6, was partly approved there, rectified and **approved on `5af22b9` as a preparatory synthesis**; after that review §13.2's absent-precondition row was made self-standing, its classification unchanged. The synthetic-event technical check built on §§8–13 is specified in [`20`](20-s2-synthetic-check.md), **approved by Astra on `c76c035` as the check's specification**, with four precisions made there; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §14 proposes the contract of A1's candidate guarantee, on Astra's direction after the review of `bef891b` (B-b the reference score, A the analytic reference, C the comparison, neither adopted): partly reviewed by Astra on `11deec2`, which approved its mathematical core **as a conditional result** and not §14 as a whole; its adaptive verification criterion and the absent baseline were rectified in place in `d2be7da`, and §14 **approved by Astra on `d2be7da` as a conditional candidate contract** (no protocol, adoption of A or C, substantive narrowing or closure of A1). The absent baseline's correction in `20`'s check and §14.6's verification on finite constructions, in test code (`20` §§10–11), were **approved by Astra on `d7a4449`** within that perimeter. §14.8's decision proposal on A1's path was partly reviewed by Astra on `23283f2`, which approved the record of that approval and accepted B-b's scorer as the next intervention, and rectified in place; **its rectifications were approved by Astra on `7d1b19e`**. B-b's scorer, implemented in `protocol` with no production caller (§14.9), was partly reviewed on `7d1b19e`, which accepted three of its contract's choices and did not approve it for a numeric defect on its declared domain, and on `0ca81e9`; corrected, **it was approved by Astra on `6b9f42a` as an isolated component**, within §14.9's contract and numeric limits. The contract of its future caller, §14.10, was partly reviewed by Astra on `3e34f6f`, which approved the record of the scorer's approval and accepted the direction of three of the contract's choices for the isolated component, not the section; rectified in place, it was **approved by Astra on `8dc7087` as the specification of the isolated snapshot component**, with one precision on the digest and the prefixes. That component, implemented with no production caller (§14.11), was partly reviewed on `9c7cb23`; its two corrections and the **isolated snapshot component were approved on `93f3f7c`, with no further blocking finding**; O1 was decided by the owner on 2026-10-11 (§14.12), its amendment approved on `e735a8e`; the experimental terminal verifier contract in §14.13, partly reviewed on `c6b3ca7` and rectified, was approved on `a14364c`; O3 incorporated and A12 tracked, approved on `af42035`; O2 subsequently chooses A for the conditional correction (§14.15), incorporation/closure proposal awaiting review; A12 and A1 open, no operational adoption or T1. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 was open at that review (`15`), with subsequent restricted closure in §14.15. Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. Astra's review of `cbcbc67` approved those precisions and the further changes to §13.2's classification (§13); the minimal perimeter for a study S2 built on §§9–13, [`19`](19-a2-dtf-composition-design.md) §10.6, was partly approved there, rectified and **approved on `5af22b9` as a preparatory synthesis**; after that review §13.2's absent-precondition row was made self-standing, its classification unchanged. The synthetic-event technical check built on §§8–13 is specified in [`20`](20-s2-synthetic-check.md), **approved by Astra on `c76c035` as the check's specification**, with four precisions made there; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §14 proposes the contract of A1's candidate guarantee, on Astra's direction after the review of `bef891b` (B-b the reference score, A the analytic reference, C the comparison, neither adopted): partly reviewed by Astra on `11deec2`, which approved its mathematical core **as a conditional result** and not §14 as a whole; its adaptive verification criterion and the absent baseline were rectified in place in `d2be7da`, and §14 **approved by Astra on `d2be7da` as a conditional candidate contract** (no protocol, adoption of A or C, substantive narrowing or closure of A1). The absent baseline's correction in `20`'s check and §14.6's verification on finite constructions, in test code (`20` §§10–11), were **approved by Astra on `d7a4449`** within that perimeter. §14.8's decision proposal on A1's path was partly reviewed by Astra on `23283f2`, which approved the record of that approval and accepted B-b's scorer as the next intervention, and rectified in place; **its rectifications were approved by Astra on `7d1b19e`**. B-b's scorer, implemented in `protocol` with no production caller (§14.9), was partly reviewed on `7d1b19e`, which accepted three of its contract's choices and did not approve it for a numeric defect on its declared domain, and on `0ca81e9`; corrected, **it was approved by Astra on `6b9f42a` as an isolated component**, within §14.9's contract and numeric limits. The contract of its future caller, §14.10, was partly reviewed by Astra on `3e34f6f`, which approved the record of the scorer's approval and accepted the direction of three of the contract's choices for the isolated component, not the section; rectified in place, it was **approved by Astra on `8dc7087` as the specification of the isolated snapshot component**, with one precision on the digest and the prefixes. That component, implemented with no production caller (§14.11), was partly reviewed on `9c7cb23`; its two corrections and the **isolated snapshot component were approved on `93f3f7c`, with no further blocking finding**; O1 was decided by the owner on 2026-10-11 (§14.12), its amendment approved on `e735a8e`; the experimental terminal verifier contract in §14.13, partly reviewed on `c6b3ca7` and rectified, was approved on `a14364c`; O3 incorporated and A12 tracked, approved on `af42035`; O2 subsequently chooses A for the conditional correction (§14.15); Astra closes A1 on `1bd865c` for that conditional expected-score guarantee only (judgment in §14.15); A12 and Phase 1 open, no operational adoption or T1. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -878,7 +878,7 @@ in expectation; the counts themselves are random.
 ### 8.5 Observation design
 
 **Subsequent O2 decision:** A chosen for A1's conditional correction after `af42035`;
-operational adoption and T1 remain undecided. Decision and closure proposal: §14.15.
+operational adoption and T1 remain undecided. Decision and conditional closure judgment: §14.15.
 The acquired comparison below is retained.
 
 | | A — fixed groups, all piloted | C — group audit at `α` | D — activated by entry or drawn |
@@ -2042,6 +2042,10 @@ separates a conditional design choice from an operational commitment. This is As
 reading evidence, separate from Codex's document checks. The owner's subsequent O2 decision
 and the proposed final A1 judgment are in §14.15, not covered by this approval.
 
+Astra’s judgment on `1bd865c`: **A1 closed for the conditional expected-score guarantee
+on design A**, within §14.15’s conditions, strategies and limits. Full judgment, assumption
+status and review evidence are recorded only in §14.15. A12 and Phase 1 remain open.
+
 ### 14.1 The property
 
 For `u` and a prefixed cohort `K ⊆ R_u` (§8.3) the quantity is `E[Ŝ_K | F_u]` (§8.1; under A,
@@ -2197,9 +2201,9 @@ proved — C would keep an IPW at `α` under C1's model. Astra's judgment (revie
 under A, `π = 1` removes the observation draw's problem, which can be a legitimate way to correct
 A1 through a change of design; a non-trivial IPW need not be kept only to honour the original
 criterion's name. That verifies neither the current exploration at `ε` nor arm C; closing A1
-through A now needs the retained conditions assessed under O3; O2 selects the conditional
-design A, with the proposed judgment in §14.15. The *adaptive test* is acquired within the
-perimeter of the constructions
+through A required the retained conditions assessed under O3; O2 selects the conditional
+design A, and Astra’s subsequent judgment on `1bd865c` closes A1 within §14.15’s scope.
+The *adaptive test* is acquired within the perimeter of the constructions
 approved on `d7a4449` (§14.6, `20` §11): within the strategies enumerated none beats the truthful
 reports, strictly where `c > 0`; it checks the computation, not the theorem in general nor H-c in
 the protocol.
@@ -2209,7 +2213,7 @@ changes: the conditional target, the observation design, the completed-report do
 reputation outside the result. On 2026-10-11 the owner decided O1: the target and the score's
 conditional domain are amended in §14.12; O3's subsequent closure decision is in §14.14,
 O2 now chooses A as the conditional correction design (§14.15). No operational guarantee
-is realized by those decisions. A1 stays open under §14.14's current criterion; H-c remains
+is realized by those decisions. Astra closes A1 conditionally on `1bd865c` (§14.15); H-c remains
 declared with its residues, §14.6's checks already acquired. A's capacity and §8.3's
 availability still bear on any later operational adoption.
 
@@ -2219,8 +2223,8 @@ availability still bear on any later operational adoption.
 `23283f2` (§14) and rectified here in place, the rectifications approved by Astra on `7d1b19e`
 (§14). **O1 decided by the owner on 2026-10-11**, semantic amendment in §14.12 approved on
 `e735a8e`; O3 is subsequently decided and approved on `af42035` (§14.14); O2 chooses A
-for the conditional correction (§14.15), no operational adoption or T1. The proposed final
-judgment and the remaining realization gaps are in §14.15.
+for the conditional correction (§14.15), no operational adoption or T1. Astra’s subsequent
+conditional closure judgment on `1bd865c` and the remaining realization gaps are in §14.15.
 
 **A. Three decisions apart.**
 
@@ -2245,7 +2249,7 @@ judgment and the remaining realization gaps are in §14.15.
 O1–O3 are decided; A is the chosen conditional correction design, C the documented
 alternative (§14.15). None establishes a reputational incentive (A12, §14.14).
 No operational adoption now: D's conditions are unbuilt and A's capacity (F) unsettled;
-the conditional closure proposal is in §14.15. A circumscribed implementation needs
+the conditional closure judgment on `1bd865c` is in §14.15. A circumscribed implementation needs
 none of these decisions: B-b's scorer, accepted on `23283f2` and implemented in §14.9 with no
 production caller; no resources or study either, S2 measuring rates and costs, not H-c (`19`
 §10.6).
@@ -2313,10 +2317,10 @@ D4). O1–O3 are resolved; none supplies the missing production path:
 - **O1, the target: decided (2026-10-11)**; the semantic amendment of D35, §C.2 and
   `prop:ipw` is recorded in §14.12, approved on `e735a8e`. No decision of O2/O3 follows.
 - **O2, decided after `af42035`**: conditional design A, sustainability still a premise
-  to evaluate; no operational commitment or T1. Decision and closure proposal: §14.15.
+  to evaluate; no operational commitment or T1. Decision and conditional closure judgment: §14.15.
 - **O3, closure scope: decided** after `a14364c`; A1's retained objective and the distinct
   open reputational requirement A12 are recorded in §14.14. The historical O2 brief is
-  there; the decision and proposed A1 judgment are in §14.15.
+  there; the decision and conditional closure judgment on `1bd865c` are in §14.15.
 
 For Astra: whether the guarantee meets `15` A1's criterion as read on `11deec2`; T1; the direction
 for missing reports and absent baselines; §14.10's contract of the scorer's caller.
@@ -3023,9 +3027,9 @@ records that decision and the semantic amendment; **Astra approved the amendment
 (§14's review record).
 Astra's approval of `13b5aad` covers the previous review record and the handoff analysis, not
 this subsequent decision or its wording. O1 is resolved; O2/O3 were open at that decision;
-O3's later resolution is recorded in §14.14, O2's in §14.15. A1 remains open. No A, C or
-T1 is adopted, no protocol or production path is approved, and no code or test expectation is
-changed. The scorer and snapshot retain their acquired isolated contracts.
+O3's later resolution is recorded in §14.14, O2's in §14.15; the subsequent conditional
+A1 closure on `1bd865c` is recorded there. No operational A, C or T1 is adopted, no protocol
+or production path is approved, and no code or test expectation is changed. The scorer and snapshot retain their acquired isolated contracts.
 
 **Decided specification.** For A1's correction the scalar report targets
 `q_c = P(Y = A | Y ≠ I, F_u)` **only where** `c = P(Y ≠ I | F_u) > 0`; `F_u` is the
@@ -3560,7 +3564,8 @@ acquired; future verifier code and realization of these dependencies require the
 **Decided, amendment approved on `af42035`** (§14). The owner separates A1's closure from
 the incentives of effective reputation. This decision was made after Astra's approval of
 §14.13 and is not covered by it. O1 and O3 were resolved, O2 open at that decision;
-O2 is subsequently decided in §14.15. A1 and Phase 1 remain open.
+O2 is subsequently decided in §14.15; Astra closes A1 on `1bd865c` within that conditional
+guarantee. Phase 1 remains open.
 
 **Current A1 criterion.** Establish properness of the **expected score** for O1's `q_c` in
 the approved domain: prefixed cohorts, completed reports, defined baselines on conclusive
@@ -3649,8 +3654,10 @@ not the current implementation. O1's target (§14.12) and O3's closure objective
 are acquired. Sustainability remains an explicit premise **to be evaluated**, not a measured
 fact. No expenditure, sample sizes or operational start is authorized; C remains documented
 as an alternative and T1 is not adopted. No execution, H-b/H-c, authentication, availability
-or production path is realized by O2. This incorporation and the closure proposal below
-await Astra's review; **A1 remains open** until that judgment.
+or production path is realized by O2. **Astra closes A1 on `1bd865c` for the conditional
+guarantee only**, by the judgment recorded at the end of this section. The conditions
+below are accepted as mathematical-model assumptions, not demonstrated protocol properties.
+The proposal is retained below as submitted; A12 and Phase 1 remain open.
 
 **Exact claim and admitted strategies.** For a nonempty prefixed cohort `K ⊆ R_u`, fixed
 by assignments and held fixed across the strategies compared, use §§8.1 and 14.1's
@@ -3720,6 +3727,8 @@ cohort bookkeeping within their isolated/numerical contracts. Verifier-contract 
 H-b. O3/A12 review `af42035` permits the restricted objective and preserves the distinct
 open incentives requirement. No approved verification is reopened or repeated here.
 
+**Historical proposal submitted on `1bd865c` (answered by the judgment below).**
+
 **Judgment proposed to Astra: A1 satisfies the restricted conditional criterion**, upon
 explicit acceptance of the above premises and scope. Proposed closure wording:
 
@@ -3742,3 +3751,20 @@ of them: the protocol's current properness, H-b/H-c, confidentiality, availabili
 reputational incentives remain unjustified. If review rejects a concrete premise or the
 restricted claim, record that precise objection before choosing a further intervention;
 no blanket implementation campaign is implied by this proposed judgment.
+
+
+**Astra’s judgment on `1bd865c`.**
+
+> A1 closed for the conditional expected-score guarantee of design A, within the conditions,
+> strategies and limits of §14.15. No certification of the current path, execution,
+> availability, sustainability, authenticated inputs or reputational incentives.
+
+The conditions enumerated above are **accepted as assumptions of the mathematical model**,
+not properties demonstrated for the current protocol. This accepts the restricted criterion
+after O1–O3; it neither supplies missing capabilities nor reopens the acquired checks.
+Operational gaps remain tracked in the conditions table and §14.13.8; **A12 and Phase 1
+remain open**. This judgment gives no general certification of protocol sincerity.
+
+**Astra’s evidence:** diff and proposal read; compared with the acquired hypotheses,
+derivation and adaptive criteria. **No Rust, fit, new enumeration or PDF.** These are
+Astra’s review activities, separate from Codex’s documentation checks in the handoff.

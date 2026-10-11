@@ -738,7 +738,8 @@ right is the good observation itself (`protocol::appeal`, T61). Floor provisiona
 > toward the crowd. Since T50 the score is the leave-one-out difference score below and
 > the weight lives on the odds scale. Since T52 the scored items are the live outcomes
 > too, with inverse-probability weighting intended to correct gate-dependent
-> observation. Its protocol-level incentive guarantee remains open (`15` A1).
+> observation. Its protocol-level incentive guarantee remains unjustified; A1’s conditional
+> closure on `1bd865c` covers the decided design only (`17` §14.15).
 
 **Decided target for A1 (O1, 2026-10-11; amendment approved on `e735a8e`).** The scalar forecast
 `p_uj` targets `q_c = P(Y_j = A | Y_j ≠ I, F_u)` where `c = P(Y_j ≠ I | F_u) > 0`.
@@ -751,7 +752,7 @@ in force (`17` §§8.2, 14.9); the decision's motivation, domain and limits are 
 **Decided observation design (O2, after `af42035`).** A prescribes every reviewed item to
 the pilot in its prefixed group, `π=1`, with no observation draw in the score, for A1's
 conditional correction. Resource sustainability is not established, no operational start or
-T1 adopted; conditions and proposed judgment only in
+T1 adopted; conditions and Astra’s conditional A1 closure on `1bd865c` only in
 [`17` §14.15](17-a1-pilot-batch-design.md#1415-o2-decision-and-proposed-conditional-a1-closure).
 
 **Current implementation (binary/exploration path; not yet adapted to O1/O2).** The runtime

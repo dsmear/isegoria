@@ -947,6 +947,12 @@ they win.
   directories. No commit of this work touches `.gitignore`.
 - R1 closes neither A2 nor Phase 1.
 
+- **Astra’s judgment on `1bd865c`: A1 closed for the conditional expected-score guarantee
+  of design A**, within `17` §14.15’s conditions, strategies and limits, accepted as
+  mathematical assumptions rather than demonstrated protocol properties. No current-path
+  certification. A12 and Phase 1 remain open. New A2 candidate contract in `19` §11 awaits
+  review; A2 remains open.
+
 ## 2. Roles and working agreement
 
 - **Claude Code** implements, verifies (tests, calculations, runs) and commits when the owner
@@ -975,6 +981,10 @@ they win.
 | A4 (a), A11 (f) | `af17eb3` | stage 2 carries `Recheck`; an appeal settles only on the pilot's conclusive outcomes (a caller settling later must keep that outcome) |
 | A3 | `16e862c` | the histogram's moment penalty is an `n`-scaled regularizer, the BIC counts `Q − 1` nominally; identifiability, weak information, the penalty's choice and effects and the BIC on penalized mixtures moved to B1–B3 |
 
+A1 is also **closed within the conditional expected-score scope** of Astra’s judgment on
+`1bd865c` (`17` §14.15). Its operational gaps and the distinct A12 requirement remain open;
+current status and next work are in §5.2. This does not close Phase 1.
+
 ## 4. Open work
 
 - **A2 (high): R1 implemented and approved by Astra on `d13bf09`; A2 open.** Approved on
@@ -997,51 +1007,18 @@ they win.
   (S2's minimal perimeter) approved on `5af22b9` as a preparatory synthesis; `20` (its
   synthetic-event check) approved on `c76c035` as the check's specification, its implementation
   in test code approved on `3559396` within the check's perimeter. No calibration
-  is chosen, S2 is not claimed to settle A2, and these approvals do not close A2.
-- **A1 (critical for the incentive claim): open.** Acquired: the diagnosis (the exploration draw is
-  known before reports); the beacon-manipulability and count analysis (`16` §§6–7); the band
-  baselines, implemented (`protocol::panel_scores`, `e8fdbe7`, no production caller yet); the
-  properness proof as a result conditional on C6 and its hypotheses (`16` §4.3); `17`'s argument and
-  comparison of batch designs as a conditional analysis (`37addca`); `17` §7 (`825cee3`) and B-b's
-  candidate contract, `17` §8 (`fa11791`), as conditional analyses. Open decisions: the batch
-  contract (`17`: universal pilot, group audit, prefixed groups activated by entry or draw; no
-  batching policy approved); missing outcomes (C2); the denominator and no-show rule (C4, T58); the
-  randomness guarantee (a behavioral model of the beacon's members, or a source change); deferred
-  draw against audit resolved as conditional A (O2, `17` §14.15). O3 is acquired;
-  the distinct effective-reputation incentive
-  requirement A12 stays open (`15`, `17` §14.14). For a study's reporting, `17` §9's 6c and 7a
-  are decided (`d31e9fa`;
-  §9 approved on `b2a1c2f`); the join with the bridging is analysed (`17` §10, approved on
-  `111e595`, α the reference, β the comparison); timing under A is analysed (`17` §11, approved
-  on `cf5575a` as a conditional comparison, T1 and T2 alternatives, neither adopted); access and
-  disclosure per object are specified (`17` §12, approved on `7d8db08` as a conditional
-  analysis, T1 the reference and T2 the comparison by Astra's direction); the evidence for its
-  predicates (ii) and (iv) under T1 is specified (`17` §13, approved on `176dd8c` as a
-  conditional analysis); S2's minimal perimeter is approved as a preparatory synthesis (`19`
-  §10.6, `5af22b9`; for its specification only: study scores outside the reputation, gate
-  decisions recorded with no pool effect, α the semantic reference) and its synthetic-event check
-  specified (`20`, approved on `c76c035`; its implementation approved on `3559396` within the
-  check's perimeter); T58 stays open
-  for a procedure that must proceed despite missing reports. A1's state, five things apart:
-  (1) *acquired as a conditional analysis*: the candidate contract, `17` §14 (its core approved on
-  `11deec2` as a conditional result, the section on `d2be7da` as a conditional candidate contract);
-  (2) *acquired in test code*: the absent baseline's correction and §14.6's adaptive verification,
-  approved on `d7a4449`, the verification acquired within the approved constructions' perimeter;
-  (3) *decided, not operationally adopted*: conditional A (O2); O1's semantic amendment
-  and O3 incorporated, approved (`17` §§14.12, 14.14–14.15); (4) *missing*: the
-  operational conditions and the production path (`17` §§14.4–14.5: the group record, A's pilot,
-  freeze and start rules, terminal records with `I`, the scorer, availability, T58); (5) *not
-  shown*: H-c in the protocol and the other external hypotheses with their residual channels,
-  availability, confidentiality, the reputation's incentives, neutrality (`17` §14.3, §14.8 E).
-  B-b's scorer, a library component with no production caller, is implemented (`17` §14.9),
-  approved on `6b9f42a` as an isolated component; the production caller stays missing, its
-  contract specified in `17` §14.10, approved on `8dc7087`; the snapshot implementing it, with no
-  production caller (`17` §14.11), was partly reviewed on `9c7cb23`, then corrected and
-  approved on `93f3f7c` within the isolated perimeter; the experimental verifier contract
-  approved on `a14364c` (`17` §14.13), with no implementation; current criterion and next
-  closure requirement in §5.2.
-  The decision proposal on A1's path, `17`
-  §14.8, partly reviewed on `23283f2`, is rectified, the rectifications approved on `7d1b19e`.
+  is chosen, S2 is not claimed to settle A2, and these approvals do not close A2. The new
+  candidate contract in `19` §11 awaits review; it specifies separate representation,
+  coverage and conservative-computation obligations. Next deliverable only there.
+- **A1: closed for the conditional expected-score guarantee**, Astra’s judgment on
+  `1bd865c` (`17` §14.15). O1, conditional design A (O2) and O3 are acquired; the premises
+  are accepted as model assumptions, not properties of the current protocol. The original
+  criterion and complete review history remain in `15`. Production inputs, authenticated
+  records, execution, availability, sustainability and H-b/H-c realization remain gaps
+  (`17` §§14.13.8, 14.15); runtime properness is not certified. Scorer and snapshot retain
+  their isolated approvals, the verifier remains a contract. T58 stays open for a procedure
+  that must proceed despite missing reports; A12 remains distinct and open, not automatically
+  non-blocking for Phase 1. Operational-gap synthesis in §5.2.
 - **`08` PRIV-004.1 (separate from A1): remediation open.** The general claim that an inclusion
   proof lets its holder infer no other input is refuted under the stated enumerable-field
   assumptions; the confidentiality goal and a construction meeting it stay to be stated; no
@@ -1093,7 +1070,8 @@ the snapshot and its corrections are approved on `93f3f7c` within the isolated p
 is approved on `e735a8e` (`17` §14.12). The terminal verifier contract in §14.13 was partly
 reviewed on `c6b3ca7`, rectified and approved on `a14364c`. O3 is subsequently decided,
 A12 open, incorporation approved on `af42035` (`17` §14.14); O2 chooses conditional A.
-The proposed final A1 judgment is in `17` §14.15, current state §5.2.
+Astra closes A1 on `1bd865c` within `17` §14.15’s conditional scope; current state §5.2.
+A2’s candidate contract and single next recommendation are in `19` §11, awaiting review.
 No roadmap, campaign or protocol adoption is added here.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -1143,9 +1121,9 @@ decision, **L** a documented limit.
 
 | Findings, state | Closure criterion (ref) | Acquired; limits | Missing | Depends on | Minimal next deliverable |
 |---|---|---|---|---|---|
-| A1, critical, open | `15` A1 current criterion after O1–O3; `17` §§14.14–14.15 | approved conditional result, band baselines, finite adaptive checks, isolated scorer/snapshot and experimental verifier contract; O3 incorporation approved, O2 chooses conditional A | review acceptance of §14.15's exact claim, reporting-strategy scope and explicit premises; production gaps only prerequisites to claims of realization | sustainable resources still a premise to evaluate; reference/observed law and invariant information/baseline/outcome conditions assumed, not certified | Astra's proposed final judgment in `17` §14.15; A1 not autonomously closed |
+| A1, closed conditionally on `1bd865c` | `15` A1 current criterion; `17` §14.15 | exact expected-score claim, strategies and premises accepted by Astra as mathematical-model assumptions | operational gaps remain; not missing premises for this restricted judgment | no certification of current runtime, execution, resources, authentication or reputation | none to repeat the approved judgment; residual realization and A12 remain tracked |
 | A12, distinct, open | `15` A12; precise criterion `17` §14.14.1, source `16` §7 | count/weight diagnosis; no composed reputational incentive proof | Dd: reviewer objective, information and strategies; Pr: intended incentives under the composed mechanism; Im: relevant path if a runtime claim is retained | explicit assessment of retained Phase 1 claims; not automatically non-blocking | define objective and strategies before a proof, no campaign |
-| A2, high, open; R1 approved | `15` A2: target measure, linking, whole-test contribution specified; bound proved; estimation error apart; a margin alone does not close it | conditional proposition (`19` §3); R1, `D(T)` an admission cost; calibration comparison, no winner (`19` §9); one fixed form (`19` §9.6). Limits: no `μ`, `𝒢`; the filtered functional is no function of the law; no bound with coverage | Dd: `μ`, `𝒢`, contrasts, forms (`19` §6.1, §10.2); Pr: the bound and its coverage; Im | B1–B3; the calibration arm, common reusable or per form, neither valid nor inevitable; D2, D4 | a contract of A1's kind, after A1's |
+| A2, high, open; R1 approved | `15` A2; candidate `19` §11 | §3 domination, §9.6 conditional analysis, §10.2 boundaries; candidate contract pending review | representation, uniform coverage and conservative computation not demonstrated | symbolic population/scale/measure/contrasts; B1–B3, D2/D4; calibration undecided | review `19` §11; its single recommended deliverable is an all-order region specification and coverage proof |
 | B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: S1's scenarios and decision criteria declared, then one campaign on an identified candidate, its design declared before execution; Pr where identification or coverage is claimed, which simulations do not replace | A2's target; the owner's authorization of the campaign | S1's declaration, no run |
 | A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; (c), the retired proxy path, fixtures only: L, its listing requiring no change; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
 | A8, A9, medium | `15`: distinguishability, identifiability and power apart (A8); hypotheses or a controlled approximation (A9) | the paper a dated snapshot | Pr and the paper's text | — | a rectification of the two claims |
@@ -1183,28 +1161,23 @@ dependencies above are assessed.
 
 ### 5.2 A1 after the snapshot approval
 
-**Status after Astra's review of `af42035` and the owner's O2 decision.** O1 and O3
-are acquired; A12 remains open and not automatically excluded from Phase 1. O2 chooses A
-for the conditional correction, not an operational start. The final A1 proposal, exact
-conditions and limitations are collected only in
-[`17` §14.15](17-a1-pilot-batch-design.md#1415-o2-decision-and-proposed-conditional-a1-closure).
-A1 remains open pending Astra's judgment; the original criterion and history remain in `15`.
+**A1 closed by Astra on `1bd865c` for the conditional expected-score guarantee of design A.**
+O1–O3, the exact information/strategy domain, accepted model assumptions and exclusions are
+collected only in [`17` §14.15](17-a1-pilot-batch-design.md#1415-o2-decision-and-proposed-conditional-a1-closure).
+The original criterion and review chronology remain in `15`; no acquired check is reopened.
+A12 and Phase 1 remain open.
 
-| Requirement for the proposed judgment | Acquired | Concrete gap | Decision / implementation / demonstration | Evidence of satisfaction |
-|---|---|---|---|---|
-| Connect the decided target, design and scope | O1, O2 conditional A, O3; approved result and adaptive checks | acceptance of the proposed final wording | Astra reviews §14.15; no approved computation checks reopened | Exact conditions/scope/limits accepted and final judgment recorded |
-| Distinguish prescribed selection from execution and invariant laws | A has `π=1` and no score observation draw by specification | H-b/H-c, resource and information premises not realized | Explicit premise/channel assessment in §14.15; realization only if claimed | Reviewed conditional model, no silent assertion about the actual runtime |
-| Account for input/terminal evidence | isolated scorer/snapshot and verifier contract approved | authentication, producers, complete view and verifier/adapter still absent | Keep §14.13.8's dependencies as missing realization, not a blanket block on a conditional result | Any claim of realization has its own evidence; preconditions alone certify no protocol |
-| Preserve the domain and the distinct incentives requirement | completed reports, defined conclusive baselines, positive `I`; A12 tracked | no availability, withholding or reputational incentive theorem | Domain/limits explicit; A12 and Phase 1 assessed separately | No imputation, automatic A12 exclusion or general sincerity claim |
+| Residual requirement, outside this A1 closure | Acquired | Missing realization / next boundary |
+|---|---|---|
+| execution, availability and sustainable resources | A prescribes every reviewed item; selection has `π=1` | prescription does not show execution; absent records remain pending; resource assessment and operational authorization still required before adoption |
+| invariant laws and authenticated evidence | isolated scorer/snapshot, verifier contract; §14.15’s assumptions accepted mathematically | H-b/H-c not demonstrated for the runtime; producers, authenticated inputs, complete view and verifier/adapter remain absent (`17` §14.13.8) |
+| effective reputational incentives, A12 | objective separated by O3; requirement explicitly tracked | define reviewer objective and strategies, then demonstrate incentives (`17` §14.14.1, `16` §7); not automatically non-blocking for Phase 1 |
 
-**Judgment proposed:** A1 satisfies the restricted **conditional** criterion upon Astra's
-explicit acceptance of §14.15's premises and wording. This is a proposal, not a closure.
-Missing records remain pending. No expenditure, samples, T1, runtime completion, A12 closure
-or Phase 1 closure follows; resource sustainability remains a premise to evaluate.
-
-**Next:** Astra's judgment on the single final proposal in `17` §14.15. No implementation
-or campaign is required merely to repeat the acquired conditional result; no missing
-producer/verifier capability is certified by calling it a precondition.
+**Next work proposed: A2.** Candidate contract and acceptance criteria only in
+[`19` §11](19-a2-dtf-composition-design.md#11-candidate-a2-guarantee-contract), awaiting review.
+A2 remains open. After review, the single recommended deliverable is the all-order region
+specification and coverage proof described there; no calibration, sample, component policy or
+resource commitment is chosen. This does not require repeating A1’s checks.
 
 ## 6. Essential reading to resume
 
@@ -1213,7 +1186,7 @@ producer/verifier capability is certified by calling it a precondition.
 outcomes; §14, the candidate contract; §14.8, the decision proposal; §14.9, B-b's scorer; §14.10,
 its caller's snapshot, specified; §14.11, implemented; §14.12, O1 acquired; §14.13, the approved
 experimental terminal verifier contract; §14.14, O3 acquired, A12 open and historical O2
-brief; §14.15, O2 decided and proposed conditional A1 closure); `docs/18`
+brief; §14.15, O2 decided and A1 closed conditionally on `1bd865c`); `docs/18`
 (A3); `docs/19` (A2); `docs/20` (S2's synthetic check: specification and implementation approved;
 §§10–11, the absent baseline and A1's adaptive verification, approved on `d7a4449`; §12, the check
 through the scorer); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43; code:
@@ -1222,6 +1195,8 @@ through the scorer); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43; code:
 `crates/protocol/src/{cohort_scores,cohort_snapshot,panel_scores}.rs`,
 `crates/protocol/tests/{s2_synthetic_check.rs,s2/,panel_scores.rs}`,
 `crates/protocol/tests/{cohort_scores,cohort_snapshot}.rs`.
+
+A2’s new candidate contract and next deliverable: `docs/19` §11 (awaiting review).
 
 ## 7. R1 and its approval
 
@@ -1976,4 +1951,16 @@ through the scorer); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43; code:
   acquired proof/check records. Targeted local-link/anchor, table, chronology, unchanged-proof
   and contract, status/scope and diff checks; no Rust, fit, PDF, numerical check or campaign,
   no code/API/expectation change. No independent closure of A1, A12 or Phase 1.
+- **Astra, judgment on `1bd865c`:** diff and proposal read; compared with acquired hypotheses,
+  derivation and adaptive criteria. No Rust, fit, new enumeration or PDF. A1 closed within
+  `17` §14.15’s conditional expected-score scope; premises accepted as mathematical assumptions,
+  not demonstrated current-protocol properties. A12 and Phase 1 open. Evidence separate from
+  Codex’s checks; no review of the subsequent A2 candidate implied.
+- **Codex, A1 judgment record and A2 candidate (documentation only):** HEAD
+  `1bd865cfa72017d46808c0ce6739b32670ae47d9`, parent
+  `af42035d40ac4ff7ae9e40a788e804aa920a8b96`, branch and working tree checked; only the owner’s
+  `.gitignore` modified initially, preserved outside the commit; ignored directories untouched.
+  Checked sources, local links/anchors, tables, chronology, unchanged acquired results and
+  `prop:ipw`, scope/status consistency and `git diff --check`. No code, Rust, fit, new numerical
+  check/enumeration, PDF, campaign or Phase 2 work. A2 contract awaits review; A2/A12 open.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
