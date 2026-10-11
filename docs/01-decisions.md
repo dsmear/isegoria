@@ -654,7 +654,8 @@ correction the forecast target is `q_c = P(Y = A | Y ≠ I, F_u)`, defined only 
 `c = P(Y ≠ I | F_u) > 0`. At `c = 0` the score is flat and `q_c` stays undefined, with no
 conventional value. The decided specification concerns the expected score under the declared
 hypotheses, for completed reports and defined baselines; it guarantees no reputational incentive.
-O2/O3 remain open. The decision, motivation, limits and affected promises are recorded once in
+O2 remains open; O3 subsequently decided, A12 open (`17` §14.14). The O1 decision,
+motivation, limits and affected promises are recorded once in
 [`17` §14.12](17-a1-pilot-batch-design.md#1412-o1-target-amendment-owners-decision-2026-10-11).
 The original observation path and its implementation below remain current behavior; they have
 not been adapted to the new target.

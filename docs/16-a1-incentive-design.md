@@ -388,6 +388,11 @@ shares. None of the four follows from the others.
 
 ## 7. The reputation actually used
 
+**Status after the owner's O3 decision following `a14364c`.** This incentive requirement is
+tracked as **A12, open** (`15`), separately from A1's expected-score closure objective.
+Decision and precise closure criterion: [`17` §14.14.1](17-a1-pilot-batch-design.md#14141-o3--owners-decision-after-a14364c).
+It is neither waived nor automatically non-blocking for Phase 1; no proof added here.
+
 The IPW lemma concerns the score's mean. Probation and shrinkage read `k_u`, the count of
 observed items (`probation.rs:84–110`); the weight is `exp(γ S_u k_u/(k_u + k₀))`, capped; the
 CUSUM reads the unweighted observed scores.
@@ -486,6 +491,9 @@ batching policy approved; C4's denominator waits on decisions not yet taken.
    `17` §4.1).
 3. Whether closing A1 requires the incentives of the reputation actually used (`k_u`,
    shrinkage, weight, cap, CUSUM; §7) or only the IPW objective.
+
+The owner subsequently resolved item 3 as O3 after `a14364c`; the decision and A12's
+remaining requirement are recorded only in `17` §14.14. O2 is still open.
 
 A10 remains separate. Related, outside A1: golden-item placement also derives from the public
 beacon (`honeypot.rs:14–25`) and a golden item is absent from the public deposit set, so golden

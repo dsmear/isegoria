@@ -786,8 +786,8 @@ properness and changes neither the gate nor bridging.
 
 **Score property.** With a defined baseline, reporting that baseline gives a zero difference
 term on either conclusive verdict; B-b also assigns zero to a terminal `I`. This is a property
-of the score. It does not show incentives of the reputation or of review weights; O3 remains
-open (`17` §14.12).
+of the score. It does not show incentives of the reputation or of review weights; O3 is
+resolved and that distinct requirement remains open as A12 (`15`, `17` §14.14).
 
 `S_u` is the mean of `S_uj` over the reviewer's `k_u` scored items — the symmetric
 long-window mean of `01` D34 (the change detector on the per-item scores is T51).
@@ -823,7 +823,7 @@ false-negative rate — how many rejected items would have passed Level B — an
 about `ε` of pilot capacity. The draw is grind-free: it reads the commit-reveal beacon of
 `01` D41 (`04` §The epoch's beacon, T37).
 
-**Current use (O3 unresolved).** The implemented binary `S_u` weights the review vote, on the
+**Current use (A12 open after O3).** The implemented binary `S_u` weights the review vote, on the
 odds scale and shrunk by the number of scored items:
 
 ```
