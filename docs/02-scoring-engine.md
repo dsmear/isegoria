@@ -680,10 +680,11 @@ recorded, re-measured or retired. Two replicas holding the same facts in the sam
 draw the same test from the same seed, and whoever records the facts cannot pick the
 test by the order of recording (the order-dependence the lottery had until T37).
 
-**Scores.** A contested fact is admitted to the bank. Its Level B outcome for the
-evaluator score is 1, as for an item that reaches the pool (§C.2) — scoring it 0 would
-pay reviewers to predict the rejection of true facts a camp disputes — and an appealed
-item that becomes a contested fact promotes the appeal (§C.1, `05` [5b]).
+**Current scores.** A contested fact is admitted to the bank. Its binary Level B outcome for
+the implemented evaluator score is 1, as for an item that reaches the pool (§C.2) — scoring it
+0 would pay reviewers to predict the rejection of true facts a camp disputes — and an appealed
+item that becomes a contested fact promotes the appeal (§C.1, `05` [5b]). The decided O1 target
+for A1 is stated in §C.2; this implemented mapping is not a definition of its reference `Y`.
 
 ---
 
@@ -739,8 +740,16 @@ right is the good observation itself (`protocol::appeal`, T61). Floor provisiona
 > too, with inverse-probability weighting intended to correct gate-dependent
 > observation. Its protocol-level incentive guarantee remains open (`15` A1).
 
-The reviewer does not give a binary judgment: they **declare a probability** `p_uj`
-that the item passes Level B empirical validation. On every scored item — a golden item
+**Decided target for A1 (O1, 2026-10-11; amendment awaiting review).** The scalar forecast
+`p_uj` targets `q_c = P(Y_j = A | Y_j ≠ I, F_u)` where `c = P(Y_j ≠ I | F_u) > 0`.
+For `c = 0` the expected score is flat and `q_c` is undefined; no target value is imputed.
+B-b's terminal contribution is the difference below on `A` (`o = 1`) or `R` (`o = 0`),
+and zero on a positively evidenced terminal `I`. The approved scorer's other cases remain
+in force (`17` §§8.2, 14.9); the decision's motivation, domain and limits are in
+[`17` §14.12](17-a1-pilot-batch-design.md#1412-o1-target-amendment-owners-decision-2026-10-11).
+
+**Current implementation (binary outcomes; not yet adapted to O1).** The runtime still reads
+`p_uj` as the probability that an item passes Level B. On every scored item — a golden item
 (`05` §Golden items) or a live item whose outcome `o_j ∈ {0,1}` is known (`01` D35, T52) —
 the difference rule below is **strictly proper conditional on a report-independent
 baseline and a fixed outcome law**. Its transfer to selected live outcomes also needs
@@ -775,16 +784,17 @@ does to the denominator, probation and reputation is not decided. Implemented as
 with no production caller yet. This composes baselines; it is no proof of the protocol's
 properness and changes neither the gate nor bridging.
 
-**Fundamental property.** Someone who replicates the consensus gets `S_u = 0`. You
-gain reputation only by being right **when the crowd is wrong**. This is the incentive
-needed against majority capture.
+**Score property.** With a defined baseline, reporting that baseline gives a zero difference
+term on either conclusive verdict; B-b also assigns zero to a terminal `I`. This is a property
+of the score. It does not show incentives of the reputation or of review weights; O3 remains
+open (`17` §14.12).
 
 `S_u` is the mean of `S_uj` over the reviewer's `k_u` scored items — the symmetric
 long-window mean of `01` D34 (the change detector on the per-item scores is T51).
 
-**Exploration (`01` D35, T52).** Golden items alone are too few (about one every two
-epochs per reviewer). A reviewer is therefore scored on every reviewed item whose Level
-B outcome is known: the golden items, every live item that reaches a pilot (a pass — a
+**Current exploration (`01` D35, T52; O2 unresolved).** Golden items alone are too few (about
+one every two epochs per reviewer). A reviewer is therefore scored on every reviewed item whose
+Level B outcome is known: the golden items, every live item that reaches a pilot (a pass — a
 contested fact is one, §B.7 — or a screen or DIF rejection: `o_j = 0`), and a random
 `ε = 5%` of the items the gate rejects, drawn from the public beacon (`protocol::exploration`, keyed on the admitted
 slot) and piloted for measurement only — never entering the pool. Scoring only the
@@ -813,8 +823,8 @@ false-negative rate — how many rejected items would have passed Level B — an
 about `ε` of pilot capacity. The draw is grind-free: it reads the commit-reveal beacon of
 `01` D41 (`04` §The epoch's beacon, T37).
 
-**Use.** `S_u` weights the review vote, on the odds scale and shrunk by the number of
-scored items:
+**Current use (O3 unresolved).** The implemented binary `S_u` weights the review vote, on the
+odds scale and shrunk by the number of scored items:
 
 ```
 w_u = exp( γ · S_u · k_u / (k_u + k₀) )       γ ≈ 35,  k₀ ≈ 100   (provisional, T25)

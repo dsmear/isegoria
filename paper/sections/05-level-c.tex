@@ -20,7 +20,14 @@ stake-and-refund rule.
 
 \subsection{Evaluator score: forecasts scored on golden items}
 
-Every reviewer declares a probability $p_{uj}$ that item $j$ will pass empirical validation. The
+This subsection records the September binary design and its analysis. For A1's correction,
+the owner's O1 amendment of 11 October 2026 changes the forecast target to $q_c$ where $c>0$;
+at $c=0$ it is undefined and the expected score is flat (\cref{prop:ipw}).
+The binary equations and their proofs below remain historical / conclusive special cases;
+they imply no incentives of the reputation actually used.
+
+In that historical design, every reviewer declares a probability $p_{uj}$ that item $j$
+will pass empirical validation. The
 same number is the rating $r_{uj}$ of Level~A. About 5\% of every review queue consists of
 \emph{golden} items. These are indistinguishable from the rest, and their outcome
 $o_j\in\{0,1\}$ is known from validated history (design decision D21). The forecasts on golden

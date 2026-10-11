@@ -649,6 +649,16 @@ reacts slowly to a long con.
 
 ## D35 — Scored outcomes: live items with randomized exploration; golden items at 5%
 
+**O1 amendment (owner's explicit decision, 2026-10-11; text awaiting review).** For A1's
+correction the forecast target is `q_c = P(Y = A | Y ≠ I, F_u)`, defined only where
+`c = P(Y ≠ I | F_u) > 0`. At `c = 0` the score is flat and `q_c` stays undefined, with no
+conventional value. The decided specification concerns the expected score under the declared
+hypotheses, for completed reports and defined baselines; it guarantees no reputational incentive.
+O2/O3 remain open. The decision, motivation, limits and affected promises are recorded once in
+[`17` §14.12](17-a1-pilot-batch-design.md#1412-o1-target-amendment-owners-decision-2026-10-11).
+The original observation path and its implementation below remain current behavior; they have
+not been adapted to the new target.
+
 > **Implemented (2026-09-25, T52):** `protocol::exploration` — the beacon's draw
 > (`explore_from_beacon`, `EXPLORATION_RATE = 0.05`, keyed on the admitted slot) sends a
 > gate rejection through `lifecycle::Event::Explore` to `Explored`, the two pilot batches
@@ -666,16 +676,19 @@ reacts slowly to a long con.
 > is measured as a pass — a gate false negative — and the pool is unchanged. Grind-free
 > since T37; `ε` provisional (T25).
 
-**Choice.** Evaluators are scored on three kinds of item:
+**Original choice (2026-09-25; implemented observation path).** Evaluators are scored on
+three kinds of item:
+
 1. golden items, still 5% of the review queue;
 2. every live item they reviewed that reaches Level B, once its outcome is known;
 3. a random 5% of the items the gate rejects, drawn from the public beacon (D41) and
    sent to the pilot for measurement only.
 
 The outcomes of the items in (3) are weighted by `1/0.05 = 20` (inverse probability), so
-the expected score equals the score with every outcome observed. An explored item does
-not enter the pool because of its pilot result. Entry still requires passing the gate or
-a successful appeal (D8).
+the original IPW argument intends to match the full-observation expected score. This identity
+requires the conditional selection hypotheses in `17` §14.12; O1 establishes none of them.
+An explored item does not enter the pool because of its pilot result. Entry still requires
+passing the gate or a successful appeal (D8).
 
 **Why.** Differences in skill between evaluators are small compared with the noise of a
 single item (about 0.01–0.02 against about 0.1). Around 100 scored items per reviewer
@@ -688,8 +701,9 @@ design scale:
 | Live outcomes + exploration | ≈ 3.5 | ≈ 2.5 years | ≈ 10 months |
 
 Scoring only the items the gate lets through would break properness, because the
-forecast then influences whether its own outcome is observed. Randomized exploration
-restores properness (Chen, Kash, Ruberry & Shnayder, 2014). Exploration also measures,
+forecast then influences whether its own outcome is observed. Randomized exploration can
+correct selection under the required information and IPW hypotheses; it establishes no
+properness of the current sequence (`15` A1; `17` §14.12). Exploration also measures,
 for the first time on real data, how many good items the gate rejects. It costs about 5%
 of pilot capacity.
 

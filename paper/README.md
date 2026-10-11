@@ -3,7 +3,8 @@
 **Opinion as Filter, Evidence as Verdict: The Mathematics of Isegoria, an Authority-Free
 Mechanism for Validating Test Items** (working paper, version 0.2, September 2026).
 
-- **PDF:** [`main.pdf`](main.pdf), built from the sources in this directory.
+- **PDF:** [`main.pdf`](main.pdf), the existing September snapshot; not rebuilt for the
+  source amendment of 2026-10-11.
 - **Describes:** the code at commit `2ee5e79` and the design decisions D32–D41 of
   [`docs/01`](../docs/01-decisions.md) (commit `7507eab`); D32 is implemented since T49
   (2026-09-24), the rest are planned (roadmap `docs/10` Phase 1.1). The paper is a dated
@@ -46,7 +47,7 @@ comes with a proof or a reproducible experiment and a candidate correction:
 | Finding | Revision | Decision / task |
 |---|---|---|
 | 1, 2 | side-balanced bridge score: sides by 2-means on `f_u`, predicted approval averaged per side, each side counts once; absolute threshold ≈ 0.80. Leak falls to between −0.08 and 0.00; the score is stable to ±0.01 with or without other items and decoys | D32 / T49 (done 2026-09-24) |
-| 4 | leave-one-out difference score; odds weights `exp(γ·S·k/(k+100))`, `γ ≈ 35`; CUSUM change detector instead of the asymmetric update; outcomes of live items plus 5% randomized exploration of rejections (proper by Prop. 21); probation of 30 | D33–D36 / T50–T52 |
+| 4 | leave-one-out difference score; odds weights `exp(γ·S·k/(k+100))`, `γ ≈ 35`; CUSUM change detector instead of the asymmetric update; outcomes of live items plus 5% randomized exploration of rejections (original claim qualified by the O1 amendment to `prop:ipw`); probation of 30 | D33–D36 / T50–T52 |
 | 3 | anchor KR-20 ≥ 0.90 before a latent re-check (about 40 anchors); the differential gap only as a diagnostic (it inverts in a campaign); θ inside the likelihood as the target model | D37 / T53, T54 |
 | — | contested facts (DIF on knowledge, key backed by a primary source) in a balanced pool | D38 / T55 |
 | 5 | coordination detected on model residuals over long histories (honest pairs flagged 50.6% → 0%); clusters limit panel co-assignment instead of losing weight | D39, D40 / T56, T57 |
@@ -54,14 +55,19 @@ comes with a proof or a reproducible experiment and a candidate correction:
 
 ## Since version 0.2
 
-The LaTeX sources and PDF are a dated snapshot; this documentation pass does not
-silently rewrite their propositions or regenerate their figures. Current formulas,
+The September results and the stored PDF remain a dated snapshot. The LaTeX sources now have
+an explicit **O1 target amendment (owner's decision, 2026-10-11; wording awaiting review)**:
+`prop:ipw` states the conditional mean for `q_c`, defined only where `c > 0`; at `c = 0` it
+is undefined and the score is flat. The binary analysis is labelled historical / conclusive.
+Motivation, limits and the affected promises are recorded once in
+[`docs/17`](../docs/17-a1-pilot-batch-design.md) §14.12.
+No data, figure, PDF, code or expected value is regenerated. Current formulas,
 tasks and evidence live in `docs/02`, `docs/10`, `docs/13` and `docs/14`.
 
 | Snapshot topic | Subsequent implementation and current qualification |
 |---|---|
 | Bridging and appeal (D32) | Side-balanced score and side-gap appeal implemented; D42 adds the exact cut, side floor, clipping and coverage. Current limits and open participation contracts: `docs/02` §A; `docs/15` A7/B6. |
-| Evaluator score, dynamics and exploration (D33–D36) | Difference score, odds weights, CUSUM and exploration implemented. The transfer of properness to a known-before-report draw and founder reset remain open: `docs/15` A1/A6/A10. |
+| Evaluator score, dynamics and exploration (D33–D36) | Difference score, odds weights, CUSUM and exploration implemented. O1 changes A1's decided target; the binary runtime, observation design and reputational guarantees remain separate (`docs/17` §14.12); A1 stays open. |
 | DIF (D37, D25, D43) | Anchors enter the likelihood; formats determine guessing floors; an estimated common ability histogram replaces the fixed normal in the re-check. Histogram interpretation and current calibration remain open: `docs/15` A3/B1–B5; `docs/13` §8.8. |
 | Contested facts (D38) | Per-fit DTF selection implemented; a common-population whole-test bound is not established by that implementation: `docs/15` A2/D3. |
 | Coordination and beacon (D39–D41) | Residual-history detection, panel diversification and the epoch beacon implemented. Their scope is documented in `docs/02` and `docs/04`; implementation does not by itself establish the exploration information assumptions. |

@@ -204,27 +204,76 @@ of forecasts. Source: \texttt{scripts/revisions\_evaluator.py}.}
 \end{minipage}
 \end{table}
 
-\paragraph{Scored outcomes with randomized exploration (D35).} Golden items alone are too few. The
-revision also scores every live item a reviewer judged that reaches a pilot. To keep the score
-proper when the gate decides which outcomes are observed, it adds randomized exploration: a random
-fraction $\varepsilon=5\%$ of gate rejections, drawn from the public beacon, is piloted for
-measurement only and never enters the pool.
+\paragraph{Scored outcomes with randomized exploration (D35, historical path).}
+Version 0.2 added live pilot outcomes and a random fraction $\varepsilon=5\%$ of gate
+rejections for measurement only. That binary path remains implemented; its draw is computable
+before reporting, so its original general properness claim does not establish the protocol
+claim. The following dated amendment qualifies \cref{prop:ipw}; numerical results below remain
+historical measurements of the original path.
 
-\begin{proposition}[Exploration restores properness]\label{prop:ipw}\proved{}
-Let the outcome of each reviewed item be observed with probability $\pi_j\in(0,1]$. The
-probability may depend on the gate's decision, and hence on the reports, but conditional on the
-decision the observation is independent of $o_j$. Let
-$\hat S_u=\sum_j\frac{I_j}{\pi_j}\,d_{uj}(p_{uj})$, where $I_j$ indicates that $o_j$ is observed
-and $d_{uj}$ is a strictly proper per-item score. Then
-$\E[\hat S_u]=\sum_j\E[d_{uj}(p_{uj})]$, which truthful reports maximize.
+\paragraph{O1 target amendment, 11 October 2026 (owner's decision; wording awaiting review).}
+For A1's correction the target becomes
+$q_{c,uj}=\Pr(Y_j=A\mid Y_j\ne I,F_u)$, defined only where
+$c_{uj}=\Pr(Y_j\ne I\mid F_u)>0$. At $c_{uj}=0$ it is undefined, with no conventional
+value; the expected score is flat. Here $Y_j\in\{A,R,I\}$ is the pinned reference
+procedure's terminal outcome. The decision's motivation, limits and amendment record are
+in \code{docs/17}, \S14.12. O2/O3 remain open; no A, C or T1 is adopted and A1 is not closed.
+
+\begin{proposition}[Conditional IPW mean for the O1 target]\label{prop:ipw}\proved{}
+For a finite nonempty cohort $K$ fixed by assignments, let completed reports $p_{uj}$ be chosen
+from $F_u\subseteq F_\Phi$. Let the frozen baseline $b_{uj}$ be $F_\Phi$-measurable
+and defined on conclusive outcomes,
+and assume the joint law of baseline and reference outcome given $F_u$ invariant under the
+reviewer's admitted joint reporting deviations (H-c), with the information and report
+conditions H-a/H-d,
+including C5, of \code{docs/17}, \S8.1. Define
+\[
+ g_{uj}(Y_j)=
+ \begin{cases}
+ (b_{uj}-1)^2-(p_{uj}-1)^2,&Y_j=A,\\
+ b_{uj}^2-p_{uj}^2,&Y_j=R,\\
+ 0,&Y_j=I.
+ \end{cases}
+\]
+Let $S_j$ indicate selection, $Y_j^{\rm obs}$ the observed outcome, and $\pi_j>0$ the
+recorded, $F_\Phi$-measurable inclusion probability. Under C assume the conditional
+selection/IPW requirements, including the effective inclusion probability (H-e) and the
+selected/reference outcome law (H-b), so that for $k\in\{A,R\}$
+\[
+ \E[S_j\mathbf{1}\{Y_j^{\rm obs}=k\}\mid F_\Phi]
+   =\pi_j\Pr(Y_j=k\mid F_\Phi).
+\]
+Under A every prescribed item is selected, $\pi_j=1$, with the reference outcome law still
+required. Then, for $\hat S_K=|K|^{-1}\sum_{j\in K}S_jg_{uj}(Y_j^{\rm obs})/\pi_j$,
+\[
+ \E[\hat S_K\mid F_u]=|K|^{-1}\sum_{j\in K}\E[g_{uj}(Y_j)\mid F_u].
+\]
+For each $c_{uj}>0$, $q_{c,uj}$ uniquely maximizes the expected contribution, with loss
+$c_{uj}(p_{uj}-q_{c,uj})^2$. For $c_{uj}=0$ the contribution has expectation zero for
+every report; no maximizing target value is defined.
 \end{proposition}
 \begin{proof}
-Conditional on the decision and on $o_j$, $\E[I_j/\pi_j]=1$. Hence
-$\E[I_jd_{uj}/\pi_j]=\E[d_{uj}]$ whatever the decision, and truthfulness maximizes each term.
+This restates the conditional calculation of \code{docs/17}, \S8.1 D1--D2 and \S14.1;
+it does not prove the hypotheses. Since the two conclusive coefficients of $g$ are
+$F_\Phi$-measurable and its coefficient on $I$ is zero, the assumed coordinate identities
+and the tower property give the displayed cohort mean. For $c_{uj}>0$,
+\[
+ \E[g_{uj}(Y_j)\mid F_u]
+ =\E[\mathbf{1}\{Y_j\ne I\}(b_{uj}-o_j)^2\mid F_u]
+ -c_{uj}\bigl[(p_{uj}-q_{c,uj})^2+q_{c,uj}(1-q_{c,uj})\bigr],
+\]
+where $o_j=1$ on $A$ and $0$ on $R$; the first term evaluates the baseline only on that
+conclusive branch. H-c makes the first term invariant under the
+strategy. For $c_{uj}=0$, $Y_j=I$ almost surely given $F_u$ and $g_{uj}=0$;
+that branch uses no expression containing $q_{c,uj}$.
 \end{proof}
 
-Properness covers the score, not a reviewer's stake in an item's fate. The defences against
-cartels and long cons therefore remain necessary.
+The result concerns the expected score, not completion, record availability or the incentives
+of reputation weights. A positively documented terminal $I$ is distinct from pending,
+a missing report and an absent baseline. The approved scorer's other cases remain in force
+(\code{docs/17}, \S14.9); neither this amendment nor IPW proves H-c or validates the current
+draw. The binary result of \cref{prop:loo} is the conclusive special case; its historical
+proof is unchanged.
 
 To judge speed, assume 1{,}000 active reviewers, about 667 items reviewed per month (the number
 that fills the roughly 333 monthly pilot slots when half of the items pass the gate), 9 reviewers
