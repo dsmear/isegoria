@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. Astra's review of `cbcbc67` approved those precisions and the further changes to §13.2's classification (§13); the minimal perimeter for a study S2 built on §§9–13, [`19`](19-a2-dtf-composition-design.md) §10.6, was partly approved there, rectified and **approved on `5af22b9` as a preparatory synthesis**; after that review §13.2's absent-precondition row was made self-standing, its classification unchanged. The synthetic-event technical check built on §§8–13 is specified in [`20`](20-s2-synthetic-check.md), **approved by Astra on `c76c035` as the check's specification**, with four precisions made there; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §14 proposes the contract of A1's candidate guarantee, on Astra's direction after the review of `bef891b` (B-b the reference score, A the analytic reference, C the comparison, neither adopted): partly reviewed by Astra on `11deec2`, which approved its mathematical core **as a conditional result** and not §14 as a whole; its adaptive verification criterion and the absent baseline were rectified in place in `d2be7da`, and §14 **approved by Astra on `d2be7da` as a conditional candidate contract** (no protocol, adoption of A or C, substantive narrowing or closure of A1). The absent baseline's correction in `20`'s check and §14.6's verification on finite constructions, in test code (`20` §§10–11), were **approved by Astra on `d7a4449`** within that perimeter. §14.8's decision proposal on A1's path was partly reviewed by Astra on `23283f2`, which approved the record of that approval and accepted B-b's scorer as the next intervention, and rectified in place; **its rectifications were approved by Astra on `7d1b19e`**. B-b's scorer, implemented in `protocol` with no production caller (§14.9), was partly reviewed on `7d1b19e`, which accepted three of its contract's choices and did not approve it for a numeric defect on its declared domain, and on `0ca81e9`; corrected, **it was approved by Astra on `6b9f42a` as an isolated component**, within §14.9's contract and numeric limits. The contract of its future caller, §14.10, was partly reviewed by Astra on `3e34f6f`, which approved the record of the scorer's approval and accepted the direction of three of the contract's choices for the isolated component, not the section; rectified in place, it was **approved by Astra on `8dc7087` as the specification of the isolated snapshot component**, with one precision on the digest and the prefixes. That component, implemented with no production caller (§14.11), was partly reviewed on `9c7cb23`; its two corrections and the **isolated snapshot component were approved on `93f3f7c`, with no further blocking finding**; O1 was decided by the owner on 2026-10-11 (§14.12), its amendment approved on `e735a8e`; the experimental terminal verifier contract is proposed in §14.13, awaiting review; O2/O3 remain open, no observation design adopted. |
+| **Status** | Analysis. Astra's review of `164fff6` did not approve it; on `37addca` Astra approved the revised mathematical argument and the comparison of alternatives **as a conditional analysis** (below). **No batching policy is approved for implementation**; A1 stays open (`15`). Nothing here is implemented; no pilot, batching or missing-outcome policy changes; no audit or new batching is approved for implementation. §7 checks a candidate of Astra's (a three-category reference outcome): on `654dbff` Astra approved its derivations and calculations as conditional results; on `825cee3` Astra accepted §7 **as a conditional analysis, not as a protocol approved for implementation**. §8 specifies B-b as a candidate contract: on `44f0dbd` Astra approved its identities and distinctions as conditional results, **not §8 as a whole, the protocol, the implementation or the adoption of A**; §8 was rectified after that review in `fa11791`, and on `fa11791` Astra approved §8 **as a conditional analysis, with no blocking finding — not the protocol, the implementation or the adoption of A**. The decision synthesis built on §§7–8 is in [`19`](19-a2-dtf-composition-design.md) §6.1. §9 specifies cases 5–7 for a study under design A, on the direction of Astra's review of `26593e7` (`19` §10): partly approved by Astra on `d31e9fa`, with 6c and 7a decided as the basis of the study's reporting, rectified in `b2a1c2f` and **approved by Astra on `b2a1c2f` as the study's reporting specification and a conditional analysis**. §10, on the bridging input under B-b, was partly approved by Astra on `ac06d3c`, rectified in `111e595` and **approved there as a conditional analysis**. §11, on timing under design A, was partly approved by Astra on `82bdb9a`, rectified in `cf5575a` and **approved there as a conditional comparison between T1 and T2**; T1 and T2 stay alternatives, neither adopted. §12, on access and disclosure per object, was partly approved by Astra on `8af257d`, rectified in `7d8db08` and **approved there as a conditional analysis of the informational requirements**. §13, the observable evidence for §12.4's (ii) and (iv) under T1, was partly approved by Astra on `f38f8a4`, rectified in `176dd8c` and **approved there as a conditional analysis of the observable evidence**, within its stated limits and with three precisions made in §§13.1–13.4; T1 and T2 stay alternatives, neither adopted. Astra's review of `cbcbc67` approved those precisions and the further changes to §13.2's classification (§13); the minimal perimeter for a study S2 built on §§9–13, [`19`](19-a2-dtf-composition-design.md) §10.6, was partly approved there, rectified and **approved on `5af22b9` as a preparatory synthesis**; after that review §13.2's absent-precondition row was made self-standing, its classification unchanged. The synthetic-event technical check built on §§8–13 is specified in [`20`](20-s2-synthetic-check.md), **approved by Astra on `c76c035` as the check's specification**, with four precisions made there; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §14 proposes the contract of A1's candidate guarantee, on Astra's direction after the review of `bef891b` (B-b the reference score, A the analytic reference, C the comparison, neither adopted): partly reviewed by Astra on `11deec2`, which approved its mathematical core **as a conditional result** and not §14 as a whole; its adaptive verification criterion and the absent baseline were rectified in place in `d2be7da`, and §14 **approved by Astra on `d2be7da` as a conditional candidate contract** (no protocol, adoption of A or C, substantive narrowing or closure of A1). The absent baseline's correction in `20`'s check and §14.6's verification on finite constructions, in test code (`20` §§10–11), were **approved by Astra on `d7a4449`** within that perimeter. §14.8's decision proposal on A1's path was partly reviewed by Astra on `23283f2`, which approved the record of that approval and accepted B-b's scorer as the next intervention, and rectified in place; **its rectifications were approved by Astra on `7d1b19e`**. B-b's scorer, implemented in `protocol` with no production caller (§14.9), was partly reviewed on `7d1b19e`, which accepted three of its contract's choices and did not approve it for a numeric defect on its declared domain, and on `0ca81e9`; corrected, **it was approved by Astra on `6b9f42a` as an isolated component**, within §14.9's contract and numeric limits. The contract of its future caller, §14.10, was partly reviewed by Astra on `3e34f6f`, which approved the record of the scorer's approval and accepted the direction of three of the contract's choices for the isolated component, not the section; rectified in place, it was **approved by Astra on `8dc7087` as the specification of the isolated snapshot component**, with one precision on the digest and the prefixes. That component, implemented with no production caller (§14.11), was partly reviewed on `9c7cb23`; its two corrections and the **isolated snapshot component were approved on `93f3f7c`, with no further blocking finding**; O1 was decided by the owner on 2026-10-11 (§14.12), its amendment approved on `e735a8e`; the experimental terminal verifier contract in §14.13 was partly reviewed on `c6b3ca7` and rectified, awaiting review; O2/O3 remain open, no observation design adopted. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `164fff6`, revised in `37addca`. Code line references are to `164fff6`, whose code is that of `e8fdbe7`. The corrections of `15` A11 (closed on `dd842d6`) and of A4's residual (a) (closed on `af17eb3`), made after `37addca`, change how the two pilot stages read a fit that did not converge; the passages describing them say so. §7 is written on `81cd467` and rectified on `654dbff`; §8 is written on `825cee3` and rectified on `44f0dbd`; both name code by symbol. |
 | **Scope** | Conditions C2 and C3 of [`16`](16-a1-incentive-design.md) §4.2 (this dossier's conditions, not the review findings of the same names in `15`): what outcome a reviewer's report predicts, how a pilot batch must be formed for that outcome to be common to the paths, and what to do when no outcome arrives. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated with rational arithmetic, formulas given in place; **E-fit** a Rust test that runs real fits; **E-api** a Rust test that composes the APIs on inputs built by hand, no fit run (`crates/protocol/tests/a1_batch_composition.rs`; for A11, `indeterminate_screen.rs`). No runtime composes the pilot (§1): nothing here describes runtime behavior. |
@@ -990,7 +990,7 @@ without its terminal record is reported pending: not `I`, not 0, its assignments
 ### 9.2 Case 5 — verifiable terminal inconclusiveness
 
 **What the record must let a verifier check** (approved logical content; the concrete
-experimental contract is proposed in §14.13, awaiting review):
+experimental contract in §14.13 was partly reviewed on `c6b3ca7` and rectified, awaiting review):
 
 1. the item and the procedure fixed for it, with the prefixed rule that applies — attempt budget,
    term, the condition of terminal closure — by reference to the record that fixed them;
@@ -2020,6 +2020,10 @@ approved, with no new blocking finding**. Acquired: `q_c` only for `c > 0`, the 
 specification apart from the current binary path. These are Astra's evidence, separate from
 Codex's document checks. O2/O3, A1 and Phase 1 stay open. The subsequent experimental terminal
 verifier contract (§14.13) is a new proposal, not covered by this approval.
+
+Astra's review of `c6b3ca7`: **partial** — the record of O1's approval approved, the
+verifier's approach accepted; §14.13 as a whole not approved. Review evidence, the two
+in-place rectifications and their pending review are recorded only in §14.13.
 
 ### 14.1 The property
 
@@ -3078,6 +3082,15 @@ It verifies a pinned experimental procedure on recorded inputs, not pool admissi
 truth, sampling representativeness or H-b/H-c/H-e. No A/C/T1, T58, O2/O3 or production value is
 adopted. Resource shortfalls retain §9.2's open classification.
 
+**Astra's partial review of `c6b3ca7`.** Astra approved the record of O1's approval and
+accepted the verifier's approach, but **did not approve §14.13 as a whole**: the enumeration
+set included excess sheets in the numerical count, and `latent_batch`'s early
+`BatchTooSmall` could conceal incompatible inputs. Evidence: reading the diff, this
+contract and pertinent sources; cases deduced from the APIs' control flow, **no Rust, fit
+or numerical check executed**. This is separate from Codex's source/document checks.
+The two in-place rectifications in §14.13.3 and their criteria in §14.13.7 **await review**;
+they add no code or API and change no resource policy, O2/O3 decision or scorer case.
+
 #### 14.13.1 Fixed rule and supported numerical profile
 
 `Rule` is immutable and recorded before **every member's first assignment**, as is
@@ -3214,15 +3227,29 @@ validated upstream, the contract is not satisfied (§14.13.8).
 For each stage/attempt use its fixed window and epoch. Enumerate the authenticated sheet
 records in position order, validate scope, key versions, shape and binary cells, and apply
 `pilot::submit_response` with the pinned `IssuerPublic`, decoded `NullifierProof`,
-`pilot::batch_id(trial_item_CIDs)` and epoch to a fresh `NullifierSet`. Check its returned nym
-against the sheet; reject repeated nyms within this attempt. Sampling in this profile is the
-first `n_s` admitted complete sheets in that window, not a runner-chosen subset. Record each
+`pilot::batch_id(trial_item_CIDs)` and epoch to a fresh **enumeration** `NullifierSet`.
+Keep a positioned registry of every sheet CID, declared/verified nym and admission judgment;
+check each returned nym against its sheet and reject repeated nyms within this attempt.
+Sampling in this profile is the first `n_s` admitted complete sheets in that window,
+not a runner-chosen subset. Record each
 known admission refusal (bad proof, wrong role, duplicate) with its reason; it contributes no
 row. An unresolved/authentication-unsupported earlier sheet is missing/unsupported evidence,
 not a sheet to skip. A referenced selected sheet failing validation refuses the attempt.
-The full view must justify that none was skipped. Once selected, sort their rows by nym bytes,
-and use that same order for both matrices and the selected-sheet vector. The set is only for admission and
-counting, never a source of matrix iteration order. Reuse across attempts/stages is allowed
+The full view must justify that none was skipped. Continue enumerating and judging every
+sheet through the data close, even after `n_s` valid sheets: valid excess sheets remain
+in the registry and enumeration set, marked unselected; later duplicates and refusals remain
+traceable, and missing proofs still require the missing/unsupported judgment above.
+Excess sheets never enlarge the selected sample or replace an earlier selected sheet.
+
+Keep the selected `(sheet CID, verified nym, answers)` tuples together; sort them by nym
+bytes and derive the selected-sheet vector, row-nym vector and both matrices from this one
+ordered vector. Construct a **separate numerical** `selected_respondents` with
+`NullifierSet::new()` and `spend(verified_nym)` for exactly those tuples. Each insertion must
+succeed; these are only nyms returned by successful `submit_response`, never unchecked
+declared identifiers. Require `selected_respondents.len() == selected.len()` and `contains`
+for every selected nym; insertion into a fresh set of exactly these distinct nyms establishes
+set equality. The enumeration set may be larger and is never passed to a numerical API.
+Neither set supplies matrix iteration order. Reuse across attempts/stages is allowed
 by this experimental profile, with no claim of independence; there is no new person or role.
 The sheet's response epoch must equal the plan's epoch and its cut's epoch; an attempt window
 cannot silently import responses from another epoch/context. `batch_id` sorts/deduplicates
@@ -3252,11 +3279,44 @@ answer/key conversions are incompatible evidence. The APIs check dimensions/coun
 bind individual row identities to answers; the extra checks above and upstream binding are
 necessary even if a numerical wrapper returns `Ok`.
 
+**Prevalidation before error classification.** `latent_batch` calls `admit_dif_batch`
+before its row, format, template and anchor checks. Its `BatchTooSmall` alone therefore
+certifies none of them. Before admitting any replay result as a budget-consuming
+non-conclusion, the verifier completes these checks in order, even with one survivor:
+
+1. Resolve and authenticate the required objects/view and reconstruct the selection above.
+   Check rule/profile, scope, epoch, seed, close, column CIDs/keys and exact survivor
+   projection. Verify both matrices have the same selected nyms in the same row order,
+   exactly `selected_respondents.len()` rows, rectangular expected anchor/item widths,
+   and only finite binary cells. These are explicit verifier checks; the set has no row
+   mapping and the wrapper's shape checks may be bypassed by an early error.
+2. Use the initial group width at stage 1 and the derived survivor width at stage 2 as
+   `trial_count`. Require `Formats::describes(anchor_count, trial_count)` and equality to
+   the frozen projected formats: counts and every `Choice(m)` with `m >= 2`. Then run
+   `pilot::admit_templates(&templates, anchor_count, trial_count)` on the exact projected
+   template vectors; check counts and uniqueness across anchors **and** survivors.
+   `BadFormats`, `BadTemplates`, `SharedTemplate` or any mismatch refuses the attempt
+   as incompatible without budget consumption, regardless of the wrapper's early error.
+3. Establish the complete `n_s` sample and the applicable code floor (`n1 >= N1_MIN`,
+   `n2 >= N_LATENT_MIN`) before counting an intrinsic result. A documented shortfall
+   retains §14.13.4's resource handling; a missing proof/close is missing evidence.
+   On structurally valid complete stage-2 matrices, independently run
+   `pilot::admit_anchors(&anchors)` to recompute KR20, even below `K_MIN` survivors.
+   `Ok` and the profile's `UnreliableAnchors` are recognized quality results;
+   `UnreliableAnchors` is **not** structural incompatibility. Unsupported results cannot
+   supply a valid non-conclusion. No anchor fit or quality assertion replaces this check.
+4. Run the pinned numerical wrapper and compare its exact result/output as below. Preserve
+   its error priority: for fewer than `K_MIN` derived survivors, a `BatchTooSmall` may
+   count only after steps 1–3 pass, including a recomputed anchor-quality result. If that
+   precheck also yields `UnreliableAnchors`, retain that diagnostic; the wrapper still
+   returns `BatchTooSmall`. With enough survivors, its `UnreliableAnchors` on a complete
+   compatible sample remains a supported non-conclusion. Neither is an immediate `I`.
+
 | Replay | Operation on these inputs | Comparisons deciding the judgment |
 |---|---|---|
-| stage 1 | `admit_dif_batch(k, n, N1_MIN)` for the initial group floor; `screen(&respondents, anchors, responses, formats)`; `stage1_fit` and `stage1_verdicts` on the same admitted matrices to recover diagnostics | match exact fit status, `rpb/a/b/c` output CID and all item readings; lower-level readings must equal `screen`'s vector; the fit drops columns below `R_PBIS_MIN` itself, not at the runner's discretion |
+| stage 1 | prevalidation above; `admit_dif_batch(k, n, N1_MIN)` for the initial group floor; `screen(&selected_respondents, anchors, responses, formats)`; `stage1_fit` and `stage1_verdicts` on the same admitted matrices to recover diagnostics | match exact fit status, `rpb/a/b/c` output CID and all item readings; lower-level readings must equal `screen`'s vector; the fit drops columns below `R_PBIS_MIN` itself, not at the runner's discretion |
 | survivor derivation | from the first converged stage-1 attempt, select exactly `Screening::Pass` in original column order; keep every `Fail` as an earlier `R` | compare stage-2 item CIDs, formats/templates projection, batch context and stage-1 decision reference; a different survivor set is incompatible |
-| stage 2 | `revalidation::latent_batch(&respondents, anchors, responses, formats, templates, planned_seed)`, then `target_rechecks(&fit)` on `Ok` | match the exact API error, or selected model/convergence, all returned fields' CID and `Recheck` vector; selection/BIC, latent parameters, anchor reliability and template checks are rerun, not read as asserted verdicts |
+| stage 2 | prevalidation above, then `revalidation::latent_batch(&selected_respondents, anchors, responses, formats, templates, planned_seed)`, then `target_rechecks(&fit)` on `Ok` | match the exact API error, or selected model/convergence, all returned fields' CID and `Recheck` vector; selection/BIC, latent parameters, anchor reliability and template checks are rerun, not read as asserted verdicts |
 
 The stage-1 diagnostic call reruns its fit because `screen` returns only readings; no API is
 changed here to avoid that duplicate calculation. Stage 2 reuses the returned fit, not the
@@ -3300,7 +3360,8 @@ all are already `R` and no stage-2 attempt is required.
 Stage 2 also starts at 1, bound to that stage-1 decision, with no gap. `NoDif`/`Dif` from a
 converged fit end it with the profile's `A/R` table. Supported positive non-conclusions are
 an admitted fit's `MaxIters`/`LineSearchFailed`, `UnreliableAnchors` on a complete sample,
-or `BatchTooSmall` for the **derived survivors**, with complete stage-2 inputs and `n2` rows.
+or `BatchTooSmall` for the **derived survivors**, with complete stage-2 inputs and `n2` rows,
+only after §14.13.3's structural/compatibility and anchor-quality prevalidation.
 Each consumes an attempt and permits the next. All `B2` such attempts, with no earlier
 conclusion, justify `I` for the survivors. The last indeterminate result alone does not.
 Later retries cannot replace or ignore a conclusion from either stage, even if its terminal
@@ -3330,8 +3391,9 @@ Judgments carry the offending CID/position/index and a reason, not a new score v
 `BadFormats`, `BadTemplates`, `SharedTemplate` and `RowCountMismatch` are incompatible inputs,
 not exhausted fits. A `BatchTooSmall` initial group is likewise invalid. A short sample is a
 resource record, even though `latent_batch` may check survivor count first: require the
-complete sample before counting that error as an intrinsic survivor non-conclusion. No runner,
-no fit/output, no source-verification API or a silent interval becomes `I`. Resources do not
+complete sample and §14.13.3's prevalidation before counting that error as an intrinsic
+survivor non-conclusion. No runner, no fit/output, no source-verification API or a silent
+interval becomes `I`. Resources do not
 consume the budget as intrinsic attempts under this profile. Descriptive shortfall evidence
 is checkable, its terminal classification remains an owner/design question (§9.2).
 
@@ -3391,6 +3453,9 @@ readings; obtaining a fit and comparing it with itself is not an independent ora
 | middle attempt omitted from `Sequence` but present in view; middle attempt absent altogether | incompatible sequence / `MissingEvidence`, respectively; no `I`, previous state kept |
 | altered answer/seed/model bytes under original CID; new CID outside frozen rule or selected sheets | corruption / incompatibility, respectively; state kept |
 | selected rows skip an earlier admissible sheet, or omit a data close / its authentication | incompatible selection / missing evidence; no terminal and no budget exhaustion |
+| 301 valid distinct sheets before the close, `n1=300` | enumeration registry/set retain all 301; first 300 selected, numerical set size 300 and both matrices 300 rows in matching nym order; no `RowCountMismatch` caused by the excess sheet |
+| one derived survivor with an incompatible template, e.g. sharing a template CID with an anchor | prevalidation refuses as incompatible (`SharedTemplate` or a frozen-projection mismatch); no budget consumption, prior state kept despite the wrapper's early `BatchTooSmall` |
+| one derived survivor, all other inputs valid, complete `n2` sample and reliable anchors | prevalidation passes; exact wrapper result `BatchTooSmall` is a supported stage-2 non-conclusion consuming one attempt; `I` only after all required attempts and no earlier conclusion |
 | an earlier `A/R` concealed, later results/`I` claimed | first conclusion found from full view; later claim refused; prior accepted terminal unchanged |
 | terminal before stopping attempt, before `Φ_j`, or at term with a required attempt missing | premature / snapshot refusal / missing evidence; none makes `I` |
 | complete shortfall record below `n_s`; enough rows but a reproducible unreliable-anchor result | `ResourceShortfall` with no terminal category / supported non-conclusion consuming a stage-2 attempt |

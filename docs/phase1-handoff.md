@@ -927,6 +927,9 @@ they win.
   diff/texts read and 144 rational Python checks, no Rust/PDF compilation; details in `17` §14.
   The experimental terminal verifier contract is proposed in `17` §14.13, awaiting review;
   it adds no code. O2/O3, A1 and Phase 1 remain open.
+- **Astra's review of `c6b3ca7`: partial** — O1's approval record approved, verifier's
+  approach accepted; `17` §14.13 as a whole not approved, rectified in place and awaiting
+  review. Full review evidence and criteria: `17` §14.13. O2/O3, A1 and Phase 1 remain open.
 - Owner's modifications, never to restore, commit or clean: `.gitignore` (it ignores
   `/characterization*/`, `/smoke*/` and `.gpt/`, where Astra's patch sits) and the ignored
   directories. No commit of this work touches `.gitignore`.
@@ -1070,8 +1073,9 @@ intervention, is implemented with no production caller (`17` §14.9, `20` §12),
 reviewed on `3e34f6f` and rectified, was approved on `8dc7087` as the snapshot's specification;
 the snapshot and its corrections are approved on `93f3f7c` within the isolated perimeter
 (`17` §14.11). O1 is resolved by the owner's decision of 2026-10-11; the semantic amendment
-is approved on `e735a8e` (`17` §14.12). The terminal verifier contract is proposed in §14.13,
-awaiting review. O2/O3 remain open; the next closure requirement is assessed in §5.2.
+is approved on `e735a8e` (`17` §14.12). The terminal verifier contract in §14.13 was partly
+reviewed on `c6b3ca7` and rectified, awaiting review. O2/O3 remain open; the next closure
+requirement is assessed in §5.2.
 No roadmap, campaign or protocol adoption is added here.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -1160,7 +1164,9 @@ dependencies above are assessed.
 
 ### 5.2 A1 after the snapshot approval
 
-**Status after Astra's approval of O1 on `e735a8e`.** The preceding approval of `13b5aad`
+**Status after Astra's partial review of `c6b3ca7`.** O1's approval record is approved;
+the verifier's approach accepted, §14.13 as a whole not approved and rectified, awaiting
+review (`17` §14.13). The preceding approval of `13b5aad`
 covered its review record and this section's open-requirement analysis. O1 is now acquired:
 `q_c` only for `c > 0`, undefined at `c = 0`, the expected score flat there. The scorer,
 snapshot, conditional result and finite adaptive checks remain acquired; no repetition is
@@ -1172,7 +1178,7 @@ are recorded once in
 |---|---|---|---|---|
 | Align the target and decide the closure's incentive scope | O1 decided and amendment approved on `e735a8e`; conditional expected-score guarantee | binary runtime not adapted; O3 unresolved | Owner decides O3 separately | Explicit O3 closure criterion; no reputational theorem inferred |
 | Realize the observation law | A/C conditional analyses and typed selection inputs | O2 unresolved; current draw computable before reporting | Owner's O2 decision; implement its path and establish or declare its selection assumptions | Applied records and a reviewed conditional selection/IPW argument for the chosen design |
-| Authenticate actual inputs and recompute terminal evidence | Ledger checks, frozen baselines, scorer/snapshot contracts; proposed verifier contract in `17` §14.13 | contract awaiting review; API/provenance and complete-record-view gaps in §14.13.8; producers/verifier absent | Review the proposed contract before code; resolve its required upstream boundaries | §14.13's mapped checks, exact replay and acceptance/refusal matrix accepted independently |
+| Authenticate actual inputs and recompute terminal evidence | Ledger checks, frozen baselines, scorer/snapshot contracts; proposed verifier contract in `17` §14.13 | rectified contract awaiting review after the partial judgment on `c6b3ca7`; API/provenance and complete-record-view gaps in §14.13.8; producers/verifier absent | Review the rectified contract before code; resolve its required upstream boundaries | §14.13's mapped checks, exact replay and acceptance/refusal matrix accepted independently |
 | Connect information, H-c and C5 to the retained guarantee | conditional result, adaptive and contrary-channel checks | invariance of law, timing, resources, disclosures and replacements not demonstrated | Realize retained ordering rules; explicit assumptions and residues reviewed | A reviewed argument for the retained hypotheses and their concrete log predicates |
 | Handle unavailable reports, baselines and outcomes under any extended claim | completed-report / defined-baseline domain decided; unresolved scorer cases retained | no availability, replacement or withholding-incentive guarantee | New decisions and proof only if O3 or another retained promise requires an extension | Domain and unresolved cases explicit; any extension preserves the required C4/C5 properties |
 
@@ -1181,7 +1187,7 @@ O1 alone supplies no input authentication, producer, terminal verifier, H-b/H-c/
 observation-design adoption. T58/T79 and availability requirements depend on those retained
 promises; no complete epoch driver or S2 study is added by default (`17` §§14.8 D, 14.12).
 
-**Next:** independent design review of the experimental terminal verifier contract in
+**Next:** independent design review of the rectified experimental terminal verifier contract in
 [`17`](17-a1-pilot-batch-design.md) §14.13.
 It specifies real API replay and the boundary gaps before code; details and future test criteria
 are only there. O2/O3 remain separate owner decisions, no A/C/T1 or production value adopted.
@@ -1921,4 +1927,14 @@ through the scorer); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43; code:
   API/field/settings mappings, review chronology, status consistency, TeX status edits and
   `git diff --check`. No code, API or expected values changed; no Rust, numerical replay,
   PDF compilation, campaign or Phase 2 work.
+- **Astra, partial review of `c6b3ca7`:** diff, contract and pertinent sources read; cases
+  deduced from API flow; no Rust, fit or numerical check. Judgment and rectifications: `17`
+  §14.13. This is separate from Codex's checks below.
+- **Codex, terminal verifier rectifications (documentation only):** actual HEAD
+  `c6b3ca74342e767e65dd9d8229d332a9d03a7804`, parent `e735a8e`, branch and working tree
+  checked; the supplied longer SHA contained a duplication, resolved against `c6b3ca7`.
+  Only the owner's `.gitignore` modified initially, preserved; ignored directories untouched.
+  Targeted source/document checks of API order and set operations, links/anchors, tables,
+  review chronology, scope/status and `git diff --check`; no code/API/expected values changed,
+  no Rust, fit, numerical check, PDF or campaign. The rectifications await Astra's review.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
