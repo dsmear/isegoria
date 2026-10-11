@@ -748,8 +748,14 @@ and zero on a positively evidenced terminal `I`. The approved scorer's other cas
 in force (`17` §§8.2, 14.9); the decision's motivation, domain and limits are in
 [`17` §14.12](17-a1-pilot-batch-design.md#1412-o1-target-amendment-owners-decision-2026-10-11).
 
-**Current implementation (binary outcomes; not yet adapted to O1).** The runtime still reads
-`p_uj` as the probability that an item passes Level B. On every scored item — a golden item
+**Decided observation design (O2, after `af42035`).** A prescribes every reviewed item to
+the pilot in its prefixed group, `π=1`, with no observation draw in the score, for A1's
+conditional correction. Resource sustainability is not established, no operational start or
+T1 adopted; conditions and proposed judgment only in
+[`17` §14.15](17-a1-pilot-batch-design.md#1415-o2-decision-and-proposed-conditional-a1-closure).
+
+**Current implementation (binary/exploration path; not yet adapted to O1/O2).** The runtime
+still reads `p_uj` as the probability that an item passes Level B. On every scored item — a golden item
 (`05` §Golden items) or a live item whose outcome `o_j ∈ {0,1}` is known (`01` D35, T52) —
 the difference rule below is **strictly proper conditional on a report-independent
 baseline and a fixed outcome law**. Its transfer to selected live outcomes also needs
@@ -792,8 +798,9 @@ resolved and that distinct requirement remains open as A12 (`15`, `17` §14.14).
 `S_u` is the mean of `S_uj` over the reviewer's `k_u` scored items — the symmetric
 long-window mean of `01` D34 (the change detector on the per-item scores is T51).
 
-**Current exploration (`01` D35, T52; O2 unresolved).** Golden items alone are too few (about
-one every two epochs per reviewer). A reviewer is therefore scored on every reviewed item whose
+**Current exploration (`01` D35, T52; unchanged by the O2 specification).** Golden items
+alone are too few (about one every two epochs per reviewer). A reviewer is therefore scored
+on every reviewed item whose
 Level B outcome is known: the golden items, every live item that reaches a pilot (a pass — a
 contested fact is one, §B.7 — or a screen or DIF rejection: `o_j = 0`), and a random
 `ε = 5%` of the items the gate rejects, drawn from the public beacon (`protocol::exploration`, keyed on the admitted

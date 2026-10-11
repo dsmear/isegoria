@@ -493,7 +493,8 @@ batching policy approved; C4's denominator waits on decisions not yet taken.
    shrinkage, weight, cap, CUSUM; §7) or only the IPW objective.
 
 The owner subsequently resolved item 3 as O3 after `a14364c`; the decision and A12's
-remaining requirement are recorded only in `17` §14.14. O2 is still open.
+remaining requirement are recorded only in `17` §14.14; approved on `af42035`. O2 is
+subsequently chosen as conditional A, decision and proposed A1 judgment in `17` §14.15.
 
 A10 remains separate. Related, outside A1: golden-item placement also derives from the public
 beacon (`honeypot.rs:14–25`) and a golden item is absent from the public deposit set, so golden
