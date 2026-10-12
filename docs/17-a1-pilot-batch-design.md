@@ -3616,9 +3616,21 @@ influence on a verdict. Astra accepted the complete-report A/R counterexample in
 [`16` §7.1](16-a1-incentive-design.md#71-a12-finite-effective-weight-counterexample), on its
 declared item-level bridge with real cap and CUSUM transitions. It refutes the general
 sincerity claim for that composition, not A1's conditional expected-score claim or every
-future bridge. The original closure criterion above remains; **A12 is open and a correction
-decision is necessary**. No correction, policy, implementation or campaign is chosen or
-authorized by this registration.
+future bridge. At that study stage A12 remained open and a correction decision was necessary;
+the subsequent owner decision below supplies the domain/claim, not an implementation.
+
+**Current A12 criterion (owner, 2026-10-12).** The owner accepts exact cumulative-weight
+incentives in a complete offline domain with invariant information and explicitly relinquishes
+using that guarantee as a general proof against betrayal. The affine candidate, accepted
+conditional proof, incomplete-prefix `Unavailable` boundary and evidence are in
+[`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
+The generic objective/domain question above is answered; **A12 remains open for coherent
+offline integration and verification**, composed tests and a numerical contract, and
+provisional-parameter procedures. Complete data do not establish the accepted invariance
+assumptions, and no operational pending-weight policy is certified. No full runtime or
+distributed infrastructure is required merely to realize this trusted offline candidate.
+This decision neither reopens A1/A6 nor adopts current code as the affine mechanism;
+no operational implementation or campaign is authorized by its registration.
 
 #### 14.14.2 O2 — one decision brief for the owner
 

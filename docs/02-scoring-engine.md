@@ -755,6 +755,16 @@ conditional correction. Resource sustainability is not established, no operation
 T1 adopted; conditions and Astra’s conditional A1 closure on `1bd865c` only in
 [`17` §14.15](17-a1-pilot-batch-design.md#1415-o2-decision-and-proposed-conditional-a1-closure).
 
+**Decided A12 domain; affine candidate specified (owner, 2026-10-12).** Phase 1's exact
+cumulative-effective-weight guarantee is restricted to complete offline inputs and invariant
+information, with the assumptions explicitly accepted in
+[`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
+That section owns the fixed-benchmark affine formula, prefixed counts/calendar, diagnostic
+CUSUM, conditional proof and refusal of incomplete prefixes. The candidate is not implemented
+or operationally adopted; A12 remains open for its integration and verification. It supplies
+no general proof against betrayal or policy for pending operational weights. The current
+difference/odds/reset paths below and their acquired tests remain distinct; A1 is not reopened.
+
 **Current implementation (binary/exploration path; not yet adapted to O1/O2).** The runtime
 still reads `p_uj` as the probability that an item passes Level B. On every scored item — a golden item
 (`05` §Golden items) or a live item whose outcome `o_j ∈ {0,1}` is known (`01` D35, T52) —
@@ -875,6 +885,10 @@ answer is rewarded — more frequent than the group predicted. It extracts infor
 from the informed minority.
 
 ### C.4 Temporal dynamics and cap
+
+The following is the implemented D34/D36 behavior. The A12 affine candidate's
+diagnostic-only detector and bounded/slack cap are specified separately in `16` §7.2;
+the domain decision does not change this code or certify those choices through its tests.
 
 > **Revised by D33, D34 and D36 (T50, T51 — done).** The cap applies on the odds scale,
 > where it binds, probation lasts 30 scored outcomes, and the asymmetric update of the

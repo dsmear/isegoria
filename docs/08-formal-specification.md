@@ -23,6 +23,14 @@ SC-6's local difference-score result does not establish protocol-level propernes
 with a draw known before the report. This documentation pass records those limits;
 it is not a new implementation fix or a replacement for T26.
 
+**A12/AT-REP-01 amendment (owner, 2026-10-12).** The current Phase 1 claim is the exact
+complete-offline, invariant-information cumulative-weight guarantee in
+[`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
+Its affine candidate has an accepted conditional proof, not a code realization or operational
+adoption; A12 remains open for integration and verification. The owner explicitly withdraws
+the blanket betrayal/honesty claim as a Phase 1 claim without proving it. Historical detector,
+crowd and cap test evidence below keeps its scope and does not test the affine candidate.
+
 The owner reports that compilation and tests pass. The review did not independently
 run Rust tests; this does not indicate a failing suite. T81 remains complete within
 its ten-file scope (`11`, run 22). Post-D43 characterization and calibration status
@@ -150,7 +158,8 @@ status; what the repository changed after the paper's snapshot is listed in
   symmetric mean of the per-item scores and a one-sided CUSUM against it
   (`reputation::Cusum`, `probation::SkillTrack`) sends a reviewer whose scores drop back
   to probation; `asymmetric_ema` removed; `AT-REP-07` ✓ (`change_detector.rs`). The
-  game-theoretic `AT-REP-01` stays open.
+  game-theoretic `AT-REP-01` remained open at that remediation; its current Phase 1
+  criterion is explicitly amended on 2026-10-12 (`16` §7.2), not proved by the detector.
 - **REPUTATION-005 (update).** Rescaling to `E_u / median(E)` does not give the cap force;
   only an unbounded scale does. **RESOLVED** (D33, T50): the weight is
   `exp(γ·S_u·k_u/(k_u+k₀))`, unbounded, and `3 × median` binds on an outlier (`AT-REP-04` ✓).
@@ -591,7 +600,7 @@ Each critical claim carries the full block required by `docs/07` §4. Secondary 
 - **Claim (D34, T51).** The weight reads the symmetric mean of the per-item scores; a one-sided CUSUM on the per-item scores against the reviewer's own mean, `s ← max(0, s + (S_u − S_uj) − k)`, alarm at `s > h` (`k = 0.03`, `h = 1.5`, provisional), returns the reviewer to probation.
 - **Evidence.** `reputation::{Cusum, CusumParams}`, `probation::SkillTrack` (runs the detector only out of probation; an alarm restarts the mean, the count and the statistic). `change_detector.rs` (AT-REP-07): a seeded honest stream of 10,000 items (the paper's `panel_bias` regime) raises at most one alarm; a reviewer who starts flipping 20% of forecasts after 300 honest items is caught within 100 items on nine of ten seeds (median 25, the paper's 36; the tenth after 356 — the drift at `k = 0.03` is about 0.01 per item, so detection is noise-driven and the tail is long), is back on probation (weight 0) and established again after 30 honest outcomes. `level_c.rs`: alternating ±0.3 scores never alarm, a drop of 0.1 alarms at item 22. `adversarial.rs::a_long_con_is_unprofitable` reworked on the detector: a sustained drop of 0.1 below the reviewer's own mean trips the CUSUM within 22 items.
 - **Analysis (history).** `asymmetric_ema` with caller-supplied `(up, down)` penalized variance, not error: its stationary level sat far below the true mean (paper §5.5). Removed in T51.
-- **Evidence status.** IMPLEMENTED, TESTED (D34, 2026-09-25); `k`, `h` provisional (T25); the game-theoretic incentive claim (AT-REP-01) is still a HYPOTHESIS.
+- **Evidence status.** IMPLEMENTED, TESTED (D34, 2026-09-25); `k`, `h` provisional (T25). The original game-theoretic incentive claim was a HYPOTHESIS and remains unproved; on 2026-10-12 the owner withdrew that blanket Phase 1 claim and amended AT-REP-01 to `16` §7.2's restricted offline criterion (A12 open). Current detector tests are not affine-candidate evidence.
 
 #### REPUTATION-005 — Weight cap `w_max = 3·median(w)`
 - **Analysis (history).** With `E_u ∈ (0,1)` and `w_u = min(w_max, E_u)`: if `median(E) ≥ 1/3` then `w_max ≥ 1 > E_u` and the cap never binds. The tests bound it only with synthetic weights of 2.0 and 5.0, which `evaluator_score` could not produce.
@@ -1146,7 +1155,7 @@ Classification vocabulary: PREVENTED (cannot happen given assumptions), DETECTED
 | Attack | Result | Evidence |
 |---|---|---|
 | Whitewashing | see above | — |
-| Long-con (accumulate then spend) | MITIGATED (T50, T51): the change detector on the per-item scores sends a reviewer who starts spending reputation back to probation within tens of scored items (AT-REP-07), the cap binds on the odds scale (AT-REP-04), and the weight is consumed by bridging (T5); the game-theoretic best-response analysis (AT-REP-01) is still absent | `change_detector.rs`, `adversarial.rs` |
+| Long-con (accumulate then spend) | MITIGATED (T50, T51): the change detector on the per-item scores sends a reviewer who starts spending reputation back to probation within tens of scored items (AT-REP-07), the cap binds on the odds scale (AT-REP-04), and the weight is consumed by bridging (T5); the original game-theoretic best-response analysis remains absent and the betrayal threat remains; the owner amended the Phase 1 AT-REP-01 criterion on 2026-10-12 (`16` §7.2), without proving or transferring this threat to Phase 2 | `change_detector.rs`, `adversarial.rs` |
 | Strategic abstention (review only "easy" items) | random assignment; non-reveal penalty | UNSOLVED — no non-reveal rule; abstention after seeing the item is free |
 | Score farming via honeypots | sortition-produced golden items | UNSOLVED — committee members know the golden set (PROTO-009) |
 | Majority following | leave-one-out difference score (D33) | MITIGATED (T50): a reviewer who reports the others' mean scores exactly 0 and weighs exactly 1 (AT-REP-02); on the fixture the followers score below the expert |
@@ -1217,6 +1226,16 @@ Classification vocabulary: PREVENTED (cannot happen given assumptions), DETECTED
 
 Each entry names the test that MUST exist, its oracle, and the claim it falsifies. Tests marked ✓ exist at this commit (with the caveats noted in §5); all others are absent.
 
+**Original AT-REP-01 (historical, not proved):** an agent maximizing
+`Σ_t influence·(betrayal payoff)` under the CUSUM `(k,h)`, odds weight and cap, with
+influence actually consumed by bridging; required outcome **best response is honesty**.
+On 2026-10-12 the owner withdrew this blanket Phase 1 claim and adopted the restricted
+criterion in the row below. The betrayal threat is not eliminated or automatically moved
+to Phase 2. An arbitrary external payoff cannot be controlled by this bounded-weight
+guarantee; a future operational claim would need its own defined utility and strategy scope.
+AT-REP-02/04/05/07 below retain their existing component-test scope. Their candidate mapping
+and outstanding composed/numerical verification are specified only in `16` §7.2.
+
 | Test ID | Attack / property | Construction | Pass criterion | Falsifies |
 |---|---|---|---|---|
 | AT-ID-01 | fake-anchor Sybil | holder submits `B = r·H₁(random)` in the target protocol (§9.3 E2) without a valid attestation | rejected | ID-004 |
@@ -1227,7 +1246,7 @@ Each entry names the test that MUST exist, its oracle, and the claim it falsifie
 | AT-ID-06 | rate-limit forgery | present `quota+1` distinct tokens in one epoch | rejected | ID-008 |
 | AT-ID-07 ✓ | cross-source dedup | CIE then SPID same CF | `DuplicateEnrollment` | ID-001 |
 | AT-ID-08 ✓ | DLEQ soundness | member with `k_i + 1` | partial rejected | ID-003 |
-| AT-REP-01 | long-con, game-theoretic | agent maximizing Σ_t influence·(betrayal payoff) under the CUSUM `(k, h)`, the odds weight and the cap, with influence actually consumed by bridging | best response is honesty | REPUTATION-004 |
+| AT-REP-01 (amended 2026-10-12) | restricted cumulative-weight incentives | complete offline affine candidate, fixed opportunities/prefixes, joint invariant information; `16` §7.2 | truthful `q_c` maximizes expected cumulative available weight under the accepted assumptions; conditional proof accepted, composed implementation/numerical tests still needed (A12 open) | REPUTATION-004, A12 |
 | AT-REP-02 ✓ | consensus follower | `p_uj := p̄_{−u,j}` for all j (the others' mean, D33) | scores exactly 0 on every item and weighs exactly 1 — `level_c.rs`, `evaluator_score.rs` (T50) | REPUTATION-003 |
 | AT-REP-03 | denominator zero | all `o_j` equal | finite, defined result | REPUTATION-003 |
 | AT-REP-04 ✓ | cap binds | odds weights of nine crowd-level reviewers and one reliably 0.1 better | the outlier weighs 16 uncapped and 3 capped — `evaluator_score.rs`, `orchestrator_driver.rs` (T50) | REPUTATION-005 |
@@ -1524,7 +1543,7 @@ Status is the lowest justified. "Missing evidence" names what would raise it one
 | REPUTATION-001 | author score | `level_c.rs` | TESTED | definition of q_j | docs |
 | REPUTATION-002 | BSS = oracle | `level_c.rs` | TESTED — the retired function, kept as the sim oracle (D33, T50) | — | — |
 | REPUTATION-003 | consensus ≈ 0 | `reputation::crowd_baseline`; `level_c.rs` (AT-REP-02) | RESOLVED (T31) — E_u normalizes BSS against the crowd baseline `p̄_j` (D23); a consensus follower scores BSS 0. Sim's `levelc_bss` reference still base-rate | sim BSS → crowd | G-09 |
-| REPUTATION-004 | reputation dynamics deter a long con | `reputation.rs` (`Cusum`), `probation.rs` (`SkillTrack`), `change_detector.rs` (AT-REP-07), `adversarial.rs` | TESTED (D34, T51) — a sustained drop is caught within tens of items and returns the reviewer to probation; the incentive claim is a HYPOTHESIS | `k`, `h` provisional; game analysis | T25, AT-REP-01 |
+| REPUTATION-004 | reputation dynamics (historical long-con aim); restricted A12 candidate | `reputation.rs` (`Cusum`), `probation.rs` (`SkillTrack`), `change_detector.rs` (AT-REP-07), `adversarial.rs`; `16` §7.2 | TESTED (D34, T51) for the current detector/reset, not a general betrayal proof. Owner amendment 2026-10-12: the complete-offline affine guarantee has an accepted conditional proof; A12 integration/verification remains open, no operational adoption | new-model parameter procedures, composed/numerical tests; original betrayal threat remains outside the adopted guarantee | T25, amended AT-REP-01, A12 |
 | REPUTATION-005 | cap limits a node | `evaluator_score.rs`, `orchestrator_driver.rs` (`epoch_weight_cap`), AT-REP-04 | RESOLVED (T50) — odds-scale weights, the cap binds on an outlier | — | — |
 | REPUTATION-006 | probation | `probation.rs`, `orchestrator.rs` (`bridging_weights`) | WIRED (T5) — probation → `w_u = 0`, so a probationer's ratings do not move `b_j`; `orchestrator_driver.rs` | — | G-03 |
 | REPUTATION-007 | appeal stake coherent | `appeal.rs`, `orchestrator.rs` (`settle_appeal`), `appeal_stake.rs`, `end_to_end.rs` | TESTED — a zero-quality pseudo-observation escrowed at filing, replaced by `q_j` on promotion, left otherwise; the floor is the prior mean; `run_item` derives the checks from the verdicts (D27, T61) | floor and stake weight provisional | T25 |

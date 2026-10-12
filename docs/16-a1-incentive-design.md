@@ -392,7 +392,9 @@ shares. None of the four follows from the others.
 tracked as **A12, open** (`15`), separately from A1's expected-score closure objective.
 Decision and precise closure criterion: [`17` §14.14.1](17-a1-pilot-batch-design.md#14141-o3--owners-decision-after-a14364c).
 It is neither waived nor automatically non-blocking for Phase 1. The subsequently approved
-study objective and accepted finite counterexample are recorded in §7.1; no correction is chosen.
+study objective and accepted finite counterexample are recorded in §7.1. The owner's
+2026-10-12 restricted guarantee decision and affine candidate are in §7.2; no operational
+adoption or implementation follows from that decision.
 
 The IPW lemma concerns the score's mean. Probation and shrinkage read `k_u`, the count of
 observed items (`probation.rs:84–110`); the weight is `exp(γ S_u k_u/(k_u + k₀))`, capped; the
@@ -419,8 +421,8 @@ CUSUM reads the unweighted observed scores.
 - **Three quantities that are not interchangeable.** The number of real observations
   `Σ I_j` is the evidence available. The number of assigned judgments `N_u` is the exposure.
   `Σ I_j/π_j` is an IPW estimate of `N_u`, not evidence.
-- **Open:** correction of the effective-weight incentives. §7.1 supplies a finite quantitative
-  counterexample with the cap and CUSUM included, not a general assessment of their effects.
+- **Open:** integration and verification of the restricted affine candidate (§7.2).
+  §7.1's counterexample remains acquired for its declared bridge to the current rules.
 
 ### 7.1 A12 finite effective-weight counterexample
 
@@ -533,7 +535,170 @@ Decimal65 exponential values. It is a checked transcription, **not a Rust test o
 bitwise check of `scoring::fmath`**. The finite calculations were executed; no Rust test,
 fit or campaign was run. A2 remains open, its certifier suspended; `19` §12 still awaits
 review. T26 remains separate. The next outcome is a correction decision, not an
-implementation authorization or closure of A12 or Phase 1.
+implementation authorization or closure of A12 or Phase 1. The subsequent domain/guarantee
+decision is in §7.2; it does not change this counterexample or its historical judgment.
+
+### 7.2 A12 restricted affine guarantee — owner's decision, 2026-10-12
+
+**Decision and status.** The owner adopts the **exact incentive guarantee in an offline
+domain with complete data and invariant information**, and explicitly relinquishes its use
+as a general proof against betrayal. The objective is expected cumulative effective weight
+available in prefixed assigned opportunities over a finite horizon, not causal influence on
+item decisions or an external betrayal payoff. This is the current Phase 1 requirement
+under AT-REP-01, amended explicitly in `08`. The affine mechanism below is a **specified
+candidate with an accepted conditional mathematical proof**, not the current code or an
+operationally adopted mechanism. A12 remains open for integration and verification of that
+candidate; defining the objective/domain is no longer an outstanding generic prerequisite.
+
+**Inputs and domain.** Before the compared reports, declare a finite horizon `H`, roster
+and founder membership, a complete common initial history, group/reference-procedure
+associations, assignments and reviewer cohorts, an ordered prefix and update calendar,
+and the number `m_e` of the reviewer's opportunities in each epoch. All are ex ante fixed
+and identical across strategies. Let `P_{u,e}` be the cumulative assignment prefix whose
+scores the epoch reads and `n_{u,e} = |P_{u,e}|`, initial history included. Membership,
+denominators and update positions are not selected from ratings, verdicts or arrivals.
+Every member has one completed valid report and a positively verified terminal A/R/I;
+there is no observation draw (`π = 1`), missing-value imputation or duplicate contribution.
+An empirical pilot still uses its prefixed group; a singleton reviewer cohort does not
+prescribe singleton empirical validation. The reference procedure and terminal meaning
+are those declared for the experiment, with intrinsic I distinct from missing work/resources.
+
+For the guarantee, all required prefixes are complete at their prefixed update positions.
+Let `(F_j)` be a **joint exogenous reporting filtration on one probability space for all
+compared policies**, containing all legitimately available public/private signals at each
+report. The reference terminal variables `Y_j` and the joint signal/disclosure law are
+invariant under those policies. Reports may adapt to `F_j`; they may not alter later
+information, opportunities, samples, resource access, procedures or completion schedules
+within this domain. Reports are frozen before the required terminal disclosure. A
+history-based stratified assignment or a supplementary gate is not exogenous merely
+because its transcript can be replayed. These are accepted model assumptions, not facts
+established by completion, a logged prefix or a fit. Off-log knowledge is not excluded by
+declaring it absent. Do not select whichever cohorts finished and call them representative.
+
+**Score, counts and weights.** For `p_j ∈ [0,1]`, define
+
+`r_j(p_j,Y_j) = 1/4 − (p_j − y_j)²` on A/R (`y_j = 1/0`), and `r_j(p_j,I) = 0`.
+
+This is a fixed benchmark, not the crowd difference term `g` of A1/B-b; the current
+`cohort_scores` does not implement this bridge. Parameters satisfy `0 < η ≤ 0.8`,
+`k₀ ≥ 0`: this is a mathematical domain, **not a calibrated operating point**.
+The established review weight is
+
+`w_{u,e} = 1 + η Σ_{j∈P_{u,e}} r_j /(k₀ + n_{u,e})`.
+
+Probation lasts 30 observed, verified terminal assignments A/R/I in the complete model,
+not 30 IPW pseudo-observations or necessarily 30 conclusive verdicts. Thus its count
+equals `n_{u,e}` in that model. Below 30, a non-founder weighs 0 and a bootstrap founder
+1; at 30 everyone reads the affine weight. There is no punitive reset. CUSUM is proposed
+as a **diagnostic only**, with no effect on weight, sums, counts, eligibility, assignments
+or information available during `H`. Its statistic/reference/threshold contract and
+calibration still need specification; the current `SkillTrack` reset is not silently reused.
+No denominator is evaluated during probation; established `n ≥ 30` makes it positive
+even if `k₀ = 0`. Frozen epoch weights come from the specified preceding complete prefix,
+not current reports or a recomputed intra-epoch standing.
+
+Since `−3/4 ≤ r_j ≤ 1/4`, all established weights are in `[0.4, 1.2]` throughout
+the parameter domain. Every member of the cap's carrying roster follows this candidate
+or the unit bootstrap rule; probationers at 0 are excluded. Its median is at least 0.4,
+so `w_max = 3 × median(w) ≥ 1.2` and the cap never changes a candidate weight.
+If nobody carries weight, all review weights are 0 and no median affects an established
+reviewer. The current odds-weight roster cannot be substituted into this range argument.
+
+**Exact conditional composition proof.** Put `χ_e = 1{n_{u,e} ≥ 30}`. Eligibility,
+`m_e`, `P_{u,e}` and `n_{u,e}` are deterministic under the fixed complete calendar.
+Founder/probation contributions and the common initial history enter a policy-independent
+constant `C`. The cap is slack and the detector has no economic effect, so
+
+`U_H = C + Σ_j β_j r_j`, where
+`β_j = η Σ_{e:j∈P_{u,e}, χ_e=1} m_e /(k₀+n_{u,e}) ≥ 0`.
+
+Only denominators from established epochs occur in this sum. In particular `β_j` is
+deterministic, not a function of `Y_j`, its availability or the report. Mere independence
+from the report would not suffice if future opportunities selected an outcome branch.
+Let `c_j = P(Y_j ≠ I | F_j)` and, only for `c_j > 0`,
+`q_{c,j} = P(Y_j = A | Y_j ≠ I, F_j)`. Conditional expansion of the squared error gives
+
+`E[r_j(q_{c,j},Y_j) − r_j(p_j,Y_j) | F_j] = c_j (p_j−q_{c,j})²`.
+
+At `c_j = 0`, both scores are 0 almost surely conditionally; `q_{c,j}` is undefined
+and the coordinate contributes 0 without choosing a conventional target. Bounded scores
+and finite sums permit conditioning term by term. On the common outcome/information
+space, for every admitted adaptive policy `σ`,
+
+`E[U_H(truth) − U_H(σ)] = Σ_j E[β_j L_j] ≥ 0`,
+
+where `L_j = c_j(p_j−q_{c,j})²` on `c_j > 0`, and `L_j = 0` on `c_j = 0`
+without evaluating an undefined `q_{c,j}`. Thus truthful
+reporting maximizes expected cumulative weight. The inequality is strict if a deviation
+differs with positive probability on a coordinate with `β_j c_j > 0`; a last report
+with no later rewarded opportunity can have `β_j = 0` and is flat. This proves the
+mathematical composition **within the declared domain**, not a property of the runtime,
+of an outcome-dependent prefix selection or of policy-dependent reporting filtrations.
+
+**Incomplete inputs and two acquired obstruction constructions.** The offline candidate
+must return `Unavailable`, with reasons, for a required prefix with pending/missing
+records, incomplete reports/freezes or unsupported evidence. It returns **no certified
+numeric weight for that prefix**: neither a certified hold-old weight, nor 0, nor I.
+Later evidence permits a new snapshot, not retroactive replacement of the earlier one.
+This refusal is an offline output contract, not a policy assigning operational weight
+while pending. No guarantee is obtained by conditioning on completion after the fact.
+
+1. *Hold-old and availability.* Start Established at `n₀ = 30`, sum 0, weight 1;
+   `q = 4/5`, `k₀ = 100`. A's record is available before the next opportunity;
+   R's arrives after the horizon and then remains genuine R. Reports are complete;
+   the availability law is identical across strategies and independent of reports.
+   Holding the previous weight on pending gives
+   `E[w_next(p)] = 1 + η(4/5)[1/4−(p−1)²]/131`, maximized at `p = 1`, not `q`.
+   Its gain over `q` is `η·0.032/131`; with `η = 4/5`, exactly `16/81875`, while
+   full expected score loses `1/25`. No reviewer-controlled withholding is needed:
+   correlation of availability with the terminal already makes `β` outcome-selective.
+2. *Report-triggered disclosure.* On a three-opportunity horizon with the same initial
+   history, let `Z ~ Bernoulli(1/2)`, `P(Y₁ = Z | Z) = 3/4`, `Y₂ = Z`.
+   The sincere first forecast is `1/2`. A report `1/2+δ` triggers disclosure of an
+   expert forecast on `Y₁`, `1/4` or `3/4`, revealing Z. After seeing `Y₁`, truth
+   knows `q₂ = 1/4` or `3/4`; the deviation knows `q₂ = 0` or `1`.
+   All prefixes finish on time and u's exposures/counts are identical. The first
+   expected score loses `δ²`, the second gains `3/16`. The utility gain is
+   `η[(3/16)/(k₀+32) − δ²(1/(k₀+31)+1/(k₀+32))]`; with `δ = 1/100`,
+   `η = 4/5`, `k₀ = 100`, exactly `122681/108075000 > 0`.
+   This is an abstract information channel, not a proposed supplementary gate or a
+   fit execution. It breaks the common filtration, not the complete exogenous theorem.
+
+**Test scope and completion.** AT-REP-02/04/05/07 remain valid evidence for their current
+components; they are not tests of this candidate. The crowd-neutrality rule becomes
+zero at the fixed benchmark `p = 1/2`, not at every live crowd mean (02). The bounded
+range/slack cap replaces the 16-to-3 outlier behavior (04). Conditional properness is
+preserved mathematically with new score/domain and composed numerical tests still needed
+(05). A diagnostic detector does not preserve the punitive return to probation (07).
+No A1 or A6 correction or other acquired closure is reopened.
+
+The owner withdraws the blanket Phase 1 claim of honesty for causal influence times an
+arbitrary betrayal payoff (the original AT-REP-01), **not by proving it**. An arbitrary
+external payoff can exceed any bounded weight incentive; an operational betrayal claim
+would need a defined payoff, strategy/information scope and mapping to influence actually
+consumed by bridging. The threat remains; it is not eliminated or automatically transferred
+to Phase 2. The current Phase 1 acceptance criterion is this restricted cumulative-weight
+guarantee, and the exclusions above are explicitly accepted for that criterion.
+
+Closure still needs a coherent specification and executable offline candidate through the
+pertinent paths, composed acceptance/refusal tests and a declared numerical/reproducibility
+contract, plus procedures for provisional parameters on the new model. `η`, `k₀`, probation
+and diagnostic CUSUM settings require that treatment; the example values are not operating
+choices and old detector rates do not characterize the candidate. No report is regenerated
+here. A full runtime, strong distributed authentication or multinode campaign is not a
+prerequisite merely because this is a trusted local experiment. A2 remains open with its
+certifier suspended; `19` §12 awaits review; T26 is separate. This registration implements
+no mechanism and starts no campaign or operational deployment.
+
+**Provenance.** Sources were read at published HEAD `45ed426072fcc4e556b7ad91b16d166183104b6f`:
+`02` C.2/C.4, `08` AT-REP-01/02/04/05/07, `17` §§14.10, 14.13.6, 14.15 and the
+unchanged `reputation`, `probation`, `panel_scores`, `orchestrator` formulas. The general
+proof is algebraic. The two finite constructions were checked with exact Fraction
+calculations; Astra independently checked them and 32 rational single-score identities
+plus the flat `c = 0` branch. This is mathematical design evidence, not Rust/fmath
+bitwise verification, end-to-end execution, a fit, a campaign or authenticated-history
+reconstruction. The owner's domain/claim decision and accepted conditional proof precede
+this documentary registration; implementation and documentation review remain distinct.
 
 ## 8. Alternatives under the same hypotheses
 
