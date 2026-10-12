@@ -206,7 +206,12 @@ These entries apply only to [`16` §7.2](16-a1-incentive-design.md#72-a12-restri
 They do not calibrate or replace the current Rust odds/reset path. Example values and
 exact test fixtures are not operating choices. The current candidate fixes probation at
 30 terminal A/R/I assignments and the cap multiplier at 3; `η` and `k₀` must be explicit
-inputs. No new parameter measurements or campaigns were run for these procedures.
+inputs. No new parameter measurements or campaigns were run for these procedures. The owner-approved
+binary64 conversion allowance (`16` §7.2) is a structural numerical bound, not a tunable
+parameter or an empirically calibrated tolerance: one final nearest-even conversion,
+absolute error at most `2^-53` and expected deviation advantage at most `M · 2^-52` over
+fixed opportunities. Parameter comparisons must state whether they report exact rational
+utility or the mathematical sum of the converted coefficients; neither is fit error.
 
 **Common procedure.** Before measuring, freeze the candidate revision, complete assignment
 and opportunity calendars, invariant signal/reference model, finite horizons, held-out

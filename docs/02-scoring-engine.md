@@ -761,10 +761,20 @@ information, with the assumptions explicitly accepted in
 [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
 That section owns the fixed-benchmark affine formula, prefixed counts/calendar, diagnostic
 CUSUM, conditional proof and refusal of incomplete prefixes. `sim/a12_offline.py` implements
-an exact-rational offline reference; Rust integration and operational adoption have not occurred.
+an exact-rational offline reference; explicit frozen-weight Rust adapters are prepared,
+with executable validation pending and no operational adoption.
 A12 remains open for the remaining integration and verification. It supplies
 no general proof against betrayal or policy for pending operational weights. The current
 difference/odds/reset paths below and their acquired tests remain distinct; A1 is not reopened.
+
+**Approved numerical qualification (owner, 2026-10-12).** The rational theorem stays exact.
+The affine offline bridge may convert each final weight once to binary64 and transfer its
+bits unchanged: per-weight error at most `2⁻⁵³`, expected deviation advantage at most
+`M·2⁻⁵²` on `M` prefixed opportunities (`16` §7.2). This is a bounded numerical guarantee
+for the mathematical sum of consumed coefficients, not exact properness of the rounded
+path or a bound on fit/decision error. The same frozen table must supply first and extra
+panels; no odds conversion, reset or mixed-roster cap is allowed in that path. Its Rust
+compilation and composed checks must pass before implementation acceptance.
 
 **Current implementation (binary/exploration path; not yet adapted to O1/O2).** The runtime
 still reads `p_uj` as the probability that an item passes Level B. On every scored item — a golden item

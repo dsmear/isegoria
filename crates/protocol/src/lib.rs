@@ -3,6 +3,7 @@
 //! (the tamper-evident log); the deterministic pieces are seeded for reproducibility.
 
 pub mod admission;
+pub mod affine_weights;
 pub mod appeal;
 pub mod blueprint;
 pub mod cohort_scores;

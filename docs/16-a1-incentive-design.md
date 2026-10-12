@@ -636,6 +636,39 @@ with no later rewarded opportunity can have `β_j = 0` and is flat. This proves 
 mathematical composition **within the declared domain**, not a property of the runtime,
 of an outcome-dependent prefix selection or of policy-dependent reporting filtrations.
 
+**Approved binary64 contract (owner, 2026-10-12).** The owner subsequently approves an
+explicit numerical qualification: the rational mechanism retains the exact theorem above;
+the `f64` consumer receives a bounded incentive guarantee, not exact properness of rounded
+weights. All scores, sums, denominators, parameters, probation and the slack-cap computation
+remain exact in the offline producer. Only the final effective weight is converted once,
+round-to-nearest, ties-to-even, to binary64, and its bits are transferred unchanged to Rust.
+Recomputing those quantities in floating point is outside this conversion-only contract.
+
+Write `ŵ_e = RN64(w_e)`, `M_u = Σ_e m_{u,e}`, and `Ũ_H = Σ_e m_{u,e} ŵ_{u,e}`,
+where the latter is a **mathematical sum of the consumed binary64 coefficients**, interpreted
+as exact dyadic rationals. On `[2/5,6/5]`, binary64 spacing is at most `2⁻⁵²`, hence
+`|ŵ_e − w_e| ≤ ε = 2⁻⁵³`; probation 0 and founder 1 are exact. Therefore, pathwise,
+`|Ũ_H − U_H| ≤ M_u ε`. The fixed-calendar assumptions give the same deterministic `M_u`
+to each admitted policy. Combining both errors with the accepted exact theorem yields
+
+`E[Ũ_H(σ) − Ũ_H(truth)] ≤ 2 M_u ε = M_u · 2⁻⁵²`.
+
+This is the amended numerical AT-REP-01 requirement. It is an a priori bound, not a
+confidence interval or calibration threshold. A trace whose conversions happen to be exact
+does not justify replacing the uniform policy-comparison bound with zero. The bound covers
+neither a floating accumulator of utility nor error in the optimizer/fit, verdicts, causal
+influence or the report-triggered supplementary gate. The complete-prefix and invariant
+information assumptions, representability caveat for `q_c`, and refusal boundary remain.
+Refused or unsupported inputs must not be postselected to infer an unconditional guarantee.
+
+The distinction is necessary even for representable forecasts. With common initial
+`n₀=30`, score sum 0, `η=1/2`, `k₀=0`, one report and then one rewarded opportunity,
+take `q=3/4` and `p=3/4−33·2⁻⁵³`. The exact weight favors truth by
+`1089/5030037581705614265138918318931968`, but the correctly rounded expected weight favors
+the deviation by `2⁻⁵⁵`. A's binary64 weight is unchanged; R's increases by one bit-step.
+Astra and Sol independently checked this finite construction with rational arithmetic;
+it is not an execution of the Rust fit. It does not refute or reopen the exact theorem.
+
 **Incomplete inputs and two acquired obstruction constructions.** The offline candidate
 must return `Unavailable`, with reasons, for a required prefix with pending/missing
 records, incomplete reports/freezes or unsupported evidence. It returns **no certified
@@ -684,7 +717,8 @@ guarantee, and the exclusions above are explicitly accepted for that criterion.
 Closure requires a coherent specification and executable offline candidate through the
 pertinent paths, composed acceptance/refusal tests and a declared numerical/reproducibility
 contract, plus procedures for provisional parameters on the new model. The reference
-implementation below covers the exact offline path; the Rust consumers remain to integrate.
+implementation below covers the exact offline path; the explicit Rust adapters described
+below still require executable validation.
 `14` records procedures for `η`, `k₀`, probation, cap and a future diagnostic CUSUM, without
 calibrated operating values. The example values are not operating choices and old detector
 rates do not characterize the candidate. No characterization report is regenerated here.
@@ -737,17 +771,50 @@ campaign or a general proof by sampling. Documentation diff and added links were
 **Package verdict: accepted as an exact offline reference**, with the integration boundary
 below still open; not acceptance of A12 or Phase 1 as complete.
 
-**Remaining integration gate.** The first-panel and supplementary-rating consumers must
-use the same frozen affine table, with no odds conversion, old reset or mixed carrying
-roster. This requires explicit adapters and tests through `protocol::orchestrator` and its
-weight-consuming paths, plus a numerical contract for any conversion to the Rust engine's
-representation. The exact reference supplies an oracle, not evidence that these adapters
-already exist. Within the guarantee, any supplementary panel/opportunities must also be
-prefixed and information-invariant; adapting a consumer does not certify the current
-report-triggered supplementary gate. The execution environment had no Rust toolchain;
-no Rust tests, fit or campaign were run for this package. Diagnostic CUSUM remains absent,
-with its procedure and specification
-dependency in `14`. Final-model characterization and external T26 remain separate gates.
+**Frozen binary64 candidate (2026-10-12), based on `6e0723b341267ba4f40ab24236313023638cd1d7`.**
+`sim/export_a12_affine.py` first validates the complete exact horizon, then converts only
+the final effective weights. It checks the exact rational conversion error and exports
+canonical binary64 bits, exact/dyadic utility diagnostics and conservative numerical
+bounds in whole-roster epoch tables. The CLI publishes a complete new output directory;
+it refuses an existing destination and leaves no published partial table after a failed
+export. Manifest, snapshot, epoch and original cut remain bound to each table. Canonical
+Nym IDs are required only at this transport boundary; the accepted exact reference is unchanged.
+
+`protocol::affine_weights::FrozenAffineEpoch` imports a table using a caller-pinned digest
+and expected context. It checks the format, ordered unique roster, integer ranges, finite
+weights and probation/range constraints. The digest binds trusted-local producer output;
+it is not authentication or a proof that an arbitrary externally supplied table was
+computed correctly. The importer does not recompute arbitrary rational arithmetic.
+`AffineRatings` keeps its base and context private; the explicit
+`orchestrator::{affine_first_ratings, affine_supplementary_ratings}` paths use the same
+frozen bits for existing and new rows, with no odds, old reset or mixed-roster cap.
+They expose ratings to the existing scoring engine without claiming a theorem for its fit.
+
+**Candidate preparation evidence.** Sol ran the 29 reference and 5 exporter tests;
+Astra independently re-ran all 34 on CPython 3.12.14 with the declared integer-conversion
+limit 4300, plus `scripts/comment_budget.py`; all passed. A preceding reviewer invocation
+with the unsupported limit 0 was refused by the numerical-profile guard and was corrected
+without changing the implementation. The checks include golden regeneration for both
+epochs, byte-identical replay, fixed-context drift, exact/dyadic utility bounds, the finite
+rounding counterexample, complete-horizon refusal and no overwrite/partial publication.
+Astra read the Rust importer, adapters and five test cases, including reuse of an existing
+unrated row, newcomer weights, mixed-epoch refusal and malformed transport. This is static
+review evidence only. The frozen golden SHA-256 values are
+`5bce1f8250a423c8f782fa276f16f1ac9820eb4e9965acfb2576c5e87f161b95` (epoch 0) and
+`ba94ad86e3ef3fce3bb0b8dbfde03d14ac49d886c456bf05fe388aed25b2e47c` (epoch 1).
+
+**Remaining integration gate / package verdict.** The source and fixtures are prepared;
+**specific validation still required**, before accepting the Rust integration: run the
+repository's formatting check, `cargo check -p protocol` and
+`cargo test -p protocol --test affine_weights` in a complete checkout with its pinned
+Rust toolchain, correcting any failures without changing the approved contract. The
+Python exporter/fixture checks and static source review cannot substitute for these runs.
+Within the guarantee, supplementary opportunities must remain prefixed and
+information-invariant; adapting a consumer does not certify the report-triggered gate.
+No Rust compilation/tests, fit or campaign were run in the preparation environment,
+which lacks the Rust toolchain. The earlier exact-reference acceptance is not reopened.
+Diagnostic CUSUM remains absent, with its procedure/specification dependency in `14`;
+final-model characterization and external T26 remain separate gates.
 
 ## 8. Alternatives under the same hypotheses
 

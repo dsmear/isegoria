@@ -96,6 +96,26 @@ pub fn weighted_ratings(
     Ok(ratings)
 }
 
+/// First-panel A12 input from a caller-pinned complete offline epoch (`docs/16` §7.2).
+pub fn affine_first_ratings(
+    r: &[Vec<f64>],
+    mask: &[Vec<bool>],
+    rows: &[Nym],
+    epoch: &crate::affine_weights::FrozenAffineEpoch,
+) -> Result<crate::affine_weights::AffineRatings, crate::affine_weights::AffineError> {
+    crate::affine_weights::AffineRatings::first(r, mask, rows, epoch)
+}
+
+/// Supplementary A12 input retaining the first panel's pinned epoch and row bits.
+pub fn affine_supplementary_ratings(
+    base: &crate::affine_weights::AffineRatings,
+    epoch: &crate::affine_weights::FrozenAffineEpoch,
+    item: usize,
+    reveals: &[(Nym, f64)],
+) -> Result<crate::affine_weights::AffineRatings, crate::affine_weights::AffineError> {
+    base.supplementary(epoch, item, reveals)
+}
+
 /// The gate and pilot verdicts an epoch computes for one item, for [`run_item`].
 #[derive(Clone, Copy, Debug)]
 pub struct ItemVerdicts {
