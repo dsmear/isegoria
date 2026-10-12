@@ -546,9 +546,10 @@ as a general proof against betrayal. The objective is expected cumulative effect
 available in prefixed assigned opportunities over a finite horizon, not causal influence on
 item decisions or an external betrayal payoff. This is the current Phase 1 requirement
 under AT-REP-01, amended explicitly in `08`. The affine mechanism below is a **specified
-candidate with an accepted conditional mathematical proof**, not the current code or an
-operationally adopted mechanism. A12 remains open for integration and verification of that
-candidate; defining the objective/domain is no longer an outstanding generic prerequisite.
+candidate with an accepted conditional mathematical proof and an exact offline reference**,
+not the current Rust odds/reset path or an operationally adopted mechanism. A12 remains
+open for the remaining integration and verification; defining the objective/domain is no
+longer an outstanding generic prerequisite.
 
 **Inputs and domain.** Before the compared reports, declare a finite horizon `H`, roster
 and founder membership, a complete common initial history, group/reference-procedure
@@ -680,15 +681,18 @@ consumed by bridging. The threat remains; it is not eliminated or automatically 
 to Phase 2. The current Phase 1 acceptance criterion is this restricted cumulative-weight
 guarantee, and the exclusions above are explicitly accepted for that criterion.
 
-Closure still needs a coherent specification and executable offline candidate through the
+Closure requires a coherent specification and executable offline candidate through the
 pertinent paths, composed acceptance/refusal tests and a declared numerical/reproducibility
-contract, plus procedures for provisional parameters on the new model. `η`, `k₀`, probation
-and diagnostic CUSUM settings require that treatment; the example values are not operating
-choices and old detector rates do not characterize the candidate. No report is regenerated
-here. A full runtime, strong distributed authentication or multinode campaign is not a
+contract, plus procedures for provisional parameters on the new model. The reference
+implementation below covers the exact offline path; the Rust consumers remain to integrate.
+`14` records procedures for `η`, `k₀`, probation, cap and a future diagnostic CUSUM, without
+calibrated operating values. The example values are not operating choices and old detector
+rates do not characterize the candidate. No characterization report is regenerated here.
+A full runtime, strong distributed authentication or multinode campaign is not a
 prerequisite merely because this is a trusted local experiment. A2 remains open with its
-certifier suspended; `19` §12 awaits review; T26 is separate. This registration implements
-no mechanism and starts no campaign or operational deployment.
+certifier suspended; `19` §12 awaits review; T26 is separate. The original decision
+registration implemented no mechanism. The reference step below starts no campaign or
+operational deployment.
 
 **Provenance.** Sources were read at published HEAD `45ed426072fcc4e556b7ad91b16d166183104b6f`:
 `02` C.2/C.4, `08` AT-REP-01/02/04/05/07, `17` §§14.10, 14.13.6, 14.15 and the
@@ -699,6 +703,51 @@ plus the flat `c = 0` branch. This is mathematical design evidence, not Rust/fma
 bitwise verification, end-to-end execution, a fit, a campaign or authenticated-history
 reconstruction. The owner's domain/claim decision and accepted conditional proof precede
 this documentary registration; implementation and documentation review remain distinct.
+
+**Executable reference path (2026-10-12).** `sim/a12_offline.py` implements a trusted-local
+manifest/snapshot interface, not a ledger decoder or an evidence verifier. Its manifest
+declares the whole homogeneous roster, initial-history binding, groups/reference procedures,
+ordered assignments, epoch cuts/prefixes and assigned opportunities. It requires the domain
+assertions explicitly and checks structural consistency, report freezes, terminal
+associations and availability at each original cut. It cannot establish the asserted joint
+information law, off-log knowledge or the historical truth of supplied timestamps.
+
+For valid complete required prefixes, the executable composes the fixed benchmark,
+probation/founder rule, affine weight, carrying-roster median cap and frozen opportunity
+weights into cumulative utility. Refusal is atomic over the declared horizon/roster and
+contains no numerical weights or utility. Later snapshots cannot repair availability at
+an earlier required cut. The JSON schema, canonical output, rational grammar and runnable
+examples are specified in [`sim/README.md`](../sim/README.md).
+
+The numerical contract is exact arithmetic on the admitted rational inputs, with no
+floating conversion. The real-valued theorem remains mathematical: an irrational `q_c`
+has no exact representation in this interface, and no rounded report is certified as its
+maximizer. `sim/test_a12_offline.py` checks the composed path, refusal boundary, exact finite
+incentive cases and replay determinism. Those tests do not establish invariance or the
+general theorem by enumeration. The owner-confirmed guarantee is unchanged.
+
+**Package evidence and review.** On base `cc981a175c49e499d71614a2b27a2c4758d57bd7`,
+the executor ran the 29 targeted unittest cases and the comment-budget check; Astra read
+the implementation/tests and independently re-ran both on CPython 3.12.14 with the declared
+integer-conversion profile. All passed. Astra also checked 96 exact expected-utility gaps
+through the executable over `n₀ ∈ {29,30}`, `η ∈ {1/5,4/5}`, `k₀ ∈ {0,100}`,
+`c ∈ {1/3,1}`, `q_c ∈ {1/5,4/5}` and reports `0,q_c,1`, with subsequent opportunity
+counts 1 and 2, against the accepted composition identity. These are finite checks, not a
+campaign or a general proof by sampling. Documentation diff and added links were checked.
+**Package verdict: accepted as an exact offline reference**, with the integration boundary
+below still open; not acceptance of A12 or Phase 1 as complete.
+
+**Remaining integration gate.** The first-panel and supplementary-rating consumers must
+use the same frozen affine table, with no odds conversion, old reset or mixed carrying
+roster. This requires explicit adapters and tests through `protocol::orchestrator` and its
+weight-consuming paths, plus a numerical contract for any conversion to the Rust engine's
+representation. The exact reference supplies an oracle, not evidence that these adapters
+already exist. Within the guarantee, any supplementary panel/opportunities must also be
+prefixed and information-invariant; adapting a consumer does not certify the current
+report-triggered supplementary gate. The execution environment had no Rust toolchain;
+no Rust tests, fit or campaign were run for this package. Diagnostic CUSUM remains absent,
+with its procedure and specification
+dependency in `14`. Final-model characterization and external T26 remain separate gates.
 
 ## 8. Alternatives under the same hypotheses
 

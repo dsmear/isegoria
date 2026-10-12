@@ -27,6 +27,16 @@ AT-REP-01's blanket betrayal claim is explicitly withdrawn as a Phase 1 claim (`
 not proved or automatically moved to Phase 2. A1 and other acquired closures remain scoped;
 A2's certifier is suspended, `19` §12 awaits review and T26 remains separate.
 
+**Executable reference step (2026-10-12).** `sim/a12_offline.py` implements the restricted
+path with exact rational arithmetic, manifest/snapshot validation and whole-horizon refusal;
+its targeted tests exercise the composition through frozen epoch weights and cumulative
+opportunities. `14` supplies the affine parameter procedures without choosing operating
+values. This does not replace `protocol`'s odds/reset consumers. The next integration gate
+is an explicit frozen affine-weight path into both first-panel and supplementary ratings,
+with a reviewed rational-to-runtime numerical contract and executable composed tests on a
+Rust-capable environment. Diagnostic CUSUM is unimplemented; final-model characterization
+and T26 retain their separate gates. No costly run is authorized by this step.
+
 Three phases, in this order:
 
 1. **[Phase 1 — Mathematics](#phase-1--mathematics).** The scoring mechanism and the

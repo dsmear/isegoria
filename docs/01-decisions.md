@@ -565,8 +565,9 @@ decoys; on the same test the intercept moves from +0.09 to +0.32.
 > cumulative-weight incentives in the complete offline, invariant-information domain of
 > [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
 > The owner explicitly withdraws using that guarantee as a general proof against betrayal.
-> The bounded affine candidate there has an accepted conditional proof, but is not implemented
-> or operationally adopted. D33/D34/D36 below still describe the current implementation and
+> The bounded affine candidate there has an accepted conditional proof and an exact offline
+> reference (`sim/a12_offline.py`); it is not integrated into Rust or operationally adopted.
+> D33/D34/D36 below still describe the current Rust implementation and
 > its acquired tests; benchmark/cap behavior and diagnostic-only CUSUM are candidate choices,
 > not silent code changes. A12 remains open for offline integration and verification.
 

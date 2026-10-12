@@ -26,8 +26,9 @@ it is not a new implementation fix or a replacement for T26.
 **A12/AT-REP-01 amendment (owner, 2026-10-12).** The current Phase 1 claim is the exact
 complete-offline, invariant-information cumulative-weight guarantee in
 [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
-Its affine candidate has an accepted conditional proof, not a code realization or operational
-adoption; A12 remains open for integration and verification. The owner explicitly withdraws
+Its affine candidate has an accepted conditional proof and an exact-rational offline reference
+path (`sim/a12_offline.py`), not an integrated Rust realization or operational adoption;
+A12 remains open for the remaining integration and verification. The owner explicitly withdraws
 the blanket betrayal/honesty claim as a Phase 1 claim without proving it. Historical detector,
 crowd and cap test evidence below keeps its scope and does not test the affine candidate.
 
@@ -1246,7 +1247,7 @@ and outstanding composed/numerical verification are specified only in `16` §7.2
 | AT-ID-06 | rate-limit forgery | present `quota+1` distinct tokens in one epoch | rejected | ID-008 |
 | AT-ID-07 ✓ | cross-source dedup | CIE then SPID same CF | `DuplicateEnrollment` | ID-001 |
 | AT-ID-08 ✓ | DLEQ soundness | member with `k_i + 1` | partial rejected | ID-003 |
-| AT-REP-01 (amended 2026-10-12) | restricted cumulative-weight incentives | complete offline affine candidate, fixed opportunities/prefixes, joint invariant information; `16` §7.2 | truthful `q_c` maximizes expected cumulative available weight under the accepted assumptions; conditional proof accepted, composed implementation/numerical tests still needed (A12 open) | REPUTATION-004, A12 |
+| AT-REP-01 (amended 2026-10-12) | restricted cumulative-weight incentives | complete offline affine candidate, fixed opportunities/prefixes, joint invariant information; `16` §7.2 | truthful `q_c` maximizes expected cumulative available weight under the accepted assumptions; conditional proof accepted and exact-rational reference path tested (`sim/test_a12_offline.py`); integration into the Rust weight consumers and its numerical/composed checks remain pending (A12 open) | REPUTATION-004, A12 |
 | AT-REP-02 ✓ | consensus follower | `p_uj := p̄_{−u,j}` for all j (the others' mean, D33) | scores exactly 0 on every item and weighs exactly 1 — `level_c.rs`, `evaluator_score.rs` (T50) | REPUTATION-003 |
 | AT-REP-03 | denominator zero | all `o_j` equal | finite, defined result | REPUTATION-003 |
 | AT-REP-04 ✓ | cap binds | odds weights of nine crowd-level reviewers and one reliably 0.1 better | the outlier weighs 16 uncapped and 3 capped — `evaluator_score.rs`, `orchestrator_driver.rs` (T50) | REPUTATION-005 |

@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | The five items `docs/07` §13 asks of every threshold in `docs/02`'s parameter table — why it exists, how it is calibrated, how much the mechanism depends on it, what breaks if it moves, where its value is fixed — so that no threshold is an accidental constant (SC-1, `docs/08` §16.1). |
 | **Derived from** | `docs/02` (the parameter table, §A.1–§A.3), `docs/13` §7.4 and §8.7.4 (the measurements), `docs/01` (the decisions), `docs/05` [4]–[5b], `docs/10` T25 step 4. |
-| **Status** | Level A written (2026-10-01). Level B waits on the supplement's DIF studies run again on the corrected model (`docs/13` §8.8); Level C gets its procedures next, its values provisional until the pilots (T27). |
+| **Status** | Level A written (2026-10-01). Level B waits on the supplement's DIF studies run again on the corrected model (`docs/13` §8.8). Level C's restricted A12 offline candidate has procedures below (2026-10-12), without a calibrated operating point; the remaining Level C entries and operational values remain pending. |
 
 ## How to read an entry
 
@@ -194,7 +194,47 @@ floor prior's weight, `KR20_MIN` or a minimum number of anchors, `N_LATENT_MIN`,
 
 ## Level C — reputation and coordination
 
-To be written by step 4, with procedures and values provisional until the pilots (T27):
-`γ` and `k₀`, the CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the implemented
+Remaining legacy/operational entries to be written by step 4, with procedures and values
+provisional until the pilots (T27): `γ` and the old odds model's `k₀`, its punitive
+CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the implemented
 reputation decay time `T` (half-life `T ln 2`; the intended convention is a decision,
 `15` C6), the honeypot and exploration rates, `α`, `min_shared`, `ρ_min` and `p_max`.
+
+### A12 offline affine candidate — procedure contract, 2026-10-12
+
+These entries apply only to [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
+They do not calibrate or replace the current Rust odds/reset path. Example values and
+exact test fixtures are not operating choices. The current candidate fixes probation at
+30 terminal A/R/I assignments and the cap multiplier at 3; `η` and `k₀` must be explicit
+inputs. No new parameter measurements or campaigns were run for these procedures.
+
+**Common procedure.** Before measuring, freeze the candidate revision, complete assignment
+and opportunity calendars, invariant signal/reference model, finite horizons, held-out
+scenarios and parameter grid. Record the owner's operating objectives and permissible
+weight variability/concentration, onboarding delay and diagnostic false-alarm budgets
+before selecting a point. Use no personal attributes. Compare the same exogenous histories
+and opportunities for every candidate point; report results per declared scenario, rather
+than postselecting completed histories. Separate algebraic bounds, finite exact checks and
+measured distributions. Operational pilot observations can inform the scenario law but do
+not establish information invariance or make conditional incentive results unconditional.
+If no point meets the recorded objectives, report that result rather than relaxing them.
+Any costly campaign requires the existing authorization; this procedure authorizes none.
+
+| Parameter | Reason and admissible domain | Procedure and observable | Sensitivity / if it moves | Where fixed |
+|---|---|---|---|---|
+| `η` | Sets the size of the score's contribution; `0 < η ≤ 4/5` preserves the proven range and slack cap. | On the frozen grid, report the weight distribution, concentration, finite-horizon truthful-versus-deviation expected-weight gaps, and variation between adjacent complete prefixes. Select jointly with `k₀` against the owner's recorded objectives; record ties explicitly. | Not measured. For fixed `k₀`, every established score contribution and every gap in the accepted proof scales linearly with `η`; small `η` can make incentives practically negligible despite exact weak optimality. Above `4/5`, the range/cap argument is no longer this proof. | Explicit offline input; no default. An operating point belongs in `01` before use; domain in `16` §7.2. |
+| `k₀` | Shrinks accumulated scores toward unit weight; `k₀ ≥ 0`. | Joint grid with `η`; report response to sustained changes in forecast quality, prefix-to-prefix variability, time/exposure to the recorded target weight separation, and cumulative-weight gaps over each horizon. Retain an admissible point only if all declared objectives hold on the held-out scenarios. | Not measured. Larger `k₀` reduces the contribution at every fixed exposure and slows separation; smaller increases it. It does not alter probation eligibility. At zero the established denominator is still at least 30. | Explicit offline input; no default. The old odds model's `100` and the proof examples supply no calibrated value here. |
+| Probation `30` | Requires a fixed number of observed verified terminal assignments before affine weight; I counts as an observed terminal with zero score. | At the frozen rule, report time to 30 under declared exogenous completion rates, founder/non-founder exposure, weight distribution at entry and later stability. If an alternative fixed positive threshold is proposed, review its rule and acceptance tests before reusing measurements. | Not measured. Longer delays non-founders' positive weight and extends founders' unit bootstrap; shorter admits less score history. A stopping time selected from score, outcome or arrival is outside the fixed calendar proof. | `16` §7.2 and the offline candidate; not a tunable CLI parameter in this version. Changing it requires a recorded rule change. |
+| Cap multiplier `3` | Preserves the existing cap form while making it slack on the homogeneous affine/founder carrying roster. | Check all roster weights satisfy the accepted bounds and exclude zero-weight probationers from the median. Test empty, odd and even carrying rosters. No fitted threshold is needed for this mathematical identity. | Algebraic: established weights are in `[2/5, 6/5]`, founder bootstrap is 1, hence `3 × median ≥ 6/5`. A smaller multiplier or mixed odds roster needs a new composition review. | Fixed by `16` §7.2; this is a structural condition, not an empirical operating point. |
+
+**Diagnostic CUSUM.** The offline reference path does not implement a detector or adopt
+the old `k = 0.03`, `h = 1.5`. Before adding one, freeze its statistic, preceding-history
+reference, allowance, threshold, initialization/reset and I treatment on the new score;
+record them here and in `02`. On held-out invariant complete histories, measure false
+alarms per reviewer-horizon and detection delay under declared sustained forecast-quality
+changes, jointly over allowance/threshold and at the chosen `η`, `k₀`, probation and horizon.
+Select only against the owner's recorded diagnostic budgets. The emitted diagnostics must
+remain unavailable to reporting/assignment policies during the compared horizon and have
+no effect on scores, counts, weights, eligibility, resources or opportunities. Detector
+state resets, if specified, must not reset reputation. Until this contract and its evidence
+exist, diagnostic behavior is unimplemented; prior detector rates do not characterize it.

@@ -760,8 +760,9 @@ cumulative-effective-weight guarantee is restricted to complete offline inputs a
 information, with the assumptions explicitly accepted in
 [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
 That section owns the fixed-benchmark affine formula, prefixed counts/calendar, diagnostic
-CUSUM, conditional proof and refusal of incomplete prefixes. The candidate is not implemented
-or operationally adopted; A12 remains open for its integration and verification. It supplies
+CUSUM, conditional proof and refusal of incomplete prefixes. `sim/a12_offline.py` implements
+an exact-rational offline reference; Rust integration and operational adoption have not occurred.
+A12 remains open for the remaining integration and verification. It supplies
 no general proof against betrayal or policy for pending operational weights. The current
 difference/odds/reset paths below and their acquired tests remain distinct; A1 is not reopened.
 
