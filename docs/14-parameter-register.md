@@ -232,7 +232,9 @@ Any costly campaign requires the existing authorization; this procedure authoriz
 | Probation `30` | Requires a fixed number of observed verified terminal assignments before affine weight; I counts as an observed terminal with zero score. | At the frozen rule, report time to 30 under declared exogenous completion rates, founder/non-founder exposure, weight distribution at entry and later stability. If an alternative fixed positive threshold is proposed, review its rule and acceptance tests before reusing measurements. | Not measured. Longer delays non-founders' positive weight and extends founders' unit bootstrap; shorter admits less score history. A stopping time selected from score, outcome or arrival is outside the fixed calendar proof. | `16` §7.2 and the offline candidate; not a tunable CLI parameter in this version. Changing it requires a recorded rule change. |
 | Cap multiplier `3` | Preserves the existing cap form while making it slack on the homogeneous affine/founder carrying roster. | Check all roster weights satisfy the accepted bounds and exclude zero-weight probationers from the median. Test empty, odd and even carrying rosters. No fitted threshold is needed for this mathematical identity. | Algebraic: established weights are in `[2/5, 6/5]`, founder bootstrap is 1, hence `3 × median ≥ 6/5`. A smaller multiplier or mixed odds roster needs a new composition review. | Fixed by `16` §7.2; this is a structural condition, not an empirical operating point. |
 
-**Diagnostic CUSUM.** The offline reference path does not implement a detector or adopt
+**Diagnostic CUSUM (optional for amended A12; `16` §7.3).** With `diagnostic_policy: none`,
+the offline reference path has no detector effect on the amended incentive quantities; it
+rejects other policies. Its absence does not block conditional A12 closure. The path does not implement a detector or adopt
 the old `k = 0.03`, `h = 1.5`. Before adding one, freeze its statistic, preceding-history
 reference, allowance, threshold, initialization/reset and I treatment on the new score;
 record them here and in `02`. On held-out invariant complete histories, measure false

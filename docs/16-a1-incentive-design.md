@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Analysis and proposal; **A1 closed conditionally on `1bd865c`** (`17` §14.15); current runtime not certified, A12 and Phase 1 open (`15`). Diagnosis confirmed; the updated analysis of the beacon's manipulability and of observations, assignments and the IPW count approved; the proof of properness approved as a result conditional on the joint invariance C6 and the theorem's other hypotheses, not as a guarantee of the protocol; the overall proposal **not approved**. The band baselines (C5, §4.6) **approved** on `e8fdbe7`. The pilot batch contract (C3) and missing outcomes (C2) are analyzed in [`17`](17-a1-pilot-batch-design.md): not approved on `164fff6`; its revision approved on `37addca` as a conditional analysis, with no batching policy approved for implementation. The paper is not rewritten; `01` D33 carries a dated refinement and `02` §C.2 the band baselines. |
+| **Status** | Analysis and proposal; **A1 closed conditionally on `1bd865c`** (`17` §14.15); A12 closed conditionally in [§7.3](#73-a12-closure-review--2026-10-13), Phase 1 open; current runtime not certified. Diagnosis confirmed; the updated analysis of the beacon's manipulability and of observations, assignments and the IPW count approved; the proof of properness approved as a result conditional on the joint invariance C6 and the theorem's other hypotheses, not as a guarantee of the protocol; the overall proposal **not approved**. The band baselines (C5, §4.6) **approved** on `e8fdbe7`. The pilot batch contract (C3) and missing outcomes (C2) are analyzed in [`17`](17-a1-pilot-batch-design.md): not approved on `164fff6`; its revision approved on `37addca` as a conditional analysis, with no batching policy approved for implementation. The paper is not rewritten; `01` D33 carries a dated refinement and `02` §C.2 the band baselines. |
 | **Baseline** | `docs/phase1-review-alignment`; first committed at `4478f04`, revised from it. Line references are to that commit. |
 | **Scope** | The claim that randomized exploration with inverse-probability weighting (IPW) keeps the evaluator score proper (`01` D35, `02` §C.2, paper Prop. `prop:ipw`). A10 (the fallback baseline) stays a separate finding. |
 | **Evidence** | **L** read in the source; **D** derived here; **C** calculated exactly; **E** executed as a Rust test (`crates/protocol/tests/a1_exploration_information.rs`). |
@@ -389,7 +389,7 @@ shares. None of the four follows from the others.
 ## 7. The reputation actually used
 
 **Status after the owner's O3 decision following `a14364c`.** This incentive requirement is
-tracked as **A12, open** (`15`), separately from A1's expected-score closure objective.
+tracked at that point as **A12, open** (`15`), separately from A1's expected-score closure objective; the later conditional closure is in §7.3.
 Decision and precise closure criterion: [`17` §14.14.1](17-a1-pilot-batch-design.md#14141-o3--owners-decision-after-a14364c).
 It is neither waived nor automatically non-blocking for Phase 1. The subsequently approved
 study objective and accepted finite counterexample are recorded in §7.1. The owner's
@@ -421,7 +421,7 @@ CUSUM reads the unweighted observed scores.
 - **Three quantities that are not interchangeable.** The number of real observations
   `Σ I_j` is the evidence available. The number of assigned judgments `N_u` is the exposure.
   `Σ I_j/π_j` is an IPW estimate of `N_u`, not evidence.
-- **Open:** integration and verification of the restricted affine candidate (§7.2).
+- **Then open:** integration and verification of the restricted affine candidate (§7.2); the composed review is in §7.3.
   §7.1's counterexample remains acquired for its declared bridge to the current rules.
 
 ### 7.1 A12 finite effective-weight counterexample
@@ -540,16 +540,16 @@ decision is in §7.2; it does not change this counterexample or its historical j
 
 ### 7.2 A12 restricted affine guarantee — owner's decision, 2026-10-12
 
-**Decision and status.** The owner adopts the **exact incentive guarantee in an offline
-domain with complete data and invariant information**, and explicitly relinquishes its use
+**Decision and status (at the 2026-10-12 decision; closure review in §7.3).**
+The owner adopts the **exact incentive guarantee in an offline domain with complete data and invariant information**, and explicitly relinquishes its use
 as a general proof against betrayal. The objective is expected cumulative effective weight
 available in prefixed assigned opportunities over a finite horizon, not causal influence on
 item decisions or an external betrayal payoff. This is the current Phase 1 requirement
 under AT-REP-01, amended explicitly in `08`. The affine mechanism below is a **specified
 candidate with an accepted conditional mathematical proof and an exact offline reference**,
-not the current Rust odds/reset path or an operationally adopted mechanism. A12 remains
-open beyond the accepted integration package described below; defining the objective/domain
-is no longer an outstanding generic prerequisite. Current summary: `15`, A12.
+not the current Rust odds/reset path or an operationally adopted mechanism. At the
+package review A12 remained open; §7.3 records its subsequent conditional closure.
+Defining the objective/domain is no longer an outstanding generic prerequisite.
 
 **Inputs and domain.** Before the compared reports, declare a finite horizon `H`, roster
 and founder membership, a complete common initial history, group/reference-procedure
@@ -702,7 +702,7 @@ while pending. No guarantee is obtained by conditioning on completion after the 
 components; they are not tests of this candidate. The crowd-neutrality rule becomes
 zero at the fixed benchmark `p = 1/2`, not at every live crowd mean (02). The bounded
 range/slack cap replaces the 16-to-3 outlier behavior (04). Conditional properness is
-preserved mathematically with new score/domain and composed numerical tests still needed
+preserved mathematically with new score/domain; composed numerical tests were subsequently acquired
 (05). A diagnostic detector does not preserve the punitive return to probation (07).
 No A1 or A6 correction or other acquired closure is reopened.
 
@@ -823,12 +823,50 @@ remain applicable; formatting and documentation changes require no new mathemati
 or campaign. The consolidation commit retains the tested source behavior and frozen fixtures.
 
 Acceptance concerns the exact producer → frozen binary64 transfer → first/supplementary
-ratings package, under the approved local trust and numerical contract. It does not by
-itself close A12 or Phase 1. Supplementary opportunities must remain prefixed and
-information-invariant; adapting a consumer does not certify the report-triggered gate.
+ratings package, under the approved local trust and numerical contract. The package verdict
+alone did not close A12; the composed closure judgment is in §7.3. Supplementary
+opportunities must remain prefixed and information-invariant; adapting a consumer does
+not certify the report-triggered gate.
 The earlier exact-reference acceptance is not reopened. Diagnostic CUSUM remains absent,
 with its procedure/specification dependency in `14`; final-model characterization and
 external T26 remain separate gates. Current summary: `15`, A12.
+
+### 7.3 A12 closure review — 2026-10-13
+
+**Verdict: A12 closed conditionally** against the owner's explicitly amended AT-REP-01,
+on examined commit `15b846c107518343de7ba0cb68fc7c1d6d4a2382`. The condition is the
+complete offline, ex ante fixed calendar/common-filtration domain of §7.2: outcome,
+information and opportunities remain invariant across admitted strategies. The objective
+is the mathematical sum of consumed effective-weight coefficients. This judgment composes
+the exact producer, one final correctly rounded binary64 conversion, frozen epoch table,
+and first/supplementary ratings paths; it is not an automatic sum of package approvals.
+
+| Criterion | Evidence | Disposition in the amended domain |
+|---|---|---|
+| Fixed complete horizon and refusal | `sim/a12_offline.py` manifest/snapshot, required cuts and atomic `Unavailable`; §7.2 proof assumptions | Satisfied for admitted offline inputs; assertions cannot establish the real-world information law. |
+| Exact cumulative incentive | §7.2 conditional theorem and exact reference; 96 prior finite exact utility identities | Satisfied conditionally, with flat coordinates where `β_j c_j = 0`. |
+| Final numerical contract | `sim/export_a12_affine.py` converts only the final exact weight; §7.2 bound | Satisfied: `abs(ŵ_e−w_e) ≤ 2⁻⁵³`, expected deviation advantage `≤ M·2⁻⁵²`; no floating-accumulator or fit-error claim. |
+| Frozen transport and composed consumers | Digest/context checked `FrozenAffineEpoch`; `AffineRatings` and explicit first/supplementary adapters reuse the same bits; five owner-run composed Rust tests | Satisfied for the scoped trusted-local integration, not an authentication or operational adoption claim. |
+| Scoped verification and reproducibility | 34 Python tests independently run by Astra in preparation; reviewed Rust source and owner's `cargo check`, five-test and formatting logs; consolidated formatting at the examined commit | Satisfied for this documentary/source-review gate; Rust was not independently rerun by Astra or this review. |
+| Provisional parameters | Procedures in `14` for `η`, `k₀`, probation, cap and any future diagnostic | Satisfied as procedures without selected operating values or characterization. |
+
+`diagnostic_policy: none` is the only accepted offline reference behavior:
+`sim/a12_offline.py::_validate` rejects another policy. §7.2 proposes CUSUM only as a
+diagnostic with no effect on the proof's weights, counts, eligibility, information or
+opportunities; its absence therefore does not block this amended A12 closure. This does
+not implement or validate a new detector. AT-REP-07/D34 remains evidence for the old
+component, not for affine detection or calibration; `14` specifies the procedure before
+any future detector is added, without adopting a threshold or reset here.
+
+**Separate remaining gates.** A12 closure does not close Phase 1, certify legacy
+odds/reset, report-triggered gates, causal influence or fit, generic betrayal, or
+incomplete-data operation. Final-model characterization, the remaining SC-1
+evidence/procedures (with provisional values permitted by `14`), A2 and T26 remain
+distinct Phase 1 gates, not new A12 requirements or a demand to choose operating
+values for A12 closure. The 2026-10-12 owner amendment and §7.2 own the claim; this review checked the published commit and
+pertinent source/document hashes, without executing new tests or a campaign. Preparation
+evidence above distinguishes Astra's independently executed Python checks from owner-run
+Rust checks read in logs; the 96 identities precede this closure review.
 
 ## 8. Alternatives under the same hypotheses
 

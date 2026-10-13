@@ -763,7 +763,7 @@ That section owns the fixed-benchmark affine formula, prefixed counts/calendar, 
 CUSUM, conditional proof and refusal of incomplete prefixes. `sim/a12_offline.py` implements
 an exact-rational offline reference. The frozen-weight Rust integration package is accepted
 on 2026-10-13, on the owner's executable checks and Astra's review (`16` §7.2), without
-operational adoption. A12 and Phase 1 are not closed by this package acceptance. It supplies
+operational adoption. The package acceptance alone did not close A12; the composed review closes A12 conditionally (`16` §7.3), while Phase 1 remains open. It supplies
 no general proof against betrayal or policy for pending operational weights. The current
 difference/odds/reset paths below and their acquired tests remain distinct; A1 is not reopened.
 
@@ -816,7 +816,7 @@ properness and changes neither the gate nor bridging.
 **Score property.** With a defined baseline, reporting that baseline gives a zero difference
 term on either conclusive verdict; B-b also assigns zero to a terminal `I`. This is a property
 of the score. It does not show incentives of the reputation or of review weights; O3 is
-resolved and that distinct requirement remains open as A12 (`15`, `17` §14.14).
+resolved and that distinct requirement was tracked as A12 (`15`, `17` §14.14); its amended offline scope is closed conditionally (`16` §7.3).
 
 `S_u` is the mean of `S_uj` over the reviewer's `k_u` scored items — the symmetric
 long-window mean of `01` D34 (the change detector on the per-item scores is T51).
@@ -853,7 +853,7 @@ false-negative rate — how many rejected items would have passed Level B — an
 about `ε` of pilot capacity. The draw is grind-free: it reads the commit-reveal beacon of
 `01` D41 (`04` §The epoch's beacon, T37).
 
-**Current use (A12 open after O3).** The implemented binary `S_u` weights the review vote, on the
+**Current use (legacy path; A12 conditionally closed under its amended offline scope, `16` §7.3).** The implemented binary `S_u` weights the review vote, on the
 odds scale and shrunk by the number of scored items:
 
 ```

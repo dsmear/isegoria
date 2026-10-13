@@ -28,7 +28,9 @@ structural/timing composition, scores reports, counts complete cumulative exposu
 applies probation/founder and affine weights, computes the homogeneous-roster median
 cap, freezes epoch weights and sums assigned-opportunity utility. It does not call or
 replace the Rust difference/odds/reset consumers, bridging or empirical validation.
-A12 remains open for those pertinent integrations and the final candidate review.
+The frozen binary64 exporter and explicit Rust first/supplementary adapters now compose
+this reference path within their scoped contract. A12 is closed conditionally by the
+combined review ([`docs/16` §7.3](../docs/16-a1-incentive-design.md#73-a12-closure-review--2026-10-13)).
 
 Python standard library only, supported numerical profile below. From the repository root:
 
@@ -163,8 +165,9 @@ does not certify a rounded report as maximizing utility. The finite incentive te
 use rational conditional beliefs and a prefixed common outcome/information law. They
 are composed regression evidence, not a replacement for the conditional proof or a
 claim about every possible policy. At `c=0` no truthful target is imputed; final
-unrewarded reports demonstrate the separate `beta=0` flat case. A Rust adapter will
-need its own numerical contract; these results do not certify binary floating behavior.
+unrewarded reports demonstrate the separate `beta=0` flat case. The separate frozen
+binary64 exporter and Rust adapters have the bounded conversion contract in `docs/16`
+§§7.2–7.3; these exact-reference results alone do not certify binary floating behavior.
 
 A complete output contains `manifest_id`, `snapshot_id`, exact per-assignment scores,
 `unscored_assignments`, epoch IDs/cuts, roster counts/sums/raw and capped weights,

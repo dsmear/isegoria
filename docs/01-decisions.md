@@ -571,7 +571,7 @@ decoys; on the same test the intercept moves from +0.09 to +0.32.
 > (`16` §7.2); there is no operational adoption.
 > D33/D34/D36 below still describe the current Rust implementation and
 > its acquired tests; benchmark/cap behavior and diagnostic-only CUSUM are candidate choices,
-> not silent code changes. Package acceptance does not close A12 or Phase 1; current status in `15`.
+> not silent code changes. The composed closure review closes A12 conditionally under the amended claim (`16` §7.3); Phase 1 remains open.
 
 > **Numerical qualification approved by the owner (2026-10-12).** The exact rational A12
 > theorem is retained. For a single final conversion to binary64, the consumed coefficient
@@ -674,7 +674,7 @@ correction the forecast target is `q_c = P(Y = A | Y ≠ I, F_u)`, defined only 
 `c = P(Y ≠ I | F_u) > 0`. At `c = 0` the score is flat and `q_c` stays undefined, with no
 conventional value. The decided specification concerns the expected score under the declared
 hypotheses, for completed reports and defined baselines; it guarantees no reputational incentive.
-O2 subsequently chosen, O3 acquired; A12 open (`17` §§14.14–14.15). The O1 decision,
+O2 subsequently chosen, O3 acquired; A12 was then open (`17` §§14.14–14.15) and is now closed conditionally (`16` §7.3). The O1 decision,
 motivation, limits and affected promises are recorded once in
 [`17` §14.12](17-a1-pilot-batch-design.md#1412-o1-target-amendment-owners-decision-2026-10-11).
 The original observation path and its implementation below remain current behavior; they have

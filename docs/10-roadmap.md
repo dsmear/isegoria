@@ -21,8 +21,8 @@ proof are specified in
 [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
 The coherent offline reference and frozen-weight integration package have now met their
 scoped acceptance gates (`16` §7.2); `14` records provisional-parameter procedures.
-A12 remains open beyond this package acceptance; diagnostic CUSUM is unimplemented and
-final-model characterization remains separate. This introduces no new requirement to
+A12 is closed conditionally by the composed review of `15b846c` ([`16` §7.3](16-a1-incentive-design.md#73-a12-closure-review--2026-10-13)); diagnostic CUSUM is unimplemented and
+final-model characterization remains a separate Phase 1 gate. This introduces no new requirement to
 prove general H-c, complete a distributed runtime or repeat campaigns.
 AT-REP-01's blanket betrayal claim is explicitly withdrawn as a Phase 1 claim (`08`),
 not proved or automatically moved to Phase 2. A1 and other acquired closures remain scoped;
@@ -181,8 +181,8 @@ Resolve changes that affect the candidate model before its final measurements;
 choose the error/resource criteria of T83 before final threshold selection. No new
 full characterization run is implied by this documentation update.
 
-For the A12 candidate, procedures must address `η`, `k₀`, probation and diagnostic
-CUSUM settings on the new score/model (`16` §7.2). `0 < η ≤ 0.8`, `k₀ ≥ 0` is the
+For the A12 candidate, `14` records procedures for `η`, `k₀`, probation and any future
+diagnostic CUSUM on the new score/model (`16` §§7.2–7.3). `0 < η ≤ 0.8`, `k₀ ≥ 0` is the
 proof's parameter domain, not a calibrated operating point; current odds/reset detector
 measurements remain evidence of their original components, not the affine candidate.
 
