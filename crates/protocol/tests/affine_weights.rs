@@ -45,12 +45,17 @@ fn golden_first_and_supplementary_preserve_frozen_bits() {
     )
     .unwrap();
     assert_eq!(
-        first.ratings().weights.iter().map(|w| w.to_bits()).collect::<Vec<_>>(),
+        first
+            .ratings()
+            .weights
+            .iter()
+            .map(|w| w.to_bits())
+            .collect::<Vec<_>>(),
         vec![1.0f64.to_bits(), 0.0f64.to_bits()]
     );
     assert_eq!(first.ratings().axis, vec![true, false]);
-    let extra = affine_supplementary_ratings(&first, &epoch, 0, &[(nym(3), 0.5), (nym(4), 1.0)])
-        .unwrap();
+    let extra =
+        affine_supplementary_ratings(&first, &epoch, 0, &[(nym(3), 0.5), (nym(4), 1.0)]).unwrap();
     assert_eq!(first.ratings().n, 2);
     assert_eq!(extra.rows(), &[nym(1), nym(2), nym(3), nym(4)]);
     assert_eq!(extra.ratings().axis, vec![true, false, true, true]);
@@ -69,7 +74,10 @@ fn second_epoch_promotes_complete_thirtieth_count() {
     let next = FrozenAffineEpoch::import(SECOND, &expected(SECOND_SHA, "e1", 120)).unwrap();
     let first = affine_first_ratings(&[vec![0.5]], &[vec![true]], &[nym(2)], &next).unwrap();
     assert_eq!(first.ratings().axis, vec![true]);
-    assert_eq!(first.ratings().weights[0].to_bits(), next.weight_bits(nym(2)).unwrap());
+    assert_eq!(
+        first.ratings().weights[0].to_bits(),
+        next.weight_bits(nym(2)).unwrap()
+    );
     assert!(first.ratings().weights[0] > 0.0);
 }
 
@@ -77,8 +85,13 @@ fn second_epoch_promotes_complete_thirtieth_count() {
 fn existing_unrated_row_is_reused_once() {
     // AT-REP-01: an existing supplementary reviewer keeps its frozen row and bit weight.
     let epoch = imported();
-    let first = affine_first_ratings(&[vec![0.5], vec![0.0]],
-        &[vec![true], vec![false]], &[nym(1), nym(3)], &epoch).unwrap();
+    let first = affine_first_ratings(
+        &[vec![0.5], vec![0.0]],
+        &[vec![true], vec![false]],
+        &[nym(1), nym(3)],
+        &epoch,
+    )
+    .unwrap();
     let next = affine_supplementary_ratings(&first, &epoch, 0, &[(nym(3), 0.25)]).unwrap();
     assert_eq!(next.ratings().n, 2);
     assert_eq!(next.ratings().obs.len(), 2);
@@ -94,17 +107,31 @@ fn epoch_context_and_shape_refusals_leave_base_intact() {
     let first = affine_first_ratings(&[vec![0.5]], &[vec![true]], &[nym(1)], &epoch).unwrap();
     let bits = first.ratings().weights[0].to_bits();
     assert!(affine_supplementary_ratings(&first, &next, 0, &[(nym(3), 1.0)]).is_err());
-    for reveals in [&[(nym(1), 0.2)][..], &[(nym(3), 0.2), (nym(3), 0.4)][..],
-                    &[(nym(4), f64::NAN)][..], &[(nym(8), 0.1)][..]] {
+    for reveals in [
+        &[(nym(1), 0.2)][..],
+        &[(nym(3), 0.2), (nym(3), 0.4)][..],
+        &[(nym(4), f64::NAN)][..],
+        &[(nym(8), 0.1)][..],
+    ] {
         assert!(affine_supplementary_ratings(&first, &epoch, 0, reveals).is_err());
     }
     assert!(affine_supplementary_ratings(&first, &epoch, 1, &[]).is_err());
     assert!(affine_first_ratings(&[vec![0.3]], &[], &[nym(1)], &epoch).is_err());
-    assert!(affine_first_ratings(&[vec![0.3], vec![]], &[vec![true], vec![]],
-        &[nym(1), nym(2)], &epoch).is_err());
+    assert!(affine_first_ratings(
+        &[vec![0.3], vec![]],
+        &[vec![true], vec![]],
+        &[nym(1), nym(2)],
+        &epoch
+    )
+    .is_err());
     assert!(affine_first_ratings(&[vec![0.3]], &[vec![true]], &[nym(8)], &epoch).is_err());
-    assert!(affine_first_ratings(&[vec![0.3], vec![0.2]], &[vec![true], vec![true]],
-        &[nym(1), nym(1)], &epoch).is_err());
+    assert!(affine_first_ratings(
+        &[vec![0.3], vec![0.2]],
+        &[vec![true], vec![true]],
+        &[nym(1), nym(1)],
+        &epoch
+    )
+    .is_err());
     assert!(affine_first_ratings(&[vec![f64::NAN]], &[vec![true]], &[nym(1)], &epoch).is_err());
     assert_eq!(first.ratings().weights[0].to_bits(), bits);
     assert_eq!(first.ratings().obs.len(), 1);
@@ -141,6 +168,8 @@ fn importer_checks_digest_context_and_closed_counts() {
         source.replacen("0000000000000000\t0\t0", "8000000000000000\t0\t0", 1),
     ] {
         let sha = digest(malformed.as_bytes());
-        assert!(FrozenAffineEpoch::import(malformed.as_bytes(), &expected(&sha, "e0", 100)).is_err());
+        assert!(
+            FrozenAffineEpoch::import(malformed.as_bytes(), &expected(&sha, "e0", 100)).is_err()
+        );
     }
 }

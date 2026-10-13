@@ -27,9 +27,9 @@ it is not a new implementation fix or a replacement for T26.
 complete-offline, invariant-information cumulative-weight guarantee in
 [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
 Its affine candidate has an accepted conditional proof and an exact-rational offline reference
-path (`sim/a12_offline.py`); the explicit frozen-weight Rust adapters are prepared,
-with executable validation pending and no operational adoption;
-A12 remains open for the remaining integration and verification. The owner explicitly withdraws
+path (`sim/a12_offline.py`). Its explicit frozen-weight Rust integration package is accepted
+on 2026-10-13 on the owner's executable checks and Astra's source review (`16` §7.2),
+without operational adoption. A12 and Phase 1 remain open beyond this package. The owner explicitly withdraws
 the blanket betrayal/honesty claim as a Phase 1 claim without proving it. Historical detector,
 crowd and cap test evidence below keeps its scope and does not test the affine candidate.
 
@@ -37,8 +37,9 @@ crowd and cap test evidence below keeps its scope and does not test the affine c
 remains exact; a single final binary64 conversion has per-weight error at most `2⁻⁵³` and
 expected deviation advantage at most `M·2⁻⁵²` for `M` prefixed opportunities (`16` §7.2).
 This explicitly replaces an exact numerical claim for the consumed `f64` coefficients;
-it does not cover a floating utility accumulator, optimizer or verdict error. Rust source
-and fixtures are not evidence of passed compilation/composed tests; that gate remains open.
+it does not cover a floating utility accumulator, optimizer or verdict error. The integration
+gate now has reported executable evidence: the owner's Rust compilation, five composed
+tests and formatting checks pass; Astra did not independently rerun Rust (`16` §7.2).
 
 For the earlier reviewed revisions, the owner reported that compilation and tests pass.
 This historical report does not cover the new affine adapters. The review did not independently
@@ -1244,7 +1245,7 @@ criterion in the row below. The betrayal threat is not eliminated or automatical
 to Phase 2. An arbitrary external payoff cannot be controlled by this bounded-weight
 guarantee; a future operational claim would need its own defined utility and strategy scope.
 AT-REP-02/04/05/07 below retain their existing component-test scope. Their candidate mapping
-and outstanding composed/numerical verification are specified only in `16` §7.2.
+and the scoped composed/numerical integration evidence are specified only in `16` §7.2.
 
 | Test ID | Attack / property | Construction | Pass criterion | Falsifies |
 |---|---|---|---|---|
@@ -1256,7 +1257,7 @@ and outstanding composed/numerical verification are specified only in `16` §7.2
 | AT-ID-06 | rate-limit forgery | present `quota+1` distinct tokens in one epoch | rejected | ID-008 |
 | AT-ID-07 ✓ | cross-source dedup | CIE then SPID same CF | `DuplicateEnrollment` | ID-001 |
 | AT-ID-08 ✓ | DLEQ soundness | member with `k_i + 1` | partial rejected | ID-003 |
-| AT-REP-01 (amended 2026-10-12) | restricted cumulative-weight incentives | complete offline affine candidate, fixed opportunities/prefixes, joint invariant information; `16` §7.2 | exact rational truthfulness theorem retained; for one final correctly rounded binary64 conversion, per-weight error ≤ `2⁻⁵³` and expected deviation advantage ≤ `M·2⁻⁵²` on `M` prefixed opportunities; the mathematical sum of consumed coefficients is meant, not a floating accumulator or fit result. Rust compilation and composed checks remain pending (A12 open) | REPUTATION-004, A12 |
+| AT-REP-01 (amended 2026-10-12) | restricted cumulative-weight incentives | complete offline affine candidate, fixed opportunities/prefixes, joint invariant information; `16` §7.2 | exact rational truthfulness theorem retained; for one final correctly rounded binary64 conversion, per-weight error ≤ `2⁻⁵³` and expected deviation advantage ≤ `M·2⁻⁵²` on `M` prefixed opportunities; the mathematical sum of consumed coefficients is meant, not a floating accumulator or fit result. Rust integration-package gate accepted on owner-reported compilation, five composed tests and formatting (2026-10-13; `16` §7.2); A12 remains open beyond package acceptance | REPUTATION-004, A12 |
 | AT-REP-02 ✓ | consensus follower | `p_uj := p̄_{−u,j}` for all j (the others' mean, D33) | scores exactly 0 on every item and weighs exactly 1 — `level_c.rs`, `evaluator_score.rs` (T50) | REPUTATION-003 |
 | AT-REP-03 | denominator zero | all `o_j` equal | finite, defined result | REPUTATION-003 |
 | AT-REP-04 ✓ | cap binds | odds weights of nine crowd-level reviewers and one reliably 0.1 better | the outlier weighs 16 uncapped and 3 capped — `evaluator_score.rs`, `orchestrator_driver.rs` (T50) | REPUTATION-005 |
@@ -1553,7 +1554,7 @@ Status is the lowest justified. "Missing evidence" names what would raise it one
 | REPUTATION-001 | author score | `level_c.rs` | TESTED | definition of q_j | docs |
 | REPUTATION-002 | BSS = oracle | `level_c.rs` | TESTED — the retired function, kept as the sim oracle (D33, T50) | — | — |
 | REPUTATION-003 | consensus ≈ 0 | `reputation::crowd_baseline`; `level_c.rs` (AT-REP-02) | RESOLVED (T31) — E_u normalizes BSS against the crowd baseline `p̄_j` (D23); a consensus follower scores BSS 0. Sim's `levelc_bss` reference still base-rate | sim BSS → crowd | G-09 |
-| REPUTATION-004 | reputation dynamics (historical long-con aim); restricted A12 candidate | `reputation.rs` (`Cusum`), `probation.rs` (`SkillTrack`), `change_detector.rs` (AT-REP-07), `adversarial.rs`; `16` §7.2 | TESTED (D34, T51) for the current detector/reset, not a general betrayal proof. Owner amendment 2026-10-12: the complete-offline affine guarantee has an accepted conditional proof; A12 integration/verification remains open, no operational adoption | new-model parameter procedures, composed/numerical tests; original betrayal threat remains outside the adopted guarantee | T25, amended AT-REP-01, A12 |
+| REPUTATION-004 | reputation dynamics (historical long-con aim); restricted A12 candidate | `reputation.rs` (`Cusum`), `probation.rs` (`SkillTrack`), `change_detector.rs` (AT-REP-07), `adversarial.rs`; `16` §7.2 | TESTED (D34, T51) for the current detector/reset, not a general betrayal proof. Owner amendment 2026-10-12: the complete-offline affine guarantee has an accepted conditional proof; frozen-weight integration package accepted on 2026-10-13 (`16` §7.2), A12 remains open beyond this package, no operational adoption | new-model parameter procedures in `14`; scoped integration evidence in `16` §7.2; final-model characterization remains separate; original betrayal threat remains outside the adopted guarantee | T25, amended AT-REP-01, A12 |
 | REPUTATION-005 | cap limits a node | `evaluator_score.rs`, `orchestrator_driver.rs` (`epoch_weight_cap`), AT-REP-04 | RESOLVED (T50) — odds-scale weights, the cap binds on an outlier | — | — |
 | REPUTATION-006 | probation | `probation.rs`, `orchestrator.rs` (`bridging_weights`) | WIRED (T5) — probation → `w_u = 0`, so a probationer's ratings do not move `b_j`; `orchestrator_driver.rs` | — | G-03 |
 | REPUTATION-007 | appeal stake coherent | `appeal.rs`, `orchestrator.rs` (`settle_appeal`), `appeal_stake.rs`, `end_to_end.rs` | TESTED — a zero-quality pseudo-observation escrowed at filing, replaced by `q_j` on promotion, left otherwise; the floor is the prior mean; `run_item` derives the checks from the verdicts (D27, T61) | floor and stake weight provisional | T25 |

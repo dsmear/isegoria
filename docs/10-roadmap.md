@@ -19,24 +19,25 @@ does not introduce new task IDs or choose T83's operating point.
 invariant-information guarantee is decided; the affine candidate and accepted conditional
 proof are specified in
 [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
-A12 remains open for a coherent executable offline candidate in the pertinent paths,
-composed acceptance/refusal tests and provisional-parameter procedures for the new model
-(`14`). The owner has approved the numerical contract below; executable Rust validation
-remains required. This is not a
-new requirement to prove general H-c, complete a distributed runtime or repeat campaigns.
+The coherent offline reference and frozen-weight integration package have now met their
+scoped acceptance gates (`16` §7.2); `14` records provisional-parameter procedures.
+A12 remains open beyond this package acceptance; diagnostic CUSUM is unimplemented and
+final-model characterization remains separate. This introduces no new requirement to
+prove general H-c, complete a distributed runtime or repeat campaigns.
 AT-REP-01's blanket betrayal claim is explicitly withdrawn as a Phase 1 claim (`08`),
 not proved or automatically moved to Phase 2. A1 and other acquired closures remain scoped;
 A2's certifier is suspended, `19` §12 awaits review and T26 remains separate.
 
-**Executable candidate status (2026-10-12).** The accepted exact reference
+**Executable candidate status (updated 2026-10-13).** The accepted exact reference
 `sim/a12_offline.py` implements manifest/snapshot validation and whole-horizon refusal.
 The owner now approves one final nearest-even binary64 weight conversion, with absolute
 error at most `2^-53` per weight and expected deviation advantage at most `M · 2^-52`
 for a reviewer's fixed `M` opportunities. This concerns the mathematical sum of consumed
 coefficients, not a floating accumulator, fit, decision or report-triggered gate (`16` §7.2).
 `sim/export_a12_affine.py` prepares frozen bit tables; explicit `protocol::orchestrator`
-adapters prepare first-panel and supplementary ratings from the same table. These source
-changes are a candidate, with Rust compilation and composed tests still pending. They do
+adapters prepare first-panel and supplementary ratings from the same table. The integration
+package is accepted on the owner's passing compilation, five composed tests and formatting
+checks, together with Astra's source review; Astra did not rerun Rust (`16` §7.2). This does
 not certify the legacy odds/reset consumers. `14` supplies parameter procedures without
 choosing operating values. Diagnostic CUSUM is unimplemented; final-model characterization
 and T26 retain separate gates. No costly run is authorized by this step.

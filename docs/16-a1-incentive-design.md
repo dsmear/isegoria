@@ -548,8 +548,8 @@ item decisions or an external betrayal payoff. This is the current Phase 1 requi
 under AT-REP-01, amended explicitly in `08`. The affine mechanism below is a **specified
 candidate with an accepted conditional mathematical proof and an exact offline reference**,
 not the current Rust odds/reset path or an operationally adopted mechanism. A12 remains
-open for the remaining integration and verification; defining the objective/domain is no
-longer an outstanding generic prerequisite.
+open beyond the accepted integration package described below; defining the objective/domain
+is no longer an outstanding generic prerequisite. Current summary: `15`, A12.
 
 **Inputs and domain.** Before the compared reports, declare a finite horizon `H`, roster
 and founder membership, a complete common initial history, group/reference-procedure
@@ -718,7 +718,7 @@ Closure requires a coherent specification and executable offline candidate throu
 pertinent paths, composed acceptance/refusal tests and a declared numerical/reproducibility
 contract, plus procedures for provisional parameters on the new model. The reference
 implementation below covers the exact offline path; the explicit Rust adapters described
-below still require executable validation.
+below have passed their scoped integration gate on the owner's reported executable checks.
 `14` records procedures for `η`, `k₀`, probation, cap and a future diagnostic CUSUM, without
 calibrated operating values. The example values are not operating choices and old detector
 rates do not characterize the candidate. No characterization report is regenerated here.
@@ -803,18 +803,32 @@ review evidence only. The frozen golden SHA-256 values are
 `5bce1f8250a423c8f782fa276f16f1ac9820eb4e9965acfb2576c5e87f161b95` (epoch 0) and
 `ba94ad86e3ef3fce3bb0b8dbfde03d14ac49d886c456bf05fe388aed25b2e47c` (epoch 1).
 
-**Remaining integration gate / package verdict.** The source and fixtures are prepared;
-**specific validation still required**, before accepting the Rust integration: run the
-repository's formatting check, `cargo check -p protocol` and
-`cargo test -p protocol --test affine_weights` in a complete checkout with its pinned
-Rust toolchain, correcting any failures without changing the approved contract. The
-Python exporter/fixture checks and static source review cannot substitute for these runs.
-Within the guarantee, supplementary opportunities must remain prefixed and
+**Integration package verdict: accepted (2026-10-13).** The owner supplied a Linux
+execution transcript: `cargo check -p protocol` completed successfully and
+`cargo test -p protocol --test affine_weights` passed all five cases, with none ignored.
+The initial `cargo fmt --all -- --check` reported formatting differences in the two new
+Rust files. A subsequent executor report supplied by the owner identifies local HEAD
+`d395c94bc24079100b76e2cfec21e640301214ca` and records successful `cargo fmt --all`,
+`cargo fmt --all -- --check` and `git diff --check`. The reported working tree contains
+the two formatted Rust files and the owner's unrelated `.gitignore` change.
+
+Astra read these reports; Rust compilation/tests and rustfmt were **not independently
+rerun** in the preparation environment, which lacks the toolchain. For this consolidation,
+Sol reproduced the formatting changes from the supplied rustfmt diff against the published
+base. Source comparison confirms only layout changes and optional trailing commas, with
+no change to expressions, strings, comments, fixtures or the numerical contract. This is
+not a claim of direct access to the owner's formatted checkout. `.gitignore` is excluded.
+The earlier independently executed 34 Python tests and reviewed composition evidence
+remain applicable; formatting and documentation changes require no new mathematical study
+or campaign. The consolidation commit retains the tested source behavior and frozen fixtures.
+
+Acceptance concerns the exact producer → frozen binary64 transfer → first/supplementary
+ratings package, under the approved local trust and numerical contract. It does not by
+itself close A12 or Phase 1. Supplementary opportunities must remain prefixed and
 information-invariant; adapting a consumer does not certify the report-triggered gate.
-No Rust compilation/tests, fit or campaign were run in the preparation environment,
-which lacks the Rust toolchain. The earlier exact-reference acceptance is not reopened.
-Diagnostic CUSUM remains absent, with its procedure/specification dependency in `14`;
-final-model characterization and external T26 remain separate gates.
+The earlier exact-reference acceptance is not reopened. Diagnostic CUSUM remains absent,
+with its procedure/specification dependency in `14`; final-model characterization and
+external T26 remain separate gates. Current summary: `15`, A12.
 
 ## 8. Alternatives under the same hypotheses
 

@@ -566,18 +566,20 @@ decoys; on the same test the intercept moves from +0.09 to +0.32.
 > [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
 > The owner explicitly withdraws using that guarantee as a general proof against betrayal.
 > The bounded affine candidate there has an accepted conditional proof and an exact offline
-> reference (`sim/a12_offline.py`); explicit frozen-weight Rust adapters are now prepared,
-> pending compilation and composed tests, with no operational adoption.
+> reference (`sim/a12_offline.py`). The explicit frozen-weight Rust integration package is
+> accepted on 2026-10-13 using the owner's executable checks and Astra's source review
+> (`16` §7.2); there is no operational adoption.
 > D33/D34/D36 below still describe the current Rust implementation and
 > its acquired tests; benchmark/cap behavior and diagnostic-only CUSUM are candidate choices,
-> not silent code changes. A12 remains open for offline integration and verification.
+> not silent code changes. Package acceptance does not close A12 or Phase 1; current status in `15`.
 
 > **Numerical qualification approved by the owner (2026-10-12).** The exact rational A12
 > theorem is retained. For a single final conversion to binary64, the consumed coefficient
 > has error at most `2⁻⁵³`; the expected deviation advantage over `M` prefixed opportunities
 > is bounded by `M·2⁻⁵²`, not asserted to be exactly zero. `16` §7.2 specifies the sum and
-> exclusions. This explicitly amends the numerical AT-REP-01 claim. Source preparation and
-> Python checks do not satisfy the pending Rust compilation/composed-test acceptance gate.
+> exclusions. This explicitly amends the numerical AT-REP-01 claim. The owner's Rust
+> compilation, five composed tests and formatting checks now satisfy the integration gate;
+> Astra read the reports and did not rerun Rust (`16` §7.2).
 
 > **Implemented (2026-09-25, T50):** `reputation::{loo_baseline, loo_scores, mean_score,
 > odds_weight, EvaluatorParams}` (`γ = 35`, `k₀ = 100`, provisional); `honeypot::reviewer_skills`

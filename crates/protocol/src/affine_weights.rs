@@ -127,7 +127,10 @@ impl FrozenAffineEpoch {
             };
             let n = decimal(fields[3]).ok_or(AffineError("count"))?;
             decimal(fields[4]).ok_or(AffineError("opportunities"))?;
-            if ![5, 6, 7, 9, 10, 11, 12, 13, 14, 15].iter().all(|&i| rational(fields[i])) {
+            if ![5, 6, 7, 9, 10, 11, 12, 13, 14, 15]
+                .iter()
+                .all(|&i| rational(fields[i]))
+            {
                 return Err(AffineError("rational fields"));
             }
             if fields[6] != fields[7] {
@@ -140,12 +143,17 @@ impl FrozenAffineEpoch {
             {
                 return Err(AffineError("weight bits"));
             }
-            let bits = u64::from_str_radix(fields[8], 16).map_err(|_| AffineError("weight bits"))?;
+            let bits =
+                u64::from_str_radix(fields[8], 16).map_err(|_| AffineError("weight bits"))?;
             let weight = f64::from_bits(bits);
             if !weight.is_finite() || !(0.0..=1.2).contains(&weight) {
                 return Err(AffineError("weight range"));
             }
-            let bootstrap_bits = if founder { 1.0f64.to_bits() } else { 0.0f64.to_bits() };
+            let bootstrap_bits = if founder {
+                1.0f64.to_bits()
+            } else {
+                0.0f64.to_bits()
+            };
             let bootstrap_exact = if founder { "1" } else { "0" };
             if n < 30 && (bits != bootstrap_bits || fields[7] != bootstrap_exact) {
                 return Err(AffineError("probation/founder weight"));
@@ -228,7 +236,9 @@ impl AffineRatings {
         let mut weights = Vec::with_capacity(rows.len());
         let mut axis = Vec::with_capacity(rows.len());
         for &nym in rows {
-            let bits = epoch.weight_bits(nym).ok_or(AffineError("unknown row nym"))?;
+            let bits = epoch
+                .weight_bits(nym)
+                .ok_or(AffineError("unknown row nym"))?;
             weights.push(f64::from_bits(bits));
             axis.push(epoch.axis(nym).unwrap());
         }
@@ -238,13 +248,23 @@ impl AffineRatings {
         {
             return Err(AffineError("invalid probability"));
         }
-        let ratings = Ratings::from_dense(r, mask).with_weights(weights).with_axis(axis);
-        ratings.validate().map_err(|_| AffineError("invalid ratings"))?;
+        let ratings = Ratings::from_dense(r, mask)
+            .with_weights(weights)
+            .with_axis(axis);
+        ratings
+            .validate()
+            .map_err(|_| AffineError("invalid ratings"))?;
         let (manifest, snapshot, id, cut, digest) = epoch.context();
         Ok(Self {
             ratings,
             rows: rows.to_vec(),
-            context: (manifest.into(), snapshot.into(), id.into(), cut, digest.into()),
+            context: (
+                manifest.into(),
+                snapshot.into(),
+                id.into(),
+                cut,
+                digest.into(),
+            ),
         })
     }
 
@@ -273,7 +293,12 @@ impl AffineRatings {
                 return Err(AffineError("unknown row nym"));
             }
             if let Some(u) = self.rows.iter().position(|&row| row == nym) {
-                if self.ratings.obs.iter().any(|obs| obs.u == u && obs.j == item) {
+                if self
+                    .ratings
+                    .obs
+                    .iter()
+                    .any(|obs| obs.u == u && obs.j == item)
+                {
                     return Err(AffineError("duplicate observation"));
                 }
             }
@@ -293,9 +318,15 @@ impl AffineRatings {
                     ratings.n - 1
                 }
             };
-            ratings.obs.push(Obs { u, j: item, r: prob });
+            ratings.obs.push(Obs {
+                u,
+                j: item,
+                r: prob,
+            });
         }
-        ratings.validate().map_err(|_| AffineError("invalid ratings"))?;
+        ratings
+            .validate()
+            .map_err(|_| AffineError("invalid ratings"))?;
         Ok(Self {
             ratings,
             rows,
