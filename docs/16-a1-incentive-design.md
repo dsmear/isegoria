@@ -534,9 +534,10 @@ uses only the Python standard library: Fraction states/scores/CUSUM and Taylor b
 Decimal65 exponential values. It is a checked transcription, **not a Rust test or a
 bitwise check of `scoring::fmath`**. The finite calculations were executed; no Rust test,
 fit or campaign was run. A2 remains open, its certifier suspended; `19` §12 still awaits
-review. T26 remains separate. The next outcome is a correction decision, not an
-implementation authorization or closure of A12 or Phase 1. The subsequent domain/guarantee
-decision is in §7.2; it does not change this counterexample or its historical judgment.
+review (at that date; A2's current state: `15`). T26 remains separate. The next outcome is
+a correction decision, not an implementation authorization or closure of A12 or Phase 1.
+The subsequent domain/guarantee decision is in §7.2; it does not change this
+counterexample or its historical judgment.
 
 ### 7.2 A12 restricted affine guarantee — owner's decision, 2026-10-12
 
@@ -724,9 +725,9 @@ calibrated operating values. The example values are not operating choices and ol
 rates do not characterize the candidate. No characterization report is regenerated here.
 A full runtime, strong distributed authentication or multinode campaign is not a
 prerequisite merely because this is a trusted local experiment. A2 remains open with its
-certifier suspended; `19` §12 awaits review; T26 is separate. The original decision
-registration implemented no mechanism. The reference step below starts no campaign or
-operational deployment.
+certifier suspended; `19` §12 awaits review (at that date; A2's current state: `15`); T26 is
+separate. The original decision registration implemented no mechanism. The reference step
+below starts no campaign or operational deployment.
 
 **Provenance.** Sources were read at published HEAD `45ed426072fcc4e556b7ad91b16d166183104b6f`:
 `02` C.2/C.4, `08` AT-REP-01/02/04/05/07, `17` §§14.10, 14.13.6, 14.15 and the

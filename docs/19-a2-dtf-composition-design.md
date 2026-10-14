@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was partly approved by Astra on `d31e9fa` and **approved on `b2a1c2f` as the study's reporting specification**; the bridging input under `q_c` is analysed in `17` §10, **approved by Astra on `111e595` as a conditional analysis**; timing under A is specified in `17` §11, partly approved by Astra on `82bdb9a` and **approved on `cf5575a` as a conditional comparison between T1 and T2** (neither adopted); access and disclosure per object are specified in `17` §12, partly approved by Astra on `8af257d` and **approved on `7d8db08` as a conditional analysis of the informational requirements**; the observable evidence under T1 for its predicates (ii) and (iv) is specified in `17` §13, partly approved by Astra on `f38f8a4` and **approved on `176dd8c` as a conditional analysis of the observable evidence**. §10.6, a minimal perimeter for S2, was partly approved by Astra on `cbcbc67`, with decisions taken for preparing its specification only, rectified in `5af22b9` and **approved by Astra on `5af22b9` as a preparatory synthesis of the experimental perimeter** (below); the synthetic-event check it leads to is specified in [`20`](20-s2-synthetic-check.md), which that approval does not cover, **approved by Astra on `c76c035` as the check's specification**; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §11’s **candidate A2 guarantee contract approved by Astra on `5e600be`** as a specification of obligations; §12’s split-likelihood coverage proof, conditional on its model, sampling and split hypotheses, and §13.3's corollary, in its domain, are **accepted by Astra on `5102852`** (below); the five rectifications that review asked for, in §12.3 and §§13.4–13.7, and §13.5's contract are **accepted by Astra on `2aa136d`** (below); §13.5's bounded information check, run in §13.8, establishes under its numerical contract an obstacle in its declared domain and awaits review. A2 remains open. A1’s subsequent conditional closure on `1bd865c` is recorded only in `17` §14.15; it supplies none of A2’s missing obligations. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was partly approved by Astra on `d31e9fa` and **approved on `b2a1c2f` as the study's reporting specification**; the bridging input under `q_c` is analysed in `17` §10, **approved by Astra on `111e595` as a conditional analysis**; timing under A is specified in `17` §11, partly approved by Astra on `82bdb9a` and **approved on `cf5575a` as a conditional comparison between T1 and T2** (neither adopted); access and disclosure per object are specified in `17` §12, partly approved by Astra on `8af257d` and **approved on `7d8db08` as a conditional analysis of the informational requirements**; the observable evidence under T1 for its predicates (ii) and (iv) is specified in `17` §13, partly approved by Astra on `f38f8a4` and **approved on `176dd8c` as a conditional analysis of the observable evidence**. §10.6, a minimal perimeter for S2, was partly approved by Astra on `cbcbc67`, with decisions taken for preparing its specification only, rectified in `5af22b9` and **approved by Astra on `5af22b9` as a preparatory synthesis of the experimental perimeter** (below); the synthetic-event check it leads to is specified in [`20`](20-s2-synthetic-check.md), which that approval does not cover, **approved by Astra on `c76c035` as the check's specification**; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §11’s **candidate A2 guarantee contract approved by Astra on `5e600be`** as a specification of obligations; §12’s split-likelihood coverage proof, conditional on its model, sampling and split hypotheses, and §13.3's corollary, in its domain, are **accepted by Astra on `5102852`** (below); the five rectifications that review asked for, in §12.3 and §§13.4–13.7, and §13.5's contract are **accepted by Astra on `2aa136d`** (below); §13.5's bounded information check, run in §13.8, is **accepted by Astra on `24cdfce` as an obstacle demonstrated in its declared domain** under its numerical contract (below), without closing A2. **The owner defers A2's design decision (2026-10-14, §13.9):** the whole-test requirement is kept, A2 remains open and blocking for Phase 1 under the current criteria, and work on its certifier is suspended pending that decision. A1’s subsequent conditional closure on `1bd865c` is recorded only in `17` §14.15; it supplies none of A2’s missing obligations. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -260,7 +260,26 @@ above:
 - **Evidence:** the commit, the texts and the pertinent mathematical steps verified. Astra ran
   neither the rectifications' scratch script, nor a Rust test, nor §13.5's check.
 - **A2 open;** the earlier mathematical acceptances keep their own domains. The check was then run
-  as §13.5 specifies (§13.8); its result awaits review.
+  as §13.5 specifies (§13.8); its result is accepted on `24cdfce` (record below).
+
+Review on `24cdfce` (§13.8, the bounded information check's result), distinct from the reviews
+above:
+
+- **Accepted:** §13.8 as an obstacle demonstrated in §13.5's declared domain, under its numerical
+  contract. A2 is not closed.
+- **Astra's evidence:** the published commit and its parent `2aa136d` checked; the script, the
+  intervals' justifications and the result read; the grid's construction compared with
+  `Grid::new`, `normal_logits` and `Grid::shape`; the seven Python tests passing; the complete
+  check run in 25.1 s, its output identical to the committed JSON apart from the environment and
+  timings block; the tolerance's strict exceedance verified on `D`'s lower bound in all 27
+  configurations. No Rust, fit or campaign run.
+- **Kept, each in its own domain:** §12's conditional coverage, §13.3's corollary and §13.8's
+  numerical result. None is reopened or implicitly extended.
+- **Three precisions asked, made after `24cdfce`:** the logarithm's remainder (§13.8); the output's
+  label, which now separates certified bounds from consistency checks (the script and the
+  recorded JSON, that string only); the alternatives, where contrasts limited to present groups do
+  not overcome the balanced obstacle (§§13.7–13.8).
+- The owner's subsequent decision is in §13.9.
 
 ## 1. What the code computes (L)
 
@@ -1529,8 +1548,8 @@ approved as a candidate contract on `5e600be`; obligations a and c, useful preci
 remain separate. No implementation, calibration arm or operational parameter is chosen.
 Reviewed by Claude Code in §13; Astra accepted the coverage proof on `5102852`, conditional on
 the model, sampling and split hypotheses stated below, not as an implementation's numerical
-correctness. The region-inclusion precision of §12.3 is rectified after that review, awaiting
-review; §12.4 and §12.5 point to §13.
+correctness. The region-inclusion precision of §12.3 is rectified after that review and accepted
+on `2aa136d`; §12.4 and §12.5 point to §13.
 
 ### 12.1 Observable family and target-linkage parameters
 
@@ -1637,7 +1656,7 @@ these conventions in a future implementation; exact likelihoods or conservative 
 error treatment would be required. Without ratios the region is
 `𝒞 = {ϑ∈Ξ: α Q_𝒜(z_v) ≤ L_β(z_v)}`, the same set under the conventions above (both zero: kept;
 `L_β = 0 < Q_𝒜`: rejected). Two statements about a computed region are distinct (rectified after
-the review of `5102852`, awaiting review):
+the review of `5102852`, accepted on `2aa136d`):
 
 - *Inclusion of this region.* A computed numerator `Q̃ ≤ Q_𝒜(z_v)`, below this specific `Q_𝒜` at
   the observed `z_v`, and a computed denominator `L̃_β ≥ L_β(z_v)` for every `β` tested give
@@ -1722,15 +1741,17 @@ certified supremum, useful precision and cost remain subsequent distinct obligat
 
 **Replaced (§13.7):** in §13.3's domain this deliverable would specify a valid majorant whose
 certificate is useless. §13.5's check, whose contract was accepted on `2aa136d`, is run in §13.8;
-its result awaits Astra's review.
+its result is accepted on `24cdfce` as an obstacle in its domain, and the owner defers A2's
+design decision (§13.9). This deliverable is not started.
 
 ## 13. Review of §12 and the first feasibility contract
 
 **Status:** written by Claude Code at `a0e30c7` (`5102852`). Reviewed by Astra on `5102852` (record
 before §1): §12's coverage proof and §13.3's corollary are **accepted in their declared domains**;
 the five rectifications that review asked for are made here and in §12.3 and, with §13.5's
-contract, **accepted on `2aa136d`** (record before §1). A2 stays open and its certifier suspended;
-§13.5's check is run in §13.8, awaiting review. Evidence at
+contract, **accepted on `2aa136d`** (record before §1). §13.5's check, run in §13.8, is
+**accepted on `24cdfce`** as an obstacle in its declared domain; the owner defers A2's design
+decision (§13.9). A2 stays open and its certifier suspended. Evidence at
 `5102852`: **L** `latent.rs` (`Model`, `Grid::{new, shape}`, `Floors`, `Data::new`, `evaluate`),
 `dtf::DTF_MAX`, `revalidation::N_LATENT_MIN`, `pilot::{N1_MIN, N2_MIN}`,
 `characterization::generate::dif_batch`; **D** the derivations below; **C** a scratch script, not
@@ -1754,7 +1775,7 @@ Evidence of the rectifications: **C** exact rationals, a second scratch script, 
 | statistical coverage (b) | exact, conditional on training, uniform over `Ξ`; accepted on `5102852` under its hypotheses | the premises: R-a, i.i.d. complete administrations, an independent split |
 | domination (a) | nothing | `DTF_μ(T) ≤ B_T(β, γ)` on the admitted pairs; §3 reusable |
 | conservative computation (c) | the requirement; the region's inclusion needs `Q̃ ≤ Q_𝒜` and `L̃_β ≥ L_β` (§12.3) | outer enclosure of `𝒞`, global supremum, numerical error included |
-| usefulness | nothing | negative in §13.3's domain (accepted); in §13.5's domain an obstacle established under its numerical contract (§13.8, awaiting review); otherwise open; feasibility never shown |
+| usefulness | nothing | negative in §13.3's domain (accepted); in §13.5's domain an obstacle established under its numerical contract (§13.8, accepted on `24cdfce`); otherwise open; feasibility never shown |
 | cost | nothing | unmeasured (`15` D2, D4) |
 
 ### 13.2 Verification of b and the corrections made
@@ -1809,7 +1830,8 @@ construction extends to two or three true classes when curves are compared where
 no mass (R-f), as `ClassCurves::dtf` and §3's envelope do, is not part of it. It is avoided only
 by changing the claim, for instance contrasts restricted to groups present at some share at every
 ability (the added class is present at `ε`), or a share floor on the components of `Ξ` (an
-assumption on the truth). Each is an owner decision (§11.5); none is taken here.
+assumption on the truth). Each is an owner decision (§11.5); none is taken here. Neither avoids
+§13.4's balanced alternative, whose two classes are present at ½ at every ability (§13.8).
 
 ### 13.4 Why a floor need not suffice
 
@@ -1863,33 +1885,41 @@ be collected to escape it.
 | b, coverage | §11.2 b; §11.5 row 2 | proof accepted on `5102852`, conditional on its model, sampling and split hypotheses; no implementation's numerical correctness |
 | c, conservative computation | §11.2 c; §11.5 row 3 | missing; the region's inclusion needs the numerator below `Q_𝒜` and the denominator above `L_β`, point by point (§12.3) |
 | estimation error kept apart | `15` A2 | carried by b and c once realized; missing |
-| usefulness | §11.3 | negative in §13.3's domain (accepted on `5102852`); in §13.5's domain an obstacle established under its numerical contract (§13.8, awaiting review); otherwise open, with neither feasibility nor a floor's sufficiency shown |
+| usefulness | §11.3 | negative in §13.3's domain (accepted on `5102852`); in §13.5's domain an obstacle established under its numerical contract (§13.8, accepted on `24cdfce`); otherwise open, with neither feasibility nor a floor's sufficiency shown |
 | cost | §11.3; `15` D2, D4 | not assessed |
 | decision and scope | §11.5 row 4 | missing; searches and sequences need §9.5 |
 | model and sampling premises | `15` B1–B3; §12.1 | assumed, not validated |
 
 ### 13.7 Decisions
 
-- **For Astra:** §13.8, the check's result, its certification and its reading. The rectifications
-  made after `5102852` and §13.5's contract were accepted on `2aa136d`.
-- **Next step:** Astra's review of §13.8. Neither the study of §12's own acceptance probability nor
-  obligations a and c are started.
-- **For the owner, after that review:** the decision of §13.8 (reading). §13.8 chooses no level,
+- **Reviewed:** §13.8, accepted on `24cdfce` as an obstacle in its declared domain (record before
+  §1); the three precisions asked there are made in §§13.7–13.8 and in the output's label. The
+  rectifications made after `5102852` and §13.5's contract were accepted on `2aa136d`.
+- **Next step: none on A2.** The owner defers the design decision (§13.9) and the certifier's work
+  is suspended. Neither the study of §12's own acceptance probability nor obligations a and c are
+  started.
+- **For the owner:** the decision of §13.8 (reading), deferred (§13.9). §13.8 chooses no level,
   threshold, target or resource; its values of reference are existing provisional constants. Its
   obstacle shows that floors up to ½ do not restore usefulness in its domain.
-- **After the check.** On an obstacle, the alternatives: restrict the claim explicitly with the
-  owner's approval (a larger tolerance, an assumption excluding spread small DIF, contrasts
-  limited to present groups), change the mechanism (no whole-test certificate, R1's honest
-  description kept), or keep A2's requirement open. On a non-exclusion, feasibility stays open and
-  a usefulness result on §12's own procedure would be proposed separately. Obligations a and c
-  remain in every case. None is chosen here, and the problem stays under A2.
+- **After the check** (rectified after `24cdfce`). On an obstacle, the alternatives: restrict the
+  claim explicitly with the owner's approval (a larger tolerance, an assumption excluding spread
+  small DIF), change the mechanism (no whole-test certificate, R1's honest description kept), or
+  keep A2's requirement open. Contrasts limited to groups present at every ability do not overcome
+  this obstacle: both classes of `Q_τ` have share ½ at every ability (§13.4). Any future
+  restriction must state which alternative it excludes and why that exclusion is justified; none
+  is designed here. On a non-exclusion, feasibility stays open and a usefulness result on §12's
+  own procedure would be proposed separately. Obligations a and c remain in every case. None is
+  chosen here, and the problem stays under A2.
 - **Stop rule:** after two reviews still blocked, §11's contract is re-examined rather than a
   further deepening added.
 
-### 13.8 Result of the bounded information check (run on `2aa136d`, awaiting review)
+### 13.8 Result of the bounded information check (run on `2aa136d`, accepted on `24cdfce`)
 
 **Status:** run by Claude Code on `2aa136d`, after §13.5's acceptance, in §13.5's domain and no
-other; the result is proposed and **awaits Astra's review**. A2 stays open. Evidence: **C**
+other; **accepted by Astra on `24cdfce` as an obstacle demonstrated in that domain** under the
+numerical contract (record before §1), without closing A2. Three precisions asked by that review
+are made below and in the output's label. A2 stays open; the owner's decision is in §13.9.
+Evidence: **C**
 `sim/a2_information_check.py` (standard library only) and its output
 `sim/a2_information_check.json`; **E** its runs and `sim/test_a2_information_check.py`; **D** the
 enclosures below; **L** `ClassCurves::dtf`, whose weight at node `q` is `w_q` for `η = (0, 0)` and
@@ -1916,8 +1946,10 @@ trust base is Python's exact integers and fractions. Floating point only seeds b
   polynomial of `N` terms, `N` least with `2 · 8^{−N}/N! ≤ 2^{−132}`, whose remainder is at most
   `8^{−N}/N! · (1 − 1/(8(N + 1)))^{−1} < 2 · 8^{−N}/N!`, followed by `s` squarings. `exp` is
   increasing, so an interval argument uses its endpoints.
-- `ln y`, `y > 0`: `2 atanh t`, `t = (y − 1)/(y + 1)`. The tail after `n` terms is at most
-  `|t|^{2n+1}/((2n + 1)(1 − t²))`, and `n` grows until that is `≤ 2^{−132}`.
+- `ln y`, `y > 0`: `2 atanh t`, `t = (y − 1)/(y + 1)`. The tail of the `atanh` series after `n`
+  terms is at most `|t|^{2n+1}/((2n + 1)(1 − t²))`, and `n` grows until that is `≤ 2^{−132}`.
+  That bound is `atanh`'s remainder; the factor 2 applies to it as well, so `ln y`'s remainder is
+  at most twice it. The script widens the `atanh` enclosure by the tail, then doubles it.
 - `√`: the integer square root, floor below and ceiling above.
 - `π`: Machin's `16 atan(1/5) − 4 atan(1/239)`, partial sums of 60 and 20 terms in exact
   rationals, each alternating tail bounded by its first omitted term.
@@ -1993,9 +2025,12 @@ version (0.7 s inputs, 4.2 s certification, 15.3 s checks), within the minute. O
 identical across runs apart from the `run` block (environment and timings). The certified values
 depend only on integer arithmetic. On another platform the floating-point seeds could move `τ_δ`
 or the last digits; every bound printed there would still be valid at its own `τ_δ`. Tests:
-`python3 -m unittest discover -s sim -p test_a2_information_check.py`, 0.6 s.
+`python3 -m unittest discover -s sim -p test_a2_information_check.py`, 0.6 s. After `24cdfce`
+the output's `label` string was corrected in the script and in the recorded JSON alike, without a
+new run: it names the certified bounds and the consistency checks apart. No value, timing or
+provenance changed.
 
-**Reading** (proposed, awaiting Astra's review):
+**Reading** (accepted on `24cdfce` with the result; the alternatives rectified after it):
 
 - **Obstacle demonstrated, under the numerical contract, in §13.5's domain only.** At each
   configuration and size, every `(α, β)` with `α + β < 1 − Δ̄_n` is excluded: no procedure valid at
@@ -2014,13 +2049,41 @@ or the last digits; every bound printed there would still be valid at its own `�
 - **Not excluded:** at each configuration and size, the pairs with `1 − Δ̄_n ≤ α + β < 1`. There
   feasibility stays open, no floor is shown sufficient, and §12's power is unknown. Under the
   sensitivities the frontier falls fast: at `4δ` and `m = 4` it is below 0.066 from `n = 1,500`.
-- **Decision needed (owner, after the review).** The reading changes with `δ` and, for pairs
+- **Decision needed (owner; deferred, §13.9).** The reading changes with `δ` and, for pairs
   between the uniform frontier and the largest one, with the form and the size. Per §13.5, the
   owner fixes `(α, β)`, the tolerance or the sizes with this trade-off. Per §13.7, on an
   obstacle, the alternatives are a claim restricted with the owner's approval (a larger tolerance,
-  an assumption excluding spread small DIF, contrasts limited to present groups), another
-  mechanism (no whole-test certificate, R1's honest description kept), or A2's requirement kept
-  open. None is chosen here. Obligations a and c remain in every case, and the study of §12's
-  acceptance probability is not started.
+  an assumption excluding spread small DIF), another mechanism (no whole-test certificate, R1's
+  honest description kept), or A2's requirement kept open. Contrasts limited to present groups do
+  not overcome this obstacle, since both classes of `Q_τ` have share ½ at every ability; a future
+  restriction must state which alternative it excludes and why that is justified. None is chosen
+  here, and the owner defers the choice (§13.9). Obligations a and c remain in every case, and the
+  study of §12's acceptance probability is not started.
 - **Not covered:** what §13.5 lists (other alternatives, misspecification, search over forms, the
   linkage decision, §12's power), and sizes, tolerances or forms other than those declared.
+
+### 13.9 Owner's decision: A2's design decision deferred (2026-10-14)
+
+**Decision (owner).** The design decision on A2 is deferred.
+
+- **Kept:** the requirement of a useful guarantee on the whole test (§11; `15` A2). A2 remains
+  open and blocking for Phase 1's closure under the current criteria (`15` A2; `10` §1.5's
+  completion qualification), which are unchanged.
+- **Not approved:** any narrowing of the guarantee, new threshold, risk level, sample size, model
+  assumption or resource.
+- **Suspended until the decision:** the work on A2's certifier, obligations a and c and the study
+  of §12's acceptance probability included. No other A2 work is authorized.
+- **Elsewhere:** other Phase 1 requirements may advance where they do not depend on A2's solution.
+  The requirement is not moved to Phase 2 automatically.
+
+**State.**
+
+- *Demonstrated, each in its own domain only:* §12's coverage under its hypotheses; §13.3's
+  corollary; §13.8's obstacle in §13.5's domain under the numerical contract. At `δ = 0.10`, every
+  `(α, β)` with `α + β < 0.8138` is excluded for the nine declared forms at the four declared sizes.
+- *Why A2 stays open:* domination (a) and the conservative computation (c) are missing. In
+  §13.8's domain no procedure is useful at a pair below the frontier of its configuration and
+  size; above it feasibility is not shown, and outside that domain nothing is. Cost is not
+  assessed. Going further needs a decision among §13.7's alternatives, which the owner defers.
+- *Phase 1:* incomplete under the kept requirement. No narrowing of the claimed domain is approved
+  (`10` §1.5).

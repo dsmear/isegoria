@@ -26,10 +26,12 @@ final-model characterization remains a separate Phase 1 gate. This introduces no
 prove general H-c, complete a distributed runtime or repeat campaigns.
 AT-REP-01's blanket betrayal claim is explicitly withdrawn as a Phase 1 claim (`08`),
 not proved or automatically moved to Phase 2. A1 and other acquired closures remain scoped;
-A2 stays open and its certifier suspended: `19` §12's coverage proof is accepted under its hypotheses
-(`5102852`); the information check's contract in `19` §13.5 is accepted (`2aa136d`), and the
-check, run in `19` §13.8, establishes an obstacle in its domain; the next step is Astra's review
-of that result. T26 remains separate.
+A2 stays open and blocking under the current criteria: `19` §12's coverage proof is accepted under
+its hypotheses (`5102852`), and the information check, run in `19` §13.8, is accepted on `24cdfce`
+as an obstacle in its declared domain. The owner defers A2's design decision (2026-10-14, `19`
+§13.9, `15`): the whole-test requirement is kept, no narrowing is approved, the certifier's work is
+suspended and no A2 work is authorized; the requirement is not moved to Phase 2. Other Phase 1
+work may advance where it does not depend on A2's solution. T26 remains separate.
 
 **Executable candidate status (updated 2026-10-13).** The accepted exact reference
 `sim/a12_offline.py` implements manifest/snapshot validation and whole-horizon refusal.

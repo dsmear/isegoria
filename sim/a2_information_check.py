@@ -438,7 +438,9 @@ def run():
             "chi2_rel_tol": CHI2_REL_TOL, "order_band": list(ORDER_BAND),
         },
         "inputs": inputs,
-        "label": "every value certified under the numerical contract",
+        "label": "certified under the numerical contract: inputs, D_tau, K, the size coefficient, "
+                 "Delta_bar and the frontiers; consistency checks, not certified: each 'checks' "
+                 "block (floating point) and the idealized identity",
         "reading": {
             "excluded": "alpha + beta < frontier, at that configuration and size only",
             "void": "alpha + beta >= 1 constrains no n",

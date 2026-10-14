@@ -3795,4 +3795,5 @@ Astra’s review activities, separate from Codex’s documentation checks in the
 Astra’s review of `5e600be` **approves this judgment’s registration**; the conditional
 closure perimeter is unchanged. The joint review record/evidence and approval of the A2
 candidate contract are in [`19`](19-a2-dtf-composition-design.md), before §1. A12 and
-Phase 1 remain open; the subsequent split-likelihood section there awaits review.
+Phase 1 remain open; the subsequent split-likelihood section there awaits review (at that date;
+A2's current state: `15`).
