@@ -27,8 +27,9 @@ prove general H-c, complete a distributed runtime or repeat campaigns.
 AT-REP-01's blanket betrayal claim is explicitly withdrawn as a Phase 1 claim (`08`),
 not proved or automatically moved to Phase 2. A1 and other acquired closures remain scoped;
 A2 stays open and its certifier suspended: `19` §12's coverage proof is accepted under its hypotheses
-(`5102852`); the next step is Astra's review of the rectified contract in `19` §13.5, then, if
-accepted, that bounded information check, neither authorized nor run. T26 remains separate.
+(`5102852`); the information check's contract in `19` §13.5 is accepted (`2aa136d`), and the
+check, run in `19` §13.8, establishes an obstacle in its domain; the next step is Astra's review
+of that result. T26 remains separate.
 
 **Executable candidate status (updated 2026-10-13).** The accepted exact reference
 `sim/a12_offline.py` implements manifest/snapshot validation and whole-horizon refusal.

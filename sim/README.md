@@ -296,6 +296,22 @@ the per-pair maximum, in exact rationals. numpy and scipy; deterministic.
 python dtf_composition.py
 ```
 
+### `a2_information_check.py`
+
+A2's bounded two-point information check (`docs/19` §13.5, result in §13.8). It certifies
+`D(τ_δ)`, the information bound `K̄`, the total-variation bounds `Δ̄_n` and the frontier
+`1 − Δ̄_n` with outward-rounded intervals on exact integers, enclosures of `exp`, `ln`, `√`, `π`
+and `Φ⁻¹` included, then runs the floating-point consistency checks of §13.5. Python standard
+library only, deterministic; about 20 s. The committed output differs between runs only in its
+`run` block (environment and timings). From the repository root:
+
+```
+python3 sim/a2_information_check.py > sim/a2_information_check.json
+python3 -m unittest discover -s sim -p test_a2_information_check.py -v
+```
+
+It exits 1, with the reason on stderr, if a certification or a consistency check fails.
+
 ## What these prototypes demonstrate
 
 Motivating scenarios documented in `docs/06-threat-model.md`, within these prototypes:

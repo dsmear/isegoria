@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was partly approved by Astra on `d31e9fa` and **approved on `b2a1c2f` as the study's reporting specification**; the bridging input under `q_c` is analysed in `17` §10, **approved by Astra on `111e595` as a conditional analysis**; timing under A is specified in `17` §11, partly approved by Astra on `82bdb9a` and **approved on `cf5575a` as a conditional comparison between T1 and T2** (neither adopted); access and disclosure per object are specified in `17` §12, partly approved by Astra on `8af257d` and **approved on `7d8db08` as a conditional analysis of the informational requirements**; the observable evidence under T1 for its predicates (ii) and (iv) is specified in `17` §13, partly approved by Astra on `f38f8a4` and **approved on `176dd8c` as a conditional analysis of the observable evidence**. §10.6, a minimal perimeter for S2, was partly approved by Astra on `cbcbc67`, with decisions taken for preparing its specification only, rectified in `5af22b9` and **approved by Astra on `5af22b9` as a preparatory synthesis of the experimental perimeter** (below); the synthetic-event check it leads to is specified in [`20`](20-s2-synthetic-check.md), which that approval does not cover, **approved by Astra on `c76c035` as the check's specification**; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §11’s **candidate A2 guarantee contract approved by Astra on `5e600be`** as a specification of obligations; §12’s split-likelihood coverage proof, conditional on its model, sampling and split hypotheses, and §13.3's corollary, in its domain, are **accepted by Astra on `5102852`** (below); the five rectifications that review asked for, in §12.3 and §§13.4–13.7, await review, and §13.5's information check is neither authorized nor run. A2 remains open. A1’s subsequent conditional closure on `1bd865c` is recorded only in `17` §14.15; it supplies none of A2’s missing obligations. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was partly approved by Astra on `d31e9fa` and **approved on `b2a1c2f` as the study's reporting specification**; the bridging input under `q_c` is analysed in `17` §10, **approved by Astra on `111e595` as a conditional analysis**; timing under A is specified in `17` §11, partly approved by Astra on `82bdb9a` and **approved on `cf5575a` as a conditional comparison between T1 and T2** (neither adopted); access and disclosure per object are specified in `17` §12, partly approved by Astra on `8af257d` and **approved on `7d8db08` as a conditional analysis of the informational requirements**; the observable evidence under T1 for its predicates (ii) and (iv) is specified in `17` §13, partly approved by Astra on `f38f8a4` and **approved on `176dd8c` as a conditional analysis of the observable evidence**. §10.6, a minimal perimeter for S2, was partly approved by Astra on `cbcbc67`, with decisions taken for preparing its specification only, rectified in `5af22b9` and **approved by Astra on `5af22b9` as a preparatory synthesis of the experimental perimeter** (below); the synthetic-event check it leads to is specified in [`20`](20-s2-synthetic-check.md), which that approval does not cover, **approved by Astra on `c76c035` as the check's specification**; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §11’s **candidate A2 guarantee contract approved by Astra on `5e600be`** as a specification of obligations; §12’s split-likelihood coverage proof, conditional on its model, sampling and split hypotheses, and §13.3's corollary, in its domain, are **accepted by Astra on `5102852`** (below); the five rectifications that review asked for, in §12.3 and §§13.4–13.7, and §13.5's contract are **accepted by Astra on `2aa136d`** (below); §13.5's bounded information check, run in §13.8, establishes under its numerical contract an obstacle in its declared domain and awaits review. A2 remains open. A1’s subsequent conditional closure on `1bd865c` is recorded only in `17` §14.15; it supplies none of A2’s missing obligations. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -249,8 +249,18 @@ Review on `5102852` (§12 and Claude Code's §13), distinct from the reviews abo
   suffices.
 - **Asked:** five corrections — the region's inclusion (§12.3), the `χ²` identity (§13.4), the
   sample-size frontier's conditions, the numerical contract of an obstacle and the reading of
-  the outcomes (§§13.5–13.7). Made in the commit that follows `5102852`, awaiting review.
+  the outcomes (§§13.5–13.7). Made in `2aa136d` and accepted on `2aa136d` (record below).
 - Astra's evidence is not stated in the outcome transmitted to Claude Code; none is recorded here.
+
+Review on `2aa136d` (the five rectifications and §13.5's contract), distinct from the reviews
+above:
+
+- **Accepted, with no new blocking finding:** the five rectifications made after `5102852`
+  (§12.3, §§13.4–13.7) and §13.5 as the contract of the bounded information check.
+- **Evidence:** the commit, the texts and the pertinent mathematical steps verified. Astra ran
+  neither the rectifications' scratch script, nor a Rust test, nor §13.5's check.
+- **A2 open;** the earlier mathematical acceptances keep their own domains. The check was then run
+  as §13.5 specifies (§13.8); its result awaits review.
 
 ## 1. What the code computes (L)
 
@@ -1711,15 +1721,16 @@ proof instead of repeating its examples, and adopts no calibration/component pol
 certified supremum, useful precision and cost remain subsequent distinct obligations.
 
 **Replaced (§13.7):** in §13.3's domain this deliverable would specify a valid majorant whose
-certificate is useless. The next step is Astra's review of §13.5's rectified contract; if it is
-accepted, the bounded information check follows, neither authorized nor run so far.
+certificate is useless. §13.5's check, whose contract was accepted on `2aa136d`, is run in §13.8;
+its result awaits Astra's review.
 
 ## 13. Review of §12 and the first feasibility contract
 
 **Status:** written by Claude Code at `a0e30c7` (`5102852`). Reviewed by Astra on `5102852` (record
 before §1): §12's coverage proof and §13.3's corollary are **accepted in their declared domains**;
-the five rectifications that review asked for are made here and in §12.3, **awaiting review**. A2
-stays open and its certifier suspended; §13.5's check is neither authorized nor run. Evidence at
+the five rectifications that review asked for are made here and in §12.3 and, with §13.5's
+contract, **accepted on `2aa136d`** (record before §1). A2 stays open and its certifier suspended;
+§13.5's check is run in §13.8, awaiting review. Evidence at
 `5102852`: **L** `latent.rs` (`Model`, `Grid::{new, shape}`, `Floors`, `Data::new`, `evaluate`),
 `dtf::DTF_MAX`, `revalidation::N_LATENT_MIN`, `pilot::{N1_MIN, N2_MIN}`,
 `characterization::generate::dif_batch`; **D** the derivations below; **C** a scratch script, not
@@ -1743,7 +1754,7 @@ Evidence of the rectifications: **C** exact rationals, a second scratch script, 
 | statistical coverage (b) | exact, conditional on training, uniform over `Ξ`; accepted on `5102852` under its hypotheses | the premises: R-a, i.i.d. complete administrations, an independent split |
 | domination (a) | nothing | `DTF_μ(T) ≤ B_T(β, γ)` on the admitted pairs; §3 reusable |
 | conservative computation (c) | the requirement; the region's inclusion needs `Q̃ ≤ Q_𝒜` and `L̃_β ≥ L_β` (§12.3) | outer enclosure of `𝒞`, global supremum, numerical error included |
-| usefulness | nothing | negative in §13.3's domain (accepted); otherwise open; §13.5 can show an obstacle, not feasibility |
+| usefulness | nothing | negative in §13.3's domain (accepted); in §13.5's domain an obstacle established under its numerical contract (§13.8, awaiting review); otherwise open; feasibility never shown |
 | cost | nothing | unmeasured (`15` D2, D4) |
 
 ### 13.2 Verification of b and the corrections made
@@ -1763,9 +1774,9 @@ Evidence of the rectifications: **C** exact rationals, a second scratch script, 
   that dichotomization. Neither affects the proof. A reading of the code, not a check of its
   numerical correctness.
 - **Corrections in §12.** At `5102852`: §12.4's understatement replaced by §13.3; §12.5's next
-  deliverable replaced (§13.7). Rectified after that review, awaiting review: §12.3's numerical
-  remark, which conflated two statements. The inclusion of `𝒞` needs a numerator below this
-  specific `Q_𝒜` and a denominator above `L_β`, point by point; another training-measurable
+  deliverable replaced (§13.7). Rectified after that review and accepted on `2aa136d`: §12.3's
+  numerical remark, which conflated two statements. The inclusion of `𝒞` needs a numerator below
+  this specific `Q_𝒜` and a denominator above `L_β`, point by point; another training-measurable
   sub-probability gives its own region and coverage, not that inclusion.
 
 **Judgment on §12:** accepted as the proof of b under its hypotheses (`5102852`). Building a and c
@@ -1821,7 +1832,7 @@ sizes of reference, no certifier valid on a family containing these alternatives
 check cannot show the converse: a floor's sufficiency would need its own argument. This is why it
 is proposed before a and c.
 
-### 13.5 Contract of the first feasibility result (rectified after `5102852`, awaiting review)
+### 13.5 Contract of the first feasibility result (rectified after `5102852`, accepted on `2aa136d`)
 
 | Item | Content |
 |---|---|
@@ -1852,21 +1863,20 @@ be collected to escape it.
 | b, coverage | §11.2 b; §11.5 row 2 | proof accepted on `5102852`, conditional on its model, sampling and split hypotheses; no implementation's numerical correctness |
 | c, conservative computation | §11.2 c; §11.5 row 3 | missing; the region's inclusion needs the numerator below `Q_𝒜` and the denominator above `L_β`, point by point (§12.3) |
 | estimation error kept apart | `15` A2 | carried by b and c once realized; missing |
-| usefulness | §11.3 | negative in §13.3's domain (accepted on `5102852`); otherwise open: §13.5 can establish an obstacle in its domain, neither feasibility nor a floor's sufficiency |
+| usefulness | §11.3 | negative in §13.3's domain (accepted on `5102852`); in §13.5's domain an obstacle established under its numerical contract (§13.8, awaiting review); otherwise open, with neither feasibility nor a floor's sufficiency shown |
 | cost | §11.3; `15` D2, D4 | not assessed |
 | decision and scope | §11.5 row 4 | missing; searches and sequences need §9.5 |
 | model and sampling premises | `15` B1–B3; §12.1 | assumed, not validated |
 
 ### 13.7 Decisions
 
-- **For Astra:** the rectifications made after `5102852` (§12.3, §§13.4–13.7) and §13.5 as the
-  contract of the next step.
-- **Next step:** Astra's review of the rectified contract; if it is accepted, the bounded
-  information check of §13.5, within its resource limit. Neither is authorized or run here.
-- **For the owner, now:** none. §13.5 chooses no level, threshold, target or resource; its values of
-  reference are existing provisional constants. A change of claim answering §13.3 is better
-  weighed after the check: an obstacle would show that floors up to ½ do not restore usefulness in
-  its domain; a non-exclusion would show nothing about a floor's sufficiency.
+- **For Astra:** §13.8, the check's result, its certification and its reading. The rectifications
+  made after `5102852` and §13.5's contract were accepted on `2aa136d`.
+- **Next step:** Astra's review of §13.8. Neither the study of §12's own acceptance probability nor
+  obligations a and c are started.
+- **For the owner, after that review:** the decision of §13.8 (reading). §13.8 chooses no level,
+  threshold, target or resource; its values of reference are existing provisional constants. Its
+  obstacle shows that floors up to ½ do not restore usefulness in its domain.
 - **After the check.** On an obstacle, the alternatives: restrict the claim explicitly with the
   owner's approval (a larger tolerance, an assumption excluding spread small DIF, contrasts
   limited to present groups), change the mechanism (no whole-test certificate, R1's honest
@@ -1875,3 +1885,142 @@ be collected to escape it.
   remain in every case. None is chosen here, and the problem stays under A2.
 - **Stop rule:** after two reviews still blocked, §11's contract is re-examined rather than a
   further deepening added.
+
+### 13.8 Result of the bounded information check (run on `2aa136d`, awaiting review)
+
+**Status:** run by Claude Code on `2aa136d`, after §13.5's acceptance, in §13.5's domain and no
+other; the result is proposed and **awaits Astra's review**. A2 stays open. Evidence: **C**
+`sim/a2_information_check.py` (standard library only) and its output
+`sim/a2_information_check.json`; **E** its runs and `sim/test_a2_information_check.py`; **D** the
+enclosures below; **L** `ClassCurves::dtf`, whose weight at node `q` is `w_q` for `η = (0, 0)` and
+shares ½, as in `D(τ)`. The optional comparison with `ClassCurves::dtf` (E API) was not run.
+
+**Objects.** The grid `θ_i = −5 + i/4`, `i = 0, …, 40`, exact; weights `w_i ∝ e^{−θ_i²/2}`,
+normalized; the grid law's mean and standard deviation; nodes `u_i = (θ_i − mean)/sd`, as
+`Grid::shape` defines them. `b_j = 0.6 Φ⁻¹((j − ½)/m)`, `a_j = 5/4`, floors `c ∈ {0, ¼, ½}`,
+`p = c + (1 − c) σ(a(u − b))`, the classes at `b_j ∓ τ`. Each of the 27 configurations (`m`, `c`,
+`δ ∈ {0.10, 0.20, 0.40}`) has its `τ_δ` on the lattice `2⁻³⁰ ℤ`: the first point at or above a
+floating-point root of `D(τ) = δ`, plus one step. The script would add further steps, at most
+eight, if the certified `D` did not exceed `δ`; none was needed. Any `τ` with `D(τ) > δ` gives a
+valid bound; no other alternative is sought. At that `τ_δ` the script certifies `D(τ_δ)`, `K`
+by §13.4's product form, the size coefficient `1/K̄` and, at `n ∈ {300, 1,500, 3,000, 6,000}`,
+`Δ̄_n` and the frontier `1 − Δ̄_n`.
+
+**Certification (D).** Every real quantity is an interval whose endpoints are `k/2¹²⁸`, `k` an
+integer. `+`, `−`, `×` and `÷` run on exact integers, rounding the lower endpoint down and the
+upper up, so each interval contains its expression's exact value whatever the cancellation. The
+trust base is Python's exact integers and fractions. Floating point only seeds brackets and the
+`τ` search, and runs the checks. Enclosures:
+
+- `exp x`: `y = x/2^s`, `s` the bit length of `⌊|x|⌋` plus 3, so `|y| ≤ 1/8`. Then the Taylor
+  polynomial of `N` terms, `N` least with `2 · 8^{−N}/N! ≤ 2^{−132}`, whose remainder is at most
+  `8^{−N}/N! · (1 − 1/(8(N + 1)))^{−1} < 2 · 8^{−N}/N!`, followed by `s` squarings. `exp` is
+  increasing, so an interval argument uses its endpoints.
+- `ln y`, `y > 0`: `2 atanh t`, `t = (y − 1)/(y + 1)`. The tail after `n` terms is at most
+  `|t|^{2n+1}/((2n + 1)(1 − t²))`, and `n` grows until that is `≤ 2^{−132}`.
+- `√`: the integer square root, floor below and ceiling above.
+- `π`: Machin's `16 atan(1/5) − 4 atan(1/239)`, partial sums of 60 and 20 terms in exact
+  rationals, each alternating tail bounded by its first omitted term.
+- `Φ(x) = ½ + (2π)^{−½} Σ_k (−1)^k x^{2k+1}/(2^k k! (2k + 1))`: with `n` terms and `x² < 2(n + 1)`,
+  the tail is at most the first omitted term over `1 − x²/(2(n + 1))`. `Φ⁻¹(p)` lies between
+  `x_lo < x_hi` with `Φ(x_lo) < p < Φ(x_hi)` certified, `Φ` being increasing, after 64 bisections.
+  The standard library's floating-point quantile only seeds the bracket.
+- weights, mean, standard deviation and nodes: interval evaluation of their definitions. The
+  mean's enclosure contains 0, as the grid's symmetry requires.
+- Directions. `D(τ_δ)`'s lower endpoint is compared exactly and strictly with `δ`. `K̄` is `K`'s
+  upper endpoint; `K`'s lower endpoint is positive in every configuration, so the `K = 0` branch
+  does not arise. `e^{−nK̄}` is bounded below, the two square roots above, and `Δ̄_n` is their
+  minimum with 1; `1 − Δ̄_n` is then exact, and `1/K̄` is rounded down. Decimals are rounded
+  outward at ten significant digits; the tables below round further in the same direction.
+
+Widths: quantiles at most `4.1·10⁻²⁸`, nodes `7.3·10⁻³⁶`, weights `2.4·10⁻³⁸`. The printed
+intervals of `D` and `K` differ only in their tenth digit, through the outward rounding. The grid's
+standard deviation lies in `[0.9999961902, 0.9999961903]`.
+
+**Result at the operative `δ = 0.10`.** Bounds rounded outward; `τ_δ` rounded for display only.
+The exact `τ_δ`, the intervals of `D(τ_δ)` and `K`, and the other 18 configurations are in the
+JSON.
+
+| `m` | floor | `τ_δ` | `K̄` | `1/K̄ ≥` | `1 − Δ̄_n ≥`, `n` = 300 | 1,500 | 3,000 | 6,000 |
+|---|---|---|---|---|---|---|---|---|
+| 4 | 0 | 0.05494 | 5.393·10⁻⁶ | 185,430 | 0.9715 | 0.9364 | 0.9100 | 0.8728 |
+| 4 | ¼ | 0.07326 | 6.149·10⁻⁶ | 162,635 | 0.9696 | 0.9320 | 0.9039 | 0.8641 |
+| 4 | ½ | 0.10994 | 1.156·10⁻⁵ | 86,543 | 0.9583 | 0.9069 | 0.8683 | 0.8138 |
+| 8 | 0 | 0.02770 | 1.484·10⁻⁶ | 674,109 | 0.9850 | 0.9666 | 0.9528 | 0.9332 |
+| 8 | ¼ | 0.03694 | 1.626·10⁻⁶ | 615,327 | 0.9843 | 0.9650 | 0.9506 | 0.9301 |
+| 8 | ½ | 0.05541 | 2.845·10⁻⁶ | 351,613 | 0.9793 | 0.9538 | 0.9346 | 0.9076 |
+| 16 | 0 | 0.01391 | 3.880·10⁻⁷ | 2,577,914 | 0.9923 | 0.9829 | 0.9758 | 0.9658 |
+| 16 | ¼ | 0.01854 | 4.172·10⁻⁷ | 2,397,064 | 0.9920 | 0.9823 | 0.9749 | 0.9646 |
+| 16 | ½ | 0.02782 | 7.039·10⁻⁷ | 1,420,773 | 0.9897 | 0.9770 | 0.9675 | 0.9540 |
+
+The uniform frontier is the minimum over the nine forms (`m` and floor), rounded down:
+
+| `δ` | `n` = 300 | 1,500 | 3,000 | 6,000 |
+|---|---|---|---|---|
+| 0.10 | 0.9583 | 0.9069 | 0.8683 | 0.8138 |
+| 0.20, sensitivity | 0.8333 | 0.6274 | 0.4731 | 0.2548 |
+| 0.40, sensitivity | 0.3320 | 0.0057 | 6.6·10⁻⁵ | 8.9·10⁻⁹ |
+
+`K` grows by a factor between 16.0 and 16.1 when `δ` doubles, and falls by a factor between 3.6
+and 4.1 when `m` doubles at fixed `δ`: the order of §13.4's heuristic, `D⁴/m²`.
+
+**Consistency checks** (C, floating point). They test the implementation and certify nothing.
+
+- Product form against exhaustive enumeration of the `2^m` patterns, at all 41 nodes of the 27
+  configurations, each pattern's ratio `M(z)/I(z)` taken from the product laws' definition. The
+  largest relative deviation of `χ²_q` from the certified value is `4.3·10⁻¹¹`; the declared
+  tolerance is `10⁻⁸`.
+- `KL(Q_τ ‖ P_0)` by exhaustive enumeration, ability marginalized over the 41 nodes, in the 27
+  configurations. Without anchors it is between 0.012 and 0.088 of `K̄`; with two declared open
+  anchors (`a = 5/4`, `b = ∓3/5`), between 0.027 and 0.157. All are below 1.
+- §13.4's idealized identity: in 12 cases (`m ∈ {4, 8, 16}`, `p ∈ {¼, ½}`, `d ∈ {1/64, 1/16}`) the
+  certified product form encloses the exact rational `½[(1 + e)^m + (1 − e)^m]`.
+- Order: `K` over `Σ_q w_q (m − 1) D_q⁴/(32 m³ p̄_q² (1 − p̄_q)²)`, with `D_q` the node's contrast
+  and `p̄_q` its items' mean probability, lies between 1.24 and 1.64. The declared band is
+  `[0.1, 10]`.
+- Interval primitives: `exp` and `ln` against 80-digit decimal references, `π`, `√2`, the
+  quantile brackets, the product form against an exact enumeration, and the weights' sum and mean.
+  `sim/test_a2_information_check.py`, 7 tests passing.
+
+The ratios `KL/K̄` are a numerical indication that the per-node bound is loose by a factor between
+about 6 and 80. The information is then likely below `K̄` and the certified frontier conservative;
+no stronger frontier is claimed from them.
+
+**Resources and reproducibility.** From the repository root,
+`python3 sim/a2_information_check.py > sim/a2_information_check.json`. CPython 3.12.3, Linux
+x86-64, AMD Ryzen 7 5800X, one process: 20.4 s wall-clock in each of three runs of the committed
+version (0.7 s inputs, 4.2 s certification, 15.3 s checks), within the minute. Outputs are
+identical across runs apart from the `run` block (environment and timings). The certified values
+depend only on integer arithmetic. On another platform the floating-point seeds could move `τ_δ`
+or the last digits; every bound printed there would still be valid at its own `τ_δ`. Tests:
+`python3 -m unittest discover -s sim -p test_a2_information_check.py`, 0.6 s.
+
+**Reading** (proposed, awaiting Astra's review):
+
+- **Obstacle demonstrated, under the numerical contract, in §13.5's domain only.** At each
+  configuration and size, every `(α, β)` with `α + β < 1 − Δ̄_n` is excluded: no procedure valid at
+  `α` on a family containing `Q_{τ_δ}` accepts `P_0`'s form with probability at least `1 − β`.
+  §12's certifier is included, and no share or presence floor up to ½ restores usefulness there
+  (§13.4). At the operative `δ = 0.10`, every pair with `α + β < 0.8138` is excluded for all nine
+  forms at all four sizes. The frontier is higher for larger `m` and smaller `n`.
+- **Sizes.** At `(α, β)` with `α + β < 1`, usefulness needs
+  `n ≥ max{2s², ln(1/(1 − s²))}/K`, `s = 1 − α − β`, hence at least that expression with `1/K̄` in
+  place of `1/K`. At `δ = 0.10` the certified lower bound of that coefficient ranges from 86,543
+  (`m = 4`, floor ½) to 2,577,914 (`m = 16`, open). Pairs with `α + β ≥ 1` constrain no `n`;
+  `α = β = 0` needs an infinite `n`. With `α` and `β` symbolic, no integer size is produced: one
+  would be the ceiling of a lower bound of the expression, computed once the levels are fixed.
+- **Numerical indication only:** the looseness of `K̄` above. Nothing else is reported without
+  certification.
+- **Not excluded:** at each configuration and size, the pairs with `1 − Δ̄_n ≤ α + β < 1`. There
+  feasibility stays open, no floor is shown sufficient, and §12's power is unknown. Under the
+  sensitivities the frontier falls fast: at `4δ` and `m = 4` it is below 0.066 from `n = 1,500`.
+- **Decision needed (owner, after the review).** The reading changes with `δ` and, for pairs
+  between the uniform frontier and the largest one, with the form and the size. Per §13.5, the
+  owner fixes `(α, β)`, the tolerance or the sizes with this trade-off. Per §13.7, on an
+  obstacle, the alternatives are a claim restricted with the owner's approval (a larger tolerance,
+  an assumption excluding spread small DIF, contrasts limited to present groups), another
+  mechanism (no whole-test certificate, R1's honest description kept), or A2's requirement kept
+  open. None is chosen here. Obligations a and c remain in every case, and the study of §12's
+  acceptance probability is not started.
+- **Not covered:** what §13.5 lists (other alternatives, misspecification, search over forms, the
+  linkage decision, §12's power), and sizes, tolerances or forms other than those declared.
