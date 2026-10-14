@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was partly approved by Astra on `d31e9fa` and **approved on `b2a1c2f` as the study's reporting specification**; the bridging input under `q_c` is analysed in `17` §10, **approved by Astra on `111e595` as a conditional analysis**; timing under A is specified in `17` §11, partly approved by Astra on `82bdb9a` and **approved on `cf5575a` as a conditional comparison between T1 and T2** (neither adopted); access and disclosure per object are specified in `17` §12, partly approved by Astra on `8af257d` and **approved on `7d8db08` as a conditional analysis of the informational requirements**; the observable evidence under T1 for its predicates (ii) and (iv) is specified in `17` §13, partly approved by Astra on `f38f8a4` and **approved on `176dd8c` as a conditional analysis of the observable evidence**. §10.6, a minimal perimeter for S2, was partly approved by Astra on `cbcbc67`, with decisions taken for preparing its specification only, rectified in `5af22b9` and **approved by Astra on `5af22b9` as a preparatory synthesis of the experimental perimeter** (below); the synthetic-event check it leads to is specified in [`20`](20-s2-synthetic-check.md), which that approval does not cover, **approved by Astra on `c76c035` as the check's specification**; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §11’s **candidate A2 guarantee contract approved by Astra on `5e600be`** as a specification of obligations; §12’s split-likelihood region and coverage proof await review. A2 remains open. A1’s subsequent conditional closure on `1bd865c` is recorded only in `17` §14.15; it supplies none of A2’s missing obligations. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
+| **Status** | Diagnosis and conditional proposition **approved** by Astra on `0519626` (below); **R1 implemented in `8fa07dd`, completed by `d13bf09` and approved by Astra on `d13bf09`** (below, §8). A2 stays open (`15`): R1 rectifies the claims, it does not realize the whole-test guarantee. §6.1 adds a decision synthesis, written on `fa11791`, linking A1, A2, B1–B3 and resources, **approved by Astra on `cebcb2e` as a documentation intervention** (below); no protocol, calibration, adoption or expenditure approved. §9 compares a reusable common calibration with a calibration per form under explicit assumptions, written on `cebcb2e`, rectified in `63b13fa` and **approved by Astra on `63b13fa` as a conditional comparison** (below); it chooses no design and does not close A2. Added after that review: the check sample's conditions and the cost hypotheses (§9.3), the matching lines of §9.4 and the error control over a search (§9.5), partly approved by Astra on `6681b03` and, after its rectifications in `b59fd03`, **approved by Astra on `b59fd03` as a conditional analysis** (below). §9.6, on one fixed form's representation, identification and inference, was partly approved by Astra on `907c245`, rectified in `00f8e2c` and **approved by Astra on `00f8e2c` as a conditional analysis** (below). §10, a decision synthesis toward an experimental protocol, was **approved by Astra on `26593e7` as a preparatory synthesis** (below), with four precisions made in it and approved on `d31e9fa` (below); the specification of cases 5–7 it led to, [`17`](17-a1-pilot-batch-design.md) §9, was partly approved by Astra on `d31e9fa` and **approved on `b2a1c2f` as the study's reporting specification**; the bridging input under `q_c` is analysed in `17` §10, **approved by Astra on `111e595` as a conditional analysis**; timing under A is specified in `17` §11, partly approved by Astra on `82bdb9a` and **approved on `cf5575a` as a conditional comparison between T1 and T2** (neither adopted); access and disclosure per object are specified in `17` §12, partly approved by Astra on `8af257d` and **approved on `7d8db08` as a conditional analysis of the informational requirements**; the observable evidence under T1 for its predicates (ii) and (iv) is specified in `17` §13, partly approved by Astra on `f38f8a4` and **approved on `176dd8c` as a conditional analysis of the observable evidence**. §10.6, a minimal perimeter for S2, was partly approved by Astra on `cbcbc67`, with decisions taken for preparing its specification only, rectified in `5af22b9` and **approved by Astra on `5af22b9` as a preparatory synthesis of the experimental perimeter** (below); the synthetic-event check it leads to is specified in [`20`](20-s2-synthetic-check.md), which that approval does not cover, **approved by Astra on `c76c035` as the check's specification**; its implementation in test code, partly reviewed on `e5e0898`, was rectified and **approved on `3559396` within the check's perimeter** (`20` §9). §11’s **candidate A2 guarantee contract approved by Astra on `5e600be`** as a specification of obligations; §12’s split-likelihood region and coverage proof await review; Claude Code's review of §12, with three corrections, and the first feasibility contract are in §13, **proposed and awaiting Astra's review**. A2 remains open. A1’s subsequent conditional closure on `1bd865c` is recorded only in `17` §14.15; it supplies none of A2’s missing obligations. No formula, API, threshold, serialization, selection, golden output or historical result changes. |
 | **Baseline** | `docs/phase1-review-alignment` at `16e862c`. Line references are to that commit; §9 names code by symbol, at `cebcb2e`. |
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
@@ -1502,6 +1502,8 @@ fit, campaign or resource authorization is required by this recommended next ste
 for §11’s obligation **b under the assumptions below**, not a realized A2 guarantee. §11 was
 approved as a candidate contract on `5e600be`; obligations a and c, useful precision and cost
 remain separate. No implementation, calibration arm or operational parameter is chosen.
+Reviewed by Claude Code at `a0e30c7` in §13 (proposed, awaiting Astra's review): the proof is
+verified; three specific corrections are made below (§12.3, §12.4, §12.5) and justified there.
 
 ### 12.1 Observable family and target-linkage parameters
 
@@ -1605,7 +1607,11 @@ adopted here. Denominator-zero events have probability zero under that candidate
 the conventions specify the region even there, not evidence that impossible data occurred
 under the truth. Floating-point underflow is not a structural zero and does not justify
 these conventions in a future implementation; exact likelihoods or conservative numerical
-error treatment would be required.
+error treatment would be required. The numerator needs the same care: the normalization the
+proof uses is that of the function actually evaluated at `z_v`, so a realization evaluates the
+numerator not above an `𝒜`-measurable sub-probability (for instance a certified lower enclosure
+of `f_{β_hat}`) and the denominator not below `L_β`; the computed region then contains the
+exact one (proposed precision, §13.2).
 
 **Proposition (conditional and uniform finite-sample coverage).** For every admitted truth
 `ϑ*=(β*,γ*)∈Ξ`,
@@ -1635,8 +1641,9 @@ The region includes **whole linkage fibres** `Γ_β` when `β` passes; it cannot
 linkages to fitted values. Representations with identical observable laws have identical
 ratios and are retained/rejected together, regardless of their order or labels. Rare components,
 coincident orders and weak identification do not invalidate the expectation calculation.
-They may leave a large region and a useless upper bound, as already scoped in §9.6; no
-counterexample or numerical check is repeated here.
+They do make the bound useless where the linkage is unrestricted: for every one-class truth,
+`U ≥ ½ Σ_{j∈T} (1 − c_j)` with probability at least `1 − α`, whatever the training rule
+(§13.3, proposed, awaiting review: §9.6's rare-class result made exact for this region).
 
 | Layer | Result / remaining boundary |
 |---|---|
@@ -1676,3 +1683,146 @@ for all active/contested items without relying on the fitted filter or BIC order
 and no plug-in collapse of unidentified linkages. This is obligation a; it reuses the acquired
 proof instead of repeating its examples, and adopts no calibration/component policy. The
 certified supremum, useful precision and cost remain subsequent distinct obligations.
+
+**Proposed replacement, awaiting Astra's review (§13.5):** under the unrestricted linkage this
+deliverable would specify a valid majorant whose certificate is useless (§13.3); the information
+check of §13.5, which needs no resources, comes first.
+
+## 13. Review of §12 and the first feasibility contract
+
+**Status:** written by Claude Code at `a0e30c7`; **proposed, awaiting Astra's review**. A2 stays
+open and its certifier suspended; nothing is implemented, calibrated, chosen or run beyond the
+checks below. Evidence: **L** `latent.rs` (`Model`, `Grid::{new, shape}`, `Floors`, `Data::new`,
+`evaluate`), `dtf::DTF_MAX`, `revalidation::N_LATENT_MIN`, `pilot::{N1_MIN, N2_MIN}`,
+`characterization::generate::dif_batch`; **D** the derivations below; **C** a scratch script, not
+committed: §12.3's identity on a toy family in exact rationals (for every training outcome
+`E[R | 𝒜] ≤ 1` and conditional non-coverage `≤ α E[R | 𝒜]`; at `α = 1/4` the largest conditional
+non-coverage is 16/225, the unconditional 203/16875), §13.3's domination step in exact rationals,
+and §13.5's product formula against brute-force enumeration on 200 random toys (agreement within
+`10⁻¹²` relative; the exact `KL`, ability marginalized and anchors included, at most 0.46 of the
+bound). No Rust, fit or campaign was run.
+
+### 13.1 The six layers
+
+| Layer | What §12 supplies | What remains |
+|---|---|---|
+| representation and common target | a declared response-law family `Ξ` with symbolic linkage `Γ_β` | `Γ_β`, `μ`, scale and contrasts; the linkage decides usefulness (§13.3) |
+| statistical coverage (b) | exact, conditional on training, uniform over `Ξ` (§13.2) | the premises: R-a, i.i.d. complete administrations, an independent split |
+| domination (a) | nothing | `DTF_μ(T) ≤ B_T(β, γ)` on the admitted pairs; §3 reusable |
+| conservative computation (c) | the requirement, and a denominator remark | outer enclosure of `𝒞`, global supremum, numerator and denominator enclosures |
+| usefulness | nothing | negative under an unrestricted linkage (§13.3); open otherwise (§13.4) |
+| cost | nothing | unmeasured (`15` D2, D4) |
+
+### 13.2 Verification of b and the corrections made
+
+- **Proof.** Correct. Given `𝒜`, validation has law `L_{β*}`; `E[R_{ϑ*} | 𝒜]` is the numerator's
+  mass on the truth's support, at most 1; conditional Markov bounds `P(R_{ϑ*} > 1/α | 𝒜)` by `α`;
+  the failure branch has `𝒞 = Ξ`. The law does not depend on `γ`, so coverage of `β*` is coverage
+  of every `(β*, γ)`. What it uses: the truth in `Ξ` (R-a), i.i.d. complete administrations from
+  the declared population, a split independent of the responses, an `𝒜`-measurable
+  sub-normalized numerator. Assumptions, not properties of any data.
+- **Correspondence with the code** (L). `evaluate` computes `ln f_β`: per class and node,
+  `ln π_g + ln w_q` plus each column's Bernoulli log-probability; nodes standardized by
+  `Grid::shape` and shifted by `η_g` (`η_0 = 0`); anchors class-invariant; item `a` shared or per
+  class, `b` per class; one floor `σ(γ)` per choice column shared by the classes, none for an open
+  one; `nodes` equispaced points on `[−θ_max, θ_max]`. No mismatch. Two precisions: slopes are
+  unconstrained reals in `Model`, and `Data::new` reads a response `≥ 0.5` as correct, so `Z` is
+  that dichotomization. Neither affects the proof.
+- **Corrections made in §12, proposed.** (1) §12.3: the normalization concerns the numerator as
+  evaluated; a computed numerator above an `𝒜`-measurable sub-probability raises the ratio and can
+  exclude the truth, so a realization needs a lower enclosure of the numerator and an upper one of
+  the denominator (part of c). (2) §12.4: "may leave … a useless upper bound" understated the
+  acquired obstacle; replaced by §13.3. (3) §12.5: its next deliverable replaced by §13.5.
+
+**Judgment on §12:** a specific correction was needed, and it is made; with it, §12 is proposed for
+acceptance as the proof of obligation b. Building a and c next, as §12.5 recommended, would need a
+design decision first (§13.3–§13.4).
+
+### 13.3 Exact consequence for usefulness (D, proposed)
+
+**Corollary.** Let the truth `β* ∈ Ξ` have one class, `ν` its ability law, and let the admitted
+linkage allow a contrast between two components of the model, as §12.1's free `Γ_β` does. If
+`B_T` satisfies a and `U` satisfies c on §12's region (`U = +∞` on the failure branch), then for
+every training rule `P_{β*}(U ≥ ½ Σ_{j∈T} (1 − c_j)) ≥ 1 − α`. The certificate therefore accepts at
+any `δ < ½ Σ_{j∈T} (1 − c_j)` with probability at most `α` under every one-class truth, DIF-free
+ones included; at `DTF_MAX = 0.10`, every form holding one item with `c_j < 0.8`.
+
+*Proof.* Add a class `x` of share `ε`, `η_x = 0`, the same shape, anchors and floors, slopes `1`
+(per-class alternative), difficulties `−M` (or `+M`): `Q_ε ∈ ℬ_{2,per-class} ⊂ Ξ` and
+`f_{Q_ε} = (1 − ε) f_{β*} + ε f_x ≥ (1 − ε) f_{β*}`, so `R_{Q_ε} ≤ (1 − ε)^{−n_v} R_{β*}`. On
+`{R_{β*} < 1/α}`, of conditional probability at least `1 − α`, `Q_ε ∈ 𝒞` for every small `ε`,
+whatever `M`. Both classes of `Q_ε` have ability law `ν`, which is `μ` under R-d, so their contrast
+has conditional means wherever `μ` has mass, without extrapolation:
+`∫ |Σ_{j∈T} (p_{jx} − p_{j0})| dν`. As `M → ∞` it tends to `∫ Σ_j (1 − p_{j0}) dν` (`−M`) or to
+`∫ Σ_j (p_{j0} − c_j) dν` (`+M`), whose sum is `Σ_j (1 − c_j)`. By a and c, `U` is at least the
+larger. ∎
+
+Scope. It is §9.6's rare-class result made exact for this region, at every `n` and with no
+total-variation slack; neither c nor a better numerator repairs it, since §9.6's form holds for
+any uniformly valid bound. With more true classes (at most three) it holds when curves are compared
+where a class carries no mass (R-f), as `ClassCurves::dtf` and §3's envelope do. It is avoided only
+by changing the claim, for instance contrasts restricted to groups present at some share at every
+ability (the added class is present at `ε`), or a share floor on the components of `Ξ` (an
+assumption on the truth). Each is an owner decision (§11.5); none is taken here.
+
+### 13.4 Why a floor need not suffice
+
+A two-class alternative with shares ½, one ability law and difficulties `b_j − τ`, `b_j + τ` has
+both classes present at ½ at every ability: it survives any share or presence floor up to ½, and
+its contrast needs no extrapolation. Anchors being class-invariant, its classes differ only in the
+items' joint law given ability. Per node, with `I^±` and `I` the item product laws,
+`1 + χ²(½ I⁺ + ½ I⁻ ‖ I) = ¼ ∏_j s_j^{++} + ½ ∏_j s_j^{+−} + ¼ ∏_j s_j^{−−}`, with
+`s_j^{xy} = p_j^x p_j^y / p_j + (1 − p_j^x)(1 − p_j^y)/(1 − p_j)` (D; checked, §13 status). In the
+idealized case `p_j^± = p_j ± d` it is `Σ_{k even ≥ 2} C(m, k) e^k`, `e = d²/(p(1 − p))`; a DTF `δ`
+spread over `m` items then gives information of order `δ⁴/m²` per respondent. That order is a
+heuristic expectation, not a result: if it holds at the sizes of reference, no certifier valid on
+a family containing these alternatives, §12's or any other, is useful, and a floor restores
+nothing. It is therefore the first result on which building a and c depends.
+
+### 13.5 Contract of the first feasibility result (proposed, awaiting Astra's review)
+
+| Item | Content |
+|---|---|
+| Question | Can a certifier valid at level `α` on a family containing a DIF-free one-class truth `P_0` and the alternatives `Q_τ` below accept `P_0`'s form with probability `1 − β` at the sizes of reference? The result is a necessary condition: it can establish an obstacle, never feasibility. |
+| Domain, declared before computing | Shape: the code's fixed normal subcase (`Grid::new(41, 5.0)`, `normal_logits`, standardized by `Grid::shape`). Forms: `m ∈ {4, 8, 16}` items (`08` SC-2's `K` range); `a_j = 1.25`, `b_j = 0.6 Φ⁻¹((j − ½)/m)`, the centre and quantiles of `dif_batch`'s laws `U(1, 1.5)` and `0.6 N(0, 1)`; floors all 0 (open), all ¼ or all ½ (the priors' modes for four and two options). `P_0`: one class with those items, any anchors. `Q_τ`: shares ½, `η = (0, 0)`, `P_0`'s shape, anchors and floors, shared slopes, difficulties `b_j − τ` and `b_j + τ`, in `ℬ_{2,shared} ⊂ Ξ`, its two classes an admitted contrast. `δ = DTF_MAX = 0.10`, the existing provisional value, with `2δ` and `4δ` as sensitivity only. Sizes `n ∈ {N1_MIN, N2_MIN, N_LATENT_MIN, 6,000}` (300, 1,500, 3,000 and SC-2's largest), every respondent the procedure uses. |
+| Input | These declarations; no data, fit or simulated respondent. |
+| Computation | `D(τ) = Σ_q w_q Σ_j (p_j(u_q; b_j − τ) − p_j(u_q; b_j + τ))`, the two classes' contrast, increasing in `τ`; `τ_δ` by bisection with `D(τ_δ) > δ` checked; `K = Σ_q w_q ln(1 + χ²_q(τ_δ))` by §13.4's product form; `Δ_n = min{1, (1 − e^{−nK})^{1/2}, (nK/2)^{1/2}}`. |
+| Statement used (D) | A procedure accepting `Q_τ`'s form at `δ` with probability at most `α` accepts `P_0`'s with probability at most `α + TV(P_0^n, Q_τ^n) ≤ α + Δ_n`: `KL(Q_τ ‖ P_0) ≤ K` by joint convexity over the shared nodes and `KL ≤ ln(1 + χ²)`, then Bretagnolle–Huber and Pinsker. Hence `α + β ≥ 1 − Δ_n`, and `n ≥ ln(1/(1 − (1 − α − β)²))/K`. |
+| Expected result | Per form and size: `τ_δ`, `K`, `Δ_n` and the frontier `1 − Δ_n`; per form, the sample-size formula. No level is chosen: `α`, `β` stay symbolic. |
+| Control reference | The product form against brute-force enumeration at every node of every form (at most `2¹⁶` patterns); the exact `KL(Q_τ ‖ P_0)`, ability marginalized, with no anchors and with a declared small anchor set, at most `K`; the idealized expansion of §13.4 as an order check only; optionally, one `D(τ)` against `ClassCurves::dtf` (E API). |
+| Usefulness criterion | §11.3: useful at `(n, α, β)` when valid at `α` and accepting `P_0`'s form with probability at least `1 − β`. A procedure that always returns the trivial bound or no certificate fails it; a favourable frontier says nothing of §12's own procedure. |
+| Outcomes | **Obstacle** for every `(α, β)` below the frontier at every size: no construction is useful there, §12's included. **Not excluded** where `(α, β)` lies above it: the next result would be §12's own acceptance probability on the same reference, the first piece of c. **Decision needed** when the reading changes across forms, sizes or `δ`: the owner fixes `(α, β)`, the tolerance or the sizes, with the computed trade-off. |
+| Resource limit | One standard-library Python script in `sim/` with deterministic output, under a minute on a laptop; Rust only for the optional API check; no fit, campaign or data. A failed control stops the work and is reported, with no workaround. |
+| Not covered | Other alternatives (per-class slopes, impact, sparse DIF) and the strongest one: the declared `Q_τ` gives a valid, possibly weaker bound. Misspecification, search over forms (§9.5), the linkage decision, §12's power. |
+
+The obstacle, if found, concerns latent-class contrasts under invariant 1; no group attribute may
+be collected to escape it.
+
+### 13.6 A2 obligations, satisfied and missing
+
+| Obligation | Criterion | State |
+|---|---|---|
+| diagnosis; declared claims rectified | `15` A2; §8 | acquired (`0519626`, R1 on `d13bf09`) |
+| target measure, linking assumptions, whole-test contribution | `15` A2; §11.5 row 1 | symbolic objects acquired as a contract (§11.1); `Γ_β` unspecified, and its choice decides usefulness (§13.3) |
+| a, domination | §11.2 a; §11.5 row 1 | missing; §3's conditional proposition reusable |
+| b, coverage | §11.2 b; §11.5 row 2 | proof verified, proposed for acceptance (§13.2); premises assumed |
+| c, conservative computation | §11.2 c; §11.5 row 3 | missing, numerator and denominator enclosures included |
+| estimation error kept apart | `15` A2 | carried by b and c once realized; missing |
+| usefulness | §11.3 | negative under an unrestricted linkage (§13.3); otherwise open, §13.5 first |
+| cost | §11.3; `15` D2, D4 | not assessed |
+| decision and scope | §11.5 row 4 | missing; searches and sequences need §9.5 |
+| model and sampling premises | `15` B1–B3; §12.1 | assumed, not validated |
+
+### 13.7 Decisions
+
+- **For Astra:** §12 as the proof of b with the corrections of §13.2; §13.3; §13.5 replacing
+  §12.5's next deliverable.
+- **For the owner, now:** none. §13.5 chooses no level, threshold, target or resource; its values of
+  reference are existing provisional constants. A change of claim answering §13.3 is better decided
+  after §13.5, since §13.5 shows whether a floor can restore usefulness at all.
+- **After §13.5, on an obstacle,** the alternatives: restrict the claim explicitly with the owner's
+  approval (a larger tolerance, an assumption excluding spread small DIF, contrasts limited to
+  present groups), change the mechanism (no whole-test certificate, R1's honest description
+  kept), or keep A2's requirement open. None is chosen here, and the problem stays under A2.
+- **Stop rule:** after two reviews still blocked, §11's contract is re-examined rather than a
+  further deepening added.
