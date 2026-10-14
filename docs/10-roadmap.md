@@ -26,7 +26,9 @@ final-model characterization remains a separate Phase 1 gate. This introduces no
 prove general H-c, complete a distributed runtime or repeat campaigns.
 AT-REP-01's blanket betrayal claim is explicitly withdrawn as a Phase 1 claim (`08`),
 not proved or automatically moved to Phase 2. A1 and other acquired closures remain scoped;
-A2's certifier is suspended, `19` §12 awaits review and T26 remains separate.
+A2 stays open and its certifier suspended: `19` §12's coverage proof is accepted under its hypotheses
+(`5102852`); the next step is Astra's review of the rectified contract in `19` §13.5, then, if
+accepted, that bounded information check, neither authorized nor run. T26 remains separate.
 
 **Executable candidate status (updated 2026-10-13).** The accepted exact reference
 `sim/a12_offline.py` implements manifest/snapshot validation and whole-horizon refusal.

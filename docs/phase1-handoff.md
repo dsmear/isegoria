@@ -1014,8 +1014,10 @@ current status and next work are in §5.2. This does not close Phase 1.
   in test code approved on `3559396` within the check's perimeter. No calibration
   is chosen, S2 is not claimed to settle A2, and these approvals do not close A2. The new
   candidate contract in `19` §11 is approved on `5e600be` as an obligation specification.
-  Subsequent §12’s region/coverage proof awaits review; representation and conservative
-  computation remain separate. Single next deliverable only in §12.5.
+  §12’s coverage proof is accepted on `5102852` under its hypotheses, with §13.3’s corollary in
+  its domain; domination, conservative computation, usefulness, cost and scope remain open.
+  Next step: review of the rectified contract in `19` §13.5, then, if accepted, the bounded
+  information check, neither authorized nor run.
 - **A1: closed for the conditional expected-score guarantee**, Astra’s judgment on
   `1bd865c` (`17` §14.15). O1, conditional design A (O2) and O3 are acquired; the premises
   are accepted as model assumptions, not properties of the current protocol. The original
@@ -1077,8 +1079,9 @@ is approved on `e735a8e` (`17` §14.12). The terminal verifier contract in §14.
 reviewed on `c6b3ca7`, rectified and approved on `a14364c`. O3 is subsequently decided,
 A12 open, incorporation approved on `af42035` (`17` §14.14); O2 chooses conditional A.
 Astra closes A1 on `1bd865c` within `17` §14.15’s conditional scope; current state §5.2.
-A2’s candidate contract is approved on `5e600be` (`19` §11); subsequent region/coverage
-proof and single next recommendation in §12, awaiting review.
+A2’s candidate contract is approved on `5e600be` (`19` §11); §12’s coverage proof is accepted
+on `5102852` under its hypotheses; the next step’s contract, `19` §13.5, awaits review of its
+rectification.
 No roadmap, campaign or protocol adoption is added here.
 §9 finds no winner today: with complete administrations the common design is excluded where the
 bank and anchors exceed the tolerable load per participation, and saves answers only under its
@@ -1130,7 +1133,7 @@ decision, **L** a documented limit.
 |---|---|---|---|---|---|
 | A1, closed conditionally on `1bd865c` | `15` A1 current criterion; `17` §14.15 | exact expected-score claim, strategies and premises accepted by Astra as mathematical-model assumptions | operational gaps remain; not missing premises for this restricted judgment | no certification of current runtime, execution, resources, authentication or reputation | none to repeat the approved judgment; residual realization and A12 remain tracked |
 | A12, distinct, open | `15` A12; precise criterion `17` §14.14.1, source `16` §7 | count/weight diagnosis; no composed reputational incentive proof | Dd: reviewer objective, information and strategies; Pr: intended incentives under the composed mechanism; Im: relevant path if a runtime claim is retained | explicit assessment of retained Phase 1 claims; not automatically non-blocking | define objective and strategies before a proof, no campaign |
-| A2, high, open; R1 approved | `15` A2; `19` §§11–12 | §11 contract approved on `5e600be`; §12 exact region and conditional/uniform finite-sample coverage proof awaiting review | target domination, certified supremum, useful precision and cost unresolved; no implementation | declared model/i.i.d. reference and independent split; symbolic target linkage; calibration undecided | review §12; single next deliverable: target-linkage/majorant specification (§12.5) |
+| A2, high, open; R1 approved | `15` A2; `19` §§11–12 | §11 contract approved on `5e600be`; §12 coverage proof accepted on `5102852` under its hypotheses; §13.3 corollary accepted in its domain (one-class truth, arbitrarily small shares, contrast admitted) | target domination, certified supremum, usefulness, cost and scope unresolved; no implementation | declared model/i.i.d. reference and independent split; symbolic target linkage; calibration undecided | review of the rectified contract `19` §13.5; if accepted, the bounded information check (not authorized or run) |
 | B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: S1's scenarios and decision criteria declared, then one campaign on an identified candidate, its design declared before execution; Pr where identification or coverage is claimed, which simulations do not replace | A2's target; the owner's authorization of the campaign | S1's declaration, no run |
 | A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; (c), the retired proxy path, fixtures only: L, its listing requiring no change; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
 | A8, A9, medium | `15`: distinguishability, identifiability and power apart (A8); hypotheses or a controlled approximation (A9) | the paper a dated snapshot | Pr and the paper's text | — | a rectification of the two claims |
@@ -1180,12 +1183,15 @@ A12 and Phase 1 remain open.
 | invariant laws and authenticated evidence | isolated scorer/snapshot, verifier contract; §14.15’s assumptions accepted mathematically | H-b/H-c not demonstrated for the runtime; producers, authenticated inputs, complete view and verifier/adapter remain absent (`17` §14.13.8) |
 | effective reputational incentives, A12 | objective separated by O3; requirement explicitly tracked | define reviewer objective and strategies, then demonstrate incentives (`17` §14.14.1, `16` §7); not automatically non-blocking for Phase 1 |
 
-**Next work proposed: A2.** Candidate contract approved on `5e600be` (`19` §11).
-The subsequent region and conditional/uniform finite-sample coverage proof in
-[`19` §12](19-a2-dtf-composition-design.md#12-split-likelihood-region-and-finite-sample-coverage)
-await review. A2 remains open. The single recommended next deliverable is the target-linkage
-and majorant specification in §12.5; no calibration, sample, component policy or resource
-commitment is chosen. This does not require repeating A1’s checks.
+**Next work proposed: A2.** Candidate contract approved on `5e600be` (`19` §11). The coverage
+proof in [`19` §12](19-a2-dtf-composition-design.md#12-split-likelihood-region-and-finite-sample-coverage)
+and §13.3’s corollary are accepted on `5102852` within their domains. A2 remains open. The next
+step is Astra’s review of the rectified contract in
+[`19` §13.5](19-a2-dtf-composition-design.md#13-review-of-12-and-the-first-feasibility-contract);
+if accepted, the bounded information check follows. Neither is authorized or run yet; an
+obstacle would exclude only the combinations it covers, a non-exclusion would prove no
+feasibility. No calibration, sample, component policy or resource commitment is chosen. This
+does not require repeating A1’s checks.
 
 ## 6. Essential reading to resume
 
@@ -1204,7 +1210,9 @@ through the scorer); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43; code:
 `crates/protocol/tests/{s2_synthetic_check.rs,s2/,panel_scores.rs}`,
 `crates/protocol/tests/{cohort_scores,cohort_snapshot}.rs`.
 
-A2: `docs/19` §11 (contract approved on `5e600be`), §12 (region/coverage proof awaiting review).
+A2: `docs/19` §11 (contract approved on `5e600be`), §12 (coverage proof accepted on `5102852` under
+its hypotheses), §13 (review, corollary accepted in its domain; rectified contract of the
+information check awaiting review).
 
 ## 7. R1 and its approval
 
