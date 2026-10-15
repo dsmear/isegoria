@@ -80,6 +80,16 @@ impl FitShape {
             .checked_add(m.checked_mul(42)?)?
             .checked_add(48)
     }
+
+    /// The fit alone, in an empty pool, within [`POOL_LIMITS`]: what building its curves may cost,
+    /// whatever its members (`docs/15` D3). It allocates nothing.
+    pub fn buildable(&self) -> Result<(), PoolLimit> {
+        within_fit(self)?;
+        within_bytes(
+            self.bytes()
+                .and_then(|b| b.checked_add(u128::from(POOL_FIXED_BYTES))),
+        )
+    }
 }
 
 fn wide(x: usize) -> Option<u128> {
@@ -189,8 +199,15 @@ fn within_fit(shape: &FitShape) -> Result<(), PoolLimit> {
     }
 }
 
-fn sorted(items: &[Cid]) -> Vec<[u8; 32]> {
-    let mut ids: Vec<[u8; 32]> = items.iter().map(|c| c.0).collect();
+fn within_bytes(bytes: Option<u128>) -> Result<(), PoolLimit> {
+    match bytes {
+        Some(b) if b <= u128::from(POOL_LIMITS.bytes) => Ok(()),
+        _ => Err(PoolLimit::Bytes),
+    }
+}
+
+fn sorted(items: impl Iterator<Item = Cid>) -> Vec<[u8; 32]> {
+    let mut ids: Vec<[u8; 32]> = items.map(|c| c.0).collect();
     ids.sort_unstable();
     ids
 }
@@ -228,11 +245,9 @@ pub struct ContestedPool {
 /// Why a fit's members were not recorded.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RecordError {
-    IndexOutOfRange {
-        index: usize,
-        items: usize,
-    },
-    /// The same item, or the same index, listed twice.
+    /// `index` is `usize::MAX` for an index past `usize`.
+    IndexOutOfRange { index: usize, items: usize },
+    /// The same item, or the same index, listed twice (more members than items always do).
     DuplicateMember,
     /// The fit, or the pool it would leave, is outside [`POOL_LIMITS`]; nothing was recorded.
     OutOfDomain(PoolLimit),
@@ -281,37 +296,16 @@ impl ContestedPool {
             .any(|f| f.members.iter().any(|(c, _)| c == item))
     }
 
-    /// Records `curves` as the latest fit of `members` (an item and its index in the fit): a
-    /// member already in the pool moves to it (`docs/05` [7b] re-measurement). A refusal changes
-    /// nothing.
+    /// Records `curves` as the latest fit of `members` (an item and its index in the fit) once
+    /// [`ContestedPool::admits`] passes: a member already in the pool moves to it (`docs/05` [7b]);
+    /// with no members nothing is recorded. A refusal changes nothing.
     pub fn record(
         &mut self,
         curves: ClassCurves,
         members: &[(Cid, usize)],
     ) -> Result<(), RecordError> {
-        let items = curves.items();
-        if let Some(&(_, index)) = members.iter().find(|(_, j)| *j >= items) {
-            return Err(RecordError::IndexOutOfRange { index, items });
-        }
-        let shape = FitShape {
-            members: members.len(),
-            classes: curves.classes(),
-            points: curves.points(),
-            items,
-        };
-        within_fit(&shape).map_err(RecordError::OutOfDomain)?;
-        let repeated = (1..members.len()).any(|i| {
-            members[..i]
-                .iter()
-                .any(|(c, j)| *c == members[i].0 || *j == members[i].1)
-        });
-        if repeated {
-            return Err(RecordError::DuplicateMember);
-        }
-        let ids: Vec<Cid> = members.iter().map(|&(c, _)| c).collect();
-        self.admits(&shape, &ids)
-            .map_err(RecordError::OutOfDomain)?;
-        self.take_out(&ids);
+        self.admits(curves.classes(), curves.points(), curves.items(), members)?;
+        self.take_out(members.iter().map(|&(c, _)| c));
         if !members.is_empty() {
             self.fits.push(Fit {
                 curves,
@@ -322,15 +316,60 @@ impl ContestedPool {
         Ok(())
     }
 
-    /// Whether recording a fit of `shape` with the facts `members`, those already in the pool
-    /// moving to it, keeps the pool within [`POOL_LIMITS`] (`docs/15` D3).
-    pub fn admits(&self, shape: &FitShape, members: &[Cid]) -> Result<(), PoolLimit> {
-        within_fit(shape)?;
+    /// Whether a fit of `classes`, `points` and `items` may record `members` (`docs/15` D3): their
+    /// indices and count, the fit alone ([`FitShape::buildable`]), repeats, then the pool it would
+    /// leave with the facts it moves counted out; only that last check copies the members' ids.
+    pub fn admits<J>(
+        &self,
+        classes: usize,
+        points: usize,
+        items: usize,
+        members: &[(Cid, J)],
+    ) -> Result<(), RecordError>
+    where
+        J: Copy + PartialEq + TryInto<usize>,
+    {
+        let position = |j: J| j.try_into().ok();
+        let outside = |&&(_, j): &&(Cid, J)| position(j).is_none_or(|j| j >= items);
+        if let Some(&(_, j)) = members.iter().find(outside) {
+            let index = position(j).unwrap_or(usize::MAX);
+            return Err(RecordError::IndexOutOfRange { index, items });
+        }
+        // Every index is below `items` here, so more members than items repeat one.
+        if members.len() > items {
+            return Err(RecordError::DuplicateMember);
+        }
+        let shape = FitShape {
+            members: members.len(),
+            classes,
+            points,
+            items,
+        };
+        shape.buildable().map_err(RecordError::OutOfDomain)?;
+        let repeated = (1..members.len()).any(|i| {
+            members[..i]
+                .iter()
+                .any(|(c, j)| *c == members[i].0 || *j == members[i].1)
+        });
+        if repeated {
+            return Err(RecordError::DuplicateMember);
+        }
+        self.leaves(&shape, members.iter().map(|&(c, _)| c))
+            .map_err(RecordError::OutOfDomain)
+    }
+
+    /// The pool once a fit of `shape` records `members`, those already in it moved out, within
+    /// [`POOL_LIMITS`]'s fits and bytes.
+    fn leaves(
+        &self,
+        shape: &FitShape,
+        members: impl Iterator<Item = Cid>,
+    ) -> Result<(), PoolLimit> {
         let moved = sorted(members);
         let stays = |c: &Cid| moved.binary_search(&c.0).is_err();
-        let mut fits = usize::from(!members.is_empty());
-        let mut bytes = match members {
-            [] => Some(u128::from(POOL_FIXED_BYTES)),
+        let mut fits = usize::from(shape.members > 0);
+        let mut bytes = match shape.members {
+            0 => Some(u128::from(POOL_FIXED_BYTES)),
             _ => shape
                 .bytes()
                 .and_then(|b| b.checked_add(u128::from(POOL_FIXED_BYTES))),
@@ -349,10 +388,7 @@ impl ContestedPool {
         if fits > POOL_LIMITS.fits {
             return Err(PoolLimit::Fits);
         }
-        match bytes {
-            Some(b) if b <= u128::from(POOL_LIMITS.bytes) => Ok(()),
-            _ => Err(PoolLimit::Bytes),
-        }
+        within_bytes(bytes)
     }
 
     /// The pool's estimated bytes, as [`PoolLimits::bytes`] bounds them.
@@ -367,13 +403,13 @@ impl ContestedPool {
     /// Takes `item` out of the pool (to the active pool, or retired); false if absent.
     pub fn remove(&mut self, item: &Cid) -> bool {
         let before = self.len();
-        self.take_out(std::slice::from_ref(item));
+        self.take_out(std::iter::once(*item));
         self.canonicalize();
         self.len() != before
     }
 
     /// Takes `items` out of their fits, releasing the spare capacity the estimate does not count.
-    fn take_out(&mut self, items: &[Cid]) {
+    fn take_out(&mut self, items: impl Iterator<Item = Cid>) {
         let gone = sorted(items);
         for fit in &mut self.fits {
             let before = fit.members.len();

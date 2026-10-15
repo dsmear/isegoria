@@ -57,8 +57,8 @@ fn fit(members: Vec<(Cid, u64)>) -> ResultRecord {
 }
 
 /// A well-formed contested fit of `classes` equal classes, `items` items and `nodes` ability
-/// points, one member: its curves would hold `items · classes² · nodes` values.
-fn wide_fit(classes: usize, items: usize, nodes: usize) -> ResultRecord {
+/// points: its curves would hold `items · classes² · nodes` values.
+fn wide_fit(classes: usize, items: usize, nodes: usize, members: Vec<(Cid, u64)>) -> ResultRecord {
     ResultRecord::ContestedFit {
         pi: vec![1.0; classes],
         eta: vec![0.0; classes],
@@ -69,7 +69,7 @@ fn wide_fit(classes: usize, items: usize, nodes: usize) -> ResultRecord {
             nodes: (0..nodes).map(|q| q as f64 / nodes as f64).collect(),
             weights: vec![1.0; nodes],
         },
-        members: vec![(cid(b"wide"), 0)],
+        members,
     }
 }
 
@@ -332,7 +332,25 @@ fn at_pro_12_results_are_applied_whole_or_not_at_all() {
         ),
         (
             2,
-            vec![wide_fit(17, 1, 3)],
+            vec![fit(vec![(cid(b"z"), 0), (cid(b"y"), 1), (cid(b"x"), 0)])],
+            ResultsRejected::BadMembers { record: 0 },
+        ),
+        (
+            2,
+            vec![ResultRecord::ContestedFit {
+                pi: vec![0.6, 0.0],
+                eta: vec![0.0, 0.5],
+                a: vec![vec![1.0], vec![1.0]],
+                b: vec![vec![0.0], vec![0.5]],
+                c: vec![0.0],
+                ability: ability(),
+                members: vec![],
+            }],
+            ResultsRejected::BadClasses { record: 0 },
+        ),
+        (
+            2,
+            vec![wide_fit(17, 1, 3, vec![(cid(b"wide"), 0)])],
             ResultsRejected::ContestedOutOfDomain {
                 record: 0,
                 limit: PoolLimit::Classes,
@@ -340,7 +358,15 @@ fn at_pro_12_results_are_applied_whole_or_not_at_all() {
         ),
         (
             2,
-            vec![wide_fit(16, 4096, 256)],
+            vec![wide_fit(16, 4096, 256, vec![(cid(b"wide"), 0)])],
+            ResultsRejected::ContestedOutOfDomain {
+                record: 0,
+                limit: PoolLimit::Bytes,
+            },
+        ),
+        (
+            2,
+            vec![wide_fit(16, 4096, 256, vec![])],
             ResultsRejected::ContestedOutOfDomain {
                 record: 0,
                 limit: PoolLimit::Bytes,

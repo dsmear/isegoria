@@ -329,75 +329,331 @@ fn many_small_fits() {
 #[test]
 fn the_pool_limits_admit_their_frontier_and_refuse_past_it() {
     let pool = ContestedPool::new();
-    let fit = |members, classes, points, items| FitShape {
-        members,
-        classes,
-        points,
+    let one = [(cid(b"m"), 0usize)];
+    let out = |limit| -> Result<(), RecordError> { Err(RecordError::OutOfDomain(limit)) };
+    assert_eq!(pool.admits(16, 41, 8, &one), Ok(()));
+    assert_eq!(pool.admits(17, 41, 8, &one), out(PoolLimit::Classes));
+    assert_eq!(pool.admits(2, 4096, 8, &one), Ok(()));
+    assert_eq!(pool.admits(2, 4097, 8, &one), out(PoolLimit::Points));
+    assert_eq!(pool.admits(2, 82, 4096, &one), Ok(()));
+    assert_eq!(pool.admits(2, 82, 4097, &one), out(PoolLimit::Items));
+    let room = u128::from(POOL_LIMITS.bytes - POOL_FIXED_BYTES);
+    let fit = |items| FitShape {
+        members: 1,
+        classes: 16,
+        points: 4096,
         items,
     };
-    let one = [cid(b"m")];
-    assert_eq!(pool.admits(&fit(1, 16, 41, 8), &one), Ok(()));
-    assert_eq!(
-        pool.admits(&fit(1, 17, 41, 8), &one),
-        Err(PoolLimit::Classes)
-    );
-    assert_eq!(pool.admits(&fit(1, 2, 4096, 8), &one), Ok(()));
-    assert_eq!(
-        pool.admits(&fit(1, 2, 4097, 8), &one),
-        Err(PoolLimit::Points)
-    );
-    assert_eq!(pool.admits(&fit(1, 2, 82, 4096), &one), Ok(()));
-    assert_eq!(
-        pool.admits(&fit(1, 2, 82, 4097), &one),
-        Err(PoolLimit::Items)
-    );
-    let room = u128::from(POOL_LIMITS.bytes - POOL_FIXED_BYTES);
-    let largest = fit(1, 16, 4096, 253);
-    assert!(largest.bytes().unwrap() <= room);
-    assert!(fit(1, 16, 4096, 254).bytes().unwrap() > room);
-    let (r, bytes) = peak(|| pool.admits(&largest, &one));
+    assert!(fit(253).bytes().unwrap() <= room);
+    assert!(fit(254).bytes().unwrap() > room);
+    assert_eq!(fit(253).buildable(), Ok(()));
+    assert_eq!(fit(254).buildable(), Err(PoolLimit::Bytes));
+    let (r, bytes) = peak(|| pool.admits(16, 4096, 253, &one));
     assert_eq!(r, Ok(()));
     assert!(bytes < 1024, "{bytes} bytes");
-    assert_eq!(
-        pool.admits(&fit(1, 16, 4096, 254), &one),
-        Err(PoolLimit::Bytes)
-    );
+    assert_eq!(pool.admits(16, 4096, 254, &one), out(PoolLimit::Bytes));
     assert_eq!(pool.bytes(), Some(u128::from(POOL_FIXED_BYTES)));
 }
 
-/// D3: a record whose curves would be large is refused before they exist, and leaves no trace.
-#[test]
-fn inputs_that_would_expand_are_refused_before_their_curves() {
-    let mut state = ResultsState::default();
-    let (classes, items, nodes) = (16, 4096, 256);
-    let wide = ResultRecord::ContestedFit {
+/// A contested fit of `classes` equal classes, `items` items and `nodes` ability points each of
+/// weight `weight`: its curves would hold `items · classes² · nodes` values.
+fn fit_record(
+    classes: usize,
+    items: usize,
+    nodes: usize,
+    weight: f64,
+    members: Vec<(Cid, u64)>,
+) -> ResultRecord {
+    ResultRecord::ContestedFit {
         pi: vec![1.0; classes],
         eta: vec![0.0; classes],
         a: vec![vec![1.0; items]; classes],
         b: vec![vec![0.0; items]; classes],
         c: vec![0.0; items],
         ability: Ability {
-            nodes: (0..nodes).map(|q| q as f64).collect(),
-            weights: vec![1.0; nodes],
+            nodes: (0..nodes).map(|q| q as f64 / nodes as f64).collect(),
+            weights: vec![weight; nodes],
         },
-        members: vec![(cid(b"w"), 0)],
-    };
-    let results = EpochResults {
-        epoch: 1,
+        members,
+    }
+}
+
+fn epoch(epoch: u64, records: Vec<ResultRecord>) -> EpochResults {
+    EpochResults {
+        epoch,
         inputs_root: [0; 32],
-        records: vec![wide],
+        records,
+    }
+}
+
+/// `count` distinct facts, all at index 0.
+fn crowd(count: u32) -> Vec<(Cid, u64)> {
+    (0..count).map(|i| (cid(&i.to_le_bytes()), 0)).collect()
+}
+
+/// An empty state, and one whose pool holds a fit of four facts.
+fn states() -> [ResultsState; 2] {
+    let mut held = ResultsState::default();
+    let four = (0..4)
+        .map(|j| (cid(format!("held{j}").as_bytes()), j))
+        .collect();
+    held.apply(&epoch(1, vec![fit_record(2, 4, 3, 1.0, four)]))
+        .unwrap();
+    [ResultsState::default(), held]
+}
+
+/// D3: a fit with no members is bounded by its curves, as one with members is.
+#[test]
+fn admits_bounds_a_fit_without_members_by_its_curves() {
+    let pool = ContestedPool::new();
+    let wide = FitShape {
+        members: 0,
+        classes: 16,
+        points: 4096,
+        items: 4096,
     };
+    assert_eq!(wide.buildable(), Err(PoolLimit::Bytes));
+    let none: [(Cid, usize); 0] = [];
+    let (r, bytes) = peak(|| pool.admits(16, 4096, 4096, &none));
+    assert_eq!(r, Err(RecordError::OutOfDomain(PoolLimit::Bytes)));
+    assert_eq!(bytes, 0);
+}
+
+/// D3: a record with no members is refused out of domain before its curves are built.
+#[test]
+fn the_node_bounds_a_record_without_members_before_its_curves() {
+    for mut state in states() {
+        let before = state.clone();
+        let (_, clone) = peak(|| state.clone());
+        let massless = fit_record(16, 4096, 256, 0.0, Vec::new());
+        let (r, bytes) = peak(|| state.apply(&epoch(2, vec![massless])));
+        assert_eq!(
+            r,
+            Err(ResultsRejected::ContestedOutOfDomain {
+                record: 0,
+                limit: PoolLimit::Bytes
+            })
+        );
+        assert!(bytes - clone < 4096, "{bytes} bytes, the clone {clone}");
+        assert_eq!(state, before);
+    }
+}
+
+/// D3: a 2 GiB record, one member or none, refused on any state with nothing past the clone.
+#[test]
+fn wide_records_are_refused_before_their_curves_on_any_state() {
+    for mut state in states() {
+        let before = state.clone();
+        let (_, clone) = peak(|| state.clone());
+        for members in [vec![(cid(b"w"), 0)], Vec::new()] {
+            let wide = epoch(2, vec![fit_record(16, 4096, 256, 1.0, members)]);
+            let (r, bytes) = peak(|| state.apply(&wide));
+            assert_eq!(
+                r,
+                Err(ResultsRejected::ContestedOutOfDomain {
+                    record: 0,
+                    limit: PoolLimit::Bytes
+                })
+            );
+            assert_eq!(bytes, clone);
+            assert_eq!(state, before);
+        }
+    }
+}
+
+/// D3: a record with no members passes the same checks as any other, then records nothing.
+#[test]
+fn records_without_members_are_checked_and_record_nothing() {
+    for state in states() {
+        let mut valid = state.clone();
+        let empty = fit_record(2, 4, 3, 1.0, Vec::new());
+        valid.apply(&epoch(2, vec![empty])).unwrap();
+        assert_eq!(valid.contested(), state.contested());
+        assert_eq!(valid.epoch_root(2), Some([0; 32]));
+        let refusals = [
+            (
+                fit_record(2, 4, 3, 0.0, Vec::new()),
+                ResultsRejected::BadClasses { record: 0 },
+            ),
+            (
+                fit_record(17, 1, 3, 1.0, Vec::new()),
+                ResultsRejected::ContestedOutOfDomain {
+                    record: 0,
+                    limit: PoolLimit::Classes,
+                },
+            ),
+        ];
+        for (record, why) in refusals {
+            let mut refused = state.clone();
+            assert_eq!(refused.apply(&epoch(2, vec![record])), Err(why));
+            assert_eq!(refused, state);
+        }
+    }
+    let mut pool = ContestedPool::new();
+    record(&mut pool, "e", 3, 2);
+    let before = pool.clone();
+    assert_eq!(pool.record(curves(2, 2), &[]), Ok(()));
+    assert_eq!(pool, before);
+    let wide = pool.record(curves(1, 17), &[]);
+    assert_eq!(wide, Err(RecordError::OutOfDomain(PoolLimit::Classes)));
+    assert_eq!(pool, before);
+}
+
+/// D3: repeats and indices past the fit refused alike by `admits`, `record` and the node, uncopied.
+#[test]
+fn malformed_members_are_refused_before_their_copies() {
+    let (x, y) = (cid(b"x"), cid(b"y"));
+    let cases: [(Vec<(Cid, u64)>, RecordError); 5] = [
+        (vec![(x, 0), (x, 1)], RecordError::DuplicateMember),
+        (vec![(x, 0), (y, 0)], RecordError::DuplicateMember),
+        (
+            vec![(x, 0), (y, 1), (cid(b"z"), 0)],
+            RecordError::DuplicateMember,
+        ),
+        (
+            vec![(x, 2)],
+            RecordError::IndexOutOfRange { index: 2, items: 2 },
+        ),
+        (
+            vec![(x, 0), (y, u64::MAX)],
+            RecordError::IndexOutOfRange {
+                index: usize::MAX,
+                items: 2,
+            },
+        ),
+    ];
+    let mut pool = ContestedPool::new();
+    record(&mut pool, "m", 3, 2);
+    let held = pool.clone();
+    for (members, why) in cases {
+        assert_eq!(peak(|| pool.admits(2, 41, 2, &members)), (Err(why), 0));
+        let indexed: Vec<(Cid, usize)> = members
+            .iter()
+            .map(|&(c, j)| (c, usize::try_from(j).unwrap()))
+            .collect();
+        let two = curves(2, 2);
+        let (r, bytes) = peak(|| pool.record(two, &indexed));
+        assert_eq!((r, bytes), (Err(why), 0));
+        assert_eq!(pool, held);
+        for mut state in states() {
+            let before = state.clone();
+            let (_, clone) = peak(|| state.clone());
+            let record = epoch(2, vec![fit_record(2, 2, 3, 1.0, members.clone())]);
+            let (r, bytes) = peak(|| state.apply(&record));
+            assert_eq!(r, Err(ResultsRejected::BadMembers { record: 0 }));
+            assert_eq!(bytes, clone);
+            assert_eq!(state, before);
+        }
+    }
+    let many: Vec<(Cid, usize)> = crowd(1 << 16).iter().map(|&(c, _)| (c, 0)).collect();
+    let two = curves(2, 2);
+    let (r, bytes) = peak(|| pool.record(two, &many));
+    assert_eq!((r, bytes), (Err(RecordError::DuplicateMember), 0));
+    assert_eq!(pool, held);
+}
+
+/// D3: re-measured facts are counted out of their fits; a refused re-measurement moves nothing.
+#[test]
+fn replacements_count_the_facts_they_move_out() {
+    let mut pool = ContestedPool::new();
+    let held = record(&mut pool, "r", 16, 4);
+    let others = record(&mut pool, "s", 4, 2);
+    let room = u128::from(POOL_LIMITS.bytes - POOL_FIXED_BYTES);
+    let bytes = |members, classes, points, items| {
+        let fit = FitShape {
+            members,
+            classes,
+            points,
+            items,
+        };
+        fit.bytes().unwrap()
+    };
+    let (rest, left) = (bytes(4, 2, 41, 4), bytes(1, 4, 41, 16));
+    assert!(bytes(16, 16, 4091, 254) + rest <= room);
+    assert!(bytes(15, 16, 4091, 254) + rest + left > room);
+    let all: Vec<(Cid, usize)> = held.iter().enumerate().map(|(j, &c)| (c, j)).collect();
+    assert_eq!(pool.admits(16, 4091, 254, &all), Ok(()));
+    let short = pool.admits(16, 4091, 254, &all[..15]);
+    assert_eq!(short, Err(RecordError::OutOfDomain(PoolLimit::Bytes)));
+
+    let fits = |pool: &ContestedPool| pool.admission(0).unwrap().table_cells - 1;
+    assert_eq!(fits(&pool), 2);
+    let size = pool.len();
+    pool.record(curves(2, 2), &[(held[0], 0), (others[0], 1)])
+        .unwrap();
+    assert_eq!((fits(&pool), pool.len()), (3, size));
+    let before = pool.clone();
+    let refusals = [
+        (
+            curves(2, 2),
+            vec![(held[1], 0), (held[1], 1)],
+            RecordError::DuplicateMember,
+        ),
+        (
+            curves(2, 2),
+            vec![(held[1], 0), (others[1], 2)],
+            RecordError::IndexOutOfRange { index: 2, items: 2 },
+        ),
+        (
+            curves(1, 17),
+            vec![(held[1], 0)],
+            RecordError::OutOfDomain(PoolLimit::Classes),
+        ),
+    ];
+    for (fit, members, why) in refusals {
+        assert_eq!(pool.record(fit, &members), Err(why));
+        assert_eq!(pool, before);
+    }
+
+    let [_, mut state] = states();
+    let fact = |j: u8| cid(format!("held{j}").as_bytes());
+    let moved = fit_record(2, 2, 3, 1.0, vec![(fact(0), 0), (cid(b"new"), 1)]);
+    state.apply(&epoch(2, vec![moved])).unwrap();
+    assert_eq!((fits(state.contested()), state.contested().len()), (2, 5));
     let before = state.clone();
-    let (r, bytes) = peak(|| state.apply(&results));
-    assert_eq!(
-        r,
-        Err(ResultsRejected::ContestedOutOfDomain {
-            record: 0,
-            limit: PoolLimit::Bytes
-        })
-    );
-    assert!(bytes < 1 << 16, "{bytes} bytes against 2 GiB of curves");
-    assert_eq!(state, before);
+    let out = |limit| ResultsRejected::ContestedOutOfDomain { record: 0, limit };
+    let refusals = [
+        (
+            fit_record(2, 2, 3, 1.0, vec![(fact(1), 0), (fact(1), 1)]),
+            ResultsRejected::BadMembers { record: 0 },
+        ),
+        (
+            fit_record(17, 1, 3, 1.0, vec![(fact(1), 0)]),
+            out(PoolLimit::Classes),
+        ),
+        (
+            fit_record(16, 4096, 256, 1.0, vec![(fact(1), 0)]),
+            out(PoolLimit::Bytes),
+        ),
+    ];
+    for (record, why) in refusals {
+        assert_eq!(state.apply(&epoch(3, vec![record])), Err(why));
+        assert_eq!(state, before);
+    }
+}
+
+/// D3: more members than items are refused before they are copied.
+#[test]
+fn admits_refuses_more_members_than_items_before_copying_them() {
+    let pool = ContestedPool::new();
+    let members = crowd(1 << 16);
+    let (r, bytes) = peak(|| pool.admits(2, 82, 1, &members));
+    assert_eq!(r, Err(RecordError::DuplicateMember));
+    assert_eq!(bytes, 0);
+}
+
+/// D3: the node refuses more members than items before copying them, beyond its state's clone.
+#[test]
+fn the_node_refuses_more_members_than_items_before_copying_them() {
+    for mut state in states() {
+        let before = state.clone();
+        let (_, clone) = peak(|| state.clone());
+        let crowded = fit_record(2, 1, 3, 1.0, crowd(1 << 16));
+        let (r, bytes) = peak(|| state.apply(&epoch(2, vec![crowded])));
+        assert_eq!(r, Err(ResultsRejected::BadMembers { record: 0 }));
+        assert!(bytes - clone < 4096, "{bytes} bytes, the clone {clone}");
+        assert_eq!(state, before);
+    }
 }
 
 /// D3: a refused record leaves every fact in its fit, even those it would have moved.

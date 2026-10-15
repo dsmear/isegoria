@@ -1042,7 +1042,7 @@ current status and next work are in §5.2. This does not close Phase 1.
   penalized mixture fits, selection after penalized fitting.
 - **Costs and calibration:** sample floors are not power guarantees (B4–B5, C3); respondent burden
   and runtime need budgets (D2, D4); the contested selection's enumeration cost (D3, its resource
-  domain implemented and awaiting review); T83's operating point (B7, D1, D6, E). A8–A9 are closed within the bounded claim rectification accepted by Astra (`15`). Also open: A10, the register's C5 and C6, A4 (b)–(d),
+  domain implemented, corrected after review and awaiting review); T83's operating point (B7, D1, D6, E). A8–A9 are closed within the bounded claim rectification accepted by Astra (`15`). Also open: A10, the register's C5 and C6, A4 (b)–(d),
   C2, C4, the full runtime.
 
 ## 5. Decision synthesis and the calibration comparison
@@ -1144,7 +1144,7 @@ decision, **L** a documented limit.
 | A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; (c), the retired proxy path, fixtures only: L, its listing requiring no change; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
 | A8, A9, medium; closed within the bounded claim rectification | `15`: distinguishability, identifiability and power apart (A8); hypotheses or a controlled approximation (A9) | bounded paper/document correction, exact A8 witness and nondegenerate A9 stationary witness with residual bound (`15` rectification record) | no missing evidence for these corrected claims; generic identifiability, detector power and error bounds for historical fits are not established | — | none to repeat the accepted rectification (`15`) |
 | A10, low; C5, C6, medium | `15`: properness scoped or the fallback decided (A10); index or inferential model (C5); decay policy (C6) | behaviour documented | Dd, Im if changed | A1 for A10 | decisions, Astra's or the owner's |
-| B4–B5, C3; B6, D5; B7, D1, D6, E; D2, D4; D3 | `15`'s statistical table; B7: provisional values allowed with T27 procedures | T24; T25 steps 1–3; `14` Level A | Em on a frozen candidate; D3: Dd on a sustainable domain | T83 (owner); T25 step 4, reading T82's measures | D3's domain: adopted by the owner and implemented on the offline candidate (`15` D3 section), awaiting Astra's review; the rest after the candidate |
+| B4–B5, C3; B6, D5; B7, D1, D6, E; D2, D4; D3 | `15`'s statistical table; B7: provisional values allowed with T27 procedures | T24; T25 steps 1–3; `14` Level A | Em on a frozen candidate; D3: Dd on a sustainable domain | T83 (owner); T25 step 4, reading T82's measures | D3's domain: adopted by the owner, implemented on the offline candidate and corrected after Astra's review of `ec3ccf7` (`15` D3 section), awaiting review; the rest after the candidate |
 
 **Phase 1 outside the register** (`10` §1.5): T25 step 4 for Level B, which reads T82's DIF
 studies on the D43 model and T83's operating point (owner). T82 is no prerequisite for writing

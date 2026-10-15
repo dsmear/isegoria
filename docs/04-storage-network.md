@@ -295,7 +295,9 @@ parameters and the author prior are the node's configuration. The event is appli
 not at all, and refused for a second results event of the same epoch, an inclusion outside
 `(0, 1]`, a value that is not finite, an appeal the author's reputation does not cover, a
 settlement of an escrow that is not open, and a contested fit whose classes or ability
-describe no fit or whose members repeat or fall outside it.
+describe no fit, whose members repeat or fall outside it, or that lies outside the pool's
+resource domain (`15` D3). A contested fit with no members passes the same checks and records
+nothing.
 
 The node applies these results as written: it does not recompute them, and the inputs —
 every reviewer's ratings and every respondent's answers — are not in the event, since they

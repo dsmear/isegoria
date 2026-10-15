@@ -2,7 +2,7 @@
 //! a node applies, and the Merkle root that binds them to the epoch's inputs.
 
 use crate::appeal::{AppealOutcome, AuthorHistory, Escrow};
-use crate::contested::{ContestedPool, FitShape, PoolLimit, RecordError};
+use crate::contested::{ContestedPool, PoolLimit, RecordError};
 use crate::exposure::ExposureLedger;
 use crate::probation::SkillTrack;
 use identity::nym::Nym;
@@ -260,18 +260,19 @@ impl ResultsState {
                 ability,
                 members,
             } => {
-                let out = |limit| ResultsRejected::ContestedOutOfDomain { record: i, limit };
-                let shape = FitShape {
-                    members: members.len(),
-                    classes: pi.len(),
-                    points: pi
-                        .len()
-                        .checked_mul(ability.nodes.len())
-                        .unwrap_or(usize::MAX),
-                    items: c.len(),
+                let refused = |e| match e {
+                    RecordError::OutOfDomain(limit) => {
+                        ResultsRejected::ContestedOutOfDomain { record: i, limit }
+                    }
+                    _ => ResultsRejected::BadMembers { record: i },
                 };
-                let ids: Vec<Cid> = members.iter().map(|&(c, _)| c).collect();
-                self.contested.admits(&shape, &ids).map_err(out)?;
+                let points = pi
+                    .len()
+                    .checked_mul(ability.nodes.len())
+                    .unwrap_or(usize::MAX);
+                self.contested
+                    .admits(pi.len(), points, c.len(), members)
+                    .map_err(refused)?;
                 let curves = ClassCurves::with_ability(pi, eta, ability, a, b, c)
                     .map_err(|_| ResultsRejected::BadClasses { record: i })?;
                 let members: Option<Vec<(Cid, usize)>> = members
@@ -279,12 +280,7 @@ impl ResultsState {
                     .map(|(c, j)| usize::try_from(*j).ok().map(|j| (*c, j)))
                     .collect();
                 let members = members.ok_or(ResultsRejected::BadMembers { record: i })?;
-                self.contested
-                    .record(curves, &members)
-                    .map_err(|e| match e {
-                        RecordError::OutOfDomain(limit) => out(limit),
-                        _ => ResultsRejected::BadMembers { record: i },
-                    })?;
+                self.contested.record(curves, &members).map_err(refused)?;
             }
             ResultRecord::ContestedRemove { item } => {
                 self.contested.remove(item);

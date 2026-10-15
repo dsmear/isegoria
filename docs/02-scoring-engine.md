@@ -692,8 +692,9 @@ balanced selection exists, and it is no licence to assemble the test without its
 facts, or with fewer; what a caller does with it is not specified here. The guarantees of the
 previous paragraph hold on the admitted domain. The pool is bounded too
 (`POOL_LIMITS`): per fit at most 16 classes, `2¹²` ability points and `2¹²` items, at most
-`2¹²` fits, and at most `2²⁷` bytes by its estimate; a record outside is refused before its
-curves are built and changes nothing. The limits derive from the owner's targets on the
+`2¹²` fits, and at most `2²⁷` bytes by its estimate. A record is checked on the fit alone,
+with members or none, then on the pool it would leave; one outside is refused before its curves
+are built or its members copied, and changes nothing. The limits derive from the owner's targets on the
 reference machine — about 2 s per admitted draw and 256 MiB beyond the pool — targets checked
 by measurement, not time guarantees. They bound resources, not a test's DTF (`15` A2).
 

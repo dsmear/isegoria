@@ -1,6 +1,6 @@
 //! D3's candidate measurements (`docs/15` D3): one draw on a declared shape near a frontier, the
-//! pool filled to its byte limit, or a wide record refused; bytes requested through a counting
-//! allocator, process memory from `/proc/self/status`. Usage: `d3_domain_cost <shape>`.
+//! pool filled to its byte limit, or records refused by the node; bytes requested through a
+//! counting allocator, process memory from `/proc/self/status`. Usage: `d3_domain_cost <shape>`.
 
 use network::cid::{cid, Cid};
 use protocol::contested::{ContestedPool, DrawError, RecordError};
@@ -68,12 +68,10 @@ fn normal() -> Ability {
     }
 }
 
-/// `k` items leaning ±0.9 in turn over `classes` equal classes: the fixed 41-point grid for one
-/// class, else a 41-node normal ability, `Q = 41 · classes`.
-fn curves(k: usize, classes: usize) -> ClassCurves {
+/// `a` and `b` of `k` items leaning ±0.9 in turn over `classes` equal classes.
+fn items(k: usize, classes: usize) -> (Vec<Vec<f64>>, Vec<Vec<f64>>) {
     let shift = [-1.0, 1.0, 0.0, 0.0];
-    let a = vec![vec![1.25; k]; classes];
-    let b: Vec<Vec<f64>> = (0..classes)
+    let b = (0..classes)
         .map(|g| {
             (0..k)
                 .map(|j| -1.0 + 2.0 * j as f64 / k.max(2) as f64)
@@ -82,6 +80,13 @@ fn curves(k: usize, classes: usize) -> ClassCurves {
                 .collect()
         })
         .collect();
+    (vec![vec![1.25; k]; classes], b)
+}
+
+/// [`items`]' curves: the fixed 41-point grid for one class, else a 41-node normal ability,
+/// `Q = 41 · classes`.
+fn curves(k: usize, classes: usize) -> ClassCurves {
+    let (a, b) = items(k, classes);
     let (pi, eta) = (vec![1.0; classes], vec![0.0; classes]);
     match classes {
         1 => ClassCurves::new(&pi, &eta, &a, &b),
@@ -171,34 +176,101 @@ fn pool() {
     }
 }
 
-/// A contested fit whose curves would hold `4096 · 16² · 256` values, refused before they exist.
-fn input() {
-    let (classes, items, nodes) = (16, 4096, 256);
-    let results = EpochResults {
+/// A contested fit of `classes` equal classes over an `ability`, as [`items`] lays them out.
+fn fit_record(
+    classes: usize,
+    k: usize,
+    ability: Ability,
+    members: Vec<(Cid, u64)>,
+) -> ResultRecord {
+    let (a, b) = items(k, classes);
+    ResultRecord::ContestedFit {
+        pi: vec![1.0; classes],
+        eta: vec![0.0; classes],
+        a,
+        b,
+        c: vec![0.0; k],
+        ability,
+        members,
+    }
+}
+
+/// A state whose pool holds as many default fits of 16 as [`pool`] records, in one epoch.
+fn full_state() -> ResultsState {
+    let mut pool = ContestedPool::new();
+    let mut fits = 0;
+    while record(&mut pool, fits, 16, 4).is_ok() {
+        fits += 1;
+    }
+    drop(pool);
+    let records = (0..fits)
+        .map(|f| {
+            let members = (0..16)
+                .map(|j| (cid(format!("d3-{f}-{j}").as_bytes()), j))
+                .collect();
+            fit_record(4, 16, normal(), members)
+        })
+        .collect();
+    let mut state = ResultsState::default();
+    let epoch = EpochResults {
         epoch: 1,
         inputs_root: [0; 32],
-        records: vec![ResultRecord::ContestedFit {
-            pi: vec![1.0; classes],
-            eta: vec![0.0; classes],
-            a: vec![vec![1.0; items]; classes],
-            b: vec![vec![0.0; items]; classes],
-            c: vec![0.0; items],
-            ability: Ability {
-                nodes: (0..nodes).map(|q| q as f64).collect(),
-                weights: vec![1.0; nodes],
-            },
-            members: vec![(cid(b"wide"), 0)],
-        }],
+        records,
     };
-    let mut state = ResultsState::default();
-    let start = LIVE.load(Relaxed);
-    PEAK.store(start, Relaxed);
-    let clock = Instant::now();
-    let outcome = state.apply(&results);
-    let seconds = clock.elapsed().as_secs_f64();
-    let extra = PEAK.load(Relaxed) - start;
-    let (_, hwm) = rss();
-    println!("input: {outcome:?}; seconds={seconds:.6}; requested peak={extra} B; VmHWM={hwm} KiB");
+    state.apply(&epoch).expect("the pool's own fits");
+    state
+}
+
+/// Three records refused before their curves or copies — 4,096 items in 16 classes over 256
+/// points with one member or none, and 65,536 members of one item — on two states.
+fn input() {
+    let wide = || Ability {
+        nodes: (0..256).map(f64::from).collect(),
+        weights: vec![1.0; 256],
+    };
+    let crowd = (0..1u32 << 16)
+        .map(|i| (cid(&i.to_le_bytes()), 0))
+        .collect();
+    let records = [
+        (
+            "wide, one member",
+            fit_record(16, 4096, wide(), vec![(cid(b"wide"), 0)]),
+        ),
+        ("wide, no members", fit_record(16, 4096, wide(), Vec::new())),
+        (
+            "65,536 members, one item",
+            fit_record(2, 1, normal(), crowd),
+        ),
+    ];
+    for (name, mut state) in [
+        ("empty", ResultsState::default()),
+        ("full pool", full_state()),
+    ] {
+        let start = LIVE.load(Relaxed);
+        PEAK.store(start, Relaxed);
+        let copy = state.clone();
+        let clone = PEAK.load(Relaxed) - start;
+        drop(copy);
+        for (label, record) in &records {
+            let results = EpochResults {
+                epoch: 2,
+                inputs_root: [0; 32],
+                records: vec![record.clone()],
+            };
+            let start = LIVE.load(Relaxed);
+            PEAK.store(start, Relaxed);
+            let clock = Instant::now();
+            let outcome = state.apply(&results);
+            let seconds = clock.elapsed().as_secs_f64();
+            let extra = PEAK.load(Relaxed) - start;
+            let (_, hwm) = rss();
+            println!(
+                "input: {name} state, {label}: {outcome:?}; seconds={seconds:.6}; apply requested \
+                 peak={extra} B, the state's clone {clone} B, beyond it {} B; VmHWM={hwm} KiB",
+                extra - clone
+            );
+        }
+    }
 }
 
 fn main() {
