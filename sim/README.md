@@ -312,6 +312,20 @@ python3 -m unittest discover -s sim -p test_a2_information_check.py -v
 
 It exits 1, with the reason on stderr, if a certification or a consistency check fails.
 
+### `d3_selection_counts.py`
+
+D3's exact counts (`docs/15`, D3 section): the subsets `ContestedPool::draw` evaluates per fit,
+`S(M, n) = Σ_{r ≤ min(M, n)} C(M, r)`, and their member terms, for the pools of the tests and the
+fit sizes the documents motivate; it first checks a transcription of the enumeration loop against
+the formula. Standard library only, under a second. The isolated timing is the Rust example
+`crates/protocol/examples/d3_draw_cost.rs`. From the repository root:
+
+```
+python3 sim/d3_selection_counts.py
+cargo build --release -p protocol --example d3_draw_cost
+target/release/examples/d3_draw_cost 16 8 2
+```
+
 ## What these prototypes demonstrate
 
 Motivating scenarios documented in `docs/06-threat-model.md`, within these prototypes:
