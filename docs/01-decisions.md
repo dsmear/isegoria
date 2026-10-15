@@ -616,8 +616,8 @@ the reviewer being scored.
   best report is `logit p* = logit q + 2 logit b`, so a dissenter is paid to move toward
   the crowd. Example: a reviewer believes 0.30 and the crowd says 0.65. Reporting 0.60
   earns +0.01 in expectation, reporting the truth earns −0.35.
-- *The difference score is strictly proper* where the report leaves the joint law of
-  baseline and outcome unchanged (`16` C6), not under the fallback with no other weight
+- *The difference score is strictly proper* under a joint law of baseline and outcome that
+  the report leaves unchanged (`16` C6, sufficient), not under the fallback with no other weight
   (`15` A10), and gives exactly 0 to a reviewer who copies the crowd (Prop. 14).
 - *The cap needs an unbounded scale.* It never binds on `E_u ∈ (0,1)` (Prop. 15), and
   relative weights `E_u / median(E)` stay bounded too. Odds weights are unbounded, so the

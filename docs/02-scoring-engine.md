@@ -820,8 +820,10 @@ other report under those conditions (`08` AT-REP-05). With no other positive pan
 weight, `reputation::loo_baseline` (the golden-item path, `honeypot::reviewer_skills`)
 falls back to the reviewer's own forecast as baseline, producing zero for every report;
 this case is uninformative, not strictly proper. Its zero is not neutral where it is
-recorded: as an observed score it would advance `k_u`, probation and `N_u` and feed the
-change detector. No caller records it, and what an absent baseline does is undecided
+recorded: as an observed score without an alarm it would advance `k_u`, probation and `N_u`
+and can move `S_u` toward 0; past probation it first reaches the change detector, whose
+alarm resets the track before those increments. No caller records it. What an absent
+baseline does is a residual to decide before integration, with no automatic conversion
 (`15` A10).
 
 **Band items (`01` D26, D33; `16` C5).** On an item that went through the extra round, a

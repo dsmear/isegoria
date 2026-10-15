@@ -141,15 +141,20 @@ golden items is therefore in the regime of the largest distortion.
 \subsection{A proper alternative}
 
 \begin{proposition}[Leave-one-out difference score]\label{prop:loo}\proved{}
-Let $\bar p_{-u,j}$ be the weighted mean forecast of the \emph{other} panelists on item $j$, their
-total weight positive, and
+Fix before the reports the set of scored items and its size $m$, the denominator. Let
+$\bar p_{-u,j}$ be the weighted mean forecast of the \emph{other} panelists on item $j$, defined
+because their total weight is positive, and
 \begin{equation}\label{eq:loo}
   S_u=\frac1m\sum_{j}\Bigl[(\bar p_{-u,j}-o_j)^2-(p_{uj}-o_j)^2\Bigr].
 \end{equation}
-Under \cref{ass:blind}, so that $\bar p_{-u,j}$ does not depend on $p_{uj}$:
+Let the reviewer's reports be chosen on its information $F_u$, let $q_j=\Pr(o_j=1\mid F_u)$, and
+suppose that, given $F_u$, the joint law of $(\bar p_{-u,j},o_j)$ is the same under every
+deviation of the reviewer's reports. Blind commit--reveal (\cref{ass:blind}) does not by itself
+establish these conditions. Then:
 \begin{enumerate}[label=(\roman*)]
-  \item $S_u$ is strictly proper: $\E[S_u]=c_u-\frac1m\sum_j(p_{uj}-q_j)^2$ with $c_u$ not
-    depending on the reports, so truthful reporting is the unique optimum;
+  \item $S_u$ is strictly proper: $\E[S_u\mid F_u]=c_u-\frac1m\sum_j(p_{uj}-q_j)^2$ with $c_u$
+    not depending on the reports, by the joint invariance, so truthful reporting is the unique
+    optimum;
   \item a reviewer who copies the crowd ($p_{uj}=\bar p_{-u,j}$) scores exactly $0$ for every
     outcome, not only in expectation;
   \item $S_u>0$ if and only if the reviewer's Brier score on the scored items beats the crowd's;

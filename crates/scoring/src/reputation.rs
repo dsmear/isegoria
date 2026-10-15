@@ -53,8 +53,8 @@ impl Default for EvaluatorParams {
     }
 }
 
-/// Per-item Brier improvement over `baseline` (D33), 0 at it: strictly proper only where the
-/// report leaves the joint law of baseline and outcome unchanged (`docs/02` §C.2, `docs/15` A10).
+/// Per-item Brier improvement over `baseline` (D33), 0 at it: strictly proper under a joint law of
+/// baseline and outcome that the report leaves unchanged (`docs/02` §C.2, `docs/15` A10).
 pub fn difference_score(p: f64, baseline: f64, o: f64) -> f64 {
     (baseline - o).powi(2) - (p - o).powi(2)
 }

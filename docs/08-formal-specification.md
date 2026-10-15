@@ -160,8 +160,8 @@ status; what the repository changed after the paper's snapshot is listed in
   Prop 12). Scoring only items that pass the gate would also be improper. Status:
   **RESOLVED** — the score is the leave-one-out difference score, strictly proper
   (D33, T50, 2026-09-25: `reputation::loo_scores`, `AT-REP-05` ✓, and the paper's
-  dissenter example reproduced on the retired function, `evaluator_score.rs`) where the
-  report leaves the joint law of baseline and outcome unchanged (`docs/16` C6), not under
+  dissenter example reproduced on the retired function, `evaluator_score.rs`) under a joint
+  law of baseline and outcome that the report leaves unchanged (`docs/16` C6), not under
   the fallback with no other weight, which scores every report 0 (`docs/15` A10); and since
   T52 (D35, 2026-09-25) the scored items are the live outcomes too: a random 5% of gate
   rejections, drawn from the beacon, is piloted for measurement only and every observed
@@ -1563,7 +1563,7 @@ Status is the lowest justified. "Missing evidence" names what would raise it one
 | REPUTATION-005 | cap limits a node | `evaluator_score.rs`, `orchestrator_driver.rs` (`epoch_weight_cap`), AT-REP-04 | RESOLVED (T50) — odds-scale weights, the cap binds on an outlier | — | — |
 | REPUTATION-006 | probation | `probation.rs`, `orchestrator.rs` (`bridging_weights`) | WIRED (T5) — probation → `w_u = 0`, so a probationer's ratings do not move `b_j`; `orchestrator_driver.rs` | — | G-03 |
 | REPUTATION-007 | appeal stake coherent | `appeal.rs`, `orchestrator.rs` (`settle_appeal`), `appeal_stake.rs`, `end_to_end.rs` | TESTED — a zero-quality pseudo-observation escrowed at filing, replaced by `q_j` on promotion, left otherwise; the floor is the prior mean; `run_item` derives the checks from the verdicts (D27, T61) | floor and stake weight provisional | T25 |
-| REPUTATION-008 | evaluator score proper | paper §5.3–5.4, `levelC_bss.py`; `reputation.rs` (`loo_scores`, `odds_weight`, `inverse_probability_mean`), `evaluator_score.rs` (AT-REP-05), `exploration.rs`, `exploration_weights.rs` (AT-REP-06, AT-PRO-07) | RESOLVED (T50, T52) — the leave-one-out difference score, strictly proper where the report leaves the joint law of baseline and outcome unchanged (not under the fallback, `docs/15` A10); the retired ratio was not; live outcomes with 5% randomized exploration of gate rejections at weight `1/ε` keep it proper when the gate decides what is observed | `ε` provisional | T25 |
+| REPUTATION-008 | evaluator score proper | paper §5.3–5.4, `levelC_bss.py`; `reputation.rs` (`loo_scores`, `odds_weight`, `inverse_probability_mean`), `evaluator_score.rs` (AT-REP-05), `exploration.rs`, `exploration_weights.rs` (AT-REP-06, AT-PRO-07) | RESOLVED (T50, T52) — the leave-one-out difference score, strictly proper under a joint law of baseline and outcome that the report leaves unchanged (not under the fallback, `docs/15` A10); the retired ratio was not; live outcomes with 5% randomized exploration of gate rejections at weight `1/ε` keep it proper when the gate decides what is observed | `ε` provisional | T25 |
 | COLLUSION-001 | identical cartel → √k | `anti_collusion.rs`, `adversarial.rs` | TESTED (identical, dense, unit) | — | — |
 | COLLUSION-002 | jittered cartel detected | `collusion.rs` (`coordination_clusters`), `coordination.rs` (AT-COL-02/07) | RESOLVED (D39, T56) — residual correlation with a permutation null; the σ = 0.05 cartel fully flagged, no honest pair | thresholds provisional | T25 |
 | COLLUSION-003 | sparse data | `collusion.rs` (`ResidualHistory`), `coordination.rs` | RESOLVED for the mechanism (T56) — residuals accumulate per item across epochs; a pair is read from 30 shared items | the design-scale simulation | AT-COL-03 |

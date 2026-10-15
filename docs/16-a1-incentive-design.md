@@ -273,8 +273,9 @@ composes, through `loo_scores` with its A10 fallback. The smallest composition A
 `first_panel_baselines(first)`; `extra_round_baseline(first)`, which takes no extra-round input;
 `item_scores(first, extra, outcome)`, whose extra-round input is forecasts only. A baseline
 without weight is `None`, and so is its score: never the reviewer's own forecast, never 0. Its
-effect on the denominator, probation and reputation is not decided. A10 stays open for the
-overall policy and for the golden-item path's fallback.
+effect on the denominator, probation and reputation is not decided. A10 is closed within its
+claim rectification (`15`); that policy, for this path and the golden-item path's fallback,
+stays a residual to decide before integration.
 
 **Verification** (E, `crates/protocol/tests/panel_scores.rs`; expectations computed by hand with
 weights 2, 0.5, 1.5 and 0): the baselines equal the weighted means each may read; a first
