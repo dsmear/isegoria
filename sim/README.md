@@ -326,6 +326,27 @@ cargo build --release -p protocol --example d3_draw_cost
 target/release/examples/d3_draw_cost 16 8 2
 ```
 
+### `d3_domain_limits.py`
+
+D3's resource domain (`docs/15`, D3 section): the limits `protocol::contested` enforces
+(`DRAW_LIMITS`, `POOL_LIMITS`), the byte model behind them — allocations as the draw makes them,
+capacities, a reallocation's old copy, the stack, glibc's chunk overhead, every subset kept — its
+bound with every limit reached at once, the pool's estimate, and which documented configurations
+and measured shapes are admitted or refused, with the limit that refuses them. Standard library
+only, under a second. The measurements are the Rust example
+`crates/protocol/examples/d3_domain_cost.rs`, whose counting allocator reports the bytes a draw
+requests; the regression record of the draw's outcomes is rewritten by `D3_RECORD`:
+
+```
+python3 sim/d3_domain_limits.py
+cargo build --release -p protocol --example d3_domain_cost
+/usr/bin/time -f "%e s %M KB" target/release/examples/d3_domain_cost kept
+D3_RECORD=$PWD/crates/protocol/tests/fixtures/d3_draws.txt cargo test -p protocol --test d3_draw_regression
+```
+
+The shapes are `kept`, `entries`, `terms`, `terms-all`, `cells-one`, `cells-many`, `scans`,
+`combined`, `combined-all`, `pool` and `input`.
+
 ## What these prototypes demonstrate
 
 Motivating scenarios documented in `docs/06-threat-model.md`, within these prototypes:

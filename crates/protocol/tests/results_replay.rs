@@ -4,6 +4,7 @@
 use identity::nym::Nym;
 use network::cid::{cid, Cid};
 use protocol::appeal::{AppealOutcome, AuthorHistory};
+use protocol::contested::PoolLimit;
 use protocol::events::NodeEvent;
 use protocol::node::{Node, NodeError, Outcome, Rejection};
 use protocol::probation::SkillTrack;
@@ -52,6 +53,23 @@ fn fit(members: Vec<(Cid, u64)>) -> ResultRecord {
         c: vec![0.0, 0.2],
         ability: ability(),
         members,
+    }
+}
+
+/// A well-formed contested fit of `classes` equal classes, `items` items and `nodes` ability
+/// points, one member: its curves would hold `items · classes² · nodes` values.
+fn wide_fit(classes: usize, items: usize, nodes: usize) -> ResultRecord {
+    ResultRecord::ContestedFit {
+        pi: vec![1.0; classes],
+        eta: vec![0.0; classes],
+        a: vec![vec![1.0; items]; classes],
+        b: vec![vec![0.0; items]; classes],
+        c: vec![0.0; items],
+        ability: Ability {
+            nodes: (0..nodes).map(|q| q as f64 / nodes as f64).collect(),
+            weights: vec![1.0; nodes],
+        },
+        members: vec![(cid(b"wide"), 0)],
     }
 }
 
@@ -312,6 +330,22 @@ fn at_pro_12_results_are_applied_whole_or_not_at_all() {
             vec![fit(vec![(cid(b"z"), 2)])],
             ResultsRejected::BadMembers { record: 0 },
         ),
+        (
+            2,
+            vec![wide_fit(17, 1, 3)],
+            ResultsRejected::ContestedOutOfDomain {
+                record: 0,
+                limit: PoolLimit::Classes,
+            },
+        ),
+        (
+            2,
+            vec![wide_fit(16, 4096, 256)],
+            ResultsRejected::ContestedOutOfDomain {
+                record: 0,
+                limit: PoolLimit::Bytes,
+            },
+        ),
     ];
     for (epoch, records, why) in cases {
         let mut all = vec![ResultRecord::Exposure {
@@ -337,6 +371,12 @@ fn at_pro_12_results_are_applied_whole_or_not_at_all() {
             }
             ResultsRejected::BadMembers { record } => {
                 ResultsRejected::BadMembers { record: record + 1 }
+            }
+            ResultsRejected::ContestedOutOfDomain { record, limit } => {
+                ResultsRejected::ContestedOutOfDomain {
+                    record: record + 1,
+                    limit,
+                }
             }
         };
         all.extend(records);

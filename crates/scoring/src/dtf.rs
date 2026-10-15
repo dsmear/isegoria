@@ -192,6 +192,11 @@ impl ClassCurves {
         self.curves.len()
     }
 
+    /// The ability points every curve is evaluated at: `G · A` through `with_ability`.
+    pub fn points(&self) -> usize {
+        self.weights.len()
+    }
+
     /// `DTF_F(set)` in score points over the items `set` of this fit, whatever their order;
     /// `None` if an index is past the fit or repeated. 0 with one class or an empty set.
     pub fn dtf(&self, set: &[usize]) -> Option<f64> {

@@ -668,9 +668,9 @@ tolerance, and any margin below it, are T25's.
 its subsets of at most `n` contested facts whose own DTF is within the tolerance (the
 empty one included); a table of the least cost that completes `n` from the fits not yet
 visited keeps only the candidates that can still be completed, and one is drawn
-uniformly among them. So the draw fails only when no balanced selection of `n` exists —
-it then reports the sizes that do — and every balanced selection has a positive
-probability. The cost is summed in fixed point (each fit's DTF rounded up to `2⁻³²`
+uniformly among them. So, inside the resource domain below, the draw fails only when no
+balanced selection of `n` exists — it then reports the sizes that do — and every balanced
+selection has a positive probability. The cost is summed in fixed point (each fit's DTF rounded up to `2⁻³²`
 score points), so the budget is exact (`protocol::contested`). The draw is a function
 of the pool's content and the seed alone: the pool keeps a canonical order — within a
 fit, the members by content id; the fits by their least member, unique since a fact
@@ -679,6 +679,23 @@ candidates and the order of the drawn facts owe nothing to the order in which fa
 recorded, re-measured or retired. Two replicas holding the same facts in the same fits
 draw the same test from the same seed, and whoever records the facts cannot pick the
 test by the order of recording (the order-dependence the lottery had until T37).
+
+**The resource domain (`15` D3).** The draw's work grows with the subsets it enumerates, so
+it runs on a bounded offline domain the owner adopted. Before it enumerates or allocates its
+table it checks exact integer counts of the pool's shape and `n` alone — never the seed, the
+tolerance or a DTF — against `protocol::contested::DRAW_LIMITS`: at most `2²⁰` subsets
+visited, `2²²` member entries, `2²⁹` DTF point terms, `2²⁰` cells of the least-cost table
+and `2²⁶` scans of it. Inside, the draw is the one above, unchanged in law, exactness,
+candidate order and seeding. Outside, it returns `DrawError::OutOfDomain`, typed apart from
+`DrawError::NoBalancedDraw`: the pool was not evaluated, so it states nothing on whether a
+balanced selection exists, and it is no licence to assemble the test without its contested
+facts, or with fewer; what a caller does with it is not specified here. The guarantees of the
+previous paragraph hold on the admitted domain. The pool is bounded too
+(`POOL_LIMITS`): per fit at most 16 classes, `2¹²` ability points and `2¹²` items, at most
+`2¹²` fits, and at most `2²⁷` bytes by its estimate; a record outside is refused before its
+curves are built and changes nothing. The limits derive from the owner's targets on the
+reference machine — about 2 s per admitted draw and 256 MiB beyond the pool — targets checked
+by measurement, not time guarantees. They bound resources, not a test's DTF (`15` A2).
 
 **Current scores.** A contested fact is admitted to the bank. Its binary Level B outcome for
 the implemented evaluator score is 1, as for an item that reaches the pool (§C.2) — scoring it

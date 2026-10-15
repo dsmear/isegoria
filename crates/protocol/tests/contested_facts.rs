@@ -6,7 +6,7 @@ mod common;
 
 use network::cid::{cid, Cid};
 use protocol::blueprint::{assemble_test, Blueprint};
-use protocol::contested::{ContestedPool, NoBalancedDraw, RecordError};
+use protocol::contested::{ContestedPool, DrawError, NoBalancedDraw, RecordError};
 use protocol::exploration::{outcome_of, Observation, Scored, EXPLORATION_RATE};
 use protocol::exposure::{should_retire, ItemHealth, RetirementReason, EXPOSURE_LIMIT};
 use protocol::gate::GateOutcome;
@@ -270,10 +270,11 @@ fn the_draw_finds_a_balanced_selection_whenever_one_exists() {
     for n in 0..=7 {
         match pool.draw(n, DTF_MAX, 11) {
             Ok(test) => assert!(brute.contains(&n) && test.len() == n),
-            Err(NoBalancedDraw {
+            Err(DrawError::OutOfDomain(o)) => panic!("n = {n}: {o:?}"),
+            Err(DrawError::NoBalancedDraw(NoBalancedDraw {
                 requested,
                 feasible,
-            }) => {
+            })) => {
                 assert!(!brute.contains(&n), "n = {n} is balanced by brute force");
                 assert_eq!(requested, n);
                 let expect: Vec<usize> = brute.iter().copied().filter(|&s| s <= n).collect();
@@ -311,10 +312,10 @@ fn leaners_from_different_fits_do_not_cancel() {
     );
     assert_eq!(
         pool.draw(2, DTF_MAX, 3),
-        Err(NoBalancedDraw {
+        Err(DrawError::NoBalancedDraw(NoBalancedDraw {
             requested: 2,
             feasible: vec![0]
-        })
+        }))
     );
     pool.record(joint, &[(x, 0), (y, 1)]).unwrap();
     assert_eq!(

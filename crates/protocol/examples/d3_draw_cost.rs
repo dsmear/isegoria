@@ -3,7 +3,7 @@
 //! Usage: `d3_draw_cost M n G`; prints the subsets the enumeration visits and the elapsed time.
 
 use network::cid::cid;
-use protocol::contested::ContestedPool;
+use protocol::contested::{ContestedPool, DrawError};
 use scoring::dtf::{ClassCurves, DTF_MAX};
 use scoring::latent::Ability;
 use std::time::Instant;
@@ -65,7 +65,8 @@ fn main() {
     let seconds = start.elapsed().as_secs_f64();
     let drawn = match &outcome {
         Ok(test) => format!("drew {}", test.len()),
-        Err(e) => format!("no balanced draw; feasible sizes {:?}", e.feasible),
+        Err(DrawError::NoBalancedDraw(e)) => format!("no balanced draw; feasible {:?}", e.feasible),
+        Err(DrawError::OutOfDomain(e)) => format!("out of domain: {e:?}"),
     };
     println!(
         "M={m} n={n} G={g} subsets={subsets} item_evaluations={evaluations} seconds={seconds:.3} \

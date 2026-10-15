@@ -2,7 +2,7 @@
 //! a node applies, and the Merkle root that binds them to the epoch's inputs.
 
 use crate::appeal::{AppealOutcome, AuthorHistory, Escrow};
-use crate::contested::ContestedPool;
+use crate::contested::{ContestedPool, FitShape, PoolLimit, RecordError};
 use crate::exposure::ExposureLedger;
 use crate::probation::SkillTrack;
 use identity::nym::Nym;
@@ -75,12 +75,29 @@ pub struct EpochResults {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ResultsRejected {
     EpochRecorded,
-    BadInclusion { record: usize },
-    NotFinite { record: usize },
-    AppealNotCovered { record: usize },
-    NoOpenEscrow { record: usize },
-    BadClasses { record: usize },
-    BadMembers { record: usize },
+    BadInclusion {
+        record: usize,
+    },
+    NotFinite {
+        record: usize,
+    },
+    AppealNotCovered {
+        record: usize,
+    },
+    NoOpenEscrow {
+        record: usize,
+    },
+    BadClasses {
+        record: usize,
+    },
+    BadMembers {
+        record: usize,
+    },
+    /// A contested fit outside the pool's domain (`docs/15` D3), refused before its curves exist.
+    ContestedOutOfDomain {
+        record: usize,
+        limit: PoolLimit,
+    },
 }
 
 /// A rating's leaf: the judge's proven id, the item, the probability's bits.
@@ -243,16 +260,31 @@ impl ResultsState {
                 ability,
                 members,
             } => {
+                let out = |limit| ResultsRejected::ContestedOutOfDomain { record: i, limit };
+                let shape = FitShape {
+                    members: members.len(),
+                    classes: pi.len(),
+                    points: pi
+                        .len()
+                        .checked_mul(ability.nodes.len())
+                        .unwrap_or(usize::MAX),
+                    items: c.len(),
+                };
+                let ids: Vec<Cid> = members.iter().map(|&(c, _)| c).collect();
+                self.contested.admits(&shape, &ids).map_err(out)?;
                 let curves = ClassCurves::with_ability(pi, eta, ability, a, b, c)
                     .map_err(|_| ResultsRejected::BadClasses { record: i })?;
                 let members: Option<Vec<(Cid, usize)>> = members
                     .iter()
                     .map(|(c, j)| usize::try_from(*j).ok().map(|j| (*c, j)))
                     .collect();
-                members
-                    .ok_or(())
-                    .and_then(|m| self.contested.record(curves, &m).map_err(|_| ()))
-                    .map_err(|_| ResultsRejected::BadMembers { record: i })?;
+                let members = members.ok_or(ResultsRejected::BadMembers { record: i })?;
+                self.contested
+                    .record(curves, &members)
+                    .map_err(|e| match e {
+                        RecordError::OutOfDomain(limit) => out(limit),
+                        _ => ResultsRejected::BadMembers { record: i },
+                    })?;
             }
             ResultRecord::ContestedRemove { item } => {
                 self.contested.remove(item);

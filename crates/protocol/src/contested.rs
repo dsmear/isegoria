@@ -16,10 +16,200 @@ fn units(dtf: f64) -> u64 {
     (dtf * SCALE).ceil() as u64
 }
 
+/// The draw's resource domain (`docs/15` D3): the most it may visit, copy, evaluate and tabulate.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DrawLimits {
+    pub visits: u64,
+    pub member_entries: u64,
+    pub point_terms: u64,
+    pub table_cells: u64,
+    pub table_scans: u64,
+}
+
+pub const DRAW_LIMITS: DrawLimits = DrawLimits {
+    visits: 1 << 20,
+    member_entries: 1 << 22,
+    point_terms: 1 << 29,
+    table_cells: 1 << 20,
+    table_scans: 1 << 26,
+};
+
+/// The pool's domain (`docs/15` D3): per fit its classes, points and items; the fits, and the
+/// pool's estimated bytes, [`FitShape::bytes`] summed over the fits plus [`POOL_FIXED_BYTES`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PoolLimits {
+    pub classes: usize,
+    pub points: usize,
+    pub items: usize,
+    pub fits: usize,
+    pub bytes: u64,
+}
+
+pub const POOL_LIMITS: PoolLimits = PoolLimits {
+    classes: 16,
+    points: 1 << 12,
+    items: 1 << 12,
+    fits: 1 << 12,
+    bytes: 1 << 27,
+};
+
+/// The buffer of fits at the fit limit, 80 bytes a fit with twice the capacity and an old copy.
+pub const POOL_FIXED_BYTES: u64 = 240 * POOL_LIMITS.fits as u64;
+
+/// A fit's dimensions: members `M`, classes `G`, ability points `Q`, items `K`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FitShape {
+    pub members: usize,
+    pub classes: usize,
+    pub points: usize,
+    pub items: usize,
+}
+
+impl FitShape {
+    /// The pool's estimate of the fit's heap bytes, glibc's chunk overhead included (`docs/15`
+    /// D3): `8KGQ + 40KG + 40K + 8Q + 42M + 48`; `None` past `u128`.
+    pub fn bytes(&self) -> Option<u128> {
+        let [m, g, q, k] = [self.members, self.classes, self.points, self.items].map(wide);
+        let (m, g, q, k) = (m?, g?, q?, k?);
+        let rows = k.checked_mul(g)?;
+        rows.checked_mul(q)?
+            .checked_mul(8)?
+            .checked_add(rows.checked_mul(40)?)?
+            .checked_add(k.checked_mul(40)?)?
+            .checked_add(q.checked_mul(8)?)?
+            .checked_add(m.checked_mul(42)?)?
+            .checked_add(48)
+    }
+}
+
+fn wide(x: usize) -> Option<u128> {
+    u128::try_from(x).ok()
+}
+
+/// The draw limit a request exceeds.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DrawLimit {
+    TableCells,
+    Visits,
+    TableScans,
+    MemberEntries,
+    PointTerms,
+}
+
+/// A request outside the draw's domain: the pool was not evaluated, so it says nothing of whether
+/// a balanced selection exists. `reached`: a count past `limit` so far, `None` past `u128`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OutOfDomain {
+    pub limit: DrawLimit,
+    pub reached: Option<u128>,
+}
+
+/// Exact counts of one draw (`docs/15` D3): subsets visited, their member entries, DTF point
+/// terms, the least-cost table's cells, and `(n + 1) · visits` bounding the table's scans.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DrawCounts {
+    pub visits: u128,
+    pub member_entries: u128,
+    pub point_terms: u128,
+    pub table_cells: u128,
+    pub table_scans: u128,
+}
+
+fn bounded(limit: DrawLimit, value: Option<u128>, max: u64) -> Result<u128, OutOfDomain> {
+    match value {
+        Some(count) if count <= u128::from(max) => Ok(count),
+        reached => Err(OutOfDomain { limit, reached }),
+    }
+}
+
+/// [`DrawCounts`] of drawing `n` from fits of these shapes, checked against `limits` in the order
+/// [`DrawLimit`] lists them and stopped at the first exceeded; it allocates nothing.
+pub fn draw_counts<I>(fits: I, n: usize, limits: &DrawLimits) -> Result<DrawCounts, OutOfDomain>
+where
+    I: IntoIterator<Item = FitShape>,
+    I::IntoIter: ExactSizeIterator,
+{
+    let fits = fits.into_iter();
+    let sizes = wide(n).and_then(|n| n.checked_add(1));
+    let cells = wide(fits.len())
+        .and_then(|m| m.checked_add(1))
+        .zip(sizes)
+        .and_then(|(m, s)| m.checked_mul(s));
+    let table_cells = bounded(DrawLimit::TableCells, cells, limits.table_cells)?;
+    let (mut visits, mut entries, mut terms, mut scans) = (0u128, 0u128, 0u128, 0u128);
+    for fit in fits {
+        let members = wide(fit.members);
+        let classes = wide(fit.classes);
+        let pairs = classes.and_then(|g| g.checked_mul(g.saturating_sub(1)));
+        let per_entry = pairs
+            .zip(wide(fit.points))
+            .and_then(|(p, q)| (p / 2).checked_mul(q));
+        let mut subsets = Some(1u128);
+        for r in 0..=fit.members.min(n) {
+            let size = wide(r);
+            let count = subsets.and_then(|c| visits.checked_add(c));
+            visits = bounded(DrawLimit::Visits, count, limits.visits)?;
+            let count = sizes.and_then(|s| s.checked_mul(visits));
+            scans = bounded(DrawLimit::TableScans, count, limits.table_scans)?;
+            let added = subsets.zip(size).and_then(|(c, r)| c.checked_mul(r));
+            let count = added.and_then(|a| entries.checked_add(a));
+            entries = bounded(DrawLimit::MemberEntries, count, limits.member_entries)?;
+            let added = added.and_then(|a| match a {
+                0 => Some(0),
+                a => per_entry.and_then(|k| a.checked_mul(k)),
+            });
+            let count = added.and_then(|a| terms.checked_add(a));
+            terms = bounded(DrawLimit::PointTerms, count, limits.point_terms)?;
+            let left = members.zip(size).and_then(|(m, r)| m.checked_sub(r));
+            subsets = subsets
+                .zip(left)
+                .and_then(|(c, l)| c.checked_mul(l))
+                .zip(size.and_then(|r| r.checked_add(1)))
+                .map(|(c, d)| c / d);
+        }
+    }
+    Ok(DrawCounts {
+        visits,
+        member_entries: entries,
+        point_terms: terms,
+        table_cells,
+        table_scans: scans,
+    })
+}
+
+fn within_fit(shape: &FitShape) -> Result<(), PoolLimit> {
+    if shape.classes > POOL_LIMITS.classes {
+        Err(PoolLimit::Classes)
+    } else if shape.points > POOL_LIMITS.points {
+        Err(PoolLimit::Points)
+    } else if shape.items > POOL_LIMITS.items {
+        Err(PoolLimit::Items)
+    } else {
+        Ok(())
+    }
+}
+
+fn sorted(items: &[Cid]) -> Vec<[u8; 32]> {
+    let mut ids: Vec<[u8; 32]> = items.iter().map(|c| c.0).collect();
+    ids.sort_unstable();
+    ids
+}
+
 #[derive(Clone, Debug, PartialEq)]
 struct Fit {
     curves: ClassCurves,
     members: Vec<(Cid, usize)>,
+}
+
+impl Fit {
+    fn shape(&self) -> FitShape {
+        FitShape {
+            members: self.members.len(),
+            classes: self.curves.classes(),
+            points: self.curves.points(),
+            items: self.curves.items(),
+        }
+    }
 }
 
 /// A fit's subset the draw may take: positions in `Fit::members`, and its DTF in units.
@@ -44,6 +234,18 @@ pub enum RecordError {
     },
     /// The same item, or the same index, listed twice.
     DuplicateMember,
+    /// The fit, or the pool it would leave, is outside [`POOL_LIMITS`]; nothing was recorded.
+    OutOfDomain(PoolLimit),
+}
+
+/// The pool limit a record exceeds.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PoolLimit {
+    Classes,
+    Points,
+    Items,
+    Fits,
+    Bytes,
 }
 
 /// No selection of `requested` facts is balanced; `feasible` lists the sizes up to it that are.
@@ -51,6 +253,13 @@ pub enum RecordError {
 pub struct NoBalancedDraw {
     pub requested: usize,
     pub feasible: Vec<usize>,
+}
+
+/// Why a draw returned no selection: the pool evaluated in full, or the request not evaluated.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DrawError {
+    NoBalancedDraw(NoBalancedDraw),
+    OutOfDomain(OutOfDomain),
 }
 
 impl ContestedPool {
@@ -73,7 +282,8 @@ impl ContestedPool {
     }
 
     /// Records `curves` as the latest fit of `members` (an item and its index in the fit): a
-    /// member already in the pool moves to it (`docs/05` [7b] re-measurement).
+    /// member already in the pool moves to it (`docs/05` [7b] re-measurement). A refusal changes
+    /// nothing.
     pub fn record(
         &mut self,
         curves: ClassCurves,
@@ -83,6 +293,13 @@ impl ContestedPool {
         if let Some(&(_, index)) = members.iter().find(|(_, j)| *j >= items) {
             return Err(RecordError::IndexOutOfRange { index, items });
         }
+        let shape = FitShape {
+            members: members.len(),
+            classes: curves.classes(),
+            points: curves.points(),
+            items,
+        };
+        within_fit(&shape).map_err(RecordError::OutOfDomain)?;
         let repeated = (1..members.len()).any(|i| {
             members[..i]
                 .iter()
@@ -91,9 +308,10 @@ impl ContestedPool {
         if repeated {
             return Err(RecordError::DuplicateMember);
         }
-        for (item, _) in members {
-            self.remove(item);
-        }
+        let ids: Vec<Cid> = members.iter().map(|&(c, _)| c).collect();
+        self.admits(&shape, &ids)
+            .map_err(RecordError::OutOfDomain)?;
+        self.take_out(&ids);
         if !members.is_empty() {
             self.fits.push(Fit {
                 curves,
@@ -104,15 +322,68 @@ impl ContestedPool {
         Ok(())
     }
 
+    /// Whether recording a fit of `shape` with the facts `members`, those already in the pool
+    /// moving to it, keeps the pool within [`POOL_LIMITS`] (`docs/15` D3).
+    pub fn admits(&self, shape: &FitShape, members: &[Cid]) -> Result<(), PoolLimit> {
+        within_fit(shape)?;
+        let moved = sorted(members);
+        let stays = |c: &Cid| moved.binary_search(&c.0).is_err();
+        let mut fits = usize::from(!members.is_empty());
+        let mut bytes = match members {
+            [] => Some(u128::from(POOL_FIXED_BYTES)),
+            _ => shape
+                .bytes()
+                .and_then(|b| b.checked_add(u128::from(POOL_FIXED_BYTES))),
+        };
+        for fit in &self.fits {
+            let left = fit.members.iter().filter(|(c, _)| stays(c)).count();
+            if left > 0 {
+                fits += 1;
+                let kept = FitShape {
+                    members: left,
+                    ..fit.shape()
+                };
+                bytes = bytes.zip(kept.bytes()).and_then(|(t, b)| t.checked_add(b));
+            }
+        }
+        if fits > POOL_LIMITS.fits {
+            return Err(PoolLimit::Fits);
+        }
+        match bytes {
+            Some(b) if b <= u128::from(POOL_LIMITS.bytes) => Ok(()),
+            _ => Err(PoolLimit::Bytes),
+        }
+    }
+
+    /// The pool's estimated bytes, as [`PoolLimits::bytes`] bounds them.
+    pub fn bytes(&self) -> Option<u128> {
+        self.fits
+            .iter()
+            .try_fold(u128::from(POOL_FIXED_BYTES), |total, f| {
+                total.checked_add(f.shape().bytes()?)
+            })
+    }
+
     /// Takes `item` out of the pool (to the active pool, or retired); false if absent.
     pub fn remove(&mut self, item: &Cid) -> bool {
         let before = self.len();
-        for fit in &mut self.fits {
-            fit.members.retain(|(c, _)| c != item);
-        }
-        self.fits.retain(|f| !f.members.is_empty());
+        self.take_out(std::slice::from_ref(item));
         self.canonicalize();
         self.len() != before
+    }
+
+    /// Takes `items` out of their fits, releasing the spare capacity the estimate does not count.
+    fn take_out(&mut self, items: &[Cid]) {
+        let gone = sorted(items);
+        for fit in &mut self.fits {
+            let before = fit.members.len();
+            fit.members
+                .retain(|(c, _)| gone.binary_search(&c.0).is_err());
+            if fit.members.len() != before {
+                fit.members.shrink_to_fit();
+            }
+        }
+        self.fits.retain(|f| !f.members.is_empty());
     }
 
     fn canonicalize(&mut self) {
@@ -142,10 +413,17 @@ impl ContestedPool {
         (distinct && found == selection.len()).then(|| total as f64 / SCALE)
     }
 
-    /// Draws `n` contested facts whose cost is at most `tolerance`, at random among the
-    /// balanced selections (`docs/02` §B.7), a function of the pool's content and `seed`
-    /// alone. A negative or NaN `tolerance` admits only a cost of 0.
-    pub fn draw(&self, n: usize, tolerance: f64, seed: u64) -> Result<Vec<Cid>, NoBalancedDraw> {
+    /// The counts of drawing `n` from this pool, or why that is outside [`DRAW_LIMITS`]: a
+    /// function of the fits' shapes and `n` alone (`docs/15` D3).
+    pub fn admission(&self, n: usize) -> Result<DrawCounts, OutOfDomain> {
+        draw_counts(self.fits.iter().map(Fit::shape), n, &DRAW_LIMITS)
+    }
+
+    /// Draws `n` contested facts whose cost is at most `tolerance`, uniformly per fit among the
+    /// balanced selections (`docs/02` §B.7), from the pool's content and `seed` alone, once
+    /// [`ContestedPool::admission`] admits `n`. A negative or NaN `tolerance` admits only 0.
+    pub fn draw(&self, n: usize, tolerance: f64, seed: u64) -> Result<Vec<Cid>, DrawError> {
+        self.admission(n).map_err(DrawError::OutOfDomain)?;
         let budget = (tolerance * SCALE).floor() as u64;
         let mut rng = ChaCha8Rng::seed_from_u64(seed);
         let mut order: Vec<usize> = (0..self.fits.len()).collect();
@@ -170,10 +448,10 @@ impl ContestedPool {
         }
         let within = |bound: Option<u64>| bound.is_some_and(|b| b <= budget);
         if !within(least[0][n]) {
-            return Err(NoBalancedDraw {
+            return Err(DrawError::NoBalancedDraw(NoBalancedDraw {
                 requested: n,
                 feasible: (0..=n).filter(|&s| within(least[0][s])).collect(),
-            });
+            }));
         }
 
         let (mut left, mut room) = (n, budget);
@@ -198,14 +476,14 @@ impl ContestedPool {
     }
 
     /// [`ContestedPool::draw`] seeded from the epoch's beacon (INV-10), keyed on the test's
-    /// index, never on its content.
+    /// index, never on its content; the same domain.
     pub fn draw_from_beacon(
         &self,
         n: usize,
         tolerance: f64,
         beacon: &Beacon,
         test: u64,
-    ) -> Result<Vec<Cid>, NoBalancedDraw> {
+    ) -> Result<Vec<Cid>, DrawError> {
         self.draw(n, tolerance, beacon.seed(CONTESTED, test))
     }
 
