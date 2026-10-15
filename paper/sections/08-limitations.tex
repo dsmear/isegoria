@@ -28,10 +28,12 @@ The following are properties of the design, not defects of the implementation.
 \subsection{Threats to the validity of this analysis}
 
 \begin{itemize}
-  \item \textbf{Stylized models.} \Cref{prop:leak} assumes two camps and an exact fit.
-    \Cref{prop:single,prop:pair} assume exact ability. We test each on the full model, but only
-    with synthetic data generated with the repository's own parameters and a few seeds per
-    configuration.
+  \item \textbf{Stylized models.} \Cref{prop:leak} assumes a stationary two-camp form with zero
+    reviewer intercepts and complete, uniformly weighted observations; it states the residual
+    error explicitly. Its historical full-model comparison uses raw leans without evaluating
+    that bound. \Cref{prop:single,prop:pair} assume exact ability and do not prove generic
+    parameter identifiability. The numerical comparisons use only synthetic data generated with
+    the repository's own parameters and a few seeds per configuration.
   \item \textbf{Respondents are self-selected.} \Cref{ass:sample} is the least defensible
     assumption. The respondents are members of the network. If they differ from the target
     population, item parameters and DIF verdicts may not transfer. We have not analysed

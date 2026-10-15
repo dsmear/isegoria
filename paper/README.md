@@ -4,7 +4,7 @@
 Mechanism for Validating Test Items** (working paper, version 0.2, September 2026).
 
 - **PDF:** [`main.pdf`](main.pdf), the existing September snapshot; not rebuilt for the
-  source amendment of 2026-10-11.
+  source amendments of 2026-10-11 and 2026-10-14.
 - **Describes:** the code at commit `2ee5e79` and the design decisions D32–D41 of
   [`docs/01`](../docs/01-decisions.md) (commit `7507eab`); D32 is implemented since T49
   (2026-09-24), the rest are planned (roadmap `docs/10` Phase 1.1). The paper is a dated
@@ -27,11 +27,11 @@ comes with a proof or a reproducible experiment and a candidate correction:
    intercepts sum to zero at every stationary point. The six consensus items of the reference
    simulation pass (5 of 6) when fitted with divisive items and all fail when fitted alone.
 2. **The bridge score is partly majoritarian.** The origin of the latent axis is a gauge fixed only
-   by the regularization. In a two-camp model the intercept interpolates between the
-   camp-balanced and the camp-size-weighted mean with weight `1/(1+ρ)`,
-   `ρ ≈ (λ_b/λ_f)·sqrt(S/n)`. At the default penalties the leak is 0.53–0.87 for 50–3,200
-   reviewers.
-3. **Latent-class DIF is identified by pairs, and it is confounded by error in θ.** A single biased
+   by the regularization. The corrected two-camp result describes fitted camp means,
+   with a residual bound against raw ratings; the historical raw-lean approximation uses
+   `1/(1+ρ)`, `ρ ≈ (λ_b/λ_f)·sqrt(S/n)`. At the default penalties the historical measured
+   leak is 0.53–0.87 for 50–3,200 reviewers.
+3. **Paired distortions supply conditional covariance; ability error confounds DIF.** A single biased
    item carries 250–300 times less information than a biased pair. An imperfect ability proxy
    creates spurious latent classes. On null batches the production detector flags clean items
    when θ comes from 10 or 20 anchors, and at 30 anchors it passes by a margin of 0.01–0.06.
@@ -73,10 +73,13 @@ tasks and evidence live in `docs/02`, `docs/10`, `docs/13` and `docs/14`.
 | Coordination and beacon (D39–D41) | Residual-history detection, panel diversification and the epoch beacon implemented. Their scope is documented in `docs/02` and `docs/04`; implementation does not by itself establish the exploration information assumptions. |
 | Protocol composition and reproducibility | Band/appeal paths, validation and Rust golden checks have subsequent fixes. New contract findings remain open (`docs/15` A4–A7); Python comparisons are scoped numerical checks, not bitwise equality with Rust. |
 
-The A–E review also questions the structural non-identifiability claim for an isolated
-biased item and the non-vacuity of the idealized leak proposition (`docs/15` A8–A9).
-Use those propositions with their stated limitations pending a reviewed paper revision.
-The snapshot's numerical results are not re-labelled as current-system measurements.
+The bounded source correction of 2026-10-14 separates single-item distinguishability,
+parameter identifiability and finite-sample power (A8), and states the leak on fitted camp means
+with a raw-score residual bound and a compatible stationary witness (A9). Astra accepted the
+bounded correction and closed these two findings within that scope; the disposition is recorded in
+[`docs/15` A8–A9](../docs/15-phase1-review.md). The stored PDF remains the September snapshot,
+without these amendments. Historical numbers, figures and tables were not regenerated or
+re-labelled as current-system measurements.
 
 ## Layout
 

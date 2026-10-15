@@ -59,12 +59,14 @@ features of the design.
     zero within a fit, so the gate is relative to the batch (\cref{prop:zerosum}). The origin
     of the latent axis, which decides whether the score is camp-balanced or majoritarian, is
     fixed only by the regularization; in a two-camp model we obtain the interpolation weight
-    in closed form (\cref{prop:leak}) and confirm it on the full model (\cref{tab:leak}).
+    in closed form on fitted means, with an explicit bound for the residuals against raw ratings
+    (\cref{prop:leak}); the historical full-model comparison uses an approximation
+    (\cref{tab:leak}).
     Finally, no rule that reads only ratings can separate true-but-divisive items from
     partisan ones (\cref{prop:equivalence}).
-  \item \textbf{Level B} (\cref{sec:levelb}). We show why latent-class DIF is identified by
-    the conditional covariance between biased items, and why a single biased item is nearly
-    invisible (\cref{prop:single,prop:pair}). We also show that measurement error in the
+  \item \textbf{Level B} (\cref{sec:levelb}). We distinguish the marginal signal of one class-dependent item from
+    the conditional covariance signature of a biased pair, and describe the tested detector's
+    limited single-item power (\cref{prop:single,prop:pair}). We also show that measurement error in the
     ability proxy produces spurious latent classes (\cref{prop:proxy}), and we measure its
     effect on the production detector.
   \item \textbf{Level C} (\cref{sec:levelc}). The ratio-form Brier skill score is not proper,

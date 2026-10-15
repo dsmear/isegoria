@@ -37,8 +37,8 @@ lines. Code symbols identify the implementation to re-check on a newer branch.
 
 All entries below remain **open for implementation/design review** unless their entry says
 otherwise (A4–A7 and A11 are closed; A1 and A12 are closed conditionally, and A3 is closed
-within P1). The evidence column says what was checked, not that a proposed correction
-has been validated. A12’s current closure scope is in [`16` §7.3](16-a1-incentive-design.md#73-a12-closure-review--2026-10-13);
+within P1; A8–A9 are closed within the bounded rectification below). The evidence column
+says what was checked, not that a proposed correction has been validated. A12’s current closure scope is in [`16` §7.3](16-a1-incentive-design.md#73-a12-closure-review--2026-10-13);
 A2's current state is [below](#a2-current-state-design-decision-deferred).
 
 | ID / severity | Finding and baseline source | Evidence and completion criterion |
@@ -50,8 +50,8 @@ A2's current state is [below](#a2-current-state-design-decision-deferred).
 | **A5 — high** | `expanded_ratings` adds a newcomer's row and weight without extending `axis`; the next fit can return `AxisCount`. `protocol/src/orchestrator.rs:205–227`; `scoring/src/bridging.rs:72–86,255–257`. | L/D, static. Verify newcomer → expanded ratings → fit → supplementary verdict, including the eligibility of the new row. The existing newcomer test at `protocol/tests/supplementary_redecision.rs:335–344` stops before the fit. **Closed — design review approved on commit `afc84d0`** ([record](#a5-correction-record)). |
 | **A6 — high** | After a CUSUM reset, `status(true, 0)` restores founder weight 1, whereas §C.4 promises weight 0 until new outcomes. `protocol/src/probation.rs:20–36,94–104,152–166`; `02:800–803`. | L/D, static. Decide whether initial founder privilege survives a disciplinary reset; implement and test that explicit policy. Keep the mismatch visible until then. **Closed — design review approved on commit `f5ce98b7`** ([record](#a6-correction-record)). |
 | **A7 — medium** | Participation differs between fitting, side averaging and bootstrap: zero-weight axis rows can affect the score; bootstrap can reuse positive weights of off-axis rows. `protocol/src/orchestrator.rs:49–62`; `scoring/src/bridging.rs:261–294,515–568,650–675`. | L/D/C. Define consistent participation semantics for fitting, partition, means, coverage and bootstrap. The off-axis/positive-weight case is an API-contract counterexample, not a demonstrated production mapping. **Closed — design review approved on commit `cabdae4`** ([record](#a7-correction-record)). |
-| **A8 — medium** | Low power for one biased item is presented as structural non-identifiability. `paper/sections/04-level-b.tex:62–85,138–142`; `08:522–526`. | L/D. Separate distinguishability from the null, parameter identifiability and finite-sample power. Preserve observed simulation failures without turning them into a general impossibility theorem. |
-| **A9 — medium** | Exact camp-mean reproduction and positive regularization need a non-degenerate stationary example for the majoritarian-leak proposition. `paper/sections/03-level-a.tex:154–203`. | L/D in the complete, uniformly weighted case. Exhibit compatible hypotheses or state a controlled approximation; no impossibility claim was established for every missingness/weight pattern. |
+| **A8 — medium** | Low power for one biased item is presented as structural non-identifiability. `paper/sections/04-level-b.tex:62–85,138–142`; `08:522–526`. | L/D. Separate distinguishability from the null, parameter identifiability and finite-sample power. Preserve observed simulation failures without turning them into a general impossibility theorem. **Closed — bounded claim rectification accepted by Astra**: [record below](#a8a9-bounded-rectification). |
+| **A9 — medium** | Exact camp-mean reproduction and positive regularization need a non-degenerate stationary example for the majoritarian-leak proposition. `paper/sections/03-level-a.tex:154–203`. | L/D in the complete, uniformly weighted case. Exhibit compatible hypotheses or state a controlled approximation; no impossibility claim was established for every missingness/weight pattern. **Closed — bounded claim rectification accepted by Astra**: [record below](#a8a9-bounded-rectification). |
 | **A10 — low** | With no other positive weight, the leave-one-out fallback uses the reviewer's own report, giving zero for every forecast. `scoring/src/reputation.rs:56–85`. | L/D. Scope strict properness to a report-independent baseline; treat the fallback as uninformative or change it through an explicit decision. |
 | **A11 — high** | A stage-1 fit that did not converge reads as a screen failure. `stage1_verdicts` keeps no item when the status is not `Converged`, the value an item failing a cut gets; `screen` and `stage1_screen` return the verdicts without the status; `Pilot1Batch { passed: false }` sends an entering item to `Rejected(Screen)` and an explored one to `Measured { passed: false }`; `outcome_of` scores both as observed outcome 0 (at `π = 1` and `π = ε`), and `FalseNegatives` counts the second as an explored rejection that Level B fails. `protocol/src/{pilot.rs:209–226,274–282,334–354,lifecycle.rs:485–499,533–556,exploration.rs:39–58,85–91}`, lines at `164fff6`. | L, and a test run by the implementation agent. Found in the A1 work ([`17`](17-a1-pilot-batch-design.md) §2) and confirmed as a contract defect by Astra's review of `164fff6`; not part of the A–E review. Severity set by Astra: the contract lets a numerical failure become a screen rejection and a negative reputational outcome; this says nothing of how often it happens in real use. Evidence kept apart: the code path (L); `protocol/tests/a1_batch_composition.rs::an_unconverged_screen_composes_into_outcome_zero` composes a `Stage1Fit` with `MaxIters` built by hand through `stage1_verdicts`, `step` and `outcome_of` on both paths, running no fit (an API composition, run by the implementation agent); real stage-1 fits did not converge on some simulated pilots (98.9% converged, 85.5% with true/false at N = 300 and 60 anchors; `13` §8.7.5, run on the harness of `ec34fa4`, not re-run). Since `ec34fa4`, `Cargo.lock`, `rust-toolchain.toml`, `protocol::pilot` and the fit of `scoring::latent` are unchanged (only `LatentDif::flags`, A4), and the harness changed only in how DIF flags are recorded and in the screen summary's tests (`fb8a3d4`, `ba4fa2b`); the rates belong to that study's simulated design, not to field use. No runtime composes these steps (no epoch driver): an API contract, not an observed incident. Completion criterion: a stage 1 that did not converge stays distinguishable through the decision boundary on both paths, never a screen rejection, an observed outcome 0 or a measured explored rejection; what follows it (retry, pending) is C2's policy (`17` §5). A4's closure (the stage-2 re-check, `fb8a3d4`) is not reopened; A4's residual (a) is the stage-2 counterpart. **Closed — design review approved on commit `dd842d6`** ([record](#a11-correction-record)), within the screening contract; its residual defect (f), the settlement in `Pilot2`, **closed — design review approved on commit `af17eb3`** ([record](#a4-residual-a-and-premature-settlement-record)). |
 | **A12 — reviewer-reputation incentives** | The current-rules counterexample in [`16` §7.1](16-a1-incentive-design.md#71-a12-finite-effective-weight-counterexample) remains acquired; A1/A6 and other closures keep their scopes. | **Closed — conditional (2026-10-13)** under the owner-amended AT-REP-01, on `15b846c107518343de7ba0cb68fc7c1d6d4a2382`; criteria, composed evidence, numerical bound, diagnostic distinction, provenance and exclusions in [`16` §7.3](16-a1-incentive-design.md#73-a12-closure-review--2026-10-13). Phase 1 remains open. |
@@ -72,8 +72,10 @@ judgment **A1 closed conditionally on `1bd865c`**: [`17` §14.15](17-a1-pilot-ba
 Original motivation and limits:
 [`17` §14.14](17-a1-pilot-batch-design.md#1414-o3-closure-scope-and-o2-decision-brief).
 The listed premises are accepted as mathematical assumptions, not current protocol properties.
-Effective reputational incentives are the distinct open A12 requirement,
-neither waived nor automatically non-blocking for Phase 1.
+Effective reputational incentives are the distinct **conditionally closed A12 requirement**
+on `15b846c107518343de7ba0cb68fc7c1d6d4a2382`, within the owner-amended complete-offline
+affine scope of [`16` §7.3](16-a1-incentive-design.md#73-a12-closure-review--2026-10-13).
+Its legacy/runtime exclusions and separate remaining gates stand; Phase 1 remains incomplete.
 
 ### A2 current state: design decision deferred
 
@@ -95,6 +97,63 @@ The review entries in A2's row remain historical records. Current state after th
 - **Blocking:** A2 remains blocking under the current criteria (its row; `10` §1.5's completion
   qualification), so Phase 1 remains incomplete. Other Phase 1 requirements may advance where they
   do not depend on A2's solution.
+
+### A8–A9 bounded rectification
+
+**State: A8 and A9 closed within this claim-rectification scope, accepted by Astra.**
+Sol prepared the patch on `9e9bdae861745d7c64c47b8c53c8cebc63299b5a`; Astra reviewed the
+complete composed source patch before publication. This corrects two paper/document claims,
+not the detector, estimator, thresholds, operational defaults or batching policy.
+
+- **A8.** Paper §4.4 retains the single-item factorization and expansion, but distinguishes
+  marginal distinguishability from mixture-parameter identifiability and finite-sample power.
+  For a 50/50 logistic mixture with `a=1`, `b=0`, shifts `±ln 2`, the probabilities at
+  `θ=0, ln 2, ln 4` are `1/2, 13/20, 7/9`. A 2PL matching the first point has zero logit
+  intercept and would require the third odds to be the square of the second; the exact
+  discrepancy is `7/2 − (13/7)² = 5/98`. This refutes a general indistinguishability claim
+  against the 2PL null, without proving parameter identifiability or detector power. The
+  covariance result is scoped to overlapping two-class distortions with positive shares;
+  it does not prove generic class identification. Historical tables, seeds, failure counts
+  and script provenance stay intact; no fit or campaign was rerun. `08` DIF-005, its matrix,
+  AT-DIF-10 and Pilot2's batching rationale now state that boundary.
+- **A9.** Positive regularization and exact raw camp-mean reproduction under (T1), complete
+  observations and uniform weights force every item loading to zero by its coordinate
+  gradient, then every reviewer position to zero. No assertion extends this argument to
+  arbitrary missingness/weights. Paper §3.4 replaces that incompatible nondegenerate premise
+  by fitted balanced means `q_j=bar m_j−bar e_j` and fitted half-contrasts
+  `d_j=Δ_j−e_Δj`. For `S=Σd_j²`, `C=Σd_j(q_j−μ)`,
+  `D=λ_b S+λ_f n h²`, `ℓ=λ_f n h²/D`, stationarity gives
+  `μ+ι_j=q_j+ℓκd_j−(λ_b C/D)d_j`. Its difference from
+  `bar m_j+ℓκΔ_j` is exactly `−bar e_j−ℓκe_Δj−(λ_b C/D)d_j`, with the
+  explicit absolute bound in the proposition. The statement is exact on fitted quantities;
+  the raw-rating comparison is controlled only when those error terms are bounded. A
+  nondegenerate rational witness with `n_A=1,n_B=3`, ten items, `h=1/4`,
+  `λ_b=3/20`, illustrative `λ_f=39/5120` has all 29 coordinate gradients zero,
+  ratings in `[445/1024,579/1024]`, `C=0` and `ℓ=1/2`. This is a stationary
+  existence example, not a minimum, fit, or choice of operational parameters. Gauge identities
+  remain unchanged. The historical table/figure uses raw leans, `C=0`, `γ=1`; its numerical
+  agreement remains historical evidence, without an evaluated residual bound. Appendix,
+  introduction, limitations, `08` BRIDGE-009 and the script's description follow that scope.
+
+**Executor checks.** Exact `Fraction` arithmetic checks the A8 odds discrepancy, the witness's
+29 full gradient coordinates, rating range, fitted `C`, `ℓ`, exact raw-score error identity
+and its triangle bound. `git diff --check` checks the source patch. No Rust test, fit or campaign
+is needed for this prose/mathematical correction or was run. A full-paper baseline compilation
+attempt by Astra's workspace is blocked by the missing `pdflatex.fmt`; no changed-paper PDF is
+claimed.
+
+**Astra review.** The revised propositions, proofs, linked claims and A12 state references
+were read together. Astra independently checked the A8 rational discrepancy and all 29
+coordinate gradients of the A9 witness, then ran the executor's exact check of the fitted
+identity, raw-score error and triangle bound on all ten items. The source diff was checked;
+no Rust, fit or campaign was run. The bounded corrections satisfy A8 and A9's stated criteria.
+This does not establish generic mixture identifiability, production detection power, or a
+raw-rating error guarantee for the historical fits. The stored PDF remains a historical snapshot.
+
+**Separate states.** A1 and A12 retain their accepted conditional closures; A12's current
+scope is `16` §7.3. A2 remains open and blocking, its design decision deferred and certifier work
+suspended (`19` §13.9). No A2 proof, calculation, promise or resource changes here; Phase 1
+remains incomplete. No Phase 2 or T26 substitution is proposed.
 
 ### A3 correction record
 
