@@ -986,6 +986,7 @@ they win.
 | A11 | `dd842d6` | an unconverged stage-1 screen is indeterminate: no rejection, no observed outcome |
 | A4 (a), A11 (f) | `af17eb3` | stage 2 carries `Recheck`; an appeal settles only on the pilot's conclusive outcomes (a caller settling later must keep that outcome) |
 | A3 | `16e862c` | the histogram's moment penalty is an `n`-scaled regularizer, the BIC counts `Q − 1` nominally; identifiability, weak information, the penalty's choice and effects and the BIC on penalized mixtures moved to B1–B3 |
+| D3 | `9df086f` | the contested draw and pool bounded to the owner's offline domain: inside it the draw unchanged, outside a typed refusal; time targets measured on one machine, memory estimated, not a certified peak; integration, a per-epoch budget and transport outside it |
 
 A1 is also **closed within the conditional expected-score scope** of Astra’s judgment on
 `1bd865c` (`17` §14.15). A12 is **closed conditionally** on `15b846c` within `16` §7.3’s
@@ -1041,8 +1042,10 @@ current status and next work are in §5.2. This does not close Phase 1.
   information, the moment penalty's choice and effects, BIC under misspecification and on
   penalized mixture fits, selection after penalized fitting.
 - **Costs and calibration:** sample floors are not power guarantees (B4–B5, C3); respondent burden
-  and runtime need budgets (D2, D4); the contested selection's enumeration cost (D3, its resource
-  domain implemented, corrected after review and awaiting review); T83's operating point (B7, D1, D6, E). A8–A9 are closed within the bounded claim rectification accepted by Astra (`15`). Also open: A10, the register's C5 and C6, A4 (b)–(d),
+  and runtime need budgets (D2, D4); T83's operating point (B7, D1, D6, E). D3, the contested
+  selection's enumeration cost, is closed on the offline candidate within its adopted domain
+  (Astra, `9df086f`; `15` D3; §3 above); integration, a per-epoch budget and transport stay open.
+  A8–A9 are closed within the bounded claim rectification accepted by Astra (`15`). Also open: A10, the register's C5 and C6, A4 (b)–(d),
   C2, C4, the full runtime.
 
 ## 5. Decision synthesis and the calibration comparison
@@ -1144,7 +1147,7 @@ decision, **L** a documented limit.
 | A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; (c), the retired proxy path, fixtures only: L, its listing requiring no change; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
 | A8, A9, medium; closed within the bounded claim rectification | `15`: distinguishability, identifiability and power apart (A8); hypotheses or a controlled approximation (A9) | bounded paper/document correction, exact A8 witness and nondegenerate A9 stationary witness with residual bound (`15` rectification record) | no missing evidence for these corrected claims; generic identifiability, detector power and error bounds for historical fits are not established | — | none to repeat the accepted rectification (`15`) |
 | A10, low; C5, C6, medium | `15`: properness scoped or the fallback decided (A10); index or inferential model (C5); decay policy (C6) | behaviour documented | Dd, Im if changed | A1 for A10 | decisions, Astra's or the owner's |
-| B4–B5, C3; B6, D5; B7, D1, D6, E; D2, D4; D3 | `15`'s statistical table; B7: provisional values allowed with T27 procedures | T24; T25 steps 1–3; `14` Level A | Em on a frozen candidate; D3: Dd on a sustainable domain | T83 (owner); T25 step 4, reading T82's measures | D3's domain: adopted by the owner, implemented on the offline candidate and corrected after Astra's review of `ec3ccf7` (`15` D3 section), awaiting review; the rest after the candidate |
+| B4–B5, C3; B6, D5; B7, D1, D6, E; D2, D4; D3 closed on the offline candidate | `15`'s statistical table; B7: provisional values allowed with T27 procedures | T24; T25 steps 1–3; `14` Level A | Em on a frozen candidate; D3: none for its closure, integration apart | T83 (owner); T25 step 4, reading T82's measures | D3: closed on `9df086f` within the adopted domain (`15` D3 section); integration, a per-epoch budget and transport outside it; the rest after the candidate |
 
 **Phase 1 outside the register** (`10` §1.5): T25 step 4 for Level B, which reads T82's DIF
 studies on the D43 model and T83's operating point (owner). T82 is no prerequisite for writing

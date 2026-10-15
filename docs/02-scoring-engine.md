@@ -692,11 +692,14 @@ balanced selection exists, and it is no licence to assemble the test without its
 facts, or with fewer; what a caller does with it is not specified here. The guarantees of the
 previous paragraph hold on the admitted domain. The pool is bounded too
 (`POOL_LIMITS`): per fit at most 16 classes, `2¹²` ability points and `2¹²` items, at most
-`2¹²` fits, and at most `2²⁷` bytes by its estimate. A record is checked on the fit alone,
-with members or none, then on the pool it would leave; one outside is refused before its curves
-are built or its members copied, and changes nothing. The limits derive from the owner's targets on the
-reference machine — about 2 s per admitted draw and 256 MiB beyond the pool — targets checked
-by measurement, not time guarantees. They bound resources, not a test's DTF (`15` A2).
+`2¹²` fits, and at most `2²⁷` bytes by its estimate. A record is checked on its members and
+on the fit alone, with members or none, then on the pool it would leave. A refusal of the
+members or the fit comes before the curves are built or the members copied; the check on the
+resulting pool may copy the member ids, already bounded to 128 KiB. A refused record changes
+nothing. The limits derive from the owner's targets on the reference machine — about 2 s per
+admitted draw and 256 MiB beyond the pool — targets checked by measurement on that machine,
+not universal time guarantees; the memory is an estimate, not a certified peak. They bound
+resources, not a test's DTF (`15` A2).
 
 **Current scores.** A contested fact is admitted to the bank. Its binary Level B outcome for
 the implemented evaluator score is 1, as for an item that reaches the pool (§C.2) — scoring it
