@@ -37,8 +37,9 @@ comes with a proof or a reproducible experiment and a candidate correction:
    when θ comes from 10 or 20 anchors, and at 30 anchors it passes by a margin of 0.01–0.06.
 4. **The evaluator's skill score is not proper.** Against a crowd baseline `b`, the optimal report
    on one scored item satisfies `logit p* = logit q + 2 logit b`, which pushes dissenters toward
-   the crowd. A leave-one-out difference score is strictly proper and still gives exactly zero to
-   a reviewer who copies the crowd. The weight cap `3 × median` never binds for `E_u ∈ (0,1)`.
+   the crowd. A leave-one-out difference score is strictly proper when the other panelists carry
+   weight and neither their forecasts nor the outcome depend on the report, and still gives
+   exactly zero to a reviewer who copies the crowd. The weight cap `3 × median` never binds for `E_u ∈ (0,1)`.
 5. **The anti-collusion discount is only as strong as its detector.** At design scale two
    reviewers share under one item per epoch, so random assignment carries the per-epoch defence.
 

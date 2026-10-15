@@ -801,8 +801,10 @@ provenance of the integration-package acceptance are recorded in `16` §7.2.
 **Current implementation (binary/exploration path; not yet adapted to O1/O2).** The runtime
 still reads `p_uj` as the probability that an item passes Level B. On every scored item — a golden item
 (`05` §Golden items) or a live item whose outcome `o_j ∈ {0,1}` is known (`01` D35, T52) —
-the difference rule below is **strictly proper conditional on a report-independent
-baseline and a fixed outcome law**. Its transfer to selected live outcomes also needs
+the difference rule below is **strictly proper conditional on a joint law of baseline and
+outcome, given the reviewer's information, that the report does not move** (`16` C6); a
+report-independent baseline and a fixed outcome law taken apart are not enough (`16` §4.2).
+Its transfer to selected live outcomes also needs
 the information/selection assumptions discussed under Exploration:
 
 ```
@@ -817,7 +819,10 @@ expectation is maximized by the true belief, by exactly `Σ_j (p_uj − q_uj)²`
 other report under those conditions (`08` AT-REP-05). With no other positive panel
 weight, `reputation::loo_baseline` (the golden-item path, `honeypot::reviewer_skills`)
 falls back to the reviewer's own forecast as baseline, producing zero for every report;
-this case is uninformative, not strictly proper (`15` A10).
+this case is uninformative, not strictly proper. Its zero is not neutral where it is
+recorded: as an observed score it would advance `k_u`, probation and `N_u` and feed the
+change detector. No caller records it, and what an absent baseline does is undecided
+(`15` A10).
 
 **Band items (`01` D26, D33; `16` C5).** On an item that went through the extra round, a
 first panelist's baseline is the weighted leave-one-out mean of the *other first panelists*

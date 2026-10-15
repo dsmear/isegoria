@@ -160,7 +160,9 @@ status; what the repository changed after the paper's snapshot is listed in
   Prop 12). Scoring only items that pass the gate would also be improper. Status:
   **RESOLVED** — the score is the leave-one-out difference score, strictly proper
   (D33, T50, 2026-09-25: `reputation::loo_scores`, `AT-REP-05` ✓, and the paper's
-  dissenter example reproduced on the retired function, `evaluator_score.rs`), and since
+  dissenter example reproduced on the retired function, `evaluator_score.rs`) where the
+  report leaves the joint law of baseline and outcome unchanged (`docs/16` C6), not under
+  the fallback with no other weight, which scores every report 0 (`docs/15` A10); and since
   T52 (D35, 2026-09-25) the scored items are the live outcomes too: a random 5% of gate
   rejections, drawn from the beacon, is piloted for measurement only and every observed
   score enters the mean at `1/π_j` (`protocol::exploration`,
@@ -1173,7 +1175,7 @@ Classification vocabulary: PREVENTED (cannot happen given assumptions), DETECTED
 | Strategic abstention (review only "easy" items) | random assignment; non-reveal penalty | UNSOLVED — no non-reveal rule; abstention after seeing the item is free |
 | Score farming via honeypots | sortition-produced golden items | UNSOLVED — committee members know the golden set (PROTO-009) |
 | Majority following | leave-one-out difference score (D33) | MITIGATED (T50): a reviewer who reports the others' mean scores exactly 0 and weighs exactly 1 (AT-REP-02); on the fixture the followers score below the expert |
-| Deliberate contrarianism | strictly proper scoring rule | CONTAINED: the difference score is strictly proper (AT-REP-05) — a contrarian who is wrong loses; a contrarian who is right gains (by design); the retired ratio-form BSS was not proper (paper Prop. 12) |
+| Deliberate contrarianism | strictly proper scoring rule | CONTAINED: the difference score is strictly proper against a baseline and outcome whose joint law the report does not move (AT-REP-05; not under the fallback with no other weight, `docs/15` A10) — a contrarian who is wrong loses; a contrarian who is right gains (by design); the retired ratio-form BSS was not proper (paper Prop. 12) |
 | Cartel scoring (agree on predictions to farm the score) | anti-collusion | UNSOLVED — the score is per reviewer against outcomes; coordination does not change it but does change bridging (below) |
 
 ### 11.3 Bridging
@@ -1264,7 +1266,7 @@ and the scoped composed/numerical integration evidence are specified only in `16
 | AT-REP-02 ✓ | consensus follower | `p_uj := p̄_{−u,j}` for all j (the others' mean, D33) | scores exactly 0 on every item and weighs exactly 1 — `level_c.rs`, `evaluator_score.rs` (T50) | REPUTATION-003 |
 | AT-REP-03 | denominator zero | all `o_j` equal | finite, defined result | REPUTATION-003 |
 | AT-REP-04 ✓ | cap binds | odds weights of nine crowd-level reviewers and one reliably 0.1 better | the outlier weighs 16 uncapped and 3 capped — `evaluator_score.rs`, `orchestrator_driver.rs` (T50) | REPUTATION-005 |
-| AT-REP-05 ✓ | properness (D33) | random beliefs and baselines, exact expectation over all outcomes, `m ≤ 4` | the expected score is maximized by the true belief — by exactly `Σ_j (p_j − q_j)²` over any other report (50 instances per `m`, 20 reports each, `evaluator_score.rs`, T50) | REPUTATION-008 |
+| AT-REP-05 ✓ | properness (D33) | random beliefs and fixed baselines, exact expectation over all outcomes, `m ≤ 4` | the expected score is maximized by the true belief — by exactly `Σ_j (p_j − q_j)²` over any other report (50 instances per `m`, 20 reports each, `evaluator_score.rs`, T50) | REPUTATION-008 |
 | AT-REP-06 ✓ | exploration weights (D35) | synthetic reviewers; outcomes observed with probability 1 (passed) or 0.05 (explored rejections) | the weighted score's expectation equals the full-information score within Monte Carlo error; truthful reporting stays optimal — `exploration_weights.rs` (T52): exactly `(b − q)² − (p − q)²` under a report-dependent gate for 2,000 random cases, the bare observed score pays the dissenter to report 0.50; nine reviewers on 100,000 items, the weighted mean within 2.1 standard errors of the full-information mean, the passed-only mean up to 11.6 off | REPUTATION-008 |
 | AT-REP-07 ✓ | change detection (D34) | seeded honest stream of 10,000 scored items; a reviewer that starts flipping 20% of forecasts | at most one alarm on the honest stream; the flipper caught within 100 scored items — `change_detector.rs` (T51): the paper's `panel_bias` regime; no alarm in 10,000 honest items; the flipper caught within 100 on nine of ten seeds (median 25, one after 356), back on probation | REPUTATION-004 |
 | AT-COL-01 ✓ | identical cartel | 400/500 identical rows | Σw = √k | COLLUSION-001 |
@@ -1561,7 +1563,7 @@ Status is the lowest justified. "Missing evidence" names what would raise it one
 | REPUTATION-005 | cap limits a node | `evaluator_score.rs`, `orchestrator_driver.rs` (`epoch_weight_cap`), AT-REP-04 | RESOLVED (T50) — odds-scale weights, the cap binds on an outlier | — | — |
 | REPUTATION-006 | probation | `probation.rs`, `orchestrator.rs` (`bridging_weights`) | WIRED (T5) — probation → `w_u = 0`, so a probationer's ratings do not move `b_j`; `orchestrator_driver.rs` | — | G-03 |
 | REPUTATION-007 | appeal stake coherent | `appeal.rs`, `orchestrator.rs` (`settle_appeal`), `appeal_stake.rs`, `end_to_end.rs` | TESTED — a zero-quality pseudo-observation escrowed at filing, replaced by `q_j` on promotion, left otherwise; the floor is the prior mean; `run_item` derives the checks from the verdicts (D27, T61) | floor and stake weight provisional | T25 |
-| REPUTATION-008 | evaluator score proper | paper §5.3–5.4, `levelC_bss.py`; `reputation.rs` (`loo_scores`, `odds_weight`, `inverse_probability_mean`), `evaluator_score.rs` (AT-REP-05), `exploration.rs`, `exploration_weights.rs` (AT-REP-06, AT-PRO-07) | RESOLVED (T50, T52) — the leave-one-out difference score, strictly proper; the retired ratio was not; live outcomes with 5% randomized exploration of gate rejections at weight `1/ε` keep it proper when the gate decides what is observed | `ε` provisional | T25 |
+| REPUTATION-008 | evaluator score proper | paper §5.3–5.4, `levelC_bss.py`; `reputation.rs` (`loo_scores`, `odds_weight`, `inverse_probability_mean`), `evaluator_score.rs` (AT-REP-05), `exploration.rs`, `exploration_weights.rs` (AT-REP-06, AT-PRO-07) | RESOLVED (T50, T52) — the leave-one-out difference score, strictly proper where the report leaves the joint law of baseline and outcome unchanged (not under the fallback, `docs/15` A10); the retired ratio was not; live outcomes with 5% randomized exploration of gate rejections at weight `1/ε` keep it proper when the gate decides what is observed | `ε` provisional | T25 |
 | COLLUSION-001 | identical cartel → √k | `anti_collusion.rs`, `adversarial.rs` | TESTED (identical, dense, unit) | — | — |
 | COLLUSION-002 | jittered cartel detected | `collusion.rs` (`coordination_clusters`), `coordination.rs` (AT-COL-02/07) | RESOLVED (D39, T56) — residual correlation with a permutation null; the σ = 0.05 cartel fully flagged, no honest pair | thresholds provisional | T25 |
 | COLLUSION-003 | sparse data | `collusion.rs` (`ResidualHistory`), `coordination.rs` | RESOLVED for the mechanism (T56) — residuals accumulate per item across epochs; a pair is read from 30 shared items | the design-scale simulation | AT-COL-03 |

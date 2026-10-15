@@ -46,8 +46,9 @@ when ability is estimated from 10 or 20 anchors, and passes at 30 anchors by a m
 proper. With one scored item and a crowd baseline $b$, the optimal report satisfies
 $\operatorname{logit}p^{*}=\operatorname{logit}q+2\operatorname{logit}b$, which pushes
 dissenters toward the crowd.
-A leave-one-out difference score is strictly proper and still gives exactly zero to a reviewer
-who copies the crowd.
+A leave-one-out difference score is strictly proper when the other panelists carry weight and
+neither their forecasts nor the outcome depend on the report, and still gives exactly zero to a
+reviewer who copies the crowd.
 (v)~The sublinear anti-collusion discount is only as strong as its detector, and at design
 scale two reviewers share under one item per epoch, so random assignment, not the discount,
 carries the per-epoch defence.

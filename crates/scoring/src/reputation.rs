@@ -53,12 +53,13 @@ impl Default for EvaluatorParams {
     }
 }
 
-/// Per-item Brier improvement over the baseline (D33): strictly proper, 0 at the baseline.
+/// Per-item Brier improvement over `baseline` (D33), 0 at it: strictly proper only where the
+/// report leaves the joint law of baseline and outcome unchanged (`docs/02` §C.2, `docs/15` A10).
 pub fn difference_score(p: f64, baseline: f64, o: f64) -> f64 {
     (baseline - o).powi(2) - (p - o).powi(2)
 }
 
-/// Leave-one-out crowd baseline (D33); with no other weight, a reviewer's own forecast.
+/// Leave-one-out crowd baseline (D33); with no other weight the reviewer's own: every score 0, A10.
 pub fn loo_baseline(predictions: &[Vec<f64>], weights: &[f64]) -> Vec<Vec<f64>> {
     let m = predictions.first().map_or(0, |row| row.len());
     (0..predictions.len())
