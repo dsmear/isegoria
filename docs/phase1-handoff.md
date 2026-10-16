@@ -2087,4 +2087,14 @@ accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the o
   recommendation not adopted; `14`'s `E_m` entry points to it. Checks: local links and anchors,
   table shapes, `git diff --check`. No Rust run, benchmark or campaign. C6 open; Phase 1
   incomplete.
+- **Claude, C6's brief rectified and two age rules compared (documentation only, not
+  reviewed):** base `f77d21d568e8190e48809c43fa682971280b375f` fetched and equal to the
+  remote branch; only the owner's `.gitignore` modified, preserved outside the commit.
+  `15`'s C6 brief records two rectifications as an update: a conversion to elapsed time
+  needs a verified relation between epoch numbers and time, not consecutive numbers; `T_e`
+  as a memory in epochs can be chosen before T79. It compares rule A (`e − e_j`) with rule
+  B (applied closing cuts, a proposed contract), with examples, and recommends B and a
+  half-life `H` in epochs (`T_e = H/ln 2`) without a value; nothing adopted. `14`'s `E_m`
+  entry follows. Checks: local links and anchors, table shapes, `git diff --check`,
+  `scripts/comment_budget.py`. No Rust run, benchmark or campaign. C6 open; A2 suspended.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
