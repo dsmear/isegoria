@@ -207,7 +207,10 @@ reputation decay time `T` (half-life `T ln 2`; the intended convention is a deci
   (`02` §C.1). No epoch length is defined anywhere, so the factor is open.
 - **Calibration.** None: it follows from the epoch's operational definition, which is not
   made. A decision may instead state `T` in epochs; that changes `T`'s unit and is not
-  18 epochs read for 18 months.
+  18 epochs read for 18 months. A constant is exact only for epochs of a fixed period by
+  rule; today epochs close at the members' call, may skip or stall, and no shared time
+  exists. Both options, and a recommendation not adopted, are in
+  [`15`'s C6 brief](15-phase1-review.md#c6-time-decision-brief).
 - **Sensitivity.** It scales every outcome's age, hence every weight `exp(−Δt_j/T)`. It does
   not change an open escrow (weight 1, unaged) or the order of an epoch's filings.
 - **If it moves.** Every `C_a` evaluated after the first epoch moves, so do appeal coverage

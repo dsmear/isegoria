@@ -736,7 +736,7 @@ The earlier Beta–Beta hierarchy `q_j | ψ_a ~ Beta(κψ_a, κ(1−ψ_a))`,
 Describing the implemented index correctly does not decide whether a different
 inferential model is wanted.
 
-**Inputs (the owner's candidate, adopted 2026-10-16; `15` C5–C6 stays open).** A procedural
+**Inputs (the owner's candidate, adopted 2026-10-16; `15`: C5 closed on it, C6 open).** A procedural
 outcome, not a psychometric quality, and no Bayesian reading is adopted:
 
 - *Value.* `q_j = 1` when the item's pilot concludes in the active or the contested pool,

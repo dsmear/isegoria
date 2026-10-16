@@ -988,6 +988,7 @@ they win.
 | A3 | `16e862c` | the histogram's moment penalty is an `n`-scaled regularizer, the BIC counts `Q − 1` nominally; identifiability, weak information, the penalty's choice and effects and the BIC on penalized mixtures moved to B1–B3 |
 | D3 | `9df086f` | the contested draw and pool bounded to the owner's offline domain: inside it the draw unchanged, outside a typed refusal; time targets measured on one machine, memory estimated, not a certified peak; integration, a per-epoch budget and transport outside it |
 | A10 | `115f538` | strict properness qualified by a sufficient joint invariance of baseline and outcome; the leave-one-out fallback uninformative, its current effects tested; residual: what an absent baseline does in a future consumer, before integration, with no automatic conversion |
+| C5 | `f76d5dd` | on the adopted offline candidate: the regularized index, binary procedural quality, the decided exclusions, one observation per item, an appeal filed and started atomically, settlement counted once; no psychometric quality, Bayesian model, window authentication, production integration or Phase 1 certified; C6 open (`E_m` or `T` in epochs) |
 
 A1 is also **closed within the conditional expected-score scope** of Astra’s judgment on
 `1bd865c` (`17` §14.15). A12 is **closed conditionally** on `15b846c` within `16` §7.3’s
@@ -1048,10 +1049,10 @@ current status and next work are in §5.2. This does not close Phase 1.
   (Astra, `9df086f`; `15` D3; §3 above); integration, a per-epoch budget and transport stay open.
   A8–A9 are closed within the bounded claim rectification accepted by Astra (`15`). A10 is closed
   within its claim rectification (`115f538`; `15`; §3 above); its residual, what an absent
-  baseline does in a future consumer, comes before integration. Also open: the register's C5 and C6
-  (the owner's candidate implemented offline in `5b1ff4c`, the appeal–escrow link corrected after
-  Astra's review, filing and start made one operation after the review of `322dd52`, its
-  evidence under review; C6 also needs `E_m`), A4 (b)–(d), C2, C4, the full runtime.
+  baseline does in a future consumer, comes before integration. The register's C5 is closed on the
+  adopted offline candidate (Astra, `f76d5dd`; `15` C5–C6). Also open: the register's C6 (no new
+  blocking finding offline; it needs `E_m` or `T` stated in epochs, `15`'s C6 brief), A4 (b)–(d),
+  C2, C4, the full runtime.
 
 ## 5. Decision synthesis and the calibration comparison
 
@@ -1151,7 +1152,7 @@ decision, **L** a documented limit.
 | B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: S1's scenarios and decision criteria declared, then one campaign on an identified candidate, its design declared before execution; Pr where identification or coverage is claimed, which simulations do not replace | A2's target; the owner's authorization of the campaign | S1's declaration, no run |
 | A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; (c), the retired proxy path, fixtures only: L, its listing requiring no change; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
 | A8, A9, medium; closed within the bounded claim rectification | `15`: distinguishability, identifiability and power apart (A8); hypotheses or a controlled approximation (A9) | bounded paper/document correction, exact A8 witness and nondegenerate A9 stationary witness with residual bound (`15` rectification record) | no missing evidence for these corrected claims; generic identifiability, detector power and error bounds for historical fits are not established | — | none to repeat the accepted rectification (`15`) |
-| A10, low, closed within its claim rectification; C5, C6, medium, open | `15`: properness scoped or the fallback decided (A10); `15`'s C5–C6 record, closure criteria (C5, C6) | behaviour documented; A10: properness qualified, the fallback and its effects tested, closed on `115f538` (`15` A10 record); C5, C6: the owner adopted the recommended candidate (2026-10-16) after Astra accepted `13a31ca` as a decision basis; implemented offline on `13a31ca` — item-keyed binary outcomes aged from their results epoch, a fixed-weight escrow, filings selected in CID order with atomic replay, the node checking records against deposits and steps (`authorship::author_records`); no production driver. Astra on `5b1ff4c`: core confirmed, C5's closure not approved for the appeal–escrow link, then corrected (an appeal only on its item's open escrow, no expiry after a filing); Astra on `322dd52`: those local corrections accepted, the composition not; filing and start then made one operation of the node (a late request spends no coverage, an `Appeal` step refused) | A10: none for its closure; residual, what an absent baseline does in a consumer (Dd), before integration; C5, C6: review of the evidence (V); `E_m` or `T` in epochs (Dd, C6); limits kept apart in `15`'s record (the closed set of requests, replay under one configuration, T77 and the driver) | A1 for A10 | A10: the residual's decision before integration, no automatic conversion; C5, C6: Astra's review of the implementation and its tests, then the owner's `E_m`; neither closed |
+| A10, low, closed within its claim rectification; C5, medium, closed on the adopted offline candidate; C6, medium, open | `15`: properness scoped or the fallback decided (A10); `15`'s C5–C6 record, closure criteria (C5, C6) | behaviour documented; A10: properness qualified, the fallback and its effects tested, closed on `115f538` (`15` A10 record); C5, C6: the owner adopted the recommended candidate (2026-10-16) after Astra accepted `13a31ca` as a decision basis; implemented offline on `13a31ca` — item-keyed binary outcomes aged from their results epoch, a fixed-weight escrow, filings selected in CID order with atomic replay, the node checking records against deposits and steps (`authorship::author_records`); no production driver. Astra on `5b1ff4c`: core confirmed, C5's closure not approved for the appeal–escrow link, then corrected (an appeal only on its item's open escrow, no expiry after a filing); Astra on `322dd52`: those local corrections accepted, the composition not; filing and start then made one operation of the node (a late request spends no coverage, an `Appeal` step refused); Astra on `f76d5dd`: that correction and C5's closure approved, C6 examined with no new blocking finding offline | A10: none for its closure; residual, what an absent baseline does in a consumer (Dd), before integration; C5: none for its closure on the candidate; C6: `E_m` or `T` in epochs (Dd; `15`'s C6 brief); limits kept apart in `15`'s record (the closed set of requests, replay under one configuration, T77 and the driver) | A1 for A10 | A10: the residual's decision before integration, no automatic conversion; C6: the owner's choice between decay in elapsed time and in epochs, then its value (`15`'s C6 brief); before appeals run through the ledger, `cohort_snapshot` aligned (`15` residual (c)); C6 not closed |
 | B4–B5, C3; B6, D5; B7, D1, D6, E; D2, D4; D3 closed on the offline candidate | `15`'s statistical table; B7: provisional values allowed with T27 procedures | T24; T25 steps 1–3; `14` Level A | Em on a frozen candidate; D3: none for its closure, integration apart | T83 (owner); T25 step 4, reading T82's measures | D3: closed on `9df086f` within the adopted domain (`15` D3 section); integration, a per-epoch budget and transport outside it; the rest after the candidate |
 
 **Phase 1 outside the register** (`10` §1.5): T25 step 4 for Level B, which reads T82's DIF
@@ -2069,4 +2070,21 @@ accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the o
   and anchors; `git diff --check`. Not run: the workspace-wide tests, `end_to_end` (its code
   paths unchanged), the golden test, the fuzz build, the PDF, any campaign or benchmark. C5 and
   C6 not closed.
+- **Astra, review of `f76d5dd`:** diff, code, tests and the pertinent contracts read; no Rust
+  run, and none of the implementation agent's checks re-run. The atomic correction approved,
+  and C5's closure on the adopted offline candidate: the regularized index, binary procedural
+  quality, the decided exclusions, one observation per item, an appeal filed and started
+  atomically, settlement without double counting. Not certified: psychometric quality, a
+  Bayesian model, the window's authentication, production integration, Phase 1. C6: no new
+  blocking finding in the offline perimeter; open for want of `E_m` or `T` stated in epochs.
+- **Claude, C5's closure recorded and C6's time brief (documentation only):** base
+  `f76d5dd932a0e314bc33227329537dfe90d3bcad` fetched and equal to the remote branch; only the
+  owner's `.gitignore` modified, preserved outside the commit. Recorded the review in `15`
+  (register, the C5–C6 record) and here, with the status references in `01` D27, `02` §C.1 and
+  `08`. `cohort_snapshot` described as the rebuilder of B-b's scorer's inputs (`17` §14.10),
+  its alignment kept as a prerequisite to appeals in the ledger, not done. Wrote `15`'s C6
+  brief: what the sources fix about epochs, decay in elapsed time against decay in epochs, a
+  recommendation not adopted; `14`'s `E_m` entry points to it. Checks: local links and anchors,
+  table shapes, `git diff --check`. No Rust run, benchmark or campaign. C6 open; Phase 1
+  incomplete.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.

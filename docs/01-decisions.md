@@ -441,7 +441,7 @@ evidence-based outcome. Resolves Q-7 / G-15 (supplementary-review part).
 > gain** — promotion replaces the pseudo-observation with the item's observation, and
 > that is the author's reward for being right against the opinion filter (`05` [5b]).
 >
-> **Amended by the owner (2026-10-16, `15` C5–C6, open until its evidence is reviewed):**
+> **Amended by the owner (2026-10-16; `15` C5–C6: C5 closed on this offline candidate, C6 open):**
 > the observation is the pilot's procedural outcome, 1 in the active or contested pool,
 > 0 in `Rejected(Screen)` or `Rejected(Dif)`, one per item. It is not a continuous
 > "measured quality", and no posterior reading is adopted. `AuthorHistory` keys outcomes
