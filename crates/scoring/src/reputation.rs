@@ -21,7 +21,7 @@ impl Default for AuthorPrior {
     }
 }
 
-/// Posterior-mean author score (shrinkage, time decay): `qualities[j] ∈ [0,1]`, `ages_months[j]`.
+/// Regularized index `C_a`, not a posterior mean; `decay_months` a decay time (`docs/15` C5–C6).
 pub fn author_score(qualities: &[f64], ages_months: &[f64], prior: &AuthorPrior) -> f64 {
     let mut sum_wq = 0.0;
     let mut sum_w = 0.0;

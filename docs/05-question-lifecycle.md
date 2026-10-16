@@ -104,10 +104,11 @@ author's initiative, **skip review and go straight to the pilot**:
   `02` §C.1 — cannot file (`01` D27, T61)
 - if the Level B psychometrics **promote** it — to the active pool, or to the contested
   pool when its DIF concerns a sourced fact ([7b]) — the pseudo-observation is replaced
-  by the item's real quality: the author gains a real, good observation, having been
-  right against the opinion filter — there is no additive bonus
-- if it **fails**, the zero stands — it is the item's real result — and it costs the
-  next appeal until the author's average has recovered
+  by the item's quality, the author's observation for having been right against the
+  opinion filter — there is no additive bonus; what that quality is and who produces it
+  are open (`15` C5)
+- if it **fails**, the zero stands, and it bars the next appeal while `C_a` stays below
+  the floor
 - only the pilot's conclusion settles the appeal: while the pilot is pending, as after an
   indeterminate stage, the escrow stays open (`15` A11 (f))
 

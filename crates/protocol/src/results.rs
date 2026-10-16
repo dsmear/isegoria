@@ -25,6 +25,7 @@ pub enum ResultRecord {
     ReviewerUnobserved {
         reviewer: Nym,
     },
+    /// Names no item: replay clamps and appends every record, its age as written (`docs/15` C5).
     AuthorQuality {
         author: Nym,
         quality: f64,
@@ -33,7 +34,7 @@ pub enum ResultRecord {
     AppealFiled {
         author: Nym,
     },
-    /// `promoted`: the measured quality, or `None` for a failed appeal.
+    /// `promoted`: the quality applied on promotion, or `None` for a failed appeal.
     AppealSettled {
         author: Nym,
         escrow: u64,

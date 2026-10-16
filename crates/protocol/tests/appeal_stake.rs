@@ -82,6 +82,20 @@ fn an_author_below_the_floor_cannot_file() {
     assert!(author.file_appeal(&prior()).is_ok());
 }
 
+/// A failed appeal bars the next one only while `C_a` stays below the floor (`docs/15` C5).
+#[test]
+fn a_failed_appeal_bars_the_next_only_below_the_floor() {
+    let mut author = AuthorHistory::new();
+    for _ in 0..10 {
+        author.record(1.0, 0.0);
+    }
+    let escrow = author.file_appeal(&prior()).unwrap();
+    author.settle(escrow, AppealOutcome::Failed);
+    // (2 + 10) / (5 + 11) = 0.75, above the floor 0.4.
+    assert!((author.reputation(&prior()) - 0.75).abs() < 1e-12);
+    assert!(author.file_appeal(&prior()).is_ok());
+}
+
 // ------------------------------ the orchestrator ------------------------------
 
 fn item() -> Cid {

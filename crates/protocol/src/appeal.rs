@@ -11,7 +11,8 @@ pub fn appeal_floor(prior: &AuthorPrior) -> f64 {
     prior.alpha0 / (prior.alpha0 + prior.beta0)
 }
 
-/// The author's history of measured item qualities and ages (months); what `C_a` is computed from.
+/// The quality inputs and ages (months) `C_a` is computed from, kept as received; nothing
+/// advances an age (`docs/15` C5–C6).
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AuthorHistory {
     qualities: Vec<f64>,
@@ -74,7 +75,8 @@ impl AuthorHistory {
         Ok(Escrow(self.qualities.len() - 1))
     }
 
-    /// Settles an appeal (D27): the escrow takes the measured quality if promoted, else stands.
+    /// Settles an appeal (D27): if promoted the escrow takes the caller's quality and keeps its
+    /// age 0, else the zero stands (`docs/15` C5–C6).
     pub fn settle(&mut self, escrow: Escrow, outcome: AppealOutcome) {
         if let AppealOutcome::Promoted { quality } = outcome {
             self.qualities[escrow.0] = quality.clamp(0.0, 1.0);

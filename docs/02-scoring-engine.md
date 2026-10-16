@@ -726,16 +726,26 @@ C_a  =  ─────────────────────      w_j
 α₀ = 2, β₀ = 3; T = 18 months (exponential decay time, provisional)
 ```
 
-This is the formula in `reputation::author_score`. Its half-life is `T ln 2`, not T.
+This is the formula in `reputation::author_score`, a regularized index. A weight's
+half-life is `T ln 2` ≈ 12.48 months, not T. Were every weight aged alike with no new
+observation, `C_a` would move toward the prior mean `α₀/(α₀+β₀)`, not toward 0, and never
+across it.
 The earlier Beta–Beta hierarchy `q_j | ψ_a ~ Beta(κψ_a, κ(1−ψ_a))`,
 `ψ_a ~ Beta(α₀,β₀)` does **not** have this posterior mean (`15` C5).
 Describing the implemented index correctly does not decide whether a different
-inferential model is wanted. The meaning of continuous `q_j` and the intended decay
-policy remain explicit design/calibration questions (`08` REPUTATION-001; `15` C5–C6).
+inferential model is wanted.
+
+**Current inputs.** No code produces `q_j` or `Δt_j`. `protocol::appeal::AuthorHistory`
+keeps the values its callers pass (clamped to `[0,1]` and `≥ 0`); a replayed
+`AuthorQuality` record names no item, so nothing deduplicates or replaces a measure; and
+nothing advances an age. The meaning and provenance of `q_j`, the origin and unit of
+`Δt_j`, and the time of evaluation are open: current behaviour and the proposal awaiting
+review are in [`15` C5–C6](15-phase1-review.md#c5c6-author-quality-and-time-record).
 
 Shrinkage is indispensable: a node with 2 of 2 items accepted must not be worth as
-much as one with 180 of 200. Example with `Beta(2,3)`: author A (2/2) → 4/7 ≈ 57%;
-author B (180/200) → 182/205 ≈ 89%.
+much as one with 180 of 200. Example with `Beta(2,3)`, reading an accepted item as
+`q = 1` at age 0 for illustration: author A (2/2) → 4/7 ≈ 57%; author B (180/200) →
+182/205 ≈ 89%.
 
 **Use.** `C_a` governs the **rate limit on proposals**, not the vote weight:
 
@@ -743,14 +753,18 @@ author B (180/200) → 182/205 ≈ 89%.
 q_a = q_min + (q_max − q_min) · C_a
 ```
 
+`reputation::proposal_rate` computes it; only tests call it, and a deposit event carries its
+quota as written (`15` C5–C6).
+
 **Appeal stake (`01` D27, `05` [5b]).** An appeal is a pseudo-observation *inside* this
 average, not a deduction from it: filing appends `q = 0` at `Δt = 0` (the escrow); the
-verdict replaces it with the item's real `q_j` if the pilot promotes the item — to the
-active pool, or to the contested pool (§B.7) — and leaves it otherwise. The stake floor
-is the prior mean `α₀ / (α₀ + β₀)` (0.4 with `Beta(2,3)`): an author files only while
-`C_a` covers it, so a failed appeal costs the next one until the evidence has restored
-the average. There is no additive gain — the reward for being
-right is the good observation itself (`protocol::appeal`, T61). Floor provisional (T25).
+verdict replaces it with the quality its caller passes if the pilot promotes the item — to
+the active pool, or to the contested pool (§B.7) — and leaves it on a pilot rejection;
+the escrow keeps `Δt = 0`. The stake floor is the prior mean `α₀ / (α₀ + β₀)` (0.4 with
+`Beta(2,3)`): an author files only while `C_a` covers it, so a failed appeal bars the next
+one while `C_a` stays below the floor (a fresh author's does; ten items at `q = 1` keep
+`C_a` at 0.75 after one). There is no additive gain — the reward for being right is the
+good observation itself (`protocol::appeal`, T61). Floor provisional (T25).
 
 ### C.2 Evaluator score `S_u` and review weight `w_u`
 

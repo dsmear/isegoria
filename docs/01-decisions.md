@@ -438,14 +438,15 @@ evidence-based outcome. Resolves Q-7 / G-15 (supplementary-review part).
 > the author's quality observations; `file_appeal` refuses an author whose `C_a` is below
 > the stake floor — the prior mean `α₀ / (α₀ + β₀)`, 0.4 with the default prior — and
 > otherwise escrows a zero-quality observation at age 0, so `C_a` falls at once;
-> `orchestrator::settle_appeal` replaces it with the item's measured quality when the
-> item reaches the pool and leaves it standing on a pilot rejection; any other state, a
-> pilot still pending included, settles nothing (`15` A11 (f)). `run_item` derives
-> the appeal's two checks (window, `C_a ≥ floor`) from `ItemVerdicts` instead of taking
-> the caller's word. The ledger form (`gate::settle_appeal`: `+ gain` / `− stake`) is
-> retired: **there is no additive gain** — promotion replaces the pseudo-observation with
-> a real, good observation, and that is the author's reward for being right against the
-> opinion filter (`05` [5b]).
+> `orchestrator::settle_appeal` replaces it with the quality its caller passes when the
+> item reaches the active or contested pool and leaves it standing on a pilot rejection;
+> any other state, a pilot still pending included, settles nothing (`15` A11 (f)); no
+> code produces that quality (`15` C5). `run_item` derives the appeal's two checks
+> (window, `C_a ≥ floor`) from `ItemVerdicts`, whose `author_reputation` the caller
+> supplies: nothing ties it to an `AuthorHistory`. The ledger form
+> (`gate::settle_appeal`: `+ gain` / `− stake`) is retired: **there is no additive
+> gain** — promotion replaces the pseudo-observation with the item's observation, and
+> that is the author's reward for being right against the opinion filter (`05` [5b]).
 
 **Choice.** The cost of a (failed) appeal is modelled as a negative pseudo-observation
 inside the author's reputation score, escrowed when the appeal is filed and replaced

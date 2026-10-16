@@ -371,7 +371,7 @@ fn run_epoch(
         .unwrap();
         false_negatives.record(&terminal);
         if let Some(escrow) = escrow {
-            // The item's measured quality is its later pool record; 0.8 stands in for it.
+            // No code produces an item's quality (`docs/15` C5); 0.8 stands in for it.
             settle_appeal(&mut author, escrow, &terminal, 0.8).expect("the pilot concluded");
         }
         if terminal == State::ActivePool {

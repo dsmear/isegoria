@@ -15,8 +15,9 @@ with prior $(\alpha_0,\beta_0)=(2,3)$ and $T=18$ months. Two accepted items out 
 $4/7\approx0.57$; 180 out of 200 give $182/205\approx0.89$. $C_a$ sets the proposal rate
 $q_{\min}+(q_{\max}-q_{\min})C_a$. It never weights a vote \designchoice. A failed appeal to
 evidence is to be recorded as a negative pseudo-observation inside $C_a$, escrowed when the appeal
-is filed (design decision D27). The reference implementation still applies a simpler
-stake-and-refund rule.
+is filed (design decision D27). The reference implementation does so; $C_a$ is a regularized
+index, not the posterior mean of a Beta--Beta hierarchy, $T$ is a decay time (a weight's
+half-life is $T\ln 2$), and the source of $q_j$ and of its age remain open (\code{docs/15}, C5--C6).
 
 \subsection{Evaluator score: forecasts scored on golden items}
 
