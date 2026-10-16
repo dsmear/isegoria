@@ -17,8 +17,6 @@ pub struct AuthorRecords {
     pub records: Vec<ResultRecord>,
     pub admitted: Vec<Cid>,
     pub refused: Vec<Cid>,
-    /// Appealed items concluded with no escrow on record: no record can count them.
-    pub unescrowed: Vec<Cid>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -29,6 +27,9 @@ pub enum AuthorRecordsError {
     /// Appeals with no `E_m` configured (`appeal::EpochScale`).
     NoEpochScale,
     Refused(Cid, AuthorError),
+    /// An appealed conclusion with no open escrow: a defense, since `NodeState::apply` refuses
+    /// an appeal without one and only a settlement closes it.
+    Unescrowed(Cid),
 }
 
 /// The author records of results epoch `epoch`; `appeals` is the epoch's closed set of
@@ -67,7 +68,7 @@ pub fn author_records(
             };
             out.records.push(record);
         } else {
-            out.unescrowed.push(*item);
+            return Err(AuthorRecordsError::Unescrowed(*item));
         }
     }
     if appeals.is_empty() {

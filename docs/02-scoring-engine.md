@@ -748,7 +748,10 @@ outcome, not a psychometric quality, and no Bayesian reading is adopted:
 - *One per item.* The record names its item; a second record for the item is refused, and
   nothing is revised.
 - *Appeal.* The escrow is the appealed item's only slot: its outcome settles the escrow and
-  adds no second observation.
+  adds no second observation. The node starts an appeal only while its item's escrow is open
+  under the author the deposit proved, and refuses the item's expiry while it is. It does
+  not check coverage again: the filing attests the check it passed, so a fresh author whose
+  filing left `C_a` at 1/3 still starts that appeal. The window check stays.
 - *Provenance.* The node keeps the author each accepted deposit proved and the conclusion each
   step reaches (`node::Conclusion`). It refuses an author record naming another author, or an
   outcome and appeal flag that step did not reach. It also refuses a filing on an item that is

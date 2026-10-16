@@ -264,7 +264,9 @@ before `15` A4's residual (a) refuses byte 2). A deposit
 the node accepts starts its item in `Deposited` and records the author id its proof proved; a
 lifecycle step applies `lifecycle::step` to the item's state and is
 refused for an unknown item, for an assignment naming another item than the one it moves,
-and wherever the §9.1 table refuses it. A step out of `Pilot1` or `Pilot2` into either pool,
+and wherever the §9.1 table refuses it; an `Appeal` is also refused unless a recorded filing
+holds the item's escrow open under the author its deposit proved, and an `AppealExpires` while
+one does (`02` §C.1). A step out of `Pilot1` or `Pilot2` into either pool,
 `Rejected(Screen)` or `Rejected(Dif)` records the item's pilot conclusion and whether it was
 appealed (`02` §C.1).
 

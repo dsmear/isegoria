@@ -450,8 +450,10 @@ evidence-based outcome. Resolves Q-7 / G-15 (supplementary-review part).
 > `orchestrator::settle_appeal` derives the outcome from the terminal state instead of
 > taking a quality; a pending pilot settles nothing (`15` A11 (f)). The node records the
 > author a deposit proves and the conclusion a step reaches, and checks the records against
-> them (`authorship::author_records`). `run_item` still takes `author_reputation` from its
-> caller, and `E_m` is undecided (`14`).
+> them (`authorship::author_records`). After Astra's review of `5b1ff4c`, the node also
+> starts an appeal only on its item's open escrow, and refuses the item's expiry while that
+> escrow is open. Coverage is not checked again after the filing. `run_item` still takes
+> `author_reputation` from its caller, and `E_m` is undecided (`14`).
 
 **Choice.** The cost of a (failed) appeal is modelled as a negative pseudo-observation
 inside the author's reputation score, escrowed when the appeal is filed and replaced

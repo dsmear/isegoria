@@ -103,7 +103,8 @@ author's initiative, **skip review and go straight to the pilot**:
   author's history, so `C_a` falls at once; an author whose `C_a` is below the stake
   floor — the prior mean of `02` §C.1 — cannot file (`01` D27, T61). An epoch's requests
   are checked one at a time in item-CID order, each counting the escrows admitted before
-  it (`02` §C.1)
+  it (`02` §C.1). The appeal starts only once its filing is recorded, and once recorded
+  the item can no longer expire; the stake is not checked a second time
 - if the Level B psychometrics **promote** it — to the active pool, or to the contested
   pool when its DIF concerns a sourced fact ([7b]) — the escrow becomes a pass, the
   author's observation for having been right against the opinion filter; there is no

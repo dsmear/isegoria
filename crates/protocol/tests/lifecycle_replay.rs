@@ -7,12 +7,14 @@ use identity::nullifier::prove;
 use identity::nym::{Nym, Role};
 use network::cid::Cid;
 use network::store::{DurableLog, ObjectStore};
+use protocol::appeal::EpochScale;
 use protocol::deposit::{deposit_context, Draft};
 use protocol::events::NodeEvent;
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{step, Event, Invalid, RejectReason, State};
 use protocol::node::{Node, NodeError, Outcome, Rejection};
 use protocol::pilot::Screening;
+use protocol::results::{EpochResults, ResultRecord};
 use protocol::revalidation::Recheck;
 use protocol::review::commit;
 use std::fs;
@@ -173,32 +175,49 @@ fn walks(items: &[Cid]) -> Vec<(Cid, Vec<Event>)> {
 }
 
 /// AT-PRO-11: every lifecycle step is logged and a restart, at any point, replays each item
-/// to the state `lifecycle::step` gives.
+/// to the state `lifecycle::step` gives; the appeal follows its recorded filing (`docs/15` C5).
 #[test]
 fn at_pro_11_item_lifecycles_replay_to_the_state_they_reached() {
     let (issuer, dir) = (issuer(), scratch("walks"));
+    // A fixture `E_m`, not a decided value (`docs/15` C6).
+    let scale = EpochScale::new(4.0).unwrap();
+    let open = || Node::open_with_scale(&dir, issuer.public(), scale).unwrap();
     let deposits: Vec<(NodeEvent, Cid)> = ["pool", "band", "explored", "expired"]
         .iter()
         .enumerate()
         .map(|(i, tag)| deposit(&issuer, i as u8 + 2, tag))
         .collect();
     let items: Vec<Cid> = deposits.iter().map(|(_, c)| *c).collect();
-    let mut node = Node::open(&dir, issuer.public()).unwrap();
+    let mut node = open();
+    let mut authors = Vec::new();
     for (event, item) in deposits {
-        assert!(matches!(node.submit(event), Ok(Outcome::Admitted(_))));
+        let Ok(Outcome::Admitted(author)) = node.submit(event) else {
+            panic!("the deposit is accepted");
+        };
+        authors.push(author);
         assert_eq!(node.state().item(&item), Some(&State::Deposited));
     }
     let mut expected: Vec<State> = vec![State::Deposited; 4];
     let mut submitted = 4;
     for (w, (item, events)) in walks(&items).into_iter().enumerate() {
         for event in events {
+            if matches!(event, Event::Appeal { .. }) {
+                let author = authors[w];
+                let filed = NodeEvent::Results(EpochResults {
+                    epoch: EPOCH,
+                    inputs_root: [0; 32],
+                    records: vec![ResultRecord::AppealFiled { author, item }],
+                });
+                assert_eq!(node.submit(filed), Ok(Outcome::Moved));
+                submitted += 1;
+            }
             expected[w] = step(expected[w].clone(), event.clone()).expect("a valid walk");
             let got = node.submit(NodeEvent::Step { item, event });
             assert_eq!(got, Ok(Outcome::Moved));
             submitted += 1;
             if submitted % 9 == 0 {
                 drop(node);
-                node = Node::open(&dir, issuer.public()).unwrap();
+                node = open();
             }
             assert_eq!(node.state().item(&item), Some(&expected[w]));
         }
@@ -207,7 +226,7 @@ fn at_pro_11_item_lifecycles_replay_to_the_state_they_reached() {
     assert_eq!(expected[1], State::Contested);
     assert!(matches!(expected[2], State::Measured { passed: true, .. }));
     assert!(matches!(expected[3], State::Rejected(_)));
-    let reopened = Node::open(&dir, issuer.public()).unwrap();
+    let reopened = open();
     assert_eq!(reopened.log_len(), submitted);
     assert_eq!(reopened.state(), node.state());
 }

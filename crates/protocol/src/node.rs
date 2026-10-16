@@ -29,6 +29,10 @@ pub enum Rejection {
     UnknownItem,
     /// An assignment that names another item than the one it moves.
     ItemMismatch,
+    /// An appeal with no escrow open for its item under the author its deposit proved.
+    NoEscrow,
+    /// An appeal's expiry while a recorded filing holds the item's escrow open.
+    EscrowOpen,
     Results(ResultsRejected),
 }
 
@@ -183,6 +187,12 @@ impl NodeState {
             return Err(Rejection::ItemMismatch);
         }
         let next = step(state.clone(), event.clone()).map_err(Rejection::Lifecycle)?;
+        let escrowed = self.escrow_open(&item);
+        match event {
+            Event::Appeal { .. } if !escrowed => return Err(Rejection::NoEscrow),
+            Event::AppealExpires if escrowed => return Err(Rejection::EscrowOpen),
+            _ => {}
+        }
         let appealed = match state {
             State::Pilot1 { appealed } | State::Pilot2 { appealed } => Some(*appealed),
             _ => None,
@@ -193,6 +203,13 @@ impl NodeState {
         }
         self.items.insert(item, next);
         Ok(Outcome::Moved)
+    }
+
+    /// The filing the results recorded for `item` holds its escrow open (`docs/15` C5–C6).
+    fn escrow_open(&self, item: &Cid) -> bool {
+        let author = self.proposers.get(item);
+        let history = author.and_then(|a| self.results.author(a));
+        history.is_some_and(|h| h.is_open(item))
     }
 
     pub fn item(&self, item: &Cid) -> Option<&State> {
