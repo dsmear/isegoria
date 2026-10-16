@@ -3,11 +3,13 @@
 
 use identity::nym::Nym;
 use network::cid::cid;
-use protocol::appeal::AuthorHistory;
+use protocol::appeal::{AuthorHistory, EpochScale};
 use protocol::exploration::{outcome_of, record_outcome, FalseNegatives, Scored, EXPLORATION_RATE};
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State, K_MIN};
-use protocol::orchestrator::{review_round, run_item, settle_appeal, ItemVerdicts, Judgment};
+use protocol::orchestrator::{
+    review_round, run_item, settle_appeal, ItemVerdicts, Judgment, Unsettled,
+};
 use protocol::pilot::{stage1_verdicts, Screening, Stage1Fit};
 use protocol::probation::SkillTrack;
 use protocol::revalidation::Recheck;
@@ -194,12 +196,13 @@ fn run_item_stops_at_a_pending_screen_and_settles_no_appeal() {
     let pending = run(&appealed).unwrap();
     assert_eq!(pending, State::Pilot1 { appealed: true });
 
-    let prior = AuthorPrior::default();
+    let (prior, item) = (AuthorPrior::default(), cid(b"appealed"));
+    let scale = EpochScale::new(4.0).expect("a fixture E_m");
     let mut author = AuthorHistory::new();
-    author.record(0.9, 6.0);
-    let escrow = author.file_appeal(&prior).unwrap();
+    author.file_appeal(item, 1, scale, &prior).unwrap();
     let filed = author.clone();
-    let escrow = settle_appeal(&mut author, escrow, &pending, 0.85).unwrap_err();
+    let pending_settles = settle_appeal(&mut author, item, &pending, 2);
+    assert_eq!(pending_settles, Err(Unsettled::Pending));
     assert_eq!(author, filed);
     let pilot2 = step(pending, batch(Screening::Pass)).unwrap();
     let pool = step(
@@ -211,6 +214,6 @@ fn run_item_stops_at_a_pending_screen_and_settles_no_appeal() {
         },
     )
     .unwrap();
-    settle_appeal(&mut author, escrow, &pool, 0.85).unwrap();
-    assert_eq!(author.qualities(), &[0.9, 0.85]);
+    settle_appeal(&mut author, item, &pool, 3).unwrap();
+    assert_eq!(author.outcome(&item), Some((true, 3)));
 }

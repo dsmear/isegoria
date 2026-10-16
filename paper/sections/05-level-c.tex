@@ -5,9 +5,10 @@ author score limits how much an author may propose. The evaluator score weights 
 
 \subsection{Author score}
 
-Let $q_j\in[0,1]$ be the final quality of author $a$'s item $j$, a function of its Level~B
-statistics whose exact definition is still open. The author score is the shrunken, time-discounted
-average
+Let $q_j\in\{0,1\}$ be the pilot's procedural outcome for author $a$'s item $j$: 1 when the item
+enters the active or the contested pool, 0 when it fails the screen or is rejected for DIF, and no
+observation otherwise; it is not a psychometric quality. The author score is the shrunken,
+time-discounted average
 \begin{equation}\label{eq:author}
   C_a=\frac{\alpha_0+\sum_j w_jq_j}{\alpha_0+\beta_0+\sum_j w_j},\qquad w_j=e^{-\Delta t_j/T},
 \end{equation}
@@ -15,9 +16,10 @@ with prior $(\alpha_0,\beta_0)=(2,3)$ and $T=18$ months. Two accepted items out 
 $4/7\approx0.57$; 180 out of 200 give $182/205\approx0.89$. $C_a$ sets the proposal rate
 $q_{\min}+(q_{\max}-q_{\min})C_a$. It never weights a vote \designchoice. A failed appeal to
 evidence is to be recorded as a negative pseudo-observation inside $C_a$, escrowed when the appeal
-is filed (design decision D27). The reference implementation does so; $C_a$ is a regularized
-index, not the posterior mean of a Beta--Beta hierarchy, $T$ is a decay time (a weight's
-half-life is $T\ln 2$), and the source of $q_j$ and of its age remain open (\code{docs/15}, C5--C6).
+is filed (design decision D27) and settled by the item's outcome. The reference implementation
+does so; $C_a$ is a regularized index, not the posterior mean of a Beta--Beta hierarchy, and $T$
+is a decay time (a weight's half-life is $T\ln 2$). An outcome ages from the epoch that records
+it; the number of epochs per month is undecided (\code{docs/15}, C5--C6).
 
 \subsection{Evaluator score: forecasts scored on golden items}
 

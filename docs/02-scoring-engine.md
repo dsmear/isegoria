@@ -715,8 +715,8 @@ Two **separate** scores, on unlinkable pseudonyms (see `01` D5). Never combined.
 
 ### C.1 Author score `C_a`
 
-**Implemented score.** Let `q_j ∈ [0,1]` be an item's quality input. The code uses a
-regularized, time-discounted weighted average:
+**Implemented score.** Let `q_j ∈ {0, 1}` be an item's pilot outcome (below). The code uses
+a regularized, time-discounted weighted average:
 
 ```
           α₀ + Σ_j w_j q_j
@@ -736,12 +736,38 @@ The earlier Beta–Beta hierarchy `q_j | ψ_a ~ Beta(κψ_a, κ(1−ψ_a))`,
 Describing the implemented index correctly does not decide whether a different
 inferential model is wanted.
 
-**Current inputs.** No code produces `q_j` or `Δt_j`. `protocol::appeal::AuthorHistory`
-keeps the values its callers pass (clamped to `[0,1]` and `≥ 0`); a replayed
-`AuthorQuality` record names no item, so nothing deduplicates or replaces a measure; and
-nothing advances an age. The meaning and provenance of `q_j`, the origin and unit of
-`Δt_j`, and the time of evaluation are open: current behaviour and the proposal awaiting
-review are in [`15` C5–C6](15-phase1-review.md#c5c6-author-quality-and-time-record).
+**Inputs (the owner's candidate, adopted 2026-10-16; `15` C5–C6 stays open).** A procedural
+outcome, not a psychometric quality, and no Bayesian reading is adopted:
+
+- *Value.* `q_j = 1` when the item's pilot concludes in the active or the contested pool,
+  `0` when it concludes in `Rejected(Screen)` or `Rejected(Dif)`
+  (`appeal::pilot_outcome`).
+- *No observation* for a gate rejection (`Defect`, unappealed `Polarized`, `Borderline`), a
+  pilot still pending or indeterminate, an explored outcome (`Measured`), or a later
+  re-validation or retirement: only the step out of `Pilot1` or `Pilot2` concludes.
+- *One per item.* The record names its item; a second record for the item is refused, and
+  nothing is revised.
+- *Appeal.* The escrow is the appealed item's only slot: its outcome settles the escrow and
+  adds no second observation.
+- *Provenance.* The node keeps the author each accepted deposit proved and the conclusion each
+  step reaches (`node::Conclusion`). It refuses an author record naming another author, or an
+  outcome and appeal flag that step did not reach. It also refuses a filing on an item that is
+  not appeal-eligible. `authorship::author_records` derives an epoch's records from these, so
+  no caller supplies `q_j`.
+- *Time.* An outcome's origin `e_j` is the epoch of the results event that records it. At
+  epoch `e` it counts only if `e_j < e`, at age `Δt_j = (e − e_j)/E_m` months. `E_m`, the
+  epochs per month, is undecided: `appeal::EpochScale` has no default, and a node without one
+  refuses a filing (`14`). An open escrow counts at `q = 0`, weight 1, unaged.
+- *Within an epoch.* A filing in `e` is checked against the outcomes of epochs before `e` and
+  every escrow filed before it, those filed earlier in `e` included. An escrow settled in `e`
+  counts through `e`, and its outcome replaces it from `e + 1`. The epoch's appeal requests,
+  once their set is closed, are *selected* one at a time in ascending item CID (the
+  lottery's order). Each request is admitted if covered, refused otherwise, so their arrival
+  order cannot move the outcome. *Replay* of the recorded filings is atomic instead: one
+  uncovered filing refuses the whole results event, the admissible ones before it included.
+- *Quota.* The value for epoch `e`'s quota is fixed once, from the outcomes of epochs before
+  `e` and the escrows open at the end of `e − 1` (`AuthorHistory::quota_reputation`).
+  Turning it into a quota is not implemented.
 
 Shrinkage is indispensable: a node with 2 of 2 items accepted must not be worth as
 much as one with 180 of 200. Example with `Beta(2,3)`, reading an accepted item as
@@ -755,16 +781,19 @@ q_a = q_min + (q_max − q_min) · C_a
 ```
 
 `reputation::proposal_rate` computes it; only tests call it, and a deposit event carries its
-quota as written (`15` C5–C6).
+quota as written: the snapshot above is computed, its conversion to a quota is not (`15`
+C5–C6).
 
 **Appeal stake (`01` D27, `05` [5b]).** An appeal is a pseudo-observation *inside* this
-average, not a deduction from it: filing appends `q = 0` at `Δt = 0` (the escrow); the
-verdict replaces it with the quality its caller passes if the pilot promotes the item — to
-the active pool, or to the contested pool (§B.7) — and leaves it on a pilot rejection;
-the escrow keeps `Δt = 0`. The stake floor is the prior mean `α₀ / (α₀ + β₀)` (0.4 with
+average, not a deduction from it: filing escrows `q = 0` at weight 1 for the appealed item;
+the pilot's conclusion settles it — a pass if the item reaches the active or the contested
+pool (§B.7), the zero standing on a pilot rejection — and the outcome then ages from its
+results epoch like any other. Held at weight 1 while the rest ages, a long-pending escrow can
+pull `C_a` below the floor (`15` C5–C6). The stake floor is the prior mean `α₀ / (α₀ + β₀)` (0.4 with
 `Beta(2,3)`): an author files only while `C_a` covers it, so a failed appeal bars the next
 one while `C_a` stays below the floor (a fresh author's does; ten items at `q = 1` keep
-`C_a` at 0.75 after one). There is no additive gain — the reward for being right is the
+`C_a` near 0.75 after one). The check is `C_a ≥ floor` in binary64: an old enough failure
+rounds `C_a` up to 0.4 exactly and covers the stake (`15` C5–C6). There is no additive gain — the reward for being right is the
 good observation itself (`protocol::appeal`, T61). Floor provisional (T25).
 
 ### C.2 Evaluator score `S_u` and review weight `w_u`

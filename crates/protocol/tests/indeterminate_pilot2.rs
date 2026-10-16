@@ -3,12 +3,14 @@
 
 use identity::nym::Nym;
 use network::cid::cid;
-use protocol::appeal::AuthorHistory;
+use protocol::appeal::{AuthorHistory, EpochScale};
 use protocol::exploration::{outcome_of, record_outcome, FalseNegatives, Scored, EXPLORATION_RATE};
 use protocol::exposure::RetirementReason;
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State, K_MIN};
-use protocol::orchestrator::{review_round, run_item, settle_appeal, ItemVerdicts, Judgment};
+use protocol::orchestrator::{
+    review_round, run_item, settle_appeal, ItemVerdicts, Judgment, Unsettled,
+};
 use protocol::pilot::Screening;
 use protocol::probation::SkillTrack;
 use protocol::revalidation::{target_rechecks, Recheck};
@@ -271,12 +273,12 @@ fn screen(screen: Screening) -> Event {
     }
 }
 
-/// A11 (f): only a concluded pilot settles; the escrow handed back settles once it concludes.
+/// A11 (f): only a concluded pilot settles; the escrow stays open until it concludes.
 #[test]
 fn an_appeal_settles_only_on_its_pilot_s_conclusion() {
     let pending = [screen(Screening::Indeterminate), screen(Screening::Pass)];
     let stage2 = |last| [batch(Recheck::Indeterminate, true), last];
-    let walks: [(Vec<Event>, State, [f64; 2]); 4] = [
+    let walks: [(Vec<Event>, State, bool); 4] = [
         (
             [
                 pending.to_vec(),
@@ -284,12 +286,12 @@ fn an_appeal_settles_only_on_its_pilot_s_conclusion() {
             ]
             .concat(),
             State::ActivePool,
-            [0.9, 0.85],
+            true,
         ),
         (
             [pending.to_vec(), stage2(batch(Recheck::Dif, true)).to_vec()].concat(),
             State::Contested,
-            [0.9, 0.85],
+            true,
         ),
         (
             [
@@ -298,30 +300,37 @@ fn an_appeal_settles_only_on_its_pilot_s_conclusion() {
             ]
             .concat(),
             State::Rejected(RejectReason::Dif),
-            [0.9, 0.0],
+            false,
         ),
         (
             vec![screen(Screening::Indeterminate), screen(Screening::Fail)],
             State::Rejected(RejectReason::Screen),
-            [0.9, 0.0],
+            false,
         ),
     ];
-    for (events, concluded, qualities) in walks {
+    let (item, scale) = (
+        cid(b"appealed"),
+        EpochScale::new(4.0).expect("a fixture E_m"),
+    );
+    for (events, concluded, passed) in walks {
         let mut author = AuthorHistory::new();
-        author.record(0.9, 6.0);
-        let mut escrow = author.file_appeal(&AuthorPrior::default()).unwrap();
+        author
+            .file_appeal(item, 1, scale, &AuthorPrior::default())
+            .unwrap();
         let filed = author.clone();
         for state in not_settling() {
-            escrow = settle_appeal(&mut author, escrow, &state, 0.85).unwrap_err();
+            let pending = settle_appeal(&mut author, item, &state, 2);
+            assert_eq!(pending, Err(Unsettled::Pending), "{state:?}");
         }
         let mut state = State::Pilot1 { appealed: true };
         for event in events {
-            escrow = settle_appeal(&mut author, escrow, &state, 0.85).unwrap_err();
+            let pending = settle_appeal(&mut author, item, &state, 2);
+            assert_eq!(pending, Err(Unsettled::Pending), "{state:?}");
             assert_eq!(author, filed, "{state:?}");
             state = step(state, event).unwrap();
         }
         assert_eq!(state, concluded);
-        settle_appeal(&mut author, escrow, &state, 0.85).unwrap();
-        assert_eq!(author.qualities(), qualities);
+        settle_appeal(&mut author, item, &state, 2).unwrap();
+        assert_eq!(author.outcome(&item), Some((passed, 2)));
     }
 }

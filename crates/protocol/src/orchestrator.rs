@@ -2,9 +2,9 @@
 //! fit's per-reviewer weights ([`bridging_weights`], D33) and drives an item's stage
 //! transitions through `lifecycle::step` ([`run_item`], [`review_round`]).
 
-use crate::appeal::{AppealOutcome, AuthorHistory, Escrow};
+use crate::appeal::{pilot_outcome, AuthorError, AuthorHistory};
 use crate::gate::GateOutcome;
-use crate::lifecycle::{step, Event, Invalid, RejectReason, State};
+use crate::lifecycle::{step, Event, Invalid, State};
 use crate::pilot::Screening;
 use crate::probation::{effective_review_weight, status, Status};
 use crate::revalidation::Recheck;
@@ -338,33 +338,23 @@ pub fn run_item(
     Ok(s)
 }
 
-/// Settles an appeal's escrow on its pilot's conclusion (D27): the pool, or the contested pool
-/// (D38), promotes it via `quality`; a pilot rejection leaves the zero standing. Any other state,
-/// a pilot still pending included, settles nothing and hands the escrow back (`docs/15` A11).
+/// Why [`settle_appeal`] settled nothing: the state concludes no pilot, or the history refused.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Unsettled {
+    Pending,
+    Refused(AuthorError),
+}
+
+/// Settles `item`'s escrow with the outcome `terminal` concludes (D27, `appeal::pilot_outcome`),
+/// in results epoch `epoch`; any other state, a pending pilot included, settles nothing (A11).
 pub fn settle_appeal(
     author: &mut AuthorHistory,
-    escrow: Escrow,
+    item: Cid,
     terminal: &State,
-    quality: f64,
-) -> Result<(), Escrow> {
-    let outcome = match terminal {
-        State::ActivePool | State::Contested => AppealOutcome::Promoted { quality },
-        State::Rejected(RejectReason::Screen | RejectReason::Dif) => AppealOutcome::Failed,
-        State::Deposited
-        | State::Admitted
-        | State::InReview { .. }
-        | State::Revealing { .. }
-        | State::SupplementaryReview { .. }
-        | State::AppealEligible
-        | State::Pilot1 { .. }
-        | State::Pilot2 { .. }
-        | State::Rejected(
-            RejectReason::Defect | RejectReason::Polarized | RejectReason::Borderline,
-        )
-        | State::Explored { .. }
-        | State::Measured { .. }
-        | State::Retired(_) => return Err(escrow),
-    };
-    author.settle(escrow, outcome);
-    Ok(())
+    epoch: u64,
+) -> Result<(), Unsettled> {
+    let passed = pilot_outcome(terminal).ok_or(Unsettled::Pending)?;
+    author
+        .settle(item, passed, epoch)
+        .map_err(Unsettled::Refused)
 }

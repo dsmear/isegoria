@@ -200,6 +200,22 @@ CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the implemented
 reputation decay time `T` (half-life `T ln 2`; the intended convention is a decision,
 `15` C6), the honeypot and exploration rates, `α`, `min_shared`, `ρ_min` and `p_max`.
 
+### `E_m` — epochs per month for the author score's ages (undecided, no default)
+
+- **Why it exists.** The owner's C5–C6 candidate ages an outcome from its results epoch:
+  at epoch `e` it is `(e − e_j)/E_m` months old, against the decay time `T` in months
+  (`02` §C.1). No epoch length is defined anywhere, so the factor is open.
+- **Calibration.** None: it follows from the epoch's operational definition, which is not
+  made. A decision may instead state `T` in epochs; that changes `T`'s unit and is not
+  18 epochs read for 18 months.
+- **Sensitivity.** It scales every outcome's age, hence every weight `exp(−Δt_j/T)`. It does
+  not change an open escrow (weight 1, unaged) or the order of an epoch's filings.
+- **If it moves.** Every `C_a` evaluated after the first epoch moves, so do appeal coverage
+  and the quota snapshot, and replay of a log with filings depends on it.
+- **Where fixed.** Nowhere: `appeal::EpochScale::new` takes it explicitly and has no default.
+  `Node::open` leaves it unset, and a node opened so refuses a filing. Tests use `4.0` as a
+  fixture, not as a value (`15` C5–C6).
+
 ### A12 offline affine candidate — procedure contract, 2026-10-12
 
 These entries apply only to [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).

@@ -434,19 +434,24 @@ evidence-based outcome. Resolves Q-7 / G-15 (supplementary-review part).
 
 ## D27 — Appeal cost is a pseudo-observation inside the author score
 
-> **Implemented as decided (2026-09-25, T61):** `protocol::appeal::AuthorHistory` holds
-> the author's quality observations; `file_appeal` refuses an author whose `C_a` is below
-> the stake floor — the prior mean `α₀ / (α₀ + β₀)`, 0.4 with the default prior — and
-> otherwise escrows a zero-quality observation at age 0, so `C_a` falls at once;
-> `orchestrator::settle_appeal` replaces it with the quality its caller passes when the
-> item reaches the active or contested pool and leaves it standing on a pilot rejection;
-> any other state, a pilot still pending included, settles nothing (`15` A11 (f)); no
-> code produces that quality (`15` C5). `run_item` derives the appeal's two checks
-> (window, `C_a ≥ floor`) from `ItemVerdicts`, whose `author_reputation` the caller
-> supplies: nothing ties it to an `AuthorHistory`. The ledger form
-> (`gate::settle_appeal`: `+ gain` / `− stake`) is retired: **there is no additive
+> **Implemented as decided (2026-09-25, T61):** `file_appeal` refuses an author whose `C_a`
+> is below the stake floor — the prior mean `α₀ / (α₀ + β₀)`, 0.4 with the default prior —
+> and otherwise escrows a zero-quality observation, so `C_a` falls at once; the ledger
+> form (`gate::settle_appeal`: `+ gain` / `− stake`) is retired: **there is no additive
 > gain** — promotion replaces the pseudo-observation with the item's observation, and
 > that is the author's reward for being right against the opinion filter (`05` [5b]).
+>
+> **Amended by the owner (2026-10-16, `15` C5–C6, open until its evidence is reviewed):**
+> the observation is the pilot's procedural outcome, 1 in the active or contested pool,
+> 0 in `Rejected(Screen)` or `Rejected(Dif)`, one per item. It is not a continuous
+> "measured quality", and no posterior reading is adopted. `AuthorHistory` keys outcomes
+> and escrows by item and ages an outcome from its results epoch. An open escrow counts
+> at weight 1, and an epoch's filings are checked in item-CID order (`02` §C.1).
+> `orchestrator::settle_appeal` derives the outcome from the terminal state instead of
+> taking a quality; a pending pilot settles nothing (`15` A11 (f)). The node records the
+> author a deposit proves and the conclusion a step reaches, and checks the records against
+> them (`authorship::author_records`). `run_item` still takes `author_reputation` from its
+> caller, and `E_m` is undecided (`14`).
 
 **Choice.** The cost of a (failed) appeal is modelled as a negative pseudo-observation
 inside the author's reputation score, escrowed when the appeal is filed and replaced

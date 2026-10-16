@@ -2,11 +2,12 @@
 //! T73): events are checked, applied, then written; opening replays them all.
 
 use crate::admission::{NullifierSet, QuotaLedger};
+use crate::appeal::{pilot_outcome, EpochScale};
 use crate::deposit::{deposit_with_identity, DepositRejected};
 use crate::events::NodeEvent;
 use crate::lifecycle::{step, Event, Invalid, State};
 use crate::pilot::{submit_response, ResponseRejected};
-use crate::results::{ResultsRejected, ResultsState};
+use crate::results::{EpochResults, ResultRecord, ResultsRejected, ResultsState};
 use crate::review::{submit_review, ReviewRejected};
 use identity::credential::IssuerPublic;
 use identity::nym::Nym;
@@ -59,8 +60,15 @@ pub enum NodeError {
     Poisoned,
 }
 
+/// An item's pilot conclusion as its step reached it (`docs/02` §C.1, `docs/15` C5).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Conclusion {
+    pub passed: bool,
+    pub appealed: bool,
+}
+
 /// Drafts on record, quotas per epoch, panels and respondents per `(item or batch, epoch)`,
-/// and each item's lifecycle state.
+/// each item's lifecycle state, the author its deposit proved and its pilot conclusion.
 #[derive(Debug, Default, PartialEq)]
 pub struct NodeState {
     drafts: TransparencyLog,
@@ -68,10 +76,20 @@ pub struct NodeState {
     panels: BTreeMap<(Cid, u64), NullifierSet>,
     respondents: BTreeMap<(Cid, u64), NullifierSet>,
     items: BTreeMap<Cid, State>,
+    proposers: BTreeMap<Cid, Nym>,
+    conclusions: BTreeMap<Cid, Conclusion>,
     results: ResultsState,
 }
 
 impl NodeState {
+    /// An empty state whose results count ages with `scale` (`ResultsState::with_epoch_scale`).
+    pub fn with_epoch_scale(scale: EpochScale) -> Self {
+        NodeState {
+            results: ResultsState::with_epoch_scale(scale),
+            ..Self::default()
+        }
+    }
+
     /// Checks and applies one event, as the entry points do (`deposit_with_identity`,
     /// `submit_review`, `submit_response`); the proven id on success.
     pub fn apply(
@@ -110,16 +128,53 @@ impl NodeState {
             NodeEvent::Step { item, event } => return self.step(*item, event),
             NodeEvent::Results(results) => {
                 return self
-                    .results
-                    .apply(results)
+                    .check_authors(results)
+                    .and_then(|()| self.results.apply(results))
                     .map(|()| Outcome::Moved)
                     .map_err(Rejection::Results)
             }
         };
-        if let (Ok(_), NodeEvent::Deposit { draft, .. }) = (&admitted, event) {
+        if let (Ok(proposer), NodeEvent::Deposit { draft, .. }) = (&admitted, event) {
             self.items.insert(draft.content_id(), State::Deposited);
+            self.proposers.insert(draft.content_id(), *proposer);
         }
         admitted.map(Outcome::Admitted)
+    }
+
+    /// Each author record names its item's proven author and, for an outcome, the conclusion
+    /// its step reached; a filing names an appeal-eligible item (`docs/04` §Events and replay).
+    fn check_authors(&self, results: &EpochResults) -> Result<(), ResultsRejected> {
+        for (record, r) in results.records.iter().enumerate() {
+            let (author, item, outcome) = match r {
+                ResultRecord::AuthorOutcome {
+                    author,
+                    item,
+                    passed,
+                } => (author, item, Some((*passed, false))),
+                ResultRecord::AppealSettled {
+                    author,
+                    item,
+                    passed,
+                } => (author, item, Some((*passed, true))),
+                ResultRecord::AppealFiled { author, item } => (author, item, None),
+                _ => continue,
+            };
+            if self.proposers.get(item) != Some(author) {
+                return Err(ResultsRejected::NotTheProposer { record });
+            }
+            let consistent = match outcome {
+                Some((passed, appealed)) => {
+                    self.conclusions.get(item) == Some(&Conclusion { passed, appealed })
+                }
+                None => self.items.get(item) == Some(&State::AppealEligible),
+            };
+            match (consistent, outcome) {
+                (true, _) => {}
+                (false, Some(_)) => return Err(ResultsRejected::OutcomeMismatch { record }),
+                (false, None) => return Err(ResultsRejected::NotAppealable { record }),
+            }
+        }
+        Ok(())
     }
 
     fn step(&mut self, item: Cid, event: &Event) -> Result<Outcome, Rejection> {
@@ -128,6 +183,14 @@ impl NodeState {
             return Err(Rejection::ItemMismatch);
         }
         let next = step(state.clone(), event.clone()).map_err(Rejection::Lifecycle)?;
+        let appealed = match state {
+            State::Pilot1 { appealed } | State::Pilot2 { appealed } => Some(*appealed),
+            _ => None,
+        };
+        if let (Some(appealed), Some(passed)) = (appealed, pilot_outcome(&next)) {
+            self.conclusions
+                .insert(item, Conclusion { passed, appealed });
+        }
         self.items.insert(item, next);
         Ok(Outcome::Moved)
     }
@@ -138,6 +201,15 @@ impl NodeState {
 
     pub fn results(&self) -> &ResultsState {
         &self.results
+    }
+
+    /// The author `item`'s accepted deposit proved (INV-9).
+    pub fn proposer(&self, item: &Cid) -> Option<Nym> {
+        self.proposers.get(item).copied()
+    }
+
+    pub fn conclusions(&self) -> &BTreeMap<Cid, Conclusion> {
+        &self.conclusions
     }
 
     pub fn drafts(&self) -> &TransparencyLog {
@@ -189,10 +261,26 @@ pub struct Node {
 impl Node {
     /// Opens or creates the node in `dir` (files `log` and `objects`) and replays its log.
     pub fn open(dir: &Path, issuer: IssuerPublic) -> Result<Self, NodeError> {
+        Self::open_from(dir, issuer, NodeState::default())
+    }
+
+    /// As [`Node::open`], author ages counted with `scale` (`docs/15` C6).
+    pub fn open_with_scale(
+        dir: &Path,
+        issuer: IssuerPublic,
+        scale: EpochScale,
+    ) -> Result<Self, NodeError> {
+        Self::open_from(dir, issuer, NodeState::with_epoch_scale(scale))
+    }
+
+    fn open_from(
+        dir: &Path,
+        issuer: IssuerPublic,
+        mut state: NodeState,
+    ) -> Result<Self, NodeError> {
         fs::create_dir_all(dir).map_err(|e| StoreError::Io(e.kind()))?;
         let (objects, _) = ObjectStore::open(&dir.join("objects"))?;
         let (log, _) = DurableLog::open(&dir.join("log"))?;
-        let mut state = NodeState::default();
         for (i, entry) in log.log().entries().iter().enumerate() {
             let entry_no = i as u64;
             let bytes = objects

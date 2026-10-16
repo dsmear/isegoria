@@ -15,13 +15,15 @@ use identity::nullifier;
 #[cfg(feature = "calibration")]
 use identity::nym::{Nym, Role};
 #[cfg(feature = "calibration")]
+use network::cid::cid;
+#[cfg(feature = "calibration")]
 use network::log::TransparencyLog;
 #[cfg(feature = "calibration")]
 use protocol::admission::NullifierSet;
 #[cfg(feature = "calibration")]
 use protocol::admission::QuotaLedger;
 #[cfg(feature = "calibration")]
-use protocol::appeal::{appeal_floor, AuthorHistory};
+use protocol::appeal::{appeal_floor, pilot_outcome, AuthorHistory, EpochScale};
 #[cfg(feature = "calibration")]
 use protocol::deposit::{deposit_context, deposit_with_identity, Draft};
 #[cfg(feature = "calibration")]
@@ -330,27 +332,23 @@ fn run_epoch(
         let panel = judgments.iter().map(|jd| jd.nym).collect();
         review_round(admitted, item_cid[j], panel, &judgments).unwrap()
     };
-    // --- the author's standing: enough accepted items that an appeal's stake is covered;
-    // an appeal escrows a zero-quality observation the terminal state settles (D27, T61) ---
-    let prior = AuthorPrior::default();
+    // --- the author's standing: two earlier passed items; each pilot outcome of this epoch
+    // counts from the next, an appeal's escrow at once (`docs/02` §C.1, D27; E_m a fixture) ---
+    let (prior, scale) = (AuthorPrior::default(), EpochScale::new(4.0).unwrap());
     let mut author = AuthorHistory::new();
-    author.record(0.9, 6.0);
-    author.record(0.8, 12.0);
+    author.conclude(cid(b"earlier 1"), true, EPOCH - 1).unwrap();
+    author.conclude(cid(b"earlier 2"), true, EPOCH - 1).unwrap();
 
     let mut pool = BTreeSet::new();
     let mut false_negatives = FalseNegatives::default();
     for j in 0..m {
-        let reputation = author.reputation(&prior);
-        let escrow = if appeals.contains(&j) && matches!(effective[j], GateOutcome::AppealEligible)
-        {
-            Some(
-                author
-                    .file_appeal(&prior)
-                    .expect("the author's standing covers the stake"),
-            )
-        } else {
-            None
-        };
+        let reputation = author.reputation(EPOCH, scale, &prior);
+        let filed = appeals.contains(&j) && matches!(effective[j], GateOutcome::AppealEligible);
+        if filed {
+            author
+                .file_appeal(item_cid[j], EPOCH, scale, &prior)
+                .expect("the author's standing covers the stake");
+        }
         let verdicts = ItemVerdicts {
             gate: gate[j],
             appealed: appeals.contains(&j),
@@ -370,15 +368,20 @@ fn run_epoch(
         })
         .unwrap();
         false_negatives.record(&terminal);
-        if let Some(escrow) = escrow {
-            // No code produces an item's quality (`docs/15` C5); 0.8 stands in for it.
-            settle_appeal(&mut author, escrow, &terminal, 0.8).expect("the pilot concluded");
+        if filed {
+            settle_appeal(&mut author, item_cid[j], &terminal, EPOCH).expect("the pilot concluded");
+        } else if let Some(passed) = pilot_outcome(&terminal) {
+            author.conclude(item_cid[j], passed, EPOCH).unwrap();
         }
         if terminal == State::ActivePool {
             pool.insert(j);
         }
     }
-    (pool, author.reputation(&prior), false_negatives)
+    (
+        pool,
+        author.reputation(EPOCH + 1, scale, &prior),
+        false_negatives,
+    )
 }
 
 #[cfg(feature = "calibration")]
@@ -481,8 +484,8 @@ fn appeal_recovers_a_true_but_divisive_item() {
         with.contains(&REAL_HEALTH),
         "recovered through the appeal channel"
     );
-    // The stake was escrowed and, the item promoted, replaced by its measured quality: a
-    // good observation the author would not have without the appeal (D27, T61).
+    // The stake was escrowed and, the item promoted, replaced by its pass: an observation
+    // the author would not have without the appeal (D27, `docs/02` §C.1).
     assert!(
         reputation_with > reputation_without,
         "reputation {reputation_with:.4} after a successful appeal vs {reputation_without:.4}"

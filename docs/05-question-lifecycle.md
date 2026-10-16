@@ -99,18 +99,19 @@ two sides' predicted approval (`02` §A.3), not a formal defect — whether it w
 below the band or failed the band's re-decision (`01` D26, amended by T59), can, at the
 author's initiative, **skip review and go straight to the pilot**:
 
-- filing escrows a zero-quality pseudo-observation in the author's history, so `C_a`
-  falls at once; an author whose `C_a` is below the stake floor — the prior mean of
-  `02` §C.1 — cannot file (`01` D27, T61)
+- filing escrows a zero pseudo-observation, at weight 1, for the appealed item in the
+  author's history, so `C_a` falls at once; an author whose `C_a` is below the stake
+  floor — the prior mean of `02` §C.1 — cannot file (`01` D27, T61). An epoch's requests
+  are checked one at a time in item-CID order, each counting the escrows admitted before
+  it (`02` §C.1)
 - if the Level B psychometrics **promote** it — to the active pool, or to the contested
-  pool when its DIF concerns a sourced fact ([7b]) — the pseudo-observation is replaced
-  by the item's quality, the author's observation for having been right against the
-  opinion filter — there is no additive bonus; what that quality is and who produces it
-  are open (`15` C5)
-- if it **fails**, the zero stands, and it bars the next appeal while `C_a` stays below
-  the floor
+  pool when its DIF concerns a sourced fact ([7b]) — the escrow becomes a pass, the
+  author's observation for having been right against the opinion filter; there is no
+  additive bonus, and the item counts once (`02` §C.1)
+- if it **fails**, the zero stands as the item's outcome, and it bars the next appeal
+  while `C_a` stays below the floor
 - only the pilot's conclusion settles the appeal: while the pilot is pending, as after an
-  indeterminate stage, the escrow stays open (`15` A11 (f))
+  indeterminate stage, the escrow stays open at weight 1 (`15` A11 (f), C5–C6)
 
 It is the only way to recover "true but inconvenient", moving the decision from peer
 judgment to the data.
