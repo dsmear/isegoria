@@ -729,7 +729,8 @@ C_a  =  ─────────────────────      w_j
 This is the formula in `reputation::author_score`, a regularized index. A weight's
 half-life is `T ln 2` ≈ 12.48 months, not T. Were every weight aged alike with no new
 observation, `C_a` would move toward the prior mean `α₀/(α₀+β₀)`, not toward 0, and never
-across it.
+across it, in exact arithmetic; an escrow held at a fixed weight while the rest ages
+breaks this, and binary64 can round a value just below the floor up to it (`15` C5–C6).
 The earlier Beta–Beta hierarchy `q_j | ψ_a ~ Beta(κψ_a, κ(1−ψ_a))`,
 `ψ_a ~ Beta(α₀,β₀)` does **not** have this posterior mean (`15` C5).
 Describing the implemented index correctly does not decide whether a different

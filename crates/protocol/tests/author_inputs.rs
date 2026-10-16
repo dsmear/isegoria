@@ -2,8 +2,8 @@
 //! written, naming no item, and no epoch ages a record or an escrow.
 
 use identity::nym::Nym;
-use protocol::appeal::AuthorHistory;
-use protocol::results::{EpochResults, ResultRecord, ResultsState};
+use protocol::appeal::{appeal_floor, AuthorHistory};
+use protocol::results::{EpochResults, ResultRecord, ResultsRejected, ResultsState};
 use scoring::reputation::{author_score, AuthorPrior};
 
 fn nym(i: u8) -> Nym {
@@ -103,4 +103,41 @@ fn an_out_of_range_quality_or_age_is_clamped_not_refused() {
     direct.record(1.0, 0.0);
     direct.record(0.0, 0.0);
     assert_eq!(state.author(&nym(1)), Some(&direct));
+}
+
+/// C6: replay checks filings in order, so a fresh author's second filing in one epoch is refused.
+#[test]
+fn a_second_filing_in_one_epoch_meets_the_first_escrow() {
+    let mut state = ResultsState::default();
+    let filed = ResultRecord::AppealFiled { author: nym(1) };
+    let twice = EpochResults {
+        epoch: 1,
+        inputs_root: [0; 32],
+        records: vec![filed.clone(), filed.clone()],
+    };
+    let refused = Err(ResultsRejected::AppealNotCovered { record: 1 });
+    assert_eq!(state.apply(&twice), refused);
+    apply(&mut state, 1, vec![filed]);
+    assert!((reputation(&state, nym(1)) - 1.0 / 3.0).abs() < 1e-12);
+}
+
+/// C6: one `q = 0` gives 1/3 at age 0; at 720 months binary64 rounds `C_a` to the floor 0.4.
+#[test]
+fn a_zero_at_720_months_rounds_to_the_floor_and_covers_the_stake() {
+    let p = AuthorPrior::default();
+    let mut fresh = AuthorHistory::new();
+    fresh.record(0.0, 0.0);
+    assert!((fresh.reputation(&p) - 1.0 / 3.0).abs() < 1e-12);
+    assert!(!fresh.covers_stake(&p));
+    let mut old = AuthorHistory::new();
+    old.record(0.0, 720.0);
+    assert_eq!(old.reputation(&p).to_bits(), appeal_floor(&p).to_bits());
+    assert!(old.covers_stake(&p));
+    let no_prior = AuthorPrior {
+        alpha0: 0.0,
+        beta0: 0.0,
+        ..p
+    };
+    // The weight is positive, not underflowed: the index is `w / w`.
+    assert_eq!(author_score(&[1.0], &[720.0], &no_prior), 1.0);
 }
