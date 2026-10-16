@@ -31,10 +31,13 @@ pub enum ResultRecord {
         item: Cid,
         passed: bool,
     },
-    /// An appeal on `item`, checked at this epoch after the event's earlier filings (`docs/15` C6).
-    AppealFiled {
+    /// An appeal on `item` filed and started at once (`docs/15` C5–C6): its escrow, checked at this
+    /// epoch after the event's earlier filings, and on a node its item's move to the pilot; refused
+    /// unless `within_window`, the request's window reading.
+    AppealStarted {
         author: Nym,
         item: Cid,
+        within_window: bool,
     },
     /// The appealed `item`'s pilot outcome, settling its escrow.
     AppealSettled {
@@ -85,6 +88,10 @@ pub enum ResultsRejected {
         record: usize,
     },
     AppealNotCovered {
+        record: usize,
+    },
+    /// A filing whose request came after its item's appeal window.
+    AppealWindowClosed {
         record: usize,
     },
     NoOpenEscrow {
@@ -193,7 +200,8 @@ impl ResultsState {
         }
     }
 
-    /// Applies every record or none (`docs/04` §Events and replay).
+    /// Applies every record or none (`docs/04` §Events and replay); a filing records its escrow
+    /// only, and `NodeState::apply` moves its item in the same event.
     pub fn apply(&mut self, results: &EpochResults) -> Result<(), ResultsRejected> {
         if self.roots.contains_key(&results.epoch) {
             return Err(ResultsRejected::EpochRecorded);
@@ -247,7 +255,14 @@ impl ResultsState {
                     .conclude(*item, *passed, epoch)
                     .map_err(|e| author_refusal(e, i))?;
             }
-            ResultRecord::AppealFiled { author, item } => {
+            ResultRecord::AppealStarted {
+                author,
+                item,
+                within_window,
+            } => {
+                if !within_window {
+                    return Err(ResultsRejected::AppealWindowClosed { record: i });
+                }
                 let scale = self
                     .epoch_scale
                     .ok_or(ResultsRejected::NoEpochScale { record: i })?;
@@ -414,7 +429,15 @@ pub(crate) fn write_results(w: &mut Writer, results: &EpochResults) {
                 .fixed(&author.0)
                 .fixed(&item.0)
                 .u8(u8::from(*passed)),
-            ResultRecord::AppealFiled { author, item } => w.u8(11).fixed(&author.0).fixed(&item.0),
+            ResultRecord::AppealStarted {
+                author,
+                item,
+                within_window,
+            } => w
+                .u8(13)
+                .fixed(&author.0)
+                .fixed(&item.0)
+                .u8(u8::from(*within_window)),
             ResultRecord::AppealSettled {
                 author,
                 item,
@@ -563,14 +586,15 @@ fn read_record(r: &mut Reader) -> Option<ResultRecord> {
             item: cid(r)?,
             passed: flag(r)?,
         },
-        11 => ResultRecord::AppealFiled {
-            author: nym(r)?,
-            item: cid(r)?,
-        },
         12 => ResultRecord::AppealSettled {
             author: nym(r)?,
             item: cid(r)?,
             passed: flag(r)?,
+        },
+        13 => ResultRecord::AppealStarted {
+            author: nym(r)?,
+            item: cid(r)?,
+            within_window: flag(r)?,
         },
         _ => return None,
     })

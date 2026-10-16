@@ -6,8 +6,10 @@ use identity::enrollment::Label;
 use identity::nullifier::prove;
 use identity::nym::{Nym, Role};
 use network::cid::Cid;
-use protocol::appeal::EpochScale;
-use protocol::authorship::{author_records, AuthorRecords, AuthorRecordsError};
+use protocol::appeal::{EpochScale, InsufficientReputation};
+use protocol::authorship::{
+    author_records, AppealRefusal, AppealRequest, AuthorRecords, AuthorRecordsError,
+};
 use protocol::deposit::{deposit_context, Draft};
 use protocol::events::NodeEvent;
 use protocol::gate::GateOutcome;
@@ -18,7 +20,7 @@ use protocol::results::{EpochResults, ResultRecord, ResultsRejected};
 use protocol::revalidation::Recheck;
 use protocol::review::commit;
 use scoring::reputation::{author_score, AuthorPrior};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -117,13 +119,6 @@ fn stage2(dif: Recheck, source_verified: bool) -> Event {
         batch_size: 2,
         dif,
         source_verified,
-    }
-}
-
-fn appeal() -> Event {
-    Event::Appeal {
-        within_window: true,
-        reputation_covers_stake: true,
     }
 }
 
@@ -254,17 +249,72 @@ impl Setup {
     }
 
     fn records(&self, epoch: u64, appeals: &[&str]) -> Result<AuthorRecords, AuthorRecordsError> {
-        let appeals = appeals.iter().map(|t| self.item(t).0).collect();
+        let within: Vec<(&str, bool)> = appeals.iter().map(|t| (*t, true)).collect();
+        self.requests(epoch, &within)
+    }
+
+    /// The records for the requests `(tag, within_window)`.
+    fn requests(
+        &self,
+        epoch: u64,
+        appeals: &[(&str, bool)],
+    ) -> Result<AuthorRecords, AuthorRecordsError> {
+        let appeals = appeals
+            .iter()
+            .map(|(t, within_window)| {
+                let within_window = *within_window;
+                (self.item(t).0, AppealRequest { within_window })
+            })
+            .collect();
         author_records(self.node.state(), epoch, &appeals)
     }
 
     fn submit(&mut self, epoch: u64, records: Vec<ResultRecord>) -> Result<Outcome, NodeError> {
-        self.node.submit(NodeEvent::Results(EpochResults {
-            epoch,
-            inputs_root: [epoch as u8; 32],
-            records,
-        }))
+        self.node.submit(results(epoch, records))
     }
+
+    fn escrows(&self, author: &Nym) -> Vec<Cid> {
+        self.node.state().results().open_escrows(author)
+    }
+
+    fn state(&self, item: &Cid) -> Option<&State> {
+        self.node.state().item(item)
+    }
+}
+
+fn results(epoch: u64, records: Vec<ResultRecord>) -> NodeEvent {
+    NodeEvent::Results(EpochResults {
+        epoch,
+        inputs_root: [epoch as u8; 32],
+        records,
+    })
+}
+
+fn on(item: Cid, event: Event) -> NodeEvent {
+    NodeEvent::Step { item, event }
+}
+
+fn start(author: Nym, item: Cid) -> ResultRecord {
+    ResultRecord::AppealStarted {
+        author,
+        item,
+        within_window: true,
+    }
+}
+
+const STARTED: State = State::Pilot1 { appealed: true };
+
+/// Submits `event` and checks the node refused it, its state and log as before, also reopened.
+fn refused_without_trace(setup: &mut Setup, event: NodeEvent) -> Rejection {
+    let before = setup.reopen();
+    let got = setup.node.submit(event);
+    let Err(NodeError::Rejected(why)) = got else {
+        panic!("accepted: {got:?}");
+    };
+    assert_eq!(setup.node.state(), before.state());
+    assert_eq!(setup.node.log_len(), before.log_len());
+    assert_eq!(setup.reopen().state(), before.state());
+    why
 }
 
 const EVERY_WALK: [&str; 11] = [
@@ -342,7 +392,7 @@ fn pilot_conclusions_reach_the_record_from_their_deposit_and_step() {
     assert_eq!(setup.records(3, &[]).unwrap(), AuthorRecords::default());
 }
 
-/// C5: the node refuses an author record its deposits and steps do not support, whole, no trace.
+/// C5: the node refuses an author record its log does not support, whole, filings' moves included.
 #[test]
 fn the_node_refuses_author_records_its_log_does_not_support() {
     let walks = [
@@ -351,22 +401,16 @@ fn the_node_refuses_author_records_its_log_does_not_support() {
         (2, "explored"),
         (2, "defect"),
         (2, "eligible/appealed"),
+        (2, "eligible/second"),
         (3, "eligible"),
     ];
     let mut setup = Setup::new("refused", &walks, Some(scale()));
     let (pool, author) = setup.item("pool by 2");
-    let (other, _) = setup.item("eligible by 3");
+    let (other, third) = setup.item("eligible by 3");
     let (appealed, _) = setup.item("eligible/appealed by 2");
-    let filed = ResultRecord::AppealFiled {
-        author,
-        item: appealed,
-    };
-    setup.submit(2, vec![filed]).unwrap();
-    for event in [
-        appeal(),
-        screen(Screening::Pass),
-        stage2(Recheck::NoDif, false),
-    ] {
+    let (second, _) = setup.item("eligible/second by 2");
+    setup.submit(2, vec![start(author, appealed)]).unwrap();
+    for event in [screen(Screening::Pass), stage2(Recheck::NoDif, false)] {
         setup.step(appealed, event).unwrap();
     }
     let outcome = |item, author, passed| ResultRecord::AuthorOutcome {
@@ -376,6 +420,16 @@ fn the_node_refuses_author_records_its_log_does_not_support() {
     };
     let item = |tag: &str| setup.item(tag).0;
     let valid = outcome(pool, author, true);
+    let late = ResultRecord::AppealStarted {
+        author: third,
+        item: other,
+        within_window: false,
+    };
+    let unbounded = ResultRecord::ReviewerScore {
+        reviewer: Nym([5; 32]),
+        score: 0.5,
+        inclusion: 0.0,
+    };
     let cases = vec![
         (
             vec![outcome(pool, Nym([9; 32]), true)],
@@ -426,21 +480,50 @@ fn the_node_refuses_author_records_its_log_does_not_support() {
             ResultsRejected::OutcomeMismatch { record: 0 },
         ),
         (
-            vec![
-                valid.clone(),
-                ResultRecord::AppealFiled { author, item: pool },
-            ],
+            vec![start(Nym([9; 32]), other)],
+            ResultsRejected::NotTheProposer { record: 0 },
+        ),
+        (
+            vec![start(author, Cid([9; 32]))],
+            ResultsRejected::NotTheProposer { record: 0 },
+        ),
+        (
+            vec![valid.clone(), start(author, pool)],
             ResultsRejected::NotAppealable { record: 1 },
         ),
+        (
+            vec![start(author, appealed)],
+            ResultsRejected::NotAppealable { record: 0 },
+        ),
+        (
+            vec![late],
+            ResultsRejected::AppealWindowClosed { record: 0 },
+        ),
+        (
+            vec![start(author, second)],
+            ResultsRejected::AppealNotCovered { record: 0 },
+        ),
+        (
+            vec![start(third, other), start(third, other)],
+            ResultsRejected::DuplicateItem { record: 1 },
+        ),
+        (
+            vec![start(third, other), outcome(pool, author, false)],
+            ResultsRejected::OutcomeMismatch { record: 1 },
+        ),
+        (
+            vec![start(third, other), unbounded],
+            ResultsRejected::BadInclusion { record: 1 },
+        ),
     ];
-    let before = setup.reopen();
     for (records, why) in cases {
-        let refused = Err(NodeError::Rejected(Rejection::Results(why)));
-        assert_eq!(setup.submit(3, records), refused);
-        assert_eq!(setup.node.state(), before.state());
-        assert_eq!(setup.node.log_len(), before.log_len());
+        let refused = refused_without_trace(&mut setup, results(3, records));
+        assert_eq!(refused, Rejection::Results(why));
     }
-    assert_eq!(setup.submit(3, vec![valid]), Ok(Outcome::Moved));
+    assert_eq!(setup.state(&other), Some(&State::AppealEligible));
+    let accepted = setup.submit(3, vec![valid, start(third, other)]);
+    assert_eq!(accepted, Ok(Outcome::Moved));
+    assert_eq!(setup.state(&other), Some(&STARTED));
 }
 
 /// C5/C6: an appeal filed through the node settles its escrow; the item counts once, from `e + 1`.
@@ -450,24 +533,11 @@ fn an_appeal_through_the_node_settles_its_escrow_and_counts_once() {
     let ((earlier, author), (appealed, _)) = (setup.item("pool by 2"), setup.item("eligible by 2"));
     let out = setup.records(2, &["eligible by 2"]).unwrap();
     assert_eq!(out.admitted, vec![appealed]);
-    let filing = ResultRecord::AppealFiled {
-        author,
-        item: appealed,
-    };
-    assert_eq!(out.records.last(), Some(&filing));
+    assert_eq!(out.records.last(), Some(&start(author, appealed)));
     setup.submit(2, out.records).unwrap();
-    for event in [
-        appeal(),
-        screen(Screening::Pass),
-        stage2(Recheck::NoDif, false),
-    ] {
-        setup
-            .node
-            .submit(NodeEvent::Step {
-                item: appealed,
-                event,
-            })
-            .unwrap();
+    assert_eq!(setup.state(&appealed), Some(&STARTED));
+    for event in [screen(Screening::Pass), stage2(Recheck::NoDif, false)] {
+        setup.step(appealed, event).unwrap();
     }
     let out = setup.records(3, &[]).unwrap();
     let settled = ResultRecord::AppealSettled {
@@ -503,6 +573,7 @@ fn an_appeal_through_the_node_settles_its_escrow_and_counts_once() {
         history.reputation(4, scale(), &p).to_bits(),
         passed.to_bits()
     );
+    assert_eq!(setup.records(4, &[]).unwrap(), AuthorRecords::default());
     assert_eq!(setup.reopen().state(), setup.node.state());
 }
 
@@ -524,53 +595,73 @@ fn appeals_in_one_epoch_are_selected_in_cid_order_whatever_their_arrival() {
     let (low, high) = (x.min(y), x.max(y));
     let mut admitted = vec![low, z];
     admitted.sort();
+    let short = InsufficientReputation {
+        reputation: author_score(&[0.0], &[0.0], &AuthorPrior::default()),
+        floor: 0.4,
+    };
+    let within = AppealRequest {
+        within_window: true,
+    };
     for arrival in [[x, y, z], [z, y, x], [y, z, x]] {
-        let appeals: BTreeSet<Cid> = arrival.into_iter().collect();
+        let appeals: BTreeMap<Cid, AppealRequest> =
+            arrival.into_iter().map(|c| (c, within)).collect();
         for node in [&setup.node, &reversed.node] {
             let out = author_records(node.state(), 2, &appeals).unwrap();
-            assert_eq!((&out.admitted, &out.refused), (&admitted, &vec![high]));
+            let refused = vec![(high, AppealRefusal::Uncovered(short))];
+            assert_eq!((&out.admitted, &out.refused), (&admitted, &refused));
         }
     }
-    let both = vec![
-        ResultRecord::AppealFiled { author, item: high },
-        ResultRecord::AppealFiled { author, item: low },
-    ];
-    let refused = Rejection::Results(ResultsRejected::AppealNotCovered { record: 1 });
-    let log = setup.node.log_len();
-    assert_eq!(setup.submit(2, both), Err(NodeError::Rejected(refused)));
+    let both = vec![start(author, high), start(author, low)];
+    let uncovered = Rejection::Results(ResultsRejected::AppealNotCovered { record: 1 });
     assert_eq!(
-        setup.node.log_len(),
-        log,
-        "the admissible first filing is not kept"
+        refused_without_trace(&mut setup, results(2, both)),
+        uncovered,
+        "the admissible first filing and its move are not kept"
     );
-    let appeals: BTreeSet<Cid> = [x, y, z].into_iter().collect();
-    let out = author_records(setup.node.state(), 2, &appeals).unwrap();
+    let tags = ["eligible/x by 2", "eligible/y by 2", "eligible/z by 3"];
+    let out = setup.records(2, &tags).unwrap();
     setup.submit(2, out.records.clone()).unwrap();
     reversed.submit(2, out.records).unwrap();
     assert_eq!(
         setup.node.state().results(),
         reversed.node.state().results()
     );
-    assert_eq!(
-        setup.node.state().results().open_escrows(&author),
-        vec![low]
-    );
-    for item in admitted {
-        setup
-            .node
-            .submit(NodeEvent::Step {
-                item,
-                event: appeal(),
-            })
-            .unwrap();
+    assert_eq!(setup.escrows(&author), vec![low]);
+    for item in [x, y, z] {
+        let want = if item == high {
+            State::AppealEligible
+        } else {
+            STARTED
+        };
+        assert_eq!(setup.state(&item), Some(&want));
+        assert_eq!(reversed.state(&item), Some(&want));
     }
-    let expire = NodeEvent::Step {
-        item: high,
-        event: Event::AppealExpires,
-    };
-    setup.node.submit(expire).unwrap();
+    setup.step(high, Event::AppealExpires).unwrap();
     let polarized = State::Rejected(RejectReason::Polarized);
-    assert_eq!(setup.node.state().item(&high), Some(&polarized));
+    assert_eq!(setup.state(&high), Some(&polarized));
+}
+
+/// C6: a request after its window, first in CID order, spends no coverage; the next one starts.
+#[test]
+fn a_late_request_spends_no_coverage_of_the_next_in_cid_order() {
+    let walks = [(2, "eligible/x"), (2, "eligible/y")];
+    let mut setup = Setup::new("late-first", &walks, Some(scale()));
+    let mut tags = ["eligible/x by 2", "eligible/y by 2"];
+    tags.sort_by_key(|t| setup.item(t).0);
+    let [(low, author), (high, _)] = tags.map(|t| setup.item(t));
+    let out = setup
+        .requests(2, &[(tags[0], false), (tags[1], true)])
+        .unwrap();
+    let want = AuthorRecords {
+        records: vec![start(author, high)],
+        admitted: vec![high],
+        refused: vec![(low, AppealRefusal::WindowClosed)],
+    };
+    assert_eq!(out, want);
+    setup.submit(2, out.records).unwrap();
+    assert_eq!(setup.state(&high), Some(&STARTED));
+    assert_eq!(setup.escrows(&author), vec![high]);
+    assert_eq!(setup.step(low, Event::AppealExpires), Ok(Outcome::Moved));
 }
 
 /// C6: without `E_m` the producer refuses appeals and the node a filing; outcomes still record.
@@ -585,111 +676,70 @@ fn without_a_scale_filings_are_refused_and_outcomes_recorded() {
     assert_eq!(out.records.len(), 1);
     let (item, author) = setup.item("eligible by 2");
     let mut records = out.records;
-    records.push(ResultRecord::AppealFiled { author, item });
-    let refused = Rejection::Results(ResultsRejected::NoEpochScale { record: 1 });
-    assert_eq!(
-        setup.submit(2, records.clone()),
-        Err(NodeError::Rejected(refused))
-    );
+    records.push(start(author, item));
+    let unscaled = Rejection::Results(ResultsRejected::NoEpochScale { record: 1 });
+    let refused = refused_without_trace(&mut setup, results(2, records.clone()));
+    assert_eq!(refused, unscaled);
     records.pop();
     assert_eq!(setup.submit(2, records), Ok(Outcome::Moved));
+    assert_eq!(setup.state(&item), Some(&State::AppealEligible));
 }
 
-/// Submits `event` on `item` and checks the node refused it, its state and log as before.
-fn refused_without_trace(setup: &mut Setup, item: Cid, event: Event) -> NodeError {
-    let before = setup.reopen();
-    let got = setup.node.submit(NodeEvent::Step { item, event });
-    let Err(e @ NodeError::Rejected(_)) = got else {
-        panic!(
-            "accepted: {got:?}, the item now {:?}",
-            setup.node.state().item(&item)
-        );
-    };
-    assert_eq!(setup.node.state(), before.state());
-    assert_eq!(setup.node.log_len(), before.log_len());
-    assert_eq!(setup.reopen().state(), before.state());
-    e
-}
-
-/// C5: an appeal step with no escrow open for its item is refused, state and log unchanged.
+/// C5: an appeal step is refused without trace, whatever its inputs; its item may still expire.
 #[test]
-fn an_appeal_without_its_escrow_is_refused_without_trace() {
-    let mut setup = Setup::new("no-escrow", &[(2, "eligible")], Some(scale()));
+fn an_appeal_step_is_refused_without_trace() {
+    let mut setup = Setup::new("step", &[(2, "eligible")], Some(scale()));
     let (item, _) = setup.item("eligible by 2");
-    refused_without_trace(&mut setup, item, appeal());
-    assert_eq!(setup.node.state().item(&item), Some(&State::AppealEligible));
+    for within_window in [true, false] {
+        let event = Event::Appeal {
+            within_window,
+            reputation_covers_stake: true,
+        };
+        let refused = refused_without_trace(&mut setup, on(item, event));
+        assert_eq!(refused, Rejection::AppealStep);
+    }
+    assert_eq!(setup.step(item, Event::AppealExpires), Ok(Outcome::Moved));
 }
 
-/// C5: once its filing is recorded, the item's appeal cannot expire; state and log unchanged.
+/// C5: a started appeal neither expires nor files again, without trace.
 #[test]
-fn an_expiry_after_a_recorded_filing_is_refused_without_trace() {
-    let mut setup = Setup::new("filed-expiry", &[(2, "eligible")], Some(scale()));
-    let (item, _) = setup.item("eligible by 2");
-    let out = setup.records(2, &["eligible by 2"]).unwrap();
-    assert_eq!(out.admitted, vec![item]);
-    setup.submit(2, out.records).unwrap();
-    refused_without_trace(&mut setup, item, Event::AppealExpires);
-    assert_eq!(setup.node.state().item(&item), Some(&State::AppealEligible));
-}
-
-/// C5: a fresh author's filing leaves `C_a` at 1/3, yet its appeal starts; the window still holds.
-#[test]
-fn a_filed_appeal_starts_although_c_a_is_now_below_the_floor() {
-    let mut setup = Setup::new("fresh", &[(2, "eligible")], Some(scale()));
+fn a_started_appeal_neither_expires_nor_files_again() {
+    let mut setup = Setup::new("started", &[(2, "eligible")], Some(scale()));
     let (item, author) = setup.item("eligible by 2");
     let out = setup.records(2, &["eligible by 2"]).unwrap();
     setup.submit(2, out.records).unwrap();
-    let history = setup
-        .node
-        .state()
-        .results()
-        .author(&author)
-        .unwrap()
-        .clone();
+    let expiry = refused_without_trace(&mut setup, on(item, Event::AppealExpires));
+    assert_eq!(expiry, Rejection::Lifecycle(Invalid::UnexpectedEvent));
+    let again = refused_without_trace(&mut setup, results(3, vec![start(author, item)]));
+    let not_appealable = ResultsRejected::NotAppealable { record: 0 };
+    assert_eq!(again, Rejection::Results(not_appealable));
+}
+
+/// C5: a fresh author's valid request files and starts at once, `C_a` 0.4 then 1/3; no midway.
+#[test]
+fn a_fresh_author_s_appeal_files_and_starts_at_once() {
+    let mut setup = Setup::new("fresh", &[(2, "eligible")], Some(scale()));
+    let (item, author) = setup.item("eligible by 2");
     let p = AuthorPrior::default();
+    let results = setup.node.state().results();
+    assert_eq!(results.quota_reputation(&author, 2), Some(0.4));
+    let out = setup.records(2, &["eligible by 2"]).unwrap();
+    assert_eq!(out.records, vec![start(author, item)]);
+    let before = setup.reopen();
+    assert_eq!(before.state().item(&item), Some(&State::AppealEligible));
+    assert!(before.state().results().open_escrows(&author).is_empty());
+    setup.submit(2, out.records).unwrap();
+    for node in [&setup.node, &setup.reopen()] {
+        assert_eq!(node.state().item(&item), Some(&STARTED));
+        assert_eq!(node.state().results().open_escrows(&author), vec![item]);
+    }
+    let history = setup.node.state().results().author(&author).unwrap();
     let third = author_score(&[0.0], &[0.0], &p);
     assert_eq!(
         history.reputation(2, scale(), &p).to_bits(),
         third.to_bits()
     );
     assert!(!history.covers_stake(3, scale(), &p));
-    let late = Event::Appeal {
-        within_window: false,
-        reputation_covers_stake: true,
-    };
-    let closed = Rejection::Lifecycle(Invalid::AppealWindowClosed);
-    assert_eq!(
-        refused_without_trace(&mut setup, item, late),
-        NodeError::Rejected(closed)
-    );
-    assert_eq!(setup.step(item, appeal()), Ok(Outcome::Moved));
-    let pilot = State::Pilot1 { appealed: true };
-    assert_eq!(setup.node.state().item(&item), Some(&pilot));
-}
-
-/// C5: another item's escrow authorizes no appeal; an item with no filing may still expire.
-#[test]
-fn only_the_item_s_own_escrow_starts_its_appeal_or_bars_its_expiry() {
-    let walks = [(2, "eligible/x"), (2, "eligible/y")];
-    let mut setup = Setup::new("own-escrow", &walks, Some(scale()));
-    let (x, y) = (
-        setup.item("eligible/x by 2").0,
-        setup.item("eligible/y by 2").0,
-    );
-    let out = setup.records(2, &["eligible/x by 2"]).unwrap();
-    assert_eq!(out.admitted, vec![x]);
-    setup.submit(2, out.records).unwrap();
-    let no_escrow = NodeError::Rejected(Rejection::NoEscrow);
-    assert_eq!(refused_without_trace(&mut setup, y, appeal()), no_escrow);
-    let open = NodeError::Rejected(Rejection::EscrowOpen);
-    assert_eq!(
-        refused_without_trace(&mut setup, x, Event::AppealExpires),
-        open
-    );
-    assert_eq!(setup.step(y, Event::AppealExpires), Ok(Outcome::Moved));
-    let polarized = State::Rejected(RejectReason::Polarized);
-    assert_eq!(setup.node.state().item(&y), Some(&polarized));
-    assert_eq!(setup.step(x, appeal()), Ok(Outcome::Moved));
 }
 
 /// C5/C6: a pending or indeterminate pilot settles nothing; a failure settles once, seen at `e+1`.
@@ -699,8 +749,8 @@ fn a_pending_pilot_settles_nothing_until_it_fails_and_counts_once() {
     let (item, author) = setup.item("eligible by 2");
     let out = setup.records(2, &["eligible by 2"]).unwrap();
     setup.submit(2, out.records).unwrap();
+    assert_eq!(setup.records(3, &[]).unwrap(), AuthorRecords::default());
     let pending = [
-        appeal(),
         screen(Screening::Indeterminate),
         screen(Screening::Pass),
         stage2(Recheck::Indeterminate, false),
@@ -790,4 +840,24 @@ fn replay_holds_under_the_same_time_configuration_only() {
             rejection: unscaled
         })
     );
+}
+
+/// C5: a request after its window starts nothing: no escrow, no trace, its item free to expire.
+#[test]
+fn a_late_appeal_leaves_no_escrow_and_its_item_free_to_expire() {
+    let mut setup = Setup::new("late", &[(2, "eligible")], Some(scale()));
+    let (item, author) = setup.item("eligible by 2");
+    let out = setup.requests(2, &[("eligible by 2", false)]).unwrap();
+    let refused = vec![(item, AppealRefusal::WindowClosed)];
+    assert_eq!((out.records, out.refused), (vec![], refused));
+    let late = ResultRecord::AppealStarted {
+        author,
+        item,
+        within_window: false,
+    };
+    let closed = ResultsRejected::AppealWindowClosed { record: 0 };
+    let refused = refused_without_trace(&mut setup, results(2, vec![late]));
+    assert_eq!(refused, Rejection::Results(closed));
+    assert_eq!(setup.escrows(&author), Vec::<Cid>::new());
+    assert_eq!(setup.step(item, Event::AppealExpires), Ok(Outcome::Moved));
 }

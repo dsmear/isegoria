@@ -115,7 +115,8 @@ impl AuthorHistory {
     }
 
     /// Files an appeal on `item` if [`Self::reputation`] at `epoch` covers the stake, escrowing
-    /// a zero that counts for every later check, those of `epoch` included.
+    /// a zero that counts for every later check, those of `epoch` included; the escrow only, as
+    /// the node starts the appeal with it (`docs/15` C5–C6).
     pub fn file_appeal(
         &mut self,
         item: Cid,

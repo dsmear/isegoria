@@ -748,10 +748,13 @@ outcome, not a psychometric quality, and no Bayesian reading is adopted:
 - *One per item.* The record names its item; a second record for the item is refused, and
   nothing is revised.
 - *Appeal.* The escrow is the appealed item's only slot: its outcome settles the escrow and
-  adds no second observation. The node starts an appeal only while its item's escrow is open
-  under the author the deposit proved, and refuses the item's expiry while it is. It does
-  not check coverage again: the filing attests the check it passed, so a fresh author whose
-  filing left `C_a` at 1/3 still starts that appeal. The window check stays.
+  adds no second observation. Filing and starting are one operation of the node: a filing
+  record escrows the zero and moves its item from `AppealEligible` to
+  `Pilot1 { appealed: true }` in the same results event, or, refused, does neither. The
+  record carries the request's window reading, an explicit input refused when false. Coverage
+  is checked on the history before the filing and not again after it, so a fresh author at
+  0.4 starts the appeal and is left at 1/3. A lifecycle `Appeal` step is refused (`04`
+  §Events and replay), so no accepted event holds an escrow while its item waits to start.
 - *Provenance.* The node keeps the author each accepted deposit proved and the conclusion each
   step reaches (`node::Conclusion`). It refuses an author record naming another author, or an
   outcome and appeal flag that step did not reach. It also refuses a filing on an item that is
@@ -765,9 +768,11 @@ outcome, not a psychometric quality, and no Bayesian reading is adopted:
   every escrow filed before it, those filed earlier in `e` included. An escrow settled in `e`
   counts through `e`, and its outcome replaces it from `e + 1`. The epoch's appeal requests,
   once their set is closed, are *selected* one at a time in ascending item CID (the
-  lottery's order). Each request is admitted if covered, refused otherwise, so their arrival
-  order cannot move the outcome. *Replay* of the recorded filings is atomic instead: one
-  uncovered filing refuses the whole results event, the admissible ones before it included.
+  lottery's order). A request outside its window is refused before coverage is read, so it
+  spends none; one within it is admitted if covered, refused otherwise. Their arrival order
+  cannot move the outcome. *Replay* of the recorded filings is atomic instead: one invalid
+  filing (uncovered, outside its window, or on an item not appeal-eligible) refuses the whole
+  results event, the admissible filings before it and their items' moves included.
 - *Quota.* The value for epoch `e`'s quota is fixed once, from the outcomes of epochs before
   `e` and the escrows open at the end of `e − 1` (`AuthorHistory::quota_reputation`).
   Turning it into a quota is not implemented.

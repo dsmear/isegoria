@@ -29,10 +29,8 @@ pub enum Rejection {
     UnknownItem,
     /// An assignment that names another item than the one it moves.
     ItemMismatch,
-    /// An appeal with no escrow open for its item under the author its deposit proved.
-    NoEscrow,
-    /// An appeal's expiry while a recorded filing holds the item's escrow open.
-    EscrowOpen,
+    /// An appeal as a step: an appeal starts only with its filing record (`docs/15` C5–C6).
+    AppealStep,
     Results(ResultsRejected),
 }
 
@@ -131,11 +129,12 @@ impl NodeState {
             .map_err(Rejection::Response),
             NodeEvent::Step { item, event } => return self.step(*item, event),
             NodeEvent::Results(results) => {
-                return self
-                    .check_authors(results)
-                    .and_then(|()| self.results.apply(results))
-                    .map(|()| Outcome::Moved)
-                    .map_err(Rejection::Results)
+                let started = self.check_authors(results).map_err(Rejection::Results)?;
+                self.results.apply(results).map_err(Rejection::Results)?;
+                for item in started {
+                    self.items.insert(item, State::Pilot1 { appealed: true });
+                }
+                return Ok(Outcome::Moved);
             }
         };
         if let (Ok(proposer), NodeEvent::Deposit { draft, .. }) = (&admitted, event) {
@@ -146,8 +145,10 @@ impl NodeState {
     }
 
     /// Each author record names its item's proven author and, for an outcome, the conclusion
-    /// its step reached; a filing names an appeal-eligible item (`docs/04` §Events and replay).
-    fn check_authors(&self, results: &EpochResults) -> Result<(), ResultsRejected> {
+    /// its step reached; a filing, an appeal-eligible item, returned to start its appeal
+    /// (`docs/04` §Events and replay).
+    fn check_authors(&self, results: &EpochResults) -> Result<Vec<Cid>, ResultsRejected> {
+        let mut started = Vec::new();
         for (record, r) in results.records.iter().enumerate() {
             let (author, item, outcome) = match r {
                 ResultRecord::AuthorOutcome {
@@ -160,7 +161,7 @@ impl NodeState {
                     item,
                     passed,
                 } => (author, item, Some((*passed, true))),
-                ResultRecord::AppealFiled { author, item } => (author, item, None),
+                ResultRecord::AppealStarted { author, item, .. } => (author, item, None),
                 _ => continue,
             };
             if self.proposers.get(item) != Some(author) {
@@ -173,26 +174,25 @@ impl NodeState {
                 None => self.items.get(item) == Some(&State::AppealEligible),
             };
             match (consistent, outcome) {
-                (true, _) => {}
+                (true, Some(_)) => {}
+                (true, None) => started.push(*item),
                 (false, Some(_)) => return Err(ResultsRejected::OutcomeMismatch { record }),
                 (false, None) => return Err(ResultsRejected::NotAppealable { record }),
             }
         }
-        Ok(())
+        Ok(started)
     }
 
     fn step(&mut self, item: Cid, event: &Event) -> Result<Outcome, Rejection> {
         let state = self.items.get(&item).ok_or(Rejection::UnknownItem)?;
-        if matches!(event, Event::AssignReviewers { item: named, .. } if *named != item) {
-            return Err(Rejection::ItemMismatch);
-        }
-        let next = step(state.clone(), event.clone()).map_err(Rejection::Lifecycle)?;
-        let escrowed = self.escrow_open(&item);
         match event {
-            Event::Appeal { .. } if !escrowed => return Err(Rejection::NoEscrow),
-            Event::AppealExpires if escrowed => return Err(Rejection::EscrowOpen),
+            Event::AssignReviewers { item: named, .. } if *named != item => {
+                return Err(Rejection::ItemMismatch)
+            }
+            Event::Appeal { .. } => return Err(Rejection::AppealStep),
             _ => {}
         }
+        let next = step(state.clone(), event.clone()).map_err(Rejection::Lifecycle)?;
         let appealed = match state {
             State::Pilot1 { appealed } | State::Pilot2 { appealed } => Some(*appealed),
             _ => None,
@@ -203,13 +203,6 @@ impl NodeState {
         }
         self.items.insert(item, next);
         Ok(Outcome::Moved)
-    }
-
-    /// The filing the results recorded for `item` holds its escrow open (`docs/15` C5–C6).
-    fn escrow_open(&self, item: &Cid) -> bool {
-        let author = self.proposers.get(item);
-        let history = author.and_then(|a| self.results.author(a));
-        history.is_some_and(|h| h.is_open(item))
     }
 
     pub fn item(&self, item: &Cid) -> Option<&State> {

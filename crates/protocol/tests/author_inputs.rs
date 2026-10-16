@@ -42,9 +42,10 @@ fn outcome(author: Nym, tag: &str, passed: bool) -> ResultRecord {
 }
 
 fn filed(author: Nym, tag: &str) -> ResultRecord {
-    ResultRecord::AppealFiled {
+    ResultRecord::AppealStarted {
         author,
         item: item(tag),
+        within_window: true,
     }
 }
 
@@ -328,6 +329,24 @@ fn a_filing_needs_a_configured_scale() {
     let refused = Err(ResultsRejected::NoEpochScale { record: 0 });
     assert_eq!(apply(&mut state, 2, vec![filed(nym(1), "b")]), refused);
     assert_eq!(state.quota_reputation(&nym(1), 2), None);
+}
+
+/// C5: a filing whose request came after its window is refused whole, its coverage untouched.
+#[test]
+fn a_filing_outside_its_window_is_refused_whole() {
+    let mut state = ResultsState::with_epoch_scale(scale());
+    let late = ResultRecord::AppealStarted {
+        author: nym(1),
+        item: item("x"),
+        within_window: false,
+    };
+    let refused = Err(ResultsRejected::AppealWindowClosed { record: 1 });
+    assert_eq!(
+        apply(&mut state, 1, vec![filed(nym(2), "y"), late]),
+        refused
+    );
+    assert_eq!(state, ResultsState::with_epoch_scale(scale()));
+    apply(&mut state, 1, vec![filed(nym(1), "y")]).unwrap();
 }
 
 /// C6: an author record from an epoch before one that author's history recorded is refused.

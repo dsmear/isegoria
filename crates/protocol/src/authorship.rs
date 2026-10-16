@@ -1,22 +1,36 @@
 //! An epoch's author records from a node's state (`docs/02` §C.1, `docs/15` C5–C6): the pilot
 //! conclusions not yet recorded, then the epoch's appeals selected one by one in CID order.
 
-use crate::appeal::{AuthorError, AuthorHistory};
+use crate::appeal::{AuthorError, AuthorHistory, InsufficientReputation};
 use crate::lifecycle::State;
 use crate::node::NodeState;
 use crate::results::{ResultRecord, ResultsState};
 use identity::nym::Nym;
 use network::cid::Cid;
 use scoring::reputation::AuthorPrior;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
-/// The records for one results event and the appeals they admit or refuse.
+/// An appeal request: whether it came within its item's appeal window, an explicit input
+/// the producer reads before the request may consume coverage (`docs/15` C5–C6).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct AppealRequest {
+    pub within_window: bool,
+}
+
+/// Why a request was refused without a record.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum AppealRefusal {
+    WindowClosed,
+    Uncovered(InsufficientReputation),
+}
+
+/// The records for one results event and the appeals they start or refuse.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AuthorRecords {
     /// Outcomes and settlements, then filings, each in ascending item CID.
     pub records: Vec<ResultRecord>,
     pub admitted: Vec<Cid>,
-    pub refused: Vec<Cid>,
+    pub refused: Vec<(Cid, AppealRefusal)>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -27,8 +41,8 @@ pub enum AuthorRecordsError {
     /// Appeals with no `E_m` configured (`appeal::EpochScale`).
     NoEpochScale,
     Refused(Cid, AuthorError),
-    /// An appealed conclusion with no open escrow: a defense, since `NodeState::apply` refuses
-    /// an appeal without one and only a settlement closes it.
+    /// An appealed conclusion with no open escrow: a defense, since only a filing record starts
+    /// an appeal, escrowing it in the same event, and only a settlement closes it.
     Unescrowed(Cid),
 }
 
@@ -37,7 +51,7 @@ pub enum AuthorRecordsError {
 pub fn author_records(
     node: &NodeState,
     epoch: u64,
-    appeals: &BTreeSet<Cid>,
+    appeals: &BTreeMap<Cid, AppealRequest>,
 ) -> Result<AuthorRecords, AuthorRecordsError> {
     let results = node.results();
     let prior = AuthorPrior::default();
@@ -77,23 +91,30 @@ pub fn author_records(
     let scale = results
         .epoch_scale()
         .ok_or(AuthorRecordsError::NoEpochScale)?;
-    for item in appeals {
+    for (item, request) in appeals {
         let author = node
             .proposer(item)
             .ok_or(AuthorRecordsError::UnknownItem(*item))?;
         if node.item(item) != Some(&State::AppealEligible) {
             return Err(AuthorRecordsError::NotAppealable(*item));
         }
+        if !request.within_window {
+            out.refused.push((*item, AppealRefusal::WindowClosed));
+            continue;
+        }
         let h = held(&mut working, results, author);
         match h.file_appeal(*item, epoch, scale, &prior) {
             Ok(()) => {
-                out.records.push(ResultRecord::AppealFiled {
+                out.records.push(ResultRecord::AppealStarted {
                     author,
                     item: *item,
+                    within_window: true,
                 });
                 out.admitted.push(*item);
             }
-            Err(AuthorError::Uncovered(_)) => out.refused.push(*item),
+            Err(AuthorError::Uncovered(short)) => {
+                out.refused.push((*item, AppealRefusal::Uncovered(short)))
+            }
             Err(e) => return Err(AuthorRecordsError::Refused(*item, e)),
         }
     }

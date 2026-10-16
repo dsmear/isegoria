@@ -175,7 +175,7 @@ fn walks(items: &[Cid]) -> Vec<(Cid, Vec<Event>)> {
 }
 
 /// AT-PRO-11: every lifecycle step is logged and a restart, at any point, replays each item
-/// to the state `lifecycle::step` gives; the appeal follows its recorded filing (`docs/15` C5).
+/// to the state `lifecycle::step` gives; the appeal starts with its filing record (`docs/15` C5).
 #[test]
 fn at_pro_11_item_lifecycles_replay_to_the_state_they_reached() {
     let (issuer, dir) = (issuer(), scratch("walks"));
@@ -201,19 +201,20 @@ fn at_pro_11_item_lifecycles_replay_to_the_state_they_reached() {
     let mut submitted = 4;
     for (w, (item, events)) in walks(&items).into_iter().enumerate() {
         for event in events {
-            if matches!(event, Event::Appeal { .. }) {
-                let author = authors[w];
-                let filed = NodeEvent::Results(EpochResults {
+            expected[w] = step(expected[w].clone(), event.clone()).expect("a valid walk");
+            let logged = match event {
+                Event::Appeal { within_window, .. } => NodeEvent::Results(EpochResults {
                     epoch: EPOCH,
                     inputs_root: [0; 32],
-                    records: vec![ResultRecord::AppealFiled { author, item }],
-                });
-                assert_eq!(node.submit(filed), Ok(Outcome::Moved));
-                submitted += 1;
-            }
-            expected[w] = step(expected[w].clone(), event.clone()).expect("a valid walk");
-            let got = node.submit(NodeEvent::Step { item, event });
-            assert_eq!(got, Ok(Outcome::Moved));
+                    records: vec![ResultRecord::AppealStarted {
+                        author: authors[w],
+                        item,
+                        within_window,
+                    }],
+                }),
+                event => NodeEvent::Step { item, event },
+            };
+            assert_eq!(node.submit(logged), Ok(Outcome::Moved));
             submitted += 1;
             if submitted % 9 == 0 {
                 drop(node);
@@ -312,6 +313,44 @@ fn at_pro_11_an_unreplayable_step_refuses_the_node() {
         Some(NodeError::ReplayRejected {
             entry: 1,
             rejection: Rejection::Lifecycle(Invalid::UnexpectedEvent),
+        })
+    );
+}
+
+/// AT-PRO-11: a logged appeal step, which only a filing record may now take, refuses the node.
+#[test]
+fn at_pro_11_a_logged_appeal_step_refuses_the_node() {
+    let (issuer, dir) = (issuer(), scratch("appeal-step"));
+    let (event, item) = deposit(&issuer, 2, "item");
+    let mut node = Node::open(&dir, issuer.public()).unwrap();
+    node.submit(event).unwrap();
+    for event in reviewed(item, GateOutcome::AppealEligible) {
+        node.submit(NodeEvent::Step { item, event }).unwrap();
+    }
+    let entry = node.log_len() as u64;
+    drop(node);
+    let appeal = NodeEvent::Step {
+        item,
+        event: Event::Appeal {
+            within_window: true,
+            reputation_covers_stake: true,
+        },
+    };
+    let object = ObjectStore::open(&dir.join("objects"))
+        .unwrap()
+        .0
+        .put(&appeal.encode())
+        .unwrap();
+    DurableLog::open(&dir.join("log"))
+        .unwrap()
+        .0
+        .append(object)
+        .unwrap();
+    assert_eq!(
+        Node::open(&dir, issuer.public()).err(),
+        Some(NodeError::ReplayRejected {
+            entry,
+            rejection: Rejection::AppealStep,
         })
     );
 }

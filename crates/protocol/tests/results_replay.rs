@@ -411,28 +411,32 @@ fn at_pro_12_results_round_trip_and_bad_bytes_are_refused() {
             item,
             passed: true,
         },
-        ResultRecord::AppealFiled { author, item },
+        ResultRecord::AppealStarted {
+            author,
+            item,
+            within_window: true,
+        },
         ResultRecord::AppealSettled {
             author,
             item,
             passed: false,
         },
     ];
-    let numbers = [1u8, 1, 2, 2, 6, 7, 7, 8, 9, 10, 11, 12];
+    let numbers = [1u8, 1, 2, 2, 6, 7, 7, 8, 9, 10, 13, 12];
     let records = every_record().into_iter().chain(authors.clone());
     for (record, number) in records.zip(numbers) {
         let one = results(3, vec![record]).encode();
         assert_eq!(one[header], number);
         let decoded = NodeEvent::decode(&one).expect("one record decodes");
         assert_eq!(decoded.encode(), one);
-        // 3 to 5 are the retired item-less author records (`docs/15` C5–C6).
-        for bad in [0u8, 3, 4, 5, 13] {
+        // 3 to 5 and 11 are retired author records (`docs/15` C5–C6).
+        for bad in [0u8, 3, 4, 5, 11, 14] {
             let mut unknown = one.clone();
             unknown[header] = bad;
             assert!(NodeEvent::decode(&unknown).is_none());
         }
     }
-    for flagged in [&authors[0], &authors[2]] {
+    for flagged in &authors {
         let one = results(3, vec![flagged.clone()]).encode();
         let mut bad_flag = one.clone();
         *bad_flag.last_mut().unwrap() = 2;

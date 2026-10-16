@@ -211,7 +211,8 @@ reputation decay time `T` (half-life `T ln 2`; the intended convention is a deci
 - **Sensitivity.** It scales every outcome's age, hence every weight `exp(−Δt_j/T)`. It does
   not change an open escrow (weight 1, unaged) or the order of an epoch's filings.
 - **If it moves.** Every `C_a` evaluated after the first epoch moves, so do appeal coverage
-  and the quota snapshot, and replay of a log with filings depends on it.
+  and the quota snapshot. A log with filings replays as written only under the value it was
+  written with: another can refuse a filing it admitted, or replay without detecting it.
 - **Where fixed.** Nowhere: `appeal::EpochScale::new` takes it explicitly and has no default.
   `Node::open` leaves it unset, and a node opened so refuses a filing. Tests use `4.0` as a
   fixture, not as a value (`15` C5–C6).

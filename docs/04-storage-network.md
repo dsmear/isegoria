@@ -264,11 +264,11 @@ before `15` A4's residual (a) refuses byte 2). A deposit
 the node accepts starts its item in `Deposited` and records the author id its proof proved; a
 lifecycle step applies `lifecycle::step` to the item's state and is
 refused for an unknown item, for an assignment naming another item than the one it moves,
-and wherever the §9.1 table refuses it; an `Appeal` is also refused unless a recorded filing
-holds the item's escrow open under the author its deposit proved, and an `AppealExpires` while
-one does (`02` §C.1). A step out of `Pilot1` or `Pilot2` into either pool,
-`Rejected(Screen)` or `Rejected(Dif)` records the item's pilot conclusion and whether it was
-appealed (`02` §C.1).
+and wherever the §9.1 table refuses it. An `Appeal` step is always refused
+(`Rejection::AppealStep`): an appeal starts only with its filing record, below. Its encoding
+(number 9) still decodes, so a log holding one is refused on replay. A step out of `Pilot1`
+or `Pilot2` into either pool, `Rejected(Screen)` or `Rejected(Dif)` records the item's pilot
+conclusion and whether it was appealed (`02` §C.1).
 
 A nullifier proof travels as its role (one byte: 0 propose, 1 judge, 2 respond), the
 nullifier and the Schnorr commitment (compressed G1 points, 48 bytes each) and the BBS+
@@ -293,26 +293,34 @@ the classes' ability histogram, its nodes and weights — `ClassCurves::with_abi
 recomputes the curves from them — and the members with their index in the fit:
 `ContestedPool::record`),
 9 a contested fact removed, 10 an item's pilot outcome (author, item, passed:
-`AuthorHistory::conclude`), 11 an appeal filed (author, item: `file_appeal`, which escrows a
-zero), 12 an appeal settled (author, item, passed: `settle`); 3 to 5, the author records that
-named no item, are retired, and a log holding one no longer decodes (none was produced outside
-tests; `15` C5–C6). An author record's epoch is its outcome's origin or its filing's epoch
+`AuthorHistory::conclude`), 12 an appeal settled (author, item, passed: `settle`), 13 an
+appeal started (author, item, and the request's window reading, one byte: `file_appeal`
+escrows a zero, and the node moves the item to `Pilot1 { appealed: true }` in the same event).
+Retired, so that a log holding one no longer decodes: 3 to 5, the author records that named no
+item (none was produced outside tests), and 11, a filing that left its appeal to a later step
+(produced only offline, by `5b1ff4c` and `322dd52`; `15` C5–C6). Its bytes are not read as a
+13. An author record's epoch is its outcome's origin or its filing's epoch
 (`02` §C.1). Reviewers and authors are their proven ids (INV-9); the CUSUM parameters, the
 author prior and `E_m` (`appeal::EpochScale`, undecided and without default; `14`) are the
 node's configuration. The event is applied whole or not at all, and refused for a second results
 event of the same epoch, an inclusion outside `(0, 1]`, a value that is not finite, a second
 author record for one item, an author record from an epoch before one that author's history
-recorded, a filing on a node without `E_m` or one the author's `C_a` does not cover once the
-event's earlier filings are counted, a settlement of an escrow that is not open, and a contested fit whose classes or ability
+recorded, a filing on a node without `E_m`, one whose window reading is false, or one the
+author's `C_a` does not cover once the event's earlier filings are counted, a settlement of an escrow that is not open, and a contested fit whose classes or ability
 describe no fit, whose members repeat or fall outside it, or that lies outside the pool's
 resource domain (`15` D3). A contested fit with no members passes the same checks and records
 nothing. The node also checks each author record against its own log. The author must be the
 id the item's accepted deposit proved. An outcome or settlement needs the pilot conclusion the
 item's step reached, with that outcome and appeal flag (`node::Conclusion`). A filing needs an
-item that is appeal-eligible. Replay checks the recorded filings in sequence and refuses the
-whole event at an uncovered one; which of an epoch's requests to record is selected beforehand,
-in CID order (`authorship::author_records`, `02` §C.1). The requests themselves are not on the
-log, so replay cannot check that selection.
+item that is appeal-eligible, and the accepted event moves every filed item to
+`Pilot1 { appealed: true }` with its escrow; a refused event moves none (`NodeState::apply`).
+`ResultsState::apply` alone records escrows only: it is the piece the node composes, not a
+path that starts an appeal. Replay checks the recorded filings in sequence and refuses the
+whole event at an invalid one; which of an epoch's requests to record is selected beforehand,
+in CID order, a request's window read before its coverage (`authorship::author_records`, `02`
+§C.1). The requests themselves are not on the log, so replay cannot check that selection. The
+window reading is the producer's explicit input: the node checks the value the record
+carries, not the window, whose duration and authentication are undecided.
 
 The item–author link these records carry is the one the deposit already logs: the draft gives
 the CID, and the `Propose` proof's id is the author's role pseudonym, the same for every
