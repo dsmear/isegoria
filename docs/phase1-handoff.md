@@ -2097,4 +2097,19 @@ accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the o
   half-life `H` in epochs (`T_e = H/ln 2`) without a value; nothing adopted. `14`'s `E_m`
   entry follows. Checks: local links and anchors, table shapes, `git diff --check`,
   `scripts/comment_budget.py`. No Rust run, benchmark or campaign. C6 open; A2 suspended.
+- **Astra, review of `7138560`:** diff and the pertinent paths of `results`, `appeal`,
+  `ledger` and `network::cut` read; no Rust test run. The two rectifications accepted, the
+  A/B comparison useful, B a reasonable recommendation; the time contract not approved for
+  implementation: the tie (a results epoch not after its cut's) leaves a past epoch to
+  choose, and A's skips are signed cuts too.
+- **Claude, C6's brief corrected after that review (documentation only, not reviewed):**
+  base `713856035906af5d15965dc2c7ad18d28fe3c1e4` fetched and equal to the remote branch;
+  only the owner's `.gitignore` modified, preserved outside the commit. `15`'s C6 brief
+  records the review, the tie's counterexample (ages 2 and 90 in two alternative histories),
+  who proposes, signs and checks a cut, and the tie's withdrawal. It proposes, not adopted,
+  an amendment: data, recording and evaluation epochs kept apart, both ends of an age from
+  the applying cuts, age the closings between them, one results event with filings per
+  recording epoch, a declared context offline. Decisions left: the amendment and `H`. `14`'s
+  `E_m` entry follows. Checks: local links and anchors, table shapes, `git diff --check`,
+  `scripts/comment_budget.py`. No Rust run, benchmark or campaign. C6 open; A2 suspended.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
