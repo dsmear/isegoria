@@ -441,8 +441,8 @@ evidence-based outcome. Resolves Q-7 / G-15 (supplementary-review part).
 > gain** — promotion replaces the pseudo-observation with the item's observation, and
 > that is the author's reward for being right against the opinion filter (`05` [5b]).
 >
-> **Amended by the owner (2026-10-16; `15` C5–C6: C5 closed on this offline candidate, C6 open):**
-> the observation is the pilot's procedural outcome, 1 in the active or contested pool,
+> **Amended by the owner (2026-10-16; `15` C5–C6: C5 closed on this offline candidate;
+> C6 closed on its 2026-10-17 amendment, `825cabc`):** the observation is the pilot's procedural outcome, 1 in the active or contested pool,
 > 0 in `Rejected(Screen)` or `Rejected(Dif)`, one per item. It is not a continuous
 > "measured quality", and no posterior reading is adopted. `AuthorHistory` keys outcomes
 > and escrows by item. C6's adopted amendment below sets an outcome's age. An open escrow counts
@@ -462,7 +462,9 @@ evidence-based outcome. Resolves Q-7 / G-15 (supplementary-review part).
 > empty or not; skipped identifiers do not age. One accepted filing batch per recording
 > epoch, without a completeness guarantee. Offline configuration is immutable and pinned;
 > no calendar enforcement, parameter-update governance or driver option is implemented.
-> C6 remains open until the final review of the verified candidate (`15`, `14`).
+> C6 closed on the offline candidate, design review approved on `825cabc`; no real cadence,
+> calibration, driver, custom ledger configuration, request completeness, window
+> authentication, T77 or production is certified (`15`, `14`).
 
 **Choice.** The cost of a (failed) appeal is modelled as a negative pseudo-observation
 inside the author's reputation score, escrowed when the appeal is filed and replaced

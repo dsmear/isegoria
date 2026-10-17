@@ -202,7 +202,8 @@ CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the honeypot and exploration rates,
 ### `H` — author weight half-life (45 applied closings, provisional)
 
 - **Reason.** Candidate B and the authoritative-cut amendment were adopted by the owner
-  on 2026-10-17, with a nominal 28-day cadence and long memory (`15` C6). An outcome's
+  on 2026-10-17, with a nominal 28-day cadence and long memory (`15` C6, closed on the
+  offline candidate `825cabc`; the value stays provisional and uncalibrated). An outcome's
   weight is `exp(−(k − k_j)/(H/ln 2))`; the prior remains `(2,3)`. Identifiers skipped
   without applied closings add no age. Empty closing cuts count; open escrows do not age.
 - **Calibration.** Not calibrated. `H = 45` gives a half-life of 1,260 nominal days at

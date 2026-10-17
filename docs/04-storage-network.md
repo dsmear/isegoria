@@ -323,7 +323,7 @@ in CID order, a request's window read before its coverage (`authorship::author_r
 window reading is the producer's explicit input: the node checks the value the record
 carries, not the window, whose duration and authentication are undecided.
 
-**Offline node framing (C6 candidate, 2026-10-17; tested, final review pending; `15` C6).**
+**Offline node framing (C6, closed on the offline candidate `825cabc`; `15` C6).**
 The durable node log now stores `OfflineRecord`: magic `ISEGORIA-C6\0`, then tag 0 and H
 for the first immutable configuration record; tag 1 and `(cut number, epoch, closes)` for
 Begin; tag 2 and a length-prefixed canonical `NodeEvent` for Event; tag 3 for End. Every Event

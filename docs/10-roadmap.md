@@ -8,13 +8,15 @@
 
 ## Priorities
 
-**C6 candidate (2026-10-17).** The owner adopted B, a nominal cadence of 28 days and
-H = 45 closings. The offline implementation, including declared context and configuration
-replay and the B-b snapshot's transition alignment, was prepared statically by Sol and
-corrected and verified by Claude on the pinned toolchain: the listed tests, `rustfmt` and
-`clippy` pass (`15` C6 candidate; the runs and corrections in the handoff). C6 remains open
-until the final review of the verified candidate, A2 suspended; no task or Phase 1 closure,
-calendar driver or new campaign is claimed.
+**C6 closed (2026-10-17).** The owner adopted B, a nominal cadence of 28 days and H = 45
+closings. The offline implementation, including declared context and configuration replay
+and the B-b snapshot's transition alignment, was prepared statically by Sol and corrected
+and verified by Claude on the pinned toolchain (`15` C6 candidate; the runs and corrections
+in the handoff). C6 is closed on that offline candidate, design review approved on
+`825cabc` (Astra's final review, Sol's independent static check). Not certified: a real
+28-day cadence, calibration, a driver, a custom ledger configuration, request completeness,
+the window's authentication, T77, production. A2 suspended; Phase 1 incomplete; no
+calendar driver or campaign is claimed.
 
 **Review overlay (2026-10-02).** The A–E review's findings and correction criteria
 are in [`15-phase1-review.md`](15-phase1-review.md). They add open guarantee and
