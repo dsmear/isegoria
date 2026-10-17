@@ -2112,4 +2112,19 @@ accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the o
   recording epoch, a declared context offline. Decisions left: the amendment and `H`. `14`'s
   `E_m` entry follows. Checks: local links and anchors, table shapes, `git diff --check`,
   `scripts/comment_budget.py`. No Rust run, benchmark or campaign. C6 open; A2 suspended.
+- **Astra, review of `52e0662`:** diff and contract read; no Rust run. The contract's core
+  approved as the basis for the owner's decision, not as a certified implementation. Two
+  precisions: the counterexample needs `2 ≤ H log₂ 15 < 90`, and one results event with
+  filings per epoch guarantees at most one accepted batch, not a complete set of requests.
+- **Claude, C6's precisions and a proposed initial configuration (documentation only, not
+  reviewed):** base `52e0662b577e7ae1e81d14f71e44f9e4de8a69f0` fetched and equal to the remote
+  branch; only the owner's `.gitignore` modified, preserved outside the commit. `15`'s C6
+  brief records the review and makes both precisions, residual (a) kept. It reads what an
+  epoch does (protocol waits, assumed human times, measured computing times), compares
+  nominal cadences of 7, 14 and 28 days, ties cadence to memory (`H = h·c`, nominal, not
+  guaranteed under B), and proposes, provisional, uncalibrated and not adopted, 28 days and
+  `H = 45` closings. Decisions left: the amendment and the pair; C6's closure criterion
+  unchanged. `14`'s `E_m` entry follows. Arithmetic in Python, not committed. Checks: local
+  links and anchors, table shapes, `git diff --check`, `scripts/comment_budget.py`. No Rust
+  run, benchmark or campaign. C6 open; A2 suspended.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.

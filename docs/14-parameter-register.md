@@ -211,9 +211,10 @@ reputation decay time `T` (half-life `T ln 2`; the intended convention is a deci
   verified by the members, between epoch numbers and time; skipped numbers would then be
   elapsed time. None exists: epochs close at the members' call, may skip or stall, and no
   shared time exists. The unit, two rules for counting an age in epochs, a proposed
-  amendment taking an age's ends from the applying cuts, and a half-life `H` in counted
-  closings (`T_e = H/ln 2`), none adopted, are in
-  [`15`'s C6 brief](15-phase1-review.md#c6-time-decision-brief).
+  amendment taking an age's ends from the applying cuts, a half-life `H` in counted
+  closings (`T_e = H/ln 2`), and a provisional, uncalibrated initial pair (a nominal
+  cadence of 28 days, `H = 45` closings), none adopted, are in
+  [`15`'s C6 brief](15-phase1-review.md#c6-time-decision-brief); no value enters the code.
 - **Sensitivity.** It scales every outcome's age, hence every weight `exp(−Δt_j/T)`. It does
   not change an open escrow (weight 1, unaged) or the order of an epoch's filings.
 - **If it moves.** Every `C_a` evaluated after the first epoch moves, so do appeal coverage
