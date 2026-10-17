@@ -23,7 +23,9 @@ use protocol::admission::NullifierSet;
 #[cfg(feature = "calibration")]
 use protocol::admission::QuotaLedger;
 #[cfg(feature = "calibration")]
-use protocol::appeal::{appeal_floor, pilot_outcome, AuthorHistory, EpochScale};
+use protocol::appeal::{appeal_floor, pilot_outcome, AuthorHistory};
+#[cfg(feature = "calibration")]
+use protocol::author_time::{AuthorConfig, AuthorPoint};
 #[cfg(feature = "calibration")]
 use protocol::deposit::{deposit_context, deposit_with_identity, Draft};
 #[cfg(feature = "calibration")]
@@ -334,19 +336,23 @@ fn run_epoch(
     };
     // --- the author's standing: two earlier passed items; each pilot outcome of this epoch
     // counts from the next, an appeal's escrow at once (`docs/02` §C.1, D27; E_m a fixture) ---
-    let (prior, scale) = (AuthorPrior::default(), EpochScale::new(4.0).unwrap());
+    let (prior, scale) = (AuthorPrior::default(), AuthorConfig::new(45).unwrap());
     let mut author = AuthorHistory::new();
-    author.conclude(cid(b"earlier 1"), true, EPOCH - 1).unwrap();
-    author.conclude(cid(b"earlier 2"), true, EPOCH - 1).unwrap();
+    author
+        .conclude(cid(b"earlier 1"), true, point(EPOCH - 1))
+        .unwrap();
+    author
+        .conclude(cid(b"earlier 2"), true, point(EPOCH - 1))
+        .unwrap();
 
     let mut pool = BTreeSet::new();
     let mut false_negatives = FalseNegatives::default();
     for j in 0..m {
-        let reputation = author.reputation(EPOCH, scale, &prior);
+        let reputation = author.reputation(point(EPOCH), scale, &prior);
         let filed = appeals.contains(&j) && matches!(effective[j], GateOutcome::AppealEligible);
         if filed {
             author
-                .file_appeal(item_cid[j], EPOCH, scale, &prior)
+                .file_appeal(item_cid[j], point(EPOCH), scale, &prior)
                 .expect("the author's standing covers the stake");
         }
         let verdicts = ItemVerdicts {
@@ -369,9 +375,10 @@ fn run_epoch(
         .unwrap();
         false_negatives.record(&terminal);
         if filed {
-            settle_appeal(&mut author, item_cid[j], &terminal, EPOCH).expect("the pilot concluded");
+            settle_appeal(&mut author, item_cid[j], &terminal, point(EPOCH))
+                .expect("the pilot concluded");
         } else if let Some(passed) = pilot_outcome(&terminal) {
-            author.conclude(item_cid[j], passed, EPOCH).unwrap();
+            author.conclude(item_cid[j], passed, point(EPOCH)).unwrap();
         }
         if terminal == State::ActivePool {
             pool.insert(j);
@@ -379,7 +386,7 @@ fn run_epoch(
     }
     (
         pool,
-        author.reputation(EPOCH + 1, scale, &prior),
+        author.reputation(point(EPOCH + 1), scale, &prior),
         false_negatives,
     )
 }
@@ -538,4 +545,12 @@ fn pool_revalidation_flags_latent_bias() {
         flagged[3..].iter().filter(|&&f| f).count() <= 1,
         "clean items should be mostly unflagged: {flagged:?}"
     );
+}
+
+#[cfg(feature = "calibration")]
+fn point(epoch: u64) -> AuthorPoint {
+    AuthorPoint {
+        epoch,
+        closings: epoch,
+    }
 }

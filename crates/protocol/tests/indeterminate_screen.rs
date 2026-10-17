@@ -3,7 +3,8 @@
 
 use identity::nym::Nym;
 use network::cid::cid;
-use protocol::appeal::{AuthorHistory, EpochScale};
+use protocol::appeal::AuthorHistory;
+use protocol::author_time::{AuthorConfig, AuthorPoint};
 use protocol::exploration::{outcome_of, record_outcome, FalseNegatives, Scored, EXPLORATION_RATE};
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State, K_MIN};
@@ -197,11 +198,11 @@ fn run_item_stops_at_a_pending_screen_and_settles_no_appeal() {
     assert_eq!(pending, State::Pilot1 { appealed: true });
 
     let (prior, item) = (AuthorPrior::default(), cid(b"appealed"));
-    let scale = EpochScale::new(4.0).expect("a fixture E_m");
+    let scale = AuthorConfig::new(45).expect("fixture H45");
     let mut author = AuthorHistory::new();
-    author.file_appeal(item, 1, scale, &prior).unwrap();
+    author.file_appeal(item, point(1), scale, &prior).unwrap();
     let filed = author.clone();
-    let pending_settles = settle_appeal(&mut author, item, &pending, 2);
+    let pending_settles = settle_appeal(&mut author, item, &pending, point(2));
     assert_eq!(pending_settles, Err(Unsettled::Pending));
     assert_eq!(author, filed);
     let pilot2 = step(pending, batch(Screening::Pass)).unwrap();
@@ -214,6 +215,13 @@ fn run_item_stops_at_a_pending_screen_and_settles_no_appeal() {
         },
     )
     .unwrap();
-    settle_appeal(&mut author, item, &pool, 3).unwrap();
-    assert_eq!(author.outcome(&item), Some((true, 3)));
+    settle_appeal(&mut author, item, &pool, point(3)).unwrap();
+    assert_eq!(author.outcome(&item), Some((true, point(3))));
+}
+
+fn point(epoch: u64) -> AuthorPoint {
+    AuthorPoint {
+        epoch,
+        closings: epoch,
+    }
 }

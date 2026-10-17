@@ -2,6 +2,7 @@
 //! conclusions not yet recorded, then the epoch's appeals selected one by one in CID order.
 
 use crate::appeal::{AuthorError, AuthorHistory, InsufficientReputation};
+use crate::author_time::AuthorPoint;
 use crate::lifecycle::State;
 use crate::node::NodeState;
 use crate::results::{ResultRecord, ResultsState};
@@ -38,19 +39,18 @@ pub enum AuthorRecordsError {
     /// An appeal on an item no accepted deposit started.
     UnknownItem(Cid),
     NotAppealable(Cid),
-    /// Appeals with no `E_m` configured (`appeal::EpochScale`).
-    NoEpochScale,
+    FilingBatchRecorded,
     Refused(Cid, AuthorError),
     /// An appealed conclusion with no open escrow: a defense, since only a filing record starts
     /// an appeal, escrowing it in the same event, and only a settlement closes it.
     Unescrowed(Cid),
 }
 
-/// The author records of results epoch `epoch`; `appeals` is the epoch's closed set of
-/// requests, so their arrival order cannot matter (`docs/15` C6).
+/// Plans records at the caller's applying point; the consumer rechecks it (`docs/15` C6).
+/// `appeals` is the supplied closed request set, selected in CID order.
 pub fn author_records(
     node: &NodeState,
-    epoch: u64,
+    at: AuthorPoint,
     appeals: &BTreeMap<Cid, AppealRequest>,
 ) -> Result<AuthorRecords, AuthorRecordsError> {
     let results = node.results();
@@ -66,7 +66,7 @@ pub fn author_records(
             continue;
         }
         if !conclusion.appealed {
-            h.conclude(*item, passed, epoch).map_err(refused)?;
+            h.conclude(*item, passed, at).map_err(refused)?;
             let record = ResultRecord::AuthorOutcome {
                 author,
                 item: *item,
@@ -74,7 +74,7 @@ pub fn author_records(
             };
             out.records.push(record);
         } else if h.is_open(item) {
-            h.settle(*item, passed, epoch).map_err(refused)?;
+            h.settle(*item, passed, at).map_err(refused)?;
             let record = ResultRecord::AppealSettled {
                 author,
                 item: *item,
@@ -88,9 +88,10 @@ pub fn author_records(
     if appeals.is_empty() {
         return Ok(out);
     }
-    let scale = results
-        .epoch_scale()
-        .ok_or(AuthorRecordsError::NoEpochScale)?;
+    if results.filing_batch_at(at.epoch) {
+        return Err(AuthorRecordsError::FilingBatchRecorded);
+    }
+    let config = results.author_config();
     for (item, request) in appeals {
         let author = node
             .proposer(item)
@@ -103,7 +104,7 @@ pub fn author_records(
             continue;
         }
         let h = held(&mut working, results, author);
-        match h.file_appeal(*item, epoch, scale, &prior) {
+        match h.file_appeal(*item, at, config, &prior) {
             Ok(()) => {
                 out.records.push(ResultRecord::AppealStarted {
                     author,

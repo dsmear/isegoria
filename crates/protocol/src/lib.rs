@@ -5,6 +5,7 @@
 pub mod admission;
 pub mod affine_weights;
 pub mod appeal;
+pub mod author_time;
 pub mod authorship;
 pub mod blueprint;
 pub mod cohort_scores;
@@ -21,6 +22,7 @@ pub mod ledger;
 pub mod lifecycle;
 pub mod lottery;
 pub mod node;
+pub mod offline_log;
 pub mod orchestrator;
 pub mod panel_scores;
 pub mod pilot;

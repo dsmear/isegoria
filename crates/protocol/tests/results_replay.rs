@@ -3,6 +3,7 @@
 
 use identity::nym::Nym;
 use network::cid::{cid, Cid};
+use protocol::author_time::CutContext;
 use protocol::contested::PoolLimit;
 use protocol::events::NodeEvent;
 use protocol::node::{Node, NodeError, Outcome, Rejection};
@@ -119,7 +120,7 @@ fn results(epoch: u64, records: Vec<ResultRecord>) -> NodeEvent {
 #[test]
 fn at_pro_12_epoch_results_replay_to_the_state_they_produced() {
     let dir = scratch("replay");
-    let mut node = Node::open(&dir, issuer()).unwrap();
+    let mut node = open_fixture(&dir, issuer()).unwrap();
     assert_eq!(node.submit(results(1, every_record())), Ok(Outcome::Moved));
     node.submit(results(
         2,
@@ -129,7 +130,7 @@ fn at_pro_12_epoch_results_replay_to_the_state_they_produced() {
         }],
     ))
     .unwrap();
-    let reopened = Node::open(&dir, issuer()).unwrap();
+    let reopened = open_fixture(&dir, issuer()).unwrap();
     assert_eq!(reopened.state(), node.state());
     let r = reopened.state().results();
 
@@ -160,9 +161,9 @@ fn at_pro_12_epoch_results_replay_to_the_state_they_produced() {
 #[test]
 fn at_pro_12_results_are_applied_whole_or_not_at_all() {
     let dir = scratch("refused");
-    let mut node = Node::open(&dir, issuer()).unwrap();
+    let mut node = open_fixture(&dir, issuer()).unwrap();
     node.submit(results(1, every_record())).unwrap();
-    let before = Node::open(&dir, issuer()).unwrap();
+    let before = open_fixture(&dir, issuer()).unwrap();
     let unobserved = ResultRecord::ReviewerUnobserved { reviewer: nym(9) };
     let score = |score, inclusion| ResultRecord::ReviewerScore {
         reviewer: nym(1),
@@ -367,14 +368,14 @@ fn at_pro_12_the_inputs_root_binds_the_results_to_their_inputs() {
     );
 
     let dir = scratch("root");
-    let mut node = Node::open(&dir, issuer()).unwrap();
+    let mut node = open_fixture(&dir, issuer()).unwrap();
     node.submit(NodeEvent::Results(EpochResults {
         epoch: 5,
         inputs_root: root,
         records: vec![],
     }))
     .unwrap();
-    let recorded = Node::open(&dir, issuer())
+    let recorded = open_fixture(&dir, issuer())
         .unwrap()
         .state()
         .results()
@@ -442,4 +443,20 @@ fn at_pro_12_results_round_trip_and_bad_bytes_are_refused() {
         *bad_flag.last_mut().unwrap() = 2;
         assert!(NodeEvent::decode(&bad_flag).is_none());
     }
+}
+
+// Fixtures declare one nonclosing cut, resumed unchanged on every restart.
+fn open_fixture(
+    dir: &std::path::Path,
+    issuer: identity::credential::IssuerPublic,
+) -> Result<Node, NodeError> {
+    let mut node = protocol::node::Node::open(dir, issuer)?;
+    if node.state().results().author_point().is_none() {
+        node.begin_cut(CutContext {
+            number: 0,
+            epoch: 0,
+            closes: false,
+        })?;
+    }
+    Ok(node)
 }

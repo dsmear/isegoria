@@ -8,6 +8,7 @@ use crate::cohort_scores::{
 use crate::events::NodeEvent;
 use crate::ledger::Refusal;
 use crate::lifecycle::{self, Event, Invalid, State};
+use crate::results::ResultRecord;
 use identity::nym::Nym;
 use network::cid::{cid, Cid};
 use network::codec::Writer;
@@ -278,6 +279,8 @@ pub enum Incoherence {
     Redeposited(Position),
     UnknownItem(Position),
     ItemMismatch(Position),
+    AppealStep(Position),
+    AppealStart(Position),
     Lifecycle(Position, Invalid),
 }
 
@@ -387,7 +390,37 @@ impl Walk {
                 }
                 Ok(())
             }
+            NodeEvent::Step {
+                event: Event::Appeal { .. },
+                ..
+            } => Err(Incoherence::AppealStep(at)),
             NodeEvent::Step { item, event } => self.step(at, epoch, item, event),
+            NodeEvent::Results(results) => {
+                let mut started = Vec::new();
+                for record in results.records {
+                    if let ResultRecord::AppealStarted {
+                        item,
+                        within_window,
+                        ..
+                    } = record
+                    {
+                        if !within_window
+                            || self.states.get(&item) != Some(&State::AppealEligible)
+                            || started.contains(&item)
+                        {
+                            return Err(Incoherence::AppealStart(at));
+                        }
+                        started.push(item);
+                    }
+                }
+                for item in started {
+                    self.states.insert(item, State::Pilot1 { appealed: true });
+                    if let Some(&r) = self.index.get(&item) {
+                        self.tracks[r].frozen.get_or_insert(at);
+                    }
+                }
+                Ok(())
+            }
             _ => Ok(()),
         }
     }

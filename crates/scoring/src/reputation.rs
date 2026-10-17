@@ -33,6 +33,25 @@ pub fn author_score(qualities: &[f64], ages_months: &[f64], prior: &AuthorPrior)
     (prior.alpha0 + sum_wq) / (prior.alpha0 + prior.beta0 + sum_w)
 }
 
+/// Author index with ages and half-life in applied closings (`docs/15` C6).
+pub fn author_score_closings(
+    qualities: &[f64],
+    ages: &[u64],
+    half_life: u64,
+    prior: &AuthorPrior,
+) -> f64 {
+    assert!(half_life > 0);
+    let decay_time = half_life as f64 / crate::fmath::ln(2.0);
+    let mut sum_wq = 0.0;
+    let mut sum_w = 0.0;
+    for (q, age) in qualities.iter().zip(ages) {
+        let w = exp(-(*age as f64) / decay_time);
+        sum_wq += w * q;
+        sum_w += w;
+    }
+    (prior.alpha0 + sum_wq) / (prior.alpha0 + prior.beta0 + sum_w)
+}
+
 pub fn proposal_rate(c_a: f64, q_min: f64, q_max: f64) -> f64 {
     q_min + (q_max - q_min) * c_a
 }

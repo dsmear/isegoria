@@ -720,17 +720,21 @@ a regularized, time-discounted weighted average:
 
 ```
           α₀ + Σ_j w_j q_j
-C_a  =  ─────────────────────      w_j = exp(−Δt_j / T)
+C_a  =  ─────────────────────      w_j = exp(−(k − k_j) / T_e)
         α₀ + β₀ + Σ_j w_j
 
-α₀ = 2, β₀ = 3; T = 18 months (exponential decay time, provisional)
+α₀ = 2, β₀ = 3; H = 45 applied closings, T_e = H / ln 2 (provisional)
 ```
 
-This is the formula in `reputation::author_score`, a regularized index. A weight's
-half-life is `T ln 2` ≈ 12.48 months, not T. Were every weight aged alike with no new
-observation, `C_a` would move toward the prior mean `α₀/(α₀+β₀)`, not toward 0, and never
-across it, in exact arithmetic; an escrow held at a fixed weight while the rest ages
-breaks this, and binary64 can round a value just below the floor up to it (`15` C5–C6).
+This is the regularized index in `reputation::author_score_closings`. The owner adopted
+C6 candidate B on 2026-10-17: a weight's half-life is `H` applied closings. The nominal
+cadence is 28 days, hence 1,260 nominal days, about 3.5 years; the protocol verifies no
+calendar cadence. The older `author_score` helper and its 18-month numeric fixtures remain
+for historical scoring comparisons; the author protocol does not call that helper. Were
+every weight aged alike with no new observation, `C_a` would move toward the prior mean
+`α₀/(α₀+β₀)`, not toward 0, and never across it, in exact arithmetic; an escrow held at a
+fixed weight while the rest ages breaks this, and binary64 can round a value just below
+the floor up to it (`15` C5–C6).
 The earlier Beta–Beta hierarchy `q_j | ψ_a ~ Beta(κψ_a, κ(1−ψ_a))`,
 `ψ_a ~ Beta(α₀,β₀)` does **not** have this posterior mean (`15` C5).
 Describing the implemented index correctly does not decide whether a different
@@ -760,10 +764,14 @@ outcome, not a psychometric quality, and no Bayesian reading is adopted:
   outcome and appeal flag that step did not reach. It also refuses a filing on an item that is
   not appeal-eligible. `authorship::author_records` derives an epoch's records from these, so
   no caller supplies `q_j`.
-- *Time.* An outcome's origin `e_j` is the epoch of the results event that records it. At
-  epoch `e` it counts only if `e_j < e`, at age `Δt_j = (e − e_j)/E_m` months. `E_m`, the
-  epochs per month, is undecided: `appeal::EpochScale` has no default, and a node without one
-  refuses a filing (`14`). An open escrow counts at `q = 0`, weight 1, unaged.
+- *Time.* The data epoch of `EpochResults` identifies its root and prevents duplicate
+  results; it sets neither end of an age. The applying cut supplies recording/evaluation
+  epoch `E`. `k(E)` counts applied closing cuts before the first cut of `E`, fixed through
+  `E`; a closing increments it at the end of that cut. An outcome or settlement records
+  `(E_j, k_j)` on its first valid application and counts only when `E_j < E`, weighted by
+  `exp(−(k(E) − k_j)/(H/ln 2))` through deterministic `fmath`. Skipped identifiers and
+  unclosed epochs add no age; an empty closing counts, without needing results or a beacon.
+  An open escrow stays at `q = 0`, weight 1. A delayed conclusion starts aging when recorded.
 - *Within an epoch.* A filing in `e` is checked against the outcomes of epochs before `e` and
   every escrow filed before it, those filed earlier in `e` included. An escrow settled in `e`
   counts through `e`, and its outcome replaces it from `e + 1`. The epoch's appeal requests,
@@ -773,6 +781,9 @@ outcome, not a psychometric quality, and no Bayesian reading is adopted:
   cannot move the outcome. *Replay* of the recorded filings is atomic instead: one invalid
   filing (uncovered, outside its window, or on an item not appeal-eligible) refuses the whole
   results event, the admissible filings before it and their items' moves included.
+  At most one accepted results event containing filings is allowed per recording `E`,
+  across all authors and cuts; a rejected event consumes no slot. This does not establish
+  completeness of the request set. Events without filings can still apply in the same `E`.
 - *Quota.* The value for epoch `e`'s quota is fixed once, from the outcomes of epochs before
   `e` and the escrows open at the end of `e − 1` (`AuthorHistory::quota_reputation`).
   Turning it into a quota is not implemented.
@@ -796,7 +807,7 @@ C5–C6).
 average, not a deduction from it: filing escrows `q = 0` at weight 1 for the appealed item;
 the pilot's conclusion settles it — a pass if the item reaches the active or the contested
 pool (§B.7), the zero standing on a pilot rejection — and the outcome then ages from its
-results epoch like any other. Held at weight 1 while the rest ages, a long-pending escrow can
+recording cut like any other. Held at weight 1 while the rest ages, a long-pending escrow can
 pull `C_a` below the floor (`15` C5–C6). The stake floor is the prior mean `α₀ / (α₀ + β₀)` (0.4 with
 `Beta(2,3)`): an author files only while `C_a` covers it, so a failed appeal bars the next
 one while `C_a` stays below the floor (a fresh author's does; ten items at `q = 1` keep
@@ -1101,7 +1112,7 @@ step 4.
 | `min_shared` (coordination) | 30 | shared items before a pair's residual correlation is read (D39); at the design scale two reviewers share under one item per epoch, so a pair is read only after many epochs |
 | `ρ_min`, `p_max` (coordination) | 0.7, 0.001 | a flagged pair's residual correlation and permutation p-value (999 permutations); 0.5 flags honest pairs by chance |
 | `w_max` | 3× median | individual cap |
-| `T` (implemented exponential decay time) | 18 months, provisional | `exp(−age/T)`; half-life `T ln 2`; intended decay policy open (`15` C6) |
+| `H` (author weight half-life) | 45 applied closings, provisional | `T_e = H/ln 2`; 28 days nominal per closing, no calendar enforcement (`15` C6) |
 | `η` (honeypot rate) | 5% | see `05` |
 | `ε` (exploration rate) | 5% of gate rejections | measurement only, never the pool; the observed score at weight `1/ε` (D35) |
 

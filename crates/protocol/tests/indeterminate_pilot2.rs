@@ -3,7 +3,8 @@
 
 use identity::nym::Nym;
 use network::cid::cid;
-use protocol::appeal::{AuthorHistory, EpochScale};
+use protocol::appeal::AuthorHistory;
+use protocol::author_time::{AuthorConfig, AuthorPoint};
 use protocol::exploration::{outcome_of, record_outcome, FalseNegatives, Scored, EXPLORATION_RATE};
 use protocol::exposure::RetirementReason;
 use protocol::gate::GateOutcome;
@@ -310,27 +311,34 @@ fn an_appeal_settles_only_on_its_pilot_s_conclusion() {
     ];
     let (item, scale) = (
         cid(b"appealed"),
-        EpochScale::new(4.0).expect("a fixture E_m"),
+        AuthorConfig::new(45).expect("fixture H45"),
     );
     for (events, concluded, passed) in walks {
         let mut author = AuthorHistory::new();
         author
-            .file_appeal(item, 1, scale, &AuthorPrior::default())
+            .file_appeal(item, point(1), scale, &AuthorPrior::default())
             .unwrap();
         let filed = author.clone();
         for state in not_settling() {
-            let pending = settle_appeal(&mut author, item, &state, 2);
+            let pending = settle_appeal(&mut author, item, &state, point(2));
             assert_eq!(pending, Err(Unsettled::Pending), "{state:?}");
         }
         let mut state = State::Pilot1 { appealed: true };
         for event in events {
-            let pending = settle_appeal(&mut author, item, &state, 2);
+            let pending = settle_appeal(&mut author, item, &state, point(2));
             assert_eq!(pending, Err(Unsettled::Pending), "{state:?}");
             assert_eq!(author, filed, "{state:?}");
             state = step(state, event).unwrap();
         }
         assert_eq!(state, concluded);
-        settle_appeal(&mut author, item, &state, 2).unwrap();
-        assert_eq!(author.outcome(&item), Some((passed, 2)));
+        settle_appeal(&mut author, item, &state, point(2)).unwrap();
+        assert_eq!(author.outcome(&item), Some((passed, point(2))));
+    }
+}
+
+fn point(epoch: u64) -> AuthorPoint {
+    AuthorPoint {
+        epoch,
+        closings: epoch,
     }
 }

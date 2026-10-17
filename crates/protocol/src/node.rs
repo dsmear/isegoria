@@ -2,10 +2,12 @@
 //! T73): events are checked, applied, then written; opening replays them all.
 
 use crate::admission::{NullifierSet, QuotaLedger};
-use crate::appeal::{pilot_outcome, EpochScale};
+use crate::appeal::pilot_outcome;
+use crate::author_time::{AuthorConfig, ContextError, CutContext};
 use crate::deposit::{deposit_with_identity, DepositRejected};
 use crate::events::NodeEvent;
 use crate::lifecycle::{step, Event, Invalid, State};
+use crate::offline_log::OfflineRecord;
 use crate::pilot::{submit_response, ResponseRejected};
 use crate::results::{EpochResults, ResultRecord, ResultsRejected, ResultsState};
 use crate::review::{submit_review, ReviewRejected};
@@ -60,6 +62,8 @@ pub enum NodeError {
     },
     /// A write failed after the state changed: reopen the node.
     Poisoned,
+    Context(ContextError),
+    Configuration,
 }
 
 /// An item's pilot conclusion as its step reached it (`docs/02` §C.1, `docs/15` C5).
@@ -84,12 +88,19 @@ pub struct NodeState {
 }
 
 impl NodeState {
-    /// An empty state whose results count ages with `scale` (`ResultsState::with_epoch_scale`).
-    pub fn with_epoch_scale(scale: EpochScale) -> Self {
-        NodeState {
-            results: ResultsState::with_epoch_scale(scale),
+    pub fn with_author_config(config: AuthorConfig) -> Self {
+        Self {
+            results: ResultsState::with_author_config(config),
             ..Self::default()
         }
+    }
+
+    pub fn begin_cut(&mut self, cut: CutContext) -> Result<(), ContextError> {
+        self.results.begin_cut(cut)
+    }
+
+    pub fn end_cut(&mut self) -> Result<(), ContextError> {
+        self.results.end_cut()
     }
 
     /// Checks and applies one event, as the entry points do (`deposit_with_identity`,
@@ -266,6 +277,7 @@ pub struct Node {
     issuer: IssuerPublic,
     state: NodeState,
     poisoned: bool,
+    events: usize,
 }
 
 impl Node {
@@ -274,13 +286,13 @@ impl Node {
         Self::open_from(dir, issuer, NodeState::default())
     }
 
-    /// As [`Node::open`], author ages counted with `scale` (`docs/15` C6).
-    pub fn open_with_scale(
+    /// Opens under the immutable configuration pinned in the log (`docs/15` C6).
+    pub fn open_with_config(
         dir: &Path,
         issuer: IssuerPublic,
-        scale: EpochScale,
+        config: AuthorConfig,
     ) -> Result<Self, NodeError> {
-        Self::open_from(dir, issuer, NodeState::with_epoch_scale(scale))
+        Self::open_from(dir, issuer, NodeState::with_author_config(config))
     }
 
     fn open_from(
@@ -289,21 +301,45 @@ impl Node {
         mut state: NodeState,
     ) -> Result<Self, NodeError> {
         fs::create_dir_all(dir).map_err(|e| StoreError::Io(e.kind()))?;
-        let (objects, _) = ObjectStore::open(&dir.join("objects"))?;
-        let (log, _) = DurableLog::open(&dir.join("log"))?;
+        let (mut objects, _) = ObjectStore::open(&dir.join("objects"))?;
+        let (mut log, _) = DurableLog::open(&dir.join("log"))?;
+        if log.log().is_empty() {
+            let id =
+                objects.put(&OfflineRecord::Config(state.results().author_config()).encode())?;
+            log.append(id)?;
+        }
+        let mut events = 0;
         for (i, entry) in log.log().entries().iter().enumerate() {
             let entry_no = i as u64;
             let bytes = objects
                 .get(&entry.payload)?
                 .ok_or(NodeError::MissingObject { entry: entry_no })?;
-            let event =
-                NodeEvent::decode(&bytes).ok_or(NodeError::Undecodable { entry: entry_no })?;
-            state
-                .apply(&event, &issuer)
-                .map_err(|rejection| NodeError::ReplayRejected {
-                    entry: entry_no,
-                    rejection,
-                })?;
+            let record =
+                OfflineRecord::decode(&bytes).ok_or(NodeError::Undecodable { entry: entry_no })?;
+            if i == 0 {
+                let pinned = state.results().author_config();
+                if !matches!(record, OfflineRecord::Config(c) if c == pinned) {
+                    return Err(NodeError::Configuration);
+                }
+                continue;
+            }
+            match record {
+                OfflineRecord::Config(_) => return Err(NodeError::Configuration),
+                OfflineRecord::Begin(cut) => state.begin_cut(cut).map_err(NodeError::Context)?,
+                OfflineRecord::End => state.end_cut().map_err(NodeError::Context)?,
+                OfflineRecord::Event(event) => {
+                    if state.results().author_point().is_none() {
+                        return Err(NodeError::Context(ContextError::NotOpen));
+                    }
+                    state.apply(&event, &issuer).map_err(|rejection| {
+                        NodeError::ReplayRejected {
+                            entry: entry_no,
+                            rejection,
+                        }
+                    })?;
+                    events += 1;
+                }
+            }
         }
         Ok(Node {
             log,
@@ -311,6 +347,7 @@ impl Node {
             issuer,
             state,
             poisoned: false,
+            events,
         })
     }
 
@@ -319,26 +356,52 @@ impl Node {
         if self.poisoned {
             return Err(NodeError::Poisoned);
         }
+        if self.state.results().author_point().is_none() {
+            return Err(NodeError::Context(ContextError::NotOpen));
+        }
         let id = self
             .state
             .apply(&event, &self.issuer)
             .map_err(NodeError::Rejected)?;
+        self.write(OfflineRecord::Event(event))?;
+        self.events += 1;
+        Ok(id)
+    }
+
+    fn write(&mut self, record: OfflineRecord) -> Result<(), NodeError> {
         let written = self
             .objects
-            .put(&event.encode())
+            .put(&record.encode())
             .and_then(|object| self.log.append(object));
         if let Err(e) = written {
             self.poisoned = true;
             return Err(NodeError::Store(e));
         }
-        Ok(id)
+        Ok(())
+    }
+
+    pub fn begin_cut(&mut self, cut: CutContext) -> Result<(), NodeError> {
+        if self.poisoned {
+            return Err(NodeError::Poisoned);
+        }
+        self.state.begin_cut(cut).map_err(NodeError::Context)?;
+        self.write(OfflineRecord::Begin(cut))
+    }
+
+    pub fn end_cut(&mut self) -> Result<(), NodeError> {
+        if self.poisoned {
+            return Err(NodeError::Poisoned);
+        }
+        self.state.end_cut().map_err(NodeError::Context)?;
+        self.write(OfflineRecord::End)
     }
 
     pub fn state(&self) -> &NodeState {
         &self.state
     }
 
+    /// Accepted protocol events, excluding configuration and frame records.
     pub fn log_len(&self) -> usize {
-        self.log.log().len()
+        self.events
     }
 }

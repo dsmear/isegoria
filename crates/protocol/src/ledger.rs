@@ -1,6 +1,7 @@
 //! The protocol state from the replicated set (`docs/04` §Cuts, `docs/08` PROTO-015, T74):
 //! each signed cut's entries applied in its order, the first of conflicting events winning.
 
+use crate::author_time::{ContextError, CutContext};
 use crate::events::NodeEvent;
 use crate::node::{NodeState, Rejection};
 use ed25519_dalek::Signature;
@@ -30,6 +31,7 @@ pub enum LedgerError {
     Cut(CutError),
     /// Fewer than the threshold of member signatures over the cut's checkpoint.
     Unsigned,
+    Context(ContextError),
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -105,6 +107,13 @@ impl Ledger {
             return Err(LedgerError::Unsigned);
         }
         let order = added(replica, self.last.as_ref(), cut).map_err(LedgerError::Cut)?;
+        self.state
+            .begin_cut(CutContext {
+                number: cut.number,
+                epoch: cut.epoch,
+                closes: cut.closes,
+            })
+            .map_err(LedgerError::Context)?;
         let revealing = self.last.as_ref().filter(|l| l.closes).map(|l| l.epoch);
         let mut report = CutReport::default();
         for id in order {
@@ -127,6 +136,9 @@ impl Ledger {
                 .expect("a round of counted commits and reveals finishes");
             self.beacons.insert(epoch, outcome);
         }
+        self.state
+            .end_cut()
+            .expect("begin_cut prevalidates closing overflow");
         self.refused
             .extend(report.refused.iter().map(|(id, _)| *id));
         self.last = Some(cut.clone());

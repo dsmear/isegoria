@@ -8,6 +8,7 @@ use identity::nym::Role;
 use network::cid::{cid, Cid};
 use network::store::{DurableLog, ObjectStore};
 use protocol::admission::Unproven;
+use protocol::author_time::CutContext;
 use protocol::deposit::{deposit_context, DepositRejected, Draft};
 use protocol::events::NodeEvent;
 use protocol::node::{Node, NodeError, NodeState, Rejection};
@@ -79,7 +80,7 @@ fn respondent(issuer: &Issuer, who: &AnonymousCredential, batch: Cid) -> NodeEve
 fn busy_node(dir: &Path, issuer: &Issuer) -> (Vec<AnonymousCredential>, Cid, Cid) {
     let people: Vec<AnonymousCredential> = (2..5).map(|s| person(issuer, s)).collect();
     let (item, batch) = (draft("item A").content_id(), cid(b"batch 1"));
-    let mut node = Node::open(dir, issuer.public()).unwrap();
+    let mut node = open_fixture(dir, issuer.public()).unwrap();
     node.submit(deposit(issuer, &people[0], "item A")).unwrap();
     node.submit(deposit(issuer, &people[1], "item B")).unwrap();
     node.submit(reviewer(issuer, &people[1], item)).unwrap();
@@ -96,7 +97,7 @@ fn at_pro_10_a_restarted_node_replays_to_the_state_it_had() {
     let (issuer, dir) = (issuer(), scratch("restart"));
     let (people, item, batch) = busy_node(&dir, &issuer);
     let before = {
-        let node = Node::open(&dir, issuer.public()).unwrap();
+        let node = open_fixture(&dir, issuer.public()).unwrap();
         assert_eq!(node.log_len(), 6);
         let s = node.state();
         assert_eq!(s.drafts().len(), 2);
@@ -111,7 +112,7 @@ fn at_pro_10_a_restarted_node_replays_to_the_state_it_had() {
     assert_eq!(before.state().quota_used(EPOCH + 1, &proposer), 0);
     drop(before);
 
-    let mut node = Node::open(&dir, issuer.public()).unwrap();
+    let mut node = open_fixture(&dir, issuer.public()).unwrap();
     let rejected = |r| Err(NodeError::Rejected(r));
     assert_eq!(
         node.submit(deposit(&issuer, &people[0], "item A")),
@@ -144,12 +145,12 @@ fn at_pro_10_the_same_log_replays_to_the_same_state_anywhere() {
     for f in ["log", "objects"] {
         fs::copy(dir.join(f), copy.join(f)).unwrap();
     }
-    let a = Node::open(&dir, issuer.public()).unwrap();
-    let b = Node::open(&copy, issuer.public()).unwrap();
+    let a = open_fixture(&dir, issuer.public()).unwrap();
+    let b = open_fixture(&copy, issuer.public()).unwrap();
     assert_eq!(a.state(), b.state());
     assert_ne!(
         a.state(),
-        Node::open(&scratch("empty"), issuer.public())
+        open_fixture(&scratch("empty"), issuer.public())
             .unwrap()
             .state()
     );
@@ -160,7 +161,7 @@ fn at_pro_10_the_same_log_replays_to_the_same_state_anywhere() {
 fn at_pro_10_events_are_checked_like_the_entry_points() {
     let (issuer, dir) = (issuer(), scratch("checks"));
     let who = person(&issuer, 2);
-    let mut node = Node::open(&dir, issuer.public()).unwrap();
+    let mut node = open_fixture(&dir, issuer.public()).unwrap();
     let mut no_source = deposit(&issuer, &who, "item");
     if let NodeEvent::Deposit { draft, .. } = &mut no_source {
         draft.primary_source.clear();
@@ -205,7 +206,15 @@ fn at_pro_10_events_are_checked_like_the_entry_points() {
         )))
     );
     assert_eq!(node.log_len(), 0);
-    assert_eq!(node.state(), &NodeState::default(), "nor in memory");
+    let mut expected = NodeState::default();
+    expected
+        .begin_cut(CutContext {
+            number: 0,
+            epoch: EPOCH,
+            closes: false,
+        })
+        .unwrap();
+    assert_eq!(node.state(), &expected, "nor in memory");
 }
 
 /// AT-PRO-10: a log that names a missing object, a non-event, or an event this node rejects
@@ -217,7 +226,7 @@ fn at_pro_10_a_log_this_node_cannot_replay_refuses_it() {
     busy_node(&dir, &issuer);
     fs::remove_file(dir.join("objects")).unwrap();
     assert_eq!(
-        Node::open(&dir, issuer.public()).err(),
+        open_fixture(&dir, issuer.public()).err(),
         Some(NodeError::MissingObject { entry: 0 })
     );
 
@@ -233,16 +242,16 @@ fn at_pro_10_a_log_this_node_cannot_replay_refuses_it() {
         .append(junk)
         .unwrap();
     assert_eq!(
-        Node::open(&dir, issuer.public()).err(),
-        Some(NodeError::Undecodable { entry: 6 })
+        open_fixture(&dir, issuer.public()).err(),
+        Some(NodeError::Undecodable { entry: 8 })
     );
 
     let dir = scratch("other-issuer");
     busy_node(&dir, &issuer);
     assert_eq!(
-        Node::open(&dir, Issuer::new([2u8; 32]).public()).err(),
+        open_fixture(&dir, Issuer::new([2u8; 32]).public()).err(),
         Some(NodeError::ReplayRejected {
-            entry: 0,
+            entry: 2,
             rejection: Rejection::Deposit(DepositRejected::Unproven(Unproven::BadProof)),
         })
     );
@@ -314,4 +323,20 @@ fn at_pro_10_a_proof_keeps_its_role_through_its_encoding() {
 fn at_pro_10_a_non_canonical_encoding_is_refused() {
     let bytes = include_bytes!("fixtures/noncanonical_event.bin");
     assert!(NodeEvent::decode(bytes).is_none());
+}
+
+// Fixtures declare one nonclosing cut, resumed unchanged on every restart.
+fn open_fixture(
+    dir: &std::path::Path,
+    issuer: identity::credential::IssuerPublic,
+) -> Result<Node, NodeError> {
+    let mut node = protocol::node::Node::open(dir, issuer)?;
+    if node.state().results().author_point().is_none() {
+        node.begin_cut(CutContext {
+            number: 0,
+            epoch: EPOCH,
+            closes: false,
+        })?;
+    }
+    Ok(node)
 }

@@ -7,12 +7,13 @@ use identity::nullifier::prove;
 use identity::nym::{Nym, Role};
 use network::cid::Cid;
 use network::store::{DurableLog, ObjectStore};
-use protocol::appeal::EpochScale;
+use protocol::author_time::CutContext;
 use protocol::deposit::{deposit_context, Draft};
 use protocol::events::NodeEvent;
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{step, Event, Invalid, RejectReason, State};
 use protocol::node::{Node, NodeError, Outcome, Rejection};
+use protocol::offline_log::OfflineRecord;
 use protocol::pilot::Screening;
 use protocol::results::{EpochResults, ResultRecord};
 use protocol::revalidation::Recheck;
@@ -179,9 +180,7 @@ fn walks(items: &[Cid]) -> Vec<(Cid, Vec<Event>)> {
 #[test]
 fn at_pro_11_item_lifecycles_replay_to_the_state_they_reached() {
     let (issuer, dir) = (issuer(), scratch("walks"));
-    // A fixture `E_m`, not a decided value (`docs/15` C6).
-    let scale = EpochScale::new(4.0).unwrap();
-    let open = || Node::open_with_scale(&dir, issuer.public(), scale).unwrap();
+    let open = || open_fixture(&dir, issuer.public()).unwrap();
     let deposits: Vec<(NodeEvent, Cid)> = ["pool", "band", "explored", "expired"]
         .iter()
         .enumerate()
@@ -238,9 +237,9 @@ fn at_pro_11_item_lifecycles_replay_to_the_state_they_reached() {
 fn at_pro_11_refused_steps_leave_no_trace() {
     let (issuer, dir) = (issuer(), scratch("refused"));
     let (event, item) = deposit(&issuer, 2, "item");
-    let mut node = Node::open(&dir, issuer.public()).unwrap();
+    let mut node = open_fixture(&dir, issuer.public()).unwrap();
     node.submit(event).unwrap();
-    let before = Node::open(&dir, issuer.public()).unwrap();
+    let before = open_fixture(&dir, issuer.public()).unwrap();
     let refused = |r| Err(NodeError::Rejected(r));
     let score = Event::Score {
         outcome: GateOutcome::Pass,
@@ -290,7 +289,7 @@ fn at_pro_11_refused_steps_leave_no_trace() {
 fn at_pro_11_an_unreplayable_step_refuses_the_node() {
     let (issuer, dir) = (issuer(), scratch("unreplayable"));
     let (event, item) = deposit(&issuer, 2, "item");
-    Node::open(&dir, issuer.public())
+    open_fixture(&dir, issuer.public())
         .unwrap()
         .submit(event)
         .unwrap();
@@ -301,7 +300,7 @@ fn at_pro_11_an_unreplayable_step_refuses_the_node() {
     let object = ObjectStore::open(&dir.join("objects"))
         .unwrap()
         .0
-        .put(&bad.encode())
+        .put(&OfflineRecord::Event(bad).encode())
         .unwrap();
     DurableLog::open(&dir.join("log"))
         .unwrap()
@@ -309,9 +308,9 @@ fn at_pro_11_an_unreplayable_step_refuses_the_node() {
         .append(object)
         .unwrap();
     assert_eq!(
-        Node::open(&dir, issuer.public()).err(),
+        open_fixture(&dir, issuer.public()).err(),
         Some(NodeError::ReplayRejected {
-            entry: 1,
+            entry: 3,
             rejection: Rejection::Lifecycle(Invalid::UnexpectedEvent),
         })
     );
@@ -322,12 +321,12 @@ fn at_pro_11_an_unreplayable_step_refuses_the_node() {
 fn at_pro_11_a_logged_appeal_step_refuses_the_node() {
     let (issuer, dir) = (issuer(), scratch("appeal-step"));
     let (event, item) = deposit(&issuer, 2, "item");
-    let mut node = Node::open(&dir, issuer.public()).unwrap();
+    let mut node = open_fixture(&dir, issuer.public()).unwrap();
     node.submit(event).unwrap();
     for event in reviewed(item, GateOutcome::AppealEligible) {
         node.submit(NodeEvent::Step { item, event }).unwrap();
     }
-    let entry = node.log_len() as u64;
+    let entry = node.log_len() as u64 + 2;
     drop(node);
     let appeal = NodeEvent::Step {
         item,
@@ -339,7 +338,7 @@ fn at_pro_11_a_logged_appeal_step_refuses_the_node() {
     let object = ObjectStore::open(&dir.join("objects"))
         .unwrap()
         .0
-        .put(&appeal.encode())
+        .put(&OfflineRecord::Event(appeal).encode())
         .unwrap();
     DurableLog::open(&dir.join("log"))
         .unwrap()
@@ -347,7 +346,7 @@ fn at_pro_11_a_logged_appeal_step_refuses_the_node() {
         .append(object)
         .unwrap();
     assert_eq!(
-        Node::open(&dir, issuer.public()).err(),
+        open_fixture(&dir, issuer.public()).err(),
         Some(NodeError::ReplayRejected {
             entry,
             rejection: Rejection::AppealStep,
@@ -466,7 +465,7 @@ fn a11_stage_1_steps_logged_before_replay_unchanged() {
     ] {
         let (issuer, dir) = (issuer(), scratch("pre-a11"));
         let (event, item) = deposit(&issuer, 2, "item");
-        let mut node = Node::open(&dir, issuer.public()).unwrap();
+        let mut node = open_fixture(&dir, issuer.public()).unwrap();
         node.submit(event).unwrap();
         for event in reviewed(item, GateOutcome::Pass) {
             node.submit(NodeEvent::Step { item, event }).unwrap();
@@ -491,14 +490,14 @@ fn a11_stage_1_steps_logged_before_replay_unchanged() {
         let object = ObjectStore::open(&dir.join("objects"))
             .unwrap()
             .0
-            .put(&logged)
+            .put(&OfflineRecord::Event(NodeEvent::decode(&logged).unwrap()).encode())
             .unwrap();
         DurableLog::open(&dir.join("log"))
             .unwrap()
             .0
             .append(object)
             .unwrap();
-        let replayed = Node::open(&dir, issuer.public()).unwrap();
+        let replayed = open_fixture(&dir, issuer.public()).unwrap();
         assert_eq!(replayed.state().item(&item), Some(&reached));
     }
 }
@@ -522,7 +521,7 @@ fn a4_stage_2_steps_logged_before_replay_unchanged() {
     for (byte, source, read, reached) in cases {
         let (issuer, dir) = (issuer(), scratch("stage-2"));
         let (event, item) = deposit(&issuer, 2, "item");
-        let mut node = Node::open(&dir, issuer.public()).unwrap();
+        let mut node = open_fixture(&dir, issuer.public()).unwrap();
         node.submit(event).unwrap();
         let mut events = reviewed(item, GateOutcome::Pass);
         events.push(Event::Pilot1Batch {
@@ -554,14 +553,30 @@ fn a4_stage_2_steps_logged_before_replay_unchanged() {
         let object = ObjectStore::open(&dir.join("objects"))
             .unwrap()
             .0
-            .put(&logged)
+            .put(&OfflineRecord::Event(NodeEvent::decode(&logged).unwrap()).encode())
             .unwrap();
         DurableLog::open(&dir.join("log"))
             .unwrap()
             .0
             .append(object)
             .unwrap();
-        let replayed = Node::open(&dir, issuer.public()).unwrap();
+        let replayed = open_fixture(&dir, issuer.public()).unwrap();
         assert_eq!(replayed.state().item(&item), Some(&reached), "byte {byte}");
     }
+}
+
+// Fixtures declare one nonclosing cut, resumed unchanged on every restart.
+fn open_fixture(
+    dir: &std::path::Path,
+    issuer: identity::credential::IssuerPublic,
+) -> Result<Node, NodeError> {
+    let mut node = protocol::node::Node::open(dir, issuer)?;
+    if node.state().results().author_point().is_none() {
+        node.begin_cut(CutContext {
+            number: 0,
+            epoch: EPOCH,
+            closes: false,
+        })?;
+    }
+    Ok(node)
 }

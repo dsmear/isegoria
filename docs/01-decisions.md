@@ -445,7 +445,7 @@ evidence-based outcome. Resolves Q-7 / G-15 (supplementary-review part).
 > the observation is the pilot's procedural outcome, 1 in the active or contested pool,
 > 0 in `Rejected(Screen)` or `Rejected(Dif)`, one per item. It is not a continuous
 > "measured quality", and no posterior reading is adopted. `AuthorHistory` keys outcomes
-> and escrows by item and ages an outcome from its results epoch. An open escrow counts
+> and escrows by item. C6's adopted amendment below sets an outcome's age. An open escrow counts
 > at weight 1, and an epoch's filings are checked in item-CID order (`02` §C.1).
 > `orchestrator::settle_appeal` derives the outcome from the terminal state instead of
 > taking a quality; a pending pilot settles nothing (`15` A11 (f)). The node records the
@@ -454,8 +454,15 @@ evidence-based outcome. Resolves Q-7 / G-15 (supplementary-review part).
 > filing and starting are one operation of the node: the filing record escrows the zero and
 > moves the item to the pilot in the same results event, or neither happens. Its window
 > reading is checked, and coverage is read before the filing only; a separate `Appeal` step
-> is refused. `run_item` still takes `author_reputation` from its caller, and `E_m` is
-> undecided (`14`).
+> is refused. `run_item` still takes `author_reputation` from its caller.
+>
+> **C6 amendment adopted (owner, 2026-10-17):** candidate B, nominal 28 days per closing,
+> long memory H = 45 applied closings, provisional and uncalibrated. Both age ends come from
+> applying-cut context; results data epochs set neither. A closing counts at its end,
+> empty or not; skipped identifiers do not age. One accepted filing batch per recording
+> epoch, without a completeness guarantee. Offline configuration is immutable and pinned;
+> no calendar enforcement, parameter-update governance or driver option is implemented.
+> C6 remains open until the final review of the verified candidate (`15`, `14`).
 
 **Choice.** The cost of a (failed) appeal is modelled as a negative pseudo-observation
 inside the author's reputation score, escrowed when the appeal is filed and replaced

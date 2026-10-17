@@ -1,7 +1,8 @@
 //! An epoch's engine outputs as one event (`docs/04` §Events and replay, T73): the records
 //! a node applies, and the Merkle root that binds them to the epoch's inputs.
 
-use crate::appeal::{AuthorError, AuthorHistory, EpochScale};
+use crate::appeal::{AuthorError, AuthorHistory};
+use crate::author_time::{AuthorClock, AuthorConfig, AuthorPoint, ContextError, CutContext};
 use crate::contested::{ContestedPool, PoolLimit, RecordError};
 use crate::exposure::ExposureLedger;
 use crate::probation::SkillTrack;
@@ -25,7 +26,7 @@ pub enum ResultRecord {
     ReviewerUnobserved {
         reviewer: Nym,
     },
-    /// An unappealed item's pilot outcome (`docs/02` §C.1), its origin this event's epoch.
+    /// An unappealed item's pilot outcome; its origin is the applying context (`docs/15` C6).
     AuthorOutcome {
         author: Nym,
         item: Cid,
@@ -101,14 +102,10 @@ pub enum ResultsRejected {
     DuplicateItem {
         record: usize,
     },
-    /// An author record from an epoch before one the author's history already recorded.
-    AuthorEpochBehind {
+    MissingContext {
         record: usize,
     },
-    /// A filing on a node configured with no `E_m` (`appeal::EpochScale`).
-    NoEpochScale {
-        record: usize,
-    },
+    FilingBatchRecorded,
     /// Refused by the node: the item's deposit proved another author, or none.
     NotTheProposer {
         record: usize,
@@ -184,7 +181,9 @@ pub struct ResultsState {
     roots: BTreeMap<u64, [u8; 32]>,
     tracks: BTreeMap<Nym, SkillTrack>,
     authors: BTreeMap<Nym, AuthorHistory>,
-    epoch_scale: Option<EpochScale>,
+    config: AuthorConfig,
+    clock: AuthorClock,
+    filing_epoch: Option<u64>,
     exposure: ExposureLedger,
     reviewer_index: BTreeMap<Nym, usize>,
     residuals: ResidualHistory,
@@ -192,12 +191,35 @@ pub struct ResultsState {
 }
 
 impl ResultsState {
-    /// No results yet, ages counted with `scale`; without one a filing is refused.
-    pub fn with_epoch_scale(scale: EpochScale) -> Self {
-        ResultsState {
-            epoch_scale: Some(scale),
+    pub fn with_author_config(config: AuthorConfig) -> Self {
+        Self {
+            config,
             ..Self::default()
         }
+    }
+
+    pub fn begin_cut(&mut self, cut: CutContext) -> Result<(), ContextError> {
+        self.clock.begin(cut)
+    }
+
+    pub fn end_cut(&mut self) -> Result<(), ContextError> {
+        self.clock.end()
+    }
+
+    pub fn author_point(&self) -> Option<AuthorPoint> {
+        self.clock.point()
+    }
+
+    pub fn closing_count(&self) -> u64 {
+        self.clock.closings()
+    }
+
+    pub fn filing_batch_at(&self, epoch: u64) -> bool {
+        self.filing_epoch == Some(epoch)
+    }
+
+    pub fn author_config(&self) -> AuthorConfig {
+        self.config
     }
 
     /// Applies every record or none (`docs/04` §Events and replay); a filing records its escrow
@@ -206,25 +228,45 @@ impl ResultsState {
         if self.roots.contains_key(&results.epoch) {
             return Err(ResultsRejected::EpochRecorded);
         }
+        let filings = results
+            .records
+            .iter()
+            .any(|r| matches!(r, ResultRecord::AppealStarted { .. }));
+        if filings
+            && self
+                .author_point()
+                .is_some_and(|at| self.filing_epoch == Some(at.epoch))
+        {
+            return Err(ResultsRejected::FilingBatchRecorded);
+        }
         let mut next = self.clone();
         for (i, record) in results.records.iter().enumerate() {
-            next.record(results.epoch, i, record)?;
+            next.record(i, record)?;
+        }
+        if filings {
+            next.filing_epoch = next.author_point().map(|at| at.epoch);
         }
         next.roots.insert(results.epoch, results.inputs_root);
         *self = next;
         Ok(())
     }
 
-    fn record(
-        &mut self,
-        epoch: u64,
-        i: usize,
-        record: &ResultRecord,
-    ) -> Result<(), ResultsRejected> {
+    fn record(&mut self, i: usize, record: &ResultRecord) -> Result<(), ResultsRejected> {
         let finite = |v: f64| {
             v.is_finite()
                 .then_some(())
                 .ok_or(ResultsRejected::NotFinite { record: i })
+        };
+        let point = || {
+            self.clock
+                .point()
+                .ok_or(ResultsRejected::MissingContext { record: i })
+        };
+        let at = match record {
+            ResultRecord::AuthorOutcome { .. }
+            | ResultRecord::AppealStarted { .. }
+            | ResultRecord::AppealSettled { .. } => Some(point()?),
+            _ => None,
         };
         match record {
             ResultRecord::ReviewerScore {
@@ -252,7 +294,7 @@ impl ResultsState {
             } => {
                 let history = self.authors.entry(*author).or_default();
                 history
-                    .conclude(*item, *passed, epoch)
+                    .conclude(*item, *passed, at.expect("author record"))
                     .map_err(|e| author_refusal(e, i))?;
             }
             ResultRecord::AppealStarted {
@@ -263,12 +305,14 @@ impl ResultsState {
                 if !within_window {
                     return Err(ResultsRejected::AppealWindowClosed { record: i });
                 }
-                let scale = self
-                    .epoch_scale
-                    .ok_or(ResultsRejected::NoEpochScale { record: i })?;
                 let history = self.authors.entry(*author).or_default();
                 history
-                    .file_appeal(*item, epoch, scale, &AuthorPrior::default())
+                    .file_appeal(
+                        *item,
+                        at.expect("author record"),
+                        self.config,
+                        &AuthorPrior::default(),
+                    )
                     .map_err(|e| author_refusal(e, i))?;
             }
             ResultRecord::AppealSettled {
@@ -281,7 +325,7 @@ impl ResultsState {
                     .get_mut(author)
                     .ok_or(ResultsRejected::NoOpenEscrow { record: i })?;
                 history
-                    .settle(*item, *passed, epoch)
+                    .settle(*item, *passed, at.expect("author record"))
                     .map_err(|e| author_refusal(e, i))?;
             }
             ResultRecord::Exposure { item, times } => {
@@ -354,16 +398,12 @@ impl ResultsState {
             .map_or_else(Vec::new, AuthorHistory::open_escrows)
     }
 
-    pub fn epoch_scale(&self) -> Option<EpochScale> {
-        self.epoch_scale
-    }
-
-    /// `author`'s `C_a` fixed for epoch `epoch`'s quota (`AuthorHistory::quota_reputation`).
-    pub fn quota_reputation(&self, author: &Nym, epoch: u64) -> Option<f64> {
-        let scale = self.epoch_scale?;
+    /// The quota snapshot for the active cut's epoch (`docs/15` C6).
+    pub fn quota_reputation(&self, author: &Nym) -> Option<f64> {
+        let at = self.author_point()?;
         let fresh = AuthorHistory::new();
         let history = self.authors.get(author).unwrap_or(&fresh);
-        Some(history.quota_reputation(epoch, scale, &AuthorPrior::default()))
+        Some(history.quota_reputation(at, self.config, &AuthorPrior::default()))
     }
 
     pub fn exposure(&self, item: &Cid) -> usize {
@@ -385,7 +425,6 @@ fn author_refusal(e: AuthorError, record: usize) -> ResultsRejected {
         AuthorError::Duplicate => ResultsRejected::DuplicateItem { record },
         AuthorError::Uncovered(_) => ResultsRejected::AppealNotCovered { record },
         AuthorError::NoOpenEscrow => ResultsRejected::NoOpenEscrow { record },
-        AuthorError::EpochBehind => ResultsRejected::AuthorEpochBehind { record },
     }
 }
 

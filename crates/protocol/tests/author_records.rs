@@ -6,7 +6,8 @@ use identity::enrollment::Label;
 use identity::nullifier::prove;
 use identity::nym::{Nym, Role};
 use network::cid::Cid;
-use protocol::appeal::{EpochScale, InsufficientReputation};
+use protocol::appeal::InsufficientReputation;
+use protocol::author_time::{AuthorConfig, AuthorPoint, CutContext};
 use protocol::authorship::{
     author_records, AppealRefusal, AppealRequest, AuthorRecords, AuthorRecordsError,
 };
@@ -27,9 +28,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 const DEPOSITS: u64 = 1;
 
-/// A fixture `E_m` of four epochs a month, not a decided value (`docs/15` C6).
-fn scale() -> EpochScale {
-    EpochScale::new(4.0).expect("a positive E_m")
+/// C5 fixtures use nonclosing cuts; no identifier difference ages an outcome.
+fn scale() -> AuthorConfig {
+    AuthorConfig::new(45).expect("a positive E_m")
 }
 
 fn scratch(name: &str) -> PathBuf {
@@ -187,9 +188,9 @@ fn borderline(item: Cid) -> Vec<Event> {
     events
 }
 
-fn open(dir: &Path, issuer: &Issuer, scale: Option<EpochScale>) -> Result<Node, NodeError> {
+fn open(dir: &Path, issuer: &Issuer, scale: Option<AuthorConfig>) -> Result<Node, NodeError> {
     match scale {
-        Some(scale) => Node::open_with_scale(dir, issuer.public(), scale),
+        Some(scale) => Node::open_with_config(dir, issuer.public(), scale),
         None => Node::open(dir, issuer.public()),
     }
 }
@@ -199,14 +200,21 @@ struct Setup {
     node: Node,
     dir: PathBuf,
     issuer: Issuer,
-    scale: Option<EpochScale>,
+    scale: Option<AuthorConfig>,
     items: Vec<(String, Cid, Nym)>,
+    cut: u64,
 }
 
 impl Setup {
-    fn new(name: &str, walks: &[(u8, &str)], scale: Option<EpochScale>) -> Self {
+    fn new(name: &str, walks: &[(u8, &str)], scale: Option<AuthorConfig>) -> Self {
         let (issuer, dir) = (issuer(), scratch(name));
         let mut node = open(&dir, &issuer, scale).unwrap();
+        node.begin_cut(CutContext {
+            number: 0,
+            epoch: 0,
+            closes: false,
+        })
+        .unwrap();
         let creds: Vec<(u8, AnonymousCredential)> = walks
             .iter()
             .map(|(s, _)| *s)
@@ -232,6 +240,7 @@ impl Setup {
             issuer,
             scale,
             items,
+            cut: 0,
         }
     }
 
@@ -248,17 +257,22 @@ impl Setup {
         self.node.submit(NodeEvent::Step { item, event })
     }
 
-    fn records(&self, epoch: u64, appeals: &[&str]) -> Result<AuthorRecords, AuthorRecordsError> {
+    fn records(
+        &mut self,
+        epoch: u64,
+        appeals: &[&str],
+    ) -> Result<AuthorRecords, AuthorRecordsError> {
         let within: Vec<(&str, bool)> = appeals.iter().map(|t| (*t, true)).collect();
         self.requests(epoch, &within)
     }
 
     /// The records for the requests `(tag, within_window)`.
     fn requests(
-        &self,
+        &mut self,
         epoch: u64,
         appeals: &[(&str, bool)],
     ) -> Result<AuthorRecords, AuthorRecordsError> {
+        self.context(epoch);
         let appeals = appeals
             .iter()
             .map(|(t, within_window)| {
@@ -266,10 +280,25 @@ impl Setup {
                 (self.item(t).0, AppealRequest { within_window })
             })
             .collect();
-        author_records(self.node.state(), epoch, &appeals)
+        author_records(self.node.state(), point(epoch), &appeals)
+    }
+
+    fn context(&mut self, epoch: u64) {
+        if self.node.state().results().author_point().unwrap().epoch != epoch {
+            self.node.end_cut().unwrap();
+            self.cut += 1;
+            self.node
+                .begin_cut(CutContext {
+                    number: self.cut,
+                    epoch,
+                    closes: false,
+                })
+                .unwrap();
+        }
     }
 
     fn submit(&mut self, epoch: u64, records: Vec<ResultRecord>) -> Result<Outcome, NodeError> {
+        self.context(epoch);
         self.node.submit(results(epoch, records))
     }
 
@@ -306,6 +335,9 @@ const STARTED: State = State::Pilot1 { appealed: true };
 
 /// Submits `event` and checks the node refused it, its state and log as before, also reopened.
 fn refused_without_trace(setup: &mut Setup, event: NodeEvent) -> Rejection {
+    if let NodeEvent::Results(ref results) = event {
+        setup.context(results.epoch);
+    }
     let before = setup.reopen();
     let got = setup.node.submit(event);
     let Err(NodeError::Rejected(why)) = got else {
@@ -385,7 +417,11 @@ fn pilot_conclusions_reach_the_record_from_their_deposit_and_step() {
             } if i == item => Some(*passed),
             _ => None,
         });
-        assert_eq!(history.outcome(item), recorded.map(|p| (p, 2)), "{tag}");
+        assert_eq!(
+            history.outcome(item),
+            recorded.map(|p| (p, point(2))),
+            "{tag}"
+        );
     }
     let reopened = setup.reopen();
     assert_eq!(reopened.state(), setup.node.state());
@@ -556,21 +592,21 @@ fn an_appeal_through_the_node_settles_its_escrow_and_counts_once() {
         .clone();
     assert_eq!(
         (history.outcomes(), history.outcome(&appealed)),
-        (2, Some((true, 3)))
+        (2, Some((true, point(3))))
     );
     assert!(history.open_escrows().is_empty());
     let p = AuthorPrior::default();
-    let with_escrow = author_score(&[1.0, 0.0], &[0.25, 0.0], &p);
+    let with_escrow = author_score(&[1.0, 0.0], &[0.0, 0.0], &p);
     assert_eq!(
-        history.reputation(3, scale(), &p).to_bits(),
+        history.reputation(point(3), scale(), &p).to_bits(),
         with_escrow.to_bits()
     );
-    let mut both = [(earlier, 0.5), (appealed, 0.25)];
+    let mut both = [(earlier, 0.0), (appealed, 0.0)];
     both.sort_by_key(|(item, _)| *item);
     let ages: Vec<f64> = both.iter().map(|(_, a)| *a).collect();
     let passed = author_score(&[1.0, 1.0], &ages, &p);
     assert_eq!(
-        history.reputation(4, scale(), &p).to_bits(),
+        history.reputation(point(4), scale(), &p).to_bits(),
         passed.to_bits()
     );
     assert_eq!(setup.records(4, &[]).unwrap(), AuthorRecords::default());
@@ -606,7 +642,7 @@ fn appeals_in_one_epoch_are_selected_in_cid_order_whatever_their_arrival() {
         let appeals: BTreeMap<Cid, AppealRequest> =
             arrival.into_iter().map(|c| (c, within)).collect();
         for node in [&setup.node, &reversed.node] {
-            let out = author_records(node.state(), 2, &appeals).unwrap();
+            let out = author_records(node.state(), point(2), &appeals).unwrap();
             let refused = vec![(high, AppealRefusal::Uncovered(short))];
             assert_eq!((&out.admitted, &out.refused), (&admitted, &refused));
         }
@@ -664,25 +700,22 @@ fn a_late_request_spends_no_coverage_of_the_next_in_cid_order() {
     assert_eq!(setup.step(low, Event::AppealExpires), Ok(Outcome::Moved));
 }
 
-/// C6: without `E_m` the producer refuses appeals and the node a filing; outcomes still record.
+/// C6: the explicit provisional default is H = 45 closings.
 #[test]
-fn without_a_scale_filings_are_refused_and_outcomes_recorded() {
-    let mut setup = Setup::new("unscaled", &[(2, "pool"), (2, "eligible")], None);
+fn the_default_config_allows_a_covered_filing() {
+    let mut setup = Setup::new("default-config", &[(2, "eligible")], None);
     assert_eq!(
-        setup.records(2, &["eligible by 2"]),
-        Err(AuthorRecordsError::NoEpochScale)
+        setup
+            .node
+            .state()
+            .results()
+            .author_config()
+            .half_life_closings(),
+        45
     );
-    let out = setup.records(2, &[]).unwrap();
-    assert_eq!(out.records.len(), 1);
-    let (item, author) = setup.item("eligible by 2");
-    let mut records = out.records;
-    records.push(start(author, item));
-    let unscaled = Rejection::Results(ResultsRejected::NoEpochScale { record: 1 });
-    let refused = refused_without_trace(&mut setup, results(2, records.clone()));
-    assert_eq!(refused, unscaled);
-    records.pop();
-    assert_eq!(setup.submit(2, records), Ok(Outcome::Moved));
-    assert_eq!(setup.state(&item), Some(&State::AppealEligible));
+    let out = setup.records(2, &["eligible by 2"]).unwrap();
+    setup.submit(2, out.records).unwrap();
+    assert_eq!(setup.reopen().state(), setup.node.state());
 }
 
 /// C5: an appeal step is refused without trace, whatever its inputs; its item may still expire.
@@ -722,7 +755,7 @@ fn a_fresh_author_s_appeal_files_and_starts_at_once() {
     let (item, author) = setup.item("eligible by 2");
     let p = AuthorPrior::default();
     let results = setup.node.state().results();
-    assert_eq!(results.quota_reputation(&author, 2), Some(0.4));
+    assert_eq!(results.quota_reputation(&author), Some(0.4));
     let out = setup.records(2, &["eligible by 2"]).unwrap();
     assert_eq!(out.records, vec![start(author, item)]);
     let before = setup.reopen();
@@ -736,10 +769,10 @@ fn a_fresh_author_s_appeal_files_and_starts_at_once() {
     let history = setup.node.state().results().author(&author).unwrap();
     let third = author_score(&[0.0], &[0.0], &p);
     assert_eq!(
-        history.reputation(2, scale(), &p).to_bits(),
+        history.reputation(point(2), scale(), &p).to_bits(),
         third.to_bits()
     );
-    assert!(!history.covers_stake(3, scale(), &p));
+    assert!(!history.covers_stake(point(3), scale(), &p));
 }
 
 /// C5/C6: a pending or indeterminate pilot settles nothing; a failure settles once, seen at `e+1`.
@@ -777,68 +810,79 @@ fn a_pending_pilot_settles_nothing_until_it_fails_and_counts_once() {
         .clone();
     assert_eq!(
         (history.outcomes(), history.outcome(&item)),
-        (1, Some((false, 3)))
+        (1, Some((false, point(3))))
     );
     assert!(history.open_escrows().is_empty());
     let p = AuthorPrior::default();
     let escrow = author_score(&[0.0], &[0.0], &p);
     assert_eq!(
-        history.reputation(3, scale(), &p).to_bits(),
+        history.reputation(point(3), scale(), &p).to_bits(),
         escrow.to_bits()
     );
-    let aged = author_score(&[0.0], &[0.25], &p);
-    assert_eq!(history.reputation(4, scale(), &p).to_bits(), aged.to_bits());
+    let aged = author_score(&[0.0], &[0.0], &p);
+    assert_eq!(
+        history.reputation(point(4), scale(), &p).to_bits(),
+        aged.to_bits()
+    );
     assert_eq!(setup.records(4, &[]).unwrap(), AuthorRecords::default());
     assert_eq!(setup.reopen().state(), setup.node.state());
 }
 
-/// C6: a log replays under the `E_m` it was written with; another can refuse a filing it admitted.
+/// C6: configuration mismatch is refused before replay, even without a filing.
 #[test]
 fn replay_holds_under_the_same_time_configuration_only() {
-    let one = EpochScale::new(1.0).expect("a fixture E_m");
-    let walks = [
-        (2, "screen/a"),
-        (2, "screen/b"),
-        (2, "pool"),
-        (2, "eligible"),
-    ];
-    let mut setup = Setup::new("same-scale", &walks, Some(one));
-    let outcome = |s: &Setup, tag: &str, passed| {
-        let (item, author) = s.item(tag);
-        ResultRecord::AuthorOutcome {
-            author,
-            item,
-            passed,
-        }
+    let one = AuthorConfig::new(1).unwrap();
+    let mut setup = Setup::new("same-config", &[(2, "pool")], Some(one));
+    let out = setup.records(2, &[]).unwrap();
+    setup.submit(2, out.records).unwrap();
+    setup.node.end_cut().unwrap();
+    setup.cut += 1;
+    setup
+        .node
+        .begin_cut(CutContext {
+            number: setup.cut,
+            epoch: 3,
+            closes: true,
+        })
+        .unwrap();
+    setup.node.end_cut().unwrap();
+    setup.cut += 1;
+    setup
+        .node
+        .begin_cut(CutContext {
+            number: setup.cut,
+            epoch: 4,
+            closes: false,
+        })
+        .unwrap();
+    let (_, author) = setup.item("pool by 2");
+    let at = AuthorPoint {
+        epoch: 4,
+        closings: 1,
     };
-    let fails = vec![
-        outcome(&setup, "screen/a by 2", false),
-        outcome(&setup, "screen/b by 2", false),
-    ];
-    setup.submit(2, fails).unwrap();
-    let pass = vec![outcome(&setup, "pool by 2", true)];
-    setup.submit(12, pass).unwrap();
-    let out = setup.records(22, &["eligible by 2"]).unwrap();
-    assert_eq!(out.admitted.len(), 1, "covered with ages 20 and 10 months");
-    setup.submit(22, out.records).unwrap();
-    assert_eq!(setup.reopen().state(), setup.node.state());
-    let entry = setup.node.log_len() as u64 - 1;
-    let replayed = |scale| open(&setup.dir, &setup.issuer, scale).err();
-    let uncovered = Rejection::Results(ResultsRejected::AppealNotCovered { record: 0 });
+    let value = |node: &Node| {
+        node.state()
+            .results()
+            .author(&author)
+            .unwrap()
+            .reputation(at, one, &AuthorPrior::default())
+            .to_bits()
+    };
+    let replayed = setup.reopen();
+    assert_eq!(replayed.state(), setup.node.state());
+    assert_eq!(value(&replayed), value(&setup.node));
     assert_eq!(
-        replayed(Some(scale())),
-        Some(NodeError::ReplayRejected {
-            entry,
-            rejection: uncovered
-        })
+        value(&replayed),
+        scoring::reputation::author_score_closings(&[1.0], &[1], 1, &AuthorPrior::default(),)
+            .to_bits()
     );
-    let unscaled = Rejection::Results(ResultsRejected::NoEpochScale { record: 0 });
     assert_eq!(
-        replayed(None),
-        Some(NodeError::ReplayRejected {
-            entry,
-            rejection: unscaled
-        })
+        open(&setup.dir, &setup.issuer, Some(scale())).err(),
+        Some(NodeError::Configuration)
+    );
+    assert_eq!(
+        open(&setup.dir, &setup.issuer, None).err(),
+        Some(NodeError::Configuration)
     );
 }
 
@@ -860,4 +904,237 @@ fn a_late_appeal_leaves_no_escrow_and_its_item_free_to_expire() {
     assert_eq!(refused, Rejection::Results(closed));
     assert_eq!(setup.escrows(&author), Vec::<Cid>::new());
     assert_eq!(setup.step(item, Event::AppealExpires), Ok(Outcome::Moved));
+}
+
+fn point(epoch: u64) -> AuthorPoint {
+    AuthorPoint { epoch, closings: 0 }
+}
+
+// C6: verified cuts compose filing, pilot, settlement and B-b snapshot transitions.
+#[test]
+fn ledger_and_snapshot_follow_atomic_filing_records() {
+    use network::consortium::{Consortium, Member};
+    use network::cut::Cut;
+    use network::log::TransparencyLog;
+    use network::replica::{FeedWriter, Replica, WriterSet};
+    use protocol::cohort_snapshot::{snapshot, CutInput, Incoherence, Slot};
+    use protocol::ledger::{CutReport, Ledger, Refusal};
+    use protocol::offline_log::OfflineRecord;
+    const NET: [u8; 32] = [6; 32];
+    let issuer = issuer();
+    let members: Vec<_> = (10..13).map(|s| Member::from_seed([s; 32])).collect();
+    let make_consortium = || Consortium::new(members.iter().map(|m| m.public()).collect(), 2);
+    let signer = FeedWriter::from_seed(NET, [10; 32]);
+    let keys = [signer.public()];
+    let mut replica = Replica::new(WriterSet::new(NET, &keys));
+    let mut feed = TransparencyLog::new();
+    let mut publish = |bytes: Vec<u8>, replica: &mut Replica| {
+        let entry = signer.sign(&feed.append(network::cid::cid(&bytes)).clone());
+        let id = entry.id();
+        replica.insert(entry, bytes).unwrap();
+        id
+    };
+    let (deposit_a, a) = deposit(&issuer, &credential(&issuer, 2), "ledger-a");
+    let (deposit_b, b) = deposit(&issuer, &credential(&issuer, 3), "ledger-b");
+    let author_a = match &deposit_a {
+        NodeEvent::Deposit { proof, .. } => proof.id(),
+        _ => unreachable!(),
+    };
+    let author_b = match &deposit_b {
+        NodeEvent::Deposit { proof, .. } => proof.id(),
+        _ => unreachable!(),
+    };
+    let mut objects = vec![deposit_a, deposit_b];
+    for item in [a, b] {
+        objects.extend(
+            walk(item, "eligible")
+                .into_iter()
+                .map(|event| on(item, event)),
+        );
+    }
+    for object in objects {
+        publish(object.encode(), &mut replica);
+    }
+    let invalid_batch = publish(
+        results(
+            500,
+            vec![
+                start(author_a, a),
+                ResultRecord::ReviewerScore {
+                    reviewer: Nym([40; 32]),
+                    score: 0.0,
+                    inclusion: 0.0,
+                },
+            ],
+        )
+        .encode(),
+        &mut replica,
+    );
+    publish(
+        results(999, vec![start(author_a, a)]).encode(),
+        &mut replica,
+    );
+    let duplicate_batch = publish(
+        results(501, vec![start(author_b, b)]).encode(),
+        &mut replica,
+    );
+    let legacy = on(
+        b,
+        Event::Appeal {
+            within_window: true,
+            reputation_covers_stake: true,
+        },
+    );
+    let legacy_id = publish(legacy.encode(), &mut replica);
+    let injected = publish(
+        OfflineRecord::Begin(CutContext {
+            number: 0,
+            epoch: 900,
+            closes: true,
+        })
+        .encode(),
+        &mut replica,
+    );
+    for event in [screen(Screening::Pass), stage2(Recheck::NoDif, false)] {
+        publish(on(a, event).encode(), &mut replica);
+    }
+    publish(
+        results(
+            0,
+            vec![ResultRecord::AppealSettled {
+                author: author_a,
+                item: a,
+                passed: true,
+            }],
+        )
+        .encode(),
+        &mut replica,
+    );
+    let sign = |cut: &Cut| {
+        let cp = cut.checkpoint(NET, make_consortium().member_set_hash());
+        members[..2]
+            .iter()
+            .enumerate()
+            .map(|(i, m)| (i, m.sign(&cp)))
+            .collect::<Vec<_>>()
+    };
+    let input = |cut: &Cut, report: CutReport, replica: &Replica| CutInput {
+        number: cut.number,
+        epoch: cut.epoch,
+        closes: cut.closes,
+        digest: cut.digest(),
+        slots: report
+            .applied
+            .iter()
+            .map(|id| Slot::Applied {
+                id: *id,
+                object: replica.get(id).unwrap().1.to_vec(),
+            })
+            .collect(),
+        refused: report.refused,
+    };
+    let mut ledger = Ledger::new(NET, make_consortium(), issuer.public());
+    let first = Cut {
+        epoch: DEPOSITS,
+        closes: true,
+        ..Cut::of(&replica, 0)
+    };
+    let report = ledger.apply(&replica, &first, &sign(&first)).unwrap();
+    assert_eq!(
+        report.refused,
+        vec![
+            (
+                invalid_batch,
+                Refusal::Rejected(Rejection::Results(ResultsRejected::BadInclusion {
+                    record: 1
+                }))
+            ),
+            (
+                duplicate_batch,
+                Refusal::Rejected(Rejection::Results(ResultsRejected::FilingBatchRecorded))
+            ),
+            (legacy_id, Refusal::Rejected(Rejection::AppealStep)),
+            (injected, Refusal::NotAnEvent),
+        ]
+    );
+    assert_eq!(ledger.state().item(&a), Some(&State::ActivePool));
+    assert_eq!(ledger.state().item(&b), Some(&State::AppealEligible));
+    assert_eq!(ledger.state().results().closing_count(), 1);
+    assert_eq!(
+        ledger
+            .state()
+            .results()
+            .author(&author_a)
+            .unwrap()
+            .outcome(&a),
+        Some((true, point(DEPOSITS)))
+    );
+    let mut cuts = vec![input(&first, report, &replica)];
+    let snap = snapshot(&cuts).unwrap();
+    assert!(snap
+        .items
+        .iter()
+        .find(|item| item.cid == a)
+        .unwrap()
+        .frozen
+        .is_some());
+    assert!(snap
+        .items
+        .iter()
+        .find(|item| item.cid == b)
+        .unwrap()
+        .frozen
+        .is_none());
+    let requests = BTreeMap::from([(
+        b,
+        AppealRequest {
+            within_window: true,
+        },
+    )]);
+    assert_eq!(
+        author_records(
+            ledger.state(),
+            AuthorPoint {
+                epoch: DEPOSITS,
+                closings: 0
+            },
+            &requests
+        ),
+        Err(AuthorRecordsError::FilingBatchRecorded)
+    );
+    let planned = AuthorPoint {
+        epoch: 2,
+        closings: 1,
+    };
+    let out = author_records(ledger.state(), planned, &requests).unwrap();
+    assert_eq!(out.admitted, vec![b]);
+    publish(results(1001, out.records).encode(), &mut replica);
+    let second = Cut {
+        epoch: 2,
+        closes: false,
+        ..Cut::of(&replica, 1)
+    };
+    let report = ledger.apply(&replica, &second, &sign(&second)).unwrap();
+    assert!(report.refused.is_empty());
+    assert_eq!(ledger.state().item(&b), Some(&STARTED));
+    cuts.push(input(&second, report, &replica));
+    let snap = snapshot(&cuts).unwrap();
+    assert!(snap.items.iter().all(|item| item.frozen.is_some()));
+    let fake = CutInput {
+        number: 0,
+        epoch: 1,
+        closes: false,
+        digest: [0; 32],
+        slots: vec![Slot::Applied {
+            id: legacy_id,
+            object: legacy.encode(),
+        }],
+        refused: vec![],
+    };
+    assert!(matches!(
+        snapshot(&[fake]),
+        Err(protocol::cohort_snapshot::Error::Incoherent(
+            Incoherence::AppealStep(_)
+        ))
+    ));
 }

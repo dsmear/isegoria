@@ -4,9 +4,8 @@
 
 use identity::nym::Nym;
 use network::cid::{cid, Cid};
-use protocol::appeal::{
-    appeal_floor, AuthorError, AuthorHistory, EpochScale, InsufficientReputation,
-};
+use protocol::appeal::{appeal_floor, AuthorError, AuthorHistory, InsufficientReputation};
+use protocol::author_time::{AuthorConfig, AuthorPoint};
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State};
 use protocol::orchestrator::{
@@ -14,7 +13,7 @@ use protocol::orchestrator::{
 };
 use protocol::pilot::Screening;
 use protocol::revalidation::Recheck;
-use scoring::reputation::{author_score, AuthorPrior};
+use scoring::reputation::{author_score_closings, AuthorPrior};
 
 /// `run_item` for an item that is not in the band: no extra round, no re-decision.
 fn run(reviewed: State, v: &ItemVerdicts) -> Result<State, Invalid> {
@@ -25,17 +24,17 @@ fn prior() -> AuthorPrior {
     AuthorPrior::default()
 }
 
-/// A fixture `E_m`, not a decided value (`docs/15` C6).
-fn scale() -> EpochScale {
-    EpochScale::new(4.0).unwrap()
+/// Fixture: consecutive closed epochs, H = 45 closings.
+fn scale() -> AuthorConfig {
+    AuthorConfig::new(45).unwrap()
 }
 
 fn reputation(author: &AuthorHistory, epoch: u64) -> f64 {
-    author.reputation(epoch, scale(), &prior())
+    author.reputation(point(epoch), scale(), &prior())
 }
 
 fn file(author: &mut AuthorHistory, item: Cid, epoch: u64) -> Result<(), AuthorError> {
-    author.file_appeal(item, epoch, scale(), &prior())
+    author.file_appeal(item, point(epoch), scale(), &prior())
 }
 
 // ------------------------------ the escrow ------------------------------
@@ -46,18 +45,18 @@ fn filing_escrows_a_zero_and_lowers_the_reputation_at_once() {
     let mut author = AuthorHistory::new();
     assert!((reputation(&author, 1) - 0.4).abs() < 1e-12);
     assert!((appeal_floor(&prior()) - 0.4).abs() < 1e-12);
-    assert!(author.covers_stake(1, scale(), &prior()));
+    assert!(author.covers_stake(point(1), scale(), &prior()));
     file(&mut author, cid(b"a"), 1).unwrap();
     assert_eq!(author.open_escrows(), vec![cid(b"a")]);
     // (2 + 0) / (2 + 3 + 1), at once and for every later epoch while open.
     assert!((reputation(&author, 1) - 1.0 / 3.0).abs() < 1e-12);
     assert!((reputation(&author, 90) - 1.0 / 3.0).abs() < 1e-12);
 
-    author.settle(cid(b"a"), false, 1).unwrap();
+    author.settle(cid(b"a"), false, point(1)).unwrap();
     assert!(author.open_escrows().is_empty());
-    assert_eq!(author.outcome(&cid(b"a")), Some((false, 1)));
+    assert_eq!(author.outcome(&cid(b"a")), Some((false, point(1))));
     assert!((reputation(&author, 1) - 1.0 / 3.0).abs() < 1e-12);
-    let aged = author_score(&[0.0], &[0.25], &prior());
+    let aged = author_score(&[0.0], &[1.0], &prior());
     assert_eq!(reputation(&author, 2).to_bits(), aged.to_bits());
 }
 
@@ -65,13 +64,13 @@ fn filing_escrows_a_zero_and_lowers_the_reputation_at_once() {
 fn a_passed_appeal_replaces_the_escrow_with_a_one() {
     let mut author = AuthorHistory::new();
     file(&mut author, cid(b"a"), 1).unwrap();
-    author.settle(cid(b"a"), true, 2).unwrap();
+    author.settle(cid(b"a"), true, point(2)).unwrap();
     // The escrow counts through the settling epoch, the outcome from the next.
     assert!((reputation(&author, 2) - 1.0 / 3.0).abs() < 1e-12);
     let after = reputation(&author, 3);
     assert_eq!(
         after.to_bits(),
-        author_score(&[1.0], &[0.25], &prior()).to_bits()
+        author_score(&[1.0], &[1.0], &prior()).to_bits()
     );
     assert!(after > 0.4);
     assert_eq!(author.outcomes(), 1);
@@ -81,9 +80,9 @@ fn a_passed_appeal_replaces_the_escrow_with_a_one() {
 fn an_author_below_the_floor_cannot_file() {
     let mut author = AuthorHistory::new();
     file(&mut author, cid(b"a"), 1).unwrap();
-    author.settle(cid(b"a"), false, 1).unwrap();
+    author.settle(cid(b"a"), false, point(1)).unwrap();
     // About 1/3 < 0.4: a failed appeal costs the next one …
-    assert!(!author.covers_stake(2, scale(), &prior()));
+    assert!(!author.covers_stake(point(2), scale(), &prior()));
     let before = author.clone();
     let Err(AuthorError::Uncovered(InsufficientReputation { reputation, floor })) =
         file(&mut author, cid(b"b"), 2)
@@ -94,8 +93,8 @@ fn an_author_below_the_floor_cannot_file() {
     assert!((floor - 0.4).abs() < 1e-12);
     assert_eq!(author, before, "a refused filing escrows nothing");
     // … until the evidence restores the average: one passed item, about (2 + 0 + 1) / 7 ≥ 0.4.
-    author.conclude(cid(b"c"), true, 2).unwrap();
-    assert!(author.covers_stake(3, scale(), &prior()));
+    author.conclude(cid(b"c"), true, point(2)).unwrap();
+    assert!(author.covers_stake(point(3), scale(), &prior()));
     assert!(file(&mut author, cid(b"b"), 3).is_ok());
 }
 
@@ -104,10 +103,10 @@ fn an_author_below_the_floor_cannot_file() {
 fn a_failed_appeal_bars_the_next_only_below_the_floor() {
     let mut author = AuthorHistory::new();
     for i in 0..10u8 {
-        author.conclude(cid(&[i]), true, 1).unwrap();
+        author.conclude(cid(&[i]), true, point(1)).unwrap();
     }
     file(&mut author, cid(b"a"), 2).unwrap();
-    author.settle(cid(b"a"), false, 2).unwrap();
+    author.settle(cid(b"a"), false, point(2)).unwrap();
     // About (2 + 10) / (5 + 11) = 0.75, above the floor 0.4.
     assert!((reputation(&author, 3) - 0.75).abs() < 0.01);
     assert!(file(&mut author, cid(b"b"), 3).is_ok());
@@ -199,7 +198,7 @@ fn run_item_derives_the_appeal_checks_from_the_verdicts() {
 /// A history with one passed item, concluded in epoch 1.
 fn established() -> AuthorHistory {
     let mut author = AuthorHistory::new();
-    author.conclude(cid(b"earlier"), true, 1).unwrap();
+    author.conclude(cid(b"earlier"), true, point(1)).unwrap();
     author
 }
 
@@ -210,8 +209,8 @@ fn the_terminal_state_settles_the_escrow() {
     let before = reputation(&author, 2);
     file(&mut author, item(), 2).unwrap();
     let terminal = run(reviewed(), &appealed()).unwrap();
-    settle_appeal(&mut author, item(), &terminal, 3).unwrap();
-    assert_eq!(author.outcome(&item()), Some((true, 3)));
+    settle_appeal(&mut author, item(), &terminal, point(3)).unwrap();
+    assert_eq!(author.outcome(&item()), Some((true, point(3))));
     assert!(reputation(&author, 4) > before);
 
     // Failed at the DIF stage.
@@ -228,12 +227,12 @@ fn the_terminal_state_settles_the_escrow() {
     )
     .unwrap();
     assert_eq!(terminal, State::Rejected(RejectReason::Dif));
-    settle_appeal(&mut author, item(), &terminal, 3).unwrap();
-    assert_eq!(author.outcome(&item()), Some((false, 3)));
+    settle_appeal(&mut author, item(), &terminal, point(3)).unwrap();
+    assert_eq!(author.outcome(&item()), Some((false, point(3))));
     assert!(reputation(&author, 4) < before);
 
     // Settled once: a second settlement finds no open escrow.
-    let again = settle_appeal(&mut author, item(), &terminal, 4);
+    let again = settle_appeal(&mut author, item(), &terminal, point(4));
     assert_eq!(again, Err(Unsettled::Refused(AuthorError::NoOpenEscrow)));
 }
 
@@ -253,7 +252,19 @@ fn an_appeal_that_ends_in_the_contested_pool_is_promoted() {
     )
     .unwrap();
     assert_eq!(terminal, State::Contested);
-    settle_appeal(&mut author, item(), &terminal, 3).unwrap();
-    assert_eq!(author.outcome(&item()), Some((true, 3)));
+    settle_appeal(&mut author, item(), &terminal, point(3)).unwrap();
+    assert_eq!(author.outcome(&item()), Some((true, point(3))));
     assert!(reputation(&author, 4) > before);
+}
+
+fn point(epoch: u64) -> AuthorPoint {
+    AuthorPoint {
+        epoch,
+        closings: epoch,
+    }
+}
+
+fn author_score(q: &[f64], ages: &[f64], p: &AuthorPrior) -> f64 {
+    let ages: Vec<u64> = ages.iter().map(|age| *age as u64).collect();
+    author_score_closings(q, &ages, 45, p)
 }

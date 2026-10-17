@@ -299,13 +299,14 @@ escrows a zero, and the node moves the item to `Pilot1 { appealed: true }` in th
 Retired, so that a log holding one no longer decodes: 3 to 5, the author records that named no
 item (none was produced outside tests), and 11, a filing that left its appeal to a later step
 (produced only offline, by `5b1ff4c` and `322dd52`; `15` C5–C6). Its bytes are not read as a
-13. An author record's epoch is its outcome's origin or its filing's epoch
-(`02` §C.1). Reviewers and authors are their proven ids (INV-9); the CUSUM parameters, the
-author prior and `E_m` (`appeal::EpochScale`, undecided and without default; `14`) are the
-node's configuration. The event is applied whole or not at all, and refused for a second results
-event of the same epoch, an inclusion outside `(0, 1]`, a value that is not finite, a second
-author record for one item, an author record from an epoch before one that author's history
-recorded, a filing on a node without `E_m`, one whose window reading is false, or one the
+13. A results event's epoch is its data/root identifier only; author recording and
+assessment use the applying cut's `(epoch, closing count)` (`02` §C.1, `15` C6).
+Reviewers and authors are their proven ids (INV-9); the CUSUM parameters and author prior
+are unchanged. The initial ledger uses the adopted provisional H = 45 closing configuration;
+custom offline nodes pin their H in the versioned log header (`14`). The event is applied
+whole or not at all, and refused for a second results event of the same epoch, an inclusion outside `(0, 1]`, a value that is not finite, a second
+author record for one item, an author record without applying context, a second accepted
+filing event for the same recording epoch, a filing whose window reading is false, or one the
 author's `C_a` does not cover once the event's earlier filings are counted, a settlement of an escrow that is not open, and a contested fit whose classes or ability
 describe no fit, whose members repeat or fall outside it, or that lies outside the pool's
 resource domain (`15` D3). A contested fit with no members passes the same checks and records
@@ -321,6 +322,19 @@ in CID order, a request's window read before its coverage (`authorship::author_r
 §C.1). The requests themselves are not on the log, so replay cannot check that selection. The
 window reading is the producer's explicit input: the node checks the value the record
 carries, not the window, whose duration and authentication are undecided.
+
+**Offline node framing (C6 candidate, 2026-10-17; tested, final review pending; `15` C6).**
+The durable node log now stores `OfflineRecord`: magic `ISEGORIA-C6\0`, then tag 0 and H
+for the first immutable configuration record; tag 1 and `(cut number, epoch, closes)` for
+Begin; tag 2 and a length-prefixed canonical `NodeEvent` for Event; tag 3 for End. Every Event
+needs an active frame; Begin and End enforce progression. A closing increments the count
+only on End. Reopening a valid incomplete frame resumes it, and another Begin is refused
+until it ends; malformed or repeated boundaries fail. A mismatched H is refused before
+replay. Old raw-event node logs do not decode as this format, with no automatic migration.
+`Node::log_len` counts accepted protocol events, excluding these metadata records.
+This is declared context, with no cut signatures; it is not authenticated ledger history.
+Ledger feeds still carry only `NodeEvent` or member objects: offline metadata cannot set
+ledger time or configuration. The ledger brackets its events with the verified cut itself.
 
 The item–author link these records carry is the one the deposit already logs: the draft gives
 the CID, and the `Propose` proof's id is the author's role pseudonym, the same for every

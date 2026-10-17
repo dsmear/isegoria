@@ -3,6 +3,7 @@
 //! transitions through `lifecycle::step` ([`run_item`], [`review_round`]).
 
 use crate::appeal::{pilot_outcome, AuthorError, AuthorHistory};
+use crate::author_time::AuthorPoint;
 use crate::gate::GateOutcome;
 use crate::lifecycle::{step, Event, Invalid, State};
 use crate::pilot::Screening;
@@ -345,16 +346,13 @@ pub enum Unsettled {
     Refused(AuthorError),
 }
 
-/// Settles `item`'s escrow with the outcome `terminal` concludes (D27, `appeal::pilot_outcome`),
-/// in results epoch `epoch`; any other state, a pending pilot included, settles nothing (A11).
+/// Settles `item`'s escrow at `at` with the outcome `terminal` concludes; else nothing (D27, A11).
 pub fn settle_appeal(
     author: &mut AuthorHistory,
     item: Cid,
     terminal: &State,
-    epoch: u64,
+    at: AuthorPoint,
 ) -> Result<(), Unsettled> {
     let passed = pilot_outcome(terminal).ok_or(Unsettled::Pending)?;
-    author
-        .settle(item, passed, epoch)
-        .map_err(Unsettled::Refused)
+    author.settle(item, passed, at).map_err(Unsettled::Refused)
 }

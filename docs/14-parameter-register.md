@@ -196,34 +196,35 @@ floor prior's weight, `KR20_MIN` or a minimum number of anchors, `N_LATENT_MIN`,
 
 Remaining legacy/operational entries to be written by step 4, with procedures and values
 provisional until the pilots (T27): `γ` and the old odds model's `k₀`, its punitive
-CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the implemented
-reputation decay time `T` (half-life `T ln 2`; the intended convention is a decision,
-`15` C6), the honeypot and exploration rates, `α`, `min_shared`, `ρ_min` and `p_max`.
+CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the honeypot and exploration rates, `α`,
+`min_shared`, `ρ_min` and `p_max`.
 
-### `E_m` — epochs per month for the author score's ages (undecided, no default)
+### `H` — author weight half-life (45 applied closings, provisional)
 
-- **Why it exists.** The owner's C5–C6 candidate ages an outcome from its results epoch:
-  at epoch `e` it is `(e − e_j)/E_m` months old, against the decay time `T` in months
-  (`02` §C.1). No epoch length is defined anywhere, so the factor is open.
-- **Calibration.** None: it follows from the epoch's operational definition, which is not
-  made. A decision may instead state `T` in epochs; that changes `T`'s unit and is not
-  18 epochs read for 18 months. A constant is exact only under a normative relation,
-  verified by the members, between epoch numbers and time; skipped numbers would then be
-  elapsed time. None exists: epochs close at the members' call, may skip or stall, and no
-  shared time exists. The unit, two rules for counting an age in epochs, a proposed
-  amendment taking an age's ends from the applying cuts, a half-life `H` in counted
-  closings (`T_e = H/ln 2`), and a slow memory of about 1,260 nominal days (`H = 45`
-  closings at a nominal 28-day cadence, the cadence only a conditional compromise),
-  none adopted, are in
-  [`15`'s C6 brief](15-phase1-review.md#c6-time-decision-brief); no value enters the code.
-- **Sensitivity.** It scales every outcome's age, hence every weight `exp(−Δt_j/T)`. It does
-  not change an open escrow (weight 1, unaged) or the order of an epoch's filings.
-- **If it moves.** Every `C_a` evaluated after the first epoch moves, so do appeal coverage
-  and the quota snapshot. A log with filings replays as written only under the value it was
-  written with: another can refuse a filing it admitted, or replay without detecting it.
-- **Where fixed.** Nowhere: `appeal::EpochScale::new` takes it explicitly and has no default.
-  `Node::open` leaves it unset, and a node opened so refuses a filing. Tests use `4.0` as a
-  fixture, not as a value (`15` C5–C6).
+- **Reason.** Candidate B and the authoritative-cut amendment were adopted by the owner
+  on 2026-10-17, with a nominal 28-day cadence and long memory (`15` C6). An outcome's
+  weight is `exp(−(k − k_j)/(H/ln 2))`; the prior remains `(2,3)`. Identifiers skipped
+  without applied closings add no age. Empty closing cuts count; open escrows do not age.
+- **Calibration.** Not calibrated. `H = 45` gives a half-life of 1,260 nominal days at
+  28 days per closing, about 3.5 years, retaining about 82% of a weight after 13 closings.
+  These are nominal scenarios, not real-calendar guarantees. T25/T83/T27 still determine
+  operational calibration; no new campaign is authorized or run by this choice.
+- **Sensitivity.** Larger `H` preserves both past passes and failures longer; smaller `H`
+  discounts them faster. Neither changes the prior, the fixed escrow, binary quality or
+  the ordering of a closed request set. A different cadence changes the real half-life.
+- **If it moves.** Coverage and quota values can change; no historical log may silently
+  replay under another `H`. This candidate supports immutable configuration per log,
+  with no parameter-update governance or retroactive change. A future change needs its
+  effective epoch and replay contract decided first.
+- **Location.** `author_time::AuthorConfig::default()` explicitly supplies the provisional
+  `45`; `new(H)` accepts positive integer counts, used by explicit fixture configurations
+  and `Node::open_with_config`. The versioned offline log pins that configuration in its
+  first record and rejects a mismatch before replay. `Ledger::new` supports the fixed
+  initial `H = 45` only; no custom ledger configuration is claimed to be authenticated.
+- **Nominal cadence.** 28 days is shared operational intent documented here; no new driver
+  option, timestamp, clock rule or consensus check is implemented. Today's driver closes
+  by `cuts_per_epoch`, so its actual elapsed cadence can differ or stall. `E_m` and the
+  protocol's conversion from identifier differences to months are retired.
 
 ### A12 offline affine candidate — procedure contract, 2026-10-12
 

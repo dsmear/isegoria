@@ -1,38 +1,41 @@
-//! C5–C6's author history and its replay (`docs/02` §C.1, `docs/15` C5–C6): one binary outcome
-//! per item, aged from its results epoch; open escrows at weight 1; filings checked in turn.
+//! Author observations, immutable closing ages and atomic filing batches (`docs/15` C5–C6).
 
 use identity::nym::Nym;
 use network::cid::{cid, Cid};
-use protocol::appeal::{appeal_floor, AuthorHistory, EpochScale};
+use protocol::appeal::{appeal_floor, AuthorHistory};
+use protocol::author_time::{AuthorConfig, AuthorPoint, ContextError, CutContext};
 use protocol::results::{EpochResults, ResultRecord, ResultsRejected, ResultsState};
-use scoring::reputation::{author_score, AuthorPrior};
-
-/// A fixture `E_m` of four epochs a month, not a decided value (`docs/15` C6).
-fn scale() -> EpochScale {
-    EpochScale::new(4.0).expect("a positive E_m")
-}
+use scoring::reputation::{author_score_closings, AuthorPrior};
 
 fn nym(i: u8) -> Nym {
     Nym([i; 32])
 }
-
 fn item(tag: &str) -> Cid {
     cid(tag.as_bytes())
 }
-
+fn point(epoch: u64, closings: u64) -> AuthorPoint {
+    AuthorPoint { epoch, closings }
+}
+fn begin(state: &mut ResultsState, number: u64, epoch: u64, closes: bool) {
+    state
+        .begin_cut(CutContext {
+            number,
+            epoch,
+            closes,
+        })
+        .unwrap();
+}
 fn apply(
     state: &mut ResultsState,
-    epoch: u64,
+    data_epoch: u64,
     records: Vec<ResultRecord>,
 ) -> Result<(), ResultsRejected> {
-    let results = EpochResults {
-        epoch,
-        inputs_root: [0; 32],
+    state.apply(&EpochResults {
+        epoch: data_epoch,
+        inputs_root: [data_epoch as u8; 32],
         records,
-    };
-    state.apply(&results)
+    })
 }
-
 fn outcome(author: Nym, tag: &str, passed: bool) -> ResultRecord {
     ResultRecord::AuthorOutcome {
         author,
@@ -40,7 +43,6 @@ fn outcome(author: Nym, tag: &str, passed: bool) -> ResultRecord {
         passed,
     }
 }
-
 fn filed(author: Nym, tag: &str) -> ResultRecord {
     ResultRecord::AppealStarted {
         author,
@@ -48,7 +50,6 @@ fn filed(author: Nym, tag: &str) -> ResultRecord {
         within_window: true,
     }
 }
-
 fn settled(author: Nym, tag: &str, passed: bool) -> ResultRecord {
     ResultRecord::AppealSettled {
         author,
@@ -56,219 +57,362 @@ fn settled(author: Nym, tag: &str, passed: bool) -> ResultRecord {
         passed,
     }
 }
-
-fn reputation(state: &ResultsState, author: Nym, epoch: u64) -> f64 {
-    let history = state.author(&author).cloned().unwrap_or_default();
-    history.reputation(epoch, scale(), &AuthorPrior::default())
+fn reputation(state: &ResultsState, author: Nym) -> f64 {
+    state
+        .author(&author)
+        .cloned()
+        .unwrap_or_default()
+        .reputation(
+            state.author_point().unwrap(),
+            state.author_config(),
+            &AuthorPrior::default(),
+        )
+}
+fn expected(q: &[f64], ages: &[u64]) -> f64 {
+    author_score_closings(q, ages, 45, &AuthorPrior::default())
 }
 
-/// `author_score` of `qualities` in CID order of `tags`, every one `age` months old.
-fn expected(mut tagged: Vec<(&str, f64)>, age: f64) -> f64 {
-    tagged.sort_by_key(|(tag, _)| item(tag));
-    let qualities: Vec<f64> = tagged.iter().map(|(_, q)| *q).collect();
-    author_score(
-        &qualities,
-        &vec![age; qualities.len()],
-        &AuthorPrior::default(),
-    )
-}
-
-/// C5/C6: a pass counts 1, a failure 0, from the epoch after their results epoch, aged from it.
+// C6: a skip and a new unclosed epoch expose an outcome without aging it.
 #[test]
-fn outcomes_are_binary_and_age_from_their_results_epoch() {
-    let mut state = ResultsState::with_epoch_scale(scale());
-    let records = vec![outcome(nym(1), "a", true), outcome(nym(1), "b", false)];
-    apply(&mut state, 3, records).unwrap();
-    let history = state.author(&nym(1)).unwrap();
-    assert_eq!(history.outcome(&item("a")), Some((true, 3)));
-    assert_eq!(history.outcome(&item("b")), Some((false, 3)));
+fn skipped_identifiers_do_not_age_outcomes() {
+    let mut state = ResultsState::default();
+    begin(&mut state, 0, 10, false);
+    apply(&mut state, 900, vec![outcome(nym(1), "pass", true)]).unwrap();
     assert_eq!(
-        reputation(&state, nym(1), 3),
-        0.4,
-        "not counted in its own epoch"
+        state.author(&nym(1)).unwrap().outcome(&item("pass")),
+        Some((true, point(10, 0)))
     );
-    for (epoch, age) in [(4, 0.25), (11, 2.0), (75, 18.0)] {
-        let want = expected(vec![("a", 1.0), ("b", 0.0)], age);
-        assert_eq!(reputation(&state, nym(1), epoch).to_bits(), want.to_bits());
-    }
-}
-
-/// C6: with no escrow, `C_a` moves monotonically toward 2/5 across epochs and never crosses it.
-#[test]
-fn c_a_moves_toward_the_prior_mean_across_epochs() {
-    let mut state = ResultsState::with_epoch_scale(scale());
-    let records = vec![
-        outcome(nym(1), "a", true),
-        outcome(nym(1), "b", true),
-        outcome(nym(2), "c", false),
-    ];
-    apply(&mut state, 1, records).unwrap();
-    let (mut high, mut low) = (1.0, 0.0);
-    for epoch in [2, 5, 20, 80, 400, 4_000] {
-        let (good, bad) = (
-            reputation(&state, nym(1), epoch),
-            reputation(&state, nym(2), epoch),
-        );
-        assert!(good < high && good >= 0.4, "{epoch}: {good}");
-        assert!(bad > low && bad <= 0.4, "{epoch}: {bad}");
-        (high, low) = (good, bad);
-    }
-}
-
-/// C5: a second record for one item is refused, in the same event or a later one, whole.
-#[test]
-fn a_repeated_item_is_refused_whole() {
-    let mut state = ResultsState::with_epoch_scale(scale());
-    let (a, b) = (outcome(nym(1), "a", true), outcome(nym(1), "b", true));
-    let twice = vec![a.clone(), outcome(nym(1), "a", false)];
+    assert_eq!(reputation(&state, nym(1)), 0.4);
+    state.end_cut().unwrap();
+    begin(&mut state, 1, 1_000_000, false);
     assert_eq!(
-        apply(&mut state, 1, twice),
+        reputation(&state, nym(1)).to_bits(),
+        expected(&[1.0], &[0]).to_bits()
+    );
+    assert_eq!(state.closing_count(), 0);
+}
+
+// C6: empty closings count; multiple cuts in one epoch retain the same k until End.
+#[test]
+fn empty_closings_age_and_the_closing_cut_uses_the_epoch_start_count() {
+    let mut state = ResultsState::default();
+    begin(&mut state, 0, 10, true);
+    apply(&mut state, 2, vec![outcome(nym(1), "first", true)]).unwrap();
+    assert_eq!(state.author_point(), Some(point(10, 0)));
+    state.end_cut().unwrap();
+    begin(&mut state, 1, 20, false);
+    let frozen = reputation(&state, nym(1));
+    state.end_cut().unwrap();
+    begin(&mut state, 2, 20, true);
+    assert_eq!(state.author_point(), Some(point(20, 1)));
+    assert_eq!(reputation(&state, nym(1)).to_bits(), frozen.to_bits());
+    apply(
+        &mut state,
+        1,
+        vec![outcome(nym(2), "closing-record", false)],
+    )
+    .unwrap();
+    assert_eq!(
+        state
+            .author(&nym(2))
+            .unwrap()
+            .outcome(&item("closing-record")),
+        Some((false, point(20, 1)))
+    );
+    state.end_cut().unwrap();
+    begin(&mut state, 3, 30, true);
+    state.end_cut().unwrap();
+    begin(&mut state, 4, 40, false);
+    assert_eq!(state.author_point(), Some(point(40, 3)));
+    assert_eq!(
+        reputation(&state, nym(1)).to_bits(),
+        expected(&[1.0], &[3]).to_bits()
+    );
+    assert_eq!(
+        reputation(&state, nym(2)).to_bits(),
+        expected(&[0.0], &[2]).to_bits()
+    );
+}
+
+// C6: late data epochs set neither evaluation age nor an outcome's recording origin.
+#[test]
+fn a_late_data_epoch_has_the_same_origin_and_weight() {
+    let mut a = ResultsState::default();
+    let mut b = ResultsState::default();
+    for state in [&mut a, &mut b] {
+        begin(state, 0, 100, true);
+        state.end_cut().unwrap();
+        begin(state, 1, 500, false);
+    }
+    apply(&mut a, 2, vec![outcome(nym(1), "late", true)]).unwrap();
+    apply(&mut b, 400, vec![outcome(nym(1), "late", true)]).unwrap();
+    assert_eq!(a.author(&nym(1)), b.author(&nym(1)));
+    assert_eq!(
+        a.author(&nym(1)).unwrap().outcome(&item("late")),
+        Some((true, point(500, 1)))
+    );
+    for state in [&mut a, &mut b] {
+        state.end_cut().unwrap();
+        begin(state, 2, 900, false);
+    }
+    assert_eq!(
+        reputation(&a, nym(1)).to_bits(),
+        reputation(&b, nym(1)).to_bits()
+    );
+    assert_eq!(
+        reputation(&a, nym(1)).to_bits(),
+        expected(&[1.0], &[0]).to_bits()
+    );
+    apply(&mut a, 1, vec![outcome(nym(1), "still-older-data", false)]).unwrap();
+    assert_eq!(
+        a.author(&nym(1))
+            .unwrap()
+            .outcome(&item("still-older-data")),
+        Some((false, point(900, 1)))
+    );
+    assert_eq!(
+        apply(&mut a, 1, vec![]),
+        Err(ResultsRejected::EpochRecorded)
+    );
+}
+
+// C5/C6: escrow remains weight one through settlement E; its outcome starts after E.
+#[test]
+fn settlement_and_quota_preserve_the_epoch_boundary() {
+    let mut state = ResultsState::default();
+    begin(&mut state, 0, 1, true);
+    apply(
+        &mut state,
+        8,
+        vec![outcome(nym(1), "prior-pass", true), filed(nym(1), "appeal")],
+    )
+    .unwrap();
+    assert_eq!(state.quota_reputation(&nym(1)), Some(0.4));
+    assert_eq!(
+        reputation(&state, nym(1)).to_bits(),
+        expected(&[0.0], &[0]).to_bits()
+    );
+    state.end_cut().unwrap();
+    begin(&mut state, 1, 2, true);
+    let before = state.quota_reputation(&nym(1)).unwrap();
+    apply(
+        &mut state,
+        0,
+        vec![settled(nym(1), "appeal", true), filed(nym(1), "second")],
+    )
+    .unwrap();
+    assert_eq!(
+        state.quota_reputation(&nym(1)).unwrap().to_bits(),
+        before.to_bits()
+    );
+    let h = state.author(&nym(1)).unwrap();
+    assert_eq!(h.outcome(&item("appeal")), Some((true, point(2, 1))));
+    assert_eq!(h.outcomes(), 2);
+    assert_eq!(h.open_escrows(), vec![item("second")]);
+    assert_eq!(
+        reputation(&state, nym(1)).to_bits(),
+        expected(&[1.0, 0.0, 0.0], &[1, 0, 0]).to_bits()
+    );
+    state.end_cut().unwrap();
+    begin(&mut state, 2, 100, false);
+    let mut observations = [(item("prior-pass"), 2), (item("appeal"), 1)];
+    observations.sort_by_key(|(cid, _)| *cid);
+    let ages = [observations[0].1, observations[1].1, 0];
+    assert_eq!(
+        reputation(&state, nym(1)).to_bits(),
+        expected(&[1.0, 1.0, 0.0], &ages).to_bits()
+    );
+    assert_eq!(
+        state.quota_reputation(&nym(1)).unwrap().to_bits(),
+        reputation(&state, nym(1)).to_bits()
+    );
+}
+
+// C6: at most one accepted filing event per recording E, including other authors and cuts.
+#[test]
+fn a_second_filing_batch_is_refused_whole_but_nonfiling_results_remain_legal() {
+    let mut state = ResultsState::default();
+    begin(&mut state, 0, 5, false);
+    apply(
+        &mut state,
+        100,
+        vec![filed(nym(1), "a"), filed(nym(2), "b")],
+    )
+    .unwrap();
+    let before = state.clone();
+    assert_eq!(
+        apply(
+            &mut state,
+            101,
+            vec![outcome(nym(3), "c", true), filed(nym(3), "d")]
+        ),
+        Err(ResultsRejected::FilingBatchRecorded)
+    );
+    assert_eq!(state, before);
+    apply(&mut state, 101, vec![outcome(nym(3), "c", true)]).unwrap();
+    state.end_cut().unwrap();
+    begin(&mut state, 1, 5, true);
+    let before = state.clone();
+    assert_eq!(
+        apply(&mut state, 102, vec![filed(nym(4), "e")]),
+        Err(ResultsRejected::FilingBatchRecorded)
+    );
+    assert_eq!(state, before);
+    state.end_cut().unwrap();
+    begin(&mut state, 2, 6, false);
+    apply(&mut state, 102, vec![filed(nym(4), "e")]).unwrap();
+}
+
+// C5/C6: failed batches consume no slot, origin, root or escrow, in either record order.
+#[test]
+fn invalid_batches_leave_no_trace_and_do_not_consume_the_slot() {
+    for records in [
+        vec![filed(nym(1), "a"), filed(nym(1), "b")],
+        vec![
+            filed(nym(2), "a"),
+            ResultRecord::AppealStarted {
+                author: nym(3),
+                item: item("b"),
+                within_window: false,
+            },
+        ],
+        vec![
+            ResultRecord::AppealStarted {
+                author: nym(3),
+                item: item("b"),
+                within_window: false,
+            },
+            filed(nym(2), "a"),
+        ],
+        vec![
+            outcome(nym(1), "pass", true),
+            filed(nym(2), "a"),
+            ResultRecord::ReviewerScore {
+                reviewer: nym(5),
+                score: 0.0,
+                inclusion: 0.0,
+            },
+        ],
+    ] {
+        let mut state = ResultsState::default();
+        begin(&mut state, 0, 10, true);
+        let before = state.clone();
+        assert!(apply(&mut state, 1, records).is_err());
+        assert_eq!(state, before);
+        assert!(!state.filing_batch_at(10));
+        apply(&mut state, 1, vec![filed(nym(2), "valid")]).unwrap();
+        assert!(state.filing_batch_at(10));
+    }
+}
+
+// C5: binary observations are item-keyed; duplicate or unescrowed settlement is atomic.
+#[test]
+fn repeated_items_and_unescrowed_settlements_are_refused() {
+    let mut state = ResultsState::default();
+    begin(&mut state, 0, 1, false);
+    let before = state.clone();
+    assert_eq!(
+        apply(
+            &mut state,
+            7,
+            vec![outcome(nym(1), "a", true), outcome(nym(1), "a", false)]
+        ),
         Err(ResultsRejected::DuplicateItem { record: 1 })
     );
-    assert_eq!(state, ResultsState::with_epoch_scale(scale()));
-    apply(&mut state, 1, vec![a.clone(), filed(nym(1), "b")]).unwrap();
-    let before = state.clone();
-    let cases = [
-        (
-            vec![a.clone()],
-            ResultsRejected::DuplicateItem { record: 0 },
-        ),
-        (
-            vec![filed(nym(1), "a")],
-            ResultsRejected::DuplicateItem { record: 0 },
-        ),
-        (
-            vec![b.clone()],
-            ResultsRejected::DuplicateItem { record: 0 },
-        ),
-        (
-            vec![filed(nym(1), "b")],
-            ResultsRejected::DuplicateItem { record: 0 },
-        ),
-        (
-            vec![settled(nym(1), "a", true)],
-            ResultsRejected::NoOpenEscrow { record: 0 },
-        ),
-        (
-            vec![settled(nym(2), "b", true)],
-            ResultsRejected::NoOpenEscrow { record: 0 },
-        ),
-    ];
-    for (records, why) in cases {
-        assert_eq!(apply(&mut state, 2, records), Err(why));
-        assert_eq!(state, before);
-    }
-    apply(&mut state, 2, vec![settled(nym(1), "b", false)]).unwrap();
-    let again = vec![settled(nym(1), "b", true)];
+    assert_eq!(state, before);
     assert_eq!(
-        apply(&mut state, 3, again),
+        apply(&mut state, 7, vec![settled(nym(1), "a", true)]),
         Err(ResultsRejected::NoOpenEscrow { record: 0 })
     );
+    assert_eq!(state, before);
+    apply(&mut state, 7, vec![outcome(nym(1), "a", false)]).unwrap();
+    state.end_cut().unwrap();
+    begin(&mut state, 1, 2, false);
     assert_eq!(
-        apply(&mut state, 3, vec![b]),
-        Err(ResultsRejected::DuplicateItem { record: 0 })
+        reputation(&state, nym(1)).to_bits(),
+        expected(&[0.0], &[0]).to_bits()
     );
 }
 
-/// C5: an appealed item's settlement is its only observation: the escrow becomes it.
+// C6: authoritative context is monotone and malformed boundaries leave it unchanged.
 #[test]
-fn an_appealed_item_counts_once() {
-    let mut state = ResultsState::with_epoch_scale(scale());
-    apply(&mut state, 1, vec![filed(nym(1), "a")]).unwrap();
-    apply(&mut state, 3, vec![settled(nym(1), "a", true)]).unwrap();
-    let history = state.author(&nym(1)).unwrap();
-    assert_eq!(history.outcomes(), 1);
-    assert!(history.open_escrows().is_empty());
-    let want = author_score(&[1.0], &[0.25], &AuthorPrior::default());
-    assert_eq!(reputation(&state, nym(1), 4).to_bits(), want.to_bits());
+fn context_progression_is_checked_atomically() {
+    let mut state = ResultsState::default();
+    assert_eq!(state.end_cut(), Err(ContextError::NotOpen));
+    let bad = CutContext {
+        number: 1,
+        epoch: 9,
+        closes: true,
+    };
+    assert_eq!(state.begin_cut(bad), Err(ContextError::Number));
+    begin(&mut state, 0, 9, true);
+    let before = state.clone();
+    assert_eq!(state.begin_cut(bad), Err(ContextError::AlreadyOpen));
+    assert_eq!(state, before);
+    state.end_cut().unwrap();
+    let before = state.clone();
+    assert_eq!(state.begin_cut(bad), Err(ContextError::Epoch));
+    assert_eq!(state, before);
+    begin(&mut state, 1, 90, false);
+    assert_eq!(state.author_point(), Some(point(90, 1)));
 }
 
-/// C6: an open escrow keeps weight 1; settled in `e`, it counts through `e`, the outcome after.
+// C6: no context means no author record; rejected records cannot invent an origin.
 #[test]
-fn a_settled_escrow_counts_through_its_epoch_and_its_outcome_from_the_next() {
-    let mut state = ResultsState::with_epoch_scale(scale());
-    apply(&mut state, 1, vec![filed(nym(1), "a")]).unwrap();
-    let third = reputation(&state, nym(1), 1);
-    assert!((third - 1.0 / 3.0).abs() < 1e-15);
-    for epoch in [2, 5, 1_000] {
-        assert_eq!(reputation(&state, nym(1), epoch).to_bits(), third.to_bits());
-    }
-    apply(&mut state, 5, vec![settled(nym(1), "a", true)]).unwrap();
-    assert_eq!(reputation(&state, nym(1), 5).to_bits(), third.to_bits());
-    let want = author_score(&[1.0], &[0.25], &AuthorPrior::default());
-    assert_eq!(reputation(&state, nym(1), 6).to_bits(), want.to_bits());
-}
-
-/// C6: ten passes beside one fixed-weight open escrow cross 2/5 at `18 ln 15 ≈ 48.74` months.
-#[test]
-fn a_fixed_weight_escrow_over_a_long_pending_pilot_crosses_the_floor() {
-    let mut state = ResultsState::with_epoch_scale(scale());
-    let tags: Vec<String> = (0..10).map(|i| format!("pass {i}")).collect();
-    let passes = tags.iter().map(|t| outcome(nym(1), t, true)).collect();
-    apply(&mut state, 0, passes).unwrap();
-    apply(&mut state, 1, vec![filed(nym(1), "appealed")]).unwrap();
-    let history = state.author(&nym(1)).unwrap().clone();
-    let p = AuthorPrior::default();
-    for (epoch, covers) in [(1, true), (194, true), (196, false)] {
-        let months = epoch as f64 / 4.0;
-        let mut qualities = vec![1.0; 10];
-        let mut ages = vec![months; 10];
-        qualities.push(0.0);
-        ages.push(0.0);
-        let want = author_score(&qualities, &ages, &p);
+fn author_records_require_an_applying_context() {
+    let mut state = ResultsState::default();
+    for record in [
+        outcome(nym(1), "a", true),
+        filed(nym(1), "b"),
+        settled(nym(1), "b", false),
+    ] {
         assert_eq!(
-            history.reputation(epoch, scale(), &p).to_bits(),
-            want.to_bits()
+            apply(&mut state, 1, vec![record]),
+            Err(ResultsRejected::MissingContext { record: 0 })
         );
-        assert_eq!(history.covers_stake(epoch, scale(), &p), covers, "{epoch}");
+        assert_eq!(state, ResultsState::default());
     }
-    assert!(history.reputation(4_000, scale(), &p) - 1.0 / 3.0 < 1e-12);
+    assert_eq!(state.quota_reputation(&nym(1)), None);
 }
 
-/// C6: replay checks an event's filings in turn and refuses it whole at the first uncovered.
+// C6: H is a positive count, default 45; one half-life halves a weight, not C_a.
 #[test]
-fn a_second_filing_in_one_epoch_meets_the_first_and_replay_refuses_the_event_whole() {
-    let mut state = ResultsState::with_epoch_scale(scale());
-    let both = vec![filed(nym(1), "x"), filed(nym(1), "y")];
-    let refused = Err(ResultsRejected::AppealNotCovered { record: 1 });
-    assert_eq!(apply(&mut state, 1, both), refused);
+fn the_adopted_half_life_and_fixed_escrow_are_distinct() {
+    assert_eq!(AuthorConfig::new(0), None);
+    assert_eq!(AuthorConfig::default().half_life_closings(), 45);
+    let mut history = AuthorHistory::new();
+    history.conclude(item("pass"), true, point(1, 0)).unwrap();
+    let at = point(2, 45);
+    let config = AuthorConfig::default();
+    let p = AuthorPrior::default();
+    assert!((history.reputation(at, config, &p) - 2.5 / 5.5).abs() < 1e-15);
+    history.file_appeal(item("escrow"), at, config, &p).unwrap();
+    let much_later = point(3, 100_000);
     assert_eq!(
-        state,
-        ResultsState::with_epoch_scale(scale()),
-        "the first is not kept"
+        history.reputation(much_later, config, &p).to_bits(),
+        expected(&[1.0, 0.0], &[100_000, 0]).to_bits()
     );
-    apply(&mut state, 1, vec![filed(nym(1), "x")]).unwrap();
-    assert!((reputation(&state, nym(1), 1) - 1.0 / 3.0).abs() < 1e-15);
-    // Checked against the frozen history both would pass and leave 2/7.
-    let frozen = author_score(&[0.0, 0.0], &[0.0, 0.0], &AuthorPrior::default());
-    assert!((frozen - 2.0 / 7.0).abs() < 1e-15);
+    assert!(history.reputation(much_later, config, &p) < appeal_floor(&p));
 }
 
-/// C6: an admissible event replays to one state whatever the order of its records.
+// C6: binary64 rounding can still cover an old failure; it has not become a positive outcome.
 #[test]
-fn replay_does_not_depend_on_the_order_of_an_event_s_records() {
-    let mut base = ResultsState::with_epoch_scale(scale());
-    let passes = ["p", "q", "r"]
-        .iter()
-        .map(|t| outcome(nym(1), t, true))
-        .collect();
-    apply(&mut base, 0, passes).unwrap();
-    apply(&mut base, 1, vec![filed(nym(1), "x")]).unwrap();
-    let records = vec![
-        settled(nym(1), "x", true),
-        outcome(nym(1), "y", false),
-        filed(nym(1), "z"),
-        filed(nym(1), "w"),
-        filed(nym(2), "v"),
-    ];
-    let mut reference = None;
-    for perm in permutations(records.len()) {
-        let mut state = base.clone();
-        let ordered = perm.iter().map(|&i| records[i].clone()).collect();
-        apply(&mut state, 2, ordered).expect("every filing is covered in any order");
-        let first = reference.get_or_insert_with(|| state.clone());
-        assert_eq!(&state, first, "{perm:?}");
-    }
+fn an_old_failure_can_round_to_the_floor() {
+    let p = AuthorPrior::default();
+    let config = AuthorConfig::default();
+    let mut h = AuthorHistory::new();
+    h.conclude(item("failure"), false, point(1, 0)).unwrap();
+    assert!(!h.covers_stake(point(2, 1), config, &p));
+    assert_eq!(
+        h.reputation(point(3, 2_400), config, &p).to_bits(),
+        appeal_floor(&p).to_bits()
+    );
+    let no_prior = AuthorPrior {
+        alpha0: 0.0,
+        beta0: 0.0,
+        ..p
+    };
+    assert_eq!(author_score_closings(&[1.0], &[2_400], 45, &no_prior), 1.0);
 }
 
 fn permutations(n: usize) -> Vec<Vec<usize>> {
@@ -286,112 +430,82 @@ fn permutations(n: usize) -> Vec<Vec<usize>> {
     out
 }
 
-/// C6: the quota's `C_a` for `e` ignores filings in `e`; one settled in `e − 1` counts as outcome.
+// C6: with no escrow, `C_a` moves monotonically toward 2/5 over closings and never crosses it.
 #[test]
-fn the_quota_snapshot_ignores_the_epoch_s_filings() {
-    let mut state = ResultsState::with_epoch_scale(scale());
-    apply(
-        &mut state,
-        1,
-        vec![outcome(nym(1), "a", true), filed(nym(1), "b")],
-    )
-    .unwrap();
-    let quota = |s: &ResultsState, e| s.quota_reputation(&nym(1), e).unwrap();
-    assert_eq!(quota(&state, 1), 0.4, "a fresh author before epoch 1");
-    let at_two = quota(&state, 2);
-    apply(
-        &mut state,
-        2,
-        vec![filed(nym(1), "c"), settled(nym(1), "b", true)],
-    )
-    .unwrap();
-    assert_eq!(quota(&state, 2).to_bits(), at_two.to_bits());
+fn c_a_moves_toward_the_prior_mean_across_closings() {
     let p = AuthorPrior::default();
-    let mut want = [("a", 1.0), ("b", 1.0)];
-    want.sort_by_key(|(t, _)| item(t));
-    let (qualities, ages): (Vec<f64>, Vec<f64>) = want
-        .iter()
-        .map(|(t, q)| (*q, if *t == "a" { 0.5 } else { 0.25 }))
-        .chain([(0.0, 0.0)])
-        .unzip();
-    assert_eq!(
-        quota(&state, 3).to_bits(),
-        author_score(&qualities, &ages, &p).to_bits()
-    );
-    assert_eq!(state.quota_reputation(&nym(9), 3), Some(0.4));
-}
-
-/// C6: with no `E_m` configured outcomes and settlements replay, a filing is refused.
-#[test]
-fn a_filing_needs_a_configured_scale() {
-    let mut state = ResultsState::default();
-    apply(&mut state, 1, vec![outcome(nym(1), "a", true)]).unwrap();
-    let refused = Err(ResultsRejected::NoEpochScale { record: 0 });
-    assert_eq!(apply(&mut state, 2, vec![filed(nym(1), "b")]), refused);
-    assert_eq!(state.quota_reputation(&nym(1), 2), None);
-}
-
-/// C5: a filing whose request came after its window is refused whole, its coverage untouched.
-#[test]
-fn a_filing_outside_its_window_is_refused_whole() {
-    let mut state = ResultsState::with_epoch_scale(scale());
-    let late = ResultRecord::AppealStarted {
-        author: nym(1),
-        item: item("x"),
-        within_window: false,
-    };
-    let refused = Err(ResultsRejected::AppealWindowClosed { record: 1 });
-    assert_eq!(
-        apply(&mut state, 1, vec![filed(nym(2), "y"), late]),
-        refused
-    );
-    assert_eq!(state, ResultsState::with_epoch_scale(scale()));
-    apply(&mut state, 1, vec![filed(nym(1), "y")]).unwrap();
-}
-
-/// C6: an author record from an epoch before one that author's history recorded is refused.
-#[test]
-fn an_author_record_from_an_earlier_epoch_is_refused() {
-    let mut state = ResultsState::with_epoch_scale(scale());
-    apply(&mut state, 5, vec![outcome(nym(1), "a", true)]).unwrap();
-    let late = vec![outcome(nym(2), "b", true), outcome(nym(1), "c", true)];
-    assert_eq!(
-        apply(&mut state, 3, late),
-        Err(ResultsRejected::AuthorEpochBehind { record: 1 })
-    );
-    apply(&mut state, 3, vec![outcome(nym(2), "b", true)]).unwrap();
-}
-
-/// C6: one failure gives about 1/3 an epoch later; 720 months on, binary64 rounds `C_a` to 0.4.
-#[test]
-fn a_zero_at_720_months_rounds_to_the_floor_and_covers_the_stake() {
-    let p = AuthorPrior::default();
-    let mut history = AuthorHistory::new();
-    history.conclude(item("a"), false, 0).unwrap();
-    assert!((history.reputation(1, scale(), &p) - 1.0 / 3.0).abs() < 1e-3);
-    assert!(!history.covers_stake(1, scale(), &p));
-    let old = 720 * 4;
-    let floor = appeal_floor(&p);
-    assert_eq!(
-        history.reputation(old, scale(), &p).to_bits(),
-        floor.to_bits()
-    );
-    assert!(history.covers_stake(old, scale(), &p));
-    let no_prior = AuthorPrior {
-        alpha0: 0.0,
-        beta0: 0.0,
-        ..p
-    };
-    // The weight is positive, not underflowed: the index is `w / w`.
-    assert_eq!(author_score(&[1.0], &[720.0], &no_prior), 1.0);
-}
-
-/// C6: `E_m` must be finite and positive; an age is the epoch difference over it.
-#[test]
-fn the_epoch_scale_is_explicit_and_positive() {
-    for bad in [0.0, -1.0, f64::NAN, f64::INFINITY] {
-        assert_eq!(EpochScale::new(bad), None);
+    let config = AuthorConfig::default();
+    let (mut good, mut bad) = (AuthorHistory::new(), AuthorHistory::new());
+    good.conclude(item("a"), true, point(1, 0)).unwrap();
+    good.conclude(item("b"), true, point(1, 0)).unwrap();
+    bad.conclude(item("c"), false, point(1, 0)).unwrap();
+    let (mut high, mut low) = (1.0, 0.0);
+    for closings in [1, 5, 20, 80, 400, 4_000] {
+        let at = point(2, closings);
+        let g = good.reputation(at, config, &p);
+        let b = bad.reputation(at, config, &p);
+        assert!(g < high && g >= 0.4, "{closings}: {g}");
+        assert!(b > low && b <= 0.4, "{closings}: {b}");
+        (high, low) = (g, b);
     }
-    assert_eq!(scale().epochs_per_month(), 4.0);
-    assert_eq!(scale().age_months(3, 11), 2.0);
+}
+
+// C6: ten passes beside one fixed-weight open escrow cross 2/5 past `45 log₂ 15 ≈ 175.8` closings.
+#[test]
+fn a_fixed_weight_escrow_over_a_long_pending_pilot_crosses_the_floor() {
+    let p = AuthorPrior::default();
+    let config = AuthorConfig::default();
+    let mut history = AuthorHistory::new();
+    for i in 0..10 {
+        let tag = format!("pass {i}");
+        history.conclude(item(&tag), true, point(1, 0)).unwrap();
+    }
+    history
+        .file_appeal(item("appealed"), point(2, 1), config, &p)
+        .unwrap();
+    for (closings, covers) in [(1, true), (175, true), (176, false)] {
+        let (mut q, mut ages) = (vec![1.0; 10], vec![closings; 10]);
+        q.push(0.0);
+        ages.push(0);
+        let at = point(3, closings);
+        assert_eq!(
+            history.reputation(at, config, &p).to_bits(),
+            expected(&q, &ages).to_bits()
+        );
+        assert_eq!(history.covers_stake(at, config, &p), covers, "{closings}");
+    }
+    assert!(history.reputation(point(3, 100_000), config, &p) - 1.0 / 3.0 < 1e-12);
+}
+
+// C6: an admissible event replays to one state whatever the order of its records.
+#[test]
+fn replay_does_not_depend_on_the_order_of_an_event_s_records() {
+    let mut base = ResultsState::default();
+    begin(&mut base, 0, 1, true);
+    let passes = ["p", "q", "r"]
+        .iter()
+        .map(|t| outcome(nym(1), t, true))
+        .collect();
+    apply(&mut base, 0, passes).unwrap();
+    base.end_cut().unwrap();
+    begin(&mut base, 1, 2, true);
+    apply(&mut base, 1, vec![filed(nym(1), "x")]).unwrap();
+    base.end_cut().unwrap();
+    begin(&mut base, 2, 3, false);
+    let records = vec![
+        settled(nym(1), "x", true),
+        outcome(nym(1), "y", false),
+        filed(nym(1), "z"),
+        filed(nym(1), "w"),
+        filed(nym(2), "v"),
+    ];
+    let mut reference = None;
+    for perm in permutations(records.len()) {
+        let mut state = base.clone();
+        let ordered = perm.iter().map(|&i| records[i].clone()).collect();
+        apply(&mut state, 2, ordered).expect("every filing is covered in any order");
+        let first = reference.get_or_insert_with(|| state.clone());
+        assert_eq!(&state, first, "{perm:?}");
+    }
+    assert_eq!(permutations(records.len()).len(), 120);
 }
