@@ -2127,4 +2127,22 @@ accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the o
   unchanged. `14`'s `E_m` entry follows. Arithmetic in Python, not committed. Checks: local
   links and anchors, table shapes, `git diff --check`, `scripts/comment_budget.py`. No Rust
   run, benchmark or campaign. C6 open; A2 suspended.
+- **Astra, review of `9074f5a`:** diff and pertinent sources read, main numbers recomputed;
+  no Rust run. The memory's arithmetic accepted as a nominal scenario (13 closings a year,
+  `H = 45`, about 82% after a year, 1,260 days); 28 days not yet founded as a recommended
+  default. Asked to separate a batch's identification from its collection, the closings'
+  cadence from a round's and a pilot's durations, to limit the incentive conclusion, and to
+  correct `H = 91` to 90, the reading of `T = 18` months and the scope of the histories.
+- **Claude, C6's configuration rectified after that review (documentation only, not
+  reviewed):** base `9074f5aca0430d25f9c574f490d760bb59edb31b` fetched and equal to the remote
+  branch; only the owner's `.gitignore` modified, preserved outside the commit. Verified that
+  `Ledger::apply_one` compares only deposits with the cut's epoch, so respondent and reviewer
+  admissions can follow under their epoch. `15`'s *Proposed initial configuration* keeps the
+  three times apart, marks P + U quantities, states the percentages as the cost of completing
+  a batch in that time, limits the incentive conclusion, and corrects `H = 90`, `T`'s reading
+  and the histories' scope. The slow memory (1,260 nominal days) stays the candidate; 28 days
+  only a provisional compromise under stated assumptions and waits. `14`'s `E_m` entry
+  follows. Checks: local links and anchors, table shapes, `git diff --check`,
+  `scripts/comment_budget.py`, the changed numbers recomputed. No Rust run, benchmark or
+  campaign. C6 open with its criterion unchanged; A2 suspended.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
