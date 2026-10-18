@@ -40,8 +40,12 @@ A2 stays open and blocking under the current criteria: `19` §12's coverage proo
 its hypotheses (`5102852`), and the information check, run in `19` §13.8, is accepted on `24cdfce`
 as an obstacle in its declared domain. The owner defers A2's design decision (2026-10-14, `19`
 §13.9, `15`): the whole-test requirement is kept, no narrowing is approved, the certifier's work is
-suspended and no A2 work is authorized; the requirement is not moved to Phase 2. Other Phase 1
-work may advance where it does not depend on A2's solution. T26 remains separate.
+suspended at that date. The owner's 2026-10-18 direction (`01` D44; `19` §13.10)
+permits evaluation design and bounded, predeclared tests without adopting the unresolved
+substantive choices or committing unapproved resources. Certifier implementation awaits its
+contract decisions; no large campaign or production work is authorized by that direction.
+The requirement is not moved to Phase 2. Other Phase 1 work may advance where it does not
+depend on A2's solution. T26 remains separate.
 
 **Executable candidate status (updated 2026-10-13).** The accepted exact reference
 `sim/a12_offline.py` implements manifest/snapshot validation and whole-horizon refusal.
