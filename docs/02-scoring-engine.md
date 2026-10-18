@@ -466,15 +466,16 @@ calibration/proxy procedure uses iterative purification:
 
 `validation::purify_theta` (calibration only) implements this loop with θ re-standardized
 from the anchor totals plus the unflagged items each round. Its result tells three ends
-apart (`15`, Variant 1 fit states, awaiting review). `Completed` is a numerical fixed point
-of this procedure: two consecutive rounds of converged fits with the same flags, the
-initial all-false vector not counting as a round, the flags read on the returned θ; it
-certifies neither statistical validity nor the absence of DIF. `Interrupted` stops at a
-round where a fit is separated or unconverged: every item of that round is read on the same
-θ, θ is not updated, and no inconclusive item is retried, included or excluded. `Exhausted`
-means `max_rounds` passed with no verified fixed point, including `max_rounds = 0`, where no
-fit runs and no flag is presented; differing last rounds show no cycle by themselves. Earlier
-rounds and partial readings travel as diagnostics, apart from `Completed`'s result.
+apart (`15`, Variant 1 fit states, closed within its scope on `6274270`). `Completed` is a
+numerical fixed point of this procedure: two consecutive rounds of converged fits with the
+same flags, the initial all-false vector not counting as a round, the flags read on the
+returned θ; it certifies neither statistical validity nor the absence of DIF. `Interrupted`
+stops at a round where a fit is separated or unconverged: every item of that round is read
+on the same θ, θ is not updated, and no inconclusive item is retried, included or excluded.
+`Exhausted` means `max_rounds` passed with no verified fixed point, including
+`max_rounds = 0`, where no fit runs and no flag is presented; differing last rounds show no
+cycle by themselves. Earlier rounds and partial readings travel as diagnostics, apart from
+`Completed`'s result.
 
 The historical prototype estimates `θ` from 30 anchor totals. The current anonymous
 model instead fits anchor parameters in the likelihood and integrates over ability

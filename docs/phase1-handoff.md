@@ -1022,6 +1022,7 @@ found. *Results:* every listed test passes, as does every `protocol` test with
 | A7 | `cabdae4` | participation = axis and positive weight, everywhere in bridging |
 | A11 | `dd842d6` | an unconverged stage-1 screen is indeterminate: no rejection, no observed outcome |
 | A4 (b), (c) | `52f3822` | (b) the calibration producer `revalidate_pool` flags only on a converged logistic fit, the boolean `emerging_dif` kept with its limit stated (`false` is no DIF retirement, not absence); (c) the retired proxy path kept for its fixtures, its contract clarified; `items_to_retire`'s default accepted within its documented scope. The helpers and tests produce retirement decisions; no consumer of them exists in the operational node–ledger path |
+| Variant 1 fit states | `18e1b5f`, `6274270` | `stage2_dif` and `purify_theta` (calibration only) propagate an inconclusive fit instead of reading it as a verdict or flag; `purify_theta` tells `Completed`, `Interrupted` and `Exhausted` apart, verifies its fixed point on the returned θ, keeps diagnostics apart from the conclusive result; Astra's static reviews, the last with Sol's independent verification, runs by Claude. No universal convergence or certified statistical validity; DIF-007's metric deviation, AT-DIF-08's adversarial batch and the optimizer's status on the inputs already reported stay open |
 | A4 (a), A11 (f) | `af17eb3` | stage 2 carries `Recheck`; an appeal settles only on the pilot's conclusive outcomes (a caller settling later must keep that outcome) |
 | A3 | `16e862c` | the histogram's moment penalty is an `n`-scaled regularizer, the BIC counts `Q − 1` nominally; identifiability, weak information, the penalty's choice and effects and the BIC on penalized mixtures moved to B1–B3 |
 | D3 | `9df086f` | the contested draw and pool bounded to the owner's offline domain: inside it the draw unchanged, outside a typed refusal; time targets measured on one machine, memory estimated, not a certified peak; integration, a per-epoch budget and transport outside it |
@@ -1090,10 +1091,11 @@ current status and next work are in §5.2. This does not close Phase 1.
   within its claim rectification (`115f538`; `15`; §3 above); its residual, what an absent
   baseline does in a future consumer, comes before integration. The register's C5 is closed on the
   adopted offline candidate (Astra, `f76d5dd`; `15` C5–C6), and C6 on the offline candidate
-  (Astra, `825cabc`; `15` C6 candidate; §3 above), its limits outside the closure. Also open:
-  A4 (d), with B1–B3; the Variant 1 fit states, found during A4 (b)–(c): `stage2_dif`'s
-  correction approved (Astra, `18e1b5f`), `purify_theta`'s contract implemented as a
-  candidate awaiting review, no impact established (`15`); C2, C4, the full runtime.
+  (Astra, `825cabc`; `15` C6 candidate; §3 above), its limits outside the closure. The
+  Variant 1 fit states are closed within their scope (Astra, `18e1b5f` and `6274270`; §3
+  above). Also open: A4 (d), with B1–B3; outside that closure, DIF-007's metric deviation,
+  AT-DIF-08's adversarial batch and the optimizer's status on the inputs already reported,
+  no frequency or impact established (`15`); C2, C4, the full runtime.
 
 ## 5. Decision synthesis and the calibration comparison
 
@@ -2275,4 +2277,19 @@ accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the o
   tables. `15`, `02` §B.4, `08` DIF-007 and `ARCHITECTURE.md` follow; `stage2_dif`'s limits
   reworded (a large finite value is not malformed by itself). Open until review; A2
   suspended; earlier closures unchanged.
+- **Astra, final static review of `6274270`, with Sol's independent verification:** approved
+  `purify_theta`'s implementation and the closure of the Variant 1 fit states within their
+  scope: inconclusive states propagated, `Completed`, `Interrupted` and `Exhausted` apart,
+  the fixed point verified on the returned θ, diagnostics apart from conclusive results.
+  `stage2_dif`'s correction had been approved on `18e1b5f`. Static reading; the runs are
+  Claude's.
+- **Claude, the Variant 1 fit states' closure recorded (documentation only):** base
+  `6274270730f7b80696633fca06e2d13793f8f1ea` fetched and equal to the remote branch; the
+  owner's `.gitignore` and untracked patch copy preserved, no stash. `15`'s register and
+  record carry the closure and keep open DIF-007's metric deviation, AT-DIF-08's adversarial
+  batch and the optimizer's status on the inputs already reported; `02` §B.4, `08` DIF-007
+  and this handoff follow. No universal convergence, certified validity, frequency or impact
+  claimed. Checks: local links and anchors, table shapes, `git diff --check`,
+  `scripts/comment_budget.py`. No Rust run. A2 suspended; earlier closures unchanged; Phase
+  1 incomplete.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
