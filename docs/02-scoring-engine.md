@@ -296,12 +296,15 @@ with an inverted key.
 
 ### B.3 DIF analysis on latent groups — the neutrality test
 
-Establishes whether a question is politically biased **without knowing anyone's
-identity or attributes**.
+Estimates differential item functioning **without collecting personal group attributes**.
+It does not by itself establish political bias (foundational interpretation: `01` D44).
 
-Idea: two people with the *same* competence `θ` but from different groups must have
-the same probability of answering correctly. If they don't, the question is measuring
-group membership.
+The comparison is conditional on the model's competence `θ`. Better relevant knowledge
+may legitimately produce higher raw scores. A residual difference between latent classes
+can indicate nuisance content, pertinent specialist knowledge, an omitted competence
+dimension or model/estimation error; response data alone does not identify its cause.
+The intended competence and the treatment of such differences must be stated separately.
+Equal estimated `θ` is not proof of equal true competence in every relevant dimension.
 
 **Variant 1 — logistic regression on continuous `f`** (uses the Level A latent axis):
 
@@ -486,7 +489,10 @@ shows why the gate needs reassessment (§B.6; `15` B2/B5).
 
 ### B.5 Upstream admissibility
 
-Psychometrics does not save you from badly conceived questions. Strict taxonomy:
+Psychometrics does not save you from badly conceived questions. The context supplies
+proponents and reviewers with the test's purpose; relevance is assessed through review,
+not inferred from DIF or from the numerical engine's understanding of the text (`01` D44).
+The existing source and admissibility requirements remain. Strict taxonomy:
 
 - **Admitted**: verifiable procedural and institutional facts, with a **mandatory
   citation to a primary source** (Official Gazette, parliamentary act, official
@@ -594,13 +600,14 @@ are owner decisions (`10` T83; `15` D2/E).
 
 ### B.7 Contested facts and differential test functioning (`01` D38)
 
-DIF shows that an item measures a second dimension on which the latent classes differ;
-whether that dimension is a nuisance is a judgment (paper §4.7). When the key is a fact
-a primary source establishes, the second dimension is knowledge of the fact: one class
-is misinformed about it. Rejecting such items would bar every fact a camp disputes from
-the bank, and the appeal of `05` [5b] could not recover them — Level B would reject them
-for the reason Level A did. So an item the latent check flags (§B.3) goes one of two
-ways:
+DIF is a signal of response differences beyond the model's account of competence;
+its cause and relevance are not identified by that signal alone (`01` D44). A sourced
+fact may show such a difference because its knowledge differs across classes; rejecting
+every flagged fact would also exclude this case. D38 therefore retains the contested-fact
+path rather than treating a statistical flag as proof of unfairness. The question of
+which pertinent knowledge differences should be compensated remains an explicit A2
+design decision; the existing classification and balancing policy is not changed here.
+An item the latent check flags (§B.3) goes one of two ways:
 
 - its key passes the source check (§B.5) → a **contested fact**, kept in a separate
   *contested pool* (from the pilot, or from the active pool at re-validation);
