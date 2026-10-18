@@ -4,8 +4,9 @@ Each decision states: what was chosen, why, and which alternatives were rejected
 The decisions here are the **recorded design choices**; amendments explicitly
 supersede earlier choices. Implementation does not establish every claim in a
 decision's rationale. The open Phase 1 review findings are tracked in
-[`15-phase1-review.md`](15-phase1-review.md); this documentation pass does not amend
-those decisions or choose new thresholds.
+[`15-phase1-review.md`](15-phase1-review.md). New decisions and amendments are stated
+explicitly; D44 records the owner's foundational direction of 2026-10-18 without choosing
+new numerical thresholds.
 
 ---
 
@@ -41,6 +42,9 @@ brigading in this context).
 
 ## D3 — Final truth comes from data, not from judgments
 
+*Interpretation clarified by D44:* answer data supplies evidence about item functioning,
+not an automatic determination of political truth, relevance or the intended competence.
+
 **Choice.** The final verdict on a question is given by psychometric statistics (IRT)
 and bias analysis (DIF) on real answer data, not by peer review.
 
@@ -52,6 +56,9 @@ does worse than guessing.
 ---
 
 ## D4 — DIF on latent axes, not on declared attributes
+
+*Interpretation clarified by D44:* latent DIF is a model-based signal, not by itself a
+causal finding of unfairness or an identification of political groups.
 
 **Choice.** Bias analysis uses the latent position `f_u` estimated by bridging, or a
 latent-class IRT mixture. No demographic attribute is collected.
@@ -1096,3 +1103,71 @@ decision; the supplement's DIF studies are run again on it before T25's fourth s
 them (`docs/13`). The histogram also takes an undeclared floor as a skew: a batch that
 guesses, declared open, is now one class, its discriminations a fifth low and its ability
 read skewed (`docs/02` §B.1) — the floor of D25 keeps the metric.
+
+---
+
+## D44 — Foundational principles for relevance, fairness and empirical progress
+
+**Owner direction, 2026-10-18.** These principles guide the interpretation of D3/D4,
+the evidence filter and A2. They describe the intended responsibilities and the way
+progress is assessed; they do not certify their operational realization.
+
+**Context and relevance belong to the review process.** Proponents and reviewers
+must share the purpose of the test: what knowledge it seeks to measure and what is
+out of scope. A well-formed medical item can be irrelevant to a test of political
+institutions. Relevance is assessed by people through the review process, with
+bridging rather than a simple majority deciding the review gate. The numerical
+engine need not interpret the item's political meaning or receive a semantic topic
+label to compute its scores. Source-based admissibility and verifiability remain
+separate requirements (D38; `02` §B.5).
+
+**Content-independent computation is not content-free governance.** No political,
+demographic or affiliation label on people is added. This is distinct from item
+metadata: the existing blueprint can enforce quotas on opaque domain identifiers,
+without understanding them. D44 neither requires a new automatic taxonomy nor
+removes the existing blueprint. Defining domains, assigning items correctly and
+judging coverage remain governance/review responsibilities, not properties proved
+by the quota code. Relevance of each item does not by itself establish coverage of
+the whole subject; that assessment needs a view of the collection, not just isolated
+reviews. No new interface, disclosure rule or production workflow is adopted here.
+
+**Fairness is not equality of raw scores.** Greater knowledge of the competence the
+test is intended to measure should be allowed to yield better results. A 99% versus
+5% correct-answer rate is not by itself evidence of a defect. A residual difference
+at equal *estimated* ability is evidence about the model's description of responses,
+not a causal diagnosis: it may reflect nuisance wording, pertinent specialist
+knowledge, omitted dimensions or estimation error. Latent components are not
+identified political groups. Anchors and successful fits do not settle the meaning
+or adequacy of the competence being measured.
+
+**True contested facts remain eligible for their existing path.** Statistical
+polarization alone does not make a sourced, relevant fact false or inadmissible.
+D38's source check and contested pool remain. Whether a given difference in knowledge
+should contribute to the score or be compensated in the complete test is a
+substantive choice about its purpose. This clarification does not silently repeal
+D38's balancing objective or change A2's target: its reconciliation with pertinent
+knowledge remains an explicit A2 decision. No new exclusion, compensation or
+automatic admission rule is introduced.
+
+**Measure, constrain and certify are distinct.** A measured difference is not an
+upper confidence bound; satisfying the fitted contested-item cost is not a certified
+whole-test limit. Missing evidence is neither balance established nor imbalance
+established. Empirical rates are reported for their declared populations, scenarios
+and uncertainty; a theorem remains conditional on its stated hypotheses.
+
+**Progress is empirical and iterative, not a promise of perfection.** The owner
+accepts useful partial performance while the mechanism is tested and refined. The
+reference to "75%" expresses that direction, not a selected accuracy, coverage,
+power, tolerated harm or error probability. Before execution, a test names its
+candidate, target, cases, denominators, metrics and resource bound. Report detection
+and false alarms, correct and incorrect certification where relevant, inconclusive
+outcomes and cost separately; no single success percentage conceals the trade-offs.
+Data used to choose or tune a candidate are distinguished from confirmation data.
+Changing the model or criterion after inspecting results starts a new declared
+evaluation; it does not retroactively turn the earlier result into confirmation.
+
+**Scope and next work.** A2 remains open under its kept whole-test requirement.
+No numerical tolerance, risk level, sample size, model assumption or certification
+claim is selected here. The bounded testing direction and remaining decisions are
+recorded in [`19` §13.10](19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18);
+no existing closure is reopened and no production readiness is implied.
