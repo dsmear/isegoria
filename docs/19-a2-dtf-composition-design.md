@@ -7,6 +7,11 @@
 | **Scope** | `15` A2: the contested pool's cost `D(T)`, a sum of per-fit DTFs, and the guarantee the docs attach to it for a test. B1–B3 (identification, BIC) only where A2 needs them. |
 | **Evidence** | **L** read; **D** proved here; **C** recalculated (`sim/dtf_composition.py`); **E** executed. E is labelled *API* (real code on hand-built curves), *fit* (a real latent fit) or *frequency* (none here). |
 
+**Current owner direction (2026-10-18):** foundations first, then bounded iterative
+evaluation under [§13.10](#1310-owner-direction-foundations-and-iterative-testing-2026-10-18). This supersedes §13.9's
+blanket work suspension only to that extent; no design option, numerical operating point
+or closure is adopted. The review history below is unchanged.
+
 ## Design review (Astra)
 
 Review on `0519626`:
@@ -1892,6 +1897,9 @@ be collected to escape it.
 
 ### 13.7 Decisions
 
+*State at the 2026-10-14 deferral. The 2026-10-18 update to permitted work is in
+§13.10; the obstacles and unresolved substantive decisions below remain.*
+
 - **Reviewed:** §13.8, accepted on `24cdfce` as an obstacle in its declared domain (record before
   §1); the three precisions asked there are made in §§13.7–13.8 and in the output's label. The
   rectifications made after `5102852` and §13.5's contract were accepted on `2aa136d`.
@@ -2064,6 +2072,10 @@ provenance changed.
 
 ### 13.9 Owner's decision: A2's design decision deferred (2026-10-14)
 
+*Historical decision retained. The permitted next work was updated by the owner on
+2026-10-18 in [§13.10](#1310-owner-direction-foundations-and-iterative-testing-2026-10-18); its scope and the remaining
+design decisions are stated there.*
+
 **Decision (owner).** The design decision on A2 is deferred.
 
 - **Kept:** the requirement of a useful guarantee on the whole test (§11; `15` A2). A2 remains
@@ -2087,3 +2099,46 @@ provenance changed.
   assessed. Going further needs a decision among §13.7's alternatives, which the owner defers.
 - *Phase 1:* incomplete under the kept requirement. No narrowing of the claimed domain is approved
   (`10` §1.5).
+
+### 13.10 Owner direction: foundations and iterative testing (2026-10-18)
+
+**Owner direction.** Record the discussed principles as foundational before the next
+test work, then proceed iteratively: test, inspect the evidence and refine the candidate.
+The canonical principles are [`01` D44](01-decisions.md). The owner does not expect
+perfect performance and used "75%" to express willingness to accept partial progress.
+That phrase selects no metric, denominator, error budget or acceptance threshold.
+
+**Change from §13.9.** Its blanket suspension of A2 work is lifted for this documentation,
+evaluation design and bounded, predeclared tests that neither adopt the unresolved
+substantive choices nor commit unapproved resources. The certifier's implementation
+remains suspended pending its contract decisions. No large campaign or production work
+is started or authorized by this record. A2 remains open and blocking under the kept
+whole-test criterion; the established obstacles and prior scoped approvals are unchanged.
+This is the owner's direction, not a new mathematical or independent design-review result.
+
+**Decisions still open.** How D38's compensation objective treats differences in pertinent
+factual knowledge; the concrete target population, competence and contrasts; whole-test
+tolerance; false-certification risk and useful acceptance; sample/answer budget; and the
+common-bank versus per-form design. Neither a fixed form nor a relaxed certificate is
+adopted here. The existing D38 behavior remains until an explicit amendment.
+
+**Next deliverable.** A small evaluation declaration, before running it, identifying:
+
+1. The candidate commit, test form(s), target and input domain; reference behavior to
+   compare; the relation to §13.8's already excluded combinations.
+2. Synthetic cases with known truth that separate legitimate relevant-ability differences,
+   nuisance effects, accumulated small DIF, pertinent factual-knowledge differences and
+   insufficient information. The intended treatment of the factual-knowledge cases stays
+   an explicit alternative, not an assumed new pass/fail rule.
+3. Separate denominators and uncertainty for detection/false alarms, correct/incorrect
+   certification if a certifier exists, indeterminate outcomes, and respondent/computation
+   cost. For the current selector, measure fitted-cost compliance and true whole-test
+   behavior separately; do not rename its selections certificates.
+4. Construction/tuning data versus confirmation data, seeds/repetitions, resource cap
+   and stop conditions; label any post-result revision as a new exploratory iteration.
+
+The declaration may compare alternatives without implementing a new policy. Synthetic
+truth is known by construction, not proof that the anonymous model can recover it in
+real populations. Finite empirical success does not replace representation, coverage or
+conservative computation where a guarantee is claimed. Imperfect utility is compatible
+with honest limits; silently reporting an unsupported guarantee is not.
