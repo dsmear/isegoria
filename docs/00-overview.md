@@ -13,9 +13,9 @@ The design rests on three pillars, in order of importance:
 1. **Sybil resistance** — if creating identities is cheap, no reputation math has
    any value. It is the constraint that holds up all the rest; it is solved by the
    enrollment layer (`03`).
-2. **Non-opinion quality signals** — you need at least one source of truth that is
-   not anybody's judgment. In our case one exists: psychometrics on real answer data
-   (`02`, evidence filter).
+2. **Non-opinion quality signals** — question functioning needs evidence beyond
+   reviewers' judgments: psychometrics on real answer data (`02`, evidence filter).
+   It does not by itself establish truth, relevance or the intended competence.
 3. **Bridging aggregation, not majority** — a question is accepted only if it is
    approved *across* the lines of division, not if it collects more votes than the
    opposing front (`02`, bridging).
@@ -29,10 +29,33 @@ The design rests on three pillars, in order of importance:
 | Attackable? | Yes, with coalitions | Very hard: requires corrupting the sample |
 | Role | Upstream filter | Final verdict |
 
-The system's center of gravity is Level B: peer review only decides *which questions
-are worth field-testing*. The final decision is made by statistics computed on
-answer data, not by votes. This moves the system from "what the network thinks" to
-"what the question does", which is much harder to manipulate.
+The system's center of gravity is Level B: peer review decides *which questions are
+worth field-testing*, subject to the appeal path. The empirical decision uses statistics
+computed on answer data, subject to the declared model and source/admissibility rules;
+it is not a majority vote or a semantic truth oracle. Review and evidence have distinct
+roles, and neither establishes all of the other's requirements.
+
+## Foundational interpretation
+
+The owner clarified these principles on 2026-10-18; [`01` D44](01-decisions.md)
+is their decision record.
+
+- The test's context tells proponents and reviewers what is relevant. The numerical
+  engine need not understand political content; the review gate remains bridging.
+- Better relevant knowledge may produce a higher score. Equality of raw group scores
+  is not the goal; DIF alone does not establish unfairness.
+- Sourced contested facts keep their existing path. Whether to compensate differences
+  in pertinent factual knowledge remains an explicit A2 decision, not an automatic
+  consequence of a statistical flag.
+- Item metadata and coverage choices are distinct from personal attributes, which
+  remain excluded. Existing blueprint quotas do not prove semantic coverage.
+- Test and refine with declared metrics, uncertainty and costs. "75%" is an expression
+  of willingness to accept partial progress, not an adopted statistical threshold.
+  Estimates, enforced fitted-cost limits and demonstrated guarantees remain separate.
+
+A2's whole-test guarantee remains open. The next bounded evaluation work is described
+in [`19` §13.10](19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18);
+no real-world performance level has been established by this decision.
 
 ## The three actions of a node
 
