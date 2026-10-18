@@ -7,6 +7,21 @@ they win.
 
 ## 1. Where things stand
 
+**Current direction, 2026-10-18 — foundations before iterative A2 testing.** The owner
+asked to record the principles discussed, then test and refine rather than require perfect
+performance. `01` D44 is the canonical decision; `02` distinguishes statistical DIF from
+a causal finding of unfairness. Context/relevance belongs to review; the numerical engine
+need not interpret political meaning; relevant competence differences may remain; no
+personal group attributes are introduced. Existing blueprint and D38 policies are not
+removed. The treatment of pertinent factual-knowledge differences under D38 remains an
+explicit choice. "75%" is an aspiration for useful progress, not a statistical threshold.
+`19` §13.10 permits evaluation design and bounded, predeclared tests; certifier
+implementation awaits its contract decisions. A2 remains open and blocking; earlier
+closures stand. No Rust, fit, benchmark or campaign was run for this documentation.
+
+The C6 record and earlier work below retain their historical states; current A2 work
+authorization is the paragraph above and `15`'s A2 state.
+
 **C6 closed on the offline candidate, 2026-10-17 — design review approved on commit
 `825cabc0b22d2e612cf2aea3705fb9c8e349b538`.** Astra's final review, with Sol's independent
 static check, covered the code, the diff, the contracts and the tests; the compilation, the
@@ -1064,8 +1079,9 @@ current status and next work are in §5.2. This does not close Phase 1.
   §13.5's contract and the rectifications are accepted on `2aa136d`; the bounded information
   check, run in `19` §13.8, is accepted on `24cdfce` as an obstacle in its declared domain under
   its numerical contract. **The owner defers A2's design decision (2026-10-14, `19` §13.9):** the
-  whole-test requirement is kept, A2 stays open and blocking, the certifier's work is suspended and
-  no A2 work is authorized (`15`, A2's current state).
+  whole-test requirement is kept and A2 stays open and blocking. The 2026-10-18 direction
+  (`01` D44; `19` §13.10) now permits evaluation design and bounded, predeclared tests;
+  certifier implementation awaits its contract decisions (`15`, A2's current state).
 - **A1: closed for the conditional expected-score guarantee**, Astra’s judgment on
   `1bd865c` (`17` §14.15). O1, conditional design A (O2) and O3 are acquired; the premises
   are accepted as model assumptions, not properties of the current protocol. The original
@@ -1191,7 +1207,7 @@ decision, **L** a documented limit.
 |---|---|---|---|---|---|
 | A1, closed conditionally on `1bd865c` | `15` A1 current criterion; `17` §14.15 | exact expected-score claim, strategies and premises accepted by Astra as mathematical-model assumptions | operational gaps remain; not missing premises for this restricted judgment | no certification of current runtime, execution, resources, authentication or reputation | none to repeat the approved judgment; residual realization and A12’s conditional closure remain tracked |
 | A12, distinct, closed conditionally on `15b846c` | owner-amended AT-REP-01; `16` §7.3 | composed exact complete-offline affine claim, one final rounded conversion and frozen first/supplementary consumers; fixed opportunities/common filtration and joint invariance assumed | no missing premise for that restricted judgment; legacy/reset, causal influence/fit, generic betrayal and incomplete-data operation excluded | separate final-model, SC-1, A2 and T26 gates; Phase 1 incomplete | none to repeat the accepted closure; current scope and exclusions in `16` §7.3 |
-| A2, high, open; R1 approved | `15` A2; `19` §§11–13 | §11 contract approved on `5e600be`; §12 coverage proof accepted on `5102852` under its hypotheses; §13.3 corollary accepted in its domain (one-class truth, arbitrarily small shares, contrast admitted) | target domination, certified supremum, usefulness, cost and scope unresolved; no implementation | declared model/i.i.d. reference and independent split; symbolic target linkage; calibration undecided | none authorized: the information check's result `19` §13.8 is accepted on `24cdfce` (obstacle in its domain, under its numerical contract); the owner defers the design decision (2026-10-14, `19` §13.9) and the certifier's work is suspended |
+| A2, high, open; R1 approved | `15` A2; `19` §§11–13 | §11 contract approved on `5e600be`; §12 coverage proof accepted on `5102852` under its hypotheses; §13.3 corollary accepted in its domain (one-class truth, arbitrarily small shares, contrast admitted) | target domination, certified supremum, usefulness, cost and scope unresolved; no implementation | declared model/i.i.d. reference and independent split; symbolic target linkage; calibration undecided | bounded evaluation declaration under `19` §13.10 (owner direction 2026-10-18); §13.8's accepted obstacle remains; the design decision is pending and certifier implementation remains suspended |
 | B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: S1's scenarios and decision criteria declared, then one campaign on an identified candidate, its design declared before execution; Pr where identification or coverage is claimed, which simulations do not replace | A2's target; the owner's authorization of the campaign | S1's declaration, no run |
 | A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; its producer `revalidate_pool` read a separated fit as DIF, corrected and closed on `52f3822` with the boolean's limit stated; (c), the retired proxy path, fixtures only: L, its contract clarified, closed on `52f3822`; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
 | A8, A9, medium; closed within the bounded claim rectification | `15`: distinguishability, identifiability and power apart (A8); hypotheses or a controlled approximation (A9) | bounded paper/document correction, exact A8 witness and nondegenerate A9 stationary witness with residual bound (`15` rectification record) | no missing evidence for these corrected claims; generic identifiability, detector power and error bounds for historical fits are not established | — | none to repeat the accepted rectification (`15`) |
@@ -1243,7 +1259,8 @@ remains incomplete. This adds no runtime or generic reputational-incentive certi
 | invariant laws and authenticated evidence | isolated scorer/snapshot, verifier contract; §14.15’s assumptions accepted mathematically | H-b/H-c not demonstrated for the runtime; producers, authenticated inputs, complete view and verifier/adapter remain absent (`17` §14.13.8) |
 | effective reputational incentives, A12 | O3 separates the objective; owner-amended complete-offline affine criterion closed conditionally on `15b846c` (`16` §7.3) | no missing premise for the restricted closure; operational adoption, incomplete data, legacy/reset, causal influence/fit and generic betrayal remain outside it; distinct Phase 1 gates remain |
 
-**A2: suspended pending the owner's design decision.** Candidate contract approved on `5e600be`
+**A2: design decision pending; bounded evaluation permitted under `19` §13.10.**
+Candidate contract approved on `5e600be`
 (`19` §11). The coverage proof in
 [`19` §12](19-a2-dtf-composition-design.md#12-split-likelihood-region-and-finite-sample-coverage)
 and §13.3’s corollary are accepted on `5102852` within their domains. The information check's
@@ -1252,18 +1269,20 @@ contract,
 is accepted on `2aa136d`; the check, run in §13.8, is accepted on `24cdfce` as an obstacle that
 excludes only the combinations it covers. The owner defers the design decision (2026-10-14,
 [`19` §13.9](19-a2-dtf-composition-design.md#139-owners-decision-a2s-design-decision-deferred-2026-10-14)):
-the whole-test requirement is kept, A2 stays open and blocking for Phase 1, no A2 work is
-authorized, and the requirement is not moved to Phase 2. No calibration, sample, component policy
-or resource commitment is chosen. Other Phase 1 work may advance where it does not depend on A2's
+the whole-test requirement is kept, A2 stays open and blocking for Phase 1, and the requirement
+is not moved to Phase 2. The subsequent direction of 2026-10-18 (`01` D44; `19` §13.10)
+permits evaluation design and bounded, predeclared tests, not certifier implementation before
+its contract decisions. No calibration, sample, component policy or resource commitment is chosen. Other Phase 1 work may advance where it does not depend on A2's
 solution (§5.1's "Depends on" column). This does not require repeating A1’s checks.
 
 ### 5.3 Closure inventory before the A2 discussion (2026-10-18)
 
 **Documentary synthesis at `2d7b709`, requested by the owner; not a new closure judgment.**
 This condenses §5.1 and the current records in `15`, with `08` §16, `10` §1.5 and `14`.
-The owner now requests an explanation of A2 and its choices; no design option is selected by
-that request. A2 remains open and blocking under the kept whole-test requirement. The
-certifier, its implementation and campaigns remain suspended pending that choice.
+The owner requested an explanation of A2 and its choices; no design option was selected by
+that request. A2 remains open and blocking under the kept whole-test requirement. The later
+direction on the same date (`01` D44; `19` §13.10) permits bounded iterative evaluation;
+certifier implementation still awaits its contract decisions.
 
 A finding's effect on a kept guarantee determines whether it blocks. A scoped closure does
 not accept every residual risk, and a later task does not enter Phase 1 automatically.
@@ -1271,7 +1290,7 @@ The following is an inventory of existing obligations, not a new campaign plan.
 
 | Requirement | Acquired | Still needed / completion evidence | Dependency |
 |---|---|---|---|
-| A2, explicitly blocking | candidate contract, conditional coverage proof and bounded information obstacle, each in its recorded domain | target domination, conservative computation, useful precision, cost and scope; first the owner's deferred design decision | `19` §§11–13; no certifier work restarted |
+| A2, explicitly blocking | candidate contract, conditional coverage proof and bounded information obstacle, each in its recorded domain | target domination, conservative computation, useful precision, cost and scope; contract decisions pending | `19` §13.10 permits bounded evaluation; no certifier implementation restarted |
 | B1–B3, including A4 (d) | A3's nominal-count closure and the documented identification limits | decision-level sensitivity, search stability, simpler alternatives and misspecified populations; proofs where identification or coverage is claimed | A2's target for the full design; S1 may be declared before T82; campaign separately authorized |
 | T82; B4–B5, C3; SC-2/SC-5 | T24 and T25 steps 1–3; D43 implemented | post-D43 DIF results by format and gate admission, convergence and indeterminates, conditional/joint errors and supported sample floors | identified candidate and predeclared criteria; pre-D43 DIF evidence remains historical |
 | B6, D5 | existing bridging sweeps and cost curves | gate error/cost evidence for the declared domain, including panel size, band and supplementary round | reuse applicable evidence; no blanket rerun and no second axis without a score definition |
