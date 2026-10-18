@@ -312,6 +312,25 @@ python3 -m unittest discover -s sim -p test_a2_information_check.py -v
 
 It exits 1, with the reason on stderr, if a certification or a consistency check fails.
 
+### `a2_probe.py`
+
+The A2 probe's oracle and analysis (`docs/19` §13.11), for the records of the Rust harness
+`a2-probe` (`crates/characterization`). `reference` recomputes the cases' true DTF and raw-score
+gap by its own quadrature (method B) on reference items and on 500 seeded draws of the item law,
+with the indicative information bound of C5, into `a2_probe_reference.json` (about 40 s). `check`
+recomputes every truth in a records directory and compares it with the harness's values; `budget`
+applies the cost-only rule for the confirmation's replicates; `report` counts every outcome with
+its denominators. Standard library only, deterministic. From the repository root:
+
+```
+python3 sim/a2_probe.py reference > sim/a2_probe_reference.json
+python3 sim/a2_probe.py check characterization-results/a2-probe
+python3 -m unittest discover -s sim -p test_a2_probe.py -v
+```
+
+`check` exits 1 if a value departs from the oracle beyond its tolerance; agreement is a
+consistency check between two methods, not a certified error bound.
+
 ### `d3_selection_counts.py`
 
 D3's exact counts (`docs/15`, D3 section): the subsets `ContestedPool::draw` evaluates per fit,

@@ -516,6 +516,7 @@ version = "0.0.0"
 dependencies = [
  "identity",
  "libm",
+ "network",
  "protocol",
  "rand 0.8.8",
  "rand_chacha 0.3.1",

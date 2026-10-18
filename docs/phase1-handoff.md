@@ -18,8 +18,12 @@ explicit choice. "75%" is an aspiration for useful progress, not a statistical t
 `19` §13.10 permits evaluation design and bounded, predeclared tests; certifier
 implementation awaits its contract decisions. A2 remains open and blocking; earlier
 closures stand. No Rust, fit, benchmark or campaign was run for this documentation.
-The first bounded probe is declared, not run, in `19` §13.11: its harness, a review and
-the owner's authorization of its resource caps come before any execution.
+The first bounded probe is declared in `19` §13.11, rectified after Astra's static reading of
+`5dbc66e`, and its harness implemented, not reviewed: `a2-probe` in `crates/characterization`
+(`probe.rs`, `probe_jobs.rs`) and the oracle `sim/a2_probe.py`. Run: the harness's tests, the
+oracle, the smoke phase (no probe fit at `N = 3,000`) and the crate's existing suite. Explore and
+confirm await review and the owner's authorization within §13.11's caps; their cost is still an
+estimate.
 
 The C6 record and earlier work below retain their historical states; current A2 work
 authorization is the paragraph above and `15`'s A2 state.
@@ -1347,7 +1351,8 @@ through the scorer); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43; code:
 A2: `docs/19` §11 (contract approved on `5e600be`), §12 (coverage proof accepted on `5102852` under
 its hypotheses), §13 (review, corollary accepted in its domain; the information check's contract
 accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the owner's deferral;
-§13.10, the owner's direction of 2026-10-18; §13.11, the first probe's declaration, not run);
+§13.10, the owner's direction of 2026-10-18; §13.11, the first probe's declaration and harness,
+not run); `sim/a2_probe.py`, `crates/characterization/src/{probe,probe_jobs}.rs`;
 `sim/a2_information_check.py`.
 
 ## 7. R1 and its approval

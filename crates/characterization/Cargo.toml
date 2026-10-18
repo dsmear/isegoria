@@ -5,12 +5,14 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 publish = false
+default-run = "characterization"
 description = "The characterization harness (T24, and T25's supplement): seeded, resumable, parallel simulation studies of the production detectors and gates. Not part of a node. See docs/13."
 
 [dependencies]
 scoring = { path = "../scoring" }
 protocol = { path = "../protocol" }
 identity = { path = "../identity" }
+network = { path = "../network" }
 rand = "0.8"
 rand_chacha = "0.3"
 # The generators' transcendental functions, as the engine's (`scoring::fmath`): the same

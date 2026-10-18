@@ -3,6 +3,8 @@
 
 pub mod generate;
 pub mod grid;
+pub mod probe;
+pub mod probe_jobs;
 pub mod record;
 pub mod run;
 pub mod runner;

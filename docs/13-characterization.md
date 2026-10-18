@@ -58,7 +58,8 @@ and §7's statements say so.
 ## 2. The harness
 
 `crates/characterization` is a workspace member but not part of a node: it depends on
-`scoring` and `protocol` and nothing depends on it. One binary:
+`scoring` and `protocol` and nothing depends on it. Its default binary runs the studies; a second,
+`a2-probe`, is the A2 probe of [`19` §13.11](19-a2-dtf-composition-design.md#1311-first-bounded-probe-declaration-and-harness-not-run), apart from them:
 
 ```sh
 cargo run --release -p characterization -- plan                 # studies, cells, runs
