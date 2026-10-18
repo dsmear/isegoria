@@ -338,7 +338,8 @@ The repository makes, in `README.md`, `docs/00`–`06`, and `ARCHITECTURE.md`, t
      ──commit/reveal──► Ratings ──scoring::bridging::bridge_scores──► bridging_gate(τ, ε)
      ──► Pass | SupplementaryReview | AppealEligible | Reject
      ──► pilot::stage1_screen(r_pbis, then the one-class target model) ──► pilot::stage2_dif(logistic β₂ on `group`)
-     ──► pool ──► revalidation::{revalidate_pool (axes), revalidate_pool_latent (mixture)} ──► exposure::should_retire
+     ──► pool ──► revalidation::revalidate_batch_latent ──► Recheck ──► lifecycle Revalidate
+     (calibration: revalidate_pool (axes) ──► ItemHealth ──► exposure::should_retire, tests only)
 ```
 
 Observations that matter for every later section:

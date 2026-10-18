@@ -577,6 +577,43 @@ fn revalidation_catches_dif_on_any_axis_including_the_blind_spot() {
     assert!(multi[2].emerging_dif, "education DIF missed");
 }
 
+/// AT-DIF-06 in re-validation: a separated fit flags no DIF and retires nothing (`15` A4 (b)).
+#[cfg(feature = "calibration")]
+#[test]
+fn pool_revalidation_reads_no_verdict_from_a_separated_fit() {
+    let (theta, group) = synthetic();
+    let perfect: Vec<f64> = theta.iter().map(|&t| (t > 0.0) as u8 as f64).collect();
+    assert_eq!(
+        stage2_dif(&theta, &group, &[perfect.clone()])[0],
+        DifVerdict::Undetermined
+    );
+    let rows: Vec<Vec<f64>> = perfect.iter().map(|&x| vec![x]).collect();
+    let health = revalidate_pool(&theta, &[group], &rows);
+    assert!(!health[0].emerging_dif);
+    let item = [Template::new(b"separated".to_vec()).variant(b"1")];
+    assert_eq!(
+        items_to_retire(&item, &health, &ExposureLedger::new(), 2000),
+        vec![]
+    );
+}
+
+/// A missing health entry triggers nothing: only exposure retires its item (`docs/15` A4).
+#[test]
+fn a_missing_health_entry_retires_only_on_exposure() {
+    let items = [
+        Template::new(b"item A".to_vec()).variant(b"1"),
+        Template::new(b"item B".to_vec()).variant(b"1"),
+    ];
+    let mut exposure = ExposureLedger::new();
+    for _ in 0..2000 {
+        exposure.record(items[0]);
+    }
+    assert_eq!(
+        items_to_retire(&items, &[], &exposure, 2000),
+        vec![(items[0], RetirementReason::Exposure)]
+    );
+}
+
 #[test]
 fn revalidation_feeds_the_retirement_list() {
     let items = [

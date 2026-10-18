@@ -370,7 +370,7 @@ pub fn stage1_verdicts(fit: &Stage1Fit, formats: &Formats) -> Vec<Screening> {
 }
 
 /// Stage 2, run on the surviving batch: rejects items with uniform DIF against the axis
-/// (Variant 1, calibration-only, D20; production uses `revalidate_pool_latent`, Variant 2).
+/// (Variant 1, calibration-only, D20; production uses `revalidate_batch_latent`, the target model).
 #[cfg(feature = "calibration")]
 pub fn stage2_dif(theta: &[f64], group: &[f64], item_responses: &[Vec<f64>]) -> Vec<DifVerdict> {
     item_responses

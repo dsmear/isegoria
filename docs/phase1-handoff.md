@@ -1017,7 +1017,7 @@ found. *Results:* every listed test passes, as does every `protocol` test with
 | Finding | Commit | Scope and limits |
 |---|---|---|
 | A5 | `afc84d0` | an extra reviewer without a row enters the re-decision on its standing |
-| A4 | `fb8a3d4` | an unconverged latent re-check is indeterminate; residues (b)–(d) open |
+| A4 | `fb8a3d4` | an unconverged latent re-check is indeterminate; residues (b)–(c) diagnosed after `2ce0b95`, awaiting review (`15`), (d) open |
 | A6 | `f5ce98b7` | an alarm ends a founder's seed weight |
 | A7 | `cabdae4` | participation = axis and positive weight, everywhere in bridging |
 | A11 | `dd842d6` | an unconverged stage-1 screen is indeterminate: no rejection, no observed outcome |
@@ -1090,7 +1090,8 @@ current status and next work are in §5.2. This does not close Phase 1.
   baseline does in a future consumer, comes before integration. The register's C5 is closed on the
   adopted offline candidate (Astra, `f76d5dd`; `15` C5–C6), and C6 on the offline candidate
   (Astra, `825cabc`; `15` C6 candidate; §3 above), its limits outside the closure. Also open:
-  A4 (b)–(d), C2, C4, the full runtime.
+  A4 (b) and (c), diagnosed and awaiting review (`15`'s A4 residuals record), A4 (d), C2,
+  C4, the full runtime.
 
 ## 5. Decision synthesis and the calibration comparison
 
@@ -1188,7 +1189,7 @@ decision, **L** a documented limit.
 | A12, distinct, closed conditionally on `15b846c` | owner-amended AT-REP-01; `16` §7.3 | composed exact complete-offline affine claim, one final rounded conversion and frozen first/supplementary consumers; fixed opportunities/common filtration and joint invariance assumed | no missing premise for that restricted judgment; legacy/reset, causal influence/fit, generic betrayal and incomplete-data operation excluded | separate final-model, SC-1, A2 and T26 gates; Phase 1 incomplete | none to repeat the accepted closure; current scope and exclusions in `16` §7.3 |
 | A2, high, open; R1 approved | `15` A2; `19` §§11–13 | §11 contract approved on `5e600be`; §12 coverage proof accepted on `5102852` under its hypotheses; §13.3 corollary accepted in its domain (one-class truth, arbitrarily small shares, contrast admitted) | target domination, certified supremum, usefulness, cost and scope unresolved; no implementation | declared model/i.i.d. reference and independent split; symbolic target linkage; calibration undecided | none authorized: the information check's result `19` §13.8 is accepted on `24cdfce` (obstacle in its domain, under its numerical contract); the owner defers the design decision (2026-10-14, `19` §13.9) and the certifier's work is suspended |
 | B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: S1's scenarios and decision criteria declared, then one campaign on an identified candidate, its design declared before execution; Pr where identification or coverage is claimed, which simulations do not replace | A2's target; the owner's authorization of the campaign | S1's declaration, no run |
-| A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; (c), the retired proxy path, fixtures only: L, its listing requiring no change; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
+| A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; its producer `revalidate_pool` read a separated fit as DIF, corrected after `2ce0b95`, awaiting review; (c), the retired proxy path, fixtures only: L, its contract stated, no change; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
 | A8, A9, medium; closed within the bounded claim rectification | `15`: distinguishability, identifiability and power apart (A8); hypotheses or a controlled approximation (A9) | bounded paper/document correction, exact A8 witness and nondegenerate A9 stationary witness with residual bound (`15` rectification record) | no missing evidence for these corrected claims; generic identifiability, detector power and error bounds for historical fits are not established | — | none to repeat the accepted rectification (`15`) |
 | A10, low, closed within its claim rectification; C5, medium, closed on the adopted offline candidate; C6, medium, closed on the offline candidate | `15`: properness scoped or the fallback decided (A10); `15`'s C5–C6 record, closure criteria (C5, C6) | behaviour documented; A10: properness qualified, the fallback and its effects tested, closed on `115f538` (`15` A10 record); C5, C6: the owner adopted the recommended candidate (2026-10-16) after Astra accepted `13a31ca` as a decision basis; implemented offline on `13a31ca` — item-keyed binary outcomes aged from their results epoch, a fixed-weight escrow, filings selected in CID order with atomic replay, the node checking records against deposits and steps (`authorship::author_records`); no production driver. Astra on `5b1ff4c`: core confirmed, C5's closure not approved for the appeal–escrow link, then corrected (an appeal only on its item's open escrow, no expiry after a filing); Astra on `322dd52`: those local corrections accepted, the composition not; filing and start then made one operation of the node (a late request spends no coverage, an `Appeal` step refused); Astra on `f76d5dd`: that correction and C5's closure approved, C6 examined with no new blocking finding offline | A10: none for its closure; residual, what an absent baseline does in a consumer (Dd), before integration; C5: none for its closure on the candidate; C6: none for its closure on `825cabc` (`15`); limits kept apart in `15`'s record (the closed set of requests, replay under one configuration, T77 and the driver) | A1 for A10 | A10: the residual's decision before integration, no automatic conversion; C6: the owner adopted B, nominal 28 days and H = 45 (2026-10-17); the candidate includes the necessary `cohort_snapshot` alignment; C6 closed on `825cabc` (Astra's final review, Sol's static check, runs by Claude), with no real cadence, calibration, driver, custom ledger configuration, request completeness, window authentication, T77 or production certified (`15`) |
 | B4–B5, C3; B6, D5; B7, D1, D6, E; D2, D4; D3 closed on the offline candidate | `15`'s statistical table; B7: provisional values allowed with T27 procedures | T24; T25 steps 1–3; `14` Level A | Em on a frozen candidate; D3: none for its closure, integration apart | T83 (owner); T25 step 4, reading T82's measures | D3: closed on `9df086f` within the adopted domain (`15` D3 section); integration, a per-epoch budget and transport outside it; the rest after the candidate |
@@ -2213,4 +2214,18 @@ accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the o
   here follow. Checks: local links and anchors, table shapes, `git diff --check`,
   `scripts/comment_budget.py`. No Rust run, benchmark or campaign. C5 closed; A2 suspended;
   Phase 1 incomplete.
+- **Claude, A4's residuals (b) and (c) (not reviewed):** base
+  `2ce0b958ae76960d34cae913c28334a0ede02ad8` fetched and equal to the remote branch; the
+  owner's `.gitignore` and untracked patch copy preserved outside the commit. Paths rebuilt:
+  the lifecycle retires through `Recheck` and `ExposureLimit` only; `ItemHealth`'s one
+  producer is the calibration `revalidate_pool`, its consumers tests; the proxy path is
+  fixtures only. (b) partly confirmed: `revalidate_pool` read `β₂` from a separated fit,
+  flagging AT-DIF-06's item as emerging DIF; a regression written first failed on the base,
+  and an axis now flags only on a converged fit. (c) confirmed as a retired path's limit, its
+  contract stated; stale comments and `08` §2's flow naming the proxy path for production
+  corrected. `items_to_retire`'s default documented and pinned. Dispositions proposed, none
+  adopted. Ran: the affected `protocol` tests with and without `calibration`, fmt, clippy
+  both ways, rustdoc (warnings unchanged), the comment budget, documentation links and
+  tables (`15`). No campaign or benchmark. A4 and A4 (a) not reopened; (d) with B1–B3; A2
+  suspended; C5 and C6 closed.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
