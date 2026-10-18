@@ -342,3 +342,41 @@ fn point(epoch: u64) -> AuthorPoint {
         closings: epoch,
     }
 }
+
+/// `dif_batch` on unconverged logistic fits: Undetermined, read Indeterminate, keeps Pilot2 (`15`).
+#[cfg(feature = "calibration")]
+#[test]
+fn an_unconverged_logistic_stage_2_keeps_pilot2_through_dif_batch() {
+    use protocol::admission::NullifierSet;
+    use protocol::pilot::{dif_batch, DifVerdict, N2_MIN};
+    let mut respondents = NullifierSet::new();
+    for i in 0..N2_MIN {
+        let mut id = [0u8; 32];
+        id[..8].copy_from_slice(&(i as u64).to_le_bytes());
+        respondents.spend(Nym(id)).unwrap();
+    }
+    let theta: Vec<f64> = (0..N2_MIN).map(|i| (i as f64 - 750.0) * 1e100).collect();
+    let group: Vec<f64> = (0..N2_MIN).map(|i| (i % 2) as f64 * 2.0 - 1.0).collect();
+    let items: Vec<Vec<f64>> = (0..K_MIN)
+        .map(|j| {
+            (0..N2_MIN)
+                .map(|i| ((i + j) % 3 == 0) as u8 as f64)
+                .collect()
+        })
+        .collect();
+    let verdicts = dif_batch(&respondents, &theta, &group, &items).unwrap();
+    assert_eq!(verdicts, vec![DifVerdict::Undetermined; K_MIN]);
+    for verdict in verdicts {
+        let dif = match verdict {
+            DifVerdict::Pass => Recheck::NoDif,
+            DifVerdict::Reject => Recheck::Dif,
+            DifVerdict::Undetermined => Recheck::Indeterminate,
+        };
+        for appealed in [false, true] {
+            assert_eq!(
+                step(State::Pilot2 { appealed }, batch(dif, false)),
+                Ok(State::Pilot2 { appealed })
+            );
+        }
+    }
+}

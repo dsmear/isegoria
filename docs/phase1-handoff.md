@@ -1091,9 +1091,9 @@ current status and next work are in §5.2. This does not close Phase 1.
   baseline does in a future consumer, comes before integration. The register's C5 is closed on the
   adopted offline candidate (Astra, `f76d5dd`; `15` C5–C6), and C6 on the offline candidate
   (Astra, `825cabc`; `15` C6 candidate; §3 above), its limits outside the closure. Also open:
-  A4 (d), with B1–B3; the Variant 1 fit states in `stage2_dif` and `purify_theta`, found
-  during A4 (b)–(c), not corrected and with no impact established (`15`); C2, C4, the full
-  runtime.
+  A4 (d), with B1–B3; the Variant 1 fit states, found during A4 (b)–(c): `stage2_dif`
+  corrected and verified, `purify_theta`'s contract proposed and not adopted, both awaiting
+  review, no impact established (`15`); C2, C4, the full runtime.
 
 ## 5. Decision synthesis and the calibration comparison
 
@@ -2243,4 +2243,18 @@ accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the o
   frequency or impact claimed. Checks: local links and anchors, table shapes, `git diff
   --check`, `scripts/comment_budget.py`. No Rust run. A4 (d) with B1–B3; A2 suspended; C5 and
   C6 closed.
+- **Claude, Variant 1 fit states (not reviewed):** base
+  `0af969b8225fec594d3589ffcefd8a8a3b1145b1` fetched and equal to the remote branch; the
+  owner's `.gitignore` and untracked patch copy preserved, no stash. The completion criterion
+  rectified after Astra declined "converged fits only, the caller responsible". `stage2_dif`
+  corrected: only a converged fit meets `BETA2_MAX`, a separated or unconverged one is
+  `Undetermined`. Written first and failing on the base: a real fit left at its start by
+  abilities scaled by `1e100` (`NotConverged`, `Pass` before), and the same through
+  `dif_batch`, `Recheck` and the lifecycle; a constructed-status unit test added.
+  `purify_theta`: current behaviour rebuilt, a contract proposed that tells completion, interruption by an
+  inconclusive fit and exhaustion of `max_rounds` apart, decisions listed; not adopted, not
+  implemented. Ran: the affected `protocol` tests with and without `calibration`, fmt,
+  clippy both ways, the workspace build with `calibration`, the comment budget,
+  documentation links and tables. No campaign, benchmark or threshold change. Open until
+  review; A4 not reopened; A2 suspended; C5 and C6 closed.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.

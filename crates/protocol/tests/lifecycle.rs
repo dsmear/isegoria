@@ -291,6 +291,25 @@ fn pilot_stage2_reports_undetermined_on_a_separated_item() {
     assert_eq!(v[0], DifVerdict::Undetermined);
 }
 
+/// A real fit that cannot leave its start reads NotConverged, so Undetermined (T2, `15`).
+#[cfg(feature = "calibration")]
+#[test]
+fn pilot_stage2_reports_undetermined_on_an_unconverged_fit() {
+    let (theta, group) = synthetic();
+    let item: Vec<f64> = theta
+        .iter()
+        .enumerate()
+        .map(|(i, &t)| noisy(i, t > 0.0))
+        .collect();
+    let extreme: Vec<f64> = theta.iter().map(|t| t * 1e100).collect();
+    let fit = scoring::dif::logistic_dif(&item, &extreme, &group);
+    assert_eq!(fit.status, scoring::LogisticFit::NotConverged);
+    assert_eq!(
+        stage2_dif(&extreme, &group, &[item])[0],
+        DifVerdict::Undetermined
+    );
+}
+
 #[test]
 fn sortition_is_stratified_deterministic_and_sized() {
     // 100 candidates spread along the axis; draw a committee of 9 across 3 strata.
