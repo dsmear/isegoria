@@ -2142,3 +2142,154 @@ truth is known by construction, not proof that the anonymous model can recover i
 real populations. Finite empirical success does not replace representation, coverage or
 conservative computation where a guarantee is claimed. Imperfect utility is compatible
 with honest limits; silently reporting an unsupported guarantee is not.
+
+The first such declaration is
+[§13.11](#1311-first-bounded-probe-declaration-not-run); it is not run.
+
+### 13.11 First bounded probe: declaration (not run)
+
+**Status:** written by Claude Code on `d413516` under §13.10, before any run; not reviewed, not
+executed. It adopts no policy, tolerance, risk level, sample size or resource; A2 stays open and
+blocking. Evidence: **L** the symbols below, read at `d413516` (engine and protocol unchanged since
+`6274270`); **C** a scratch script, not committed: the generator's true DTF on reference items
+(`a = 1.25`, `b_j = 0.6 Φ⁻¹((j − ½)/8)`) and over 2,000 draws of its item law, and §13.4's per-node
+bound on the reference items, in floating point — indicative, no respondent, no fit. No Rust, fit
+or campaign was run.
+
+**Question.** On a few synthetic batches with known truth, what does the current path — latent
+re-check, routing, contested-facts cost, draw — report, and how does it compare with the true DTF
+of the forms it would let through? The current selector is not a certifier: this is a diagnostic
+demonstration of its behaviour, with no validity, coverage or frequency claimed.
+
+**Executable paths (L).**
+
+| Level | Runs today | Missing for this probe |
+|---|---|---|
+| known curves | `ClassCurves::{with_floors, with_ability, dtf}`; `characterization::run::true_curves` (private) | no harness records the whole form's truth or the classes' raw-score gap |
+| estimation by a fit | `generate::dif_batch` → `latent_dif` → `ClassCurves::of` (`run::dtf`; study `dtf-error`'s cells mirror only, `DTF_SETS` without the whole form, no admission field; its summary keeps converged mixtures only, so one-class zeros leave its denominators) | the cases below; the whole form; the gate's outcome |
+| contested selection | `revalidation::{latent_batch, target_rechecks}` → `lifecycle::step` (`Pilot2Batch`, `source_verified` an input, T68) → `ContestedPool::{record, dtf, draw}`, chained only by `protocol/tests/contested_facts.rs` (`fitted::at_pro_08_on_batches_fitted_through_the_gate`, `calibration`) on two fixed batches | that chain on generated batches, with the outputs below |
+| full composition | none: `blueprint::assemble_test` ignores DTF; no code composes active items and contested facts; what follows `NoBalancedDraw` or `OutOfDomain` is unspecified (`02` §B.7) | not built: the probe's forms are harness readings, not a composer |
+
+**Harness, to write after review.** One entry point in `crates/characterization`, apart from the
+existing studies, reusing `dif_batch`, the production gate with synthetic pseudonyms (as
+`tests/production.rs`), `target_rechecks`, `lifecycle::step`, a one-fit `ContestedPool` and
+`true_curves`'s construction; one JSON line per run; one smoke-size record pinned by a test. Nothing
+changes in `crates/scoring`, `crates/protocol`, the existing studies, seeds, records or summaries.
+It is study scaffolding, not an operational path (§10.4).
+
+**Candidate and domain.** Engine and protocol at `6274270`, production defaults (`latent_dif`:
+1–4 classes, both slope alternatives, 4 starts, 41 nodes, shape estimated), `MIXTURE_DIF_MAX = 1.0`,
+`DTF_MAX = 0.10`. Every case: `N = 3,000` (`N_LATENT_MIN`), 60 anchors, `K = 8` trial items, open
+format, `π = ½`, normal ability, `a_j ~ U(1, 1.5)` and `b_j ~ 0.6 N(0, 1)` drawn per run (`13`
+§3.1); no floor, slope gap, skew, template or attack. One fit per form: no cross-fit sum (§4,
+row 2). Truth: the generator's classes `z = ±1`, known to the harness only, on
+`ClassCurves::with_floors`'s grid over the population mixture; score the number correct. The
+engine receives the 0/1 matrices and nothing else (invariant 1).
+
+**Readings, no extra fit.** Source input S0 (no key verified: a flagged item is rejected) and S1
+(every key verified: it is contested). Form A: the items `step` routes to `ActivePool`. Form A+C
+(S1): A with the draw of all contested items at `DTF_MAX`, or on `NoBalancedDraw` of its largest
+feasible size, recorded as such. `Indeterminate` items stay in `Pilot2`, in neither form. The fixed
+form, all eight items, is read as well: §11.1's target is a form fixed before the data.
+
+| Case | Input (`dif_batch`) | True quantity (C; median [5%, 95%] over item draws) | Estimated, observed | Question |
+|---|---|---|---|---|
+| C0 null, reference | layout `c0`, δ 0, impact 0 | DTF 0; raw gap 0 | gate, status, classes, flags; `DTF_F` of the fixed form; routing, `D`, draw | baseline the paired cases are read against: false flags, the fitted functional at a true 0 |
+| C1 ability difference, no DIF | C0 with impact 1 | DTF 0; raw gap 1.70 [1.55, 1.82] of 8 points | as C0 | is a class-wide difference in the measured ability kept out of DIF (`01` D44)? |
+| C2 residual difference at equal ability | `c2`, δ 0.9: gap 1.8 on two items, one side | form 0.77 [0.67, 0.85]; each leaner 0.39 [0.32, 0.44] | as C0; S0 rejects, S1 contests | is concentrated DIF found; what is the true DTF of what passes? |
+| C3 small concordant contributions | `c8`, δ 0.17: log-odds gap about 0.43 at `a = 1.25`, the ETS A boundary behind `DTF_MAX` (`02` §B.7) | form 0.61 [0.57, 0.64]; each item 0.076 [0.061, 0.087] | as C0; the true gap 0.34 is under the cut, and unflagged items are active, outside `D` by design | how large is the active items' omission from `D` (§3, H3); does `DTF_F` see it? |
+| C4 compensation in one fit | `m` (`+ − + −`), δ 0.9 | form 0.13 [0.03, 0.30], above 0.10 in 64.5% of the 2,000 item draws; each leaner 0.39 [0.32, 0.44] | as C0; S1: the selections, their `D` and true DTF | does the cancellation the draw counts on hold; does selecting on the fitted cost select its error? |
+| C5 insufficient information | `c8`, δ 0.04 | form 0.143 [0.133, 0.151]; each item 0.018; reference items: `K ≈ 6.4·10⁻⁶`, `TV ≤ 0.10` at `N = 3,000` (indicative) | as C0, run by run against C0 | what does the current path report where the data barely tell this form from C0 (§13.8)? |
+
+**Pertinent factual knowledge, apart.** C2 and C4 under S1, their leaners declared sourced facts
+of pertinent knowledge. Data and fits are C2's and C4's: the engine sees the same responses as for
+a nuisance effect, and only the scenario knows the cause. Reported: whether the current balancing
+draws each such fact, with which counterweight, and the true DTF with and without it. Two readings
+stay open — D38's balancing as implemented, or the difference counted as measured knowledge — and
+neither carries an expected outcome (`01` D44; §13.10).
+
+**Metrics, kept apart.** `R` = 8 runs per case; `R_read` those the gate admits; `R_eval` those of
+`R_read` whose selected fit converged.
+
+| Metric | Per run | Denominator |
+|---|---|---|
+| fitted-cost compliance | each returned selection has `D ≤ DTF_MAX` (a violation is a code defect) | returned selections |
+| true DTF | of the fixed form, A, A+C and the selection; `DTF_F` of the fixed form beside the first; the classes' raw-score gap | `R` (fixed form, raw gap); runs producing the form |
+| reference-line exceedances | true DTF of A or A+C above 0.10; true DTF of a selection minus its `D` | runs producing that form; returned selections |
+| refusals, indeterminates | gate refusal; unconverged fit; `Indeterminate` items; `NoBalancedDraw` with its feasible sizes; `OutOfDomain`. One-class readings (converged, no flag) listed apart | `R`; items of `R_read` |
+| detection, false alarms | flagged leaners; flagged clean items; runs with a clean item flagged | leaners × `R` and × `R_eval`; clean items × `R_eval`; `R_eval` |
+| cost | wall time, candidates fitted, answers `N(A + K)`, the process's peak resident memory | per run; per process |
+
+No certifier exists, so no correct or incorrect certification is counted. Counts are reported as
+"`k` of `r`" with per-run values, medians and ranges; no interval, pooled rate, cross-case
+aggregate or single success score. Eight runs separate a systematic behaviour from an occasional
+one and support no rate: 0 of 8 is compatible with a per-run frequency up to 31% (exact one-sided
+95%). "75%" enters no metric; 0.10 is a reference line, not A2's tolerance.
+
+**Seeds, phases, budget, stops.**
+
+- *Seeds.* Run seed `s` = SHA-256 of `isegoria/a2-probe/v1`, the phase and `r`, as `grid::seed`
+  builds it; the same `s` in every case at `(phase, r)`, so C1 and C5 differ from C0 only by impact
+  or δ and comparisons are paired. Engine seed `engine_seed(s)`, draw seed `draw_seed("contested",
+  s, 0)`.
+- *Exploration:* the existing chain on its two batches (command 1), the harness test, then phase
+  `explore`, `r = 0`, every case at full size. It checks and times; its values are not results and
+  are not pooled. The one change it may cause is a smaller `R`, recorded before confirmation, if
+  the timing breaks a cap.
+- *Confirmation:* phase `confirm`, `r = 0, …, 7`, 48 fits, run once.
+- *Cost (estimate, not a measurement).* Pre-D43 open fits on the container: 15–20 s at
+  `N = 3,000`, `K = 8`; 75 s for `dtf-error` at 6,000 (`13` §2). D43's histogram made a floor fit
+  about half as much again (T82); assumed at most double here, mixtures dearest: 30–90 s a run,
+  so 54 runs take 0.5–1.4 CPU-hours, under 15 minutes on 8 workers, plus command 1's two fits.
+  Memory: 3,000 × 68 answers and 3,000 × 4 posteriors per fit, tens of MiB a worker. Answers:
+  204,000 a run (synthetic; in the field, one admitted batch at the gate's floor), 9,792,000 in
+  confirmation.
+- *Caps:* 2 CPU-hours and 45 minutes of wall time for both phases; 2 GiB peak resident memory;
+  the owner's machine (Ryzen 7 5800X, 16 threads).
+- *Stops.* `git diff --quiet 6274270 -- crates/scoring crates/protocol` fails; a harness check
+  fails (C0 or C1 truth not exactly 0, the pool's `D` differing from `ClassCurves::dtf` rounded up,
+  a returned selection above `DTF_MAX`, a malformed record); a cap is reached (no new run starts;
+  partial results labelled partial with their denominators); one run passes 10 minutes (it ends,
+  then the probe stops and the estimate is reported wrong). No outcome starts, stops or extends
+  the probe. Changing a case, the model, a metric or a reading after the results opens a new
+  exploratory iteration with a new phase tag.
+
+**Commands, proposed; only 1 exists at `d413516`.** (1) `cargo test --release -p protocol
+--features calibration --test contested_facts fitted`; (2) `cargo test --release -p
+characterization --test a2_probe`; (3) `cargo run --release -p characterization --bin a2-probe --
+--phase explore --replicates 1 --jobs 8 --out characterization-results/a2-probe-explore`; (4) the
+same with `--phase confirm --replicates 8 --out characterization-results/a2-probe-confirm`.
+
+**Against §13.8.** §13.8 is an obstacle for every procedure valid at `α` on its domain; this probe
+evaluates a procedure that claims no validity, so no outcome moves that frontier or makes a pair
+below it attainable. C5 is adjacent to that domain, not inside it: drawn `a` and `b` instead of
+quantiles and one slope, a continuous normal ability, δ for a form DTF near 0.14. Its indicative
+bound says the observations should resemble C0's whatever the procedure, so it can show only what
+the current path *reports* there. C2–C4 lie where the bound excludes nothing, which is not
+feasibility. The probe can clarify the current path's behaviour per case, the size of the active
+items' omission, the in-fit cancellation and the fitted cost's error, one batch's cost, and the
+stake of D38's open choice. It cannot settle domination, coverage or conservative computation
+(§11.2 a–c), any certificate's usefulness, floors, cross-fit forms, misspecification, real
+populations or frequencies: no simulation replaces a proof where a guarantee is kept.
+
+**What would change the next step.**
+
+- C1 flags more, or reads a larger `DTF_F`, than C0 on paired runs: the model takes the measured
+  ability for DIF here, and B1–B3 work on impact precedes any A2 policy.
+- C2 read as one class at `N = 3,000`: a question for `N_LATENT_MIN` (`15` B4–B5, T83), not for
+  A2's design.
+- C3 with `D = 0` and true form DTF near 0.6: a whole-test claim must cover active items (as R3
+  would), or give way to §13.7's "no whole-test certificate" with R1's description; the choice
+  stays the owner's. If `DTF_F` tracks the truth, a whole-form estimate — a diagnostic, not a
+  bound — is available from existing APIs; if not, not even that.
+- C4 selections within the fitted cost whose true DTF exceeds 0.10: selection on estimates selects
+  error inside one fit, sizing the uncertainty treatment (§11.2 b) a margin alone does not supply.
+- C5 like C0: the path returns cost 0 where little can be told, which bears on a distinct
+  "insufficient information" output and on §13.7's alternatives. C5 unlike C0 is unexpected and is
+  checked as a harness error first.
+- F: how often a sourced pertinent fact is excluded, or drawn only with a counterweight, sizes what
+  D38's open choice decides; the probe does not make it.
+
+**Owner's choices needed.** Only authorizing the run within the caps above, after review of this
+declaration and of the harness commit. Floors, cross-fit forms and other sizes are left to later
+declarations.
