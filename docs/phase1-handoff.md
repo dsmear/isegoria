@@ -1091,9 +1091,9 @@ current status and next work are in §5.2. This does not close Phase 1.
   baseline does in a future consumer, comes before integration. The register's C5 is closed on the
   adopted offline candidate (Astra, `f76d5dd`; `15` C5–C6), and C6 on the offline candidate
   (Astra, `825cabc`; `15` C6 candidate; §3 above), its limits outside the closure. Also open:
-  A4 (d), with B1–B3; the Variant 1 fit states, found during A4 (b)–(c): `stage2_dif`
-  corrected and verified, `purify_theta`'s contract proposed and not adopted, both awaiting
-  review, no impact established (`15`); C2, C4, the full runtime.
+  A4 (d), with B1–B3; the Variant 1 fit states, found during A4 (b)–(c): `stage2_dif`'s
+  correction approved (Astra, `18e1b5f`), `purify_theta`'s contract implemented as a
+  candidate awaiting review, no impact established (`15`); C2, C4, the full runtime.
 
 ## 5. Decision synthesis and the calibration comparison
 
@@ -2257,4 +2257,22 @@ accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the o
   clippy both ways, the workspace build with `calibration`, the comment budget,
   documentation links and tables. No campaign, benchmark or threshold change. Open until
   review; A4 not reopened; A2 suspended; C5 and C6 closed.
+- **Astra, static review of `18e1b5f`:** approved the `stage2_dif` correction; ran nothing.
+  Declined "converged fits only, the caller responsible" for `purify_theta` and gave the
+  contract's precisions: `Completed` a numerical fixed point of converged fits, flags read on
+  the returned θ, the initial all-false vector no round; `Interrupted` after reading every
+  item on one θ, θ not updated, no retry or automatic inclusion or exclusion; `Exhausted` for
+  a spent budget, `max_rounds = 0` included, no cycle claimed; minimal types; the optimizer's
+  status a separate question, a large finite value not malformed by itself.
+- **Claude, `purify_theta`'s contract implemented (not reviewed):** base
+  `18e1b5fa6f986c8c06bde7533612678e2fcdcc4d` fetched and equal to the remote branch; the
+  owner's `.gitignore` and untracked patch copy preserved, no stash. `Purification::{Completed,
+  Interrupted, Exhausted}` with `Reading` and `Round`; a private loop tested with constructed
+  readings apart from real fits. Written first against the base's API and failing there: an
+  all-clean first round returned while its θ flags an item, a separated fit's flag with one
+  round, flags with no round. Ran: `cargo test -p scoring --features calibration` (217
+  passed, 3 ignored), clippy both ways, fmt, the comment budget, documentation links and
+  tables. `15`, `02` §B.4, `08` DIF-007 and `ARCHITECTURE.md` follow; `stage2_dif`'s limits
+  reworded (a large finite value is not malformed by itself). Open until review; A2
+  suspended; earlier closures unchanged.
 - Never run in this work: full characterization, smoke, mutation or calibration campaigns.
