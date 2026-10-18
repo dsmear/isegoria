@@ -1257,6 +1257,55 @@ authorized, and the requirement is not moved to Phase 2. No calibration, sample,
 or resource commitment is chosen. Other Phase 1 work may advance where it does not depend on A2's
 solution (§5.1's "Depends on" column). This does not require repeating A1’s checks.
 
+### 5.3 Closure inventory before the A2 discussion (2026-10-18)
+
+**Documentary synthesis at `2d7b709`, requested by the owner; not a new closure judgment.**
+This condenses §5.1 and the current records in `15`, with `08` §16, `10` §1.5 and `14`.
+The owner now requests an explanation of A2 and its choices; no design option is selected by
+that request. A2 remains open and blocking under the kept whole-test requirement. The
+certifier, its implementation and campaigns remain suspended pending that choice.
+
+A finding's effect on a kept guarantee determines whether it blocks. A scoped closure does
+not accept every residual risk, and a later task does not enter Phase 1 automatically.
+The following is an inventory of existing obligations, not a new campaign plan.
+
+| Requirement | Acquired | Still needed / completion evidence | Dependency |
+|---|---|---|---|
+| A2, explicitly blocking | candidate contract, conditional coverage proof and bounded information obstacle, each in its recorded domain | target domination, conservative computation, useful precision, cost and scope; first the owner's deferred design decision | `19` §§11–13; no certifier work restarted |
+| B1–B3, including A4 (d) | A3's nominal-count closure and the documented identification limits | decision-level sensitivity, search stability, simpler alternatives and misspecified populations; proofs where identification or coverage is claimed | A2's target for the full design; S1 may be declared before T82; campaign separately authorized |
+| T82; B4–B5, C3; SC-2/SC-5 | T24 and T25 steps 1–3; D43 implemented | post-D43 DIF results by format and gate admission, convergence and indeterminates, conditional/joint errors and supported sample floors | identified candidate and predeclared criteria; pre-D43 DIF evidence remains historical |
+| B6, D5 | existing bridging sweeps and cost curves | gate error/cost evidence for the declared domain, including panel size, band and supplementary round | reuse applicable evidence; no blanket rerun and no second axis without a score definition |
+| T83, T25 step 4; B7, D1, D6, E | Level A; the new H and affine-candidate entries with their stated limits | owner's operating point; remaining Level B/C entries; error/resource criteria before final selection and confirmation beyond selection cases | T82 for DIF cuts; frozen candidate; provisional values with defined T27 procedures allowed |
+| D2, D4 | partial analytical costs; D3 closed in its draw domain | separate persons, participations, answers including anchors and unsuccessful batches, fits, latency and hardware; compare with budgets | actual candidate; D3 is not the whole-process budget |
+| Final evidence mapping | scoped tests/reviews and historical reproducibility; T81's named ten files | applicable SC/PC/IQ/RP claims mapped to compatible candidate evidence or an explicit justified domain decision | stable candidate; proportionate checks, not automatic repetition of every suite |
+
+**Decisions or bounded checks still needed to classify residuals.**
+
+| Residual | Existing boundary | Next classification step |
+|---|---|---|
+| T26 / SC-8 | `15` requires T26 on the final candidate; `10`'s external-dependency note conflicts; internal review alone does not meet SC-8 | resolve the contradiction explicitly; do not declare external review unnecessary |
+| C2, C4 and A10's absent-baseline consumer | A1/A12's conditional closures and A10's claim correction stand; no general incomplete-data policy follows | identify the kept operational guarantee; T58 matters if progress despite missing reports is required; decide the baseline policy before its consumer |
+| optimizer status on the reported inputs | frequency and operational impact unestablished; extreme finite values not malformed for that alone | reproduce within a declared input domain and trace consumers against IQ-1/IQ-2 before calling it blocking or deferrable |
+| DIF-007 metric and AT-DIF-08 adversarial batch | outside the Variant 1 fit-state closure; exhaustion exists, an alternating real batch does not | identify the Variant 1 guarantees retained, then address the two obligations separately; no universal convergence claimed |
+| PRIV-004.1 / T77 | general non-inference claim refuted in the recorded domain; goal and remedy still open | determine the retained confidentiality guarantee and its dependency; not an automatically accepted limit |
+| A5 residues | extra-draw weighting undecided; explicit cap contract/binding test recorded as non-blocking | no new package unless a kept guarantee is shown to depend on one |
+
+**Acquired closures remain acquired:** A1/A12 conditionally; A3 and the other closed A records
+within their scopes; A4 (b)/(c); D3; C5/C6; Variant 1 fit states. In particular, C6's nominal
+28 days, provisional H, fixed ledger configuration and offline context are not production
+certifications. Neither that fact nor D3's excluded integration reopens their scoped closures.
+
+**Future work and dependencies.** T27 remains field calibration; no recorded Phase 1 criterion
+requires the S2 human study. Driver, real cadence, transport, consensus and full runtime keep
+their original scopes. The links already recorded in §5.1 still apply: T79/T76 to availability
+and evidence, T19 to the guarantees needing its randomness, T77 to retained confidentiality.
+No guarantee is silently dropped to move one of these dependencies out of Phase 1.
+
+**Next:** discuss A2's choices before designing its next computation. Resolve the closure-policy
+questions and T83 before the corresponding final evidence or threshold decisions. B1–B3 and T82
+may share one predeclared experimental design; no campaign is started here. The final acceptance
+mapping follows stabilization and reuses evidence that remains applicable.
+
 ## 6. Essential reading to resume
 
 `CLAUDE.md` and `docs/CLAUDE.md`; `docs/15` (rows A1, A2, B1–B3, D2–D4 and the correction records);
