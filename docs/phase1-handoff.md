@@ -19,11 +19,13 @@ explicit choice. "75%" is an aspiration for useful progress, not a statistical t
 implementation awaits its contract decisions. A2 remains open and blocking; earlier
 closures stand. No Rust, fit, benchmark or campaign was run for this documentation.
 The first bounded probe is declared in `19` §13.11, rectified after Astra's static reading of
-`5dbc66e`, and its harness implemented, not reviewed: `a2-probe` in `crates/characterization`
-(`probe.rs`, `probe_jobs.rs`) and the oracle `sim/a2_probe.py`. Run: the harness's tests, the
-oracle, the smoke phase (no probe fit at `N = 3,000`) and the crate's existing suite. Explore and
-confirm await review and the owner's authorization within §13.11's caps; their cost is still an
-estimate.
+`5dbc66e`, its harness implemented in `7ce9746`: `a2-probe` in `crates/characterization`
+(`probe.rs`, `probe_jobs.rs`) and the oracle `sim/a2_probe.py`. Astra's review of `7ce9746` was
+static, plus its own runs of the 10 Python tests and reproductions on constructed records; it ran
+no Rust and no fit, and it does not approve the probe's execution. Its findings on stops,
+processes, integrity and the analysis's stops are corrected after `7ce9746`, each shown first on
+the base, not yet reviewed (§13.11's checks). Explore and confirm await review and the owner's
+authorization within §13.11's caps; their cost is still an estimate.
 
 The C6 record and earlier work below retain their historical states; current A2 work
 authorization is the paragraph above and `15`'s A2 state.
@@ -1352,7 +1354,8 @@ A2: `docs/19` §11 (contract approved on `5e600be`), §12 (coverage proof accept
 its hypotheses), §13 (review, corollary accepted in its domain; the information check's contract
 accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the owner's deferral;
 §13.10, the owner's direction of 2026-10-18; §13.11, the first probe's declaration and harness,
-not run); `sim/a2_probe.py`, `crates/characterization/src/{probe,probe_jobs}.rs`;
+not run); `sim/a2_probe.py`, `crates/characterization/src/{probe,probe_jobs}.rs`,
+`crates/characterization/tests/{a2_probe,a2_probe_jobs}.rs`;
 `sim/a2_information_check.py`.
 
 ## 7. R1 and its approval

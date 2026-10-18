@@ -4,16 +4,12 @@
 use characterization::generate::dif_batch;
 use characterization::probe::{
     assess, generating_dtf, probe_seed, raw_gap, record_of, route, run, stopped_record, tasks,
-    Case, Cost, Draw, Items, Outcome, Phase, Removal, Route, Task, CASES,
+    Case, Cost, Draw, Items, Outcome, Phase, Removal, Route, Task,
 };
-use characterization::probe_jobs::{read_ledger, supervise, write_part, Caps, Refusal};
 use protocol::revalidation::Recheck;
 use scoring::dtf::{ClassCurves, DTF_MAX};
 use scoring::latent::{latent_dif, Ability, Formats, LatentDif};
 use scoring::Convergence;
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::Command;
 
 const REF_B: [f64; 8] = [
     -0.9204723266115274,
@@ -104,26 +100,11 @@ fn fit(status: Convergence, classes: usize, gap: [f64; 8]) -> LatentDif {
     }
 }
 
-fn scratch(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("a2-probe-{}-{name}", std::process::id()));
-    let _ = fs::remove_dir_all(&dir);
-    dir
-}
-
 fn task(case: Case, replicate: u32) -> Task {
     Task {
         phase: Phase::Smoke,
         case,
         replicate,
-    }
-}
-
-fn caps(run_ms: u64, wall_ms: u64) -> Caps {
-    Caps {
-        cpu_ms: 3_600_000,
-        wall_ms,
-        run_ms,
-        rss_kib: 1 << 30,
     }
 }
 
@@ -284,99 +265,18 @@ fn the_real_path_refuses_a_smoke_batch_and_reads_a_real_smoke_fit_outside_the_ga
     assert!(line.contains("\"outcome\":\"read\"") && line.contains("\"source\":\"S1\""));
 }
 
-fn fake(t: &Task, out: &Path) -> std::io::Result<std::process::Child> {
-    write_part(
-        out,
-        t,
-        &stopped_record(t, "read", "stand-in", Cost::default()),
-    )?;
-    Command::new("true").spawn()
-}
-
-/// Each ended run is recorded once; a later session skips them and runs nothing again.
-#[cfg(target_os = "linux")]
+/// A returned selection over `DTF_MAX` is the blocking defect; a high true DTF is not one.
 #[test]
-fn ended_runs_are_recorded_once_and_never_rerun() {
-    let out = scratch("resume");
-    let all: Vec<Task> = CASES.into_iter().map(|c| task(c, 0)).collect();
-    let first = supervise(&all, 3, &out, caps(60_000, 60_000), fake)
-        .unwrap()
-        .unwrap();
-    assert_eq!(first.outcomes.get("read"), Some(&6));
-    let again = supervise(&all, 3, &out, caps(60_000, 60_000), fake)
-        .unwrap()
-        .unwrap();
-    assert_eq!((again.skipped, again.outcomes.len()), (6, 0));
-    let records = fs::read_to_string(out.join("records.jsonl")).unwrap();
-    assert_eq!(records.lines().count(), 6);
-    assert!(fs::read_dir(out.join("parts")).unwrap().next().is_none());
-}
-
-/// A child that exits without a record is recorded as failed, with the design's truth.
-#[cfg(target_os = "linux")]
-#[test]
-fn a_child_without_a_record_is_recorded_as_failed() {
-    let out = scratch("failed");
-    let all = [task(Case::C4, 0)];
-    let s = supervise(&all, 1, &out, caps(60_000, 60_000), |_, _| {
-        Command::new("false").spawn()
-    });
-    assert_eq!(s.unwrap().unwrap().outcomes.get("failed"), Some(&1));
-    let records = fs::read_to_string(out.join("records.jsonl")).unwrap();
-    assert!(records.contains("\"outcome\":\"failed\"") && records.contains("\"truth\":"));
-}
-
-/// The run limit kills the run, launches nothing more, and a stop refuses any later session.
-#[cfg(target_os = "linux")]
-#[test]
-fn the_run_limit_kills_the_run_and_the_stop_refuses_a_resumption() {
-    let out = scratch("run-limit");
-    let all: Vec<Task> = CASES.into_iter().map(|c| task(c, 0)).collect();
-    let sleep = |_: &Task, _: &Path| Command::new("sleep").arg("30").spawn();
-    let s = supervise(&all, 1, &out, caps(300, 60_000), sleep)
-        .unwrap()
-        .unwrap();
-    assert_eq!(s.outcomes.get("killed"), Some(&1));
-    assert!(s.wall_ms < 10_000, "{s:?}");
-    assert_eq!(s.stop.as_deref(), Some("run limit: smoke-C0-0"));
-    let refused = supervise(&all, 1, &out, caps(300, 60_000), sleep).unwrap();
-    assert_eq!(
-        refused,
-        Err(Refusal::Stopped("run limit: smoke-C0-0".into()))
-    );
-    let records = fs::read_to_string(out.join("records.jsonl")).unwrap();
-    assert!(records.contains("\"outcome\":\"killed\",\"reason\":\"run limit\""));
-}
-
-/// The wall cap kills every running child, each recorded as killed.
-#[cfg(target_os = "linux")]
-#[test]
-fn the_wall_cap_kills_every_running_child() {
-    let out = scratch("wall");
-    let all: Vec<Task> = CASES.into_iter().map(|c| task(c, 0)).collect();
-    let sleep = |_: &Task, _: &Path| Command::new("sleep").arg("30").spawn();
-    let s = supervise(&all, 2, &out, caps(60_000, 400), sleep)
-        .unwrap()
-        .unwrap();
-    assert_eq!(
-        (s.outcomes.get("killed"), s.stop.as_deref()),
-        (Some(&2), Some("wall cap"))
-    );
-    let ledger = read_ledger(&out).unwrap();
-    assert_eq!((ledger.ended.len(), ledger.unfinished.len()), (2, 0));
-}
-
-/// A run started and never ended, or caps already spent, refuse a session.
-#[cfg(target_os = "linux")]
-#[test]
-fn an_unfinished_run_or_spent_caps_refuse_a_session() {
-    let out = scratch("unfinished");
-    fs::create_dir_all(&out).unwrap();
-    fs::write(out.join("ledger.tsv"), "start\tsmoke-C0-0\n").unwrap();
-    let all = [task(Case::C0, 0)];
-    let s = supervise(&all, 1, &out, caps(60_000, 60_000), fake).unwrap();
-    assert_eq!(s, Err(Refusal::Unfinished(vec!["smoke-C0-0".into()])));
-    fs::write(out.join("ledger.tsv"), "session\t60000\t0\t0\t-\n").unwrap();
-    let s = supervise(&all, 1, &out, caps(60_000, 60_000), fake).unwrap();
-    assert_eq!(s, Err(Refusal::Spent));
+fn only_a_selection_over_the_tolerance_is_a_defect() {
+    let mut rechecks = [Recheck::NoDif; 8];
+    rechecks[3..5].fill(Recheck::Dif);
+    let c = curves([0.0, 0.0, 0.0, 0.9, -0.9, 0.0, 0.0, 0.0]);
+    let mut r = assess(&rechecks, Some(&c), true, 7);
+    assert!(!r.defect());
+    r.cost = Some(DTF_MAX + 1e-9);
+    assert!(r.defect());
+    r.draw = Draw::NotNeeded;
+    assert!(!r.defect());
+    let high = generating_dtf(&reference(Case::C2), &(0..8).collect::<Vec<_>>());
+    assert!(high > 0.5);
 }

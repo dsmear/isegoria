@@ -194,15 +194,108 @@ def reference(draws=DRAWS):
     return out
 
 
-def records(path, phase=None):
-    out = []
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            if line.strip():
-                rec = json.loads(line)
-                if phase is None or rec["phase"] == phase:
-                    out.append(rec)
+LEDGER_HEADER = "ledger\ta2-probe/v2"
+SCHEMA = "a2-probe/v1"
+DTF_MAX = 0.10
+OBSERVED = ("read", "refused")
+FIELDS = {"start": 3, "end": 6, "session": 7, "stop": 2}
+
+
+def read_records(d):
+    """Every line of `records.jsonl` as a record, and the numbers of the lines that are not one."""
+    recs, invalid = [], []
+    path = Path(d) / "records.jsonl"
+    text = path.read_text(encoding="utf-8") if path.exists() else ""
+    for n, line in enumerate(text.splitlines(), 1):
+        try:
+            rec = json.loads(line)
+            if not isinstance(rec, dict) or rec.get("schema") != SCHEMA:
+                raise ValueError
+            recs.append(rec)
+        except ValueError:
+            invalid.append(n)
+    return recs, invalid
+
+
+def read_ledger(d):
+    """`ledger.tsv`, strictly: a malformed line raises `ValueError`, it never reads as zero."""
+    path = Path(d) / "ledger.tsv"
+    if not path.exists():
+        return {"started": {}, "ended": {}, "sessions": [], "stop": None}
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if not lines or lines[0] != LEDGER_HEADER:
+        raise ValueError("ledger line 1: not an a2-probe/v2 ledger")
+    out = {"started": {}, "ended": {}, "sessions": [], "stop": None}
+    for n, line in enumerate(lines[1:], 2):
+        f = line.split("\t")
+        if FIELDS.get(f[0]) != len(f):
+            raise ValueError(f"ledger line {n}: unknown or truncated line")
+        num = lambda i: int(f[i]) if f[i].isdigit() else _bad(n, i)
+        if f[0] == "start":
+            if f[1] in out["started"]:
+                raise ValueError(f"ledger line {n}: a run started twice")
+            out["started"][f[1]] = num(2)
+        elif f[0] == "end":
+            if f[1] not in out["started"] or f[1] in out["ended"]:
+                raise ValueError(f"ledger line {n}: an end without its start, or a second end")
+            out["ended"][f[1]] = (f[2], num(3), num(4), f[5])
+        elif f[0] == "session":
+            out["sessions"].append({"wall_ms": num(1), "cpu_ms": num(2), "peak_kib": num(3),
+                                    "max_gap_ms": num(4), "stop": f[5], "provenance": f[6]})
+        else:
+            out["stop"] = f[1]
     return out
+
+
+def _bad(n, i):
+    raise ValueError(f"ledger line {n}: field {i} is not a count")
+
+
+def read_plans(d):
+    plans = {}
+    for path in sorted(Path(d).glob("plan-*.tsv")):
+        rows = [line.split("\t") for line in path.read_text(encoding="utf-8").splitlines()]
+        phase = next((r for r in rows if r[0] == "phase"), None)
+        if phase is None:
+            raise ValueError(f"{path.name}: no phase line")
+        plans[phase[1]] = {"replicates": int(phase[2]),
+                           "tasks": {r[1]: int(r[2]) for r in rows if r[0] == "task"}}
+    return plans
+
+
+def audit(d, phase):
+    """Plan, ledger and records of `phase` compared: duplicates, records missing, inconsistent or
+    unplanned, runs started and never ended, never started. Status complete, partial or invalid."""
+    plans, led = read_plans(d), read_ledger(d)
+    recs, invalid = read_records(d)
+    plan = plans.get(phase, {"replicates": None, "tasks": {}})
+    planned = plan["tasks"]
+    mine = [r for r in recs if r.get("phase") == phase]
+    keys = [r["key"] for r in mine]
+    started = [k for k in led["started"] if k.startswith(phase + "-")]
+    ended = {k: v for k, v in led["ended"].items() if k.startswith(phase + "-")}
+    a = {"phase": phase, "planned": len(planned), "replicates": plan["replicates"], "records": len(mine),
+         "invalid_lines": invalid,
+         "duplicates": sorted({k for k in keys if keys.count(k) > 1}),
+         "unplanned": sorted(set(keys) - set(planned)),
+         "inconsistent": sorted(r["key"] for r in mine if r["key"] in planned and (
+             r.get("seed") != planned[r["key"]]
+             or (r["key"] in ended and ended[r["key"]][0] != r.get("outcome")))),
+         "ended_without_record": sorted(set(ended) - set(keys)),
+         "record_without_end": sorted(set(keys) - set(ended)),
+         "started_not_ended": sorted(set(started) - set(ended)),
+         "never_started": sorted(set(planned) - set(started)),
+         "not_observed": sorted(k for k, v in ended.items() if v[0] not in OBSERVED),
+         "stop": led["stop"]}
+    if not planned and not mine:
+        a["status"] = "empty"
+    elif any(a[k] for k in ("invalid_lines", "duplicates", "unplanned", "inconsistent", "ended_without_record")):
+        a["status"] = "invalid"
+    elif any(a[k] for k in ("record_without_end", "started_not_ended", "never_started", "not_observed", "stop")):
+        a["status"] = "partial"
+    else:
+        a["status"] = "complete"
+    return a
 
 
 def forms_of(rec):
@@ -214,11 +307,11 @@ def forms_of(rec):
     return out
 
 
-def check(path):
-    """Recomputes every generating DTF and raw gap of the records by method B, and every grid
-    value by the 41-node replica; returns the largest differences and the failures."""
+def precision(recs):
+    """Recomputes every generating DTF and raw gap by method B and every grid value by the
+    41-node replica; returns the largest differences and the failures."""
     worst, fails, n = {"dtf": 0.0, "raw_gap": 0.0, "grid": 0.0}, [], 0
-    for rec in records(path):
+    for rec in recs:
         it = of_record(rec)
         full = list(range(rec["design"]["k"]))
         pairs = [("truth.dtf", rec["truth"]["dtf"], dtf(it, full), TOL, "dtf"),
@@ -231,32 +324,58 @@ def check(path):
                 pairs.append((name + ".grid", form["grid"], grid_dtf(it, form["members"]), GRID_TOL, "grid"))
         for name, got, want, tol, kind in pairs:
             n += 1
-            diff = abs(got - want)
+            diff = abs(got - want) if isinstance(got, (int, float)) else math.inf
             worst[kind] = max(worst[kind], diff)
-            if diff > tol:
+            if not diff <= tol:
                 fails.append({"key": rec["key"], "value": name, "harness": got, "oracle": want})
     return {"values": n, "max_diff": worst, "failures": fails, "tol": TOL, "grid_tol": GRID_TOL}
 
 
-def ledger(path):
-    text = Path(path).read_text(encoding="utf-8")
-    rows = [line.split("\t") for line in text.splitlines() if line.strip()]
-    ended = {r[1]: (r[2], int(r[3])) for r in rows if r[0] == "end"}
-    spent = sum(c for _, c in ended.values()) + sum(int(r[2]) for r in rows if r[0] == "session")
-    stop = next((r[1] for r in rows if r[0] == "stop"), None)
-    return ended, spent, stop
+def defects(d, recs):
+    """The blocking defect of §13.11: a returned selection whose cost exceeds `DTF_MAX`, in a
+    record or reported by the supervisor. A generating DTF above the line is not one."""
+    out = [r["key"] for r in recs if "defect" in r or str(r.get("reason", "")).startswith("defect")]
+    for r in recs:
+        for x in r.get("readings", []):
+            if x["draw"]["outcome"] in ("selected", "reduced") and x["cost"] is not None and x["cost"] > DTF_MAX:
+                out.append(f"{r['key']}.{x['source']}")
+    out += [f"rejected/{p.name}" for p in sorted((Path(d) / "rejected").glob("*.json"))]
+    return out
 
 
-def budget(path, cap_ms=CAP_CPU_MS):
+def check(d):
+    """The precision check over every record of `d`, with each phase's audit; it fails when no
+    value is verified, a value departs from the oracle, or an audit is invalid."""
+    recs, _ = read_records(d)
+    phases = sorted({r["phase"] for r in recs} | set(read_plans(d)))
+    audits = [audit(d, p) for p in phases]
+    result = precision(recs)
+    result["audits"] = audits
+    result["passed"] = (result["values"] > 0 and not result["failures"]
+                        and all(a["status"] != "invalid" for a in audits))
+    return result
+
+
+def ledger(d):
+    led = read_ledger(d)
+    ended = {k: (v[0], v[1]) for k, v in led["ended"].items()}
+    spent = sum(v[1] for v in led["ended"].values()) + sum(s["cpu_ms"] for s in led["sessions"])
+    return ended, spent, led["stop"]
+
+
+def budget(d, cap_ms=CAP_CPU_MS):
     """The confirmation's replicates by cost alone: `min(8, ⌊(cap − spent) / (1.5 · Σ c)⌋)`, `c`
     each case's explore run's CPU; refused below 2, after a stop, or with an explore run missing."""
-    ended, spent, stop = ledger(path)
+    try:
+        ended, spent, stop = ledger(d)
+    except ValueError as e:
+        return {"replicates": None, "reason": f"malformed ledger: {e}"}
     if stop:
         return {"replicates": None, "reason": f"stop recorded: {stop}"}
     costs = {}
     for case in CASES:
-        outcome, cpu = ended.get(f"explore-{case}-0", (None, 0))
-        if outcome not in ("read", "refused"):
+        outcome, cpu = ended.get(f"explore-{case}-0", (None, None))
+        if outcome not in OBSERVED:
             return {"replicates": None, "reason": f"explore-{case}-0: {outcome or 'missing'}"}
         costs[case] = cpu
     per_replicate = MARGIN * sum(costs.values())
@@ -272,15 +391,32 @@ def count(xs, pred=bool):
     return sum(1 for x in xs if pred(x))
 
 
-def report(path, phase="confirm"):
-    """Markdown per case: every outcome counted, each metric with its denominator, values per
-    run; no pooled rate, interval or score. Classification against the line needs the check."""
-    recs = records(path, phase)
-    checked = check(path)
-    lines = [f"# A2 probe, phase {phase}", "",
-             f"Precision check: {checked['values']} values, largest differences {checked['max_diff']}, "
-             f"{len(checked['failures'])} failures (tolerance {TOL}, grid {GRID_TOL}).", ""]
-    ok = not checked["failures"]
+def report(d, phase="confirm"):
+    """Markdown per case, each metric with its denominator and values per run; exit code 0 when
+    the phase is complete, 2 when partial (declared), 1 with nothing to analyse or a stop."""
+    try:
+        a = audit(d, phase)
+    except ValueError as e:
+        return f"# A2 probe, phase {phase}\n\nStopped: {e}.\n", 1
+    head = [f"# A2 probe, phase {phase}", "", f"Status: {a['status'].upper()}.",
+            f"Audit: {json.dumps({k: v for k, v in a.items() if k != 'phase'})}", ""]
+    recs = [r for r in read_records(d)[0] if r.get("phase") == phase]
+    if a["status"] in ("empty", "invalid") or not recs:
+        return "\n".join(head + ["Stopped: nothing verifiable to analyse."]) + "\n", 1
+    checked = precision(recs)
+    head.append(f"Precision check: {checked['values']} values, largest differences {checked['max_diff']}, "
+                f"{len(checked['failures'])} failures (tolerance {TOL}, grid {GRID_TOL}).")
+    if checked["failures"]:
+        return "\n".join(head + ["", "Stopped: the precision check failed; no quantitative analysis.",
+                                 json.dumps(checked["failures"], indent=1)]) + "\n", 1
+    found = defects(d, recs)
+    if found:
+        return "\n".join(head + ["", f"Stopped: blocking defect, a returned selection over DTF_MAX: {found}."]) + "\n", 1
+    lines = head + [""]
+    if a["status"] == "partial":
+        lines += [f"PARTIAL: {a['records']} of {a['planned']} planned runs recorded; never started "
+                  f"{len(a['never_started'])}, started and never ended {len(a['started_not_ended'])}, "
+                  f"not observed (killed or failed) {len(a['not_observed'])}, stop {a['stop'] or 'none'}.", ""]
     by = {}
     for rec in recs:
         by.setdefault(rec["case"], []).append(rec)
@@ -311,8 +447,7 @@ def report(path, phase="confirm"):
             for name in ("active", "composed"):
                 fs = [x[name] for x in rd]
                 comp = {c: count(fs, lambda f, c=c: f["completeness"] == c) for c in ("empty", "incomplete", "complete")}
-                sides = ({s: count(fs, lambda f, s=s: side(f["dtf"]) == s) for s in ("below", "near", "above")}
-                         if ok else "not classified: precision check failed")
+                sides = {s: count(fs, lambda f, s=s: side(f["dtf"]) == s) for s in ("below", "near", "above")}
                 lines.append(f"- {source} {name}: {len(fs)} forms of {len(rs)} runs ({len(rs) - len(read)} without a "
                              f"reading); {comp}; sizes {[f['size'] for f in fs]}; against {LINE}: {sides}")
             drawn = [x for x in rd if x["contested"]]
@@ -322,7 +457,7 @@ def report(path, phase="confirm"):
                     outs[x["draw"]["outcome"]] = outs.get(x["draw"]["outcome"], 0) + 1
                 sel = [x for x in drawn if x["selection"] is not None and x["cost"] is not None]
                 lines.append(f"- {source} draws: {len(drawn)} runs with contested items of {len(read)}; {outs}; "
-                             f"cost within {LINE}: {count(sel, lambda x: x['cost'] <= LINE)} of {len(sel)}; "
+                             f"cost within DTF_MAX: {count(sel, lambda x: x['cost'] <= DTF_MAX)} of {len(sel)}; "
                              f"selection generating DTF minus cost: "
                              f"{[round(x['selection']['dtf'] - x['cost'], 4) for x in sel]}")
         cpu = [r["cost"]["cpu_ms"] if r.get("cost") else None for r in rs]
@@ -337,11 +472,11 @@ def report(path, phase="confirm"):
                     pick = lambda x: (x["fit"]["classes"], x["rechecks"].count("D"), x["fixed"]["fitted"])
                     lines.append(f"- {case} r{r['replicate']}: {pick(r)} against C0 {pick(b)}")
         lines.append("")
-    led = Path(path).parent / "ledger.tsv"
-    if led.exists():
-        ended, spent, stop = ledger(led)
-        lines.append(f"Ledger: {len(ended)} runs ended, cumulative CPU {spent} ms, stop {stop or 'none'}.")
-    return "\n".join(lines) + "\n"
+    ended, spent, stop = ledger(d)
+    sessions = read_ledger(d)["sessions"]
+    lines.append(f"Ledger: {len(ended)} runs ended, cumulative CPU {spent} ms, stop {stop or 'none'}; "
+                 f"largest gap between checks per session {[s['max_gap_ms'] for s in sessions]} ms.")
+    return "\n".join(lines) + "\n", (2 if a["status"] == "partial" else 0)
 
 
 def main(argv):
@@ -351,14 +486,21 @@ def main(argv):
     if cmd == "reference":
         print(json.dumps(reference(), indent=1))
     elif cmd == "check":
-        result = check(Path(rest[0]) / "records.jsonl")
+        try:
+            result = check(rest[0])
+        except ValueError as e:
+            sys.exit(f"check stopped: {e}")
         print(json.dumps(result, indent=1))
-        sys.exit(1 if result["failures"] else 0)
+        sys.exit(0 if result["passed"] else 1)
     elif cmd == "budget":
-        print(json.dumps(budget(Path(rest[0]) / "ledger.tsv"), indent=1))
+        result = budget(rest[0])
+        print(json.dumps(result, indent=1))
+        sys.exit(0 if result["replicates"] else 1)
     elif cmd == "report":
         phase = rest[rest.index("--phase") + 1] if "--phase" in rest else "confirm"
-        print(report(Path(rest[0]) / "records.jsonl", phase), end="")
+        text, code = report(rest[0], phase)
+        print(text, end="")
+        sys.exit(code)
     else:
         sys.exit(__doc__)
 

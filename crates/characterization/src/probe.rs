@@ -11,6 +11,7 @@ use protocol::contested::{ContestedPool, DrawError};
 use protocol::lifecycle::{step, Event, State};
 use protocol::pilot::{PilotError, Templates};
 use protocol::revalidation::{latent_batch, target_rechecks, Recheck};
+use scoring::dif::MIXTURE_DIF_MAX;
 use scoring::dtf::{ClassCurves, DTF_MAX};
 use scoring::irt::kr20;
 use scoring::latent::{Formats, LatentDif};
@@ -134,6 +135,30 @@ pub fn tasks(phase: Phase, replicates: u32) -> Vec<Task> {
             })
         })
         .collect()
+}
+
+/// The plan's configuration lines: the record schema, each case's design at `phase`'s scale,
+/// and the engine's constants the probe reads.
+pub fn config_lines(phase: Phase) -> String {
+    let mut out = format!("schema\t{SCHEMA}\n");
+    for case in CASES {
+        let d = case.design(phase);
+        out.push_str(&format!(
+            "design\t{}\t{}\t{}\t{}\t{}\t{:?}\t{:?}\t{:?}\n",
+            case.name(),
+            d.n,
+            d.anchors,
+            d.k,
+            layout_name(d.layout),
+            d.delta,
+            d.impact,
+            d.pi
+        ));
+    }
+    out.push_str(&format!(
+        "constants\t{DTF_MAX:?}\t{MIXTURE_DIF_MAX:?}\t{SPAN:?}\t{PANELS}\n"
+    ));
+    out
 }
 
 /// The population seed of replicate `r`, the same in every case: SHA-256, length-prefixed.
@@ -338,6 +363,13 @@ pub struct Reading {
     pub active: Form,
     pub composed: Form,
     pub selection: Option<Form>,
+}
+
+impl Reading {
+    /// A returned selection whose cost exceeds `DTF_MAX`: a code defect, never a probe result.
+    pub fn defect(&self) -> bool {
+        self.draw.members().is_some() && self.cost.is_some_and(|c| c > DTF_MAX)
+    }
 }
 
 fn item_cid(j: usize) -> Cid {
@@ -770,14 +802,19 @@ pub fn record_of(
             fields.push(("rechecks", J::Str(codes)));
             let (g, c) = (grid.as_ref(), curves.as_ref());
             fields.push(("fixed", form_json(&fixed, &items, g, c)));
-            let readings = [false, true]
+            let assessed: Vec<Reading> = [false, true]
                 .iter()
-                .map(|&verified| {
-                    let r = assess(&rechecks, c, verified, seed);
-                    reading_json(&r, &items, g, c)
-                })
+                .map(|&verified| assess(&rechecks, c, verified, seed))
+                .collect();
+            let readings = assessed
+                .iter()
+                .map(|r| reading_json(r, &items, g, c))
                 .collect();
             fields.push(("readings", J::Arr(readings)));
+            if assessed.iter().any(Reading::defect) {
+                let why = "a returned selection's cost exceeds DTF_MAX";
+                fields.push(("defect", J::Str(why.into())));
+            }
         }
     }
     fields.push(("cost", cost_json(cost())));

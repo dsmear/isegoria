@@ -1,8 +1,12 @@
 //! The A2 probe's command line (`docs/19` §13.11): `plan`, `run` (the supervisor) and `one`
 //! (a single run in its own process, launched by `run`).
 
-use characterization::probe::{run, tasks, Case, Phase, Task};
-use characterization::probe_jobs::{self_cost, supervise, write_part, Caps, Refusal, DECLARED};
+use characterization::probe::{config_lines, run, tasks, Case, Phase, Task};
+use characterization::probe_jobs::{
+    confirm_replicates, planned_replicates, read_ledger, self_cost, supervise, write_part, Caps,
+    Plan, Refusal, DECLARED,
+};
+use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use std::process::{Command, ExitCode, Stdio};
 use std::time::Instant;
@@ -11,25 +15,31 @@ const USAGE: &str = "\
 usage: a2-probe <plan|run|one> [options]
 
   plan   the runs of a phase, in their order
-  run    the runs of a phase, each in its own process, under the caps; records,
-         ledger and parts go to <out>, and a stop or an unfinished run is never
-         resumed automatically
+  run    the runs of a phase, each in its own process, under the caps; plan, records,
+         ledger and parts go to <out>; any stop kills every running child and refuses
+         a later session. Exit 0 when the phase ends, 3 after a stop, 1 if refused
   one    one run (used by run): its record to <out>/parts
 
 options:
   --phase smoke|explore|confirm  (smoke)
-  --replicates R                 (1)
+  --replicates R                 (smoke only; explore runs 1, confirm takes R from the
+                                 cost rule after explore)
   --case C0..C5 --replicate R    (one only)
   --jobs J                       (8)
   --out DIR                      (characterization-results/a2-probe)
   --max-cpu-s S --max-wall-s S --max-run-s S --max-rss-mib M
                                  cumulative caps, docs/19 §13.11's by default
+
+run must start in the repository: it records the candidate from git and refuses
+explore and confirm with uncommitted changes in crates/ or Cargo.lock.
 ";
+
+const ENGINE_BASE: &str = "6274270";
 
 struct Args {
     command: String,
     phase: Phase,
-    replicates: u32,
+    replicates: Option<u32>,
     case: Option<Case>,
     replicate: u32,
     jobs: usize,
@@ -41,7 +51,7 @@ fn parse(mut argv: impl Iterator<Item = String>) -> Result<Args, String> {
     let mut args = Args {
         command: argv.next().ok_or("no command")?,
         phase: Phase::Smoke,
-        replicates: 1,
+        replicates: None,
         case: None,
         replicate: 0,
         jobs: 8,
@@ -56,7 +66,7 @@ fn parse(mut argv: impl Iterator<Item = String>) -> Result<Args, String> {
         };
         match flag.as_str() {
             "--phase" => args.phase = Phase::parse(&value).ok_or("unknown phase")?,
-            "--replicates" => args.replicates = number(&value)? as u32,
+            "--replicates" => args.replicates = Some(number(&value)? as u32),
             "--case" => args.case = Some(Case::parse(&value).ok_or("unknown case")?),
             "--replicate" => args.replicate = number(&value)? as u32,
             "--jobs" => args.jobs = number(&value)? as usize,
@@ -82,55 +92,139 @@ fn one(args: &Args) -> Result<(), String> {
     write_part(&args.out, &task, &record).map_err(|e| e.to_string())
 }
 
-fn supervised(args: &Args) -> Result<(), String> {
+fn git_at(top: Option<&str>, args: &[&str]) -> Result<String, String> {
+    let mut cmd = Command::new("git");
+    if let Some(top) = top {
+        cmd.args(["-C", top]);
+    }
+    let out = cmd
+        .args(args)
+        .output()
+        .map_err(|e| format!("git {args:?}: {e}"))?;
+    if !out.status.success() {
+        return Err(format!("git {args:?} failed"));
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+}
+
+/// `git args` run at the repository's top, whatever the current directory.
+fn git(args: &[&str]) -> Result<String, String> {
+    let top = git_at(None, &["rev-parse", "--show-toplevel"])?;
+    git_at(Some(&top), args)
+}
+
+/// The candidate: the committed trees of `crates/` and `Cargo.lock`, clean unless `smoke`.
+fn candidate(smoke: bool) -> Result<String, String> {
+    let top = git_at(None, &["rev-parse", "--show-toplevel"])?;
+    let engine = Command::new("git")
+        .args(["-C", &top, "diff", "--quiet", ENGINE_BASE, "--"])
+        .args(["crates/scoring", "crates/protocol"])
+        .status()
+        .map_err(|e| e.to_string())?;
+    if !engine.success() {
+        return Err(format!(
+            "crates/scoring or crates/protocol differ from {ENGINE_BASE}"
+        ));
+    }
+    let dirty = !git(&["status", "--porcelain", "--", "crates", "Cargo.lock"])?.is_empty();
+    if dirty && !smoke {
+        return Err("uncommitted changes in crates/ or Cargo.lock".into());
+    }
+    let tree = git(&["rev-parse", "HEAD:crates"])?;
+    let lock = git(&["rev-parse", "HEAD:Cargo.lock"])?;
+    let state = if dirty { "dirty" } else { "clean" };
+    Ok(format!("candidate\t{tree}\t{lock}\t{state}\n"))
+}
+
+fn provenance() -> Result<String, String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    let all = tasks(args.phase, args.replicates);
+    let digest = Sha256::digest(std::fs::read(&exe).map_err(|e| e.to_string())?);
+    let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
+    Ok(format!("head={} exe={hex}", git(&["rev-parse", "HEAD"])?))
+}
+
+fn replicates(args: &Args) -> Result<u32, String> {
+    match (args.phase, args.replicates) {
+        (Phase::Smoke, r) => Ok(r.unwrap_or(1)),
+        (Phase::Explore, None | Some(1)) => Ok(1),
+        (Phase::Explore, Some(_)) => Err("explore runs one replicate".into()),
+        (Phase::Confirm, Some(_)) => Err("confirm takes its replicates from the cost rule".into()),
+        (Phase::Confirm, None) => {
+            if let Some(r) =
+                planned_replicates(&args.out, Phase::Confirm).map_err(|e| e.to_string())?
+            {
+                return Ok(r);
+            }
+            let ledger = read_ledger(&args.out).map_err(|e| e.to_string())?;
+            confirm_replicates(&ledger, args.caps.cpu_ms)
+        }
+    }
+}
+
+fn supervised(args: &Args) -> Result<bool, String> {
+    let r = replicates(args)?;
+    let caps = args.caps;
+    let config = format!(
+        "{}caps\t{}\t{}\t{}\t{}\n{}",
+        candidate(args.phase == Phase::Smoke)?,
+        caps.cpu_ms,
+        caps.wall_ms,
+        caps.run_ms,
+        caps.rss_kib,
+        config_lines(args.phase)
+    );
+    let plan = Plan::new(&config, args.phase, r, tasks(args.phase, r));
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let launch = |task: &Task, out: &std::path::Path| {
-        Command::new(&exe)
-            .args([
-                "one",
-                "--phase",
-                task.phase.name(),
-                "--case",
-                task.case.name(),
-            ])
-            .args(["--replicate", &task.replicate.to_string()])
-            .arg("--out")
-            .arg(out)
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .spawn()
+        let mut cmd = Command::new(&exe);
+        cmd.args([
+            "one",
+            "--phase",
+            task.phase.name(),
+            "--case",
+            task.case.name(),
+        ])
+        .args(["--replicate", &task.replicate.to_string()])
+        .arg("--out")
+        .arg(out)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null());
+        cmd
     };
     eprintln!(
-        "{} runs planned; {} workers; caps {:?}; out {}",
-        all.len(),
+        "{} runs planned ({} replicates); {} workers; caps {caps:?}; out {}",
+        plan.tasks.len(),
+        r,
         args.jobs,
-        args.caps,
         args.out.display()
     );
-    match supervise(&all, args.jobs, &args.out, args.caps, launch) {
-        Ok(Ok(session)) => {
-            eprintln!(
-                "outcomes {:?}, {} already ended; session CPU {} ms, wall {} ms, \
-                 largest sampled resident sum {} KiB; stop: {}",
-                session.outcomes,
-                session.skipped,
-                session.cpu_ms,
-                session.wall_ms,
-                session.peak_rss_kib,
-                session.stop.as_deref().unwrap_or("none")
-            );
-            Ok(())
+    let session = match supervise(&plan, args.jobs, &args.out, caps, &provenance()?, launch) {
+        Ok(Ok(session)) => session,
+        Ok(Err(Refusal::Locked)) => {
+            return Err("refused: another supervisor holds the directory".into())
         }
-        Ok(Err(Refusal::Stopped(reason))) => {
-            Err(format!("refused: the ledger records a stop ({reason})"))
+        Ok(Err(Refusal::Stopped(why))) => {
+            return Err(format!("refused: a stop is recorded ({why})"))
         }
         Ok(Err(Refusal::Unfinished(keys))) => {
-            Err(format!("refused: runs started, never ended: {keys:?}"))
+            return Err(format!("refused: runs never ended: {keys:?}"))
         }
-        Ok(Err(Refusal::Spent)) => Err("refused: the cumulative caps are spent".into()),
-        Err(e) => Err(e.to_string()),
-    }
+        Ok(Err(Refusal::Spent)) => return Err("refused: the cumulative caps are spent".into()),
+        Ok(Err(Refusal::Incompatible(why))) => return Err(format!("refused: {why}")),
+        Err(e) => return Err(format!("stopped on a supervisor error: {e}")),
+    };
+    eprintln!(
+        "outcomes {:?}, {} already ended; session CPU {} ms, wall {} ms, largest sampled \
+         resident sum {} KiB, largest gap between checks {} ms; stop: {}",
+        session.outcomes,
+        session.skipped,
+        session.cpu_ms,
+        session.wall_ms,
+        session.peak_rss_kib,
+        session.max_gap_ms,
+        session.stop.as_deref().unwrap_or("none")
+    );
+    Ok(session.stop.is_none())
 }
 
 fn main() -> ExitCode {
@@ -142,18 +236,19 @@ fn main() -> ExitCode {
         }
     };
     let result = match args.command.as_str() {
-        "plan" => {
-            for task in tasks(args.phase, args.replicates) {
+        "plan" => replicates(&args).map(|r| {
+            for task in tasks(args.phase, r) {
                 println!("{} seed {}", task.key(), task.seed());
             }
-            Ok(())
-        }
+            true
+        }),
         "run" => supervised(&args),
-        "one" => one(&args),
+        "one" => one(&args).map(|()| true),
         _ => Err(format!("unknown command\n\n{USAGE}")),
     };
     match result {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(true) => ExitCode::SUCCESS,
+        Ok(false) => ExitCode::from(3),
         Err(e) => {
             eprintln!("{e}");
             ExitCode::FAILURE

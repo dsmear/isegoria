@@ -297,6 +297,14 @@ above:
   objects; reduced and empty forms recorded as such; an enforceable budget. Made in §13.11 with
   the harness, which this reading does not cover.
 
+Review of `7ce9746` (§13.11's harness), distinct from the reading above:
+
+- **Static review:** the harness's stops and processes, its integrity checks and the analysis's
+  stop conditions found insufficient; corrections asked, made in §13.11 after `7ce9746`.
+- **Astra's executions:** the 10 Python tests of `sim/test_a2_probe.py` at `7ce9746` and
+  reproductions on constructed records. No Rust and no fit.
+- **Not approved:** the execution of the probe; the corrections themselves are not reviewed.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -2161,11 +2169,12 @@ implemented, and the probe is not run.
 ### 13.11 First bounded probe: declaration and harness (not run)
 
 **Status:** declared by Claude Code on `d413516` (`5dbc66e`); Astra's static reading of `5dbc66e`
-accepted the diagnostic setting, not all its inferences (record before §1). Rectified below, with
-the harness implemented — not reviewed. Run in this intervention: the harness's tests, the oracle,
-and the smoke phase, whose `N = 400` the gate refuses, so no fit. No explore or confirm run, no
-probe fit at `N = 3,000`, not the `fitted` test of `contested_facts.rs`. It adopts no policy,
-tolerance, risk level, sample size or resource; A2 stays open and blocking.
+accepted the diagnostic setting, not all its inferences, and the declaration was rectified with the
+harness in `7ce9746`. Astra's review of `7ce9746` found its stops, integrity checks and analysis
+stops insufficient (record before §1); they are corrected below, not reviewed, and the probe's
+execution is not approved. Never run: explore, confirm, a probe fit at `N = 3,000`, the `fitted`
+test of `contested_facts.rs`. It adopts no policy, tolerance, risk level, sample size or resource;
+A2 stays open and blocking.
 
 **Question.** On a few synthetic batches with known truth, what does the current path — latent
 re-check, routing, contested-facts cost, draw — report, and how does it compare with the true DTF
@@ -2181,14 +2190,15 @@ examples of its behaviour, with no validity, coverage or frequency claimed.
 | contested selection | `target_rechecks` → `lifecycle::step` (`Pilot2Batch`, `source_verified` an input, T68) → `ContestedPool::{record, dtf, draw}`, chained before only by `contested_facts.rs`'s `fitted` test on two fixed batches | that chain on generated batches (`probe::assess`) |
 | full composition | none: `blueprint::assemble_test` ignores DTF; no code composes active items and contested facts; what follows `NoBalancedDraw` or `OutOfDomain` is unspecified (`02` §B.7) | none: the probe's forms are harness readings, not a composer |
 
-**Harness (implemented here, not reviewed).** `crates/characterization/src/probe.rs`: cases, seeds,
-the generating DTF, routing, a one-fit pool, forms, the JSON record. `src/probe_jobs.rs`: the
-supervisor. `src/bin/a2-probe.rs`: `plan`, `run`, `one`. `tests/a2_probe.rs`. `sim/a2_probe.py`:
-the oracle, `check`, `budget` and `report`, with `sim/test_a2_probe.py` and the committed
-`sim/a2_probe_reference.json`. Outside them: `run::true_curves` made public, and `network` a
-dependency of `characterization` for `Cid`. Nothing changes in `crates/scoring`, `crates/protocol`,
-the existing studies, seeds, records or summaries. It is study scaffolding, not an operational path
-(§10.4).
+**Harness (not reviewed).** `crates/characterization/src/probe.rs`: cases, seeds, the generating
+DTF, routing, a one-fit pool, forms, the JSON record. `src/probe_jobs.rs`: the supervisor.
+`src/bin/a2-probe.rs`: `plan`, `run`, `one`. `tests/a2_probe.rs` (readings and records) and
+`tests/a2_probe_jobs.rs` (the supervisor). `sim/a2_probe.py`: the oracle, `audit`, `check`, `budget`
+and `report`, with `sim/test_a2_probe.py` and the committed `sim/a2_probe_reference.json`. Outside
+them: `run::true_curves` made public; `network` (for `Cid`) and `libc` (the parent-death signal and
+the lock), already in `Cargo.lock`, dependencies of `characterization`. Nothing changes in
+`crates/scoring`, `crates/protocol`, the existing studies, seeds, records or summaries. It is study
+scaffolding, not an operational path (§10.4).
 
 **Candidate and domain.** Engine and protocol at `6274270`, production defaults (`latent_dif`:
 1–4 classes, both slope alternatives, 4 starts, 41 nodes, shape estimated), `MIXTURE_DIF_MAX = 1.0`,
@@ -2284,7 +2294,7 @@ are diagnostic examples only. "75%" enters no metric; 0.10 is a reference line, 
   draw seed `draw_seed("contested", s, 0)`.
 - *Phases.* Smoke: the plumbing, no fit (run). Explore: `r = 0`, every case at full size, to
   measure cost; its values are not results and are not pooled. Confirm: `r = 0, …, R − 1`.
-- *Replicates, by cost only.* After explore, `budget` sets
+- *Replicates, by cost only.* After explore, the rule sets
   `R = min(8, ⌊(C − S)/(1.5 Σ_c c_c)⌋)`: `C` the CPU cap, `S` the CPU already spent, `c_c` each
   case's explore CPU. No confirmation with `R < 2`, an explore run missing, killed or failed, or a
   stop recorded. No outcome enters the rule.
@@ -2303,44 +2313,77 @@ are diagnostic examples only. "75%" enters no metric; 0.10 is a reference line, 
   (10 ms ticks); the supervisor's own CPU is added; compiling, `check` and `report` are outside.
   Totals are cumulative over the sessions of one output directory (`ledger.tsv`). Memory: each
   run's peak (`VmHWM`) is recorded; the aggregate is the largest sampled sum of the running
-  children's and the supervisor's current resident sets (`VmRSS`, every 100 ms), not a sum of peaks;
+  children's and the supervisor's current resident sets (`VmRSS`, once a loop), not a sum of peaks;
   a spike between samples can be missed.
 - *Caps*, `a2-probe run`'s defaults: 2 CPU-hours, 45 minutes of wall time, 10 minutes a run, 2 GiB
-  aggregate resident. A run past its limit is killed and recorded `killed`, no new run starts, those
-  running finish within the global caps, and a stop is written. A global cap kills every running
-  child, each recorded `killed`, and writes a stop. Records are appended and synced as each run
-  ends; a killed or failed run's record holds the design's truth and its polled cost.
-- *No automatic extension.* A session refuses to start after a recorded stop, with a run started
-  and never ended (as after a killed supervisor), or with the caps spent; there is no retry. Going
-  on needs an explicit act and authorization. Limits: a killed run's CPU is its last sample, at
-  most 100 ms old; a cap can be passed by one sampling interval; children outlive a supervisor
-  killed by a signal, which the next session's refusal reports.
-- *Other stops.* `git diff --quiet 6274270 -- crates/scoring crates/protocol` failing; a harness
-  test or the precision check failing; a returned selection above `DTF_MAX`. No outcome starts,
-  stops or extends the probe; changing a case, the model, a metric or a reading after the results
-  opens a new exploratory iteration with a new phase tag.
+  aggregate resident, cumulative over the sessions of one directory.
+- *What stops a session.* A technical failure — a child exiting with an error, or a record missing,
+  invalid, another run's, or carrying the blocking defect (kept in `rejected/`) — a supervisor
+  error, the run limit or a cap. Any stop starts no new run, kills every running child at once
+  (SIGKILL, then reaped), and only then writes their records, `killed` with the design's truth and
+  the polled cost; the ledger records the stop, and the command exits 3 (1 on a supervisor error or
+  a refusal). A gate refusal (`refused`) and an inconclusive fit (`read`, its items `Indeterminate`)
+  are observations of the probe: they stop nothing.
+- *Supervision.* Each child is spawned with `PR_SET_PDEATHSIG = SIGKILL` and checks its parent
+  before `exec`, so the kernel kills it if the supervisor dies, even by SIGKILL (Linux). A second
+  supervisor on the directory is refused (`flock` on `out/lock`, released at death).
+- *Margin of the sampled checks.* Run limit, CPU, wall and memory are checked once a loop: the
+  100 ms sleep, then the loop's own work — `/proc` reads, collecting ended runs (validating, then
+  appending and syncing record and ledger lines), launching runs. Each session records its largest
+  gap between two checks: 196–198 ms in the stand-in tests where three runs ended in one loop
+  (their syncs), 170 ms in the smoke phase. Within one gap a cap can be passed by up to that gap of
+  wall time, by up to `jobs` times it of CPU (single-threaded children) plus 10 ms a process of
+  tick rounding, and a memory spike shorter than it can be missed; the children's resident sets
+  are read one after another, not at one instant. A killed run's CPU is its last sample.
+- *Integrity.* `plan-<phase>.tsv` holds the configuration — the candidate (`HEAD:crates` and
+  `HEAD:Cargo.lock` tree ids, clean for explore and confirm; `crates/scoring` and `crates/protocol`
+  identical to `6274270`), the caps, the schema, the designs, the constants — and the phase's runs
+  with their seeds. A session refuses another configuration, another plan for the phase, a stop,
+  an unfinished run, spent caps, or a ledger that is not read strictly (header, field counts,
+  counts as integers, each run started once and ended once): never a zero cost. Confirm's `R` is
+  set once after explore by the rule (`confirm_replicates`, cross-checked by `budget`) and fixed in
+  its plan; an explicit `--replicates` is refused. Each session records its provenance, `HEAD` and
+  the executable's SHA-256, not compared.
+- *No automatic extension.* No retry and no resumption after a stop or an unfinished run; going on
+  needs an explicit act and authorization.
+- *Analysis stops.* `audit` compares plan, ledger and records: duplicates, records missing,
+  inconsistent (seed, outcome) or unplanned, runs started and never ended, never started, not
+  observed (killed or failed), the stop. `check` passes only with values verified, no failure and
+  no invalid audit. `report` exits 0 on a complete phase; 2 on a partial one, declared with those
+  counts; 1, without analysis, on an empty or invalid phase, a failed precision check (its
+  diagnostics printed) or the blocking defect — a returned selection whose cost exceeds `DTF_MAX`,
+  in a record, from the supervisor or in `rejected/`. A generating DTF above 0.10 is a result to
+  report, not a defect.
+- *Other stops.* A harness test failing. No outcome starts, stops or extends the probe; changing a
+  case, the model, a metric or a reading after the results opens a new exploratory iteration with
+  a new phase tag.
 
-**Checks run here** (E, on the owner's machine). `cargo test -p characterization --test a2_probe`:
-13 tests — seeds; the generating DTF against the oracle's reference values; routing; reduced, empty
-and failed draws and forms; every outcome's record; the supervisor's run limit, wall cap, failed
-child, resumption and refusals on stand-in children (`true`, `false`, `sleep`). Of these, one test
-calls the real fitter: a smoke batch refused at the gate, and a real `N = 400` fit outside the gate
-read through the harness — plumbing, not an observation of the probe; the others read constructed
-fits. `python3 -m unittest discover -s sim -p test_a2_probe.py`: 10 tests, on constructed records
-and ledgers. The smoke phase, 12 runs, all refused at the gate, in 0.5 s, then `check` on its
-records. `cargo clippy` and `scripts/comment_budget.py` on the changed files. The crate's whole
-suite, 67 tests in 6 min 49 s (debug), all passing: among them `production.rs`'s existing tests fit
-batches of `N = 3,000` with four items — existing checks, not probe runs or observations.
+**Checks run here** (E, on the owner's machine). At `7ce9746`, before correcting, each defect was
+shown by a stand-in or constructed check: a failed child did not stop the launches (outcomes
+`failed` 1, `read` 5, no stop); an invalid record was accepted (`unknown` 2); a supervisor error
+left a child running; two supervisors on one directory wrote 12 records for 6 runs; a ledger's `NaN`
+read as a zero cost and an unknown line was ignored; children survived the supervisor's SIGKILL;
+`check` passed on an empty file; `report` analysed after a failed precision check and passed a
+selection cost of 0.2, declaring no partial phase. By reading, a stop exited 0. After correcting:
+`cargo test -p characterization --test a2_probe --test a2_probe_jobs`, 9 and 16 tests — readings,
+records and the defect on constructed fits, one smoke fit (`N = 400`) outside the gate as plumbing;
+the supervisor on stand-in children (`true`, `false`, `sleep`) and the binary's smoke phase,
+children gone at the first check after the supervisor's SIGKILL. `python3 -m unittest discover -s
+sim -p test_a2_probe.py`, 17 tests on constructed records, plans and ledgers. The smoke phase end to
+end (12 refusals), its resumption, an incompatible reuse and a dirty-tree explore refused, then
+`check` and `report` (complete). `cargo fmt`, `cargo clippy --all-targets` and
+`scripts/comment_budget.py`. Not re-run: the crate's whole suite, whose `production.rs` fits batches
+of `N = 3,000` (run once at `7ce9746`, 67 tests passing).
 
-**Commands.** All exist; only the first two lines were run here, the second into a scratch
-directory.
+**Commands.** All exist. Only the checks of the first line and the smoke phase, into a scratch
+directory, were run. `run` starts from the repository; explore and confirm need a clean commit.
 
 ```
-cargo test -p characterization --test a2_probe; python3 -m unittest discover -s sim -p test_a2_probe.py
+cargo test -p characterization --test a2_probe --test a2_probe_jobs; python3 -m unittest discover -s sim -p test_a2_probe.py
 cargo run --release -p characterization --bin a2-probe -- run --phase smoke --replicates 2 --jobs 4 --out characterization-results/a2-probe-smoke
 cargo run --release -p characterization --bin a2-probe -- run --phase explore --jobs 8 --out characterization-results/a2-probe
 python3 sim/a2_probe.py budget characterization-results/a2-probe
-cargo run --release -p characterization --bin a2-probe -- run --phase confirm --replicates R --jobs 8 --out characterization-results/a2-probe
+cargo run --release -p characterization --bin a2-probe -- run --phase confirm --jobs 8 --out characterization-results/a2-probe
 python3 sim/a2_probe.py check characterization-results/a2-probe
 python3 sim/a2_probe.py report characterization-results/a2-probe --phase confirm
 ```
