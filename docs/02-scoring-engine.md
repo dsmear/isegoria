@@ -368,7 +368,9 @@ parameters. It counts the histogram's `Q − 1` logits less their shift (`Q = 41
 `free_params`): the nominal dimension of the parametrized ability family, not a dimension the
 responses are shown to identify. The count is the same in every candidate of a call, so it
 cancels in the comparisons in exact arithmetic; estimated shape can still change the likelihood
-differences and the selected number of classes (`13` §8.8).
+differences and the selected number of classes (`13` §8.8). `latent_dif_candidates` returns the
+same fit with each candidate the search fitted, from its chosen start, for diagnostics (`19`
+§13.14); it changes no fit or selection.
 
 **Open interpretation (`15` A3, B1–B3).** Whether the responses identify all `Q − 1` directions,
 how weakly the data inform them, what the moment penalty does to fits and mixtures, and how the

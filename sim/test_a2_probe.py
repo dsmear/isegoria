@@ -251,5 +251,72 @@ class Budget(unittest.TestCase):
         self.assertIsNone(P.budget(self.d)["replicates"])
 
 
+def candidate(classes, slopes, gain, status="converged", one_converged=True, dtf=0.0):
+    return {"classes": classes, "non_uniform": slopes, "status": status, "verdict": "bic_not_lower",
+            "log_lik": -1000.0 + gain / 2, "params": 76 + 10 * (classes - 1), "bic": 0.0, "gain": gain,
+            "penalty": 80.0 * (classes - 1), "delta_bic": 80.0 * (classes - 1) - gain,
+            "one_converged": one_converged, "pi": [1.0 / classes] * classes, "counted": classes,
+            "dtf": dtf, "dtf_basis": "counted classes" if classes > 1 else "one counted class"}
+
+
+class Candidates(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = Path(self.tmp.name) / "run"
+        self.d.mkdir()
+        self.first = Path(self.tmp.name) / "first.jsonl"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def make(self, gains=(10.0, 30.0), one_converged=True):
+        firsts, news = [], []
+        for case, gain in zip(("C0", "C3"), gains):
+            rec = record(case, 0)
+            firsts.append(rec)
+            new = json.loads(json.dumps(rec))
+            new.update(key=f"candidates-{case}-0", phase="candidates", cost={"wall_ms": 7, "cpu_ms": 7, "hwm_kib": 2})
+            new["candidates"] = [candidate(1, False, 0.0, one_converged=one_converged),
+                                 candidate(2, False, gain, one_converged=one_converged, dtf=0.3),
+                                 candidate(2, True, gain + 5, one_converged=one_converged)]
+            news.append(new)
+        self.first.write_text("".join(json.dumps(r) + "\n" for r in firsts))
+        write(self.d, news, phase="candidates")
+        return firsts, news
+
+    def test_the_reproduction_check_compares_the_declared_fields_alone(self):
+        self.make()
+        self.assertTrue(P.compare_first(self.d, self.first)["passed"])
+        firsts, news = self.make()
+        news[1]["fit"]["status"] = "max_iters"
+        write(self.d, news, phase="candidates")
+        out = P.compare_first(self.d, self.first)
+        self.assertEqual((out["passed"], out["mismatches"]), (False, [{"key": "candidates-C3-0", "fields": ["fit"]}]))
+        self.first.write_text(json.dumps(firsts[0]) + "\n")
+        self.make()
+        self.first.write_text(json.dumps(firsts[0]) + "\n")
+        self.assertEqual(P.compare_first(self.d, self.first)["missing"], ["candidates-C3-0"])
+
+    def test_variants_are_paired_with_c0_only_where_comparable(self):
+        self.make()
+        text, code = P.candidates_report(self.d, self.first)
+        self.assertEqual(code, 0)
+        self.assertIn("- C3 r0, shared: 20.0", text)
+        self.assertIn("- C3 r0, per-class: 20.0", text)
+        self.assertIn("gain 30.0, penalty 80.0, delta BIC 50.0", text)
+        self.make(one_converged=False)
+        text, code = P.candidates_report(self.d, self.first)
+        self.assertIn("- C3 r0, shared: not comparable (baseline or candidate not converged)", text)
+        self.assertNotIn("- C3 r0, shared: 20.0", text)
+
+    def test_the_candidates_report_stops_when_the_reproduction_fails(self):
+        _, news = self.make()
+        news[0]["rechecks"] = "DNNNNNNN"
+        write(self.d, news, phase="candidates")
+        text, code = P.candidates_report(self.d, self.first)
+        self.assertEqual(code, 1)
+        self.assertIn("Stopped: no candidate is read.", text)
+
+
 if __name__ == "__main__":
     unittest.main()

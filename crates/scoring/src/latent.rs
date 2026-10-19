@@ -916,6 +916,55 @@ pub fn latent_dif_with(
     formats: &Formats,
     lp: &LatentParams,
 ) -> Result<LatentDif, BadFormats> {
+    search(anchors, x, formats, lp, None)
+}
+
+/// How the selection rule treated a candidate (`docs/02` §B.3): the fit returned, a provisional
+/// best later replaced, a mixture not converged, or a converged mixture whose BIC was not lower.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Verdict {
+    Selected,
+    Superseded,
+    NotConverged,
+    BicNotLower,
+}
+
+/// A candidate the search fitted, from its chosen start only (`docs/19` §13.14): the unpenalized
+/// log-likelihood, the BIC's parameter count, the verdict, and `fit` without posterior.
+#[derive(Clone, Debug)]
+pub struct Candidate {
+    pub classes: usize,
+    pub non_uniform: bool,
+    pub status: Convergence,
+    pub log_lik: f64,
+    pub params: usize,
+    pub bic: f64,
+    pub verdict: Verdict,
+    pub fit: LatentDif,
+}
+
+/// [`latent_dif_with`]'s fit, unchanged, with every candidate it fitted, in search order; read
+/// from the search, which this neither repeats nor alters (`docs/19` §13.14).
+pub fn latent_dif_candidates(
+    anchors: &[Vec<f64>],
+    x: &[Vec<f64>],
+    formats: &Formats,
+    lp: &LatentParams,
+) -> Result<(LatentDif, Vec<Candidate>), BadFormats> {
+    let mut seen = Vec::new();
+    let fit = search(anchors, x, formats, lp, Some(&mut seen))?;
+    Ok((fit, seen))
+}
+
+type Seen = (Model, Vec<f64>, f64, Convergence, f64, Option<Verdict>);
+
+fn search(
+    anchors: &[Vec<f64>],
+    x: &[Vec<f64>],
+    formats: &Formats,
+    lp: &LatentParams,
+    mut diag: Option<&mut Vec<Candidate>>,
+) -> Result<LatentDif, BadFormats> {
     let n = x.len();
     let na = anchors.iter().map(Vec::len).min().unwrap_or(0);
     let k = x.iter().map(Vec::len).min().unwrap_or(0);
@@ -967,6 +1016,10 @@ pub fn latent_dif_with(
     let bic1 = bic(&one, nll1);
 
     let mut candidates = vec![(1, false, bic1)];
+    let mut seen: Vec<Seen> = Vec::new();
+    if diag.is_some() {
+        seen.push((one, p1.clone(), nll1, st1, bic1, None));
+    }
     let mut best = (bic1, one, p1.clone(), st1);
     let mut rng = ChaCha8Rng::seed_from_u64(lp.seed);
     for g in 2..=lp.max_classes.max(1) {
@@ -1021,6 +1074,14 @@ pub fn latent_dif_with(
             let (f, p, st) = chosen.expect("at least one start");
             let b = bic(&model, f);
             candidates.push((g, per_class_a, b));
+            if diag.is_some() {
+                let verdict = match st {
+                    Convergence::Converged if b < best.0 => None,
+                    Convergence::Converged => Some(Verdict::BicNotLower),
+                    _ => Some(Verdict::NotConverged),
+                };
+                seen.push((model, p.clone(), f, st, b, verdict));
+            }
             if st == Convergence::Converged && b < best.0 {
                 best = (b, model, p, st);
             }
@@ -1031,8 +1092,55 @@ pub fn latent_dif_with(
     }
 
     let (best_bic, model, p, status) = best;
-    let pi = model.pi(&p);
-    let eta = model.eta(&p);
+    if let Some(out) = diag.as_mut() {
+        let last = seen.iter().rposition(|c| c.5.is_none());
+        for (i, (m, cp, nll, st, b, verdict)) in seen.iter().enumerate() {
+            let verdict = verdict.unwrap_or(if Some(i) == last {
+                Verdict::Selected
+            } else {
+                Verdict::Superseded
+            });
+            out.push(Candidate {
+                classes: m.g,
+                non_uniform: m.per_class_a,
+                status: *st,
+                log_lik: -nll,
+                params: m.free_params(),
+                bic: *b,
+                verdict,
+                fit: assemble(m, cp, *st, bic1 - b, Vec::new(), Vec::new(), &grid, &floors),
+            });
+        }
+    }
+    let (_, _, posterior) = evaluate(&model, &p, &data, &grid, &floors, true);
+    let posterior = posterior.expect("requested");
+    Ok(assemble(
+        &model,
+        &p,
+        status,
+        bic1 - best_bic,
+        candidates,
+        posterior,
+        &grid,
+        &floors,
+    ))
+}
+
+/// The fit of `model` at `p`, as [`latent_dif_with`] returns it.
+#[allow(clippy::too_many_arguments)]
+fn assemble(
+    model: &Model,
+    p: &[f64],
+    status: Convergence,
+    bic_gain: f64,
+    candidates: Vec<(usize, bool, f64)>,
+    posterior: Vec<Vec<f64>>,
+    grid: &Grid,
+    floors: &Floors,
+) -> LatentDif {
+    let (na, k) = (model.na, model.k);
+    let pi = model.pi(p);
+    let eta = model.eta(p);
     let counted: Vec<usize> = (0..model.g).filter(|&g| pi[g] >= MIN_CLASS_SHARE).collect();
     let gap = |idx: &dyn Fn(usize, usize) -> usize, j: usize| -> f64 {
         let vals: Vec<f64> = counted.iter().map(|&g| p[idx(g, j)]).collect();
@@ -1050,12 +1158,11 @@ pub fn latent_dif_with(
     let a_gap: Vec<f64> = (0..k)
         .map(|j| gap(&|g, j| model.item_a_idx(g, j), j))
         .collect();
-    let (_, _, posterior) = evaluate(&model, &p, &data, &grid, &floors, true);
-    let shape = grid.ability(&model, &p);
+    let shape = grid.ability(model, p);
     let floor_of =
         |f: &Option<(usize, f64)>| f.map_or(0.0, |(s, _)| sigmoid(p[model.floor_idx(s)]));
 
-    Ok(LatentDif {
+    LatentDif {
         classes: model.g,
         non_uniform: model.per_class_a,
         pi,
@@ -1076,11 +1183,11 @@ pub fn latent_dif_with(
         item_c: floors.item.iter().map(floor_of).collect(),
         dif,
         a_gap,
-        posterior: posterior.expect("requested"),
-        bic_gain: bic1 - best_bic,
+        posterior,
+        bic_gain,
         candidates,
         status,
-    })
+    }
 }
 
 fn normal(rng: &mut ChaCha8Rng) -> f64 {

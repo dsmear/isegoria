@@ -9,12 +9,14 @@ use network::cid::{cid, Cid};
 use protocol::admission::NullifierSet;
 use protocol::contested::{ContestedPool, DrawError};
 use protocol::lifecycle::{step, Event, State};
-use protocol::pilot::{PilotError, Templates};
-use protocol::revalidation::{latent_batch, target_rechecks, Recheck};
+use protocol::pilot::{admit_anchors, admit_dif_batch, admit_templates, PilotError, Templates};
+use protocol::revalidation::{latent_batch, target_rechecks, Recheck, N_LATENT_MIN};
 use scoring::dif::MIXTURE_DIF_MAX;
 use scoring::dtf::{ClassCurves, DTF_MAX};
 use scoring::irt::kr20;
-use scoring::latent::{Formats, LatentDif};
+use scoring::latent::{
+    latent_dif_candidates, Candidate, Formats, LatentDif, LatentParams, Verdict,
+};
 use scoring::Convergence;
 use sha2::{Digest, Sha256};
 
@@ -64,7 +66,7 @@ impl Case {
         };
         let (n, anchors) = match phase {
             Phase::Smoke => (400, 10),
-            Phase::Explore | Phase::Confirm => (3000, 60),
+            Phase::Explore | Phase::Confirm | Phase::Candidates => (3000, 60),
         };
         DifDesign {
             n,
@@ -84,6 +86,7 @@ pub enum Phase {
     Smoke,
     Explore,
     Confirm,
+    Candidates,
 }
 
 impl Phase {
@@ -92,13 +95,27 @@ impl Phase {
             Phase::Smoke => "smoke",
             Phase::Explore => "explore",
             Phase::Confirm => "confirm",
+            Phase::Candidates => "candidates",
         }
     }
 
     pub fn parse(name: &str) -> Option<Phase> {
-        [Phase::Smoke, Phase::Explore, Phase::Confirm]
-            .into_iter()
-            .find(|p| p.name() == name)
+        [
+            Phase::Smoke,
+            Phase::Explore,
+            Phase::Confirm,
+            Phase::Candidates,
+        ]
+        .into_iter()
+        .find(|p| p.name() == name)
+    }
+
+    /// The cases a phase runs: `candidates` (`docs/19` §13.14) C0, C3 and C5 only.
+    pub fn cases(self) -> &'static [Case] {
+        match self {
+            Phase::Candidates => &[Case::C0, Case::C3, Case::C5],
+            _ => &CASES,
+        }
     }
 }
 
@@ -119,8 +136,12 @@ impl Task {
         )
     }
 
+    /// The population seed: `candidates` reuses confirm's on purpose, the same batches refitted.
     pub fn seed(&self) -> u64 {
-        probe_seed(self.phase, self.replicate)
+        match self.phase {
+            Phase::Candidates => probe_seed(Phase::Confirm, self.replicate),
+            phase => probe_seed(phase, self.replicate),
+        }
     }
 }
 
@@ -128,7 +149,7 @@ impl Task {
 pub fn tasks(phase: Phase, replicates: u32) -> Vec<Task> {
     (0..replicates)
         .flat_map(|replicate| {
-            CASES.into_iter().map(move |case| Task {
+            phase.cases().iter().map(move |&case| Task {
                 phase,
                 case,
                 replicate,
@@ -513,13 +534,150 @@ pub fn gate_and_fit(task: &Task, d: &DifDesign, batch: &DifBatch) -> Result<Late
     )
 }
 
+/// `latent_batch`'s gate, its checks in its order, without the fit: the diagnostic path runs
+/// the same fit through [`latent_dif_candidates`] instead (`docs/19` §13.14).
+pub fn gate(
+    respondents: &NullifierSet,
+    anchors: &[Vec<f64>],
+    responses: &[Vec<f64>],
+    formats: &Formats,
+    templates: &Templates,
+) -> Result<(), PilotError> {
+    let n = respondents.len();
+    let m = responses.first().map_or(0, |row| row.len());
+    admit_dif_batch(m, n, N_LATENT_MIN)?;
+    let mismatch =
+        |rows: usize, respondents: usize| PilotError::RowCountMismatch { rows, respondents };
+    if responses.len() != n {
+        return Err(mismatch(responses.len(), n));
+    }
+    if let Some(row) = responses.iter().find(|row| row.len() != m) {
+        return Err(mismatch(row.len(), m));
+    }
+    if anchors.len() != n {
+        return Err(mismatch(anchors.len(), n));
+    }
+    let k_anchor = anchors.first().map_or(0, Vec::len);
+    if let Some(row) = anchors.iter().find(|row| row.len() != k_anchor) {
+        return Err(mismatch(row.len(), k_anchor));
+    }
+    if formats.anchors.len() != k_anchor || formats.items.len() != m {
+        return Err(PilotError::BadFormats);
+    }
+    admit_templates(templates, k_anchor, m)?;
+    admit_anchors(anchors).map(|_| ())
+}
+
+/// The diagnostic path on `task`'s batch: [`gate`], then `latent_dif`'s fit with its candidates.
+pub fn gate_and_diagnose(
+    task: &Task,
+    d: &DifDesign,
+    batch: &DifBatch,
+) -> Result<(LatentDif, Vec<Candidate>), PilotError> {
+    let formats = Formats::open(d.anchors, d.k);
+    let templates = Templates::none(d.anchors, d.k);
+    gate(
+        &respondents(d.n),
+        &batch.anchors,
+        &batch.x,
+        &formats,
+        &templates,
+    )?;
+    let lp = LatentParams {
+        seed: engine_seed(task.seed()),
+        ..LatentParams::default()
+    };
+    latent_dif_candidates(&batch.anchors, &batch.x, &formats, &lp)
+        .map_err(|_| PilotError::BadFormats)
+}
+
 /// One run: the batch drawn from the task's seed, the gate and fit, then [`record_of`], whose
 /// `cost` is measured once everything else in the record is computed.
 pub fn run(task: &Task, cost: impl FnOnce() -> Option<Cost>) -> String {
     let d = task.case.design(task.phase);
     let batch = dif_batch(&d, task.seed());
+    if task.phase == Phase::Candidates {
+        let diagnosed = gate_and_diagnose(task, &d, &batch);
+        return diagnosed_record(task, &d, &batch, &diagnosed, cost);
+    }
     let gate = gate_and_fit(task, &d, &batch);
     record_of(task, &d, &batch, Outcome::Gate(&gate), cost)
+}
+
+fn verdict_name(v: Verdict) -> &'static str {
+    match v {
+        Verdict::Selected => "selected",
+        Verdict::Superseded => "superseded",
+        Verdict::NotConverged => "not_converged",
+        Verdict::BicNotLower => "bic_not_lower",
+    }
+}
+
+/// Per candidate: its search fields, its classes counted at `MIN_CLASS_SHARE`, and against the
+/// one-class fit `2 Δ log L`, the penalty `Δk ln N` and `Δ BIC`; its whole-form `DTF_F`.
+fn candidates_json(seen: &[Candidate], n: usize, k: usize) -> J {
+    let one = &seen[0];
+    let ln_n = libm::log(n as f64);
+    let all: Vec<usize> = (0..k).collect();
+    J::Arr(
+        seen.iter()
+            .map(|c| {
+                let (dtf, basis) = match ClassCurves::of(&c.fit) {
+                    Ok(curves) if curves.classes() < 2 => (J::Num(0.0), "one counted class"),
+                    Ok(curves) => (J::opt(curves.dtf(&all)), "counted classes"),
+                    Err(_) => (J::Null, "unavailable"),
+                };
+                let counted = c
+                    .fit
+                    .pi
+                    .iter()
+                    .filter(|&&p| p >= scoring::dif::MIN_CLASS_SHARE);
+                J::Obj(vec![
+                    ("classes", J::Int(c.classes as u64)),
+                    ("non_uniform", J::Bool(c.non_uniform)),
+                    ("status", J::Str(status_name(c.status).into())),
+                    ("verdict", J::Str(verdict_name(c.verdict).into())),
+                    ("log_lik", J::Num(c.log_lik)),
+                    ("params", J::Int(c.params as u64)),
+                    ("bic", J::Num(c.bic)),
+                    ("gain", J::Num(2.0 * (c.log_lik - one.log_lik))),
+                    (
+                        "penalty",
+                        J::Num((c.params as f64 - one.params as f64) * ln_n),
+                    ),
+                    ("delta_bic", J::Num(c.bic - one.bic)),
+                    (
+                        "one_converged",
+                        J::Bool(one.status == Convergence::Converged),
+                    ),
+                    ("pi", J::nums(&c.fit.pi)),
+                    ("counted", J::Int(counted.count() as u64)),
+                    ("dtf", dtf),
+                    ("dtf_basis", J::Str(basis.into())),
+                ])
+            })
+            .collect(),
+    )
+}
+
+/// The record of the diagnostic path: [`record_of`]'s fields for the same fit, then every
+/// candidate, then the cost.
+pub fn diagnosed_record(
+    task: &Task,
+    d: &DifDesign,
+    batch: &DifBatch,
+    diagnosed: &Result<(LatentDif, Vec<Candidate>), PilotError>,
+    cost: impl FnOnce() -> Option<Cost>,
+) -> String {
+    let gate = diagnosed
+        .as_ref()
+        .map(|(fit, _)| fit.clone())
+        .map_err(|e| *e);
+    let seen = diagnosed
+        .as_ref()
+        .ok()
+        .map(|(_, seen)| candidates_json(seen, d.n, d.k));
+    record_with(task, d, batch, Outcome::Gate(&gate), seen, cost)
 }
 
 fn status_name(s: Convergence) -> &'static str {
@@ -752,6 +910,17 @@ pub fn record_of(
     outcome: Outcome,
     cost: impl FnOnce() -> Option<Cost>,
 ) -> String {
+    record_with(task, d, batch, outcome, None, cost)
+}
+
+fn record_with(
+    task: &Task,
+    d: &DifDesign,
+    batch: &DifBatch,
+    outcome: Outcome,
+    seen: Option<J>,
+    cost: impl FnOnce() -> Option<Cost>,
+) -> String {
     let items = Items::of(d, batch);
     let grid = true_curves(d, batch);
     let all: Vec<usize> = (0..d.k).collect();
@@ -816,6 +985,9 @@ pub fn record_of(
                 fields.push(("defect", J::Str(why.into())));
             }
         }
+    }
+    if let Some(seen) = seen {
+        fields.push(("candidates", seen));
     }
     fields.push(("cost", cost_json(cost())));
     let mut out = String::new();

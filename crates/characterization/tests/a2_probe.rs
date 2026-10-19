@@ -3,12 +3,17 @@
 
 use characterization::generate::dif_batch;
 use characterization::probe::{
-    assess, generating_dtf, probe_seed, raw_gap, record_of, route, run, stopped_record, tasks,
-    Case, Cost, Draw, Items, Outcome, Phase, Removal, Route, Task,
+    assess, diagnosed_record, gate, generating_dtf, probe_seed, raw_gap, record_of, route, run,
+    stopped_record, tasks, Case, Cost, Draw, Items, Outcome, Phase, Removal, Route, Task,
 };
-use protocol::revalidation::Recheck;
+use identity::nym::Nym;
+use protocol::admission::NullifierSet;
+use protocol::pilot::{PilotError, Templates};
+use protocol::revalidation::{latent_batch, Recheck};
 use scoring::dtf::{ClassCurves, DTF_MAX};
-use scoring::latent::{latent_dif, Ability, Formats, LatentDif};
+use scoring::latent::{
+    latent_dif, latent_dif_candidates, Ability, Formats, LatentDif, LatentParams,
+};
 use scoring::Convergence;
 
 const REF_B: [f64; 8] = [
@@ -279,4 +284,99 @@ fn only_a_selection_over_the_tolerance_is_a_defect() {
     assert!(!r.defect());
     let high = generating_dtf(&reference(Case::C2), &(0..8).collect::<Vec<_>>());
     assert!(high > 0.5);
+}
+
+/// `candidates` refits confirm's batches of C0, C3 and C5 under its own keys (`docs/19` §13.14).
+#[test]
+fn the_candidates_phase_reuses_confirm_s_seeds_under_its_own_keys() {
+    let all = tasks(Phase::Candidates, 8);
+    assert_eq!(all.len(), 24);
+    for t in &all {
+        assert!(matches!(t.case, Case::C0 | Case::C3 | Case::C5));
+        let twin = Task {
+            phase: Phase::Confirm,
+            ..*t
+        };
+        assert_eq!(t.seed(), twin.seed());
+        assert_ne!(t.key(), twin.key());
+        assert_eq!(t.case.design(t.phase), twin.case.design(twin.phase));
+    }
+}
+
+fn respondents(n: usize) -> NullifierSet {
+    let mut set = NullifierSet::new();
+    for i in 0..n {
+        let mut id = [0u8; 32];
+        id[..8].copy_from_slice(&(i as u64).to_le_bytes());
+        set.spend(Nym(id)).unwrap();
+    }
+    set
+}
+
+/// The diagnostic path's gate refuses as `latent_batch` does, error for error, before any fit.
+#[test]
+fn the_diagnostic_gate_refuses_as_the_production_gate() {
+    let d = Case::C3.design(Phase::Confirm);
+    let batch = dif_batch(&d, 7);
+    let (a, x) = (&batch.anchors, &batch.x);
+    let coin: Vec<Vec<f64>> = (0..d.n)
+        .map(|i| {
+            (0..d.anchors)
+                .map(|j| ((i * 7 + j * 13) % 2) as f64)
+                .collect()
+        })
+        .collect();
+    let open = Formats::open(d.anchors, d.k);
+    let none = Templates::none(d.anchors, d.k);
+    let one: Vec<Vec<f64>> = x.iter().map(|r| r[..1].to_vec()).collect();
+    type Refused<'a> = (&'a str, usize, &'a [Vec<f64>], &'a [Vec<f64>], Formats);
+    let cases: Vec<Refused> = vec![
+        ("respondents", 2_999, a, x, open.clone()),
+        ("rows", 3_001, a, x, open.clone()),
+        ("anchor rows", d.n, &a[..d.n - 1], x, open.clone()),
+        ("formats", d.n, a, x, Formats::open(d.anchors + 1, d.k)),
+        ("one item", d.n, a, &one, Formats::open(d.anchors, 1)),
+        ("anchors", d.n, &coin, x, open.clone()),
+    ];
+    for (name, n, anchors, responses, formats) in cases {
+        let templates = Templates::none(formats.anchors.len(), formats.items.len());
+        let ours = gate(&respondents(n), anchors, responses, &formats, &templates);
+        let theirs = latent_batch(&respondents(n), anchors, responses, &formats, &templates, 1);
+        let theirs = theirs
+            .err()
+            .unwrap_or_else(|| panic!("{name}: latent_batch admitted"));
+        assert_eq!(
+            format!("{ours:?}"),
+            format!("{:?}", Err::<(), PilotError>(theirs)),
+            "{name}"
+        );
+    }
+    assert!(gate(&respondents(d.n), a, x, &open, &none).is_ok());
+}
+
+/// The diagnostic record holds the ordinary record of the same fit, then each candidate; one
+/// real smoke fit outside the gate.
+#[test]
+fn the_diagnostic_record_extends_the_ordinary_record_of_the_same_fit() {
+    let t = task(Case::C2, 0);
+    let d = t.case.design(t.phase);
+    let batch = dif_batch(&d, t.seed());
+    let lp = LatentParams {
+        seed: 1,
+        ..LatentParams::default()
+    };
+    let formats = Formats::open(d.anchors, d.k);
+    let diagnosed = latent_dif_candidates(&batch.anchors, &batch.x, &formats, &lp)
+        .map_err(|_| PilotError::BadFormats);
+    let fit = diagnosed.as_ref().map(|(f, _)| f.clone()).map_err(|e| *e);
+    let line = diagnosed_record(&t, &d, &batch, &diagnosed, || None);
+    let base = record_of(&t, &d, &batch, Outcome::Gate(&fit), || None);
+    let (i, j) = (
+        line.find(",\"candidates\":[").unwrap(),
+        line.rfind(",\"cost\":").unwrap(),
+    );
+    assert_eq!(format!("{}{}", &line[..i], &line[j..]), base);
+    assert_eq!(line.matches("\"verdict\":\"selected\"").count(), 1);
+    assert!(line.contains("\"gain\":0.0,\"penalty\":0.0,\"delta_bic\":0.0"));
+    assert!(line.contains("\"dtf_basis\":"));
 }

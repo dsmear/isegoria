@@ -333,6 +333,15 @@ Review of `ee5cf3b` (§13.12, the probe's results), distinct from the reviews ab
   was contested), the whole-form estimate being the zero; the aggregate memory reads 41.6 and
   55.0 MiB (42,568 and 56,356 KiB). The raw artefacts are unchanged.
 
+Static review of `d88853a` (§13.13, the proposal), distinct from the reviews above:
+
+- **Astra's evidence:** the proposal and the pertinent code read. No test and no fit.
+- **Asked:** the experiment declared as exploratory on the first probe's data; readings
+  proportionate both ways; comparisons with a non-converged baseline or candidate kept apart.
+  Made in §13.13 and §13.14.
+- **Owner's authorization:** a bounded, read-only change to `scoring::latent` exposing the
+  candidates already computed, and the harness to record them; not the 24 runs at full size.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -2557,8 +2566,9 @@ objective and separates composition, detection and uncertainty.
 
 ### 13.13 After the probe: composition, detection, uncertainty (proposal, not run)
 
-**Status:** proposed by Claude Code on `ee5cf3b`, after Astra accepted §13.12 (record before §1);
-not reviewed, not run, no code. The adopted direction stands: a guarantee on the whole test (§11;
+**Status:** proposed by Claude Code on `ee5cf3b`, after Astra accepted §13.12; statically reviewed
+by Astra on `d88853a`, rectified after it and implemented in §13.14 (records before §1); not run.
+The adopted direction stands: a guarantee on the whole test (§11;
 `15` A2). Nothing here selects a tolerance, risk level, sample size, policy or calibration, or
 presents extending the contested cost to active items as sufficient.
 
@@ -2607,21 +2617,27 @@ the candidates, not explain it.
 | Needs | a read-only accessor in `scoring::latent` returning every candidate's fit — no change to selection, flags or any output of `latent_dif` — and the harness recording it: a change to `crates/scoring` for the owner to authorize explicitly |
 | Cost, estimated | 24 runs at the confirm costs of these three cases (21–24 s a run): about 9 CPU-minutes, under §13.11's caps and supervisor |
 
-**Possible consequences, with no threshold.**
+**Possible consequences, with no threshold** (rectified after `d88853a`). The experiment is an
+exploratory look at the first probe's own batches, refitted on their seeds: no independent
+confirmation, and every reading below is about those 24 batches.
 
-- C3's candidates separate from C0's on the paired seeds — larger likelihood gains, mixture `DTF_F`
-  near the generating DTF: the signal is in the data and order selection sets it aside. Detection is
-  then the gap — B1–B3's order selection on penalized mixtures, and §11.2 b: a whole-test check
-  would carry every admitted order with its uncertainty, as §12's region does, rather than read the
-  selected one. The BIC would not be retuned on this evidence.
-- C3's candidates resemble C0's: at `N = 3,000` this model's likelihood does not resolve this spread
-  DIF, and a whole-test check must be able to report such a form as not evaluable at this size. The
-  next question would be information against size: a §13.8-type bound for C3-like alternatives, or a
-  declared larger `N`.
+- Comparisons are read only where both the one-class baseline and the candidate converged. A
+  candidate against a non-converged baseline, or a non-converged candidate, is listed apart; its
+  gain is no evidence about the penalty.
+- C3's comparable candidates separate from C0's on the paired seeds — larger likelihood gains,
+  mixture `DTF_F` nearer the generating DTF: the batches carry a between-class signal that the
+  selected order does not show. That does not by itself place the cause in the BIC: the penalty,
+  the moment penalty, the candidates' starts, a candidate at another solution and the search's stop
+  are all on the path. A whole-test check would still need every admitted order with its
+  uncertainty (§11.2 b, as §12's region does); the BIC is not retuned on this evidence.
+- C3's comparable candidates resemble C0's: on these batches the candidates show no signal that
+  C0's do not. That does not show the information absent, nor the model generally unable: other
+  starts, sizes or estimators are untried, and a §13.8-type bound for C3-like alternatives would be
+  a separate question. A whole-test check must still be able to report a form it cannot evaluate.
 - Mixed results, or C5 separated: reported as observed, run by run.
 
-In every case composition and the guarantee's obligations remain open; the experiment locates where
-detection is lost, and supplies no bound.
+In every case composition and the guarantee's obligations remain open; the experiment describes
+where these fits lose the signal, and supplies no bound.
 
 **D38, apart.** The probe showed what the implemented balancing does with sourced facts: in C2 it
 left out every uncompensated one. The open choice is semantic. When a contested fact's class
@@ -2631,3 +2647,71 @@ outside the difference the target constrains. The second needs the target to tel
 knowledge from nuisance, which the responses do not identify: only review and the source check can
 mark it (`01` D44). The choice changes which contrasts the whole-test target counts, not the
 experiment above, and is not taken here.
+
+### 13.14 Candidates' diagnostics: implementation and declaration (not run)
+
+**Status:** implemented by Claude Code on `d88853a` under the owner's authorization (record before
+§1): the read-only change to `scoring::latent` and the harness; not reviewed. Not run: the 24 runs
+at full size, and every other fit at `N = 3,000`. A2 stays open and blocking; D38 is not decided.
+
+**What changes in `scoring::latent`.** `latent_dif_with` now calls the same search with no
+collector; `latent_dif_candidates` calls it with one and returns the identical fit with every
+candidate the search fitted, in its order. Per candidate, from its chosen start (`Candidate`):
+order and slope alternative, status, unpenalized log-likelihood, the BIC's parameter count, BIC,
+`Verdict` (`Selected`, `Superseded`, `NotConverged`, `BicNotLower`, by the current rule) and the
+candidate's parameters as a fit without posterior. The final assembly is factored into one function
+with the same expressions. Search, starts, order of operations, random stream, stops, thresholds,
+selection and flags are untouched, and no fit is added. Limit: the other starts of a candidate are
+not kept, nor candidates the search did not try.
+
+**What the harness adds.** Phase `candidates` in `crates/characterization`: C0, C3 and C5, the 8
+confirm replicates, under keys `candidates-…` and confirm's seeds reused on purpose (`Task::seed`).
+Its run applies `latent_batch`'s gate, its checks in its order (`probe::gate`, built on
+`protocol::pilot`'s public admissions), then `latent_dif_candidates` with `latent_dif`'s settings;
+`protocol` is unchanged. The record is the first probe's record of the same fit, plus a
+`candidates` array: each candidate's fields above, its classes counted at `MIN_CLASS_SHARE`, its
+proportions, `gain = 2 (log L − log L₁)`, `penalty = (k − k₁) ln N`, `delta_bic` and whether the
+one-class fit converged, and its whole-form `DTF_F` — a number, `0` with "one counted class", or
+`null` "unavailable". The candidate check now allows exactly one file to differ from `6274270`,
+`crates/scoring/src/latent.rs`, and only for `candidates` and smoke; explore and confirm still
+require `6274270`'s engine; the plan records that file's blob. Supervisor, audit and stops are the
+reviewed ones. `sim/a2_probe.py` adds `compare-first` and `candidates`.
+
+**Checks run here** (E). `cargo test --release -p characterization --test latent_candidates`, kept
+outside `crates/scoring` so that `latent.rs` stays its only change: 2 tests on four small batches
+(`N` 400–600, no gate) — the diagnostic fit equals the ordinary one in every field, floats by their
+bits; each candidate matches the search's list, its BIC, the rule's verdict; exactly one is
+selected, the returned fit; a mixture was selected in at least one batch. `cargo test --release -p
+scoring --test golden`: its two pinned latent fits (`N = 1,500`) unchanged. `cargo test -p
+characterization --test a2_probe`, 12 tests: the phase's identity and seeds; `probe::gate` refusing
+as `latent_batch` on six refusal branches, error for error, before any fit — the admitted branch
+shown equal by reading only; the diagnostic record equal to the ordinary record of the same fit plus
+its candidates, on one smoke fit outside the gate. `--test a2_probe_jobs`, 19 tests, the supervisor
+unchanged. `python3 -m unittest … test_a2_probe.py`, 21 tests. The smoke phase end to end;
+`candidates` refused on an uncommitted tree and with 4 replicates. `cargo fmt`, `cargo clippy
+--all-targets` (scoring, characterization) and the comment budget. No full suite, fitted test or fit
+at `N = 3,000`.
+
+**Declaration, before any run.**
+
+| Item | Content |
+|---|---|
+| Runs | 24: C0, C3 and C5 at the 8 confirm replicates of §13.12, their seeds; `N = 3,000`, §13.11's design and defaults |
+| Identity | phase `candidates`, its own plan, ledger and records in a new directory; §13.12's evidence is not written to |
+| Reproduction check, binding | `compare-first`: every record's `schema`, seeds, design, items, truth, KR-20, outcome, fit, rechecks, fixed form and readings equal to the first probe's confirm record of its case and replicate; keys, phase, time, memory and candidates excluded. Any difference or missing twin stops the analysis: no candidate is read |
+| Metrics, per run | per candidate: verdict, status, `gain`, `penalty`, `delta_bic`, classes counted, proportions, whole-form `DTF_F` or why none; beside the run's generating DTF |
+| Paired comparison | per two-class variant — shared and per-class slopes, each on its own — the gain minus C0's at the same replicate, only where both baselines and both candidates converged; otherwise listed "not comparable", with no reading of the penalty |
+| Denominators | runs and runs read per case; candidates fitted and converged; comparable pairs per variant |
+| Other stops | the precision check; the audit not complete; the supervisor's stops |
+| Cost, estimated | the first probe's confirm costs for these cases — C0 21.5 s a run (10.9–30.4), C3 22.4 (16.1–28.6), C5 21.1 (12.9–26.5) — give about 520 s, 8.7 CPU-minutes; collecting adds one parameter copy and one assembly per candidate, negligible beside the fit. On 8 workers about 1.5 minutes of wall time if they do not slow one another, no guarantee. Each run's peak near §13.12's 6.6 MiB |
+| Caps, binding | CPU 30 minutes (`--max-cpu-s 1800`), wall 15 minutes (`--max-wall-s 900`), 10 minutes a run, 2 GiB aggregate resident, 8 workers; cumulative in the directory, no extension, any stop refusing a resumption |
+| Not covered | other starts, sizes, models or estimators; frequencies; the BIC's change; D38; any bound |
+
+**Commands, after review and authorization.**
+
+```
+cargo run --release -p characterization --bin a2-probe -- run --phase candidates --jobs 8 --max-cpu-s 1800 --max-wall-s 900 --out characterization-results/a2-candidates
+python3 sim/a2_probe.py check characterization-results/a2-candidates
+python3 sim/a2_probe.py compare-first characterization-results/a2-candidates verification/reports/a2-probe-9511ce1/records.jsonl
+python3 sim/a2_probe.py candidates characterization-results/a2-candidates verification/reports/a2-probe-9511ce1/records.jsonl
+```

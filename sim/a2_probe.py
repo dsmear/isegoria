@@ -1,6 +1,6 @@
-"""A2 probe (`docs/19` §13.11): reference truths, an independent check of the harness's records,
-the cost rule for the confirmation's replicates, and the report. Standard library only:
-`python3 sim/a2_probe.py reference | check DIR | budget DIR | report DIR [--phase P]`."""
+"""A2 probe (`docs/19` §§13.11, 13.14): reference truths, checks of the harness's records, the cost
+rule, the reports. Standard library only: `python3 sim/a2_probe.py reference | check DIR | budget
+DIR | report DIR [--phase P] | compare-first DIR FIRST | candidates DIR FIRST`."""
 import json
 import math
 import random
@@ -493,6 +493,101 @@ def report(d, phase="confirm"):
     return "\n".join(lines) + "\n", (2 if a["status"] == "partial" else 0)
 
 
+COMPARED = ("schema", "seed", "engine_seed", "draw_seed", "design", "items", "truth", "kr20",
+            "outcome", "reason", "fit", "rechecks", "fixed", "readings")
+
+
+def records_at(path):
+    return [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def compare_first(d, first):
+    """Each `candidates` record's fields in `COMPARED` against the first probe's confirm record of
+    its case and replicate, value for value; keys, phase, cost and candidates are left out."""
+    recs = [r for r in read_records(d)[0] if r.get("phase") == "candidates"]
+    twins = {r["key"]: r for r in records_at(first)}
+    out = {"compared": 0, "missing": [], "mismatches": []}
+    for r in recs:
+        twin = twins.get(r["key"].replace("candidates-", "confirm-", 1))
+        if twin is None:
+            out["missing"].append(r["key"])
+            continue
+        out["compared"] += 1
+        fields = [f for f in COMPARED if r.get(f) != twin.get(f)]
+        if fields:
+            out["mismatches"].append({"key": r["key"], "fields": fields})
+    out["passed"] = bool(recs) and not out["missing"] and not out["mismatches"]
+    return out
+
+
+def comparable(c):
+    return c["status"] == "converged" and c["one_converged"]
+
+
+def candidates_report(d, first):
+    """Per case and run, every candidate: verdict, gain and penalty against the one-class fit, its
+    classes and whole-form `DTF_F`; two-class variants paired with C0 only where comparable."""
+    head = ["# A2 probe, candidates (§13.14)", ""]
+    try:
+        a = audit(d, "candidates")
+    except ValueError as e:
+        return "\n".join(head + [f"Stopped: {e}."]) + "\n", 1
+    recs = [r for r in read_records(d)[0] if r.get("phase") == "candidates"]
+    if a["status"] in ("empty", "invalid") or not recs:
+        return "\n".join(head + [f"Stopped: phase {a['status']}."]) + "\n", 1
+    same = compare_first(d, first)
+    checked = precision(recs)
+    head += [f"Status: {a['status'].upper()}; {a['records']} of {a['planned']} planned runs recorded.",
+             f"Reproduction of the first probe: {same['compared']} compared, {len(same['missing'])} missing, "
+             f"{len(same['mismatches'])} with a declared field differing.",
+             f"Precision check: {checked['values']} values, {len(checked['failures'])} failures.", ""]
+    if not same["passed"] or checked["failures"]:
+        return "\n".join(head + ["Stopped: no candidate is read.", json.dumps(same["mismatches"])]) + "\n", 1
+    by = {}
+    for r in recs:
+        by.setdefault(r["case"], {})[r["replicate"]] = r
+    lines = head
+    for case in sorted(by):
+        rs = [by[case][k] for k in sorted(by[case])]
+        read = [r for r in rs if r["outcome"] == "read"]
+        cands = [c for r in read for c in r["candidates"]]
+        lines += [f"## {case}", "",
+                  f"- runs {len(rs)}, read {len(read)}; candidates {len(cands)}, converged "
+                  f"{count(cands, lambda c: c['status'] == 'converged')}; one-class fit converged in "
+                  f"{count(read, lambda r: r['candidates'][0]['status'] == 'converged')} of {len(read)}"]
+        for r in read:
+            lines.append(f"- r{r['replicate']} generating DTF {round(r['truth']['dtf'], 4)}:")
+            for c in r["candidates"]:
+                tag = "comparable" if comparable(c) else "not comparable: baseline or candidate not converged"
+                dtf = "unavailable" if c["dtf"] is None else round(c["dtf"], 4)
+                lines.append(f"  - {c['classes']} class{'es' if c['classes'] > 1 else ''}, "
+                             f"{'per-class' if c['non_uniform'] else 'shared'} slopes: {c['status']}, {c['verdict']}; "
+                             f"gain {round(c['gain'], 2)}, penalty {round(c['penalty'], 2)}, delta BIC "
+                             f"{round(c['delta_bic'], 2)}; counted {c['counted']}, pi {[round(x, 3) for x in c['pi']]}; "
+                             f"DTF_F {dtf} ({c['dtf_basis']}); {tag if c['classes'] > 1 else 'baseline'}")
+        lines.append("")
+    if "C0" in by:
+        lines += ["## Two-class variants paired with C0 by replicate (gain minus C0's gain)", ""]
+        for case in sorted(c for c in by if c != "C0"):
+            for rep in sorted(by[case]):
+                r, b = by[case][rep], by["C0"].get(rep)
+                if b is None or r["outcome"] != "read" or b["outcome"] != "read":
+                    lines.append(f"- {case} r{rep}: no pair (a run without a reading)")
+                    continue
+                for slopes in (False, True):
+                    pick = lambda x: next((c for c in x["candidates"] if c["classes"] == 2 and c["non_uniform"] == slopes), None)
+                    c, c0 = pick(r), pick(b)
+                    name = "per-class" if slopes else "shared"
+                    if c is None or c0 is None:
+                        lines.append(f"- {case} r{rep}, {name}: not fitted in both")
+                    elif comparable(c) and comparable(c0):
+                        lines.append(f"- {case} r{rep}, {name}: {round(c['gain'] - c0['gain'], 2)}")
+                    else:
+                        lines.append(f"- {case} r{rep}, {name}: not comparable (baseline or candidate not converged)")
+        lines.append("")
+    return "\n".join(lines) + "\n", (2 if a["status"] == "partial" else 0)
+
+
 def main(argv):
     if not argv:
         sys.exit(__doc__)
@@ -510,6 +605,14 @@ def main(argv):
         result = budget(rest[0])
         print(json.dumps(result, indent=1))
         sys.exit(0 if result["replicates"] else 1)
+    elif cmd == "compare-first":
+        result = compare_first(rest[0], rest[1])
+        print(json.dumps(result, indent=1))
+        sys.exit(0 if result["passed"] else 1)
+    elif cmd == "candidates":
+        text, code = candidates_report(rest[0], rest[1])
+        print(text, end="")
+        sys.exit(code)
     elif cmd == "report":
         phase = rest[rest.index("--phase") + 1] if "--phase" in rest else "confirm"
         text, code = report(rest[0], phase)

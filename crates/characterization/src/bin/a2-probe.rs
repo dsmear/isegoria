@@ -21,9 +21,9 @@ usage: a2-probe <plan|run|one> [options]
   one    one run (used by run): its record to <out>/parts
 
 options:
-  --phase smoke|explore|confirm  (smoke)
+  --phase smoke|explore|confirm|candidates  (smoke)
   --replicates R                 (smoke only; explore runs 1, confirm takes R from the
-                                 cost rule after explore)
+                                 cost rule after explore, candidates refits confirm's 8)
   --case C0..C5 --replicate R    (one only)
   --jobs J                       (8)
   --out DIR                      (characterization-results/a2-probe)
@@ -113,27 +113,43 @@ fn git(args: &[&str]) -> Result<String, String> {
     git_at(Some(&top), args)
 }
 
-/// The candidate: the committed trees of `crates/` and `Cargo.lock`, clean unless `smoke`.
-fn candidate(smoke: bool) -> Result<String, String> {
-    let top = git_at(None, &["rev-parse", "--show-toplevel"])?;
-    let engine = Command::new("git")
-        .args(["-C", &top, "diff", "--quiet", ENGINE_BASE, "--"])
-        .args(["crates/scoring", "crates/protocol"])
+const DIAGNOSTIC: &str = "crates/scoring/src/latent.rs";
+
+fn unchanged(top: &str, paths: &[&str]) -> Result<bool, String> {
+    Command::new("git")
+        .args(["-C", top, "diff", "--quiet", ENGINE_BASE, "--"])
+        .args(paths)
         .status()
-        .map_err(|e| e.to_string())?;
-    if !engine.success() {
+        .map(|s| s.success())
+        .map_err(|e| e.to_string())
+}
+
+/// The candidate: the committed trees of `crates/`, `Cargo.lock` and the diagnostic file, clean
+/// unless `smoke`; the engine as at `ENGINE_BASE` but for that file, which only `candidates` and
+/// smoke may change.
+fn candidate(phase: Phase) -> Result<String, String> {
+    let top = git_at(None, &["rev-parse", "--show-toplevel"])?;
+    let outside = format!(":(exclude){DIAGNOSTIC}");
+    if !unchanged(&top, &["crates/protocol", "crates/scoring", &outside])? {
         return Err(format!(
-            "crates/scoring or crates/protocol differ from {ENGINE_BASE}"
+            "crates/scoring or crates/protocol differ from {ENGINE_BASE} beyond {DIAGNOSTIC}"
+        ));
+    }
+    let diagnostic = matches!(phase, Phase::Candidates | Phase::Smoke);
+    if !diagnostic && !unchanged(&top, &[DIAGNOSTIC])? {
+        return Err(format!(
+            "{phase:?} runs {ENGINE_BASE}'s engine; {DIAGNOSTIC} differs"
         ));
     }
     let dirty = !git(&["status", "--porcelain", "--", "crates", "Cargo.lock"])?.is_empty();
-    if dirty && !smoke {
+    if dirty && phase != Phase::Smoke {
         return Err("uncommitted changes in crates/ or Cargo.lock".into());
     }
     let tree = git(&["rev-parse", "HEAD:crates"])?;
     let lock = git(&["rev-parse", "HEAD:Cargo.lock"])?;
+    let latent = git(&["rev-parse", &format!("HEAD:{DIAGNOSTIC}")])?;
     let state = if dirty { "dirty" } else { "clean" };
-    Ok(format!("candidate\t{tree}\t{lock}\t{state}\n"))
+    Ok(format!("candidate\t{tree}\t{lock}\t{latent}\t{state}\n"))
 }
 
 fn provenance() -> Result<String, String> {
@@ -148,6 +164,8 @@ fn replicates(args: &Args) -> Result<u32, String> {
         (Phase::Smoke, r) => Ok(r.unwrap_or(1)),
         (Phase::Explore, None | Some(1)) => Ok(1),
         (Phase::Explore, Some(_)) => Err("explore runs one replicate".into()),
+        (Phase::Candidates, None | Some(8)) => Ok(8),
+        (Phase::Candidates, Some(_)) => Err("candidates refits confirm's 8 replicates".into()),
         (Phase::Confirm, Some(_)) => Err("confirm takes its replicates from the cost rule".into()),
         (Phase::Confirm, None) => {
             if let Some(r) =
@@ -166,7 +184,7 @@ fn supervised(args: &Args) -> Result<bool, String> {
     let caps = args.caps;
     let config = format!(
         "{}caps\t{}\t{}\t{}\t{}\n{}",
-        candidate(args.phase == Phase::Smoke)?,
+        candidate(args.phase)?,
         caps.cpu_ms,
         caps.wall_ms,
         caps.run_ms,
