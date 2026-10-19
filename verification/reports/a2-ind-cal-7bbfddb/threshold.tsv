@@ -1,0 +1,10 @@
+schema	a2-ind/v1
+rule	order-statistic	alpha	1/20	strict
+case	C0	planned	100	evaluable	98	k	95	t	3fe98ce17fa53de3	0.7984473698688216
+case	C1	planned	100	evaluable	98	k	95	t	3fe6ece8d4f846e5	0.7164196166579272
+not-evaluable	C0	baseline not converged	2
+not-evaluable	C1	baseline not converged	2
+threshold	3fe98ce17fa53de3	0.7984473698688216
+file	records.jsonl	95fbdab16dd82ff9a4fa381ac35ff1a0a3965f69f4918cab0d03b9d4031285dc
+file	plan-ind-cal.tsv	6fdb495065e6ad719eb50e116bbf9da190e193e530992d859b92055e5a1554f3
+file	ledger.tsv	21960423e31b52db44ccdf66a934038e64e1d91c0a1057022480f453cdf9af0f

@@ -423,6 +423,17 @@ Review of `53f2427` (§13.20), distinct from the reviews above:
   small tests; plan, cost and cumulative caps for the 600 runs (§13.21). No calibration or
   validation run: implementation and budget return to review before any authorization.
 
+Review of `7bbfddb` (§13.21), distinct from the reviews above:
+
+- **Astra's evidence:** the code, the threshold rule and the binding of validation to calibration
+  read; the 36 Python tests run, all passing; the ranks compared with the integer formula for
+  `n` = 0 to 100, no difference; the intervals checked against SciPy, largest difference about
+  `9·10⁻¹⁶`. No Rust and no fit.
+- **Approved:** the calibration alone; `ind-val` is not authorized.
+- **Owner's authorization:** the 200 calibration runs on `7bbfddb` with their caps; `threshold.tsv`
+  written only if the contract, the complete audit and the numerical check pass, its exit code
+  verified (§13.22).
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -3254,7 +3265,8 @@ above; authorization of calibration and then, with `t` committed, of validation.
 ### 13.21 The single-test study: declaration and implementation (not run)
 
 **Status:** declared and implemented by Claude Code on `53f2427`, under the owner's configuration
-and direction (record before §1); not reviewed, not run. The order rule below was fixed before the
+and direction; approved by Astra on `7bbfddb` for the calibration alone (records before §1). The
+calibration ran in §13.22; the validation has not run. The order rule below was fixed before the
 code. No calibration or validation run, no fit at `N = 3,000`. A2 stays open and blocking: this
 study replaces none of the whole-test guarantee's obligations (§13.20, "What this indicator is
 not"). D38 stays apart.
@@ -3418,3 +3430,54 @@ from the records by the validation's reading alone. The freeze check's positive 
 in a scratch repository, not on a real calibration. Costs are estimates from §§13.12–13.19. The
 study's results would hold for these four designs at this size, inside the model's family, with
 none of §11.2's or §12's guarantees.
+
+### 13.22 The single-test study: calibration (run on `7bbfddb`)
+
+**Status:** run by Claude Code on 2026-10-19 on `7bbfddb`, as §13.21 declares, after Astra's
+approval limited to the calibration and the owner's authorization of its 200 runs (record before
+§1). The results are not reviewed; the validation has not run and is not authorized. Evidence:
+**E** the run; **C** the oracle's check, the threshold reading and a recomputation apart from it;
+the records, plan, ledger, threshold and checks in
+[`verification/reports/a2-ind-cal-7bbfddb/`](../verification/reports/a2-ind-cal-7bbfddb/README.md).
+Calibration proportions are not validation results. A2 stays open and blocking; D38 is not
+decided.
+
+**Execution and preconditions.** Candidate checked: `HEAD` = `origin` = `7bbfddb` after a fetch,
+`crates/scoring` and `crates/protocol` identical to `2e2572c`, `crates` and `Cargo.lock` clean, a
+new directory. The authorized command with its caps: exit 0, 200 of 200 runs `read`, no stop.
+`check` exit 0: 2,600 values, largest `|A − B|` `4.3·10⁻¹⁴`; the audit complete, 200 records of
+200. `threshold` exit 0, which it gives only with the declared stage — 100 replicates, the 200
+tasks and seeds, records matching their keys — a complete audit and a passing check; its output
+went to a temporary file, renamed `threshold.tsv` after the exit code was read, with nothing on
+standard error. Run on the frozen copy, `threshold` gives the same file byte for byte.
+
+**Cost, measured.** CPU 4,790.6 s, 79.8 of the 120 minutes; wall time 609.1 s, 10.2 of the 30
+minutes; largest sampled resident sum 54.3 MiB (55,564 KiB), each run's peak 6.2–6.7 MiB; largest
+gap between checks 150 ms; 8 workers. CPU a run, mean and range: C0 23.2 s (10.0–38.4), C1 24.6
+(10.9–39.2), against an estimate of 66–86 CPU-minutes and 9–12 minutes of wall time.
+
+**Threshold** (`threshold.tsv`; `rank-check.txt` recomputes it from the records apart from
+`sim/a2_probe.py`, with the same values). Ranks `k − 3` to `k + 3` around each case's threshold:
+
+| Case | Planned; observed; evaluable | Not evaluable | Zeros of `I` | `k` | `t_c` | Values at ranks `k − 3` … `k + 3` | Equal to `t_c`; above |
+|---|---|---|---|---|---|---|---|
+| C0 | 100; 100; 98 | 2: one-class baseline `max_iters` (r26, r72) | 21 | 95 | 0.7984473698688216 (r67) | 0.6716, 0.7669, 0.7904, **0.7984**, 0.8446, 0.8939, 0.9843 | 1, itself; 3 |
+| C1 | 100; 100; 98 | 2: one-class baseline `max_iters` (r43, r85) | 23 | 95 | 0.7164196166579272 (r65) | 0.6807, 0.6827, 0.7144, **0.7164**, 0.7757, 0.8373, 0.8819 | 1, itself; 3 |
+
+`k = ⌈19 · 99 / 20⌉ = 95` in each case. `t = max(t_C0, t_C1) = 0.7984473698688216` (bits
+`3fe98ce17fa53de3`), C0's. No tie sits at either threshold, so 98 − 95 = 3 values lie above each:
+a property of the rank at `n = 98`, not a false-alarm frequency. The gate refused no batch. The
+four not-evaluable runs are the one-class baselines that did not converge — their shared
+candidates converged, and the rule leaves them out unread. Every shared two-class candidate
+converged and was set aside as "BIC not lower"; the selected fit kept one class in all 200 runs.
+Every zero is the zero of one counted class.
+
+**What is fixed, and what is not known.** The threshold and the data it came from are identified by
+`threshold.tsv` and its three digests, and are frozen when this directory is committed. Nothing is
+known yet about false alarms on new neutral runs or about detections in C3 and C5: that is the
+validation's question, on its own seeds. No rule, rank, seed or metric changed after the result.
+
+**Needs, before any validation.** Review of this calibration; the owner's authorization of
+`ind-val`, run with `--calibration verification/reports/a2-ind-cal-7bbfddb` from a commit whose
+`crates` tree and `Cargo.lock` are this calibration's (`b618aaa`, `e661541`) — the harness refuses
+another configuration — with this directory committed and unmodified.

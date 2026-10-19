@@ -112,9 +112,11 @@ direction of 2026-10-18
   `verification/reports/a2-dtf-check-821f52d/`), its results accepted by Astra on `307530a` as
   bounded diagnostic evidence, with the approved reading recorded in `19`. §13.20 proposes a
   single-test study of the shared-slope candidate's `DTF_F`, reviewed by Astra on `53f2427` and
-  rectified; §13.21 declares the owner's configuration and implements it, not run, its
-  implementation and budget awaiting review. Whatever its result, it is a screening statistic, not
-  §11.2's guarantee or §12's coverage. It closes nothing.
+  rectified; §13.21 declares the owner's configuration and implements it, approved by Astra on
+  `7bbfddb` for the calibration alone. The calibration ran there (§13.22; evidence and the frozen
+  threshold in `verification/reports/a2-ind-cal-7bbfddb/`), its results not reviewed; the
+  validation has not run and is not authorized. Whatever its result, it is a screening statistic,
+  not §11.2's guarantee or §12's coverage. It closes nothing.
 - **Suspended:** implementation of the certifier until its contract decisions are made.
   D38's treatment of pertinent factual-knowledge differences remains to be reconciled explicitly;
   no compensation or admission policy changes through this documentation.
