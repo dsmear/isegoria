@@ -1,0 +1,10 @@
+t = 0.7984473698688216 (3fe98ce17fa53de3)
+C0: {'evaluable': 99, 'flagged': 5, 'zeros': 30, 'not_evaluable': {'candidate not converged': 1}}; equal to the reading: True; equal to t: 0
+C1: {'evaluable': 99, 'flagged': 2, 'zeros': 21, 'not_evaluable': {'baseline not converged': 1}}; equal to the reading: True; equal to t: 0
+C3: {'evaluable': 96, 'flagged': 23, 'zeros': 18, 'not_evaluable': {'baseline not converged': 3, 'candidate not converged': 1}}; equal to the reading: True; equal to t: 0
+C5: {'evaluable': 96, 'flagged': 4, 'zeros': 30, 'not_evaluable': {'baseline not converged': 4}}; equal to the reading: True; equal to t: 0
+C3 against C0: 0.720854377104377; equal to the reading: True
+C3 against C1: 0.7563131313131313; equal to the reading: True
+C5 against C0: 0.47369528619528617; equal to the reading: True
+C5 against C1: 0.5001052188552189; equal to the reading: True
+largest |interval − SciPy|: 1.4e-16

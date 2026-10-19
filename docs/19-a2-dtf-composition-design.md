@@ -434,6 +434,16 @@ Review of `7bbfddb` (§13.21), distinct from the reviews above:
   written only if the contract, the complete audit and the numerical check pass, its exit code
   verified (§13.22).
 
+Review of `185ec93` (§13.22), distinct from the reviews above:
+
+- **Astra's evidence:** the calibration's contract and complete audit verified; `check` rerun on
+  the 2,600 values, passing; `rank-check.txt` reproduced exactly; the three files' digests
+  verified; `threshold.tsv` recomputed and reproduced byte for byte. No Rust and no fit.
+- **Accepted:** the calibration, as the application of the declared rule, not as a validation
+  result.
+- **Owner's authorization:** the 400 validation runs on `185ec93` against the calibration frozen
+  there, with their caps (§13.23).
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -3266,8 +3276,10 @@ above; authorization of calibration and then, with `t` committed, of validation.
 
 **Status:** declared and implemented by Claude Code on `53f2427`, under the owner's configuration
 and direction; approved by Astra on `7bbfddb` for the calibration alone (records before §1). The
-calibration ran in §13.22; the validation has not run. The order rule below was fixed before the
-code. No calibration or validation run, no fit at `N = 3,000`. A2 stays open and blocking: this
+calibration ran in §13.22, and the validation, against it, in §13.23. The order rule below was
+fixed before the code. "No calibration or validation run, no fit at `N = 3,000`", here and under
+the checks below, describes the state at the implementation, on `7bbfddb`. A2 stays open and
+blocking: this
 study replaces none of the whole-test guarantee's obligations (§13.20, "What this indicator is
 not"). D38 stays apart.
 
@@ -3396,7 +3408,8 @@ python3 sim/a2_probe.py ind-val V F
 python3 sim/a2_probe.py ind-val V F --json
 ```
 
-**Checks run here** (E). No calibration or validation run, no fit at `N = 3,000`.
+**Checks run here** (E), at the implementation. No calibration or validation run then, no fit at
+`N = 3,000`.
 
 - `cargo test -p characterization --test a2_probe`: 14 tests, one new — the stages' 200 and 400
   runs, 600 distinct seeds, none of smoke's, explore's or confirm's first 64, `candidates`' or
@@ -3435,8 +3448,9 @@ none of §11.2's or §12's guarantees.
 
 **Status:** run by Claude Code on 2026-10-19 on `7bbfddb`, as §13.21 declares, after Astra's
 approval limited to the calibration and the owner's authorization of its 200 runs (record before
-§1). The results are not reviewed; the validation has not run and is not authorized. Evidence:
-**E** the run; **C** the oracle's check, the threshold reading and a recomputation apart from it;
+§1). Accepted by Astra on `185ec93` as the application of the declared rule, not as a validation
+result (record before §1); the validation ran against it in §13.23. Evidence: **E** the run; **C**
+the oracle's check, the threshold reading and a recomputation apart from it;
 the records, plan, ledger, threshold and checks in
 [`verification/reports/a2-ind-cal-7bbfddb/`](../verification/reports/a2-ind-cal-7bbfddb/README.md).
 Calibration proportions are not validation results. A2 stays open and blocking; D38 is not
@@ -3481,3 +3495,88 @@ validation's question, on its own seeds. No rule, rank, seed or metric changed a
 `ind-val`, run with `--calibration verification/reports/a2-ind-cal-7bbfddb` from a commit whose
 `crates` tree and `Cargo.lock` are this calibration's (`b618aaa`, `e661541`) — the harness refuses
 another configuration — with this directory committed and unmodified.
+
+### 13.23 The single-test study: validation (run on `185ec93`)
+
+**Status:** run by Claude Code on 2026-10-19 on `185ec93`, as §13.21 declares, against the
+calibration frozen there, after Astra's acceptance of the calibration and the owner's authorization
+of the 400 runs (record before §1). The results are not reviewed. Evidence: **E** the run; **C** the
+oracle's check, the declared reading and a recomputation apart from it, its intervals by SciPy; the
+records, plan, ledger, checks and readings in
+[`verification/reports/a2-ind-val-185ec93/`](../verification/reports/a2-ind-val-185ec93/README.md).
+No new threshold, no pooling of cases, no success criterion. A2 stays open and blocking; D38 is not
+decided.
+
+**Execution and preconditions.** Candidate checked: `HEAD` = `origin` = `185ec93` after a fetch;
+its `crates` tree `b618aaa` and `Cargo.lock` `e661541`, the calibration's; `crates/scoring` and
+`crates/protocol` identical to `2e2572c`; `verification/reports/a2-ind-cal-7bbfddb/` committed
+and unmodified before and after; a new directory; the calibration's binary. The authorized
+command: the harness accepted the calibration — frozen, in form, its digests, plan and
+configuration — and bound the plan to it (`calibration`, `threshold.tsv`'s SHA-256
+`34fb80c3…cd840`, bits `3fe98ce17fa53de3`); exit 0, 400 of 400 runs `read`, no stop. `check`
+exit 0: 5,200 values, largest `|A − B|` `4.0·10⁻¹⁴`; the audit complete, 400 records of 400.
+`ind-val` exit 0 as text and as JSON, which it gives only with the declared stage — 400 tasks and
+seeds, records matching their keys — both stages' checks passing, the threshold recomputed from
+the calibration equal to the frozen file byte for byte, the plan bound to it and the two
+configurations alike but for the caps.
+
+**Cost, measured.** CPU 8,553.9 s, 142.6 of the 240 minutes; wall time 1,083.4 s, 18.1 of the 60
+minutes; largest sampled resident sum 53.9 MiB (55,236 KiB), each run's peak 6.2–6.7 MiB; largest
+gap between checks 145 ms; 8 workers. CPU a run, mean and range: C0 21.3 s (7.5–35.8), C1 21.5
+(6.5–34.8), C3 21.3 (9.4–38.9), C5 21.4 (9.7–35.0), against an estimate of 133–173 CPU-minutes
+and 19–24 minutes of wall time. With the calibration: 13,344.5 s CPU (222.4 minutes) of the 6
+hours, 28.2 minutes of wall time of the 90.
+
+**Results, per case** (`ind-val-report.md`, `ind-val.json`; `val-check.txt` recomputes every count,
+zero and share from the records and the frozen threshold, with the same values, and every interval
+by SciPy, within `1.4·10⁻¹⁶`). `t = 0.7984473698688216`; flagged when `I > t`; no value equals `t`.
+
+| Case | Role | Planned; observed; evaluable | Not evaluable, by reason | Flagged | Not flagged | Zeros of `I` |
+|---|---|---|---|---|---|---|
+| C0 | neutral | 100; 100; 99 | 1: candidate `max_iters` (r77) | 5 false alarms | 94 correct non-flags | 30 |
+| C1 | neutral | 100; 100; 99 | 1: baseline `max_iters` (r9) | 2 false alarms | 97 correct non-flags | 21 |
+| C3 | unbalanced | 100; 100; 96 | 4: baseline `max_iters` (r0, r58, r90), candidate `max_iters` (r91) | 23 detections | 73 misses | 18 |
+| C5 | unbalanced | 100; 100; 96 | 4: baseline `max_iters` (r13, r36, r48, r49) | 4 detections | 92 misses | 30 |
+
+| Case | Flagged over evaluable, conditional; 95% | Flagged over planned; 95% | Not evaluable over planned; 95% |
+|---|---|---|---|
+| C0 | 5/99; [0.017, 0.114] | 5/100; [0.016, 0.113] | 1/100; [0.000, 0.054] |
+| C1 | 2/99; [0.002, 0.071] | 2/100; [0.002, 0.070] | 1/100; [0.000, 0.054] |
+| C3 | 23/96; [0.158, 0.337] | 23/100; [0.152, 0.325] | 4/100; [0.011, 0.099] |
+| C5 | 4/96; [0.011, 0.103] | 4/100; [0.011, 0.099] | 4/100; [0.011, 0.099] |
+
+Intervals as declared: Clopper–Pearson, exact two-sided 95%, each marginal; a case's runs taken as
+independent and identically distributed given the frozen `t`, the count binomial; conditional on
+`t` and, over evaluable runs, on their number; no adjustment across the twelve; sampling error in
+these designs, not a guarantee.
+
+**Separation without threshold**, conditional on evaluable runs, ties counted ½ — the share of
+pairs where the unbalanced run's `I` exceeds the neutral one's: C3 against C0, 0.7209 (96 × 99
+pairs); C3 against C1, 0.7563; C5 against C0, 0.4737; C5 against C1, 0.5001.
+
+The false alarms' values: C0 1.375 (r71), 1.053 (r17), 1.048 (r10), 0.954 (r73), 0.870 (r1); C1
+0.984 (r95), 0.801 (r24). Every run kept the one-class fit; every shared candidate but the two not
+converged was set aside as "BIC not lower". The generating DTF spans 0.526–0.662 in C3 and
+0.130–0.158 in C5. The not-evaluable runs are reported apart, as neither passes nor flags.
+
+**Readings, proportionate.**
+
+- *Neutral cases.* 5 false alarms in 99 evaluable C0 runs and 2 in 99 C1 runs, with intervals
+  [0.017, 0.114] and [0.002, 0.071]. α = 0.05 was a nominal target of the rule (§13.21), not a
+  guarantee; these are frequencies in these designs at this `t`.
+- *C3.* 23 detections in 96 evaluable runs, [0.158, 0.337]: at this threshold most C3 runs, 73,
+  are not flagged. Without a threshold a C3 run's `I` exceeds a neutral run's in about 72–76% of
+  pairs. §13.19's paired ordering, 14 of 16, compared each C3 batch with the C0 batch on its seed;
+  on a single test, unpaired, the separation is this one.
+- *C5.* 4 detections in 96 evaluable runs, [0.011, 0.103], against C0's 5 false alarms in 99; the
+  separation, 0.47 and 0.50, does not distinguish C5 from the neutral cases in these runs. This
+  concerns one indicator, one size and one estimator; it does not show the information absent in
+  general.
+- *What does not follow.* No threshold is chosen anew and no case is pooled; no success rule is
+  applied. The frequencies hold for these four synthetic designs at `N = 3,000`, inside the model's
+  family; they are not §11.2's guarantee or §12's coverage, and A2's obligations (§13.6) and the
+  whole-test objective remain.
+
+**Limits.** One calibration and one validation; 100 runs a case; one design and its item laws; the
+default `LatentParams`, the chosen start's solution kept; the indicator chosen after the
+development data (§13.20). No further experiment is started.
