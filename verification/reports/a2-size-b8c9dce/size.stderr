@@ -1,0 +1,4 @@
+    Finished `release` profile [optimized] target(s) in 0.08s
+     Running `target/release/a2-probe run --phase size --jobs 8 --max-cpu-s 7200 --max-wall-s 1800 --max-run-s 600 --max-rss-mib 2048 --out characterization-results/a2-size-b8c9dce`
+64 runs planned (16 replicates); 8 workers; caps Caps { cpu_ms: 7200000, wall_ms: 1800000, run_ms: 600000, rss_kib: 2097152 }; out characterization-results/a2-size-b8c9dce
+outcomes {"read": 64}, 0 already ended; session CPU 1938740 ms, wall 262368 ms, largest sampled resident sum 78028 KiB, largest gap between checks 145 ms; stop: none

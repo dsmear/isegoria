@@ -498,6 +498,14 @@ Review of `355c6b9` (§13.26), distinct from the reviews above:
 - **Owner's direction:** correct both, regressions first, without a fit at full size; the study's
   execution awaits the correction's review. Corrected in §13.26.
 
+Review of `b8c9dce` (§13.26's correction), distinct from the reviews above:
+
+- **Astra's evidence:** a static reading of the Rust and Python diff; the 6 tests of
+  `test_a2_size.py` run, all passing. No Rust execution and no fit.
+- **Accepted:** both corrections, for this experiment; the approval does not concern A2's closure.
+- **Owner's authorization:** one execution of the 64 declared tasks on `b8c9dce`, with their caps
+  (§13.27).
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -3716,7 +3724,7 @@ frozen `t`'s 23, a threshold set on other runs and for both neutral cases.
 
 **Status:** proposed by Claude Code on `efc5494` at the owner's direction; reviewed by Astra on
 `87d6452`, approved for implementation and rectified below (records before §1); implemented in
-§13.26, not run. Exploratory and coarse: it is not a new validation, and
+§13.26 and run in §13.27. Exploratory and coarse: it is not a new validation, and
 its runs never become one. A2 stays open and blocking; D38 stays apart.
 
 **Question, the only one.** Does doubling the respondents improve the separation on a single test,
@@ -3806,10 +3814,10 @@ owner's authorization of the 64 runs.
 ### 13.26 The sample-size study: implementation and declaration (not run)
 
 **Status:** implemented by Claude Code on `87d6452` under Astra's approval of the implementation,
-not of the execution; reviewed by Astra on `355c6b9`, its two findings corrected (records before
-§1), the correction not reviewed. Not run: the 64 fits await review of this
-implementation and the owner's authorization. No fit at `N = 3,000` or 6,000 was run here; only
-batches were generated, without a fit. A2 stays open and blocking; D38 stays apart.
+not of the execution; reviewed by Astra on `355c6b9`, its two findings corrected, the correction
+accepted on `b8c9dce` (records before §1); run in §13.27. At the implementation the 64 fits awaited
+review and the owner's authorization, and no fit at `N = 3,000` or 6,000 was run in this section's
+checks: only batches were generated, without a fit. A2 stays open and blocking; D38 stays apart.
 
 **Design, unchanged from §13.25.** C0 and C3; `N` = 3,000 and 6,000; 16 replicates per size and
 case, 64 fits; 32 new seeds, one per case and replicate, shared by the two sizes alone; the engine
@@ -3896,3 +3904,71 @@ As implemented on `87d6452`:
 
 **Limits.** The cost at 6,000 stays §13.25's estimate, 32–76 CPU-minutes in all, unmeasured on
 this path. The reading is descriptive: 16 replicates a cell, no interval, no threshold.
+
+### 13.27 The sample-size study: result (run on `b8c9dce`)
+
+**Status:** run by Claude Code on 2026-10-19 on `b8c9dce`, once, as §§13.25–13.26 declare, after
+Astra's acceptance of the corrections and the owner's authorization (record before §1). The
+results are not reviewed. Evidence: **E** the run; **C** the oracle's check, the declared reading
+and a recomputation apart from `sim/`; the records, plan, ledger, checks and readings in
+[`verification/reports/a2-size-b8c9dce/`](../verification/reports/a2-size-b8c9dce/README.md).
+Descriptive and coarse: 16 replicates a cell, no interval, threshold or success rule. A2 stays
+open and blocking; D38 is not decided.
+
+**Execution and preconditions.** Candidate checked: `HEAD` = `origin` = `b8c9dce` after a fetch,
+`crates/scoring` and `crates/protocol` identical to `2e2572c`, `crates` and `Cargo.lock` clean, a
+new directory. The authorized command: exit 0, 64 of 64 runs `read`, no stop. `check` exit 0: 832
+values, largest `|A − B|` `1.1·10⁻¹⁴`; the audit complete, 64 of 64. `sim/a2_size.py` exit 0 as
+text and as JSON, which it gives only with the declared 64 tasks and seeds, records matching their
+sizes, the two sizes' runs alike in seed, items and generating DTF, a complete audit and a passing
+check. `size_check.py` recomputes every value below from the records, with the same results.
+
+**Cost, measured.** CPU 1,938.7 s, 32.3 of the 120 minutes; wall time 262.4 s, 4.4 of the 30
+minutes; largest sampled resident sum 76.2 MiB (78,028 KiB); largest gap between checks 145 ms;
+8 workers. At 3,000: 680.4 s for 32 runs, 21.4 s a run in C0 (10.9–34.8) and 21.1 in C3
+(12.5–27.8), each run's peak 6.3–6.5 MiB. At 6,000, first measured on this path here: 1,257.5 s
+for 32 runs, 40.0 s a run in C0 (22.5–56.3) and 38.6 in C3 (16.9–58.0), each run's peak 9.7–10.0
+MiB; per replicate, 1.89 times the CPU at 3,000 as a median (0.61–3.79). §13.25 estimated
+1,270–3,730 s at 6,000 and 32–76 CPU-minutes in all.
+
+**Per size and case** (`I` and its evaluability as in §13.21; every not-evaluable run is a
+one-class baseline not converged; every zero is the zero of one counted class; every run kept the
+one-class fit, and every shared candidate converged and was set aside as "BIC not lower"; C3's
+generating DTF 0.581–0.642, the same at both sizes):
+
+| Size | Case | Planned; observed; evaluable | Not evaluable | Zeros of `I` |
+|---|---|---|---|---|
+| 3,000 | C0 | 16; 16; 15 | 1 (r9) | 2 |
+| 3,000 | C3 | 16; 16; 13 | 3 (r0, r9, r10) | 2 |
+| 6,000 | C0 | 16; 16; 16 | 0 | 4 |
+| 6,000 | C3 | 16; 16; 15 | 1 (r14) | 1 |
+
+**Separation of C3 from C0 on a single test**, the share of C3/C0 pairs at one size where C3's `I`
+exceeds C0's, ties ½:
+
+| Reading | At 3,000 | At 6,000 | 6,000 minus 3,000 |
+|---|---|---|---|
+| Every evaluable run | 0.7385 (13 × 15 pairs, 4 tied) | 0.9417 (15 × 16, 4 tied) | +0.2032 |
+| Replicates evaluable at both sizes, conditional on that subset | 0.7167 (12 × 15, 4 tied) | 1.0 (12 × 15, 0 tied) | +0.2833 |
+
+The common subset leaves out C0's r9 and C3's r0, r9, r10 and r14, each evaluable at one size
+only; it does not remove the exclusions' problem.
+
+**Per replicate, evaluable at both sizes.** C0, 15 replicates: `I` at 6,000 greater in 5, smaller
+in 9, equal in 1; zeros kept in 1, gained in 3, lost in 1, never in 10. C3, 12 replicates: greater
+in 7, smaller in 5; zeros lost in 2, never in 10. Each C3 replicate's placement — the share of the
+same size's C0 runs its `I` exceeds — rose in 9 and stayed in 3 (at 1, the highest, at both
+sizes), against every evaluable C0 run as against the common C0 replicates; none fell. At 6,000
+every C3 `I` but one exceeds every C0 `I` (C0's largest 0.503, C3's smallest positive 0.515); the
+exception is C3's r9, a zero, evaluable at 6,000 only. `size-check.txt` lists `I` per replicate at
+both sizes.
+
+**Reading, descriptive.** On this path and these designs, at 16 replicates a cell, the
+single-test separation of C3 from C0 is higher at 6,000 than at 3,000 on both readings, and no C3
+placement fell. The values moved on both sides: C3's `I` rose in 7 of 12 replicates and fell in
+5; C0's fell in 9 of 15, with more zeros. No cause is isolated — the added respondents, the
+numerical search, the indicator's construction and the variability between replicates are not
+separated here — and no interval is drawn. Which of §13.25's readings this resembles is for the
+review. Nothing here sets a threshold at 6,000, carries 0.7984, measures an operational rate, or
+says anything about C1, C5 or other sizes; a later step would need its own declaration. A2's
+obligations (§13.6) and the whole-test objective remain open in any case.

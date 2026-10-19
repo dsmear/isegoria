@@ -1,0 +1,395 @@
+{
+ "sizes": {
+  "3000/C0": {
+   "planned": 16,
+   "observed": 16,
+   "evaluable": 15,
+   "not_evaluable": {
+    "baseline not converged": 1
+   },
+   "zeros": 2,
+   "zero_bases": [
+    "one counted class"
+   ],
+   "selected": {
+    "1 converged": 15,
+    "1 max_iters": 1
+   },
+   "shared": {
+    "converged bic_not_lower": 16
+   }
+  },
+  "3000/C3": {
+   "planned": 16,
+   "observed": 16,
+   "evaluable": 13,
+   "not_evaluable": {
+    "baseline not converged": 3
+   },
+   "zeros": 2,
+   "zero_bases": [
+    "one counted class"
+   ],
+   "selected": {
+    "1 converged": 13,
+    "1 max_iters": 3
+   },
+   "shared": {
+    "converged bic_not_lower": 16
+   }
+  },
+  "6000/C0": {
+   "planned": 16,
+   "observed": 16,
+   "evaluable": 16,
+   "not_evaluable": {},
+   "zeros": 4,
+   "zero_bases": [
+    "one counted class"
+   ],
+   "selected": {
+    "1 converged": 16
+   },
+   "shared": {
+    "converged bic_not_lower": 16
+   }
+  },
+  "6000/C3": {
+   "planned": 16,
+   "observed": 16,
+   "evaluable": 15,
+   "not_evaluable": {
+    "baseline not converged": 1
+   },
+   "zeros": 1,
+   "zero_bases": [
+    "one counted class"
+   ],
+   "selected": {
+    "1 converged": 15,
+    "1 max_iters": 1
+   },
+   "shared": {
+    "converged bic_not_lower": 16
+   }
+  }
+ },
+ "all": {
+  "3000": {
+   "separation": 0.7384615384615385,
+   "pairs": 195,
+   "tied_pairs": 4,
+   "C3": 13,
+   "C0": 15,
+   "why": null
+  },
+  "6000": {
+   "separation": 0.9416666666666667,
+   "pairs": 240,
+   "tied_pairs": 4,
+   "C3": 15,
+   "C0": 16,
+   "why": null
+  },
+  "difference": 0.20320512820512815
+ },
+ "common": {
+  "3000": {
+   "separation": 0.7166666666666667,
+   "pairs": 180,
+   "tied_pairs": 4,
+   "C3": 12,
+   "C0": 15,
+   "why": null
+  },
+  "6000": {
+   "separation": 1.0,
+   "pairs": 180,
+   "tied_pairs": 0,
+   "C3": 12,
+   "C0": 15,
+   "why": null
+  },
+  "difference": 0.2833333333333333
+ },
+ "replicates": {
+  "C0": {
+   "common": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "I_6000_against_3000": {
+    "greater": 5,
+    "smaller": 9,
+    "equal": 1
+   },
+   "zeros": {
+    "positive\u2192zero": 3,
+    "zero\u2192positive": 1,
+    "positive\u2192positive": 10,
+    "zero\u2192zero": 1
+   },
+   "why": null,
+   "evaluable_at_one_size": {
+    "9": [
+     6000
+    ]
+   }
+  },
+  "C3": {
+   "common": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    11,
+    12,
+    13,
+    15
+   ],
+   "I_6000_against_3000": {
+    "greater": 7,
+    "smaller": 5,
+    "equal": 0
+   },
+   "zeros": {
+    "positive\u2192positive": 10,
+    "zero\u2192positive": 2
+   },
+   "why": null,
+   "evaluable_at_one_size": {
+    "0": [
+     6000
+    ],
+    "9": [
+     6000
+    ],
+    "10": [
+     6000
+    ],
+    "14": [
+     3000
+    ]
+   }
+  }
+ },
+ "placements": {
+  "every evaluable C0": {
+   "C3": 12,
+   "references": {
+    "3000": 15,
+    "6000": 16
+   },
+   "moves": {
+    "rise": 9,
+    "fall": 0,
+    "same": 3,
+    "not available": 0
+   },
+   "rows": [
+    {
+     "replicate": 1,
+     "3000": 0.7333333333333333,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 2,
+     "3000": 0.6,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 3,
+     "3000": 0.6,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 4,
+     "3000": 0.06666666666666667,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 5,
+     "3000": 0.8,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 6,
+     "3000": 1.0,
+     "6000": 1.0,
+     "move": "same",
+     "why": null
+    },
+    {
+     "replicate": 7,
+     "3000": 0.8666666666666667,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 8,
+     "3000": 1.0,
+     "6000": 1.0,
+     "move": "same",
+     "why": null
+    },
+    {
+     "replicate": 11,
+     "3000": 0.9333333333333333,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 12,
+     "3000": 0.9333333333333333,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 13,
+     "3000": 0.06666666666666667,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 15,
+     "3000": 1.0,
+     "6000": 1.0,
+     "move": "same",
+     "why": null
+    }
+   ],
+   "why": null
+  },
+  "the common C0": {
+   "C3": 12,
+   "references": {
+    "3000": 15,
+    "6000": 15
+   },
+   "moves": {
+    "rise": 9,
+    "fall": 0,
+    "same": 3,
+    "not available": 0
+   },
+   "rows": [
+    {
+     "replicate": 1,
+     "3000": 0.7333333333333333,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 2,
+     "3000": 0.6,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 3,
+     "3000": 0.6,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 4,
+     "3000": 0.06666666666666667,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 5,
+     "3000": 0.8,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 6,
+     "3000": 1.0,
+     "6000": 1.0,
+     "move": "same",
+     "why": null
+    },
+    {
+     "replicate": 7,
+     "3000": 0.8666666666666667,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 8,
+     "3000": 1.0,
+     "6000": 1.0,
+     "move": "same",
+     "why": null
+    },
+    {
+     "replicate": 11,
+     "3000": 0.9333333333333333,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 12,
+     "3000": 0.9333333333333333,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 13,
+     "3000": 0.06666666666666667,
+     "6000": 1.0,
+     "move": "rise",
+     "why": null
+    },
+    {
+     "replicate": 15,
+     "3000": 1.0,
+     "6000": 1.0,
+     "move": "same",
+     "why": null
+    }
+   ],
+   "why": null
+  }
+ }
+}
