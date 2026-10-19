@@ -4,6 +4,7 @@
 pub mod generate;
 pub mod grid;
 pub mod probe;
+pub mod probe_calibration;
 pub mod probe_jobs;
 pub mod record;
 pub mod run;

@@ -1,10 +1,13 @@
-"""A2 probe (`docs/19` §§13.11, 13.14, 13.18): reference truths, record checks, the cost rule and
-the reports. Standard library: `python3 sim/a2_probe.py reference | check DIR | budget DIR | report
-DIR [--phase P] | compare-first DIR FIRST | candidates DIR FIRST | dtf-check DIR [--json]`."""
+"""A2 probe (`docs/19` §§13.11–13.21): truths, checks, cost rule, reports; standard library only.
+`python3 sim/a2_probe.py reference | check D | budget D | report D [--phase P] | compare-first D F |
+candidates D F | dtf-check D [--json] | threshold D | ind-val D CAL [--json]`."""
+import hashlib
 import json
 import math
 import random
+import struct
 import sys
+from fractions import Fraction
 from pathlib import Path
 from statistics import NormalDist, median
 
@@ -710,6 +713,223 @@ def paired_dtf(d, phase, pairs):
     return "\n".join(lines) + "\n", summary, 0
 
 
+IND_REPLICATES = 100
+IND_ALPHA = Fraction(1, 20)
+IND_CASES = {"ind-cal": ("C0", "C1"), "ind-val": ("C0", "C1", "C3", "C5")}
+NEUTRAL = ("C0", "C1")
+CAL_FILES = ("records.jsonl", "plan-ind-cal.tsv", "ledger.tsv")
+
+
+def probe_seed(phase, r):
+    """The harness's `probe_seed` (`docs/19` §13.11); `case_seed` adds the case (§13.21)."""
+    return seed_of(phase, r)
+
+
+def case_seed(phase, case, r):
+    return seed_of(phase, r, case)
+
+
+def seed_of(phase, r, case=None):
+    h = hashlib.sha256(b"isegoria/a2-probe/v1")
+    for name in (phase, case) if case else (phase,):
+        h.update(struct.pack("<Q", len(name)) + name.encode())
+    h.update(struct.pack("<I", r))
+    return struct.unpack("<Q", h.digest()[:8])[0]
+
+
+def bits(x):
+    return f"{struct.unpack('<Q', struct.pack('<d', x))[0]:016x}"
+
+
+def sha256(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def indicator(rec):
+    """`docs/19` §13.21's `I` for one run: the shared two-class candidate's `DTF_F`, or the
+    observation that leaves the run not evaluable."""
+    if rec.get("outcome") != "read":
+        return None, "gate refused" if rec.get("outcome") == "refused" else f"run {rec.get('outcome')}"
+    if rec["candidates"][0]["status"] != "converged":
+        return None, "baseline not converged"
+    c = next((x for x in rec["candidates"] if x["classes"] == 2 and not x["non_uniform"]), None)
+    if c is None:
+        return None, "candidate missing"
+    if c["status"] != "converged":
+        return None, "candidate not converged"
+    return (c["dtf"], None) if c["dtf"] is not None else (None, "DTF unavailable")
+
+
+def rank(n):
+    """The order statistic's rank `⌈(1 − α)(n + 1)⌉` among `n` values, or `None` above `n`."""
+    k = math.ceil((1 - IND_ALPHA) * (n + 1))
+    return k if k <= n else None
+
+
+def case_threshold(values):
+    k = rank(len(values))
+    return (k, sorted(values)[k - 1]) if k else (None, None)
+
+
+def listed(keys):
+    keys = sorted(keys)
+    return f"{len(keys)} {keys[:4]}{' …' if len(keys) > 4 else ''}"
+
+
+def stage_reasons(d, phase):
+    """Why `d` does not hold §13.21's `phase` exactly: its replicates, tasks and seeds, records
+    matching their keys, a complete audit. Empty when it does."""
+    a = audit(d, phase)
+    plan = read_plans(d).get(phase, {"replicates": None, "tasks": {}})
+    tasks = plan["tasks"]
+    want = {f"{phase}-{c}-{r}": case_seed(phase, c, r) for c in IND_CASES[phase] for r in range(IND_REPLICATES)}
+    why = []
+    if plan["replicates"] != IND_REPLICATES:
+        why.append(f"the plan declares {plan['replicates']} replicates, not {IND_REPLICATES}")
+    if set(tasks) != set(want):
+        why.append(f"the plan's tasks are not the {len(want)} declared: missing {listed(set(want) - set(tasks))}, "
+                   f"unexpected {listed(set(tasks) - set(want))}")
+    wrong = [k for k in set(tasks) & set(want) if tasks[k] != want[k]]
+    if wrong:
+        why.append(f"seeds not the declared ones: {listed(wrong)}")
+    off = [str(r.get("key")) for r in read_records(d)[0]
+           if (r.get("phase") == phase or str(r.get("key")).startswith(phase + "-"))
+           and (r.get("phase") != phase or r.get("key") not in want
+                or r.get("key") != f"{phase}-{r.get('case')}-{r.get('replicate')}")]
+    if off:
+        why.append(f"records not matching their key's phase, case and replicate: {listed(off)}")
+    if a["status"] != "complete":
+        why.append(f"the audit is {a['status']}, {a['records']} records of {a['planned']} planned")
+    return why
+
+
+def read_stage(d, phase):
+    """The stage's records by case, after its contract and the numerical check; else the reasons."""
+    try:
+        why = stage_reasons(d, phase)
+    except ValueError as e:
+        why = [str(e)]
+    if why:
+        return None, why
+    recs = [r for r in read_records(d)[0] if r.get("phase") == phase]
+    checked = precision(recs)
+    if checked["failures"] or not checked["values"]:
+        return None, [f"the numerical check fails on {phase}: {len(checked['failures'])} failures"]
+    return {c: sorted((r for r in recs if r["case"] == c), key=lambda r: r["replicate"]) for c in IND_CASES[phase]}, []
+
+
+def calibrate(d):
+    """`docs/19` §13.21's calibration reading: the text of `threshold.tsv`, or why none is set."""
+    by_case, why = read_stage(d, "ind-cal")
+    if why:
+        return None, why
+    lines, lost, ts = ["schema\ta2-ind/v1", "rule\torder-statistic\talpha\t1/20\tstrict"], [], []
+    for case in NEUTRAL:
+        seen = [indicator(r) for r in by_case[case]]
+        values = [v for v, _ in seen if v is not None]
+        k, t = case_threshold(values)
+        if k is None:
+            return None, [f"{case}: {len(values)} evaluable runs give no finite threshold (19 needed)"]
+        lines.append(f"case\t{case}\tplanned\t{IND_REPLICATES}\tevaluable\t{len(values)}\tk\t{k}\tt\t{bits(t)}\t{t!r}")
+        for reason in sorted({w for _, w in seen if w}):
+            lost.append(f"not-evaluable\t{case}\t{reason}\t{sum(w == reason for _, w in seen)}")
+        ts.append(t)
+    t = max(ts)
+    lines += lost + [f"threshold\t{bits(t)}\t{t!r}"] + [f"file\t{f}\t{sha256(Path(d) / f)}" for f in CAL_FILES]
+    return "\n".join(lines) + "\n", []
+
+
+def clopper_pearson(k, n, level=0.95):
+    """The exact two-sided interval for `k` events in `n` binomial trials; `None` when `n = 0`."""
+    if n == 0:
+        return None
+    tail = (1 - level) / 2
+
+    def solve(j, target):
+        lo, hi = 0.0, 1.0
+        for _ in range(100):
+            mid = (lo + hi) / 2
+            above = sum(math.comb(n, i) * mid ** i * (1 - mid) ** (n - i) for i in range(j, n + 1))
+            lo, hi = (mid, hi) if above < target else (lo, mid)
+        return (lo + hi) / 2
+    return 0.0 if k == 0 else solve(k, tail), 1.0 if k == n else solve(k + 1, 1 - tail)
+
+
+def separation(high, low):
+    """The share of pairs where a value of `high` exceeds one of `low`, ties counted ½."""
+    if not high or not low:
+        return None
+    return sum((a > b) + 0.5 * (a == b) for a in high for b in low) / (len(high) * len(low))
+
+
+def ci(c):
+    return "none" if c is None else f"[{c[0]:.3f}, {c[1]:.3f}]"
+
+
+def config_of(path):
+    text = Path(path).read_text(encoding="utf-8")
+    lines = text.splitlines()
+    end = next((i for i, l in enumerate(lines) if l.startswith("phase\t")), len(lines))
+    return lines[:end]
+
+
+def ind_val(d, cal):
+    """`docs/19` §13.21's validation reading against the frozen calibration `cal`, per case."""
+    def stop(why):
+        return "# A2 single-test study, validation (§13.21)\n\nStopped, not read: " + "; ".join(why) + ".\n", None, 1
+    by_case, why = read_stage(d, "ind-val")
+    if why:
+        return stop(why)
+    frozen = Path(cal) / "threshold.tsv"
+    if not frozen.is_file():
+        return stop(["no threshold.tsv in the calibration"])
+    tsv, why = calibrate(cal)
+    if why:
+        return stop(["the calibration: " + "; ".join(why)])
+    if tsv.encode() != frozen.read_bytes():
+        return stop(["threshold.tsv is not the threshold the calibration gives"])
+    t_bits = next(l for l in tsv.splitlines() if l.startswith("threshold\t")).split("\t")[1]
+    t = struct.unpack("<d", struct.pack("<Q", int(t_bits, 16)))[0]
+    own, theirs = config_of(Path(d) / "plan-ind-val.tsv"), config_of(Path(cal) / "plan-ind-cal.tsv")
+    if f"calibration\t{sha256(frozen)}\t{t_bits}" not in own:
+        return stop(["the validation plan is not bound to this threshold"])
+    if [l for l in own if not l.startswith(("caps\t", "calibration\t"))] != [l for l in theirs if not l.startswith("caps\t")]:
+        return stop(["the two stages ran different configurations"])
+    summary, values = {"threshold": {"bits": t_bits, "value": t}, "cases": {}, "separation": {}}, {}
+    lines = ["# A2 single-test study, validation (§13.21)", "", f"Threshold `t` = {t!r} ({t_bits}), frozen "
+             f"in {frozen}; flagged when `I > t`.", ""]
+    for case in IND_CASES["ind-val"]:
+        seen = [indicator(r) for r in by_case[case]]
+        vals = values[case] = [v for v, _ in seen if v is not None]
+        lost = {w: sum(x == w for _, x in seen) for w in sorted({w for _, w in seen if w})}
+        n, k = len(vals), sum(v > t for v in vals)
+        neutral = case in NEUTRAL
+        summary["cases"][case] = {
+            "role": "neutral" if neutral else "unbalanced", "planned": IND_REPLICATES, "evaluable": n,
+            "not_evaluable": lost, "flagged": k, "not_flagged": n - k, "zeros": sum(v == 0 for v in vals),
+            "flagged_over_evaluable": {"k": k, "n": n, "ci95": clopper_pearson(k, n)},
+            "flagged_over_planned": {"k": k, "n": IND_REPLICATES, "ci95": clopper_pearson(k, IND_REPLICATES)},
+            "not_evaluable_over_planned": {"k": IND_REPLICATES - n, "n": IND_REPLICATES,
+                                           "ci95": clopper_pearson(IND_REPLICATES - n, IND_REPLICATES)},
+            "values": [v for v, _ in seen]}
+        flag, keep = ("false alarms", "correct non-flags") if neutral else ("detections", "misses")
+        lines += [f"## {case} ({summary['cases'][case]['role']})", "",
+                  f"- planned {IND_REPLICATES}; evaluable {n}; not evaluable {IND_REPLICATES - n} {lost or ''}, "
+                  f"95% {ci(clopper_pearson(IND_REPLICATES - n, IND_REPLICATES))}",
+                  f"- {flag}: {k} of {n} evaluable, conditional, 95% {ci(clopper_pearson(k, n))}; "
+                  f"{k} of {IND_REPLICATES} planned, 95% {ci(clopper_pearson(k, IND_REPLICATES))}",
+                  f"- {keep}: {n - k}; zeros of `I`: {summary['cases'][case]['zeros']}", ""]
+    lines += ["## Separation without threshold, conditional on evaluable runs (ties ½)", ""]
+    for hi in ("C3", "C5"):
+        for lo in NEUTRAL:
+            share = summary["separation"][f"{hi}>{lo}"] = separation(values[hi], values[lo])
+            lines.append(f"- {hi} against {lo}: {share!r} over {len(values[hi])} × {len(values[lo])} pairs")
+    lines += ["", "Intervals: Clopper–Pearson, exact two-sided 95%, each marginal; a case's runs taken as "
+              "independent and identically distributed given the frozen `t`; no adjustment across intervals. "
+              "Cases are not pooled; nothing is set on validation."]
+    return "\n".join(lines) + "\n", summary, 0
+
+
 def main(argv):
     if not argv:
         sys.exit(__doc__)
@@ -737,6 +957,15 @@ def main(argv):
         sys.exit(code)
     elif cmd == "dtf-check":
         text, summary, code = dtf_check(rest[0])
+        print(json.dumps(summary, indent=1) + "\n" if summary and "--json" in rest else text, end="")
+        sys.exit(code)
+    elif cmd == "threshold":
+        tsv, why = calibrate(rest[0])
+        print(tsv or "Stopped, no threshold: " + "; ".join(why) + ".", end="" if tsv else "\n",
+              file=sys.stdout if tsv else sys.stderr)
+        sys.exit(0 if tsv else 1)
+    elif cmd == "ind-val":
+        text, summary, code = ind_val(rest[0], rest[1])
         print(json.dumps(summary, indent=1) + "\n" if summary and "--json" in rest else text, end="")
         sys.exit(code)
     elif cmd == "report":

@@ -260,7 +260,8 @@ impl Plan {
         Plan { phase, tasks, text }
     }
 
-    fn config(text: &str) -> &str {
+    /// A plan text's configuration: every line before its `phase` line.
+    pub fn config(text: &str) -> &str {
         text.find("\nphase\t").map_or(text, |i| &text[..=i])
     }
 }

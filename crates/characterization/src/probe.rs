@@ -66,7 +66,12 @@ impl Case {
         };
         let (n, anchors) = match phase {
             Phase::Smoke => (400, 10),
-            Phase::Explore | Phase::Confirm | Phase::Candidates | Phase::DtfCheck => (3000, 60),
+            Phase::Explore
+            | Phase::Confirm
+            | Phase::Candidates
+            | Phase::DtfCheck
+            | Phase::IndCal
+            | Phase::IndVal => (3000, 60),
         };
         DifDesign {
             n,
@@ -88,6 +93,8 @@ pub enum Phase {
     Confirm,
     Candidates,
     DtfCheck,
+    IndCal,
+    IndVal,
 }
 
 impl Phase {
@@ -98,6 +105,8 @@ impl Phase {
             Phase::Confirm => "confirm",
             Phase::Candidates => "candidates",
             Phase::DtfCheck => "dtf-check",
+            Phase::IndCal => "ind-cal",
+            Phase::IndVal => "ind-val",
         }
     }
 
@@ -108,24 +117,31 @@ impl Phase {
             Phase::Confirm,
             Phase::Candidates,
             Phase::DtfCheck,
+            Phase::IndCal,
+            Phase::IndVal,
         ]
         .into_iter()
         .find(|p| p.name() == name)
     }
 
     /// The cases a phase runs: `candidates` (`docs/19` §13.14) C0, C3 and C5, `dtf-check`
-    /// (§13.18) C0 and C3.
+    /// (§13.18) C0 and C3, `ind-cal` (§13.21) C0 and C1, `ind-val` C0, C1, C3 and C5.
     pub fn cases(self) -> &'static [Case] {
         match self {
             Phase::Candidates => &[Case::C0, Case::C3, Case::C5],
             Phase::DtfCheck => &[Case::C0, Case::C3],
+            Phase::IndCal => &[Case::C0, Case::C1],
+            Phase::IndVal => &[Case::C0, Case::C1, Case::C3, Case::C5],
             _ => &CASES,
         }
     }
 
     /// Whether the phase runs the candidates' diagnostic path, [`gate_and_diagnose`].
     pub fn diagnostic(self) -> bool {
-        matches!(self, Phase::Candidates | Phase::DtfCheck)
+        matches!(
+            self,
+            Phase::Candidates | Phase::DtfCheck | Phase::IndCal | Phase::IndVal
+        )
     }
 }
 
@@ -146,10 +162,12 @@ impl Task {
         )
     }
 
-    /// The population seed: `candidates` reuses confirm's on purpose, the same batches refitted.
+    /// The population seed: `candidates` reuses confirm's on purpose, the same batches refitted;
+    /// `ind-cal` and `ind-val` give each case its own ([`case_seed`]).
     pub fn seed(&self) -> u64 {
         match self.phase {
             Phase::Candidates => probe_seed(Phase::Confirm, self.replicate),
+            Phase::IndCal | Phase::IndVal => case_seed(self.phase, self.case, self.replicate),
             phase => probe_seed(phase, self.replicate),
         }
     }
@@ -198,6 +216,20 @@ pub fn probe_seed(phase: Phase, r: u32) -> u64 {
     h.update(b"isegoria/a2-probe/v1");
     h.update((phase.name().len() as u64).to_le_bytes());
     h.update(phase.name().as_bytes());
+    h.update(r.to_le_bytes());
+    let mut first = [0u8; 8];
+    first.copy_from_slice(&h.finalize()[..8]);
+    u64::from_le_bytes(first)
+}
+
+/// The seed of replicate `r` of `case` at `phase` (`docs/19` §13.21): SHA-256, length-prefixed.
+pub fn case_seed(phase: Phase, case: Case, r: u32) -> u64 {
+    let mut h = Sha256::new();
+    h.update(b"isegoria/a2-probe/v1");
+    for name in [phase.name(), case.name()] {
+        h.update((name.len() as u64).to_le_bytes());
+        h.update(name.as_bytes());
+    }
     h.update(r.to_le_bytes());
     let mut first = [0u8; 8];
     first.copy_from_slice(&h.finalize()[..8]);

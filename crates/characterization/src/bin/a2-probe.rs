@@ -2,12 +2,13 @@
 //! (a single run in its own process, launched by `run`).
 
 use characterization::probe::{config_lines, run, tasks, Case, Phase, Task};
+use characterization::probe_calibration::{calibration_line, DATA, REPLICATES, THRESHOLD};
 use characterization::probe_jobs::{
     confirm_replicates, planned_replicates, read_ledger, self_cost, supervise, write_part, Caps,
     Plan, Refusal, DECLARED,
 };
 use sha2::{Digest, Sha256};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode, Stdio};
 use std::time::Instant;
 
@@ -21,10 +22,12 @@ usage: a2-probe <plan|run|one> [options]
   one    one run (used by run): its record to <out>/parts
 
 options:
-  --phase smoke|explore|confirm|candidates|dtf-check  (smoke)
+  --phase smoke|explore|confirm|candidates|dtf-check|ind-cal|ind-val  (smoke)
   --replicates R                 (smoke only; explore runs 1, confirm takes R from the
                                  cost rule after explore, candidates refits confirm's 8,
-                                 dtf-check runs 16 on its own seeds)
+                                 dtf-check runs 16 on its own seeds, ind-cal and ind-val 100)
+  --calibration DIR              (ind-val only, required: the frozen calibration, with
+                                 its threshold.tsv, committed and unmodified)
   --case C0..C5 --replicate R    (one only)
   --jobs J                       (8)
   --out DIR                      (characterization-results/a2-probe)
@@ -46,6 +49,7 @@ struct Args {
     jobs: usize,
     out: PathBuf,
     caps: Caps,
+    calibration: Option<PathBuf>,
 }
 
 fn parse(mut argv: impl Iterator<Item = String>) -> Result<Args, String> {
@@ -58,6 +62,7 @@ fn parse(mut argv: impl Iterator<Item = String>) -> Result<Args, String> {
         jobs: 8,
         out: PathBuf::from("characterization-results/a2-probe"),
         caps: DECLARED,
+        calibration: None,
     };
     while let Some(flag) = argv.next() {
         let value = argv.next().ok_or(format!("{flag} needs a value"))?;
@@ -76,6 +81,7 @@ fn parse(mut argv: impl Iterator<Item = String>) -> Result<Args, String> {
             "--max-wall-s" => args.caps.wall_ms = number(&value)? * 1000,
             "--max-run-s" => args.caps.run_ms = number(&value)? * 1000,
             "--max-rss-mib" => args.caps.rss_kib = number(&value)? * 1024,
+            "--calibration" => args.calibration = Some(PathBuf::from(value)),
             other => return Err(format!("unknown option {other:?}")),
         }
     }
@@ -136,7 +142,7 @@ fn candidate(phase: Phase) -> Result<String, String> {
     let outside = format!(":(exclude){DIAGNOSTIC}");
     let (base, ok) = match phase {
         Phase::Explore | Phase::Confirm => (ENGINE_BASE, unchanged(&top, ENGINE_BASE, &engine)?),
-        Phase::Candidates | Phase::DtfCheck => (
+        Phase::Candidates | Phase::DtfCheck | Phase::IndCal | Phase::IndVal => (
             REVIEWED_DIAGNOSTIC,
             unchanged(&top, REVIEWED_DIAGNOSTIC, &engine)?,
         ),
@@ -178,6 +184,12 @@ fn replicates(args: &Args) -> Result<u32, String> {
         (Phase::Candidates, Some(_)) => Err("candidates refits confirm's 8 replicates".into()),
         (Phase::DtfCheck, None | Some(16)) => Ok(16),
         (Phase::DtfCheck, Some(_)) => Err("dtf-check runs its declared 16 replicates".into()),
+        (Phase::IndCal | Phase::IndVal, None) => Ok(REPLICATES),
+        (Phase::IndCal | Phase::IndVal, Some(r)) if r == REPLICATES => Ok(REPLICATES),
+        (Phase::IndCal | Phase::IndVal, Some(_)) => Err(format!(
+            "{} runs its declared {REPLICATES} replicates",
+            args.phase.name()
+        )),
         (Phase::Confirm, Some(_)) => Err("confirm takes its replicates from the cost rule".into()),
         (Phase::Confirm, None) => {
             if let Some(r) =
@@ -191,10 +203,38 @@ fn replicates(args: &Args) -> Result<u32, String> {
     }
 }
 
+/// The calibration directory, its threshold and data tracked by git and unmodified: frozen.
+fn frozen(dir: &Path) -> Result<(), String> {
+    let not = |why: String| format!("the calibration is not frozen in the repository: {why}");
+    let dir = std::fs::canonicalize(dir).map_err(|e| not(e.to_string()))?;
+    let top = git_at(None, &["rev-parse", "--show-toplevel"])?;
+    for name in [THRESHOLD, DATA[0], DATA[1], DATA[2]] {
+        let path = dir.join(name);
+        let path = path
+            .to_str()
+            .ok_or_else(|| not("a path is not UTF-8".into()))?;
+        git_at(Some(&top), &["ls-files", "--error-unmatch", "--", path])
+            .map_err(|_| not(format!("{name} is not tracked")))?;
+    }
+    let dir = dir
+        .to_str()
+        .ok_or_else(|| not("a path is not UTF-8".into()))?;
+    if !git_at(Some(&top), &["status", "--porcelain", "--", dir])?.is_empty() {
+        return Err(not("changed or untracked files".into()));
+    }
+    Ok(())
+}
+
 fn supervised(args: &Args) -> Result<bool, String> {
     let r = replicates(args)?;
+    match (args.phase, &args.calibration) {
+        (Phase::IndVal, Some(dir)) => frozen(dir)?,
+        (Phase::IndVal, None) => return Err("ind-val needs --calibration DIR".into()),
+        (_, Some(_)) => return Err("--calibration is ind-val's alone".into()),
+        (_, None) => {}
+    }
     let caps = args.caps;
-    let config = format!(
+    let mut config = format!(
         "{}caps\t{}\t{}\t{}\t{}\n{}",
         candidate(args.phase)?,
         caps.cpu_ms,
@@ -203,6 +243,11 @@ fn supervised(args: &Args) -> Result<bool, String> {
         caps.rss_kib,
         config_lines(args.phase)
     );
+    if let Some(dir) = &args.calibration {
+        let line = calibration_line(dir, &config).map_err(|e| format!("refused: {e}"))?;
+        let at = config.find("schema\t").unwrap_or(config.len());
+        config.insert_str(at, &line);
+    }
     let plan = Plan::new(&config, args.phase, r, tasks(args.phase, r));
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let launch = |task: &Task, out: &std::path::Path| {

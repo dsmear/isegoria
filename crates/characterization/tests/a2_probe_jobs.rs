@@ -631,3 +631,121 @@ fn the_binary_plans_dtf_check_s_32_runs_and_no_other_count() {
     );
     assert_eq!(plan(&["--replicates", "8"]).status.code(), Some(1));
 }
+
+/// The binary plans `ind-cal`'s 200 runs and `ind-val`'s 400, and no other count (§13.21).
+#[test]
+fn the_binary_plans_the_indicator_stages_and_no_other_count() {
+    let _serial = serial();
+    let plan = |phase: &str, extra: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .args(["plan", "--phase", phase])
+            .args(extra)
+            .output()
+            .unwrap()
+    };
+    for (phase, runs, last) in [
+        ("ind-cal", 200, "ind-cal-C1-99 "),
+        ("ind-val", 400, "ind-val-C5-99 "),
+    ] {
+        let out = plan(phase, &[]);
+        let text = String::from_utf8_lossy(&out.stdout).to_string();
+        assert!(out.status.success() && text.lines().count() == runs);
+        assert!(text.lines().last().is_some_and(|l| l.starts_with(last)));
+        assert_eq!(plan(phase, &["--replicates", "50"]).status.code(), Some(1));
+    }
+}
+
+/// `ind-val` without a frozen calibration, or `--calibration` elsewhere: refused, no directory.
+#[test]
+fn the_validation_refuses_to_run_without_a_frozen_calibration() {
+    let _serial = serial();
+    let (out, cal) = (scratch("ind-val"), scratch("ind-val-cal"));
+    fs::create_dir_all(&cal).unwrap();
+    for name in [
+        "threshold.tsv",
+        "records.jsonl",
+        "plan-ind-cal.tsv",
+        "ledger.tsv",
+    ] {
+        fs::write(cal.join(name), "").unwrap();
+    }
+    let cal = cal.to_str().unwrap();
+    for (args, why) in [
+        (
+            vec!["--phase", "ind-val"],
+            "ind-val needs --calibration DIR",
+        ),
+        (
+            vec!["--phase", "ind-val", "--calibration", cal],
+            "not frozen in the repository",
+        ),
+        (
+            vec!["--phase", "ind-cal", "--calibration", cal],
+            "--calibration is ind-val's alone",
+        ),
+    ] {
+        let got = Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .arg("run")
+            .args(&args)
+            .arg("--out")
+            .arg(&out)
+            .output()
+            .unwrap();
+        assert_eq!(got.status.code(), Some(1));
+        assert!(String::from_utf8_lossy(&got.stderr).contains(why), "{why}");
+        assert!(!out.exists());
+    }
+}
+
+/// A committed calibration passes the freeze check; changed or beside untracked files, refused.
+#[test]
+fn only_a_committed_unmodified_calibration_counts_as_frozen() {
+    let _serial = serial();
+    let repo = scratch("frozen-repo");
+    let cal = repo.join("cal");
+    fs::create_dir_all(&cal).unwrap();
+    for name in [
+        "threshold.tsv",
+        "records.jsonl",
+        "plan-ind-cal.tsv",
+        "ledger.tsv",
+    ] {
+        fs::write(cal.join(name), name).unwrap();
+    }
+    let git = |args: &[&str]| {
+        let ok = Command::new("git")
+            .args(["-c", "user.name=t", "-c", "user.email=t@t", "-C"])
+            .arg(&repo)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(ok.status.success(), "git {args:?}");
+    };
+    git(&["init", "-q"]);
+    git(&["add", "cal"]);
+    git(&["commit", "-q", "-m", "calibration"]);
+    let stderr = || {
+        let got = Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .current_dir(&repo)
+            .args([
+                "run",
+                "--phase",
+                "ind-val",
+                "--calibration",
+                "cal",
+                "--out",
+                "out",
+            ])
+            .output()
+            .unwrap();
+        assert_eq!(got.status.code(), Some(1));
+        String::from_utf8_lossy(&got.stderr).to_string()
+    };
+    assert!(stderr().contains("runs the engine of 2e2572c"));
+    fs::write(cal.join("extra"), "").unwrap();
+    assert!(stderr().contains("not frozen in the repository: changed or untracked files"));
+    fs::remove_file(cal.join("extra")).unwrap();
+    fs::write(cal.join("ledger.tsv"), "changed").unwrap();
+    assert!(stderr().contains("not frozen in the repository: changed or untracked files"));
+    assert!(!repo.join("out").exists());
+}

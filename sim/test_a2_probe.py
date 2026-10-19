@@ -1,11 +1,13 @@
 """Tests of `a2_probe.py` (`docs/19` §13.11) on constructed records, plans and ledgers, not fits.
 Run: `python3 -m unittest discover -s sim -p test_a2_probe.py -v`."""
 import contextlib
+import functools
 import io
 import json
 import math
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 from statistics import NormalDist
 
@@ -49,13 +51,14 @@ def record(case, r, outcome="read", status="converged", counted=2, rechecks="NNN
     return rec
 
 
-def write(d, recs, planned=None, ledger=None, stop=None, phase="confirm", session_stop=None, replicates=8):
+def write(d, recs, planned=None, ledger=None, stop=None, phase="confirm", session_stop=None, replicates=8,
+          config="schema\tstand-in\n"):
     """`records.jsonl`, the phase's plan (the records' runs unless `planned`; `replicates` declared)
     and a ledger starting and ending each record's run with its outcome, unless `ledger` given."""
     d = Path(d)
     (d / "records.jsonl").write_text("".join(json.dumps(r) + "\n" for r in recs))
     plan = planned if planned is not None else [(r["key"], r["seed"]) for r in recs]
-    (d / f"plan-{phase}.tsv").write_text(f"schema\tstand-in\nphase\t{phase}\t{replicates}\n"
+    (d / f"plan-{phase}.tsv").write_text(f"{config}phase\t{phase}\t{replicates}\n"
                                          + "".join(f"task\t{k}\t{s}\n" for k, s in plan))
     if ledger is None:
         ledger = [r for rec in recs for r in (("start", rec["key"], 1),
@@ -439,6 +442,190 @@ class DtfCheck(unittest.TestCase):
         recs = P.read_records(self.d)[0]
         write(self.d, recs[:-1], planned=[(r["key"], r["seed"]) for r in recs], phase="dtf-check", replicates=16)
         self.stops("the audit is partial, 31 records of 32 planned")
+
+
+BASES = {}
+
+
+def ind_record(phase, case, rep, dtf):
+    """A run of `docs/19` §13.21's stages, its shared candidate's `DTF_F` at `dtf`."""
+    if (phase, case) not in BASES:
+        BASES[(phase, case)] = record(case, 0, phase=phase)
+    rec = json.loads(json.dumps(BASES[(phase, case)]))
+    rec.update(key=f"{phase}-{case}-{rep}", replicate=rep, seed=P.case_seed(phase, case, rep))
+    rec["candidates"] = [candidate(1, False, 0.0), candidate(2, False, 20.0, dtf=dtf),
+                         candidate(2, True, 30.0, dtf=dtf)]
+    return rec
+
+
+def unread(rec, outcome):
+    rec["outcome"] = outcome
+    for k in ("fit", "rechecks", "fixed", "readings", "candidates"):
+        rec.pop(k)
+
+
+def memo(f):
+    @functools.wraps(f)
+    def run(items, members, *rest):
+        key = (tuple(items.a), tuple(items.b), tuple(items.s), items.delta, items.impact, items.pi,
+               tuple(members), rest)
+        if key not in cache:
+            cache[key] = f(items, members, *rest)
+        return cache[key]
+    cache = {}
+    return run
+
+
+class SingleTest(unittest.TestCase):
+    """§13.21's stages at 22 replicates a case, the quadratures memoized: same values, less time."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.cal, self.val = Path(self.tmp.name) / "cal", Path(self.tmp.name) / "val"
+        self.cal.mkdir()
+        self.val.mkdir()
+        for patch in (mock.patch.object(P, "IND_REPLICATES", 22), mock.patch.object(P, "dtf", memo(P.dtf)),
+                      mock.patch.object(P, "grid_dtf", memo(P.grid_dtf)),
+                      mock.patch.object(P, "raw_gap", memo(P.raw_gap))):
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def stage(self, d, phase, value, edit=None, config="schema\tstand-in\n"):
+        recs = [ind_record(phase, c, r, value(c, r)) for r in range(22) for c in P.IND_CASES[phase]]
+        planned = [(x["key"], x["seed"]) for x in recs]
+        if edit:
+            edit({(x["case"], x["replicate"]): x for x in recs}, recs)
+        write(d, [x for x in recs if x], phase=phase, replicates=22, config=config,
+              planned=[(k, x["seed"] if x else s) for (k, s), x in zip(planned, recs)])
+        return recs
+
+    def calibrated(self):
+        """C0 at r/100, C1 at r/50 with r3 refused by the gate and r4's candidate not converged."""
+        def edit(by, _):
+            unread(by[("C1", 3)], "refused")
+            by[("C1", 4)]["candidates"][1]["status"] = "max_iters"
+        self.stage(self.cal, "ind-cal", lambda c, r: r / 100 if c == "C0" else r / 50, edit)
+        tsv, why = P.calibrate(self.cal)
+        (self.cal / "threshold.tsv").write_text(tsv)
+        return tsv, why
+
+    def validated(self, edit=None, config=None):
+        """C0 at r/100 with r5 equal to `t` and r6 above; C1 at r/100, r2 refused; C3 at 0.5, r1 not
+        converged, r2 equal to `t`; C5 at r/50, r7 at 0.9."""
+        def values(c, r):
+            return {"C0": {5: 0.42, 6: 0.43}.get(r, r / 100), "C1": r / 100,
+                    "C3": 0.42 if r == 2 else 0.5, "C5": 0.9 if r == 7 else r / 50}[c]
+
+        def edits(by, recs):
+            unread(by[("C1", 2)], "refused")
+            by[("C3", 1)]["candidates"][1]["status"] = "max_iters"
+            if edit:
+                edit(by, recs)
+        line = f"calibration\t{P.sha256(self.cal / 'threshold.tsv')}\t{P.bits(0.42)}\n"
+        self.stage(self.val, "ind-val", values, edits, config or line + "schema\tstand-in\n")
+        return P.ind_val(self.val, self.cal)
+
+    def test_seeds_are_the_harness_s_new_and_never_shared(self):
+        self.assertEqual((P.case_seed("ind-cal", "C0", 0), P.case_seed("ind-val", "C5", 99),
+                          P.probe_seed("dtf-check", 0)),
+                         (14817136108943293105, 12356750456368884976, 11841848735597837198))
+        ours = [P.case_seed(p, c, r) for p, cs in P.IND_CASES.items() for c in cs for r in range(100)]
+        earlier = {P.probe_seed(p, r) for p in ("smoke", "explore", "confirm") for r in range(64)}
+        earlier |= {P.probe_seed("dtf-check", r) for r in range(16)}
+        self.assertEqual(len(set(ours)), 600)
+        self.assertFalse(set(ours) & earlier)
+
+    def test_the_order_rule_takes_the_declared_rank_ties_and_zeros_included(self):
+        self.assertEqual([P.rank(n) for n in (100, 98, 40, 19, 18, 0)], [96, 95, 39, 19, None, None])
+        self.assertEqual(P.case_threshold([r / 100 for r in range(100, 0, -1)]), (96, 0.96))
+        self.assertEqual(P.case_threshold([0.0] * 97 + [0.3, 0.4, 0.5]), (96, 0.0))
+        self.assertEqual(P.case_threshold([0.1] * 100), (96, 0.1))
+        self.assertEqual(P.case_threshold([0.5] * 18), (None, None))
+
+    def test_exact_intervals_match_their_closed_forms_and_reviewed_values(self):
+        for n in (50, 100, 200):
+            self.assertAlmostEqual(P.clopper_pearson(0, n)[1], 1 - 0.025 ** (1 / n), places=12)
+            self.assertAlmostEqual(P.clopper_pearson(n, n)[0], 0.025 ** (1 / n), places=12)
+            lo, hi = P.clopper_pearson(7, n)
+            self.assertAlmostEqual(lo, 1 - P.clopper_pearson(n - 7, n)[1], places=12)
+        for (k, n), (lo, hi) in {(2, 50): (0.005, 0.137), (5, 100): (0.016, 0.113), (10, 200): (0.024, 0.090)}.items():
+            self.assertEqual([round(x, 3) for x in P.clopper_pearson(k, n)], [lo, hi])
+        self.assertIsNone(P.clopper_pearson(0, 0))
+        self.assertEqual(P.separation([1.0, 0.0], [0.0, 0.0]), 0.75)
+        self.assertIsNone(P.separation([], [0.0]))
+
+    def test_calibration_sets_the_larger_case_threshold_from_evaluable_runs_and_names_its_data(self):
+        tsv, why = self.calibrated()
+        self.assertEqual(why, [])
+        lines = tsv.splitlines()
+        self.assertEqual(lines[:2], ["schema\ta2-ind/v1", "rule\torder-statistic\talpha\t1/20\tstrict"])
+        self.assertEqual(lines[2], f"case\tC0\tplanned\t22\tevaluable\t22\tk\t22\tt\t{P.bits(0.21)}\t0.21")
+        self.assertEqual(lines[3], f"case\tC1\tplanned\t22\tevaluable\t20\tk\t20\tt\t{P.bits(0.42)}\t0.42")
+        self.assertEqual(lines[4:7], ["not-evaluable\tC1\tcandidate not converged\t1",
+                                      "not-evaluable\tC1\tgate refused\t1", f"threshold\t{P.bits(0.42)}\t0.42"])
+        self.assertEqual(lines[7:], [f"file\t{f}\t{P.sha256(self.cal / f)}" for f in P.CAL_FILES])
+
+    def test_calibration_stops_on_a_technical_failure_or_too_few_evaluable_runs(self):
+        def killed(by, _):
+            unread(by[("C0", 9)], "killed")
+        self.stage(self.cal, "ind-cal", lambda c, r: 0.1, killed)
+        self.assertIn("the audit is partial", P.calibrate(self.cal)[1][0])
+
+        def refused(by, _):
+            for r in range(4):
+                unread(by[("C1", r)], "refused")
+        self.stage(self.cal, "ind-cal", lambda c, r: 0.1, refused)
+        self.assertEqual(P.calibrate(self.cal), (None, ["C1: 18 evaluable runs give no finite threshold (19 needed)"]))
+
+        def reseeded(by, _):
+            by[("C1", 0)]["seed"] = 1
+        self.stage(self.cal, "ind-cal", lambda c, r: 0.1, reseeded)
+        self.assertIn("seeds not the declared ones: 1 ['ind-cal-C1-0']", P.calibrate(self.cal)[1])
+        err, out = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as stop:
+            P.main(["threshold", str(self.cal)])
+        self.assertEqual((stop.exception.code, out.getvalue()), (1, ""))
+        self.assertIn("Stopped, no threshold", err.getvalue())
+
+    def test_validation_reads_each_case_apart_against_the_frozen_threshold(self):
+        self.calibrated()
+        text, summary, code = self.validated()
+        self.assertEqual(code, 0)
+        got = {c: (x["evaluable"], x["flagged"], x["zeros"], x["not_evaluable"]) for c, x in summary["cases"].items()}
+        self.assertEqual(got, {"C0": (22, 1, 1, {}), "C1": (21, 0, 1, {"gate refused": 1}),
+                               "C3": (21, 20, 0, {"candidate not converged": 1}), "C5": (22, 1, 1, {})})
+        self.assertEqual(summary["cases"]["C3"]["flagged_over_evaluable"],
+                         {"k": 20, "n": 21, "ci95": P.clopper_pearson(20, 21)})
+        self.assertAlmostEqual(summary["separation"]["C3>C0"], 460.5 / 462)
+        self.assertIn("- false alarms: 1 of 22 evaluable, conditional", text)
+        self.assertIn("- detections: 20 of 21 evaluable, conditional", text)
+
+    def test_validation_stops_when_incomplete_or_not_bound_to_the_frozen_threshold(self):
+        self.calibrated()
+
+        def killed(by, _):
+            unread(by[("C5", 21)], "killed")
+        text, summary, code = self.validated(killed)
+        self.assertEqual((code, summary), (1, None))
+        self.assertIn("the audit is partial", text)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as stop:
+            P.main(["ind-val", str(self.val), str(self.cal), "--json"])
+        self.assertEqual((stop.exception.code, out.getvalue()), (1, text))
+
+        def missing(by, recs):
+            recs[recs.index(by[("C3", 4)])] = None
+        self.assertIn("the audit is partial, 87 records of 88 planned", self.validated(missing)[0])
+        self.assertIn("not bound to this threshold", self.validated(config="schema\tstand-in\n")[0])
+        line = f"calibration\t{P.sha256(self.cal / 'threshold.tsv')}\t{P.bits(0.42)}\n"
+        self.assertIn("different configurations", self.validated(config=line + "schema\tother\n")[0])
+        frozen = (self.cal / "threshold.tsv").read_text()
+        (self.cal / "threshold.tsv").write_text(frozen.replace(f"threshold\t{P.bits(0.42)}\t0.42",
+                                                                f"threshold\t{P.bits(0.5)}\t0.5"))
+        self.assertIn("not the threshold the calibration gives", self.validated()[0])
 
 
 if __name__ == "__main__":

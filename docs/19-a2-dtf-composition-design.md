@@ -403,6 +403,26 @@ Review of `307530a` (§13.19), distinct from the reviews above:
 - **Owner's direction:** a short declaration of the next diagnostic study, documentation only
   (§13.20); no run, fit or code change.
 
+Review of `53f2427` (§13.20), distinct from the reviews above:
+
+- **Astra's evidence:** the documentation diff read; the table's intervals recomputed with SciPy.
+  No Rust and no fit.
+- **Accepted:** the separation of development, calibration and validation.
+- **Rectified in §13.20:** (1) the range `TV` 0.077–0.120 concerns §13.11's item draws, not every
+  new batch, and bounds probabilities, not observed frequencies: "a larger excess would point to an
+  error" and the precision claim resting on 0.12 as a universal maximum are withdrawn; C5 stays a
+  weak-signal scenario. (2) Scientific not-evaluable outcomes are kept apart from technical
+  failures. (3) At `n = 50`, [0.005, 0.137] is `k = 2`, 4%: every interval now shows its `k/n`.
+  (4) C2 and C4 stay out to contain the design, not because characterizing them needs D38 settled.
+- **Owner's configuration:** calibration of 100 runs each of C0 and C1; validation of 100 each of
+  C0, C1, C3 and C5; new seeds disjoint across stages, cases and earlier probes; the shared
+  indicator already chosen, no change to `scoring` or `protocol`; a nominal α = 0.05 on the neutral
+  cases; one threshold, the larger of those set apart on the two neutral cases; no band; not
+  evaluable reported apart, with no operational behaviour given to it.
+- **Owner's direction:** fix the threshold's order rule before the code; implement the harness and
+  small tests; plan, cost and cumulative caps for the 600 runs (§13.21). No calibration or
+  validation run: implementation and budget return to review before any authorization.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -3125,9 +3145,10 @@ not extended. No further experiment is started.
 
 ### 13.20 Next study: the shared-slope candidate's DTF on a single test (proposal, not implemented)
 
-**Status:** proposed by Claude Code on `307530a` at the owner's direction; documentation only —
-not reviewed, not implemented, not run. It adopts no threshold, rate, policy, sample size or
-resource; §13.10's "75%" is no target. A2 stays open and blocking; D38 stays apart.
+**Status:** proposed by Claude Code on `307530a` at the owner's direction; reviewed by Astra on
+`53f2427`, its data separation accepted and four points rectified below (record before §1). The
+owner's configuration and the implementation are in §13.21; not run. §13.10's "75%" is no target.
+A2 stays open and blocking; D38 stays apart.
 
 **Indicator, chosen from data already seen.** `I` is the whole-form `DTF_F` of the two-class
 candidate with shared slopes, as `latent_dif_candidates` returns it on the reviewed path
@@ -3157,15 +3178,18 @@ values overlap — C0's reach 1.127, C3's include 0.066 and two zeros — so the
 | C0 | neutral: no DIF, no impact | false alarms under the plain null |
 | C1 | neutral: an ability difference of 1, no DIF | a legitimate difference in the measured ability must not be flagged (`01` D44); a false alarm here reads impact as bias |
 | C3 | unbalanced: diffuse DIF, form DTF 0.607 [0.567, 0.641] | the case `I` was chosen on; detections and misses |
-| C5 | unbalanced, weak: form DTF 0.143 [0.133, 0.151] | just above `DTF_MAX = 0.10`, where a miss matters and detection is hardest. §13.11's indicative bound, `TV` at most 0.077–0.120 against C0, caps any rule's detection rate in C5 at about its false-alarm rate in C0 plus that much: C5 checks plausibility, not power, and a larger excess would point to an error |
+| C5 | unbalanced, weak: form DTF 0.143 [0.133, 0.151] | just above `DTF_MAX = 0.10`, where a miss matters and detection is hardest: a weak-signal scenario. §13.11's indicative `TV` of 0.077–0.120 against C0 concerns the item draws computed there, not every new batch, and bounds probabilities, not the frequencies a study observes (rectified after `53f2427`) |
 
-C2 and C4 stay out: whether their factual-knowledge differences should be flagged is D38's
-semantic choice, which stays apart.
+C2 and C4 stay out to contain the design (rectified after `53f2427`); characterizing them
+numerically would not by itself require D38's semantic choice, which stays apart.
 
-**Outcomes, declared before any run.** Each planned run ends in exactly one outcome: *flagged*
-(`I > t`); *not flagged* (`I ≤ t`, zeros included, with their origin); *not evaluable* — the run
-not read (refused, failed, killed or missing), the one-class baseline not converged, the shared
-candidate not converged, or `DTF_F` unavailable — with its reason.
+**Outcomes, declared before any run** (rectified after `53f2427`). Each planned run ends in
+exactly one outcome: *flagged* (`I > t`); *not flagged* (`I ≤ t`, zeros included, with their
+origin); *not evaluable*, a scientific observation — the gate refused the batch, the one-class
+baseline or the shared candidate did not converge, the candidate is missing or its `DTF_F`
+unavailable — with its reason. A run missing, failed or killed is a technical failure, not an
+outcome: it leaves its stage incomplete, which stops that stage's analysis; the stops and the
+absence of automatic resumption are kept.
 
 | Case | Flagged | Not flagged | Not evaluable |
 |---|---|---|---|
@@ -3180,26 +3204,26 @@ case beside.
 
 **Size, precision and cost.** Per case, over `n` evaluable runs:
 
-| `n` | 95% half-width at ½ (normal approximation) | Exact 95% interval, 0 events | Exact 95% interval, `n/20` events (5%) | CPU at 20–26 s a run |
+| `n` | 95% half-width at ½ (normal approximation) | Exact 95% interval, `k/n` | Exact 95% interval, `k/n` | CPU at 20–26 s a run |
 |---|---|---|---|---|
-| 50 | ±0.139 | [0, 0.071] | [0.005, 0.137] | 17–22 min |
-| 100 | ±0.098 | [0, 0.036] | [0.016, 0.113] | 33–43 min |
-| 200 | ±0.069 | [0, 0.018] | [0.024, 0.090] | 67–87 min |
+| 50 | ±0.139 | 0/50: [0, 0.071] | 2/50 (4%): [0.005, 0.137] | 17–22 min |
+| 100 | ±0.098 | 0/100: [0, 0.036] | 5/100 (5%): [0.016, 0.113] | 33–43 min |
+| 200 | ±0.069 | 0/200: [0, 0.018] | 10/200 (5%): [0.024, 0.090] | 67–87 min |
 
 The CPU a run spans the per-case means of C0, C1, C3 and C5 in §§13.12–13.19, 19.9–25.9 s; wall time
 is about a seventh of it with 8 workers (§13.19: 645 s in 91 s). A difference of two proportions,
 such as C5's detections against C0's false alarms, has a half-width of ±0.139 at 100 runs a case
 when both are near ½ (about 770 a case for ±0.05), and less when they are small: ±0.085 at 100 and
-±0.060 at 200 for 0.05 against 0.17. C5's possible excess, about 0.12 at most, is thus at the edge
-of what 100 to 200 runs a case resolve. A threshold at the (1 − α) quantile of `m` neutral
-calibration runs rests on about `α·m` runs above it: 5 at α = 0.05 and `m = 100`. Examples, with the
-rule calibrated on the neutral cases and one `n` for both stages: `n = 100`, 200 calibration runs
-and 400 validation runs, 3.3–4.3 CPU-hours, 28–37 minutes of wall time; `n = 200`, 1,200 runs,
-6.7–8.7 CPU-hours, 56–73 minutes. A rule weighing misses adds C3, and C5 if chosen, to calibration:
-700 or 800 runs at `n = 100`. Every run is a fit at `N = 3,000`; runs this long belong on the
-owner's machine, with explicit authorization.
+±0.060 at 200 for 0.05 against 0.17. (A claim of precision resting on 0.12 as C5's maximal excess is
+withdrawn after `53f2427`.) A threshold at the (1 − α) quantile of `m` neutral calibration runs
+rests on about `α·m` runs above it (§13.21 fixes the rank: the 96th of 100). Examples, with the rule
+calibrated on the neutral cases and one `n` for both stages: `n = 100`, 200 calibration runs and 400
+validation runs, 3.3–4.3 CPU-hours, 28–37 minutes of wall time; `n = 200`, 1,200 runs, 6.7–8.7
+CPU-hours, 56–73 minutes. A rule weighing misses adds C3, and C5 if chosen, to calibration: 700 or
+800 runs at `n = 100`. Every run is a fit at `N = 3,000`; runs this long belong on the owner's
+machine, with explicit authorization.
 
-**Choices still needed, not adopted here.**
+**Choices still needed, not adopted here** (the owner's, made after `53f2427`, are in §13.21).
 
 1. The rule for `t`: a false-alarm target α on the neutral cases (the (1 − α) quantile over C0 and
    C1 apart, or the larger of the two), or a weight `w` between false alarms and misses on a
@@ -3226,3 +3250,171 @@ protocol path reads it, and any operational use would need its own decision.
 **Needs, if approved.** A harness phase per stage, with seed-disjointness and contract checks as
 in §13.18; an unpaired reading in `sim/a2_probe.py` with its tests; review; the owner's choices
 above; authorization of calibration and then, with `t` committed, of validation.
+
+### 13.21 The single-test study: declaration and implementation (not run)
+
+**Status:** declared and implemented by Claude Code on `53f2427`, under the owner's configuration
+and direction (record before §1); not reviewed, not run. The order rule below was fixed before the
+code. No calibration or validation run, no fit at `N = 3,000`. A2 stays open and blocking: this
+study replaces none of the whole-test guarantee's obligations (§13.20, "What this indicator is
+not"). D38 stays apart.
+
+**Configuration (the owner's).**
+
+| Item | Fixed |
+|---|---|
+| Indicator | `I`, the `DTF_F` of the two-class candidate with shared slopes (§13.20), on the reviewed diagnostic path; `crates/scoring` and `crates/protocol` exactly as at `2e2572c` |
+| Calibration, phase `ind-cal` | C0 and C1, 100 runs each |
+| Validation, phase `ind-val` | C0, C1, C3 and C5, 100 runs each |
+| Seeds | by stage, case and replicate: none shared between stages, cases or earlier probes |
+| Target | nominal α = 0.05 on the neutral cases |
+| Threshold | one: the larger of the thresholds set apart on C0 and C1 |
+| Band | none |
+| Not evaluable | reported apart, with no operational behaviour given to it |
+
+**Order rule for the threshold, fixed before the code.**
+
+1. *Values.* For each neutral case `c` of the calibration, its evaluable runs give `n_c` values of
+   `I`, the doubles exactly as recorded; zeros are values and ties are kept.
+2. *Rank.* `k_c = ⌈(1 − α)(n_c + 1)⌉ = ⌈19 (n_c + 1) / 20⌉`, computed in integers.
+3. *A case's threshold.* If `k_c ≤ n_c`, `t_c` is the `k_c`-th smallest value, ties counted: with
+   100 evaluable runs, the 96th. If `k_c > n_c` — fewer than 19 evaluable runs — the case gives no
+   finite threshold and the study stops before validation, with no fallback value.
+4. *Threshold.* `t = max(t_C0, t_C1)`.
+5. *Decision.* A validation run is flagged when `I > t`, strictly: `I = t` is not flagged, and since
+   `I ≥ 0` and `t ≥ 0`, neither is a zero.
+
+**What α = 0.05 is.** A nominal target, not a guarantee obtained. If a case's evaluable calibration
+values and a new evaluable value of the same case were exchangeable, the rank would make the
+probability that the new value exceeds `t_c` at most `1 − k_c / (n_c + 1)` — 5/101 at `n_c = 100`
+— ties only lowering it, and `t ≥ t_c` lowering it further. That is a property of the rule under
+that hypothesis, marginal over calibration and validation; it does not bound the frequency
+observed given the realized `t`, and says nothing outside these designs. Validation measures the
+frequencies.
+
+**Outcomes and stops** (§13.20, rectified). Gate refusals, a baseline or shared candidate not
+converged, a missing candidate and an unavailable `DTF_F` are observations, counted per case by
+reason. A run missing, failed or killed, or a stop, leaves its stage incomplete: calibration then
+yields no threshold and validation no reading. Nothing resumes automatically; another session
+needs the owner's authorization.
+
+**Calibration's reading** (`python3 sim/a2_probe.py threshold D`). It requires the plan declaring
+100 replicates, its tasks exactly `ind-cal-C0-0` to `ind-cal-C1-99` each with its declared seed,
+records matching their keys, the audit complete and the numerical check passing. It then prints
+`threshold.tsv`: schema, rule, per case the planned and evaluable runs, `k_c` and `t_c`, the
+not-evaluable counts by reason, `t`, and the SHA-256 of `records.jsonl`, `plan-ind-cal.tsv` and
+`ledger.tsv`; every double as its 64 bits in hexadecimal and its shortest decimal. Otherwise it
+prints why to standard error, nothing to standard output, and exits 1.
+
+**Freezing.** The calibration's plan, ledger, records and `threshold.tsv` are copied to
+`verification/reports/a2-ind-cal-<commit>/` and committed after review: that commit identifies the
+threshold and the data it came from. Validation starts only after it.
+
+**Validation's binding** (`a2-probe run --phase ind-val --calibration DIR`). Before any run the
+harness refuses:
+
+- no `--calibration`, or `--calibration` with another phase;
+- `DIR`'s four files not tracked by git, modified, or beside untracked files;
+- a `threshold.tsv` not in the declared form: its schema, rule or α; a rank other than
+  `⌈19 (n + 1) / 20⌉` or above `n`; counts not summing to 100; `t` not the larger `t_c`; a decimal
+  other than its bits;
+- a SHA-256 other than its calibration file's;
+- a calibration plan other than the declared one: phase, 100 replicates, the 200 tasks and seeds;
+- a calibration configuration — candidate trees, record schema, designs, constants — other than
+  the validation's own; only the caps may differ.
+
+It then writes into the validation plan a `calibration` line with `threshold.tsv`'s SHA-256 and
+`t`'s bits, and the supervisor's plan check binds the directory to them. The harness does not
+recompute `t`; the reading below does.
+
+**Validation's reading** (`python3 sim/a2_probe.py ind-val D CAL [--json]`, `CAL` the frozen
+directory). It stops with exit 1, printing why (also with `--json`), unless the validation's plan,
+400 tasks, seeds and records are the declared ones and its audit complete; the numerical check
+passes on both stages; `t` recomputed from `CAL` by the rule gives `threshold.tsv` byte for byte;
+the validation plan's `calibration` line names that file and `t`; the two configurations agree but
+for the caps and that line. Then, per case, never pooled:
+
+| Item | Content |
+|---|---|
+| Counts | planned; not evaluable by reason; evaluable; flagged and not flagged — false alarms and correct non-flags in C0 and C1, detections and misses in C3 and C5; zeros of `I` |
+| Proportions | not evaluable over planned; flagged over evaluable, labelled conditional; flagged over planned beside it |
+| Intervals | Clopper–Pearson, exact two-sided 95%, each marginal. Hypotheses: a case's runs independent and identically distributed given the frozen `t`, so the count is binomial; conditional on `t` and, over evaluable runs, on their number; no adjustment across intervals; sampling error in these designs, not a guarantee |
+| Separation without threshold | C3 and C5 each against C0 and C1 each: the share of pairs of evaluable runs where the unbalanced run's `I` exceeds the neutral one's, ties counted ½; conditional on evaluable; four values, no interval |
+| Not done | pooling cases; changing `t`, the rule or a reading after validation; a band; an operational meaning for not evaluable; a success rule |
+
+**Seeds.** A run of `ind-cal` or `ind-val` takes the first 8 bytes, little-endian, of the SHA-256
+of `isegoria/a2-probe/v1`, the stage's name and the case's, each after its length, and the
+replicate: no two runs share a batch, across stages, cases and the earlier phases. The Python
+reading recomputes every planned seed; `ind-cal-C0-0` takes 14817136108943293105 and `ind-val-C5-99`
+12356750456368884976.
+
+**Plan, cost and caps, proposed for review** (not authorized).
+
+| Stage | Runs | CPU at 19.9–25.9 s a run | Wall, about a seventh | Caps proposed: CPU; wall |
+|---|---|---|---|---|
+| Calibration | 200 | 3,980–5,180 s (66–86 min) | 9–12 min | 2 h (7,200 s); 30 min (1,800 s) |
+| Validation | 400 | 7,960–10,360 s (2.2–2.9 h) | 19–24 min | 4 h (14,400 s); 60 min (3,600 s) |
+| Both | 600 | 3.3–4.3 h | 28–37 min | 6 h; 90 min, cumulative |
+
+Each stage also 10 minutes a run, 2 GiB aggregate resident, 8 workers; the caps are cumulative
+over the sessions of the stage's directory (§13.11). The longest run so far took 35.6 s, each run's
+peak about 6.5 MiB; the estimate assumes an otherwise idle machine. A stop authorizes no
+resumption, seed change or new run.
+
+**Implementation.** `crates/characterization`: phases `ind-cal` and `ind-val` in `probe.rs`, on
+`gate_and_diagnose` as `dtf-check`, with `case_seed`; `probe_calibration.rs`, the check of
+`threshold.tsv` and of the calibration's plan, data and configuration (`calibration_line`, `rank`);
+in `bin/a2-probe.rs`, 100 replicates and no other, `--calibration`, the freeze check by git and the
+`calibration` line, the engine check as for `dtf-check`. `sim/a2_probe.py`: `probe_seed` and
+`case_seed` recomputed, `indicator`, `rank`, `case_threshold`, `calibrate` and `threshold`,
+`clopper_pearson`, `separation`, `ind_val` and `ind-val`. No file of `crates/scoring` or
+`crates/protocol` changes; the supervisor, its caps, audit and stops are reused as they are.
+
+**Commands, after review and authorization** (`C` and `V` new run directories, `F` the frozen copy
+`verification/reports/a2-ind-cal-<commit>/`).
+
+```
+cargo run --release -p characterization --bin a2-probe -- run --phase ind-cal --jobs 8 --max-cpu-s 7200 --max-wall-s 1800 --max-run-s 600 --max-rss-mib 2048 --out C
+python3 sim/a2_probe.py check C
+python3 sim/a2_probe.py threshold C > C/threshold.tsv
+# copy C's plan, ledger, records and threshold.tsv to F; review; commit
+cargo run --release -p characterization --bin a2-probe -- run --phase ind-val --calibration F --jobs 8 --max-cpu-s 14400 --max-wall-s 3600 --max-run-s 600 --max-rss-mib 2048 --out V
+python3 sim/a2_probe.py check V
+python3 sim/a2_probe.py ind-val V F
+python3 sim/a2_probe.py ind-val V F --json
+```
+
+**Checks run here** (E). No calibration or validation run, no fit at `N = 3,000`.
+
+- `cargo test -p characterization --test a2_probe`: 14 tests, one new — the stages' 200 and 400
+  runs, 600 distinct seeds, none of smoke's, explore's or confirm's first 64, `candidates`' or
+  `dtf-check`'s, two known values.
+- `--test a2_calibration`, new: 3 tests — the rank (96 at 100, 19 at 19, none at 18); the declared
+  calibration bound whatever the caps; refusals for a data file changed after the threshold, `t`
+  not the larger, a wrong rank, 18 evaluable runs, counts not summing, another α, a decimal unlike
+  its bits, a plan of 2 runs, a changed seed, another candidate tree or design, no threshold file.
+- `--test a2_probe_jobs`: 23 tests, three new — the binary plans 200 and 400 runs and refuses 50
+  replicates; `ind-val` without `--calibration`, with an unfrozen one, and `--calibration` with
+  `ind-cal` refused before any directory; in a scratch git repository a committed calibration
+  passes the freeze check (the next refusal is the engine's), and one changed or beside an
+  untracked file is refused.
+- `python3 -m unittest discover -s sim -p test_a2_probe.py`: 36 tests, seven new, at 22 replicates
+  a case with the quadratures memoized — seeds equal to the harness's; the rule's rank, ties and
+  zeros; exact intervals against their closed forms and the values reviewed on `53f2427`;
+  separation with ties ½; calibration's lines, not-evaluable counts and digests; its stops on a
+  killed run, 18 evaluable runs and a changed seed, with nothing on standard output; validation
+  per case — a value equal to `t` not flagged, a gate refusal and a non-convergence counted apart —
+  and its stops on a killed or missing run, an unbound plan, another configuration and an edited
+  `threshold.tsv`, also with `--json`.
+- Once, not kept: a `threshold.tsv` written by `sim/a2_probe.py` for a constructed calibration of
+  100 runs a case gave, in `calibration_line`, the line the oracle computes, and another
+  configuration was refused.
+- `run --phase ind-cal` refused on an uncommitted tree before any directory; `crates/scoring` and
+  `crates/protocol` identical to `2e2572c`; `cargo fmt`, `cargo clippy --all-targets`, the
+  comment budget.
+
+**Limits.** The harness checks the threshold's form and identity, not its value: `t` is recomputed
+from the records by the validation's reading alone. The freeze check's positive path was exercised
+in a scratch repository, not on a real calibration. Costs are estimates from §§13.12–13.19. The
+study's results would hold for these four designs at this size, inside the model's family, with
+none of §11.2's or §12's guarantees.

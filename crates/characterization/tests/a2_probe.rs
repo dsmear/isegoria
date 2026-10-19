@@ -402,3 +402,32 @@ fn the_dtf_check_phase_pairs_new_seeds_disjoint_from_every_earlier_phase() {
     assert!(ours.iter().all(|s| !earlier.contains(s)));
     assert!(all.iter().all(|t| t.phase.diagnostic()));
 }
+
+/// `ind-cal` and `ind-val` (`docs/19` §13.21): their 200 and 400 runs, each with a seed of its own
+/// — across stages and cases — none of an earlier phase's; known values the oracle reproduces.
+#[test]
+fn the_indicator_stages_seed_every_run_apart_from_each_other_and_every_earlier_phase() {
+    let cal = tasks(Phase::IndCal, 100);
+    let val = tasks(Phase::IndVal, 100);
+    assert_eq!((cal.len(), val.len()), (200, 400));
+    assert!(cal.iter().all(|t| matches!(t.case, Case::C0 | Case::C1)));
+    for case in [Case::C0, Case::C1, Case::C3, Case::C5] {
+        assert_eq!(val.iter().filter(|t| t.case == case).count(), 100);
+    }
+    assert!(cal.iter().all(|t| t.key().starts_with("ind-cal-")));
+    assert!(val.iter().all(|t| t.key().starts_with("ind-val-")));
+    let mut ours: Vec<u64> = cal.iter().chain(&val).map(Task::seed).collect();
+    ours.sort_unstable();
+    ours.dedup();
+    assert_eq!(ours.len(), 600);
+    let mut earlier: Vec<u64> = (0..64)
+        .flat_map(|r| [Phase::Smoke, Phase::Explore, Phase::Confirm].map(|p| probe_seed(p, r)))
+        .collect();
+    earlier.extend(tasks(Phase::Candidates, 8).iter().map(Task::seed));
+    earlier.extend(tasks(Phase::DtfCheck, 16).iter().map(Task::seed));
+    assert!(ours.iter().all(|s| !earlier.contains(s)));
+    assert_eq!(cal[0].seed(), 14817136108943293105);
+    assert_eq!(val[399].seed(), 12356750456368884976);
+    assert!(cal.iter().chain(&val).all(|t| t.phase.diagnostic()));
+    assert!(val.iter().all(|t| t.case.design(t.phase).n == 3000));
+}

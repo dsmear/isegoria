@@ -322,8 +322,9 @@ item law, with the indicative information bound of C5, into `a2_probe_reference.
 against the harness's values; `budget` applies the cost-only rule for the confirmation's
 replicates, and proposes none unless explore is complete, passes the precision check and shows
 no blocking defect; `report` counts every outcome with its denominators; `compare-first` and
-`candidates` read §13.14's phase, `dtf-check` §13.18's. Standard library only,
-deterministic. From the repository root:
+`candidates` read §13.14's phase, `dtf-check` §13.18's; `threshold` and `ind-val` §13.21's
+single-test study, the calibration's threshold and the validation against it. Standard library
+only, deterministic. From the repository root:
 
 ```
 python3 sim/a2_probe.py reference > sim/a2_probe_reference.json
@@ -339,7 +340,13 @@ without analysis on an empty or invalid phase, a failed precision check or the b
 malformed ledger stops `check`, `report` and `budget`; a stop named in a `session` line binds as
 the `stop` line does. `dtf-check` exits 0 after its reading, 1 without analysis unless the
 directory holds the declared phase exactly — 16 replicates, its 32 tasks, records matching their
-keys, paired seeds, a complete audit — and the precision check passes.
+keys, paired seeds, a complete audit — and the precision check passes. `threshold` prints
+`threshold.tsv` and exits 0, or prints why to standard error, nothing to standard output, and
+exits 1: the stage not exactly the declared one (100 replicates, its tasks and seeds, a complete
+audit), a failed precision check, or fewer than 19 evaluable runs in a neutral case. `ind-val`
+exits 0 after its reading, 1 without it unless both stages are the declared ones and pass the
+precision check, the threshold recomputed equals the frozen `threshold.tsv`, and the validation
+plan is bound to it.
 
 ### `d3_selection_counts.py`
 
