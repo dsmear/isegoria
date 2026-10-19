@@ -12,7 +12,7 @@ Explore measured cost only; its values are not results and are not pooled with c
 | Date | 2026-10-19, explore from 08:18, confirm right after (`environment.txt`) |
 | Machine | the owner's: AMD Ryzen 7 5800X, 8 cores, 16 threads, 32 GB, Linux 7.1.5; rustc 1.86.0, Python 3.12.3 |
 | Runs | explore 6 of 6 `read`; confirm `R = 8` from the cost rule, 48 of 48 `read`; no stop, no refusal, no killed or failed run, no rejected part |
-| Cost | explore 172.87 s CPU, 44.6 s wall; confirm 1,551.08 s CPU, 220.0 s wall; cumulative 1,723.95 s CPU (28.7 min) of the 2 h cap, 264.6 s wall of the 45 min cap. Largest sampled resident sum 42.6 MiB (explore), 56.4 MiB (confirm); each run's peak 6.2–6.6 MiB. Largest gap between checks 134 ms (explore), 147 ms (confirm). 8 workers |
+| Cost | explore 172.87 s CPU, 44.6 s wall; confirm 1,551.08 s CPU, 220.0 s wall; cumulative 1,723.95 s CPU (28.7 min) of the 2 h cap, 264.6 s wall of the 45 min cap. Largest sampled resident sum 41.6 MiB (explore), 55.0 MiB (confirm), 42,568 and 56,356 KiB; each run's peak 6.2–6.6 MiB. Largest gap between checks 134 ms (explore), 147 ms (confirm). 8 workers |
 | Run directory | `characterization-results/a2-probe-9511ce1/` and its `-logs/`, kept by the owner, untracked; the files below are copies |
 
 **Commands and exit codes** (from the repository root; `D` the run directory):

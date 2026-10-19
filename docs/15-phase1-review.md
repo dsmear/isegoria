@@ -99,6 +99,11 @@ direction of 2026-10-18
 - **Permitted next work:** foundations recorded in `01` D44; evaluation design and bounded,
   predeclared tests under `19` §13.10. The owner's "75%" is not a selected metric or threshold.
   No large campaign or production work is authorized by that direction.
+- **First diagnostic probe, completed and reviewed:** declared in `19` §13.11, its harness approved
+  by Astra on `9511ce1` for it alone, run on `9511ce1` (`19` §13.12; evidence in
+  `verification/reports/a2-probe-9511ce1/`), its results accepted by Astra on `ee5cf3b` as bounded
+  diagnostic evidence. It closes nothing: in C3 the whole-form estimate was 0 for forms whose
+  generating DTF is 0.56–0.65, and §13.13 proposes, not runs, the next bounded experiment.
 - **Suspended:** implementation of the certifier until its contract decisions are made.
   D38's treatment of pertinent factual-knowledge differences remains to be reconciled explicitly;
   no compensation or admission policy changes through this documentation.

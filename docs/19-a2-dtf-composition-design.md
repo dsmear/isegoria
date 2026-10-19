@@ -323,6 +323,16 @@ above:
   and no fit.
 - **Not covered:** the probe's results (§13.12), its reading and any next step.
 
+Review of `ee5cf3b` (§13.12, the probe's results), distinct from the reviews above:
+
+- **Accepted:** the results, as bounded diagnostic evidence. A2 stays open and blocking.
+- **Astra's evidence:** the preserved records checked — `check` passing on 736 values, explore and
+  confirm complete — and the confirm report, `confirm-details.json` and `confirm-factual.json`
+  reproduced exactly. No Rust and no new fit.
+- **Rectifications asked, made after `ee5cf3b`:** C3's contested cost is absent, not zero (no item
+  was contested), the whole-form estimate being the zero; the aggregate memory reads 41.6 and
+  55.0 MiB (42,568 and 56,356 KiB). The raw artefacts are unchanged.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -2445,10 +2455,10 @@ frequencies: no simulation replaces a proof where a guarantee is kept.
   proves no confusion by itself. B1–B3 work on impact would come before relying on such verdicts.
 - C2 read as one class: an observation on detection at this size and design; by itself it does
   not place the cause in `N_LATENT_MIN` rather than the anchors, the model or the search.
-- C3 with `D = 0` and true form DTF near 0.6: a whole-test claim must cover active items (as R3
-  would), or give way to §13.7's "no whole-test certificate" with R1's description; the choice
-  stays the owner's. If `DTF_F` tracks the truth, a whole-form estimate — a diagnostic, not a
-  bound — is available from existing APIs; if not, not even that.
+- C3 with no contested cost (`D` absent: nothing contested) and true form DTF near 0.6: a whole-test
+  claim must cover active items (as R3 would), or give way to §13.7's "no whole-test certificate"
+  with R1's description; the choice stays the owner's. If `DTF_F` tracks the truth, a whole-form
+  estimate — a diagnostic, not a bound — is available from existing APIs; if not, not even that.
 - C4 selections within the fitted cost whose true DTF exceeds the line: they document error on the
   selections drawn. Without an appropriate comparison, such as the same sets' error unselected,
   they do not isolate what selecting on the fitted cost contributes to it.
@@ -2464,7 +2474,8 @@ left to later declarations.
 ### 13.12 First bounded probe: result (run on `9511ce1`)
 
 **Status:** run by Claude Code on 2026-10-19 on `9511ce1`, as §13.11 declares, after Astra's
-approval of the harness and the owner's authorization (record before §1); not reviewed. Evidence:
+approval of the harness and the owner's authorization; accepted by Astra on `ee5cf3b` as bounded
+diagnostic evidence, its two rectifications made below (records before §1). Evidence:
 **E** the two phases; **C** the oracle's precision check of every truth; the raw records, plans,
 ledger, checks and reports in
 [`verification/reports/a2-probe-9511ce1/`](../verification/reports/a2-probe-9511ce1/README.md).
@@ -2483,23 +2494,23 @@ failed run or rejected part; no run missing. Explore's values serve its cost onl
 pooled below.
 
 **Cost, measured.** CPU 172.9 s (explore) and 1,551.1 s (confirm), 1,724.0 s in all — 28.7 of the
-120 minutes; wall time 44.6 s and 220.0 s, 4.4 of the 45 minutes; largest sampled resident sum
-42.6 and 56.4 MiB, each run's peak 6.2–6.6 MiB; largest gap between checks 134 and 147 ms; 8
-workers. CPU per confirm run, mean and range: C0 21.5 s (10.9–30.4), C1 23.7 (17.1–31.3), C2 48.9
-(11.8–64.2), C3 22.4 (16.1–28.6), C4 56.3 (32.8–82.5), C5 21.1 (12.9–26.5). The estimate (22 s
-without a mixture, 54 s with one, up to 35 and 87 s) held; C3 cost as a null case because it
-selected one class. Answers: 204,000 a run, 9,792,000 in confirm, synthetic.
+120 minutes; wall time 44.6 s and 220.0 s, 4.4 of the 45 minutes; largest sampled resident sum 41.6
+and 55.0 MiB (42,568 and 56,356 KiB), each run's peak 6.2–6.6 MiB; largest gap between checks 134
+and 147 ms; 8 workers. CPU per confirm run, mean and range: C0 21.5 s (10.9–30.4), C1 23.7
+(17.1–31.3), C2 48.9 (11.8–64.2), C3 22.4 (16.1–28.6), C4 56.3 (32.8–82.5), C5 21.1 (12.9–26.5). The
+estimate (22 s without a mixture, 54 s with one, up to 35 and 87 s) held; C3 cost as a null case
+because it selected one class. Answers: 204,000 a run, 9,792,000 in confirm, synthetic.
 
 **Results, confirm.** `R = 8` runs per case, all read; `R_eval` 8 except C3 (6).
 
-| Case | Fits | Flags | Fixed form: generating DTF; `DTF_F` | Forms A, A+C | `D`, draws (S1) |
+| Case | Fits | Flags | Fixed form: generating DTF; fitted `DTF_F` | Forms A, A+C | contested cost `D`, draws (S1) |
 |---|---|---|---|---|---|
-| C0 | 8 converged, 8 one class | clean 0 of 64 | 0; `DTF_F` 0 | 8 items in 8, DTF 0 | no contested item |
-| C1 | as C0, identical to its C0 pair in 8 of 8 | clean 0 of 64 | 0, raw gap 1.57–1.81; `DTF_F` 0 | 8 items in 8, DTF 0 | none |
+| C0 | 8 converged, 8 one class | clean 0 of 64 | 0; `DTF_F` 0 | 8 items in 8, DTF 0 | `D` absent: no contested item |
+| C1 | as C0, identical to its C0 pair in 8 of 8 | clean 0 of 64 | 0, raw gap 1.57–1.81; `DTF_F` 0 | 8 items in 8, DTF 0 | `D` absent |
 | C2 | 8 converged: 7 mixtures, 1 one class (r5) | leaners 14 of 16, both in each mixture, none in r5; clean 0 of 48 | 0.610–0.873; `DTF_F` off by −0.030 to +0.095 in the mixtures, 0 in r5 | S0 and S1 alike: 6 items in 7 runs, DTF 0; r5 8 items, DTF 0.610 | 7 runs with 2 contested: `NoBalancedDraw`, feasible {0}, reduced to none, `D` 0 |
-| C3 | 6 converged, all one class; 2 `max_iters`, every item `Indeterminate` | leaners 0 of 48 | 0.560–0.652; `DTF_F` 0 | 8 items in 6, DTF 0.560–0.652; **empty** in 2 | none |
+| C3 | 6 converged, all one class; 2 `max_iters`, every item `Indeterminate` | leaners 0 of 48 | 0.560–0.652; `DTF_F` 0 | 8 items in 6, DTF 0.560–0.652; **empty** in 2 | `D` absent |
 | C4 | 8 converged, all mixtures | leaners 32 of 32; clean 0 of 32 | 0.047–0.271, above the line in 6, below in 2; `DTF_F` off by −0.050 to +0.102 | S0: 4 clean items in 8, DTF 0; S1: 6 items in 7, 8 in 1, DTF 0.028–0.088 | 8 runs with 4 contested: all drawn in 1; 7 reduced to a pair of opposite signs, feasible {0, 2}; `D` 0.031–0.079; selection's DTF minus `D` −0.025 to +0.034 |
-| C5 | 8 converged, all one class, identical to its C0 pair in 8 of 8 | leaners 0 of 64 | 0.132–0.154, above in 8; `DTF_F` 0 | 8 items in 8, DTF 0.132–0.154 | none |
+| C5 | 8 converged, all one class, identical to its C0 pair in 8 of 8 | leaners 0 of 64 | 0.132–0.154, above in 8; `DTF_F` 0 | 8 items in 8, DTF 0.132–0.154 | `D` absent |
 
 No form's generating DTF lies within 0.001 of 0.10. C3's two empty forms read "below" in the
 report's count against the line: removing every item, they are no result. Every returned selection
@@ -2520,16 +2531,17 @@ form's (0.066). Neither reading is preferred here; D38's treatment stays the ope
   of impact read as DIF; nothing beyond this scenario.
 - C2: one run of eight read as one class with two strong leaners at `N = 3,000`, fitted 0 for a
   true 0.610 (§4 row 4 saw it at 1,500): an observation on detection; it does not place its cause.
-- C3: `D = 0` and `DTF_F = 0` in 6 of 6 converged runs for forms whose DTF is 0.56–0.65, and no
-  reading in 2 of 8. The whole-form estimate of existing APIs did not track the truth here: "if
-  not, not even that". A whole-test claim must cover active items, or give way to §13.7's "no
-  whole-test certificate"; the choice stays the owner's.
+- C3: no contested cost (`D` absent, nothing contested) and a whole-form estimate `DTF_F = 0` in 6
+  of 6 converged runs, for forms whose generating DTF is 0.56–0.65; no reading in 2 of 8. The
+  whole-form estimate of existing APIs did not track the truth here: "if not, not even that". With
+  the whole-test objective kept, what this implies is set out in §13.13.
 - C4: no selection within the fitted cost passed the line (0 of 8); the cost under-estimated the
   selection's true DTF in 2 of 8, by up to 0.034. Without the sets' error unselected, this
   documents error on these selections only.
-- C5: outputs identical to C0's in 8 of 8 while every form is 0.03–0.05 above the line: no cost and
-  no flag under this weak signal. Identical pairs are an observation, which the distance bound does
-  not require; it bears on an "insufficient information" output and §13.7's alternatives.
+- C5: outputs identical to C0's in 8 of 8 while every form is 0.03–0.05 above the line: no contested
+  cost (`D` absent), `DTF_F = 0` and no flag under this weak signal. Identical pairs are an
+  observation, which the distance bound does not require; it bears on an "insufficient information"
+  output and §13.7's alternatives.
 - F: D38's balancing excluded every uncompensated sourced fact (C2) and two of four in most C4 runs;
   what that should be is D38's open choice.
 
@@ -2540,12 +2552,82 @@ truth is the generating law; 0.10 is a reference line, not A2's tolerance; the c
 reduced draw are harness readings. Nothing here bears on domination, coverage, conservative
 computation or any certificate's usefulness (§11.2), nor on real populations.
 
-**Next intervention suggested by the evidence, not started.** A decision brief for the owner rather
-than more runs. It would put §13.7's alternatives with these magnitudes: the current cost covers
-contested facts only, and in C3 and C5 neither `D` nor the fitted functional saw spread DIF on
-active items; D38's balancing excluded uncompensated sourced facts. The brief would separate
-three choices: a whole-test claim kept, which needs a whole-form check (R3-like) with an
-uncertainty treatment — its first step a declared probe of whether a whole-form fit sees C3's
-spread DIF at feasible sizes; that claim given up, R1's description kept with no whole-test
-certificate; and D38's treatment of pertinent factual knowledge. C3's two `max_iters` fits are a
-B1–B3 observation to track. No implementation, threshold or run is proposed before that decision.
+**Next step.** Superseded after Astra's review of `ee5cf3b` by §13.13, which keeps the whole-test
+objective and separates composition, detection and uncertainty.
+
+### 13.13 After the probe: composition, detection, uncertainty (proposal, not run)
+
+**Status:** proposed by Claude Code on `ee5cf3b`, after Astra accepted §13.12 (record before §1);
+not reviewed, not run, no code. The adopted direction stands: a guarantee on the whole test (§11;
+`15` A2). Nothing here selects a tolerance, risk level, sample size, policy or calibration, or
+presents extending the contested cost to active items as sufficient.
+
+**What the probe established for C3.** The whole-form estimate was computed: `DTF_F` of the fixed
+form — all eight items, in one fit — was 0 in the 6 converged runs, for a generating DTF of
+0.56–0.65. No item was contested, so the contested cost `D` was absent, not zero. Three questions
+are kept apart.
+
+- *Composition, which items enter the check.* In C3 it was complete: the whole-form functional
+  covered every item. Extending the contested cost to the active items would compute this same
+  functional, 0 here, so it is not sufficient by itself. Composition stays open across fits — a
+  form drawn from several batches, the cross-fit sum (§4 row 2), common against per-form
+  calibration (§9) — which this proposal does not address.
+- *Detection, why a fit returns one class and a zero difference.* With one class every between-class
+  contrast is zero by construction: `DTF_F = 0` says the selected model has no classes to compare,
+  not that classes have equal curves. In every C3 run `latent_dif` fitted both two-class candidates,
+  shared and per-class slopes — 3 candidates with the one-class fit, as in C0 and C5 — and set them
+  aside; a mixture replaces the one-class fit only if it converges and lowers the BIC (`02` §B.3).
+  The probe recorded the selected fit and the candidates' count, not what the candidates estimated
+  nor how much their likelihood gained. It cannot tell a gain below the penalty from no gain at this
+  size, or a candidate at another solution.
+- *Uncertainty, what would separate a form balanced enough from one the data cannot evaluate.* A
+  zero from a one-class selection is neither: it states nothing about how large a difference the
+  data could have shown. Diagnostically, the evidence is the scale at which the candidates'
+  statistics vary under the null at the same design (C0, paired seeds) and where C3 falls against
+  it. For a guarantee it is §12's all-order region with obligations a and c (§11.2), whose
+  usefulness §13.8 limits for small spread DIF. "Balanced enough" stays relative to the symbolic
+  tolerance `δ`.
+
+**The two `max_iters` runs.** In C3 r0 and r2 the selected fit — the one-class fit, which the
+search keeps unless a converged mixture lowers the BIC — reached its iteration budget unconverged;
+every item read `Indeterminate` and the forms were empty. They belong with B1–B3 (search and
+optimizer stability, the shape and its penalty; `15`); no cause is attributed here. The experiment
+below records each candidate's status on those seeds, which can locate the non-convergence among
+the candidates, not explain it.
+
+**One bounded experiment.**
+
+| Item | Content |
+|---|---|
+| Question | On the probe's own confirm seeds, do the target model's candidates hold a between-class signal for C3, and for C5, that C0's do not? |
+| Comparison | C0, C3 and C5 at the 8 confirm replicates, paired by seed; §13.11's design, model, defaults and gate |
+| What is new | the probe kept only the selected fit; this keeps every candidate: classes, slope alternative, convergence status, log-likelihood, parameter count and, for each mixture candidate, the whole-form `DTF_F` over its counted classes |
+| Built-in check | the fits are deterministic (invariant 7): each re-fit's selected model must reproduce its record — rechecks, classes, status, `DTF_F` — or the run stops as a technical failure |
+| Metrics, per run and paired with C0 by seed | `2 Δ log L` of the best converged two-class candidate over the one-class fit, beside its penalty `Δk ln N`; each converged mixture candidate's `DTF_F` of the fixed form, beside the generating DTF; each candidate's status, notably on C3's two `max_iters` seeds. Counts "`k` of `r`" and per-run values only; denominators: runs, candidates fitted, candidates converged |
+| Needs | a read-only accessor in `scoring::latent` returning every candidate's fit — no change to selection, flags or any output of `latent_dif` — and the harness recording it: a change to `crates/scoring` for the owner to authorize explicitly |
+| Cost, estimated | 24 runs at the confirm costs of these three cases (21–24 s a run): about 9 CPU-minutes, under §13.11's caps and supervisor |
+
+**Possible consequences, with no threshold.**
+
+- C3's candidates separate from C0's on the paired seeds — larger likelihood gains, mixture `DTF_F`
+  near the generating DTF: the signal is in the data and order selection sets it aside. Detection is
+  then the gap — B1–B3's order selection on penalized mixtures, and §11.2 b: a whole-test check
+  would carry every admitted order with its uncertainty, as §12's region does, rather than read the
+  selected one. The BIC would not be retuned on this evidence.
+- C3's candidates resemble C0's: at `N = 3,000` this model's likelihood does not resolve this spread
+  DIF, and a whole-test check must be able to report such a form as not evaluable at this size. The
+  next question would be information against size: a §13.8-type bound for C3-like alternatives, or a
+  declared larger `N`.
+- Mixed results, or C5 separated: reported as observed, run by run.
+
+In every case composition and the guarantee's obligations remain open; the experiment locates where
+detection is lost, and supplies no bound.
+
+**D38, apart.** The probe showed what the implemented balancing does with sourced facts: in C2 it
+left out every uncompensated one. The open choice is semantic. When a contested fact's class
+difference reflects pertinent factual knowledge, the whole-test target either treats it as
+differential functioning to compensate, D38 as implemented, or counts it as measured competence,
+outside the difference the target constrains. The second needs the target to tell pertinent
+knowledge from nuisance, which the responses do not identify: only review and the source check can
+mark it (`01` D44). The choice changes which contrasts the whole-test target counts, not the
+experiment above, and is not taken here.
