@@ -1,6 +1,6 @@
-"""A2 probe (`docs/19` §§13.11, 13.14): reference truths, checks of the harness's records, the cost
-rule, the reports. Standard library only: `python3 sim/a2_probe.py reference | check DIR | budget
-DIR | report DIR [--phase P] | compare-first DIR FIRST | candidates DIR FIRST`."""
+"""A2 probe (`docs/19` §§13.11, 13.14, 13.18): reference truths, record checks, the cost rule and
+the reports. Standard library: `python3 sim/a2_probe.py reference | check DIR | budget DIR | report
+DIR [--phase P] | compare-first DIR FIRST | candidates DIR FIRST | dtf-check DIR [--json]`."""
 import json
 import math
 import random
@@ -588,6 +588,89 @@ def candidates_report(d, first):
     return "\n".join(lines) + "\n", (2 if a["status"] == "partial" else 0)
 
 
+VARIANTS = ((False, "shared"), (True, "per-class"))
+DTF_CHECK_PAIRS = 16
+
+
+def pair_side(rec, slopes):
+    """One side of a pair: its two-class candidate of the given slopes, and why the pair cannot be
+    ordered on its account (`None` when it can)."""
+    if rec is None:
+        return None, "run missing"
+    if rec.get("outcome") != "read":
+        return None, f"run {rec.get('outcome')}"
+    c = next((x for x in rec["candidates"] if x["classes"] == 2 and x["non_uniform"] == slopes), None)
+    if rec["candidates"][0]["status"] != "converged":
+        return c, "baseline not converged"
+    if c is None:
+        return None, "candidate missing"
+    if c["status"] != "converged":
+        return c, "candidate not converged"
+    if c["dtf"] is None:
+        return c, "DTF unavailable"
+    return c, None
+
+
+def order(a, b):
+    return "greater" if a > b else ("smaller" if a < b else "equal")
+
+
+def dtf_check(d, phase="dtf-check", pairs=DTF_CHECK_PAIRS):
+    """`docs/19` §13.18's analysis: per variant, C3's two-class candidate's whole-form DTF against
+    C0's on the same replicate, unrounded; zeros counted with their origin; the pairs that cannot be
+    ordered listed with why; then the pairs without a zero, as a conditional reading."""
+    try:
+        a = audit(d, phase)
+    except ValueError as e:
+        return f"# A2 probe, {phase}\n\nStopped: {e}.\n", None, 1
+    recs = {(r["case"], r["replicate"]): r for r in read_records(d)[0] if r.get("phase") == phase}
+    checked = precision(list(recs.values()))
+    head = [f"# A2 probe, {phase} (§13.18)", "", f"Audit: {a['status']}, {a['records']} of {a['planned']} runs.",
+            f"Precision check: {checked['values']} values, {len(checked['failures'])} failures.", ""]
+    if a["status"] != "complete" or checked["failures"] or not checked["values"]:
+        return "\n".join(head + ["Stopped: the analysis needs a complete audit and a passing check."]) + "\n", None, 1
+    summary, lines = {}, head
+    for slopes, name in VARIANTS:
+        rows, tally, lost = [], {"greater": 0, "smaller": 0, "equal": 0}, {}
+        nonzero = {"greater": 0, "smaller": 0, "equal": 0}
+        for rep in range(pairs):
+            r0, r3 = recs.get(("C0", rep)), recs.get(("C3", rep))
+            (c0, why0), (c3, why3) = pair_side(r0, slopes), pair_side(r3, slopes)
+            row = {"replicate": rep, "c0": c0, "c3": c3,
+                   "generating_c3": r3["truth"]["dtf"] if r3 else None}
+            if why0 or why3:
+                row["not_comparable"] = {"C0": why0, "C3": why3}
+                for why in filter(None, (why0 and f"C0: {why0}", why3 and f"C3: {why3}")):
+                    lost[why] = lost.get(why, 0) + 1
+            else:
+                row["order"] = order(c3["dtf"], c0["dtf"])
+                row["gain_minus_c0"] = c3["gain"] - c0["gain"]
+                tally[row["order"]] += 1
+                if c3["dtf"] != 0 and c0["dtf"] != 0:
+                    nonzero[row["order"]] += 1
+            rows.append(row)
+        comparable = sum(tally.values())
+        summary[name] = {"planned": pairs, "comparable": comparable, "order": tally, "not_comparable": lost,
+                         "without_zeros": dict(nonzero, pairs=sum(nonzero.values())), "rows": rows}
+        lines += [f"## {name} slopes", "",
+                  f"- C3 against C0, of {pairs} planned pairs: {comparable} comparable — greater "
+                  f"{tally['greater']}, smaller {tally['smaller']}, equal {tally['equal']}; not comparable "
+                  f"{pairs - comparable} {lost or ''}",
+                  f"- conditional on the {sum(nonzero.values())} comparable pairs without a zero: greater "
+                  f"{nonzero['greater']}, smaller {nonzero['smaller']}, equal {nonzero['equal']}", ""]
+        for row in rows:
+            cell = lambda c: "none" if c is None else (
+                f"DTF {c['dtf']!r} ({c['dtf_basis']}), counted {c['counted']}, pi "
+                f"{[round(x, 3) for x in c['pi']]}, gain {round(c['gain'], 2)}, {c['status']}")
+            tail = (f"{row['order']}, gain minus C0's {round(row['gain_minus_c0'], 2)}" if "order" in row
+                    else f"not comparable: {row['not_comparable']}")
+            lines.append(f"- r{row['replicate']} (C3 generating DTF {row['generating_c3']}): C0 {cell(row['c0'])}; "
+                         f"C3 {cell(row['c3'])} — {tail}")
+        lines.append("")
+    lines.append("The variants refit the same batches: they are not independent and are not summed.")
+    return "\n".join(lines) + "\n", summary, 0
+
+
 def main(argv):
     if not argv:
         sys.exit(__doc__)
@@ -612,6 +695,10 @@ def main(argv):
     elif cmd == "candidates":
         text, code = candidates_report(rest[0], rest[1])
         print(text, end="")
+        sys.exit(code)
+    elif cmd == "dtf-check":
+        text, summary, code = dtf_check(rest[0])
+        print(json.dumps(summary, indent=1) + "\n" if summary and "--json" in rest else text, end="")
         sys.exit(code)
     elif cmd == "report":
         phase = rest[rest.index("--phase") + 1] if "--phase" in rest else "confirm"

@@ -21,9 +21,10 @@ usage: a2-probe <plan|run|one> [options]
   one    one run (used by run): its record to <out>/parts
 
 options:
-  --phase smoke|explore|confirm|candidates  (smoke)
+  --phase smoke|explore|confirm|candidates|dtf-check  (smoke)
   --replicates R                 (smoke only; explore runs 1, confirm takes R from the
-                                 cost rule after explore, candidates refits confirm's 8)
+                                 cost rule after explore, candidates refits confirm's 8,
+                                 dtf-check runs 16 on its own seeds)
   --case C0..C5 --replicate R    (one only)
   --jobs J                       (8)
   --out DIR                      (characterization-results/a2-probe)
@@ -115,9 +116,11 @@ fn git(args: &[&str]) -> Result<String, String> {
 
 const DIAGNOSTIC: &str = "crates/scoring/src/latent.rs";
 
-fn unchanged(top: &str, paths: &[&str]) -> Result<bool, String> {
+const REVIEWED_DIAGNOSTIC: &str = "2e2572c";
+
+fn unchanged(top: &str, base: &str, paths: &[&str]) -> Result<bool, String> {
     Command::new("git")
-        .args(["-C", top, "diff", "--quiet", ENGINE_BASE, "--"])
+        .args(["-C", top, "diff", "--quiet", base, "--"])
         .args(paths)
         .status()
         .map(|s| s.success())
@@ -125,20 +128,27 @@ fn unchanged(top: &str, paths: &[&str]) -> Result<bool, String> {
 }
 
 /// The candidate: the committed trees of `crates/`, `Cargo.lock` and the diagnostic file, clean
-/// unless `smoke`; the engine as at `ENGINE_BASE` but for that file, which only `candidates` and
-/// smoke may change.
+/// unless `smoke`. Explore and confirm run `ENGINE_BASE`'s engine, the diagnostic phases exactly
+/// `REVIEWED_DIAGNOSTIC`'s; smoke, which fits nothing, may differ in the diagnostic file alone.
 fn candidate(phase: Phase) -> Result<String, String> {
     let top = git_at(None, &["rev-parse", "--show-toplevel"])?;
+    let engine = ["crates/protocol", "crates/scoring"];
     let outside = format!(":(exclude){DIAGNOSTIC}");
-    if !unchanged(&top, &["crates/protocol", "crates/scoring", &outside])? {
+    let (base, ok) = match phase {
+        Phase::Explore | Phase::Confirm => (ENGINE_BASE, unchanged(&top, ENGINE_BASE, &engine)?),
+        Phase::Candidates | Phase::DtfCheck => (
+            REVIEWED_DIAGNOSTIC,
+            unchanged(&top, REVIEWED_DIAGNOSTIC, &engine)?,
+        ),
+        Phase::Smoke => (
+            ENGINE_BASE,
+            unchanged(&top, ENGINE_BASE, &[engine[0], engine[1], &outside])?,
+        ),
+    };
+    if !ok {
         return Err(format!(
-            "crates/scoring or crates/protocol differ from {ENGINE_BASE} beyond {DIAGNOSTIC}"
-        ));
-    }
-    let diagnostic = matches!(phase, Phase::Candidates | Phase::Smoke);
-    if !diagnostic && !unchanged(&top, &[DIAGNOSTIC])? {
-        return Err(format!(
-            "{phase:?} runs {ENGINE_BASE}'s engine; {DIAGNOSTIC} differs"
+            "{} runs the engine of {base}; crates/scoring or crates/protocol differ",
+            phase.name()
         ));
     }
     let dirty = !git(&["status", "--porcelain", "--", "crates", "Cargo.lock"])?.is_empty();
@@ -166,6 +176,8 @@ fn replicates(args: &Args) -> Result<u32, String> {
         (Phase::Explore, Some(_)) => Err("explore runs one replicate".into()),
         (Phase::Candidates, None | Some(8)) => Ok(8),
         (Phase::Candidates, Some(_)) => Err("candidates refits confirm's 8 replicates".into()),
+        (Phase::DtfCheck, None | Some(16)) => Ok(16),
+        (Phase::DtfCheck, Some(_)) => Err("dtf-check runs its declared 16 replicates".into()),
         (Phase::Confirm, Some(_)) => Err("confirm takes its replicates from the cost rule".into()),
         (Phase::Confirm, None) => {
             if let Some(r) =

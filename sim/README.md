@@ -321,7 +321,8 @@ item law, with the indicative information bound of C5, into `a2_probe_reference.
 `audit` compares a phase's plan, ledger and records; `check` recomputes every truth of a directory
 against the harness's values; `budget` applies the cost-only rule for the confirmation's
 replicates, and proposes none unless explore is complete, passes the precision check and shows
-no blocking defect; `report` counts every outcome with its denominators. Standard library only,
+no blocking defect; `report` counts every outcome with its denominators; `compare-first` and
+`candidates` read §13.14's phase, `dtf-check` §13.18's. Standard library only,
 deterministic. From the repository root:
 
 ```
@@ -336,7 +337,8 @@ an audit is invalid; agreement is a consistency check between two methods, not a
 bound. `report` exits 0 on a complete phase, 2 on a partial one (declared with its counts), 1
 without analysis on an empty or invalid phase, a failed precision check or the blocking defect. A
 malformed ledger stops `check`, `report` and `budget`; a stop named in a `session` line binds as
-the `stop` line does.
+the `stop` line does. `dtf-check` exits 0 after its reading, 1 without analysis unless the phase's
+audit is complete and the precision check passes.
 
 ### `d3_selection_counts.py`
 

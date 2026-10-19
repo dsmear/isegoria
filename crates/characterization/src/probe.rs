@@ -66,7 +66,7 @@ impl Case {
         };
         let (n, anchors) = match phase {
             Phase::Smoke => (400, 10),
-            Phase::Explore | Phase::Confirm | Phase::Candidates => (3000, 60),
+            Phase::Explore | Phase::Confirm | Phase::Candidates | Phase::DtfCheck => (3000, 60),
         };
         DifDesign {
             n,
@@ -87,6 +87,7 @@ pub enum Phase {
     Explore,
     Confirm,
     Candidates,
+    DtfCheck,
 }
 
 impl Phase {
@@ -96,6 +97,7 @@ impl Phase {
             Phase::Explore => "explore",
             Phase::Confirm => "confirm",
             Phase::Candidates => "candidates",
+            Phase::DtfCheck => "dtf-check",
         }
     }
 
@@ -105,17 +107,25 @@ impl Phase {
             Phase::Explore,
             Phase::Confirm,
             Phase::Candidates,
+            Phase::DtfCheck,
         ]
         .into_iter()
         .find(|p| p.name() == name)
     }
 
-    /// The cases a phase runs: `candidates` (`docs/19` §13.14) C0, C3 and C5 only.
+    /// The cases a phase runs: `candidates` (`docs/19` §13.14) C0, C3 and C5, `dtf-check`
+    /// (§13.18) C0 and C3.
     pub fn cases(self) -> &'static [Case] {
         match self {
             Phase::Candidates => &[Case::C0, Case::C3, Case::C5],
+            Phase::DtfCheck => &[Case::C0, Case::C3],
             _ => &CASES,
         }
+    }
+
+    /// Whether the phase runs the candidates' diagnostic path, [`gate_and_diagnose`].
+    pub fn diagnostic(self) -> bool {
+        matches!(self, Phase::Candidates | Phase::DtfCheck)
     }
 }
 
@@ -596,7 +606,7 @@ pub fn gate_and_diagnose(
 pub fn run(task: &Task, cost: impl FnOnce() -> Option<Cost>) -> String {
     let d = task.case.design(task.phase);
     let batch = dif_batch(&d, task.seed());
-    if task.phase == Phase::Candidates {
+    if task.phase.diagnostic() {
         let diagnosed = gate_and_diagnose(task, &d, &batch);
         return diagnosed_record(task, &d, &batch, &diagnosed, cost);
     }

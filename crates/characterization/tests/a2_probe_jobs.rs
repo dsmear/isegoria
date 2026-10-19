@@ -606,3 +606,28 @@ fn a_stop_in_the_session_line_binds_without_the_stop_line() {
     let r = run(&all(), 1, &out, caps(60_000, 60_000), fake).unwrap();
     assert_eq!(r, Err(Refusal::Stopped("cpu cap".into())));
 }
+
+/// The binary plans `dtf-check`'s 32 runs and refuses another replicate count.
+#[test]
+fn the_binary_plans_dtf_check_s_32_runs_and_no_other_count() {
+    let _serial = serial();
+    let plan = |extra: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .args(["plan", "--phase", "dtf-check"])
+            .args(extra)
+            .output()
+            .unwrap()
+    };
+    let out = plan(&[]);
+    assert!(out.status.success());
+    let lines: Vec<String> = String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .map(String::from)
+        .collect();
+    assert_eq!(lines.len(), 32);
+    assert!(
+        lines[0].starts_with("dtf-check-C0-0 seed ")
+            && lines[31].starts_with("dtf-check-C3-15 seed ")
+    );
+    assert_eq!(plan(&["--replicates", "8"]).status.code(), Some(1));
+}

@@ -105,7 +105,8 @@ direction of 2026-10-18
   diagnostic evidence. It closes nothing: in C3 the whole-form estimate was 0 for forms whose
   generating DTF is 0.56–0.65; §13.13 proposed, §13.14 implemented and §13.15 ran the next
   bounded, exploratory look on the same batches, verified by Astra on `54d44fe` with its readings
-  rectified (§13.16); §13.17 proposes a check on independent seeds, not run. It closes nothing.
+  rectified (§13.16); §13.17's check on independent seeds, approved by Astra on `55373cb` as a
+  descriptive check on new data, is implemented in §13.18 and not run. It closes nothing.
 - **Suspended:** implementation of the certifier until its contract decisions are made.
   D38's treatment of pertinent factual-knowledge differences remains to be reconciled explicitly;
   no compensation or admission policy changes through this documentation.

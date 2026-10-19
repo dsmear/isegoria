@@ -380,3 +380,25 @@ fn the_diagnostic_record_extends_the_ordinary_record_of_the_same_fit() {
     assert!(line.contains("\"gain\":0.0,\"penalty\":0.0,\"delta_bic\":0.0"));
     assert!(line.contains("\"dtf_basis\":"));
 }
+
+/// `dtf-check` (`docs/19` §13.18): C0 and C3 at 16 replicates, paired by seed under their own
+/// keys, every seed new — none of smoke's, explore's, confirm's or `candidates`'.
+#[test]
+fn the_dtf_check_phase_pairs_new_seeds_disjoint_from_every_earlier_phase() {
+    let all = tasks(Phase::DtfCheck, 16);
+    assert_eq!(all.len(), 32);
+    assert!(all.iter().all(|t| matches!(t.case, Case::C0 | Case::C3)));
+    assert!(all
+        .chunks(2)
+        .all(|p| p[0].seed() == p[1].seed() && p[0].case != p[1].case));
+    assert!(all.iter().all(|t| t.key().starts_with("dtf-check-")));
+    let mut ours: Vec<u64> = all.iter().map(Task::seed).collect();
+    ours.dedup();
+    assert_eq!(ours.len(), 16);
+    let mut earlier: Vec<u64> = (0..64)
+        .flat_map(|r| [Phase::Smoke, Phase::Explore, Phase::Confirm].map(|p| probe_seed(p, r)))
+        .collect();
+    earlier.extend(tasks(Phase::Candidates, 8).iter().map(Task::seed));
+    assert!(ours.iter().all(|s| !earlier.contains(s)));
+    assert!(all.iter().all(|t| t.phase.diagnostic()));
+}

@@ -1,5 +1,7 @@
 """Tests of `a2_probe.py` (`docs/19` §13.11) on constructed records, plans and ledgers, not fits.
 Run: `python3 -m unittest discover -s sim -p test_a2_probe.py -v`."""
+import contextlib
+import io
 import json
 import math
 import tempfile
@@ -316,6 +318,79 @@ class Candidates(unittest.TestCase):
         text, code = P.candidates_report(self.d, self.first)
         self.assertEqual(code, 1)
         self.assertIn("Stopped: no candidate is read.", text)
+
+
+class DtfCheck(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = Path(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def build(self, edit=None):
+        """16 replicates of C0 and C3, both two-class candidates converged; `edit` changes them."""
+        recs = []
+        for rep in range(16):
+            for case, dtf in (("C0", 0.2), ("C3", 0.5)):
+                rec = record(case, rep, phase="dtf-check")
+                rec["candidates"] = [candidate(1, False, 0.0), candidate(2, False, 20.0, dtf=dtf),
+                                     candidate(2, True, 30.0, dtf=dtf)]
+                recs.append(rec)
+        if edit:
+            edit({(r["case"], r["replicate"]): r for r in recs})
+        write(self.d, recs, phase="dtf-check")
+        return P.dtf_check(self.d)
+
+    def test_orders_on_the_unrounded_value_with_zeros_and_their_origin(self):
+        def edit(by):
+            by[("C3", 0)]["candidates"][1]["dtf"] = 0.2 + 1e-12
+            for case in ("C0", "C3"):
+                c = by[(case, 1)]["candidates"][1]
+                c.update(dtf=0.0, dtf_basis="one counted class", counted=1)
+            by[("C3", 2)]["candidates"][1].update(dtf=0.0, dtf_basis="one counted class", counted=1)
+        _, summary, code = self.build(edit)
+        shared = summary["shared"]
+        self.assertEqual(code, 0)
+        self.assertEqual((shared["comparable"], shared["order"]), (16, {"greater": 14, "smaller": 1, "equal": 1}))
+        self.assertEqual(shared["rows"][0]["order"], "greater")
+        self.assertEqual(shared["rows"][2]["c3"]["dtf_basis"], "one counted class")
+        self.assertEqual(shared["without_zeros"], {"greater": 14, "smaller": 0, "equal": 0, "pairs": 14})
+        self.assertEqual(summary["per-class"]["order"], {"greater": 16, "smaller": 0, "equal": 0})
+
+    def test_unorderable_pairs_are_listed_with_why_and_leave_the_denominator(self):
+        def edit(by):
+            by[("C3", 1)]["candidates"][0]["status"] = "max_iters"
+            by[("C0", 2)]["candidates"][1]["status"] = "max_iters"
+            by[("C3", 3)]["candidates"][1].update(dtf=None, dtf_basis="unavailable")
+            del by[("C0", 4)]["candidates"][2]
+            by[("C3", 5)].update(outcome="refused")
+            for k in ("fit", "rechecks", "fixed", "readings", "candidates"):
+                by[("C3", 5)].pop(k)
+        text, summary, code = self.build(edit)
+        shared, per = summary["shared"], summary["per-class"]
+        self.assertEqual((shared["planned"], shared["comparable"]), (16, 12))
+        self.assertEqual(shared["not_comparable"], {"C3: baseline not converged": 1, "C0: candidate not converged": 1,
+                                                    "C3: DTF unavailable": 1, "C3: run refused": 1})
+        self.assertEqual(per["not_comparable"], {"C3: baseline not converged": 1, "C0: candidate missing": 1,
+                                                 "C3: run refused": 1})
+        self.assertEqual(per["comparable"], 13)
+        self.assertIn("not comparable", text)
+        self.assertIn("not independent and are not summed", text)
+
+    def test_the_analysis_stops_without_a_complete_audit_or_a_passing_check(self):
+        def drop(by):
+            by[("C3", 15)]["truth"]["dtf"] += 1.0
+        self.assertEqual(self.build(drop)[2], 1)
+        recs = P.read_records(self.d)[0]
+        write(self.d, recs[:-1], planned=[(r["key"], r["seed"]) for r in recs], phase="dtf-check")
+        text, summary, code = P.dtf_check(self.d)
+        self.assertEqual((code, summary), (1, None))
+        self.assertIn("Stopped", text)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as stop:
+            P.main(["dtf-check", self.d, "--json"])
+        self.assertEqual((stop.exception.code, out.getvalue()), (1, text))
 
 
 if __name__ == "__main__":
