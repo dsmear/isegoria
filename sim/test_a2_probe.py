@@ -24,9 +24,10 @@ def form(it, members, reference=P.K):
             "removed": [], "dtf": P.dtf(it, members), "grid": P.grid_dtf(it, members), "fitted": 0.0}
 
 
-def record(case, r, outcome="read", status="converged", counted=2, rechecks="NNNNNNNN", cpu=1000):
+def record(case, r, outcome="read", status="converged", counted=2, rechecks="NNNNNNNN", cpu=1000,
+           phase="confirm"):
     it = items(case)
-    rec = {"schema": P.SCHEMA, "key": f"confirm-{case}-{r}", "phase": "confirm", "case": case,
+    rec = {"schema": P.SCHEMA, "key": f"{phase}-{case}-{r}", "phase": phase, "case": case,
            "replicate": r, "seed": 100 + r,
            "design": {"n": 3000, "anchors": 60, "k": 8, "layout": P.CASES[case][0],
                       "delta": it.delta, "impact": it.impact, "pi": 0.5},
@@ -46,18 +47,21 @@ def record(case, r, outcome="read", status="converged", counted=2, rechecks="NNN
     return rec
 
 
-def write(d, recs, planned=None, ledger=None, stop=None):
-    """`records.jsonl`, `plan-confirm.tsv` (the records' runs unless `planned`) and a ledger that
+def write(d, recs, planned=None, ledger=None, stop=None, phase="confirm", session_stop=None):
+    """`records.jsonl`, the phase's plan (the records' runs unless `planned`) and a ledger that
     starts and ends each record's run with its outcome (unless `ledger` rows are given)."""
     d = Path(d)
     (d / "records.jsonl").write_text("".join(json.dumps(r) + "\n" for r in recs))
     plan = planned if planned is not None else [(r["key"], r["seed"]) for r in recs]
-    (d / "plan-confirm.tsv").write_text("schema\tstand-in\nphase\tconfirm\t8\n"
-                                        + "".join(f"task\t{k}\t{s}\n" for k, s in plan))
+    (d / f"plan-{phase}.tsv").write_text(f"schema\tstand-in\nphase\t{phase}\t8\n"
+                                         + "".join(f"task\t{k}\t{s}\n" for k, s in plan))
     if ledger is None:
         ledger = [r for rec in recs for r in (("start", rec["key"], 1),
                                                 ("end", rec["key"], rec["outcome"], rec["cost"]["cpu_ms"], 1, "self"))]
-    rows = [P.LEDGER_HEADER] + ["\t".join(map(str, r)) for r in ledger] + ([f"stop\t{stop}"] if stop else [])
+    rows = [P.LEDGER_HEADER] + ["\t".join(map(str, r)) for r in ledger]
+    if session_stop:
+        rows.append(f"session\t10\t0\t0\t100\t{session_stop}\tx")
+    rows += [f"stop\t{stop}"] if stop else []
     (d / "ledger.tsv").write_text("\n".join(rows) + "\n")
 
 
@@ -199,28 +203,52 @@ class Analysis(unittest.TestCase):
 
 
 class Budget(unittest.TestCase):
-    def ledger(self, rows):
-        with tempfile.TemporaryDirectory() as d:
-            write(d, [], ledger=rows)
-            return P.budget(d)
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.d = self.tmp.name
 
-    def ends(self, cpu, outcome="read"):
-        return [row for c in P.CASES for row in (("start", f"explore-{c}-0", 1),
-                                                   ("end", f"explore-{c}-0", outcome, cpu, cpu, "self"))]
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def explore(self, cpu=100_000, outcome="read", cases=tuple(P.CASES), **kw):
+        recs = [record(c, 0, outcome=outcome, cpu=cpu, phase="explore") for c in cases]
+        planned = [(f"explore-{c}-0", 100) for c in P.CASES]
+        write(self.d, recs, planned=planned, phase="explore", **kw)
+        return recs
 
     def test_the_replicates_follow_the_cost_rule_alone(self):
-        out = self.ledger(self.ends(100_000) + [("session", 120_000, 2_000, 1, 100, "-", "x")])
-        left, per = P.CAP_CPU_MS - 602_000, 1.5 * 600_000
-        self.assertEqual(out["replicates"], min(8, math.floor(left / per)))
-        self.assertEqual(self.ledger(self.ends(10_000))["replicates"], 8)
+        self.explore()
+        left, per = P.CAP_CPU_MS - 600_000, 1.5 * 600_000
+        self.assertEqual(P.budget(self.d)["replicates"], min(8, math.floor(left / per)))
+        self.explore(cpu=10_000)
+        self.assertEqual(P.budget(self.d)["replicates"], 8)
 
-    def test_a_killed_or_missing_explore_run_too_few_replicates_or_a_stop_refuse(self):
-        self.assertIsNone(self.ledger(self.ends(1000, "killed"))["replicates"])
-        self.assertIsNone(self.ledger(self.ends(1000)[2:])["replicates"])
-        self.assertIsNone(self.ledger(self.ends(700_000))["replicates"])
-        with tempfile.TemporaryDirectory() as d:
-            write(d, [], ledger=self.ends(1000), stop="cpu cap")
-            self.assertIsNone(P.budget(d)["replicates"])
+    def test_an_incomplete_imprecise_or_defective_explore_proposes_no_replicates(self):
+        self.explore(outcome="killed")
+        self.assertIsNone(P.budget(self.d)["replicates"])
+        self.explore(cases=tuple(P.CASES)[1:])
+        self.assertIsNone(P.budget(self.d)["replicates"])
+        self.explore(cpu=700_000)
+        self.assertIsNone(P.budget(self.d)["replicates"])
+        recs = self.explore()
+        recs[2]["truth"]["dtf"] += 1.0
+        write(self.d, recs, planned=[(r["key"], r["seed"]) for r in recs], phase="explore")
+        self.assertIn("precision", P.budget(self.d)["reason"])
+        self.explore()
+        (Path(self.d) / "rejected").mkdir()
+        (Path(self.d) / "rejected" / "explore-C2-0.json").write_text("{}")
+        self.assertIn("blocking defect", P.budget(self.d)["reason"])
+
+    def test_a_stop_in_the_session_line_alone_binds_budget_audit_and_report(self):
+        self.explore(session_stop="cpu cap")
+        self.assertEqual(P.read_ledger(self.d)["stop"], "cpu cap")
+        self.assertIsNone(P.budget(self.d)["replicates"])
+        self.assertEqual(P.audit(self.d, "explore")["status"], "partial")
+        text, code = P.report(self.d, "explore")
+        self.assertEqual(code, 2)
+        self.assertNotIn("COMPLETE", text)
+        self.explore(stop="cpu cap")
+        self.assertIsNone(P.budget(self.d)["replicates"])
 
 
 if __name__ == "__main__":

@@ -147,7 +147,8 @@ fn malformed(n: usize, why: &str) -> io::Error {
 }
 
 /// `ledger.tsv`, read strictly: its header, then `start` (key, pid), `end` (key, outcome, CPU,
-/// wall, source), `session` (wall, own CPU, peak, largest gap, stop, provenance), `stop`.
+/// wall, source), `session` (wall, own CPU, peak, largest gap, stop, provenance), `stop`. A
+/// session's stop binds without the `stop` line that follows it.
 pub fn read_ledger(out: &Path) -> io::Result<Ledger> {
     let mut ledger = Ledger::default();
     let text = match fs::read_to_string(out.join("ledger.tsv")) {
@@ -196,6 +197,9 @@ pub fn read_ledger(out: &Path) -> io::Result<Ledger> {
                 ledger.cpu_ms += num(2)?;
                 num(3)?;
                 num(4)?;
+                if f[5] != "-" && ledger.stop.is_none() {
+                    ledger.stop = Some(f[5].to_string());
+                }
             }
             ("stop", 2) => ledger.stop = Some(f[1].to_string()),
             _ => return Err(malformed(n, "unknown or truncated line")),
@@ -309,26 +313,27 @@ pub struct Session {
     pub stop: Option<String>,
 }
 
+/// A spawned child under guard: dropped on any path, it is killed and reaped.
 struct Running {
     task: Task,
     child: Child,
     started: Instant,
     cpu_ms: u64,
     rss_kib: u64,
+    noted: bool,
 }
 
-/// The running children; dropped on any path out of the supervisor, it kills and reaps them.
-struct Children(Vec<Running>);
-
-impl Drop for Children {
+impl Drop for Running {
     fn drop(&mut self) {
-        for r in &mut self.0 {
-            let _ = r.child.kill();
-        }
-        for r in &mut self.0 {
-            let _ = r.child.wait();
-        }
+        let _ = self.child.kill();
+        let _ = self.child.wait();
     }
+}
+
+/// Where a session writes: ledger lines (`note`) and records (`record`), each synced.
+pub trait Journal {
+    fn note(&mut self, line: &str) -> io::Result<()>;
+    fn record(&mut self, line: &str) -> io::Result<()>;
 }
 
 struct Files {
@@ -336,7 +341,7 @@ struct Files {
     ledger: fs::File,
 }
 
-impl Files {
+impl Journal for Files {
     fn note(&mut self, line: &str) -> io::Result<()> {
         writeln!(self.ledger, "{line}")?;
         self.ledger.sync_data()
@@ -384,6 +389,8 @@ fn clean(reason: &str) -> String {
     reason.replace(['\t', '\n', '\r'], " ")
 }
 
+/// A run's end, written later: its own record (`line`), or a diagnostic one built from the
+/// design, and a part to keep in `rejected/`.
 struct Ended {
     task: Task,
     outcome: String,
@@ -392,6 +399,9 @@ struct Ended {
     wall_ms: u64,
     source: &'static str,
     line: Option<String>,
+    rejected: Option<PathBuf>,
+    noted: bool,
+    pid: u32,
 }
 
 fn stopped(run: &Running, outcome: &str, reason: &str) -> Ended {
@@ -403,10 +413,18 @@ fn stopped(run: &Running, outcome: &str, reason: &str) -> Ended {
         wall_ms: run.started.elapsed().as_millis() as u64,
         source: "polled",
         line: None,
+        rejected: None,
+        noted: run.noted,
+        pid: run.child.id(),
     }
 }
 
-fn write_ended(files: &mut Files, e: Ended) -> io::Result<()> {
+fn write_ended(out: &Path, journal: &mut dyn Journal, e: Ended) -> io::Result<()> {
+    if let Some(part) = &e.rejected {
+        fs::create_dir_all(out.join("rejected"))?;
+        let kept = out.join("rejected").join(format!("{}.json", e.task.key()));
+        fs::rename(part, kept)?;
+    }
     let line = match e.line {
         Some(line) => line,
         None => {
@@ -418,8 +436,12 @@ fn write_ended(files: &mut Files, e: Ended) -> io::Result<()> {
             stopped_record(&e.task, &e.outcome, &e.reason, cost)
         }
     };
-    files.record(&line)?;
-    files.note(&format!(
+    if !e.noted {
+        journal.note(&format!("start\t{}\t{}", e.task.key(), e.pid))?;
+    }
+    journal.record(&line)?;
+    let _ = fs::remove_file(part_path(out, &e.task));
+    journal.note(&format!(
         "end\t{}\t{}\t{}\t{}\t{}",
         e.task.key(),
         e.outcome,
@@ -429,9 +451,9 @@ fn write_ended(files: &mut Files, e: Ended) -> io::Result<()> {
     ))
 }
 
-/// A finished child's end: its record if valid, otherwise a technical failure to stop on, the
-/// rejected record kept in `rejected/`.
-fn collect(out: &Path, run: &Running, ok: bool) -> io::Result<(Ended, Option<String>)> {
+/// A finished child's end, touching no file: its record if valid, otherwise a technical failure
+/// to stop on, its part kept for `rejected/`.
+fn collect(out: &Path, run: &Running, ok: bool) -> (Ended, Option<String>) {
     let path = part_path(out, &run.task);
     let read = fs::read_to_string(&path);
     let checked = match (ok, &read) {
@@ -439,15 +461,6 @@ fn collect(out: &Path, run: &Running, ok: bool) -> io::Result<(Ended, Option<Str
         (true, Err(e)) => Err(format!("no record: {e}")),
         (true, Ok(line)) => validate(line, &run.task).map(|v| (v, line.clone())),
     };
-    if checked.is_err() && read.is_ok() {
-        fs::create_dir_all(out.join("rejected"))?;
-        fs::rename(
-            &path,
-            out.join("rejected")
-                .join(format!("{}.json", run.task.key())),
-        )?;
-    }
-    let _ = fs::remove_file(&path);
     match checked {
         Ok(((outcome, cpu), line)) => {
             let ended = Ended {
@@ -458,19 +471,24 @@ fn collect(out: &Path, run: &Running, ok: bool) -> io::Result<(Ended, Option<Str
                 wall_ms: run.started.elapsed().as_millis() as u64,
                 source: "self",
                 line: Some(line),
+                rejected: None,
+                noted: run.noted,
+                pid: run.child.id(),
             };
-            Ok((ended, None))
+            (ended, None)
         }
         Err(why) => {
             let stop = format!("technical: {}: {why}", run.task.key());
-            Ok((stopped(run, "failed", &why), Some(stop)))
+            let mut ended = stopped(run, "failed", &why);
+            ended.rejected = read.is_ok().then_some(path);
+            (ended, Some(stop))
         }
     }
 }
 
 /// Runs a plan's tasks `out` has not ended, at most `jobs` at once, each `launch`ed guarded.
 /// Refuses another supervisor, an incompatible plan, a recorded stop, an unfinished run or
-/// spent caps; on any stop or error kills every child before recording, then records a stop.
+/// spent caps; then runs [`session`] on the directory's files.
 pub fn supervise<F>(
     plan: &Plan,
     jobs: usize,
@@ -514,159 +532,214 @@ where
     if fresh {
         files.note(LEDGER_HEADER)?;
     }
+    session(
+        plan, jobs, out, caps, provenance, &ledger, launch, &mut files,
+    )
+    .map(Ok)
+}
+
+/// One session of `plan` after `ledger`, written to `journal`. On any stop or error every child
+/// is killed and reaped before a diagnostic record is built; then the session and its stop.
+#[allow(clippy::too_many_arguments)]
+pub fn session<F>(
+    plan: &Plan,
+    jobs: usize,
+    out: &Path,
+    caps: Caps,
+    provenance: &str,
+    ledger: &Ledger,
+    launch: F,
+    journal: &mut dyn Journal,
+) -> io::Result<Session>
+where
+    F: Fn(&Task, &Path) -> Command,
+{
     let todo: Vec<Task> = plan
         .tasks
         .iter()
         .filter(|t| !ledger.ended.contains_key(&t.key()))
         .copied()
         .collect();
-    let mut session = Session {
+    let mut s = Session {
         skipped: plan.tasks.len() - todo.len(),
         ..Session::default()
     };
     let (t0, cpu0) = (Instant::now(), proc_cpu_ms("self").unwrap_or(0));
-    let mut children = Children(Vec::new());
+    let mut running: Vec<Running> = Vec::new();
+    let mut pending: Vec<Ended> = Vec::new();
     let mut ended_cpu = 0u64;
-    let result = run_loop(
-        &todo,
+    let mut state = Loop {
+        todo: &todo,
         jobs,
         out,
         caps,
-        &ledger,
-        &launch,
-        &mut files,
-        &mut children,
-        &mut session,
-        &mut ended_cpu,
+        ledger,
         t0,
         cpu0,
+    };
+    let result = state.run(
+        &launch,
+        journal,
+        &mut running,
+        &mut pending,
+        &mut s,
+        &mut ended_cpu,
     );
     let (stop, error) = match result {
         Ok(stop) => (stop, None),
         Err(e) => (Some(clean(&format!("supervisor error: {e}"))), Some(e)),
     };
     let reason = stop.clone().unwrap_or_default();
-    let running = std::mem::take(&mut children.0);
-    let mut killed: Vec<Running> = running;
-    for r in &mut killed {
+    for r in &mut running {
         let _ = r.child.kill();
     }
-    for r in &mut killed {
-        let _ = r.child.wait();
+    let statuses: Vec<_> = running.iter_mut().map(|r| r.child.wait().ok()).collect();
+    for (r, status) in running.iter().zip(statuses) {
+        let done = status.is_some_and(|st| st.success());
+        let (ended, failure) = if done {
+            collect(out, r, true)
+        } else {
+            (stopped(r, "killed", &reason), None)
+        };
+        if failure.is_some() || !done {
+            pending.push(ended);
+        } else {
+            pending.insert(0, ended);
+        }
     }
-    for r in &killed {
-        ended_cpu += r.cpu_ms;
-        *session.outcomes.entry("killed".into()).or_default() += 1;
-        write_ended(&mut files, stopped(r, "killed", &reason))?;
+    drop(running);
+    let mut written = Ok(());
+    for e in pending {
+        ended_cpu += e.cpu_ms;
+        *s.outcomes.entry(e.outcome.clone()).or_default() += 1;
+        if written.is_ok() {
+            written = write_ended(out, journal, e);
+        }
     }
     let own_cpu = proc_cpu_ms("self").unwrap_or(cpu0).saturating_sub(cpu0);
-    session.cpu_ms = ended_cpu + own_cpu;
-    session.wall_ms = t0.elapsed().as_millis() as u64;
-    session.stop = stop.clone();
-    files.note(&format!(
+    s.cpu_ms = ended_cpu + own_cpu;
+    s.wall_ms = t0.elapsed().as_millis() as u64;
+    s.stop = stop.clone();
+    let line = format!(
         "session\t{}\t{own_cpu}\t{}\t{}\t{}\t{}",
-        session.wall_ms,
-        session.peak_rss_kib,
-        session.max_gap_ms,
+        s.wall_ms,
+        s.peak_rss_kib,
+        s.max_gap_ms,
         stop.as_deref().unwrap_or("-"),
         clean(provenance)
-    ))?;
+    );
+    written = written.and_then(|()| journal.note(&line));
     if let Some(reason) = stop {
-        files.note(&format!("stop\t{reason}"))?;
+        written = written.and_then(|()| journal.note(&format!("stop\t{reason}")));
     }
     match error {
         Some(e) => Err(e),
-        None => Ok(Ok(session)),
+        None => written.map(|()| s),
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn run_loop<F>(
-    todo: &[Task],
+struct Loop<'a> {
+    todo: &'a [Task],
     jobs: usize,
-    out: &Path,
+    out: &'a Path,
     caps: Caps,
-    ledger: &Ledger,
-    launch: &F,
-    files: &mut Files,
-    children: &mut Children,
-    session: &mut Session,
-    ended_cpu: &mut u64,
+    ledger: &'a Ledger,
     t0: Instant,
     cpu0: u64,
-) -> io::Result<Option<String>>
-where
-    F: Fn(&Task, &Path) -> Command,
-{
-    let mut next = 0;
-    let mut last = Instant::now();
-    loop {
-        while children.0.len() < jobs.max(1) && next < todo.len() {
-            let task = todo[next];
-            next += 1;
-            let child = spawn_guarded(launch(&task, out))?;
-            files.note(&format!("start\t{}\t{}", task.key(), child.id()))?;
-            children.0.push(Running {
-                child,
-                task,
-                started: Instant::now(),
-                cpu_ms: 0,
-                rss_kib: 0,
-            });
-        }
-        if children.0.is_empty() {
-            return Ok(None);
-        }
-        std::thread::sleep(POLL);
-        let now = Instant::now();
-        session.max_gap_ms = session.max_gap_ms.max((now - last).as_millis() as u64);
-        last = now;
-        let mut stop = None;
-        let mut i = 0;
-        while i < children.0.len() {
-            let run = &mut children.0[i];
-            let pid = run.child.id().to_string();
-            if let Some(cpu) = proc_cpu_ms(&pid) {
-                run.cpu_ms = run.cpu_ms.max(cpu);
+}
+
+impl Loop<'_> {
+    /// Launches and polls until every run ends or a stop: a technical failure goes to `pending`
+    /// and ends the poll at once, unwritten.
+    fn run<F>(
+        &mut self,
+        launch: &F,
+        journal: &mut dyn Journal,
+        running: &mut Vec<Running>,
+        pending: &mut Vec<Ended>,
+        s: &mut Session,
+        ended_cpu: &mut u64,
+    ) -> io::Result<Option<String>>
+    where
+        F: Fn(&Task, &Path) -> Command,
+    {
+        let mut next = 0;
+        let mut last = Instant::now();
+        loop {
+            while running.len() < self.jobs.max(1) && next < self.todo.len() {
+                let task = self.todo[next];
+                next += 1;
+                running.push(Running {
+                    child: spawn_guarded(launch(&task, self.out))?,
+                    task,
+                    started: Instant::now(),
+                    cpu_ms: 0,
+                    rss_kib: 0,
+                    noted: false,
+                });
+                let run = running.last_mut().expect("just pushed");
+                journal.note(&format!("start\t{}\t{}", task.key(), run.child.id()))?;
+                run.noted = true;
             }
-            run.rss_kib = proc_kib(&pid, "VmRSS").unwrap_or(run.rss_kib);
-            let over = run.started.elapsed().as_millis() as u64 >= caps.run_ms;
-            match run.child.try_wait()? {
-                Some(status) => {
-                    let run = children.0.remove(i);
-                    let (ended, failure) = collect(out, &run, status.success())?;
-                    *ended_cpu += ended.cpu_ms;
-                    *session.outcomes.entry(ended.outcome.clone()).or_default() += 1;
-                    write_ended(files, ended)?;
-                    stop = stop.or(failure);
-                }
-                None if over => {
-                    stop = stop.or(Some(format!("run limit: {}", run.task.key())));
-                    i += 1;
-                }
-                None => i += 1,
+            if running.is_empty() {
+                return Ok(None);
             }
-        }
-        let own_cpu = proc_cpu_ms("self").unwrap_or(cpu0).saturating_sub(cpu0);
-        let live: u64 = children.0.iter().map(|r| r.cpu_ms).sum();
-        let rss = children.0.iter().map(|r| r.rss_kib).sum::<u64>()
-            + proc_kib("self", "VmRSS").unwrap_or(0);
-        session.peak_rss_kib = session.peak_rss_kib.max(rss);
-        let cpu = ledger.cpu_ms + *ended_cpu + live + own_cpu;
-        let wall = ledger.wall_ms + t0.elapsed().as_millis() as u64;
-        if stop.is_none() {
-            stop = if cpu >= caps.cpu_ms {
-                Some("cpu cap".to_string())
-            } else if wall >= caps.wall_ms {
-                Some("wall cap".to_string())
-            } else if rss >= caps.rss_kib {
-                Some("memory cap".to_string())
-            } else {
-                None
-            };
-        }
-        if stop.is_some() {
-            return Ok(stop);
+            std::thread::sleep(POLL);
+            let now = Instant::now();
+            s.max_gap_ms = s.max_gap_ms.max((now - last).as_millis() as u64);
+            last = now;
+            let mut stop = None;
+            let mut i = 0;
+            while i < running.len() {
+                let run = &mut running[i];
+                let pid = run.child.id().to_string();
+                if let Some(cpu) = proc_cpu_ms(&pid) {
+                    run.cpu_ms = run.cpu_ms.max(cpu);
+                }
+                run.rss_kib = proc_kib(&pid, "VmRSS").unwrap_or(run.rss_kib);
+                let over = run.started.elapsed().as_millis() as u64 >= self.caps.run_ms;
+                match run.child.try_wait()? {
+                    Some(status) => {
+                        let run = running.remove(i);
+                        let (ended, failure) = collect(self.out, &run, status.success());
+                        if let Some(why) = failure {
+                            pending.push(ended);
+                            return Ok(Some(why));
+                        }
+                        *ended_cpu += ended.cpu_ms;
+                        *s.outcomes.entry(ended.outcome.clone()).or_default() += 1;
+                        write_ended(self.out, journal, ended)?;
+                    }
+                    None if over => {
+                        stop = stop.or(Some(format!("run limit: {}", run.task.key())));
+                        i += 1;
+                    }
+                    None => i += 1,
+                }
+            }
+            let own_cpu = proc_cpu_ms("self")
+                .unwrap_or(self.cpu0)
+                .saturating_sub(self.cpu0);
+            let live: u64 = running.iter().map(|r| r.cpu_ms).sum();
+            let rss = running.iter().map(|r| r.rss_kib).sum::<u64>()
+                + proc_kib("self", "VmRSS").unwrap_or(0);
+            s.peak_rss_kib = s.peak_rss_kib.max(rss);
+            let cpu = self.ledger.cpu_ms + *ended_cpu + live + own_cpu;
+            let wall = self.ledger.wall_ms + self.t0.elapsed().as_millis() as u64;
+            if stop.is_none() {
+                stop = if cpu >= self.caps.cpu_ms {
+                    Some("cpu cap".to_string())
+                } else if wall >= self.caps.wall_ms {
+                    Some("wall cap".to_string())
+                } else if rss >= self.caps.rss_kib {
+                    Some("memory cap".to_string())
+                } else {
+                    None
+                };
+            }
+            if stop.is_some() {
+                return Ok(stop);
+            }
         }
     }
 }

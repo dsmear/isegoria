@@ -4,8 +4,8 @@
 
 use characterization::probe::{stopped_record, Case, Cost, Phase, Task, CASES};
 use characterization::probe_jobs::{
-    confirm_replicates, lock_dir, read_ledger, supervise, validate, write_part, Caps, Ledger, Plan,
-    Refusal, Session, LEDGER_HEADER, POLL,
+    confirm_replicates, lock_dir, read_ledger, session, supervise, validate, write_part, Caps,
+    Journal, Ledger, Plan, Refusal, Session, LEDGER_HEADER, POLL,
 };
 use std::fs;
 use std::io;
@@ -88,15 +88,24 @@ fn pids(out: &Path) -> Vec<u32> {
         .collect()
 }
 
+/// A process neither gone, zombie (`Z`) nor being reaped (`X`, `x`).
 fn alive(pid: u32) -> bool {
     fs::read_to_string(format!("/proc/{pid}/stat"))
-        .map(|s| !s[s.rfind(')').unwrap() + 2..].starts_with('Z'))
+        .map(|s| !s[s.rfind(')').unwrap() + 2..].starts_with(['Z', 'X', 'x']))
         .unwrap_or(false)
+}
+
+/// One test at a time spawns: a fork in another test thread would hold a copy of a directory's
+/// lock until its `exec`, a refusal no single supervisor process meets.
+fn serial() -> std::sync::MutexGuard<'static, ()> {
+    static SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    SERIAL.lock().unwrap_or_else(|e| e.into_inner())
 }
 
 /// Each ended run is recorded once; a later session skips them and runs nothing again.
 #[test]
 fn ended_runs_are_recorded_once_and_never_rerun() {
+    let _serial = serial();
     let out = scratch("resume");
     let first = run(&all(), 3, &out, caps(60_000, 60_000), fake)
         .unwrap()
@@ -117,6 +126,7 @@ fn ended_runs_are_recorded_once_and_never_rerun() {
 /// A gate refusal is an observation of the probe, recorded, and stops nothing.
 #[test]
 fn a_gate_refusal_is_an_observation_not_a_stop() {
+    let _serial = serial();
     let out = scratch("refused");
     let refused = |t: &Task, o: &Path| {
         write_part(o, t, &record(t, "refused")).unwrap();
@@ -131,6 +141,7 @@ fn a_gate_refusal_is_an_observation_not_a_stop() {
 /// A failed child stops new launches, kills the running ones and refuses any later session.
 #[test]
 fn a_failed_child_stops_new_launches_and_kills_the_running_ones() {
+    let _serial = serial();
     let out = scratch("failed");
     let launch = |t: &Task, o: &Path| match t.case {
         Case::C0 => Command::new("false"),
@@ -161,6 +172,7 @@ fn a_failed_child_stops_new_launches_and_kills_the_running_ones() {
 /// each record kept apart in `rejected/` and the run recorded as failed.
 #[test]
 fn an_invalid_foreign_or_defective_record_is_a_technical_stop() {
+    let _serial = serial();
     let defective = |t: &Task| {
         let r = record(t, "read");
         format!(
@@ -198,6 +210,7 @@ fn an_invalid_foreign_or_defective_record_is_a_technical_stop() {
 /// A supervisor error kills the running children, records them and a stop, and is returned.
 #[test]
 fn a_supervisor_error_kills_the_running_children_and_records_a_stop() {
+    let _serial = serial();
     let out = scratch("error");
     let launch = |t: &Task, o: &Path| match t.case {
         Case::C0 => sleep(t, o),
@@ -217,6 +230,7 @@ fn a_supervisor_error_kills_the_running_children_and_records_a_stop() {
 /// The run limit kills every running child, and the stop refuses a resumption.
 #[test]
 fn the_run_limit_kills_every_running_child_and_refuses_a_resumption() {
+    let _serial = serial();
     let out = scratch("run-limit");
     let s = run(&all(), 2, &out, caps(300, 60_000), sleep)
         .unwrap()
@@ -226,12 +240,13 @@ fn the_run_limit_kills_every_running_child_and_refuses_a_resumption() {
     assert!(s.stop.as_deref().unwrap().starts_with("run limit: smoke-C"));
     assert!(pids(&out).iter().all(|&p| !alive(p)));
     let refused = run(&all(), 2, &out, caps(300, 60_000), sleep).unwrap();
-    assert!(matches!(refused, Err(Refusal::Stopped(_))));
+    assert!(matches!(refused, Err(Refusal::Stopped(_))), "{refused:?}");
 }
 
 /// The wall cap kills every running child, each recorded as killed.
 #[test]
 fn the_wall_cap_kills_every_running_child() {
+    let _serial = serial();
     let out = scratch("wall");
     let s = run(&all(), 2, &out, caps(60_000, 400), sleep)
         .unwrap()
@@ -247,6 +262,7 @@ fn the_wall_cap_kills_every_running_child() {
 /// The check interval actually reached is recorded: the poll, plus the loop's own work.
 #[test]
 fn the_largest_gap_between_checks_is_recorded() {
+    let _serial = serial();
     let out = scratch("gap");
     let s = run(&all(), 3, &out, caps(60_000, 60_000), fake)
         .unwrap()
@@ -259,6 +275,7 @@ fn the_largest_gap_between_checks_is_recorded() {
 /// A second supervisor on the same directory is refused while the first holds it.
 #[test]
 fn a_second_supervisor_on_the_directory_is_refused() {
+    let _serial = serial();
     let out = scratch("lock");
     fs::create_dir_all(&out).unwrap();
     let held = lock_dir(&out).unwrap().unwrap();
@@ -301,6 +318,7 @@ fn stand_in_supervisor() {
 /// The children die with a supervisor killed by SIGKILL, and the next session refuses.
 #[test]
 fn the_children_die_with_a_killed_supervisor() {
+    let _serial = serial();
     let out = scratch("orphans");
     fs::create_dir_all(&out).unwrap();
     let mut helper = Command::new(std::env::current_exe().unwrap())
@@ -365,6 +383,7 @@ fn a_malformed_ledger_is_refused_not_read_as_zero() {
 /// Another configuration, or another plan for the same phase, refuses the directory.
 #[test]
 fn an_incompatible_plan_is_refused() {
+    let _serial = serial();
     let out = scratch("plan");
     run(&all()[..1], 1, &out, caps(60_000, 60_000), fake)
         .unwrap()
@@ -429,6 +448,7 @@ fn the_confirmation_s_replicates_follow_the_cost_rule_alone() {
 /// refused at the gate, never fit.
 #[test]
 fn the_binary_exits_non_zero_after_a_stop() {
+    let _serial = serial();
     let out = scratch("binary");
     let probe = |extra: &[&str]| {
         Command::new(env!("CARGO_BIN_EXE_a2-probe"))
@@ -446,4 +466,143 @@ fn the_binary_exits_non_zero_after_a_stop() {
         .stop
         .is_some_and(|s| s == "memory cap"));
     assert_eq!(probe(&[]), Some(1));
+}
+
+/// A journal in memory: each started pid, each record, and at every failed record whether the
+/// other started children were still alive; `fail_starts` refuses every `start` line.
+#[derive(Default)]
+struct Memory {
+    fail_starts: bool,
+    pids: Vec<(String, u32)>,
+    records: Vec<String>,
+    alive_at_failure: Vec<(String, bool)>,
+}
+
+impl Journal for Memory {
+    fn note(&mut self, line: &str) -> io::Result<()> {
+        if let Some(rest) = line.strip_prefix("start\t") {
+            let (key, pid) = rest.split_once('\t').unwrap();
+            self.pids.push((key.to_string(), pid.parse().unwrap()));
+            if self.fail_starts {
+                return Err(io::Error::other("stand-in write failure"));
+            }
+        }
+        Ok(())
+    }
+
+    fn record(&mut self, line: &str) -> io::Result<()> {
+        if line.contains("\"outcome\":\"failed\"") {
+            for (key, pid) in &self.pids {
+                if !line.contains(&format!("\"key\":\"{key}\"")) {
+                    self.alive_at_failure.push((key.clone(), alive(*pid)));
+                }
+            }
+        }
+        self.records.push(line.to_string());
+        Ok(())
+    }
+}
+
+fn plan_of(tasks: &[Task]) -> Plan {
+    Plan::new("schema\tstand-in\n", Phase::Smoke, 1, tasks.to_vec())
+}
+
+/// A child whose `start` cannot be written is killed and reaped before the error returns, the
+/// caller still alive.
+#[test]
+fn a_child_is_killed_when_its_start_cannot_be_written() {
+    let _serial = serial();
+    let out = scratch("start-write");
+    fs::create_dir_all(out.join("parts")).unwrap();
+    let mut journal = Memory {
+        fail_starts: true,
+        ..Memory::default()
+    };
+    let tasks = [task(Case::C0)];
+    let caps = caps(60_000, 60_000);
+    let r = session(
+        &plan_of(&tasks),
+        1,
+        &out,
+        caps,
+        "test",
+        &Ledger::default(),
+        sleep,
+        &mut journal,
+    );
+    assert!(r.is_err());
+    let (_, pid) = journal.pids[0];
+    assert!(!alive(pid), "child {pid} outlived the failed write");
+}
+
+/// A technical failure kills and reaps every running child before its diagnostic record is
+/// built; the failed run's record and its rejected part are kept.
+#[test]
+fn the_children_are_killed_before_a_failure_s_record_is_built() {
+    let _serial = serial();
+    for invalid in [false, true] {
+        let out = scratch(if invalid {
+            "order-invalid"
+        } else {
+            "order-failed"
+        });
+        fs::create_dir_all(out.join("parts")).unwrap();
+        let launch = |t: &Task, o: &Path| match t.case {
+            Case::C0 if invalid => {
+                write_part(o, t, "not a record").unwrap();
+                Command::new("true")
+            }
+            Case::C0 => Command::new("false"),
+            _ => sleep(t, o),
+        };
+        let mut journal = Memory::default();
+        let tasks = [task(Case::C0), task(Case::C1)];
+        let caps = caps(60_000, 60_000);
+        let s = session(
+            &plan_of(&tasks),
+            2,
+            &out,
+            caps,
+            "test",
+            &Ledger::default(),
+            launch,
+            &mut journal,
+        )
+        .unwrap();
+        assert!(s.stop.unwrap().starts_with("technical: smoke-C0-0"));
+        assert_eq!(
+            journal.alive_at_failure,
+            vec![("smoke-C1-0".to_string(), false)]
+        );
+        assert!(journal
+            .records
+            .iter()
+            .any(|r| r.contains("\"key\":\"smoke-C0-0\"") && r.contains("\"outcome\":\"failed\"")));
+        assert!(journal
+            .records
+            .iter()
+            .any(|r| r.contains("\"key\":\"smoke-C1-0\"") && r.contains("\"outcome\":\"killed\"")));
+        assert_eq!(out.join("rejected/smoke-C0-0.json").exists(), invalid);
+    }
+}
+
+/// A ledger ending on a session line that names a stop refuses resumption and the cost rule,
+/// although the `stop` line after it is missing.
+#[test]
+fn a_stop_in_the_session_line_binds_without_the_stop_line() {
+    let _serial = serial();
+    let out = scratch("session-stop");
+    fs::create_dir_all(&out).unwrap();
+    let mut text = format!("{LEDGER_HEADER}\n");
+    for c in CASES {
+        let k = format!("explore-{}-0", c.name());
+        text += &format!("start\t{k}\t1\nend\t{k}\tread\t1000\t1\tself\n");
+    }
+    text += "session\t10\t0\t0\t100\tcpu cap\tx\n";
+    fs::write(out.join("ledger.tsv"), &text).unwrap();
+    let ledger = read_ledger(&out).unwrap();
+    assert_eq!(ledger.stop.as_deref(), Some("cpu cap"));
+    assert!(confirm_replicates(&ledger, 7_200_000).is_err());
+    let r = run(&all(), 1, &out, caps(60_000, 60_000), fake).unwrap();
+    assert_eq!(r, Err(Refusal::Stopped("cpu cap".into())));
 }

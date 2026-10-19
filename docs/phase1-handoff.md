@@ -21,11 +21,15 @@ closures stand. No Rust, fit, benchmark or campaign was run for this documentati
 The first bounded probe is declared in `19` §13.11, rectified after Astra's static reading of
 `5dbc66e`, its harness implemented in `7ce9746`: `a2-probe` in `crates/characterization`
 (`probe.rs`, `probe_jobs.rs`) and the oracle `sim/a2_probe.py`. Astra's review of `7ce9746` was
-static, plus its own runs of the 10 Python tests and reproductions on constructed records; it ran
-no Rust and no fit, and it does not approve the probe's execution. Its findings on stops,
-processes, integrity and the analysis's stops are corrected after `7ce9746`, each shown first on
-the base, not yet reviewed (§13.11's checks). Explore and confirm await review and the owner's
-authorization within §13.11's caps; their cost is still an estimate.
+static, plus its own runs of the 10 Python tests and reproductions on constructed records; its
+findings on stops, processes, integrity and the analysis's stops were corrected in `464531e`.
+Astra's review of `464531e` read the code, ran the 17 Python tests and reproduced the stop left in
+a `session` line; it ran no Rust and no fit. Its three findings — the child spawned before its
+guard, the diagnostic record built before the kills, the `session` line's stop not binding — are
+corrected after `464531e`, not yet reviewed (§13.11's checks). Neither review approves the probe's
+execution. After explore, confirm needs `check`, a complete explore report and `budget`'s `R`;
+explore and confirm await review and the owner's authorization within §13.11's caps; their cost is
+still an estimate.
 
 The C6 record and earlier work below retain their historical states; current A2 work
 authorization is the paragraph above and `15`'s A2 state.

@@ -303,7 +303,17 @@ Review of `7ce9746` (§13.11's harness), distinct from the reading above:
   stop conditions found insufficient; corrections asked, made in §13.11 after `7ce9746`.
 - **Astra's executions:** the 10 Python tests of `sim/test_a2_probe.py` at `7ce9746` and
   reproductions on constructed records. No Rust and no fit.
-- **Not approved:** the execution of the probe; the corrections themselves are not reviewed.
+- **Not approved:** the execution of the probe; its corrections were reviewed next, on `464531e`.
+
+Review of `464531e` (those corrections), distinct from the reviews above:
+
+- **Static review:** three findings — a child spawned before its guard, so a failed `start` write
+  left it running; a failure's diagnostic record built before the other children were stopped; a
+  stop named in the `session` line not binding without the `stop` line after it. Corrected in
+  §13.11 after `464531e`.
+- **Astra's executions:** the 17 Python tests of `sim/test_a2_probe.py` and a reproduction of the
+  stop in the `session` line. No Rust and no fit.
+- **Not approved:** the execution of the probe; the corrections are not reviewed.
 
 ## 1. What the code computes (L)
 
@@ -2170,11 +2180,11 @@ implemented, and the probe is not run.
 
 **Status:** declared by Claude Code on `d413516` (`5dbc66e`); Astra's static reading of `5dbc66e`
 accepted the diagnostic setting, not all its inferences, and the declaration was rectified with the
-harness in `7ce9746`. Astra's review of `7ce9746` found its stops, integrity checks and analysis
-stops insufficient (record before §1); they are corrected below, not reviewed, and the probe's
-execution is not approved. Never run: explore, confirm, a probe fit at `N = 3,000`, the `fitted`
-test of `contested_facts.rs`. It adopts no policy, tolerance, risk level, sample size or resource;
-A2 stays open and blocking.
+harness in `7ce9746`. Astra's reviews of `7ce9746` and `464531e` asked corrections to its stops,
+integrity checks and analysis stops (records before §1); they are made below, not reviewed, and the
+probe's execution is not approved. Never run: explore, confirm, a probe fit at `N = 3,000`, the
+`fitted` test of `contested_facts.rs`. It adopts no policy, tolerance, risk level, sample size or
+resource; A2 stays open and blocking.
 
 **Question.** On a few synthetic batches with known truth, what does the current path — latent
 re-check, routing, contested-facts cost, draw — report, and how does it compare with the true DTF
@@ -2318,15 +2328,19 @@ are diagnostic examples only. "75%" enters no metric; 0.10 is a reference line, 
 - *Caps*, `a2-probe run`'s defaults: 2 CPU-hours, 45 minutes of wall time, 10 minutes a run, 2 GiB
   aggregate resident, cumulative over the sessions of one directory.
 - *What stops a session.* A technical failure — a child exiting with an error, or a record missing,
-  invalid, another run's, or carrying the blocking defect (kept in `rejected/`) — a supervisor
-  error, the run limit or a cap. Any stop starts no new run, kills every running child at once
-  (SIGKILL, then reaped), and only then writes their records, `killed` with the design's truth and
-  the polled cost; the ledger records the stop, and the command exits 3 (1 on a supervisor error or
-  a refusal). A gate refusal (`refused`) and an inconclusive fit (`read`, its items `Indeterminate`)
-  are observations of the probe: they stop nothing.
+  invalid, another run's, or carrying the blocking defect — a supervisor error, the run limit or a
+  cap. A technical failure ends the poll where it is found. Any stop starts no new run and kills
+  every running child at once (SIGKILL, then reaped); only then are the diagnostic records built
+  and written: the failed run's, its rejected part moved to `rejected/`, and the killed runs',
+  `killed` with the design's truth and the polled cost. A child found already completed is
+  collected as usual. The ledger records the stop, and the command exits 3 (1 on a supervisor error
+  or a refusal). A gate refusal (`refused`) and an inconclusive fit (`read`, its items
+  `Indeterminate`) are observations of the probe: they stop nothing.
 - *Supervision.* Each child is spawned with `PR_SET_PDEATHSIG = SIGKILL` and checks its parent
-  before `exec`, so the kernel kills it if the supervisor dies, even by SIGKILL (Linux). A second
-  supervisor on the directory is refused (`flock` on `out/lock`, released at death).
+  before `exec`, so the kernel kills it if the supervisor dies, even by SIGKILL (Linux). It is under
+  a guard from the spawn on, before its `start` line is written: any error after the spawn kills and
+  reaps it before the error returns. A second supervisor on the directory is refused (`flock` on
+  `out/lock`, released at death).
 - *Margin of the sampled checks.* Run limit, CPU, wall and memory are checked once a loop: the
   100 ms sleep, then the loop's own work — `/proc` reads, collecting ended runs (validating, then
   appending and syncing record and ledger lines), launching runs. Each session records its largest
@@ -2338,22 +2352,24 @@ are diagnostic examples only. "75%" enters no metric; 0.10 is a reference line, 
 - *Integrity.* `plan-<phase>.tsv` holds the configuration — the candidate (`HEAD:crates` and
   `HEAD:Cargo.lock` tree ids, clean for explore and confirm; `crates/scoring` and `crates/protocol`
   identical to `6274270`), the caps, the schema, the designs, the constants — and the phase's runs
-  with their seeds. A session refuses another configuration, another plan for the phase, a stop,
-  an unfinished run, spent caps, or a ledger that is not read strictly (header, field counts,
-  counts as integers, each run started once and ended once): never a zero cost. Confirm's `R` is
-  set once after explore by the rule (`confirm_replicates`, cross-checked by `budget`) and fixed in
-  its plan; an explicit `--replicates` is refused. Each session records its provenance, `HEAD` and
-  the executable's SHA-256, not compared.
+  with their seeds. A session refuses another configuration, another plan for the phase, a stop —
+  the `stop` line, or the reason in a `session` line when the process ended before writing the
+  `stop` line — an unfinished run, spent caps, or a ledger that is not read strictly (header, field
+  counts, counts as integers, each run started once and ended once): never a zero cost. Confirm's
+  `R` is set once after explore by the rule (`confirm_replicates`, cross-checked by `budget`) and
+  fixed in its plan; an explicit `--replicates` is refused. Each session records its provenance,
+  `HEAD` and the executable's SHA-256, not compared.
 - *No automatic extension.* No retry and no resumption after a stop or an unfinished run; going on
   needs an explicit act and authorization.
 - *Analysis stops.* `audit` compares plan, ledger and records: duplicates, records missing,
   inconsistent (seed, outcome) or unplanned, runs started and never ended, never started, not
-  observed (killed or failed), the stop. `check` passes only with values verified, no failure and
-  no invalid audit. `report` exits 0 on a complete phase; 2 on a partial one, declared with those
+  observed (killed or failed), the stop. `check` passes only with values verified, no failure and no
+  invalid audit. `report` exits 0 on a complete phase; 2 on a partial one, declared with those
   counts; 1, without analysis, on an empty or invalid phase, a failed precision check (its
   diagnostics printed) or the blocking defect — a returned selection whose cost exceeds `DTF_MAX`,
-  in a record, from the supervisor or in `rejected/`. A generating DTF above 0.10 is a result to
-  report, not a defect.
+  in a record, from the supervisor or in `rejected/`. `budget` proposes `R` only for an explore
+  phase that is complete, passes the precision check and shows no blocking defect. A generating DTF
+  above 0.10 is a result to report, not a defect.
 - *Other stops.* A harness test failing. No outcome starts, stops or extends the probe; changing a
   case, the model, a metric or a reading after the results opens a new exploratory iteration with
   a new phase tag.
@@ -2361,27 +2377,42 @@ are diagnostic examples only. "75%" enters no metric; 0.10 is a reference line, 
 **Checks run here** (E, on the owner's machine). At `7ce9746`, before correcting, each defect was
 shown by a stand-in or constructed check: a failed child did not stop the launches (outcomes
 `failed` 1, `read` 5, no stop); an invalid record was accepted (`unknown` 2); a supervisor error
-left a child running; two supervisors on one directory wrote 12 records for 6 runs; a ledger's `NaN`
-read as a zero cost and an unknown line was ignored; children survived the supervisor's SIGKILL;
-`check` passed on an empty file; `report` analysed after a failed precision check and passed a
-selection cost of 0.2, declaring no partial phase. By reading, a stop exited 0. After correcting:
-`cargo test -p characterization --test a2_probe --test a2_probe_jobs`, 9 and 16 tests — readings,
-records and the defect on constructed fits, one smoke fit (`N = 400`) outside the gate as plumbing;
-the supervisor on stand-in children (`true`, `false`, `sleep`) and the binary's smoke phase,
-children gone at the first check after the supervisor's SIGKILL. `python3 -m unittest discover -s
-sim -p test_a2_probe.py`, 17 tests on constructed records, plans and ledgers. The smoke phase end to
-end (12 refusals), its resumption, an incompatible reuse and a dirty-tree explore refused, then
-`check` and `report` (complete). `cargo fmt`, `cargo clippy --all-targets` and
-`scripts/comment_budget.py`. Not re-run: the crate's whole suite, whose `production.rs` fits batches
-of `N = 3,000` (run once at `7ce9746`, 67 tests passing).
+left a child running; two supervisors on one directory wrote 12 records for 6 runs; a ledger's
+`NaN` read as a zero cost and an unknown line was ignored; children survived the supervisor's
+SIGKILL; `check` passed on an empty file; `report` analysed after a failed precision check and
+passed a selection cost of 0.2, declaring no partial phase. By reading, a stop exited 0. At
+`464531e`: a ledger ending on a `session` line naming a stop gave no stop to `read_ledger`, `R = 8`
+to `confirm_replicates` and to `budget`, a resumed session, a complete audit and a `COMPLETE`
+report; the other two findings by reading, the spawn before its guard and the diagnostic record
+before the kills.
 
-**Commands.** All exist. Only the checks of the first line and the smoke phase, into a scratch
-directory, were run. `run` starts from the repository; explore and confirm need a clean commit.
+After correcting: `cargo test -p characterization --test a2_probe --test a2_probe_jobs`, 9 and 19
+tests. The first file reads constructed fits, plus one smoke fit (`N = 400`) outside the gate as
+plumbing. The second runs the supervisor on stand-in children (`true`, `false`, `sleep`) and the
+binary's smoke phase; a journal in memory refuses a `start` line after the spawn, the child dead
+when the error returns, and records at the failed run's record that the other child was already
+dead. Those tests now spawn one at a time: two of them failed intermittently, a child reaped by
+`init` read as alive in its transient `X` state, and a `Locked` refusal from a fork in another test
+thread holding a copy of the directory's lock until its `exec`, which one supervisor process does
+not meet. Twelve consecutive runs of the second file and 150 of the orphan test then passed.
+`python3 -m unittest discover -s sim -p test_a2_probe.py`, 18 tests on constructed records, plans
+and ledgers. The smoke phase end to end, then `check`, `report` (complete) and `budget` (refused:
+no explore). `cargo fmt`, `cargo clippy --all-targets` and `scripts/comment_budget.py`. Not re-run:
+the crate's whole suite, whose `production.rs` fits batches of `N = 3,000` (run once at `7ce9746`,
+67 tests passing).
+
+**Commands, in order.** All exist. Only the checks of the first line and the smoke phase, into a
+scratch directory, were run. `run` starts from the repository; explore and confirm need a clean
+commit. After explore, confirm starts only if `check` passes, `report --phase explore` exits 0
+(complete) and `budget` proposes `R`: an incomplete, invalid, imprecise or defective explore gives
+no `R`. The `R` confirm uses comes from the cost rule alone, computed by the supervisor itself.
 
 ```
 cargo test -p characterization --test a2_probe --test a2_probe_jobs; python3 -m unittest discover -s sim -p test_a2_probe.py
 cargo run --release -p characterization --bin a2-probe -- run --phase smoke --replicates 2 --jobs 4 --out characterization-results/a2-probe-smoke
 cargo run --release -p characterization --bin a2-probe -- run --phase explore --jobs 8 --out characterization-results/a2-probe
+python3 sim/a2_probe.py check characterization-results/a2-probe
+python3 sim/a2_probe.py report characterization-results/a2-probe --phase explore
 python3 sim/a2_probe.py budget characterization-results/a2-probe
 cargo run --release -p characterization --bin a2-probe -- run --phase confirm --jobs 8 --out characterization-results/a2-probe
 python3 sim/a2_probe.py check characterization-results/a2-probe

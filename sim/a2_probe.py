@@ -218,7 +218,8 @@ def read_records(d):
 
 
 def read_ledger(d):
-    """`ledger.tsv`, strictly: a malformed line raises `ValueError`, it never reads as zero."""
+    """`ledger.tsv`, strictly: a malformed line raises `ValueError`, it never reads as zero. A
+    session's stop binds without the `stop` line that follows it."""
     path = Path(d) / "ledger.tsv"
     if not path.exists():
         return {"started": {}, "ended": {}, "sessions": [], "stop": None}
@@ -242,6 +243,8 @@ def read_ledger(d):
         elif f[0] == "session":
             out["sessions"].append({"wall_ms": num(1), "cpu_ms": num(2), "peak_kib": num(3),
                                     "max_gap_ms": num(4), "stop": f[5], "provenance": f[6]})
+            if f[5] != "-" and out["stop"] is None:
+                out["stop"] = f[5]
         else:
             out["stop"] = f[1]
     return out
@@ -364,14 +367,25 @@ def ledger(d):
 
 
 def budget(d, cap_ms=CAP_CPU_MS):
-    """The confirmation's replicates by cost alone: `min(8, ⌊(cap − spent) / (1.5 · Σ c)⌋)`, `c`
-    each case's explore run's CPU; refused below 2, after a stop, or with an explore run missing."""
+    """The confirmation's replicates by cost alone, `min(8, ⌊(cap − spent) / (1.5 · Σ c)⌋)`, `c`
+    each case's explore CPU, once explore is complete, precise and free of the blocking defect;
+    refused otherwise, below 2 replicates, or after a stop."""
     try:
         ended, spent, stop = ledger(d)
+        explore = audit(d, "explore")
     except ValueError as e:
-        return {"replicates": None, "reason": f"malformed ledger: {e}"}
+        return {"replicates": None, "reason": f"malformed ledger or plan: {e}"}
     if stop:
         return {"replicates": None, "reason": f"stop recorded: {stop}"}
+    if explore["status"] != "complete":
+        return {"replicates": None, "reason": f"explore is {explore['status']}", "audit": explore}
+    recs = [r for r in read_records(d)[0] if r.get("phase") == "explore"]
+    checked = precision(recs)
+    if checked["failures"] or not checked["values"]:
+        return {"replicates": None, "reason": "explore's precision check failed", "check": checked}
+    found = defects(d, recs)
+    if found:
+        return {"replicates": None, "reason": f"blocking defect: {found}"}
     costs = {}
     for case in CASES:
         outcome, cpu = ended.get(f"explore-{case}-0", (None, None))

@@ -320,7 +320,8 @@ raw-score gap by its own quadrature (method B) on reference items and on 500 see
 item law, with the indicative information bound of C5, into `a2_probe_reference.json` (about 40 s).
 `audit` compares a phase's plan, ledger and records; `check` recomputes every truth of a directory
 against the harness's values; `budget` applies the cost-only rule for the confirmation's
-replicates; `report` counts every outcome with its denominators. Standard library only,
+replicates, and proposes none unless explore is complete, passes the precision check and shows
+no blocking defect; `report` counts every outcome with its denominators. Standard library only,
 deterministic. From the repository root:
 
 ```
@@ -334,7 +335,8 @@ python3 -m unittest discover -s sim -p test_a2_probe.py -v
 an audit is invalid; agreement is a consistency check between two methods, not a certified error
 bound. `report` exits 0 on a complete phase, 2 on a partial one (declared with its counts), 1
 without analysis on an empty or invalid phase, a failed precision check or the blocking defect. A
-malformed ledger stops `check`, `report` and `budget`.
+malformed ledger stops `check`, `report` and `budget`; a stop named in a `session` line binds as
+the `stop` line does.
 
 ### `d3_selection_counts.py`
 
