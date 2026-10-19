@@ -337,8 +337,9 @@ an audit is invalid; agreement is a consistency check between two methods, not a
 bound. `report` exits 0 on a complete phase, 2 on a partial one (declared with its counts), 1
 without analysis on an empty or invalid phase, a failed precision check or the blocking defect. A
 malformed ledger stops `check`, `report` and `budget`; a stop named in a `session` line binds as
-the `stop` line does. `dtf-check` exits 0 after its reading, 1 without analysis unless the phase's
-audit is complete and the precision check passes.
+the `stop` line does. `dtf-check` exits 0 after its reading, 1 without analysis unless the
+directory holds the declared phase exactly — 16 replicates, its 32 tasks, records matching their
+keys, paired seeds, a complete audit — and the precision check passes.
 
 ### `d3_selection_counts.py`
 

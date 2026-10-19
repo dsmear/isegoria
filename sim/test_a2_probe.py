@@ -49,13 +49,13 @@ def record(case, r, outcome="read", status="converged", counted=2, rechecks="NNN
     return rec
 
 
-def write(d, recs, planned=None, ledger=None, stop=None, phase="confirm", session_stop=None):
-    """`records.jsonl`, the phase's plan (the records' runs unless `planned`) and a ledger that
-    starts and ends each record's run with its outcome (unless `ledger` rows are given)."""
+def write(d, recs, planned=None, ledger=None, stop=None, phase="confirm", session_stop=None, replicates=8):
+    """`records.jsonl`, the phase's plan (the records' runs unless `planned`; `replicates` declared)
+    and a ledger starting and ending each record's run with its outcome, unless `ledger` given."""
     d = Path(d)
     (d / "records.jsonl").write_text("".join(json.dumps(r) + "\n" for r in recs))
     plan = planned if planned is not None else [(r["key"], r["seed"]) for r in recs]
-    (d / f"plan-{phase}.tsv").write_text(f"schema\tstand-in\nphase\t{phase}\t8\n"
+    (d / f"plan-{phase}.tsv").write_text(f"schema\tstand-in\nphase\t{phase}\t{replicates}\n"
                                          + "".join(f"task\t{k}\t{s}\n" for k, s in plan))
     if ledger is None:
         ledger = [r for rec in recs for r in (("start", rec["key"], 1),
@@ -328,19 +328,73 @@ class DtfCheck(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def build(self, edit=None):
-        """16 replicates of C0 and C3, both two-class candidates converged; `edit` changes them."""
+    def records(self, reps=range(16)):
+        """C0 and C3 at `reps`, seeds paired, both two-class candidates converged."""
         recs = []
-        for rep in range(16):
+        for rep in reps:
             for case, dtf in (("C0", 0.2), ("C3", 0.5)):
                 rec = record(case, rep, phase="dtf-check")
                 rec["candidates"] = [candidate(1, False, 0.0), candidate(2, False, 20.0, dtf=dtf),
                                      candidate(2, True, 30.0, dtf=dtf)]
                 recs.append(rec)
+        return recs
+
+    def build(self, edit=None):
+        recs = self.records()
         if edit:
             edit({(r["case"], r["replicate"]): r for r in recs})
-        write(self.d, recs, phase="dtf-check")
+        write(self.d, recs, phase="dtf-check", replicates=16)
         return P.dtf_check(self.d)
+
+    def stops(self, why):
+        text, summary, code = P.dtf_check(self.d)
+        self.assertEqual((code, summary), (1, None))
+        self.assertIn(why, text)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as stop:
+            P.main(["dtf-check", str(self.d), "--json"])
+        self.assertEqual((stop.exception.code, out.getvalue()), (1, text))
+        return text
+
+    def test_a_plan_of_two_runs_stops_the_analysis_whatever_replicates_it_declares(self):
+        for replicates in (16, 8):
+            write(self.d, self.records(range(1)), phase="dtf-check", replicates=replicates)
+            text = self.stops("the plan's tasks are not the 32 declared")
+            self.assertEqual("declares 8 replicates" in text, replicates == 8)
+
+    def test_a_substituted_key_or_eight_declared_replicates_stop_a_plan_of_32(self):
+        for case, rep in (("C3", 16), ("C5", 15)):
+            recs = self.records()
+            recs[-1].update(key=f"dtf-check-{case}-{rep}", case=case, replicate=rep)
+            write(self.d, recs, phase="dtf-check", replicates=16)
+            self.stops(f"missing ['dtf-check-C3-15'], unexpected ['dtf-check-{case}-{rep}']")
+        write(self.d, self.records(), phase="dtf-check", replicates=8)
+        self.stops("the plan declares 8 replicates, not 16")
+
+    def test_records_not_matching_their_key_stop_the_analysis(self):
+        for field, value in (("replicate", 14), ("case", "C0")):
+            recs = self.records()
+            recs[-1][field] = value
+            write(self.d, recs, phase="dtf-check", replicates=16)
+            self.stops("records not matching their key's phase, case and replicate: ['dtf-check-C3-15']")
+
+    def test_unpaired_seeds_stop_the_analysis(self):
+        recs = self.records()
+        recs[15]["seed"] = 999
+        write(self.d, recs, phase="dtf-check", replicates=16)
+        self.stops("C0's and C3's seeds differ at replicates [7]")
+
+    def test_the_earlier_candidates_are_reread_apart_and_never_pass_as_the_check(self):
+        old = Path(__file__).resolve().parents[1] / "verification/reports/a2-candidates-2e2572c"
+        ref = json.loads((old / "paired-dtf.json").read_text())
+        _, summary, code = P.paired_dtf(old, "candidates", 8)
+        self.assertEqual(code, 0)
+        for name in ("shared", "per-class"):
+            tally = ref[name]["tally"]["C3"]
+            self.assertEqual(summary[name]["order"], {k: tally[k] for k in ("greater", "smaller", "equal")})
+            orders = [x["order_vs_c0"] for x in ref[name]["pairs"] if x["case"] == "C3"]
+            self.assertEqual([row.get("order") for row in summary[name]["rows"]], orders)
+        self.assertIn("not the declared phase", P.dtf_check(old)[0])
 
     def test_orders_on_the_unrounded_value_with_zeros_and_their_origin(self):
         def edit(by):
@@ -383,14 +437,8 @@ class DtfCheck(unittest.TestCase):
             by[("C3", 15)]["truth"]["dtf"] += 1.0
         self.assertEqual(self.build(drop)[2], 1)
         recs = P.read_records(self.d)[0]
-        write(self.d, recs[:-1], planned=[(r["key"], r["seed"]) for r in recs], phase="dtf-check")
-        text, summary, code = P.dtf_check(self.d)
-        self.assertEqual((code, summary), (1, None))
-        self.assertIn("Stopped", text)
-        out = io.StringIO()
-        with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as stop:
-            P.main(["dtf-check", self.d, "--json"])
-        self.assertEqual((stop.exception.code, out.getvalue()), (1, text))
+        write(self.d, recs[:-1], planned=[(r["key"], r["seed"]) for r in recs], phase="dtf-check", replicates=16)
+        self.stops("the audit is partial, 31 records of 32 planned")
 
 
 if __name__ == "__main__":

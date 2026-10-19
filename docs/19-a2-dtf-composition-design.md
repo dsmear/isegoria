@@ -367,6 +367,16 @@ Review of `55373cb` (§§13.15–13.17), distinct from the reviews above:
   `paired_dtf.py`, the main counts and the subsets without zeros confirmed. No Rust and no fit.
 - **Owner's authorization:** §13.17's harness phase and small tests (§13.18); not its 32 runs.
 
+Review of `89b7163` (§13.18's implementation), distinct from the reviews above:
+
+- **Finding:** `dtf-check` analysed a phase other than the declared one. With a plan of only
+  `dtf-check-C0-0` and `dtf-check-C3-0`, ledger and records consistent, it exited 0 with "Audit:
+  complete, 2 of 2 runs" and one pair of 16 analysed, even with the phase line declaring 16.
+- **Astra's evidence:** the diff and the pertinent paths read; the 24 Python tests run, all
+  passing; the defect reproduced on constructed records. No Rust and no fit.
+- **Owner's direction:** correct the preliminary check alone, regressions first; the runs await
+  the correction's verification. Corrected in §13.18's analysis; not yet verified.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -2883,8 +2893,9 @@ apart.
 ### 13.18 The check on independent seeds: implementation and declaration (not run)
 
 **Status:** implemented by Claude Code on `55373cb` under the owner's authorization of the harness
-phase and small tests (record before §1); not reviewed. Not run: the 32 runs at full size, or any
-fit at `N = 3,000`. A2 stays open and blocking; D38 stays apart.
+phase and small tests; reviewed by Astra on `89b7163`, its preliminary check corrected (records
+before §1); the correction not verified. Not run: the 32 runs at full size, or any fit at
+`N = 3,000`. A2 stays open and blocking; D38 stays apart.
 
 **Phase `dtf-check`** (`crates/characterization`). C0 and C3, 16 replicates each, paired by seed:
 the two cases of a replicate share its seed, `probe_seed` under the new tag `dtf-check`, fixed
@@ -2899,9 +2910,14 @@ as at `6274270`. Explore and confirm still require `6274270`'s engine; smoke, wh
 keeps its allowance on `latent.rs` alone. No file of `crates/scoring` or `crates/protocol` changes.
 
 **Analysis, declared before any run** (`python3 sim/a2_probe.py dtf-check DIR`). It first requires
-the audit of phase `dtf-check` complete — 32 records of 32, no duplicate, missing, failed or killed
-run — and the numerical check passing; otherwise it stops with exit 1, printing why (with `--json`
-too), and orders no pair.
+the declared phase exactly: the plan declaring 16 replicates; its tasks the 32 of C0 and C3 at
+replicates 0 to 15, no other; every record of the phase matching its key's phase, case and
+replicate; C0's seed equal to C3's at each replicate; the audit complete on that set — 32 records
+of 32, no duplicate, missing, failed or killed run. Then the numerical check must pass. Otherwise
+it stops with exit 1, printing every reason (with `--json` too), and orders no pair. Runs the gate
+refused and fits not converged, observed as planned, are not stops: they are reported as below.
+The analysis itself, `paired_dtf(D, phase, pairs)`, rereads another phase apart (the historical
+check below) under the audit and numerical check alone; that reading is not the command.
 `compare-first` does not apply: the new batches have no twins in the first probe. Then, for each
 variant apart, shared and per-class slopes:
 
@@ -2922,20 +2938,25 @@ The reading sets the counts per variant beside §13.16's 5 of 6, as a descriptio
 minutes a run, 2 GiB aggregate resident, 8 workers. A stop authorizes no recovery and no new run.
 Cost, estimated from §13.15's 24–26 s a run: about 13–14 CPU-minutes.
 
-**Checks run here** (E). `python3 -m unittest discover -s sim -p test_a2_probe.py`: 24 tests, three
-new on constructed records — ordering on unrounded values (a difference of `10⁻¹²` reads
-"greater"), zeros with their origin and the conditional reading; every reason a pair is not
-comparable, and the denominators; the stops on an incomplete audit and a failed check, also with
-`--json`. The reader, applied to `2e2572c`'s preserved records as phase `candidates` with 8 pairs,
-gives `paired-dtf.json`'s C3 rows and §13.16's counts — per variant 5 greater and 1 smaller of 6
+**Checks run here** (E). `python3 -m unittest discover -s sim -p test_a2_probe.py`: 29 tests, eight
+on this phase, their constructed records declaring 16 replicates. Two count: ordering on unrounded
+values (a difference of `10⁻¹²` reads "greater"), zeros with their origin and the conditional
+reading; every reason a pair is not comparable, and the denominators. Five stop with exit 1 and
+their reason, also with `--json`: a plan of two runs, declaring 16 or 8 replicates; a plan of 32
+with one key substituted (`dtf-check-C3-16` or `dtf-check-C5-15`) or declaring 8; a record whose
+replicate or case differs from its key; C3's seed differing from C0's; an incomplete audit or a
+failed numerical check. The first four fail on `89b7163`'s `sim/a2_probe.py`, exiting 0 with an
+analysis. The eighth rereads `2e2572c`'s preserved records with `paired_dtf(D, "candidates", 8)`:
+`paired-dtf.json`'s C3 rows and §13.16's counts — per variant 5 greater and 1 smaller of 6
 comparable, C3's two unconverged baselines not comparable, 3 of 3 (shared) and 4 of 4 (per-class)
-without zeros: a check of the code, not evidence for §13.17's question. `cargo test
--p characterization --test a2_probe`: 13 tests, one new — the phase's 32 runs, its pairing, its 16
-seeds new against smoke's, explore's and confirm's first 64 and `candidates`'. `--test
-a2_probe_jobs`: 20 tests, one new — the binary plans the 32 runs and refuses 8 replicates. `run
---phase dtf-check` refused on an uncommitted tree before any directory; the engine checks by `git
-diff`: identical to `2e2572c`, different from `6274270`. `cargo fmt`, `cargo clippy --all-targets`,
-the comment budget. No fit at `N = 3,000`, full suite or campaign.
+without zeros, a check of the code, not evidence for §13.17's question — and `dtf-check` stops on
+them. On `89b7163`, unchanged since: `cargo test -p characterization --test a2_probe`, 13 tests,
+one new — the phase's 32 runs, its pairing, its 16 seeds new against smoke's, explore's and
+confirm's first 64 and `candidates`'; `--test a2_probe_jobs`, 20 tests, one new — the binary plans
+the 32 runs and refuses 8 replicates; `run --phase dtf-check` refused on an uncommitted tree
+before any directory; the engine checks by `git diff`: identical to `2e2572c`, different from
+`6274270`; `cargo fmt` and `cargo clippy --all-targets`. On the correction, the comment budget
+again. No fit at `N = 3,000`, full suite or campaign.
 
 **Commands, after review and authorization** (`D` a new directory,
 `characterization-results/a2-dtf-check-<reviewed commit>`).

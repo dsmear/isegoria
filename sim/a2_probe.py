@@ -615,7 +615,46 @@ def order(a, b):
     return "greater" if a > b else ("smaller" if a < b else "equal")
 
 
-def dtf_check(d, phase="dtf-check", pairs=DTF_CHECK_PAIRS):
+def dtf_check_plan(d):
+    """Why `d` does not hold `docs/19` §13.18's phase: its declared replicates, its 32 tasks,
+    records matching their keys, paired seeds, a complete audit. Empty when it does."""
+    phase, pairs = "dtf-check", DTF_CHECK_PAIRS
+    a = audit(d, phase)
+    plan = read_plans(d).get(phase, {"replicates": None, "tasks": {}})
+    tasks, want = plan["tasks"], {f"{phase}-{c}-{r}" for c in ("C0", "C3") for r in range(pairs)}
+    why = []
+    if plan["replicates"] != pairs:
+        why.append(f"the plan declares {plan['replicates']} replicates, not {pairs}")
+    if set(tasks) != want:
+        why.append(f"the plan's tasks are not the {len(want)} declared: missing {sorted(want - set(tasks))}, "
+                   f"unexpected {sorted(set(tasks) - want)}")
+    off = sorted(str(r.get("key")) for r in read_records(d)[0]
+                 if (r.get("phase") == phase or str(r.get("key")).startswith(phase + "-"))
+                 and (r.get("phase") != phase or r.get("key") not in want
+                      or r.get("key") != f"{phase}-{r.get('case')}-{r.get('replicate')}"))
+    if off:
+        why.append(f"records not matching their key's phase, case and replicate: {off}")
+    seeds = [(tasks.get(f"{phase}-C0-{r}"), tasks.get(f"{phase}-C3-{r}")) for r in range(pairs)]
+    unpaired = [r for r, (s0, s3) in enumerate(seeds) if None not in (s0, s3) and s0 != s3]
+    if unpaired:
+        why.append(f"C0's and C3's seeds differ at replicates {unpaired}")
+    if a["status"] != "complete":
+        why.append(f"the audit is {a['status']}, {a['records']} records of {a['planned']} planned")
+    return why
+
+
+def dtf_check(d):
+    """`docs/19` §13.18's command: `paired_dtf` on the declared phase alone, else a stop."""
+    try:
+        why = dtf_check_plan(d)
+    except ValueError as e:
+        why = [str(e)]
+    if why:
+        return "# A2 probe, dtf-check (§13.18)\n\nStopped, not the declared phase: " + "; ".join(why) + ".\n", None, 1
+    return paired_dtf(d, "dtf-check", DTF_CHECK_PAIRS)
+
+
+def paired_dtf(d, phase, pairs):
     """`docs/19` §13.18's analysis: per variant, C3's two-class candidate's whole-form DTF against
     C0's on the same replicate, unrounded; zeros counted with their origin; the pairs that cannot be
     ordered listed with why; then the pairs without a zero, as a conditional reading."""

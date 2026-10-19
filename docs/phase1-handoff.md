@@ -53,7 +53,9 @@ report C3 as not evaluable is withdrawn. Evidence in `verification/reports/a2-ca
 **Approved, implemented, not run (`19` §§13.17–13.18):** §13.17's check of the candidates' DTF
 ordering on 16 independent seeds each for C0 and C3, approved by Astra on `55373cb` as a descriptive
 check on new data, after reproducing `paired-dtf.json` exactly; implemented as phase `dtf-check`
-with its analysis declared beforehand (§13.18). Its 32 runs await review and authorization.
+with its analysis declared beforehand (§13.18). Astra's review of `89b7163` found the analysis
+accepting a phase other than the declared one; its preliminary check is corrected, not verified.
+Its 32 runs await the correction's verification and authorization.
 D38's semantic choice stays apart.
 
 The C6 record and earlier work below retain their historical states; current A2 work
