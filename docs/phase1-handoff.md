@@ -18,18 +18,18 @@ explicit choice. "75%" is an aspiration for useful progress, not a statistical t
 `19` §13.10 permits evaluation design and bounded, predeclared tests; certifier
 implementation awaits its contract decisions. A2 remains open and blocking; earlier
 closures stand. No Rust, fit, benchmark or campaign was run for this documentation.
-The first bounded probe is declared in `19` §13.11, rectified after Astra's static reading of
-`5dbc66e`, its harness implemented in `7ce9746`: `a2-probe` in `crates/characterization`
-(`probe.rs`, `probe_jobs.rs`) and the oracle `sim/a2_probe.py`. Astra's review of `7ce9746` was
-static, plus its own runs of the 10 Python tests and reproductions on constructed records; its
-findings on stops, processes, integrity and the analysis's stops were corrected in `464531e`.
-Astra's review of `464531e` read the code, ran the 17 Python tests and reproduced the stop left in
-a `session` line; it ran no Rust and no fit. Its three findings — the child spawned before its
-guard, the diagnostic record built before the kills, the `session` line's stop not binding — are
-corrected after `464531e`, not yet reviewed (§13.11's checks). Neither review approves the probe's
-execution. After explore, confirm needs `check`, a complete explore report and `budget`'s `R`;
-explore and confirm await review and the owner's authorization within §13.11's caps; their cost is
-still an estimate.
+The first bounded probe is declared in `19` §13.11 and its harness implemented (`a2-probe` in
+`crates/characterization`, `probe.rs` and `probe_jobs.rs`; the oracle `sim/a2_probe.py`), corrected
+after Astra's reviews of `7ce9746` and `464531e`. Astra approved the harness on `9511ce1` for this
+bounded probe after a static reading and the 18 Python tests, with no Rust and no fit. **Run on
+`9511ce1`, 2026-10-19 (`19` §13.12):** explore 6 of 6 and confirm 48 of 48 runs read, every check
+and report complete, `R = 8` from the cost rule, 28.7 CPU-minutes and 4.4 wall minutes in all. The
+current path read C1's ability difference and C5's weak signal exactly as C0, and C3's spread DIF on
+active items (true form DTF 0.56–0.65) with zero cost and zero fitted DTF in 6 of 6 converged runs,
+2 of 8 not converging; D38's balancing left out every uncompensated sourced fact in C2. Diagnostic
+examples, not rates; the results are not reviewed. Evidence in
+`verification/reports/a2-probe-9511ce1/`. Suggested next, not started: a decision brief for the
+owner on §13.7's alternatives and D38's treatment of pertinent knowledge, with these magnitudes.
 
 The C6 record and earlier work below retain their historical states; current A2 work
 authorization is the paragraph above and `15`'s A2 state.
@@ -1093,7 +1093,8 @@ current status and next work are in §5.2. This does not close Phase 1.
   its numerical contract. **The owner defers A2's design decision (2026-10-14, `19` §13.9):** the
   whole-test requirement is kept and A2 stays open and blocking. The 2026-10-18 direction
   (`01` D44; `19` §13.10) now permits evaluation design and bounded, predeclared tests;
-  certifier implementation awaits its contract decisions (`15`, A2's current state).
+  certifier implementation awaits its contract decisions (`15`, A2's current state). The first
+  such probe ran on `9511ce1` (`19` §13.12): diagnostic examples, not reviewed.
 - **A1: closed for the conditional expected-score guarantee**, Astra’s judgment on
   `1bd865c` (`17` §14.15). O1, conditional design A (O2) and O3 are acquired; the premises
   are accepted as model assumptions, not properties of the current protocol. The original
@@ -1219,7 +1220,7 @@ decision, **L** a documented limit.
 |---|---|---|---|---|---|
 | A1, closed conditionally on `1bd865c` | `15` A1 current criterion; `17` §14.15 | exact expected-score claim, strategies and premises accepted by Astra as mathematical-model assumptions | operational gaps remain; not missing premises for this restricted judgment | no certification of current runtime, execution, resources, authentication or reputation | none to repeat the approved judgment; residual realization and A12’s conditional closure remain tracked |
 | A12, distinct, closed conditionally on `15b846c` | owner-amended AT-REP-01; `16` §7.3 | composed exact complete-offline affine claim, one final rounded conversion and frozen first/supplementary consumers; fixed opportunities/common filtration and joint invariance assumed | no missing premise for that restricted judgment; legacy/reset, causal influence/fit, generic betrayal and incomplete-data operation excluded | separate final-model, SC-1, A2 and T26 gates; Phase 1 incomplete | none to repeat the accepted closure; current scope and exclusions in `16` §7.3 |
-| A2, high, open; R1 approved | `15` A2; `19` §§11–13 | §11 contract approved on `5e600be`; §12 coverage proof accepted on `5102852` under its hypotheses; §13.3 corollary accepted in its domain (one-class truth, arbitrarily small shares, contrast admitted) | target domination, certified supremum, usefulness, cost and scope unresolved; no implementation | declared model/i.i.d. reference and independent split; symbolic target linkage; calibration undecided | bounded evaluation declaration under `19` §13.10 (owner direction 2026-10-18); §13.8's accepted obstacle remains; the design decision is pending and certifier implementation remains suspended |
+| A2, high, open; R1 approved | `15` A2; `19` §§11–13 | §11 contract approved on `5e600be`; §12 coverage proof accepted on `5102852` under its hypotheses; §13.3 corollary accepted in its domain (one-class truth, arbitrarily small shares, contrast admitted) | target domination, certified supremum, usefulness, cost and scope unresolved; no implementation | declared model/i.i.d. reference and independent split; symbolic target linkage; calibration undecided | the first bounded probe, declared in `19` §13.11, ran on `9511ce1` (§13.12; results not reviewed); §13.8's accepted obstacle remains; the design decision is pending and certifier implementation remains suspended |
 | B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: S1's scenarios and decision criteria declared, then one campaign on an identified candidate, its design declared before execution; Pr where identification or coverage is claimed, which simulations do not replace | A2's target; the owner's authorization of the campaign | S1's declaration, no run |
 | A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; its producer `revalidate_pool` read a separated fit as DIF, corrected and closed on `52f3822` with the boolean's limit stated; (c), the retired proxy path, fixtures only: L, its contract clarified, closed on `52f3822`; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
 | A8, A9, medium; closed within the bounded claim rectification | `15`: distinguishability, identifiability and power apart (A8); hypotheses or a controlled approximation (A9) | bounded paper/document correction, exact A8 witness and nondegenerate A9 stationary witness with residual bound (`15` rectification record) | no missing evidence for these corrected claims; generic identifiability, detector power and error bounds for historical fits are not established | — | none to repeat the accepted rectification (`15`) |
@@ -1357,8 +1358,8 @@ through the scorer); `docs/02` §B.3, §B.7; `docs/01` D33–D38, D43; code:
 A2: `docs/19` §11 (contract approved on `5e600be`), §12 (coverage proof accepted on `5102852` under
 its hypotheses), §13 (review, corollary accepted in its domain; the information check's contract
 accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the owner's deferral;
-§13.10, the owner's direction of 2026-10-18; §13.11, the first probe's declaration and harness,
-not run); `sim/a2_probe.py`, `crates/characterization/src/{probe,probe_jobs}.rs`,
+§13.10, the owner's direction of 2026-10-18; §13.11, the first probe's declaration and harness;
+§13.12, its result); `sim/a2_probe.py`, `crates/characterization/src/{probe,probe_jobs}.rs`,
 `crates/characterization/tests/{a2_probe,a2_probe_jobs}.rs`;
 `sim/a2_information_check.py`.
 

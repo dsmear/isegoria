@@ -315,6 +315,14 @@ Review of `464531e` (those corrections), distinct from the reviews above:
   stop in the `session` line. No Rust and no fit.
 - **Not approved:** the execution of the probe; the corrections are not reviewed.
 
+Approval of `9511ce1` (§13.11's harness, after the corrections above), distinct from the reviews
+above:
+
+- **Approved:** the harness, for this bounded probe only.
+- **Astra's evidence:** a static reading and the 18 Python tests of `sim/test_a2_probe.py`. No Rust
+  and no fit.
+- **Not covered:** the probe's results (§13.12), its reading and any next step.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -2181,10 +2189,10 @@ implemented, and the probe is not run.
 **Status:** declared by Claude Code on `d413516` (`5dbc66e`); Astra's static reading of `5dbc66e`
 accepted the diagnostic setting, not all its inferences, and the declaration was rectified with the
 harness in `7ce9746`. Astra's reviews of `7ce9746` and `464531e` asked corrections to its stops,
-integrity checks and analysis stops (records before §1); they are made below, not reviewed, and the
-probe's execution is not approved. Never run: explore, confirm, a probe fit at `N = 3,000`, the
-`fitted` test of `contested_facts.rs`. It adopts no policy, tolerance, risk level, sample size or
-resource; A2 stays open and blocking.
+integrity checks and analysis stops, made below; Astra approved the harness on `9511ce1` for this
+bounded probe, after a static reading and the 18 Python tests, with no Rust and no fit (records
+before §1). The owner authorized explore and confirm; they ran on `9511ce1` (§13.12). It adopts no
+policy, tolerance, risk level, sample size or resource; A2 stays open and blocking.
 
 **Question.** On a few synthetic batches with known truth, what does the current path — latent
 re-check, routing, contested-facts cost, draw — report, and how does it compare with the true DTF
@@ -2452,3 +2460,92 @@ frequencies: no simulation replaces a proof where a guarantee is kept.
 **Owner's choices needed.** Only authorizing the explore and confirm runs within the caps above,
 after review of this declaration and of the harness. Floors, cross-fit forms and other sizes are
 left to later declarations.
+
+### 13.12 First bounded probe: result (run on `9511ce1`)
+
+**Status:** run by Claude Code on 2026-10-19 on `9511ce1`, as §13.11 declares, after Astra's
+approval of the harness and the owner's authorization (record before §1); not reviewed. Evidence:
+**E** the two phases; **C** the oracle's precision check of every truth; the raw records, plans,
+ledger, checks and reports in
+[`verification/reports/a2-probe-9511ce1/`](../verification/reports/a2-probe-9511ce1/README.md).
+Diagnostic examples of the current path on six synthetic cases: no frequency, certification of the
+whole test or causal conclusion. A2 stays open and blocking.
+
+**Execution.** Candidate checked first: `HEAD` = `origin` = `9511ce1`, `HEAD:crates` `d0cdf4e` and
+`HEAD:Cargo.lock` `e661541` clean, the engine identical to `6274270`, a new run directory. Explore:
+6 of 6 runs `read`, exit 0. Then `check` exit 0 (82 values, largest `|A − B|` `4.7·10⁻⁸`), `report
+--phase explore` exit 0 (complete, no blocking defect), `budget` exit 0. `R` by the cost rule alone:
+`Σ c = 172.75` s of explore CPU (C0 21.66, C1 21.54, C2 44.41, C3 25.51, C4 37.63, C5 22.00),
+`min(8, ⌊(7,200 − 172.87)/(1.5 × 172.75)⌋) = 8`, the supervisor's own computation giving the same.
+Confirm, without `--replicates`: 48 of 48 runs `read`, exit 0; `check` exit 0 (736 values, largest
+`|A − B|` `4.8·10⁻⁷`), `report --phase confirm` exit 0 (complete). No stop, refusal, killed or
+failed run or rejected part; no run missing. Explore's values serve its cost only and are not
+pooled below.
+
+**Cost, measured.** CPU 172.9 s (explore) and 1,551.1 s (confirm), 1,724.0 s in all — 28.7 of the
+120 minutes; wall time 44.6 s and 220.0 s, 4.4 of the 45 minutes; largest sampled resident sum
+42.6 and 56.4 MiB, each run's peak 6.2–6.6 MiB; largest gap between checks 134 and 147 ms; 8
+workers. CPU per confirm run, mean and range: C0 21.5 s (10.9–30.4), C1 23.7 (17.1–31.3), C2 48.9
+(11.8–64.2), C3 22.4 (16.1–28.6), C4 56.3 (32.8–82.5), C5 21.1 (12.9–26.5). The estimate (22 s
+without a mixture, 54 s with one, up to 35 and 87 s) held; C3 cost as a null case because it
+selected one class. Answers: 204,000 a run, 9,792,000 in confirm, synthetic.
+
+**Results, confirm.** `R = 8` runs per case, all read; `R_eval` 8 except C3 (6).
+
+| Case | Fits | Flags | Fixed form: generating DTF; `DTF_F` | Forms A, A+C | `D`, draws (S1) |
+|---|---|---|---|---|---|
+| C0 | 8 converged, 8 one class | clean 0 of 64 | 0; `DTF_F` 0 | 8 items in 8, DTF 0 | no contested item |
+| C1 | as C0, identical to its C0 pair in 8 of 8 | clean 0 of 64 | 0, raw gap 1.57–1.81; `DTF_F` 0 | 8 items in 8, DTF 0 | none |
+| C2 | 8 converged: 7 mixtures, 1 one class (r5) | leaners 14 of 16, both in each mixture, none in r5; clean 0 of 48 | 0.610–0.873; `DTF_F` off by −0.030 to +0.095 in the mixtures, 0 in r5 | S0 and S1 alike: 6 items in 7 runs, DTF 0; r5 8 items, DTF 0.610 | 7 runs with 2 contested: `NoBalancedDraw`, feasible {0}, reduced to none, `D` 0 |
+| C3 | 6 converged, all one class; 2 `max_iters`, every item `Indeterminate` | leaners 0 of 48 | 0.560–0.652; `DTF_F` 0 | 8 items in 6, DTF 0.560–0.652; **empty** in 2 | none |
+| C4 | 8 converged, all mixtures | leaners 32 of 32; clean 0 of 32 | 0.047–0.271, above the line in 6, below in 2; `DTF_F` off by −0.050 to +0.102 | S0: 4 clean items in 8, DTF 0; S1: 6 items in 7, 8 in 1, DTF 0.028–0.088 | 8 runs with 4 contested: all drawn in 1; 7 reduced to a pair of opposite signs, feasible {0, 2}; `D` 0.031–0.079; selection's DTF minus `D` −0.025 to +0.034 |
+| C5 | 8 converged, all one class, identical to its C0 pair in 8 of 8 | leaners 0 of 64 | 0.132–0.154, above in 8; `DTF_F` 0 | 8 items in 8, DTF 0.132–0.154 | none |
+
+No form's generating DTF lies within 0.001 of 0.10. C3's two empty forms read "below" in the
+report's count against the line: removing every item, they are no result. Every returned selection
+had `D ≤ DTF_MAX`; no blocking defect.
+
+**Pertinent factual knowledge, both readings (no decision).** C2 under S1: with D38's balancing as
+implemented, both sourced leaners were left out in 7 of 7 runs that flagged them — a one-fit pool
+holds no counterweight — and the form kept 6 items, DTF 0; counted as measured knowledge, every
+sourced fact kept, the form is the fixed one, DTF 0.729–0.873. In r5 nothing was flagged and both
+stayed active, DTF 0.610, in either reading. C4 under S1: the balancing drew a pair of opposite
+signs in 7 runs, two sourced facts out each time, and all four in 1, DTF 0.028–0.088; every fact
+kept gives the fixed form, 0.047–0.271. In C4 r2 the drawn pair's DTF (0.085) exceeds the whole
+form's (0.066). Neither reading is preferred here; D38's treatment stays the open decision.
+
+**Against §13.11's "What would change the next step".**
+
+- C1: no difference from C0 in 8 paired runs — one class, no flag, `DTF_F` 0 — so no signal here
+  of impact read as DIF; nothing beyond this scenario.
+- C2: one run of eight read as one class with two strong leaners at `N = 3,000`, fitted 0 for a
+  true 0.610 (§4 row 4 saw it at 1,500): an observation on detection; it does not place its cause.
+- C3: `D = 0` and `DTF_F = 0` in 6 of 6 converged runs for forms whose DTF is 0.56–0.65, and no
+  reading in 2 of 8. The whole-form estimate of existing APIs did not track the truth here: "if
+  not, not even that". A whole-test claim must cover active items, or give way to §13.7's "no
+  whole-test certificate"; the choice stays the owner's.
+- C4: no selection within the fitted cost passed the line (0 of 8); the cost under-estimated the
+  selection's true DTF in 2 of 8, by up to 0.034. Without the sets' error unselected, this
+  documents error on these selections only.
+- C5: outputs identical to C0's in 8 of 8 while every form is 0.03–0.05 above the line: no cost and
+  no flag under this weak signal. Identical pairs are an observation, which the distance bound does
+  not require; it bears on an "insufficient information" output and §13.7's alternatives.
+- F: D38's balancing excluded every uncompensated sourced fact (C2) and two of four in most C4 runs;
+  what that should be is D38's open choice.
+
+**Limits.** Eight runs per case are diagnostic examples: under a binomial model 0 of 8 leaves a
+per-run probability up to 31.23% (exact one-sided 95%), and no other count here is read as a rate.
+One fit per form; open format, no floors, cross-fit forms or misspecification beyond the cases; the
+truth is the generating law; 0.10 is a reference line, not A2's tolerance; the composition and the
+reduced draw are harness readings. Nothing here bears on domination, coverage, conservative
+computation or any certificate's usefulness (§11.2), nor on real populations.
+
+**Next intervention suggested by the evidence, not started.** A decision brief for the owner rather
+than more runs. It would put §13.7's alternatives with these magnitudes: the current cost covers
+contested facts only, and in C3 and C5 neither `D` nor the fitted functional saw spread DIF on
+active items; D38's balancing excluded uncompensated sourced facts. The brief would separate
+three choices: a whole-test claim kept, which needs a whole-form check (R3-like) with an
+uncertainty treatment — its first step a declared probe of whether a whole-form fit sees C3's
+spread DIF at feasible sizes; that claim given up, R1's description kept with no whole-test
+certificate; and D38's treatment of pertinent factual knowledge. C3's two `max_iters` fits are a
+B1–B3 observation to track. No implementation, threshold or run is proposed before that decision.
