@@ -25,6 +25,7 @@ fn task(case: Case) -> Task {
         phase: Phase::Smoke,
         case,
         replicate: 0,
+        n: None,
     }
 }
 
@@ -748,4 +749,46 @@ fn only_a_committed_unmodified_calibration_counts_as_frozen() {
     fs::write(cal.join("ledger.tsv"), "changed").unwrap();
     assert!(stderr().contains("not frozen in the repository: changed or untracked files"));
     assert!(!repo.join("out").exists());
+}
+
+/// The binary plans `size`'s 64 runs, `n` in each key, refuses another count and a misplaced `--n`.
+#[test]
+fn the_binary_plans_the_size_study_and_refuses_a_misplaced_size() {
+    let _serial = serial();
+    let bin = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    let out = bin(&["plan", "--phase", "size"]);
+    let text = String::from_utf8_lossy(&out.stdout).to_string();
+    let lines: Vec<&str> = text.lines().collect();
+    assert!(out.status.success() && lines.len() == 64);
+    assert!(
+        lines[0].starts_with("size-n3000-C0-0 seed ")
+            && lines[63].starts_with("size-n6000-C3-15 seed ")
+    );
+    assert_eq!(
+        bin(&["plan", "--phase", "size", "--replicates", "8"])
+            .status
+            .code(),
+        Some(1)
+    );
+    let out = scratch("size-one");
+    let out = out.to_str().unwrap();
+    for args in [
+        vec!["one", "--phase", "size", "--case", "C0", "--out", out],
+        vec![
+            "one", "--phase", "size", "--case", "C0", "--n", "4000", "--out", out,
+        ],
+        vec![
+            "one", "--phase", "smoke", "--case", "C0", "--n", "3000", "--out", out,
+        ],
+    ] {
+        let got = bin(&args);
+        assert_eq!(got.status.code(), Some(1));
+        assert!(String::from_utf8_lossy(&got.stderr).contains("--n is size's alone"));
+    }
+    assert!(!std::path::Path::new(out).exists());
 }

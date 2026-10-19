@@ -71,7 +71,8 @@ impl Case {
             | Phase::Candidates
             | Phase::DtfCheck
             | Phase::IndCal
-            | Phase::IndVal => (3000, 60),
+            | Phase::IndVal
+            | Phase::Size => (3000, 60),
         };
         DifDesign {
             n,
@@ -95,7 +96,11 @@ pub enum Phase {
     DtfCheck,
     IndCal,
     IndVal,
+    Size,
 }
+
+/// The two sizes of `size` (`docs/19` §13.26), each run at both on one seed.
+pub const SIZES: [u32; 2] = [3000, 6000];
 
 impl Phase {
     pub fn name(self) -> &'static str {
@@ -107,6 +112,7 @@ impl Phase {
             Phase::DtfCheck => "dtf-check",
             Phase::IndCal => "ind-cal",
             Phase::IndVal => "ind-val",
+            Phase::Size => "size",
         }
     }
 
@@ -119,17 +125,19 @@ impl Phase {
             Phase::DtfCheck,
             Phase::IndCal,
             Phase::IndVal,
+            Phase::Size,
         ]
         .into_iter()
         .find(|p| p.name() == name)
     }
 
     /// The cases a phase runs: `candidates` (`docs/19` §13.14) C0, C3 and C5, `dtf-check`
-    /// (§13.18) C0 and C3, `ind-cal` (§13.21) C0 and C1, `ind-val` C0, C1, C3 and C5.
+    /// (§13.18) and `size` (§13.26) C0 and C3, `ind-cal` (§13.21) C0 and C1, `ind-val` C0, C1,
+    /// C3 and C5.
     pub fn cases(self) -> &'static [Case] {
         match self {
             Phase::Candidates => &[Case::C0, Case::C3, Case::C5],
-            Phase::DtfCheck => &[Case::C0, Case::C3],
+            Phase::DtfCheck | Phase::Size => &[Case::C0, Case::C3],
             Phase::IndCal => &[Case::C0, Case::C1],
             Phase::IndVal => &[Case::C0, Case::C1, Case::C3, Case::C5],
             _ => &CASES,
@@ -140,7 +148,7 @@ impl Phase {
     pub fn diagnostic(self) -> bool {
         matches!(
             self,
-            Phase::Candidates | Phase::DtfCheck | Phase::IndCal | Phase::IndVal
+            Phase::Candidates | Phase::DtfCheck | Phase::IndCal | Phase::IndVal | Phase::Size
         )
     }
 }
@@ -150,37 +158,56 @@ pub struct Task {
     pub phase: Phase,
     pub case: Case,
     pub replicate: u32,
+    /// The respondents of a `size` run, one of [`SIZES`]; `None` elsewhere, the phase's scale.
+    pub n: Option<u32>,
 }
 
 impl Task {
     pub fn key(&self) -> String {
-        format!(
-            "{}-{}-{}",
-            self.phase.name(),
-            self.case.name(),
-            self.replicate
-        )
+        let (phase, case, r) = (self.phase.name(), self.case.name(), self.replicate);
+        match self.n {
+            Some(n) => format!("{phase}-n{n}-{case}-{r}"),
+            None => format!("{phase}-{case}-{r}"),
+        }
+    }
+
+    /// The case's design at the task's phase, with its `n` where it has one.
+    pub fn design(&self) -> DifDesign {
+        let mut d = self.case.design(self.phase);
+        if let Some(n) = self.n {
+            d.n = n as usize;
+        }
+        d
     }
 
     /// The population seed: `candidates` reuses confirm's on purpose, the same batches refitted;
-    /// `ind-cal` and `ind-val` give each case its own ([`case_seed`]).
+    /// `ind-cal`, `ind-val` and `size` give each case its own ([`case_seed`]), `size` at both `n`.
     pub fn seed(&self) -> u64 {
         match self.phase {
             Phase::Candidates => probe_seed(Phase::Confirm, self.replicate),
-            Phase::IndCal | Phase::IndVal => case_seed(self.phase, self.case, self.replicate),
+            Phase::IndCal | Phase::IndVal | Phase::Size => {
+                case_seed(self.phase, self.case, self.replicate)
+            }
             phase => probe_seed(phase, self.replicate),
         }
     }
 }
 
-/// The runs of `phase`, replicate by replicate, every case at each.
+/// The runs of `phase`, replicate by replicate, every case at each; `size` at each of [`SIZES`].
 pub fn tasks(phase: Phase, replicates: u32) -> Vec<Task> {
+    let sizes: &[Option<u32>] = match phase {
+        Phase::Size => &[Some(SIZES[0]), Some(SIZES[1])],
+        _ => &[None],
+    };
     (0..replicates)
         .flat_map(|replicate| {
-            phase.cases().iter().map(move |&case| Task {
-                phase,
-                case,
-                replicate,
+            sizes.iter().flat_map(move |&n| {
+                phase.cases().iter().map(move |&case| Task {
+                    phase,
+                    case,
+                    replicate,
+                    n,
+                })
             })
         })
         .collect()
@@ -203,6 +230,9 @@ pub fn config_lines(phase: Phase) -> String {
             d.impact,
             d.pi
         ));
+    }
+    if phase == Phase::Size {
+        out.push_str(&format!("sizes\t{}\t{}\n", SIZES[0], SIZES[1]));
     }
     out.push_str(&format!(
         "constants\t{DTF_MAX:?}\t{MIXTURE_DIF_MAX:?}\t{SPAN:?}\t{PANELS}\n"
@@ -636,7 +666,7 @@ pub fn gate_and_diagnose(
 /// One run: the batch drawn from the task's seed, the gate and fit, then [`record_of`], whose
 /// `cost` is measured once everything else in the record is computed.
 pub fn run(task: &Task, cost: impl FnOnce() -> Option<Cost>) -> String {
-    let d = task.case.design(task.phase);
+    let d = task.design();
     let batch = dif_batch(&d, task.seed());
     if task.phase.diagnostic() {
         let diagnosed = gate_and_diagnose(task, &d, &batch);
@@ -1039,7 +1069,7 @@ fn record_with(
 
 /// The record of a run the supervisor killed or saw fail: the design's truth, no reading.
 pub fn stopped_record(task: &Task, outcome: &str, reason: &str, cost: Cost) -> String {
-    let d = task.case.design(task.phase);
+    let d = task.design();
     let batch = dif_batch(&d, task.seed());
     let stop = Outcome::Stopped { outcome, reason };
     record_of(task, &d, &batch, stop, || Some(cost))

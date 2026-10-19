@@ -1,7 +1,7 @@
 //! The A2 probe's command line (`docs/19` §13.11): `plan`, `run` (the supervisor) and `one`
 //! (a single run in its own process, launched by `run`).
 
-use characterization::probe::{config_lines, run, tasks, Case, Phase, Task};
+use characterization::probe::{config_lines, run, tasks, Case, Phase, Task, SIZES};
 use characterization::probe_calibration::{calibration_line, DATA, REPLICATES, THRESHOLD};
 use characterization::probe_jobs::{
     confirm_replicates, planned_replicates, read_ledger, self_cost, supervise, write_part, Caps,
@@ -22,13 +22,14 @@ usage: a2-probe <plan|run|one> [options]
   one    one run (used by run): its record to <out>/parts
 
 options:
-  --phase smoke|explore|confirm|candidates|dtf-check|ind-cal|ind-val  (smoke)
+  --phase smoke|explore|confirm|candidates|dtf-check|ind-cal|ind-val|size  (smoke)
   --replicates R                 (smoke only; explore runs 1, confirm takes R from the
                                  cost rule after explore, candidates refits confirm's 8,
-                                 dtf-check runs 16 on its own seeds, ind-cal and ind-val 100)
+                                 dtf-check runs 16 on its own seeds, ind-cal and ind-val 100,
+                                 size 16 at each of N = 3000 and 6000)
   --calibration DIR              (ind-val only, required: the frozen calibration, with
                                  its threshold.tsv, committed and unmodified)
-  --case C0..C5 --replicate R    (one only)
+  --case C0..C5 --replicate R    (one only; --n N as well for size)
   --jobs J                       (8)
   --out DIR                      (characterization-results/a2-probe)
   --max-cpu-s S --max-wall-s S --max-run-s S --max-rss-mib M
@@ -46,6 +47,7 @@ struct Args {
     replicates: Option<u32>,
     case: Option<Case>,
     replicate: u32,
+    n: Option<u32>,
     jobs: usize,
     out: PathBuf,
     caps: Caps,
@@ -59,6 +61,7 @@ fn parse(mut argv: impl Iterator<Item = String>) -> Result<Args, String> {
         replicates: None,
         case: None,
         replicate: 0,
+        n: None,
         jobs: 8,
         out: PathBuf::from("characterization-results/a2-probe"),
         caps: DECLARED,
@@ -75,6 +78,7 @@ fn parse(mut argv: impl Iterator<Item = String>) -> Result<Args, String> {
             "--replicates" => args.replicates = Some(number(&value)? as u32),
             "--case" => args.case = Some(Case::parse(&value).ok_or("unknown case")?),
             "--replicate" => args.replicate = number(&value)? as u32,
+            "--n" => args.n = Some(number(&value)? as u32),
             "--jobs" => args.jobs = number(&value)? as usize,
             "--out" => args.out = PathBuf::from(value),
             "--max-cpu-s" => args.caps.cpu_ms = number(&value)? * 1000,
@@ -94,7 +98,11 @@ fn one(args: &Args) -> Result<(), String> {
         phase: args.phase,
         case: args.case.ok_or("one needs --case")?,
         replicate: args.replicate,
+        n: args.n,
     };
+    if (task.phase == Phase::Size) != task.n.is_some_and(|n| SIZES.contains(&n)) {
+        return Err("--n is size's alone, one of its sizes".into());
+    }
     let record = run(&task, || Some(self_cost(started)));
     write_part(&args.out, &task, &record).map_err(|e| e.to_string())
 }
@@ -142,7 +150,7 @@ fn candidate(phase: Phase) -> Result<String, String> {
     let outside = format!(":(exclude){DIAGNOSTIC}");
     let (base, ok) = match phase {
         Phase::Explore | Phase::Confirm => (ENGINE_BASE, unchanged(&top, ENGINE_BASE, &engine)?),
-        Phase::Candidates | Phase::DtfCheck | Phase::IndCal | Phase::IndVal => (
+        Phase::Candidates | Phase::DtfCheck | Phase::IndCal | Phase::IndVal | Phase::Size => (
             REVIEWED_DIAGNOSTIC,
             unchanged(&top, REVIEWED_DIAGNOSTIC, &engine)?,
         ),
@@ -190,6 +198,8 @@ fn replicates(args: &Args) -> Result<u32, String> {
             "{} runs its declared {REPLICATES} replicates",
             args.phase.name()
         )),
+        (Phase::Size, None | Some(16)) => Ok(16),
+        (Phase::Size, Some(_)) => Err("size runs its declared 16 replicates at each size".into()),
         (Phase::Confirm, Some(_)) => Err("confirm takes its replicates from the cost rule".into()),
         (Phase::Confirm, None) => {
             if let Some(r) =
@@ -260,6 +270,11 @@ fn supervised(args: &Args) -> Result<bool, String> {
             task.case.name(),
         ])
         .args(["--replicate", &task.replicate.to_string()])
+        .args(
+            task.n
+                .iter()
+                .flat_map(|n| ["--n".to_string(), n.to_string()]),
+        )
         .arg("--out")
         .arg(out)
         .stdin(Stdio::null())

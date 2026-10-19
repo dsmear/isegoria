@@ -472,6 +472,21 @@ Review of `efc5494` (§13.24), distinct from the reviews above:
 - **Owner's direction:** a short declaration of a study of the sensitivity to the sample size
   (§13.25); no implementation, campaign or new fit.
 
+Review of `87d6452` (§13.25), distinct from the reviews above:
+
+- **Astra's evidence:** the declaration and `generate::dif_batch` read; the generator's structure
+  found coherent with nested samples without attacks; the planning formula's values and the BIC
+  penalties recomputed. No Rust and no fit.
+- **Approved:** the implementation, not the execution.
+- **Rectified in §13.25:** no visible change, or a worsening, does not identify a cause — it shows
+  only that no benefit appeared on the path and sizes tried, the numerical search, the indicator,
+  the information and the variability remaining explanations not isolated; the nesting introduces
+  dependence but does not show that the difference's uncertainty shrinks, and the planning figures
+  are not intervals of the study; no result is defined as "within the uncertainty" by an interval
+  that is not computed, and the reading stays descriptive.
+- **Owner's direction:** implement with the design unchanged, the nesting test kept and the
+  analysis extended to the replicates evaluable at both sizes (§13.26); the 64 fits not run.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -3688,8 +3703,9 @@ frozen `t`'s 23, a threshold set on other runs and for both neutral cases.
 
 ### 13.25 Next study: the sample size and single-test separation (proposal, not implemented)
 
-**Status:** proposed by Claude Code on `efc5494` at the owner's direction (record before §1); not
-reviewed, not implemented, not run; no fit. Exploratory and coarse: it is not a new validation, and
+**Status:** proposed by Claude Code on `efc5494` at the owner's direction; reviewed by Astra on
+`87d6452`, approved for implementation and rectified below (records before §1); implemented in
+§13.26, not run. Exploratory and coarse: it is not a new validation, and
 its runs never become one. A2 stays open and blocking; D38 stays apart.
 
 **Question, the only one.** Does doubling the respondents improve the separation on a single test,
@@ -3734,8 +3750,9 @@ data are shared.
 
 **Precision, a planning figure.** By the Hanley–McNeil approximation for independent runs, a
 separation from 16 runs a case has a standard error of about 0.09 near 0.72 (±0.18 at 95%), 0.10
-near 0.5 and 0.06 near 0.9 — against 0.036 for §13.23's 96 and 99 runs. The nesting correlates the
-two sizes and narrows their difference's uncertainty by an amount not computed here. Sixteen
+near 0.5 and 0.06 near 0.9 — against 0.036 for §13.23's 96 and 99 runs. The nesting introduces
+dependence between the two sizes; it does not show that their difference's uncertainty shrinks
+(rectified after `87d6452`). These planning figures are not intervals of the study. Sixteen
 replicates give a coarse diagnosis: only a large change would show.
 
 **Cost.** At `N = 3,000`, 32 runs at the per-case means of §§13.12–13.23, 19.9–25.9 s a run:
@@ -3756,13 +3773,14 @@ the result resembles, and no further campaign follows by itself:
 - *Separation clearly higher at 6,000, most C3 placements rising:* size is a lever for this
   indicator. A later step would need its own declaration — what size a given separation needs,
   with development and validation data — and a threshold set anew at that size.
-- *No visible change, or lower:* doubling `N` does not help this indicator at this resolution; the
-  limit would lie in the indicator — a chosen-start candidate's `DTF_F` under the 5% counting rule
-  — or in C3-like spread DIF at these sizes. Attention could turn to another statistic, chosen on
-  development data, or to A2's composition and target questions. No general absence of
-  information would follow.
-- *Within the coarse uncertainty:* sixteen replicates cannot settle it; an extension would need a
-  new declaration and authorization.
+- *No visible change, or lower* (rectified after `87d6452`): no benefit appeared on the path and
+  at the sizes tried. That identifies no cause: the numerical search, the indicator, the
+  information and the variability remain explanations not isolated. Attention could turn to
+  another statistic, chosen on development data, or to A2's composition and target questions. No
+  general absence of information would follow.
+- *Changes small or mixed* (rectified after `87d6452`): read as described, with no computed
+  interval to place them within or beyond; sixteen replicates may leave the question open, and an
+  extension would need a new declaration and authorization.
 
 **Open in every case.** A2's obligations (§13.6): a, domination; b's coverage, proved under its
 hypotheses, without an implementation; c, conservative computation; usefulness, negative in
@@ -3773,3 +3791,82 @@ whole-test objective stays. D38 stays apart.
 **Needs, if approved.** A harness phase per size, or a size in the design, with the shared seed tag
 and the engine check; the analysis above in `sim/` with tests on constructed records; review; the
 owner's authorization of the 64 runs.
+
+### 13.26 The sample-size study: implementation and declaration (not run)
+
+**Status:** implemented by Claude Code on `87d6452` under Astra's approval of the implementation,
+not of the execution (record before §1); not reviewed. Not run: the 64 fits await review of this
+implementation and the owner's authorization. No fit at `N = 3,000` or 6,000 was run here; only
+batches were generated, without a fit. A2 stays open and blocking; D38 stays apart.
+
+**Design, unchanged from §13.25.** C0 and C3; `N` = 3,000 and 6,000; 16 replicates per size and
+case, 64 fits; 32 new seeds, one per case and replicate, shared by the two sizes alone; the engine
+of `2e2572c`, the indicator, search and rules of §13.21; no operational reading of the threshold
+0.7984.
+
+**Harness** (`crates/characterization`). Phase `size`: a `Task` carries its `n` (`None` in every
+other phase), so the size is in the run's identity — keys `size-n3000-C0-0` to
+`size-n6000-C3-15`, one plan of 64 tasks, replicate by replicate, each size, each case. A run's
+seed is `case_seed("size", case, replicate)`: the same at both sizes, different between cases and
+replicates and from every earlier phase's. `Task::design` gives the case's design at its `n`; the
+plan's configuration adds `sizes 3000 6000`. `one` refuses `--n` outside `size` and `size` without
+`--n` 3,000 or 6,000; `run` refuses any count but 16 replicates, and runs `size` only with
+`crates/scoring` and `crates/protocol` identical to `2e2572c`. The supervisor, caps, ledger, audit
+and numerical check are the reviewed ones; a stop or an incomplete phase gives no reading, and
+nothing resumes automatically.
+
+**Nesting, kept as a test.** At one seed, `dif_batch` at 6,000 gives the 3,000 batch's item
+parameters, generating DTF and first 3,000 rows of anchors, items and classes, and new rows after.
+The engine's seed is the same at both sizes, so each start draws the same random perturbations;
+the start adds them to the one-class solution, which is fitted on each size's own data, so the
+effective initial parameters — and every fit after them — can differ between sizes.
+
+**Reading** (`python3 sim/a2_size.py D [--json]`). It stops with exit 1, printing why (also with
+`--json`), unless: the plan declares 16 replicates and its tasks are the 64 keys with their
+declared seeds; every record matches its key's phase, size, case and replicate; the two runs of a
+case and replicate share seed, items and generating DTF; the audit is complete; the numerical
+check passes. Then, with `I` and its evaluability as in §13.21:
+
+| Item | Content |
+|---|---|
+| Per size and case | planned 16, observed, evaluable, not evaluable by reason; zeros of `I` and their basis; the selected fit's classes and status; the shared candidate's status and verdict |
+| Separation, every evaluable run | at each size, the share of C3/C0 pairs where C3's `I` exceeds C0's, ties ½; its pairs and tied pairs; the difference, 6,000 minus 3,000 |
+| Separation, common replicates | the same, per case on the replicates evaluable at both sizes alone; conditional on that subset, it does not remove the exclusions' problem |
+| Per replicate | per case on the common replicates: `I` at 6,000 against 3,000, greater, smaller or equal; zeros kept, gained, lost or never; the replicates evaluable at one size only, with that size |
+| Placements | each common C3 replicate's share of the same size's C0 runs it exceeds, ties ½, at both sizes — against every evaluable C0 run and against the common C0 replicates — and how many rise, fall or stay |
+| Not done | an interval from pairs treated as independent; any threshold, rate or success rule; the frozen `t`; pooling the sizes |
+
+**Caps, proposed and not authorized:** CPU 2 hours, wall 30 minutes, 10 minutes a run, 2 GiB
+aggregate resident, 8 workers; cumulative over the directory's sessions.
+
+**Commands, after review and authorization** (`D` a new directory,
+`characterization-results/a2-size-<commit>`).
+
+```
+cargo run --release -p characterization --bin a2-probe -- run --phase size --jobs 8 --max-cpu-s 7200 --max-wall-s 1800 --max-run-s 600 --max-rss-mib 2048 --out D
+python3 sim/a2_probe.py check D
+python3 sim/a2_size.py D
+python3 sim/a2_size.py D --json
+```
+
+**Checks run here** (E). No fit.
+
+- `cargo test -p characterization --test a2_probe`: 16 tests, two new — the 64 tasks, `n` in
+  their keys and designs, 60 anchors, seeds shared by the sizes alone, 32 distinct and none of
+  smoke's, explore's or confirm's first 64, `candidates`', `dtf-check`'s, `ind-cal`'s or
+  `ind-val`'s; and the nesting above, generating C0's replicate 0 and C3's 0 and 15 at both sizes.
+- `--test a2_probe_jobs`: 24 tests, one new — the binary plans the 64 runs, refuses 8 replicates
+  and a misplaced `--n`, before any directory. `--test a2_calibration`: 3 tests, unchanged.
+- `python3 -m unittest discover -s sim -p 'test_a2_*.py'`: 51 tests, three new in
+  `sim/test_a2_size.py`, on 64 constructed records with values worked by hand — counts, zeros and
+  bases; separations with tied pairs, 142/240 and 1 on every evaluable run, 135/225 and 1 on the
+  common replicates; exclusions differing between sizes (C3's replicate 1 at 3,000, C0's 5 at
+  6,000); paired moves and zero transitions; placements against both C0 sets; and the stops on a
+  killed or missing run, a record's size unlike its key, items unlike across sizes and a changed
+  seed, also with `--json`.
+- `run --phase size` refused on an uncommitted tree before any directory; `crates/scoring` and
+  `crates/protocol` identical to `2e2572c`; the earlier evidence unchanged; `cargo fmt`, `cargo
+  clippy --all-targets`, the comment budget.
+
+**Limits.** The cost at 6,000 stays §13.25's estimate, 32–76 CPU-minutes in all, unmeasured on
+this path. The reading is descriptive: 16 replicates a cell, no interval, no threshold.

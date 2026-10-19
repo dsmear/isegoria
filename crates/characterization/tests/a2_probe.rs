@@ -2,6 +2,7 @@
 //! readings; records of every outcome; the supervisor's stops on stand-in children.
 
 use characterization::generate::dif_batch;
+use characterization::grid::engine_seed;
 use characterization::probe::{
     assess, diagnosed_record, gate, generating_dtf, probe_seed, raw_gap, record_of, route, run,
     stopped_record, tasks, Case, Cost, Draw, Items, Outcome, Phase, Removal, Route, Task,
@@ -110,6 +111,7 @@ fn task(case: Case, replicate: u32) -> Task {
         phase: Phase::Smoke,
         case,
         replicate,
+        n: None,
     }
 }
 
@@ -430,4 +432,74 @@ fn the_indicator_stages_seed_every_run_apart_from_each_other_and_every_earlier_p
     assert_eq!(val[399].seed(), 12356750456368884976);
     assert!(cal.iter().chain(&val).all(|t| t.phase.diagnostic()));
     assert!(val.iter().all(|t| t.case.design(t.phase).n == 3000));
+}
+
+/// `size` (`docs/19` §13.26): 64 runs, `n` in every key, one seed per case and replicate shared
+/// by the two sizes alone, none of an earlier phase's.
+#[test]
+fn the_size_study_plans_64_explicit_runs_seeded_apart_but_shared_across_sizes() {
+    let all = tasks(Phase::Size, 16);
+    assert_eq!(all.len(), 64);
+    assert_eq!(
+        (all[0].key(), all[63].key()),
+        (
+            "size-n3000-C0-0".to_string(),
+            "size-n6000-C3-15".to_string()
+        )
+    );
+    for t in &all {
+        assert!(matches!(t.case, Case::C0 | Case::C3) && t.phase.diagnostic());
+        assert_eq!(t.design().n as u32, t.n.unwrap());
+        assert_eq!(t.design().anchors, 60);
+        let twin = all
+            .iter()
+            .find(|u| u.case == t.case && u.replicate == t.replicate && u.n != t.n)
+            .unwrap();
+        assert_eq!(t.seed(), twin.seed());
+    }
+    let mut ours: Vec<u64> = all.iter().map(Task::seed).collect();
+    ours.sort_unstable();
+    ours.dedup();
+    assert_eq!(ours.len(), 32);
+    let mut earlier: Vec<u64> = (0..64)
+        .flat_map(|r| [Phase::Smoke, Phase::Explore, Phase::Confirm].map(|p| probe_seed(p, r)))
+        .collect();
+    for (phase, r) in [
+        (Phase::Candidates, 8),
+        (Phase::DtfCheck, 16),
+        (Phase::IndCal, 100),
+        (Phase::IndVal, 100),
+    ] {
+        earlier.extend(tasks(phase, r).iter().map(Task::seed));
+    }
+    assert!(ours.iter().all(|s| !earlier.contains(s)));
+}
+
+/// At one seed the 6,000 batch nests the 3,000 one: items, truth and the first 3,000 rows (§13.26).
+#[test]
+fn the_larger_size_nests_the_smaller_one_s_items_and_respondents() {
+    for (case, replicate) in [(Case::C0, 0), (Case::C3, 0), (Case::C3, 15)] {
+        let at = |n| Task {
+            phase: Phase::Size,
+            case,
+            replicate,
+            n: Some(n),
+        };
+        let (small, large) = (at(3000), at(6000));
+        let (ds, dl) = (small.design(), large.design());
+        let (a, b) = (dif_batch(&ds, small.seed()), dif_batch(&dl, large.seed()));
+        assert_eq!(
+            (&a.a, &a.b, &a.signs, &a.floors),
+            (&b.a, &b.b, &b.signs, &b.floors)
+        );
+        assert_eq!((a.x.len(), b.x.len()), (3000, 6000));
+        assert_eq!(a.anchors[..], b.anchors[..3000]);
+        assert_eq!(a.x[..], b.x[..3000]);
+        assert_eq!(a.z[..], b.z[..3000]);
+        assert_ne!(b.x[3000..], b.x[..3000]);
+        let all: Vec<usize> = (0..8).collect();
+        let truth = |d, batch| generating_dtf(&Items::of(d, batch), &all);
+        assert_eq!(truth(&ds, &a), truth(&dl, &b));
+        assert_eq!(engine_seed(small.seed()), engine_seed(large.seed()));
+    }
 }

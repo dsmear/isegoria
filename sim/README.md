@@ -361,6 +361,21 @@ python3 sim/a2_tradeoff.py verification/reports/a2-ind-val-185ec93/records.jsonl
 python3 -m unittest discover -s sim -p test_a2_tradeoff.py -v
 ```
 
+### `a2_size.py`
+
+The sample-size study's reading (`docs/19` §13.26), for the directory of `a2-probe run --phase
+size`: C3's single-test separation from C0 at `N` = 3,000 and 6,000, on every evaluable run and on
+the replicates evaluable at both sizes, ties ½; per replicate the change of `I` and of its zeros;
+the placements of C3 runs. It reads nothing unless the plan is the declared 64 tasks with their
+seeds, the records match their keys and sizes, the two sizes' runs share seed, items and generating
+DTF, the audit is complete and the precision check passes; then it exits 0, else 1. No interval,
+no threshold. Standard library only, reusing `a2_probe.py`:
+
+```
+python3 sim/a2_size.py characterization-results/a2-size
+python3 -m unittest discover -s sim -p test_a2_size.py -v
+```
+
 ### `d3_selection_counts.py`
 
 D3's exact counts (`docs/15`, D3 section): the subsets `ContestedPool::draw` evaluates per fit,

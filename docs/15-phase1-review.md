@@ -121,7 +121,8 @@ direction of 2026-10-18
   frozen threshold, C5 no useful separation in these data; the check is not sufficient for the
   whole-test objective. §13.24 reads the trade-off over the threshold, post hoc and exploratory,
   accepted by Astra on `efc5494` with its conclusions rectified; §13.25 proposes a coarse study of
-  the sample size, not implemented. It is a screening statistic, not §11.2's guarantee or §12's
+  the sample size, approved by Astra on `87d6452` for implementation, not execution, and
+  implemented in §13.26, not run. It is a screening statistic, not §11.2's guarantee or §12's
   coverage. It closes nothing.
 - **Suspended:** implementation of the certifier until its contract decisions are made.
   D38's treatment of pertinent factual-knowledge differences remains to be reconciled explicitly;
