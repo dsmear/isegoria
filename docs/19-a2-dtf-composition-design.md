@@ -385,6 +385,24 @@ Review of `821f52d` (§13.18's correction), distinct from the reviews above:
   passing, the historical re-reading included. No Rust and no fit.
 - **Owner's authorization:** the 32 runs of `dtf-check` on `821f52d`, with their caps (§13.19).
 
+Review of `307530a` (§13.19), distinct from the reviews above:
+
+- **Accepted:** §13.19's results, as bounded diagnostic evidence.
+- **Astra's evidence:** the 32 tasks' contract verified and the audit complete; `check` rerun on
+  the 416 values, passing; `dtf-check-report.md` and `dtf-check.json` reproduced exactly from the
+  records. No Rust and no new fit.
+- **Reading approved:** with shared slopes C3's predominance over C0 reappears descriptively on the
+  new data, 14 greater, 1 smaller, 1 equal; with per-class slopes the result is more mixed, 8
+  greater, 5 smaller, 2 equal, one pair not comparable; the variants are not summed. These counts
+  do not measure a classifier's accuracy on a single test; the point value is shown neither an
+  accurate estimate of the generating DTF nor a guaranteed bound; no change to the BIC or the
+  selector is justified by this check alone.
+- **Rectified:** §13.19's "one start a candidate". The path runs `LatentParams::default()`, four
+  seeded starts for each multi-class candidate, and the diagnostics keep only the chosen solution.
+  The original artefacts are unchanged.
+- **Owner's direction:** a short declaration of the next diagnostic study, documentation only
+  (§13.20); no run, fit or code change.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -2981,7 +2999,9 @@ python3 sim/a2_probe.py dtf-check D --json
 
 **Status:** run by Claude Code on 2026-10-19 on `821f52d`, as §§13.17–13.18 declare, after Astra's
 approval of the corrected harness for this descriptive check and the owner's authorization of its
-32 runs (record before §1). The results are not reviewed. Evidence: **E** the run; **C** the
+32 runs (record before §1). The results were accepted by Astra on `307530a` as bounded diagnostic
+evidence, with the reading recorded before §1 and below; one limit rectified. Evidence: **E** the
+run; **C** the
 oracle's check; the raw records, plan, ledger, checks and reports in
 [`verification/reports/a2-dtf-check-821f52d/`](../verification/reports/a2-dtf-check-821f52d/README.md).
 A descriptive check on 16 new seeds a case: no rate, no test, no bound, no certificate. A2 stays
@@ -3090,6 +3110,119 @@ No threshold or success rule was declared, and none is set after the results: wh
   would not show the information absent in general. The check does not bear on composition or on
   D38.
 
-**Limits.** One design (`N = 3,000`, 60 anchors, eight open items), C0 and C3 only, 16 replicates,
-one start a candidate, only the candidates tried; no rate, interval, test or bound; replicates not
-extended. No further experiment is started.
+**Reading approved on `307530a`** (record before §1). With shared slopes C3's predominance over C0
+reappears descriptively on the new data, 14 greater, 1 smaller, 1 equal; with per-class slopes the
+result is more mixed, 8 greater, 5 smaller, 2 equal, one pair not comparable. The variants are not
+summed. These counts do not measure a classifier's accuracy on a single test; the point value is
+shown neither an accurate estimate of the generating DTF nor a guaranteed bound; no change to the
+BIC or the selector is justified by this check alone.
+
+**Limits** (rectified after the review of `307530a`). One design (`N = 3,000`, 60 anchors, eight
+open items), C0 and C3 only, 16 replicates; the default `LatentParams` — one start for the
+one-class baseline, four seeded starts for each two-class candidate, of which the diagnostics keep
+only the chosen solution; only the candidates tried; no rate, interval, test or bound; replicates
+not extended. No further experiment is started.
+
+### 13.20 Next study: the shared-slope candidate's DTF on a single test (proposal, not implemented)
+
+**Status:** proposed by Claude Code on `307530a` at the owner's direction; documentation only —
+not reviewed, not implemented, not run. It adopts no threshold, rate, policy, sample size or
+resource; §13.10's "75%" is no target. A2 stays open and blocking; D38 stays apart.
+
+**Indicator, chosen from data already seen.** `I` is the whole-form `DTF_F` of the two-class
+candidate with shared slopes, as `latent_dif_candidates` returns it on the reviewed path
+(`LatentParams::default()`, four seeded starts, the chosen solution kept), and 0 when one class is
+counted. It is chosen because that variant ordered C3 above C0 in §13.16 (5 of 6) and §13.19 (14
+of 16) where the per-class one was mixed (8 of 15): a choice made after those results, which can
+have suggested it and cannot validate it. The per-class candidate stays in the records, unread.
+The selector is unchanged: `I` reads a candidate the BIC set aside in every run so far.
+
+**Question.** Given one batch alone, with no C0 batch on the same seed, how well does `I` separate a
+neutral case from an unbalanced one? §§13.16 and 13.19 compared each C3 batch with the C0 batch
+sharing its seed; a single test has no such counterpart. On §13.19's batches, read unpaired, the
+values overlap — C0's reach 1.127, C3's include 0.066 and two zeros — so the answer is open.
+
+**Data.** No threshold is drawn from any range observed so far.
+
+| Set | Content | Use |
+|---|---|---|
+| Development | every run already seen: the smoke runs, §13.12's 54, §13.15's 24, §13.19's 32 | chose `I`, the cases and this design; never evaluates a threshold |
+| Calibration | new seeds under their own tag | fixes a threshold `t` by a rule declared before it runs; `t` committed before validation starts |
+| Validation | new seeds under another tag, disjoint from every earlier one | evaluates `t` once, as fixed; a revision after its results is a new exploratory iteration with new validation seeds (§13.10, item 4) |
+
+**Cases** (§13.11's design and defaults: `N = 3,000`, 60 anchors, eight open items).
+
+| Case | Role | Why |
+|---|---|---|
+| C0 | neutral: no DIF, no impact | false alarms under the plain null |
+| C1 | neutral: an ability difference of 1, no DIF | a legitimate difference in the measured ability must not be flagged (`01` D44); a false alarm here reads impact as bias |
+| C3 | unbalanced: diffuse DIF, form DTF 0.607 [0.567, 0.641] | the case `I` was chosen on; detections and misses |
+| C5 | unbalanced, weak: form DTF 0.143 [0.133, 0.151] | just above `DTF_MAX = 0.10`, where a miss matters and detection is hardest. §13.11's indicative bound, `TV` at most 0.077–0.120 against C0, caps any rule's detection rate in C5 at about its false-alarm rate in C0 plus that much: C5 checks plausibility, not power, and a larger excess would point to an error |
+
+C2 and C4 stay out: whether their factual-knowledge differences should be flagged is D38's
+semantic choice, which stays apart.
+
+**Outcomes, declared before any run.** Each planned run ends in exactly one outcome: *flagged*
+(`I > t`); *not flagged* (`I ≤ t`, zeros included, with their origin); *not evaluable* — the run
+not read (refused, failed, killed or missing), the one-class baseline not converged, the shared
+candidate not converged, or `DTF_F` unavailable — with its reason.
+
+| Case | Flagged | Not flagged | Not evaluable |
+|---|---|---|---|
+| C0, C1 | false alarm | correct non-flag | counted apart, by reason |
+| C3, C5 | detection | miss | counted apart, by reason |
+
+Denominators: the planned runs, which the three outcomes sum to; then the evaluable runs, every
+rate over them labelled conditional. No case is pooled with another, C0 with C1 or C3 with C5, and
+no outcome leaves the counts. Each proportion carries an exact (Clopper–Pearson) 95% interval, a
+description of sampling error on these designs, not a guarantee; the zeros of `I` are counted per
+case beside.
+
+**Size, precision and cost.** Per case, over `n` evaluable runs:
+
+| `n` | 95% half-width at ½ (normal approximation) | Exact 95% interval, 0 events | Exact 95% interval, `n/20` events (5%) | CPU at 20–26 s a run |
+|---|---|---|---|---|
+| 50 | ±0.139 | [0, 0.071] | [0.005, 0.137] | 17–22 min |
+| 100 | ±0.098 | [0, 0.036] | [0.016, 0.113] | 33–43 min |
+| 200 | ±0.069 | [0, 0.018] | [0.024, 0.090] | 67–87 min |
+
+The CPU a run spans the per-case means of C0, C1, C3 and C5 in §§13.12–13.19, 19.9–25.9 s; wall time
+is about a seventh of it with 8 workers (§13.19: 645 s in 91 s). A difference of two proportions,
+such as C5's detections against C0's false alarms, has a half-width of ±0.139 at 100 runs a case
+when both are near ½ (about 770 a case for ±0.05), and less when they are small: ±0.085 at 100 and
+±0.060 at 200 for 0.05 against 0.17. C5's possible excess, about 0.12 at most, is thus at the edge
+of what 100 to 200 runs a case resolve. A threshold at the (1 − α) quantile of `m` neutral
+calibration runs rests on about `α·m` runs above it: 5 at α = 0.05 and `m = 100`. Examples, with the
+rule calibrated on the neutral cases and one `n` for both stages: `n = 100`, 200 calibration runs
+and 400 validation runs, 3.3–4.3 CPU-hours, 28–37 minutes of wall time; `n = 200`, 1,200 runs,
+6.7–8.7 CPU-hours, 56–73 minutes. A rule weighing misses adds C3, and C5 if chosen, to calibration:
+700 or 800 runs at `n = 100`. Every run is a fit at `N = 3,000`; runs this long belong on the
+owner's machine, with explicit authorization.
+
+**Choices still needed, not adopted here.**
+
+1. The rule for `t`: a false-alarm target α on the neutral cases (the (1 − α) quantile over C0 and
+   C1 apart, or the larger of the two), or a weight `w` between false alarms and misses on a
+   calibration including C3 (and C5 or not); the value of α or `w`.
+2. Whether a band without decision around `t` is allowed; its runs would be a fourth outcome,
+   counted apart.
+3. How a consumer would treat *not evaluable* — as a flag, a pass or its own outcome; the study
+   reports it apart whatever is chosen.
+4. `n` per case and stage, the caps, and whether cases share seeds by replicate (harmless to each
+   rate; it correlates the case estimates).
+5. Whether validation adds a threshold-free description of separation, such as the unpaired
+   probability that a C3 run's `I` exceeds a C0 run's, ties at zero counted ½.
+
+**What this indicator is not.** Even validated, `I` with `t` would be an empirical screening
+statistic whose error frequencies hold for these four synthetic designs, at this size, inside the
+model's own family. It is not §11.2's guarantee: no region `𝒞(X)`, no bound `U(X)`, no uniform
+finite-sample statement over `Ξ`; a candidate at its chosen start's local optimum bounds no
+supremum (§11.2 c). It neither uses nor extends §12's coverage, which concerns the region, not a
+point value. A2's open obligations — domination, conservative computation, usefulness, cost,
+decision and scope (§13.6) — and the whole-test objective remain. A flag would not prove a form
+biased, nor its absence a form fair. It changes no selection, admission or compensation: no
+protocol path reads it, and any operational use would need its own decision.
+
+**Needs, if approved.** A harness phase per stage, with seed-disjointness and contract checks as
+in §13.18; an unpaired reading in `sim/a2_probe.py` with its tests; review; the owner's choices
+above; authorization of calibration and then, with `t` committed, of validation.
