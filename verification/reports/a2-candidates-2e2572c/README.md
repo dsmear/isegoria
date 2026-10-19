@@ -37,3 +37,4 @@ The 24 batches are the first probe's confirm batches of C0, C3 and C5, refitted 
 | `check.json`, `audit.json`, `compare-first.json` | the precision check, the audit, the reproduction of the first probe |
 | `candidates-report.md` | every candidate per run, and the two-class variants paired with C0 where comparable |
 | `summary.json`, `summary.py` | per case and variant: counts, ranges and paired signs, from the records alone |
+| `paired-dtf.json`, `paired_dtf.py` | added after the results, post hoc and exploratory (`docs/19` §13.16): per variant and replicate, the candidates' DTF of C3 and C5 beside C0's, with baselines, counted classes and zeros; `python3 paired_dtf.py records.jsonl`. The files above it are unchanged |

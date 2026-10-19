@@ -349,6 +349,16 @@ Approval of `2e2572c` (§13.14's diagnostics and harness), distinct from the rev
   `sim/test_a2_probe.py` run. No Rust and no fit.
 - **Then:** the owner authorized the 24 runs of phase `candidates` alone (§13.15).
 
+Verification of `54d44fe` (§13.15, the candidates' results), distinct from the reviews above:
+
+- **Confirmed:** the execution and the numbers. Astra re-ran `check` on the 312 values and
+  `compare-first` on the 24 records, and reproduced `candidates-report.md` and `summary.json`
+  exactly. No Rust and no new fit.
+- **Rectifications asked, made after `54d44fe`:** the lack of a consistent ordering holds for the
+  likelihood gains only; C3's per-class gain maximum exceeds C0's; the candidates' DTF orders C3
+  above C0 in 5 of 6 comparable pairs in each variant, and is read proportionately; the deduction
+  that a check on this model at this size must report C3 as not evaluable is withdrawn.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -2727,8 +2737,9 @@ python3 sim/a2_probe.py candidates characterization-results/a2-candidates verifi
 ### 13.15 Candidates' diagnostics: result (run on `2e2572c`)
 
 **Status:** run by Claude Code on 2026-10-19 on `2e2572c`, as §13.14 declares, after Astra's
-approval for this exploratory look and the owner's authorization of its 24 runs (record before §1);
-not reviewed. Evidence: **E** the run; **C** the oracle's check and the reproduction check; the raw
+approval for this exploratory look and the owner's authorization of its 24 runs; execution and
+numbers verified by Astra on `54d44fe`, its readings rectified after that verification (records
+before §1). Evidence: **E** the run; **C** the oracle's check and the reproduction check; the raw
 records, plan, ledger, checks and reports in
 [`verification/reports/a2-candidates-2e2572c/`](../verification/reports/a2-candidates-2e2572c/README.md).
 An exploratory look at the first probe's own 24 batches: no independent confirmation, no
@@ -2768,35 +2779,94 @@ Every two-class candidate has two nominal classes; where one held under 5% it co
 the records and the report. C3's r0 and r2 are listed apart: their baseline did not converge,
 both two-class candidates did, with `DTF_F` 0.52–0.97; their gains are not read.
 
-**Readings, proportionate.**
+**Readings, proportionate** (rectified after the verification of `54d44fe`).
 
-- On these batches, C3's comparable two-class candidates do not separate from C0's: the paired gain
-  differences take both signs, 3 of 6 positive in each variant, and C3's gains fall within C0's
-  ranges (per-class maximum 44.67 against 43.57). C5 the same: 4 of 8 and 3 of 8 positive. As
-  §13.13 states, this shows neither the information absent nor the model generally unable: other
-  starts, sizes and estimators are untried, and a §13.8-type bound for C3-like alternatives is a
-  separate question.
-- The candidates' whole-form `DTF_F` does not follow the generating DTF here: under C0's null it
-  reached 0.10–0.74 where two classes were counted, overlapping C3's candidates (0.47–1.36) and
-  passing C3's generating DTF (0.56–0.65). On these batches a non-selected mixture's `DTF_F` is no
-  evidence about the form's DTF.
-- Every two-class gain (10.5–44.7) stayed below its penalty (80.06 and 144.11), `Δ BIC` 53.6–121.5.
-  Since C3's gains do not exceed C0's, this does not show a signal the penalty discards; nothing
-  here calls for a change of the BIC, and none is made.
-- C3's two `max_iters` runs: the one-class fit did not converge while both two-class candidates did.
-  This locates the non-convergence in the baseline on those two batches — B1–B3 — and attributes no
-  cause.
+- *Likelihood gains.* On these batches the paired gains of C3's comparable two-class candidates show
+  no consistent ordering against C0's: 3 of 6 differences positive in each variant. C3's shared
+  gains (11.88–19.59) lie within C0's (10.65–26.46); its per-class gains reach 44.6667, above C0's
+  maximum, 43.5671. C5: 4 of 8 and 3 of 8 positive. This holds for the gains alone, and shows
+  neither the information absent nor the model generally unable: other starts, sizes and estimators
+  are untried.
+- *The candidates' whole-form `DTF_F`* does not share that reading. Paired by replicate, C3's is
+  above C0's in 5 of 6 comparable pairs in each variant, zeros from a single counted class included
+  (§13.16). With shared slopes, the values with two classes counted are 0.313–0.433 in C0 (4 of 8
+  runs, the other 4 zero) and 0.467–0.871 in C3 (5 of 6 comparable runs, 1 zero). These ranges are
+  descriptions of these runs, not a threshold. The point value is neither an accurate measure — it
+  reaches 0.74 under C0's null and 1.36 for a generating DTF of 0.56 in C3 — nor a certificate; its
+  possible diagnostic use remains to be checked (§13.17).
+- *Penalty.* Every two-class gain (10.5–44.7) stayed below its penalty (80.06 and 144.11), `Δ BIC`
+  53.6–121.5. With no consistent ordering of the gains, this does not show a signal the penalty
+  discards; nothing here calls for a change of the BIC, and none is made.
+- *C3's two `max_iters` runs:* the one-class fit did not converge while both two-class candidates
+  did. This locates the non-convergence in the baseline on those two batches — B1–B3 — and
+  attributes no cause.
 
-**Against §13.13's three questions.** Composition is unchanged by this look. Detection: on these
-batches at `N = 3,000`, neither the selected fit (whole-form estimate 0) nor the non-selected
-candidates told C3's spread DIF apart from C0. Uncertainty: under the null, the candidates'
-statistics spread as widely as under C3, so these fits give no evidence separating a form balanced
-enough from one they cannot evaluate. A whole-test check resting on this model at this size would
-have to report such forms as not evaluable; that is a consequence for A2's design (§§11–13), not a
-policy adopted here.
+**Against §13.13's three questions** (rectified after `54d44fe`). Composition is unchanged by this
+look. Detection: the selected fit's whole-form estimate is 0 in C3's six converged runs; among the
+non-selected candidates the likelihood gains do not order C3 against C0, while their whole-form
+`DTF_F` does in 5 of 6 comparable pairs, post hoc, on these batches. Uncertainty: neither shows how
+large a difference these data could resolve, and no conclusion follows here on whether a check on
+this model at this size can or cannot evaluate forms like C3's; the earlier deduction that it must
+report them as not evaluable is withdrawn.
 
 **Limits.** The 24 batches are §13.12's: exploratory, 8 replicates a case, no rate. One start per
 candidate kept; only the candidates tried; one design (`N = 3,000`, 60 anchors, eight open items);
-no bound, no change to the BIC, the model or the search. Questions left open, none started: whether
-C3-like spread DIF is distinguishable at this size at all, a §13.8-type bound for that alternative,
-and whether another size or estimator separates it.
+no bound, no change to the BIC, the model or the search. Questions left open: whether the
+candidates' DTF ordering recurs on independent seeds (proposed in §13.17, not run), whether C3-like
+spread DIF is distinguishable at this size at all, and whether another size or estimator
+separates it.
+
+### 13.16 Paired re-reading of the candidates' DTF (post hoc, exploratory)
+
+**Status:** an analysis by Claude Code on `54d44fe`, after the results, of the records preserved in
+`verification/reports/a2-candidates-2e2572c/` (`paired_dtf.py`, its output `paired-dtf.json`); not
+reviewed. No fit and no run; the original artefacts are unchanged. Post hoc and exploratory: it was
+not declared before the results, and the two variants refit the same batches, so they are not
+independent replicates.
+
+Per replicate, each two-class candidate's whole-form `DTF_F`, its classes counted in brackets;
+`0 (1)` is the zero of a single counted class. A pair is comparable when C0's and C3's one-class
+baselines and both candidates converged; every C0 fit and every C3 candidate converged here.
+
+| Replicate | Shared: C0 | Shared: C3 | C3 against C0 | Per-class: C0 | Per-class: C3 | C3 against C0 |
+|---|---|---|---|---|---|---|
+| r0 | 0 (1) | 0.681 (2), baseline `max_iters` | not comparable | 0.736 (2) | 0.793 (2), baseline `max_iters` | not comparable |
+| r1 | 0.313 (2) | 0.723 (2) | greater | 0.323 (2) | 0.540 (2) | greater |
+| r2 | 0 (1) | 0.975 (2), baseline `max_iters` | not comparable | 0.435 (2) | 0.521 (2), baseline `max_iters` | not comparable |
+| r3 | 0 (1) | 0.871 (2) | greater | 0.104 (2) | 0.790 (2) | greater |
+| r4 | 0.380 (2) | 0.629 (2) | greater | 0.570 (2) | 0.645 (2) | greater |
+| r5 | 0.433 (2) | 0 (1) | smaller | 0.303 (2) | 1.358 (2) | greater |
+| r6 | 0 (1) | 0.743 (2) | greater | 0.448 (2) | 0 (1) | smaller |
+| r7 | 0.418 (2) | 0.467 (2) | greater | 0 (1) | 0.978 (2) | greater |
+
+C3 against C0: greater in 5 of 6 comparable pairs, smaller in 1, with shared and with per-class
+slopes; zeros are counted as values. Excluding the pairs with a zero would leave 3 of 3 greater
+(shared) and 4 of 4 (per-class) — a smaller and a selected denominator, given only beside the
+counts above. C5 against C0, from the same file: shared 4 greater, 1 smaller, 3 equal (both zero) of
+8; per-class 3 greater, 4 smaller, 1 equal of 8. No threshold, rate or test is drawn from these
+counts.
+
+### 13.17 Next check: the candidates' DTF on independent seeds (proposal, not run)
+
+**Status:** proposed by Claude Code on `54d44fe` after Astra's verification; not reviewed, not run,
+no code. It asks one question that §13.16 raised after the fact, on fresh data, without changing the
+model, the BIC, the search or any threshold.
+
+| Item | Content |
+|---|---|
+| Question | Does the ordering of §13.16 — C3's two-class candidates' whole-form `DTF_F` above C0's on the same seed — recur on seeds independent of the first probe's? |
+| Design | C0 and C3, §13.11's design and defaults (`N = 3,000`, 60 anchors, eight open items), paired by seed; 16 replicates each, seeds from a new phase tag, none shared with §§13.12–13.15 |
+| Path | the reviewed diagnostic path, `latent_dif_candidates` behind the gate replica; a new harness phase for the new tag and the two cases, `crates/scoring` unchanged |
+| Primary metric | per variant, among comparable pairs: C3's `DTF_F` greater than, smaller than or equal to C0's, zeros from a single counted class counted as values |
+| Pre-declared beside it | the same counts with the pairs holding a zero left out, their denominator stated; each `DTF_F` beside the generating DTF; the paired likelihood gains, as in §13.15; counted classes and proportions |
+| Zeros and non-convergence | a zero from one counted class is a value of 0 with its basis recorded; `DTF_F` unavailable, or any of the pair's four fits not converged, makes the pair not comparable: listed with its statuses, not ordered |
+| Denominators | runs and runs read per case; candidates fitted and converged; comparable pairs per variant; pairs with a zero |
+| Reading | counts per variant set beside §13.16's 5 of 6, as a description; no threshold drawn from the observed ranges, no test with a decision rule, no rate. A recurring ordering would not make the point value a measure or a certificate; its absence would not show the information missing |
+| Budget, proposed | 32 runs at §13.15's 24–26 s a run: about 14 CPU-minutes; caps CPU 30 minutes, wall 15 minutes, 10 minutes a run, 2 GiB aggregate resident, 8 workers; the reviewed supervisor, audit and stops |
+| Needs | the harness phase and its tests; review of that code; the owner's authorization of the runs |
+
+Possible consequences, with no threshold: if the ordering recurs, the candidates' `DTF_F` would
+merit a declared study of its diagnostic properties — its null spread, its relation to the
+generating DTF, its dependence on size — still with no certificate; if it does not, §13.16's counts
+are read as a feature of those 24 batches. Either way A2's obligations (§11.2) remain, and D38 stays
+apart.
