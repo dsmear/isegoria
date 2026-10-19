@@ -1,0 +1,1 @@
+$ cargo run --release -p characterization --bin a2-probe -- run --phase dtf-check --jobs 8 --max-cpu-s 1800 --max-wall-s 900 --max-run-s 600 --max-rss-mib 2048 --out characterization-results/a2-dtf-check-821f52d

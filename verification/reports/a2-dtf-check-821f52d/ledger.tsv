@@ -1,0 +1,66 @@
+ledger	a2-probe/v2
+start	dtf-check-C0-0	114144
+start	dtf-check-C3-0	114145
+start	dtf-check-C0-1	114146
+start	dtf-check-C3-1	114147
+start	dtf-check-C0-2	114148
+start	dtf-check-C3-2	114149
+start	dtf-check-C0-3	114150
+start	dtf-check-C3-3	114151
+end	dtf-check-C0-1	read	12460	12496	self
+start	dtf-check-C0-4	114217
+end	dtf-check-C3-1	read	14780	14832	self
+start	dtf-check-C3-4	114243
+end	dtf-check-C3-3	read	17990	18049	self
+start	dtf-check-C0-5	114247
+end	dtf-check-C0-0	read	21580	21636	self
+start	dtf-check-C3-5	114250
+end	dtf-check-C3-0	read	22660	22762	self
+start	dtf-check-C0-6	114251
+end	dtf-check-C0-3	read	23090	23155	self
+start	dtf-check-C3-6	114252
+end	dtf-check-C3-2	read	24100	24196	self
+start	dtf-check-C0-7	114253
+end	dtf-check-C0-2	read	28260	28345	self
+start	dtf-check-C3-7	114281
+end	dtf-check-C3-4	read	17600	17641	self
+start	dtf-check-C0-8	114283
+end	dtf-check-C0-5	read	15030	15132	self
+start	dtf-check-C3-8	114285
+end	dtf-check-C0-4	read	21680	21748	self
+start	dtf-check-C0-9	114297
+end	dtf-check-C3-6	read	15190	15213	self
+start	dtf-check-C3-9	114325
+end	dtf-check-C0-6	read	18670	18681	self
+start	dtf-check-C0-10	114329
+end	dtf-check-C3-5	read	21910	21948	self
+start	dtf-check-C3-10	114331
+end	dtf-check-C3-8	read	15170	15185	self
+start	dtf-check-C0-11	114362
+end	dtf-check-C0-8	read	16470	16548	self
+start	dtf-check-C3-11	114363
+end	dtf-check-C0-7	read	25430	25470	self
+start	dtf-check-C0-12	114364
+end	dtf-check-C3-7	read	22060	22155	self
+start	dtf-check-C3-12	114365
+end	dtf-check-C0-9	read	27730	27820	self
+start	dtf-check-C0-13	114395
+end	dtf-check-C3-11	read	18410	18463	self
+start	dtf-check-C3-13	114422
+end	dtf-check-C3-9	read	29250	29346	self
+start	dtf-check-C0-14	114423
+end	dtf-check-C0-12	read	18420	18483	self
+start	dtf-check-C3-14	114424
+end	dtf-check-C3-10	read	25060	25125	self
+start	dtf-check-C0-15	114427
+end	dtf-check-C0-10	read	27260	27388	self
+start	dtf-check-C3-15	114428
+end	dtf-check-C3-12	read	18980	19035	self
+end	dtf-check-C0-11	read	23400	23461	self
+end	dtf-check-C0-15	read	10720	10802	self
+end	dtf-check-C0-13	read	19240	19259	self
+end	dtf-check-C3-13	read	15910	15938	self
+end	dtf-check-C3-14	read	16410	16495	self
+end	dtf-check-C0-14	read	17930	17941	self
+end	dtf-check-C3-15	read	22170	22190	self
+session	91106	290	54544	155	-	head=821f52d419adfb43a456f54cd88f5d5e539e25ad exe=0b48ad5f09d034b4f9c1fca71e2d12b5424aa996ac0cd4253d6083e9b7671433

@@ -377,6 +377,14 @@ Review of `89b7163` (§13.18's implementation), distinct from the reviews above:
 - **Owner's direction:** correct the preliminary check alone, regressions first; the runs await
   the correction's verification. Corrected in §13.18's analysis; not yet verified.
 
+Review of `821f52d` (§13.18's correction), distinct from the reviews above:
+
+- **Accepted:** the correction of the preliminary check, for this descriptive check alone; the
+  approval does not concern A2's closure.
+- **Astra's evidence:** the diff and the preliminary check read; the 29 Python tests run, all
+  passing, the historical re-reading included. No Rust and no fit.
+- **Owner's authorization:** the 32 runs of `dtf-check` on `821f52d`, with their caps (§13.19).
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -2867,7 +2875,8 @@ counts.
 ### 13.17 Next check: the candidates' DTF on independent seeds (proposal, not run)
 
 **Status:** proposed by Claude Code on `54d44fe` after Astra's verification; approved by Astra on
-`55373cb` as a descriptive check on new data (record before §1); implemented in §13.18, not run.
+`55373cb` as a descriptive check on new data (record before §1); implemented in §13.18, run in
+§13.19.
 It asks one question that §13.16 raised after the fact, on fresh data, without changing the
 model, the BIC, the search or any threshold.
 
@@ -2893,9 +2902,9 @@ apart.
 ### 13.18 The check on independent seeds: implementation and declaration (not run)
 
 **Status:** implemented by Claude Code on `55373cb` under the owner's authorization of the harness
-phase and small tests; reviewed by Astra on `89b7163`, its preliminary check corrected (records
-before §1); the correction not verified. Not run: the 32 runs at full size, or any fit at
-`N = 3,000`. A2 stays open and blocking; D38 stays apart.
+phase and small tests; reviewed by Astra on `89b7163`, its preliminary check corrected, the
+correction approved on `821f52d` for this descriptive check (records before §1). Run as declared
+in §13.19. A2 stays open and blocking; D38 stays apart.
 
 **Phase `dtf-check`** (`crates/characterization`). C0 and C3, 16 replicates each, paired by seed:
 the two cases of a replicate share its seed, `probe_seed` under the new tag `dtf-check`, fixed
@@ -2967,3 +2976,120 @@ python3 sim/a2_probe.py check D
 python3 sim/a2_probe.py dtf-check D
 python3 sim/a2_probe.py dtf-check D --json
 ```
+
+### 13.19 The check on independent seeds: result (run on `821f52d`)
+
+**Status:** run by Claude Code on 2026-10-19 on `821f52d`, as §§13.17–13.18 declare, after Astra's
+approval of the corrected harness for this descriptive check and the owner's authorization of its
+32 runs (record before §1). The results are not reviewed. Evidence: **E** the run; **C** the
+oracle's check; the raw records, plan, ledger, checks and reports in
+[`verification/reports/a2-dtf-check-821f52d/`](../verification/reports/a2-dtf-check-821f52d/README.md).
+A descriptive check on 16 new seeds a case: no rate, no test, no bound, no certificate. A2 stays
+open and blocking; D38 is not decided.
+
+**Execution and preconditions.** Candidate checked: `HEAD` = `origin` = `821f52d` after a fetch,
+`crates/scoring` and `crates/protocol` identical to `2e2572c`, `crates` and `Cargo.lock` clean, a
+new directory. The authorized command — §13.18's, with the per-run and resident caps written out
+at their declared values, `--max-run-s 600 --max-rss-mib 2048`; the plan records all four caps:
+exit 0, 32 of 32 runs `read`, no stop.
+Before any reading: `check` exit 0 (416 values, largest `|A − B|` `1.7·10⁻¹⁵`); the declared
+phase's contract met — 16 replicates, the 32 tasks, records matching their keys, seeds paired —
+and its audit complete, 32 records of 32, no duplicate, missing, failed or killed run. Both
+`dtf-check` commands exited 0. `compare-first` does not apply (§13.18).
+
+**Cost, measured.** CPU 645.3 s, 10.8 of the 30 minutes; wall time 91.1 s of the 15 minutes;
+largest sampled resident sum 53.3 MiB (54,544 KiB), each run's peak 6.2–6.5 MiB; largest gap
+between checks 155 ms; 8 workers. CPU a run, mean and range: C0 20.5 s (10.7–28.3), C3 19.9
+(14.8–29.2), for an estimate of 13–14 CPU-minutes.
+
+**Fits.** Every run fitted the three candidates and selected the one-class fit, converged; all 32
+one-class baselines converged. Every two-class candidate converged but C0's per-class one at r10
+(`max_iters`), set aside as not converged; every other was set aside as "BIC not lower": gains
+11.38–45.72 with shared slopes against a penalty of 80.06, 24.41–73.10 with per-class slopes
+against 144.11. Every zero is the zero of one counted class — one of the two classes under 5%,
+`DTF_F` 0 by construction; no `DTF_F` was unavailable. C0's generating DTF is 0, C3's 0.569–0.628.
+
+**Results, per variant** (`dtf-check-report.md`, `dtf-check.json`). Values to three decimals,
+classes counted in brackets, `0 (1)` the zero of one counted class; "share" the smaller class's
+proportion; the gain is C3's `2 Δ log L` minus C0's, read on comparable pairs only. Every baseline
+and candidate converged unless a status is shown.
+
+Shared slopes: 16 pairs planned, 16 comparable.
+
+| Replicate | C3 generating DTF | C0 `DTF_F` | C0 share | C3 `DTF_F` | C3 share | C3 against C0 | Gain minus C0's |
+|---|---|---|---|---|---|---|---|
+| r0 | 0.598 | 0.138 (2) | 0.459 | 0.412 (2) | 0.329 | greater | +1.07 |
+| r1 | 0.616 | 0.841 (2) | 0.286 | 1.114 (2) | 0.294 | greater | +23.20 |
+| r2 | 0.595 | 0 (1) | 0.020 | 0 (1) | 0.017 | equal | −3.90 |
+| r3 | 0.601 | 0 (1) | 0.017 | 0.793 (2) | 0.061 | greater | −5.16 |
+| r4 | 0.606 | 0.495 (2) | 0.327 | 0.555 (2) | 0.359 | greater | +7.20 |
+| r5 | 0.615 | 1.127 (2) | 0.053 | 1.324 (2) | 0.061 | greater | +4.71 |
+| r6 | 0.627 | 0.614 (2) | 0.144 | 0.631 (2) | 0.217 | greater | +3.06 |
+| r7 | 0.619 | 0.109 (2) | 0.112 | 0.129 (2) | 0.166 | greater | +0.88 |
+| r8 | 0.569 | 0.117 (2) | 0.414 | 0.506 (2) | 0.489 | greater | −5.54 |
+| r9 | 0.583 | 0.229 (2) | 0.099 | 0 (1) | 0.041 | smaller | +5.66 |
+| r10 | 0.591 | 0.353 (2) | 0.248 | 0.745 (2) | 0.060 | greater | +0.68 |
+| r11 | 0.628 | 0 (1) | 0.048 | 0.436 (2) | 0.445 | greater | −13.80 |
+| r12 | 0.574 | 0 (1) | 0.023 | 0.658 (2) | 0.066 | greater | +2.56 |
+| r13 | 0.614 | 0 (1) | 0.050 | 0.066 (2) | 0.193 | greater | +2.11 |
+| r14 | 0.575 | 0.579 (2) | 0.402 | 0.740 (2) | 0.403 | greater | +5.72 |
+| r15 | 0.573 | 0 (1) | 0.040 | 0.775 (2) | 0.104 | greater | +1.02 |
+
+Per-class slopes: 16 pairs planned, 15 comparable; not comparable 1, r10, C0's candidate not
+converged.
+
+| Replicate | C3 generating DTF | C0 `DTF_F` | C0 share | C3 `DTF_F` | C3 share | C3 against C0 | Gain minus C0's |
+|---|---|---|---|---|---|---|---|
+| r0 | 0.598 | 0.248 (2) | 0.089 | 0.227 (2) | 0.084 | smaller | −5.88 |
+| r1 | 0.616 | 0.726 (2) | 0.241 | 1.145 (2) | 0.243 | greater | +13.77 |
+| r2 | 0.595 | 0.274 (2) | 0.435 | 0.312 (2) | 0.112 | greater | −12.47 |
+| r3 | 0.601 | 0.610 (2) | 0.167 | 0 (1) | 0.044 | smaller | +4.75 |
+| r4 | 0.606 | 0.398 (2) | 0.080 | 0.417 (2) | 0.445 | greater | −3.06 |
+| r5 | 0.615 | 0 (1) | 0.029 | 0 (1) | 0.017 | equal | +1.06 |
+| r6 | 0.627 | 0 (1) | 0.043 | 1.282 (2) | 0.084 | greater | −1.35 |
+| r7 | 0.619 | 0 (1) | 0.040 | 1.035 (2) | 0.065 | greater | +2.97 |
+| r8 | 0.569 | 0.523 (2) | 0.070 | 0.604 (2) | 0.125 | greater | −1.36 |
+| r9 | 0.583 | 0.888 (2) | 0.054 | 0.846 (2) | 0.057 | smaller | −5.55 |
+| r10 | 0.591 | 0.439 (2), `max_iters` | 0.055 | 0.641 (2) | 0.123 | not comparable | — |
+| r11 | 0.628 | 0.281 (2) | 0.067 | 0.648 (2) | 0.124 | greater | +0.69 |
+| r12 | 0.574 | 0.712 (2) | 0.062 | 0 (1) | 0.036 | smaller | +3.15 |
+| r13 | 0.614 | 0.807 (2) | 0.087 | 0.766 (2) | 0.093 | smaller | +17.95 |
+| r14 | 0.575 | 0.683 (2) | 0.133 | 0.938 (2) | 0.120 | greater | +12.84 |
+| r15 | 0.573 | 0 (1) | 0.043 | 0 (1) | 0.048 | equal | +9.01 |
+
+C0's share at r13 (shared) is 0.049998, under 5% by `2.5·10⁻⁶`: one class counted.
+
+| Variant | Planned; comparable | C3 greater, smaller, equal | Pairs with a zero | Without zeros, conditional: pairs; greater, smaller, equal | Gain minus C0's: positive; range |
+|---|---|---|---|---|---|
+| shared | 16; 16 | 14, 1, 1 | 7 (C0 6, C3 2, both at r2) | 9; 9, 0, 0 | 12 of 16; −13.80 to +23.20 |
+| per-class | 16; 15 | 8, 5, 2 | 6 (C0 4, C3 4, both at r5 and r15) | 9; 6, 3, 0 | 9 of 15; −12.47 to +17.95 |
+
+The equal pairs are pairs of zeros. With two classes counted, `DTF_F` spans 0.109–1.127 in C0 (10
+runs) and 0.066–1.324 in C3 (14) with shared slopes; 0.248–0.888 in C0 (12) and 0.227–1.282 in C3
+(12) with per-class slopes. The variants refit the same batches: they are not summed.
+
+**Beside §13.16, descriptively.** On the first probe's batches C3's candidate `DTF_F` was greater
+than C0's in 5 of 6 comparable pairs in each variant, 3 of 3 and 4 of 4 without zeros. On these 16
+new seeds: with shared slopes 14 greater, 1 smaller, 1 equal of 16, 9 of 9 without zeros; with
+per-class slopes 8 greater, 5 smaller, 2 equal of 15, 6 greater and 3 smaller of 9 without zeros.
+The two variants read differently on the same batches; the difference is described, not explained.
+No threshold or success rule was declared, and none is set after the results: whether this is
+§13.17's "ordering recurring", and what follows from it, is left to the review.
+
+**Readings, proportionate.**
+
+- *Not a measure.* Under C0's null the candidates' `DTF_F` reaches 1.127 (shared) and 0.888
+  (per-class); in C3 it spans 0.066–1.324 for generating values of 0.569–0.628. The point value
+  estimates neither the generating DTF nor a bound; §13.15's ranges are no reference — C0's shared
+  maximum was 0.433 there.
+- *Gains and penalty.* The paired gain differences are positive in 12 of 16 (shared) and 9 of 15
+  (per-class) comparable pairs; every two-class gain stayed below its penalty and every run kept
+  the one-class fit. Nothing here calls for a change of the BIC, the model or the search; none is
+  made.
+- *What does not follow.* A repeated ordering would not certify the DTF of a form; a different one
+  would not show the information absent in general. The check does not bear on composition or on
+  D38.
+
+**Limits.** One design (`N = 3,000`, 60 anchors, eight open items), C0 and C3 only, 16 replicates,
+one start a candidate, only the candidates tried; no rate, interval, test or bound; replicates not
+extended. No further experiment is started.
