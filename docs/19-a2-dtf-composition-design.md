@@ -458,6 +458,20 @@ Review of `ccb8f05` (§13.23), distinct from the reviews above:
 - **Owner's direction:** an exploratory reading of the trade-off between false alarms and
   detections on the existing records, with no new fit or run (§13.24).
 
+Review of `efc5494` (§13.24), distinct from the reviews above:
+
+- **Astra's evidence:** the code and the reading examined; the 5 tests of `a2_tradeoff` run, all
+  passing; `tradeoff.json` and `tradeoff.md` reproduced byte for byte; the areas confirmed equal to
+  the separations already verified. No Rust and no fit.
+- **Accepted:** the exploratory analysis. A2 stays open.
+- **Rectified in §13.24:** the results do not justify this indicator as a sufficient check of the
+  whole test in the design tried, and do not show a general impossibility; points chosen on the
+  same data are not validated performance, without being declared out of reach of every rule fixed
+  in advance; the four comparisons stay apart — a table's cells may correspond to different
+  thresholds, and no common threshold is adopted.
+- **Owner's direction:** a short declaration of a study of the sensitivity to the sample size
+  (§13.25); no implementation, campaign or new fit.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -3606,7 +3620,8 @@ development data (§13.20). No further experiment is started.
 ### 13.24 The single-test trade-off: an exploratory reading (post hoc, on `ccb8f05`)
 
 **Status:** an analysis by Claude Code on `ccb8f05` at the owner's direction, after the validation
-and its review; not reviewed. Post hoc and exploratory: no fit and no run; `sim/a2_tradeoff.py`
+and its review; accepted by Astra on `efc5494`, its conclusions rectified below (record before §1).
+Post hoc and exploratory: no fit and no run; `sim/a2_tradeoff.py`
 and its tests, its output in
 [`verification/reports/a2-tradeoff-ccb8f05/`](../verification/reports/a2-tradeoff-ccb8f05/README.md),
 apart from the original artefacts, which are unchanged. The validation's results, threshold and
@@ -3644,18 +3659,19 @@ that many, and the fewest false alarms reaching them (`tradeoff.json` keeps ever
 | `t = 0`, zeros unflagged | 78 at 69 | 78 at 78 | 66 at 69 | 66 at 78 |
 | Area | 0.7209 | 0.7563 | 0.4737 | 0.5001 |
 
-Detections are of 96 evaluable runs. Each row but the frozen one picks its threshold on these same
-runs: it is in-sample and optimistic, not a rate a rule fixed in advance would reach. On C3/C0, for
-instance, 32 detections at 5 false alarms against the frozen `t`'s 23, a threshold set on other
-runs and for both neutral cases.
+Detections are of 96 evaluable runs. The comparisons stay apart: each cell but the frozen row picks
+its threshold on these same runs, and the cells of a row may correspond to different thresholds;
+no common threshold is read or adopted. Such points are not validated performance; whether a rule
+fixed in advance would reach one is not known from these data, neither shown nor excluded
+(rectified after `efc5494`). On C3/C0, for instance, 32 detections at 5 false alarms against the
+frozen `t`'s 23, a threshold set on other runs and for both neutral cases.
 
 **What the trade-off suggests**, for the owner's choice; no campaign is started or declared.
 
 - *C3.* Flagging most C3 runs costs many false alarms on these runs: 62 and 69 of 96 with 20 and
   19 of 99 neutral runs flagged, about a fifth; 74 and 75, three quarters, only with 47 and 46,
-  about half. The frozen point sits at the low-false-alarm end. No threshold
-  of this indicator separates C3 from the neutral cases on a single test at `N = 3,000` here: the
-  trade-off is gradual, and a threshold chosen on these data would not change that.
+  about half. The frozen point sits at the low-false-alarm end. In these runs no threshold of this
+  indicator gives both few false alarms and most C3 detections: the trade-off is gradual.
 - *Zeros.* A single counted class sets `I` to 0 in 18–30% of every case's runs (C0 30, C1 21, C3
   18, C5 30): no threshold flags a zero without flagging every zero of both cases, the last step of
   each curve.
@@ -3663,9 +3679,97 @@ runs and for both neutral cases.
   often as neutral ones at every threshold.
 - *Paired and single.* §13.19's paired ordering, 14 of 16, and this unpaired separation, 0.72 and
   0.76, measure different things; a single test faces the second.
-- *For a next step.* Used alone on one test at this size, this indicator cannot serve the
-  whole-test objective: any threshold either misses most C3-like forms or flags many neutral ones.
-  Directions a new declared study could take, each with its own development and validation data:
-  how the separation changes with the sample size; whether another statistic of the same fits
-  separates better, chosen on development data only; or whether A2's effort belongs on its other
-  questions — composition and the target (§13.13) — rather than on detection. None is adopted.
+- *For a next step* (rectified after `efc5494`). These results do not justify this indicator as a
+  sufficient check of the whole test in the design tried; they do not show a general impossibility.
+  Directions a new declared study could take, each with its own development and validation data: how
+  the separation changes with the sample size; whether another statistic of the same fits separates
+  better, chosen on development data only; or whether A2's effort belongs on its other questions —
+  composition and the target (§13.13) — rather than on detection. None is adopted.
+
+### 13.25 Next study: the sample size and single-test separation (proposal, not implemented)
+
+**Status:** proposed by Claude Code on `efc5494` at the owner's direction (record before §1); not
+reviewed, not implemented, not run; no fit. Exploratory and coarse: it is not a new validation, and
+its runs never become one. A2 stays open and blocking; D38 stays apart.
+
+**Question, the only one.** Does doubling the respondents improve the separation on a single test,
+with the indicator and the model unchanged?
+
+**Design.**
+
+| Item | Proposed |
+|---|---|
+| Sizes | `N = 3,000` and `N = 6,000`; 60 anchors, eight open items, §13.11's other defaults |
+| Cases | C0 and C3 |
+| Runs | 16 replicates per size and case: 64 fits |
+| Seeds | new, under a tag of their own, one per case and replicate, shared by the two sizes; C0's and C3's differ; none of §§13.11–13.23's data reused |
+| Indicator | `I` as in §13.21: the `DTF_F` of the two-class candidate with shared slopes, `LatentParams::default()`, its evaluability rule |
+| Unchanged | `crates/scoring` and `crates/protocol` as at `2e2572c`: the model, the search, the BIC rule, `MIN_CLASS_SHARE`, `MIXTURE_DIF_MAX`, `DTF_MAX`. The BIC's penalty `Δk ln N` moves with `N` by its own definition: 86.99 and 156.59 at 6,000 against 80.06 and 144.11 |
+
+**Nested samples, checked in the code, not assumed.** `generate::dif_batch` draws everything from
+one ChaCha8 stream seeded by the run's seed: first the 60 anchors' and the eight items' parameters,
+then respondent by respondent — class, ability, 60 anchor answers, eight item answers. Without an
+attack nothing drawn before or inside that loop depends on `N`. With one seed at both sizes:
+
+- *common:* the anchors' and items' parameters, hence the generating curves and the generating
+  DTF; the first 3,000 respondents' classes, abilities and every answer; the engine's seed, hence
+  the starts' random perturbations; formats and templates;
+- *changed:* respondents 3,001 to 6,000, all new; the gate's KR-20 over every respondent; the
+  pseudonym set; the fit — baseline, candidates, selection — and so `I`; the BIC's penalty.
+
+Checked once, not kept: `dif_batch` at 3,000 and 6,000 with one seed, for C0 and C3, gave the same
+item parameters and the same first 3,000 rows of anchors, items and classes, and new rows after.
+The two sizes' runs of a case and replicate are therefore not independent: every curve and half the
+data are shared.
+
+**Analysis, declared before any run.**
+
+| Item | Content |
+|---|---|
+| Per size and case | planned 16, observed, evaluable, not evaluable by reason (§13.21's rule); zeros of `I` with their origin; the selected fit's classes and status; the shared candidate's status and verdict |
+| Separation at each size | the share of pairs of a C3 and a C0 run at that size, both evaluable, where C3's `I` exceeds C0's, ties ½; its denominator `n_C3 × n_C0` stated. C3 and C0 do not share seeds: this is the single-test separation, not an ordering by seed |
+| Across sizes | the two separations and their difference, described. As the samples are nested, also per case and replicate evaluable at both sizes: `I` at 6,000 against 3,000, greater, smaller or equal, and zeros gained or lost; per C3 run, its placement — the share of same-size C0 runs it exceeds, ties ½ — at each size, and how many placements rise, fall or stay. Runs evaluable at one size only are listed |
+| Uncertainty | no interval from the pairs as if independent; none from the 16 runs either, beyond the planning figure below |
+| Not done | a threshold or operational rate chosen on these results; the frozen `t` = 0.7984 carried to 6,000 or read at 3,000; the pairwise C3/C0 ordering as the answer; pooling the sizes; more replicates; any statement about C1, C5 or information absent in general |
+
+**Precision, a planning figure.** By the Hanley–McNeil approximation for independent runs, a
+separation from 16 runs a case has a standard error of about 0.09 near 0.72 (±0.18 at 95%), 0.10
+near 0.5 and 0.06 near 0.9 — against 0.036 for §13.23's 96 and 99 runs. The nesting correlates the
+two sizes and narrows their difference's uncertainty by an amount not computed here. Sixteen
+replicates give a coarse diagnosis: only a large change would show.
+
+**Cost.** At `N = 3,000`, 32 runs at the per-case means of §§13.12–13.23, 19.9–25.9 s a run:
+640–830 s. At `N = 6,000` this path has no measurement. The repository's only timings at 6,000
+(`13`, Cost) come from the 4-core development container, an earlier engine and other designs —
+`K = 16`, `δ = 0.9` with `π = 0.1`, two axes — and took 68–148 s, against 15–33 s for that
+container's cells at 3,000; ratios between them also carry those differences. A fit's E-step
+grows linearly with `N`; the iterations may change. Taking ×2 to ×4.5: 1,270–3,730 s for the 32
+runs at 6,000; in all 1,910–4,560 s, 32–76 CPU-minutes, about 5–11 minutes of wall time with 8
+workers. The slowest run would take about 3 minutes at ×4.5; a run's memory roughly doubles with
+the data and posterior arrays, not measured.
+**Caps proposed:** CPU 2 hours (7,200 s), wall 30 minutes (1,800 s), 10 minutes a run, 2 GiB
+aggregate resident, 8 workers, the reviewed supervisor and stops; a stop authorizes nothing.
+
+**How each result would orient the work**, with no numeric criterion — the review judges which
+the result resembles, and no further campaign follows by itself:
+
+- *Separation clearly higher at 6,000, most C3 placements rising:* size is a lever for this
+  indicator. A later step would need its own declaration — what size a given separation needs,
+  with development and validation data — and a threshold set anew at that size.
+- *No visible change, or lower:* doubling `N` does not help this indicator at this resolution; the
+  limit would lie in the indicator — a chosen-start candidate's `DTF_F` under the 5% counting rule
+  — or in C3-like spread DIF at these sizes. Attention could turn to another statistic, chosen on
+  development data, or to A2's composition and target questions. No general absence of
+  information would follow.
+- *Within the coarse uncertainty:* sixteen replicates cannot settle it; an extension would need a
+  new declaration and authorization.
+
+**Open in every case.** A2's obligations (§13.6): a, domination; b's coverage, proved under its
+hypotheses, without an implementation; c, conservative computation; usefulness, negative in
+§13.3's domain and under §13.8's obstacle; cost; decision and scope; the model and sampling
+premises. A screening indicator, at any size, is not §11.2's guarantee or §12's coverage, and the
+whole-test objective stays. D38 stays apart.
+
+**Needs, if approved.** A harness phase per size, or a size in the design, with the shared seed tag
+and the engine check; the analysis above in `sim/` with tests on constructed records; review; the
+owner's authorization of the 64 runs.
