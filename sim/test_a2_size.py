@@ -65,7 +65,8 @@ class Size(unittest.TestCase):
                          {"3000/C0": (16, 4, {}), "3000/C3": (15, 1, {"baseline not converged": 1}),
                           "6000/C0": (15, 5, {"candidate not converged": 1}), "6000/C3": (16, 0, {})})
         self.assertEqual(out["sizes"]["3000/C3"]["zero_bases"], ["one counted class"])
-        self.assertEqual(out["all"][3000], {"separation": 142 / 240, "pairs": 240, "tied_pairs": 172, "C3": 15, "C0": 16})
+        self.assertEqual(out["all"][3000], {"separation": 142 / 240, "pairs": 240, "tied_pairs": 172, "C3": 15, "C0": 16,
+                                            "why": None})
         self.assertEqual(out["all"][6000]["separation"], 1.0)
         self.assertEqual(out["all"]["difference"], 1.0 - 142 / 240)
         self.assertIn("- N 3000: 0.5916666666666667 over 15 × 16 pairs, 172 tied", text)
@@ -81,9 +82,59 @@ class Size(unittest.TestCase):
         self.assertEqual(c3["zeros"], {"positive→positive": 14, "zero→positive": 1})
         self.assertEqual((c0["evaluable_at_one_size"], c3["evaluable_at_one_size"]), ({5: [3000]}, {1: [6000]}))
         common = out["placements"]["the common C0"]
-        self.assertEqual(common["moves"], {"rise": 15, "fall": 0, "same": 0})
-        self.assertEqual(common["rows"][0], {"replicate": 0, "3000": 9.5 / 15, "6000": 1.0})
-        self.assertEqual(out["placements"]["every evaluable C0"]["rows"][1], {"replicate": 2, "3000": 2 / 16, "6000": 1.0})
+        self.assertEqual(common["moves"], {"rise": 15, "fall": 0, "same": 0, "not available": 0})
+        self.assertEqual(common["rows"][0], {"replicate": 0, "3000": 9.5 / 15, "6000": 1.0, "move": "rise", "why": None})
+        self.assertEqual(out["placements"]["every evaluable C0"]["rows"][1],
+                         {"replicate": 2, "3000": 2 / 16, "6000": 1.0, "move": "rise", "why": None})
+
+    def unconverged(self, cells):
+        """The reading with each `(n, case, r)` of `cells` left by a baseline not converged."""
+        def edit(by, _):
+            for cell in cells:
+                by[cell]["candidates"][0]["status"] = "max_iters"
+        text, out, code = self.build(edit)
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout), self.assertRaises(SystemExit) as stop:
+            S.main([str(self.d), "--json"])
+        self.assertEqual((code, stop.exception.code), (0, 0))
+        self.assertEqual(json.loads(stdout.getvalue()), json.loads(json.dumps(out)))
+        return text, out
+
+    def test_no_c0_evaluable_at_both_sizes_leaves_its_moves_and_placements_unavailable(self):
+        text, out = self.unconverged([(3000, "C0", r) for r in range(8)] + [(6000, "C0", r) for r in range(8, 16)])
+        self.assertEqual((out["all"][3000]["C0"], out["all"][6000]["C0"]), (8, 7))
+        self.assertIsNotNone(out["all"]["difference"])
+        self.assertEqual(out["common"][3000], {"separation": None, "pairs": 0, "tied_pairs": 0, "C3": 15, "C0": 0,
+                                               "why": "no C0 run evaluable at both sizes"})
+        self.assertIsNone(out["common"]["difference"])
+        self.assertEqual(out["replicates"]["C0"]["I_6000_against_3000"], None)
+        self.assertEqual(out["replicates"]["C0"]["why"], "no replicate evaluable at both sizes")
+        common = out["placements"]["the common C0"]
+        self.assertEqual(common["moves"], {"rise": 0, "fall": 0, "same": 0, "not available": 15})
+        self.assertEqual({r["why"] for r in common["rows"]}, {"no C0 reference at 3000 and 6000"})
+        self.assertEqual(out["placements"]["every evaluable C0"]["moves"]["not available"], 0)
+        self.assertIn("- C0: no replicate evaluable at both sizes", text)
+        self.assertIn("not available 15 (no C0 reference at 3000 and 6000)", text)
+
+    def test_c0_never_evaluable_at_one_size_leaves_that_size_s_separation_unavailable(self):
+        text, out = self.unconverged([(6000, "C0", r) for r in range(16)])
+        self.assertEqual(out["all"][6000], {"separation": None, "pairs": 0, "tied_pairs": 0, "C3": 16, "C0": 0,
+                                            "why": "no evaluable C0 run"})
+        self.assertEqual(out["all"][3000]["separation"], 142 / 240)
+        self.assertIsNone(out["all"]["difference"])
+        every = out["placements"]["every evaluable C0"]
+        self.assertEqual((every["references"], every["moves"]["not available"]), ({3000: 16, 6000: 0}, 15))
+        self.assertIn("- N 6000: not available, no evaluable C0 run (16 C3, 0 C0)", text)
+
+    def test_no_c3_evaluable_at_both_sizes_leaves_no_placement_to_read(self):
+        text, out = self.unconverged([(6000, "C3", r) for r in range(16)])
+        self.assertEqual(out["all"][6000]["why"], "no evaluable C3 run")
+        self.assertEqual(out["replicates"]["C3"]["why"], "no replicate evaluable at both sizes")
+        for name in ("every evaluable C0", "the common C0"):
+            placed = out["placements"][name]
+            self.assertEqual((placed["C3"], placed["rows"], placed["why"]), (0, [], "no C3 replicate evaluable at both sizes"))
+        self.assertIn("- C3 placements, reference every evaluable C0 (same size): not available, no C3 replicate "
+                      "evaluable at both sizes", text)
 
     def test_the_reading_stops_without_the_declared_nested_complete_phase(self):
         def killed(by, _):

@@ -1,7 +1,7 @@
 //! The A2 probe's command line (`docs/19` §13.11): `plan`, `run` (the supervisor) and `one`
 //! (a single run in its own process, launched by `run`).
 
-use characterization::probe::{config_lines, run, tasks, Case, Phase, Task, SIZES};
+use characterization::probe::{config_lines, run, tasks, Case, Phase, Task};
 use characterization::probe_calibration::{calibration_line, DATA, REPLICATES, THRESHOLD};
 use characterization::probe_jobs::{
     confirm_replicates, planned_replicates, read_ledger, self_cost, supervise, write_part, Caps,
@@ -100,7 +100,7 @@ fn one(args: &Args) -> Result<(), String> {
         replicate: args.replicate,
         n: args.n,
     };
-    if (task.phase == Phase::Size) != task.n.is_some_and(|n| SIZES.contains(&n)) {
+    if !task.phase.takes(task.n) {
         return Err("--n is size's alone, one of its sizes".into());
     }
     let record = run(&task, || Some(self_cost(started)));

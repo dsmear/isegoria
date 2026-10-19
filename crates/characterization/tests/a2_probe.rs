@@ -503,3 +503,18 @@ fn the_larger_size_nests_the_smaller_one_s_items_and_respondents() {
         assert_eq!(engine_seed(small.seed()), engine_seed(large.seed()));
     }
 }
+
+/// `n` belongs to `size` alone, at 3,000 or 6,000; every other phase runs without one (§13.26).
+#[test]
+fn only_size_takes_an_n_and_only_its_two_sizes() {
+    for n in [None, Some(0), Some(1), Some(3000), Some(4000), Some(6000)] {
+        assert_eq!(
+            Phase::Size.takes(n),
+            matches!(n, Some(3000 | 6000)),
+            "size {n:?}"
+        );
+        for phase in [Phase::Smoke, Phase::Explore, Phase::DtfCheck, Phase::IndVal] {
+            assert_eq!(phase.takes(n), n.is_none(), "{} {n:?}", phase.name());
+        }
+    }
+}

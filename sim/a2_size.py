@@ -103,37 +103,52 @@ def size_reading(d):
         for n in SIZES:
             hi = [I[(n, "C3", r)] for r in (reps["C3"] if reps else range(REPLICATES)) if I[(n, "C3", r)] is not None]
             lo = [I[(n, "C0", r)] for r in (reps["C0"] if reps else range(REPLICATES)) if I[(n, "C0", r)] is not None]
-            share = P.separation(hi, lo)
+            share, empty = P.separation(hi, lo), " or ".join(c for c, v in (("C3", hi), ("C0", lo)) if not v)
+            why = (f"no evaluable {empty} run" if reps is None else f"no {empty} run evaluable at both sizes") if empty else None
             out[name][n] = {"separation": share, "pairs": len(hi) * len(lo), "tied_pairs": ties(hi, lo),
-                            "C3": len(hi), "C0": len(lo)}
-            lines.append(f"- N {n}: {share!r} over {len(hi)} × {len(lo)} pairs, {ties(hi, lo)} tied")
+                            "C3": len(hi), "C0": len(lo), "why": why}
+            lines.append(f"- N {n}: {share!r} over {len(hi)} × {len(lo)} pairs, {ties(hi, lo)} tied" if not why
+                         else f"- N {n}: not available, {why} ({len(hi)} C3, {len(lo)} C0)")
         both = [out[name][n]["separation"] for n in SIZES]
         out[name]["difference"] = None if None in both else both[1] - both[0]
-        lines.append(f"- 6,000 minus 3,000: {out[name]['difference']!r}"
-                     + (", conditional on the common replicates" if reps else ""))
+        lines.append(f"- 6,000 minus 3,000: {out[name]['difference']!r}" if None not in both
+                     else "- 6,000 minus 3,000: not available, a separation is missing")
+        if reps and None not in both:
+            lines[-1] += ", conditional on the common replicates"
     lines += ["", "## Per replicate, evaluable at both sizes", ""]
     for c in CASES:
-        moves = {"greater": 0, "smaller": 0, "equal": 0}
-        zeros = {}
+        moves, zeros = {"greater": 0, "smaller": 0, "equal": 0}, {}
         for r in common[c]:
             a, b = I[(3000, c, r)], I[(6000, c, r)]
             moves[P.order(b, a)] += 1
             t = f"{'zero' if a == 0 else 'positive'}→{'zero' if b == 0 else 'positive'}"
             zeros[t] = zeros.get(t, 0) + 1
         one = {r: [n for n in SIZES if I[(n, c, r)] is not None] for r in range(REPLICATES) if r not in common[c]}
-        out["replicates"][c] = {"common": common[c], "I_6000_against_3000": moves, "zeros": zeros,
+        why = None if common[c] else "no replicate evaluable at both sizes"
+        out["replicates"][c] = {"common": common[c], "I_6000_against_3000": None if why else moves,
+                                "zeros": None if why else zeros, "why": why,
                                 "evaluable_at_one_size": {r: ns for r, ns in one.items() if ns}}
-        lines.append(f"- {c}: {len(common[c])} replicates; I at 6,000 against 3,000 {moves}; zeros {zeros}; "
-                     f"evaluable at one size only {out['replicates'][c]['evaluable_at_one_size'] or 'none'}")
+        rest = f"evaluable at one size only {out['replicates'][c]['evaluable_at_one_size'] or 'none'}"
+        lines.append(f"- {c}: {why}; {rest}" if why else
+                     f"- {c}: {len(common[c])} replicates; I at 6,000 against 3,000 {moves}; zeros {zeros}; {rest}")
     for name, against in (("every evaluable C0", None), ("the common C0", common["C0"])):
-        moved, rows = {"rise": 0, "fall": 0, "same": 0}, []
+        refs = {n: [I[(n, "C0", q)] for q in (against if against is not None else range(REPLICATES))
+                    if I[(n, "C0", q)] is not None] for n in SIZES}
+        missing = [str(n) for n in SIZES if not refs[n]]
+        lacking = f"no C0 reference at {' and '.join(missing)}" if missing else None
+        moved, rows = {"rise": 0, "fall": 0, "same": 0, "not available": 0}, []
         for r in common["C3"]:
-            p = [placement(I[(n, "C3", r)], [I[(n, "C0", q)] for q in (against if against is not None else range(REPLICATES))
-                                               if I[(n, "C0", q)] is not None]) for n in SIZES]
-            moved["rise" if p[1] > p[0] else "fall" if p[1] < p[0] else "same"] += 1
-            rows.append({"replicate": r, "3000": p[0], "6000": p[1]})
-        out["placements"][name] = {"moves": moved, "rows": rows}
-        lines.append(f"- C3 placements against {name} runs of the same size: {moved}")
+            p = [placement(I[(n, "C3", r)], refs[n]) for n in SIZES]
+            move = "not available" if lacking else "rise" if p[1] > p[0] else "fall" if p[1] < p[0] else "same"
+            moved[move] += 1
+            rows.append({"replicate": r, "3000": p[0], "6000": p[1], "move": move, "why": lacking})
+        none = None if common["C3"] else "no C3 replicate evaluable at both sizes"
+        out["placements"][name] = {"C3": len(common["C3"]), "references": {n: len(refs[n]) for n in SIZES},
+                                   "moves": moved, "rows": rows, "why": none}
+        head = f"- C3 placements, reference {name} (same size): "
+        lines.append(head + f"not available, {none}" if none else
+                     head + f"{len(common['C3'])} replicates against {len(refs[3000])} and {len(refs[6000])} C0; "
+                     + ", ".join(f"{k} {v}" for k, v in moved.items()) + (f" ({lacking})" if lacking else ""))
     lines += ["", "No interval: the pairs are not independent, the sizes share their samples. No threshold, "
               "no success rule; the frozen t is not read here."]
     return "\n".join(lines) + "\n", out, 0

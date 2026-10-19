@@ -144,6 +144,15 @@ impl Phase {
         }
     }
 
+    /// Whether a run of this phase may carry `n`: `size` one of [`SIZES`], every other phase none.
+    pub fn takes(self, n: Option<u32>) -> bool {
+        match (self, n) {
+            (Phase::Size, Some(n)) => SIZES.contains(&n),
+            (Phase::Size, None) => false,
+            (_, n) => n.is_none(),
+        }
+    }
+
     /// Whether the phase runs the candidates' diagnostic path, [`gate_and_diagnose`].
     pub fn diagnostic(self) -> bool {
         matches!(

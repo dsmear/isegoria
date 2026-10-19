@@ -487,6 +487,17 @@ Review of `87d6452` (§13.25), distinct from the reviews above:
 - **Owner's direction:** implement with the design unchanged, the nesting test kept and the
   analysis extended to the replicates evaluable at both sizes (§13.26); the 64 fits not run.
 
+Review of `355c6b9` (§13.26), distinct from the reviews above:
+
+- **Finding by static reading:** `a2-probe.rs`'s check let a phase other than `size` through with
+  an `--n` other than 3,000 and 6,000.
+- **Finding reproduced in Python:** on 64 constructed records with a complete audit, C0 not
+  evaluable at 3,000 for replicates 0–7 and at 6,000 for 8–15, no C0 replicate is evaluable at
+  both sizes and `sim/a2_size.py` stopped with a `TypeError`, ordering `None` placements. No Rust
+  execution is attributed to this review.
+- **Owner's direction:** correct both, regressions first, without a fit at full size; the study's
+  execution awaits the correction's review. Corrected in §13.26.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -3795,7 +3806,8 @@ owner's authorization of the 64 runs.
 ### 13.26 The sample-size study: implementation and declaration (not run)
 
 **Status:** implemented by Claude Code on `87d6452` under Astra's approval of the implementation,
-not of the execution (record before §1); not reviewed. Not run: the 64 fits await review of this
+not of the execution; reviewed by Astra on `355c6b9`, its two findings corrected (records before
+§1), the correction not reviewed. Not run: the 64 fits await review of this
 implementation and the owner's authorization. No fit at `N = 3,000` or 6,000 was run here; only
 batches were generated, without a fit. A2 stays open and blocking; D38 stays apart.
 
@@ -3809,11 +3821,11 @@ other phase), so the size is in the run's identity — keys `size-n3000-C0-0` to
 `size-n6000-C3-15`, one plan of 64 tasks, replicate by replicate, each size, each case. A run's
 seed is `case_seed("size", case, replicate)`: the same at both sizes, different between cases and
 replicates and from every earlier phase's. `Task::design` gives the case's design at its `n`; the
-plan's configuration adds `sizes 3000 6000`. `one` refuses `--n` outside `size` and `size` without
-`--n` 3,000 or 6,000; `run` refuses any count but 16 replicates, and runs `size` only with
-`crates/scoring` and `crates/protocol` identical to `2e2572c`. The supervisor, caps, ledger, audit
-and numerical check are the reviewed ones; a stop or an incomplete phase gives no reading, and
-nothing resumes automatically.
+plan's configuration adds `sizes 3000 6000`. `one` admits exactly `size` with `--n` 3,000 or 6,000
+and every other phase without `--n` (`Phase::takes`, corrected after `355c6b9`); `run` refuses any
+count but 16 replicates, and runs `size` only with `crates/scoring` and `crates/protocol`
+identical to `2e2572c`. The supervisor, caps, ledger, audit and numerical check are the reviewed
+ones; a stop or an incomplete phase gives no reading, and nothing resumes automatically.
 
 **Nesting, kept as a test.** At one seed, `dif_batch` at 6,000 gives the 3,000 batch's item
 parameters, generating DTF and first 3,000 rows of anchors, items and classes, and new rows after.
@@ -3834,6 +3846,7 @@ check passes. Then, with `I` and its evaluability as in §13.21:
 | Separation, common replicates | the same, per case on the replicates evaluable at both sizes alone; conditional on that subset, it does not remove the exclusions' problem |
 | Per replicate | per case on the common replicates: `I` at 6,000 against 3,000, greater, smaller or equal; zeros kept, gained, lost or never; the replicates evaluable at one size only, with that size |
 | Placements | each common C3 replicate's share of the same size's C0 runs it exceeds, ties ½, at both sizes — against every evaluable C0 run and against the common C0 replicates — and how many rise, fall or stay |
+| Empty references | when no evaluable C3 or C0 run is left — at a size, or at both sizes — the separation, per-replicate moves or placements concerned are reported not available, with the reason and the counts, never as rise, fall or same; the other readings stand and the exit stays 0: a scientific outcome, not a failure of the phase (corrected after `355c6b9`) |
 | Not done | an interval from pairs treated as independent; any threshold, rate or success rule; the frozen `t`; pooling the sizes |
 
 **Caps, proposed and not authorized:** CPU 2 hours, wall 30 minutes, 10 minutes a run, 2 GiB
@@ -3849,7 +3862,20 @@ python3 sim/a2_size.py D
 python3 sim/a2_size.py D --json
 ```
 
-**Checks run here** (E). No fit.
+**Checks run here** (E). No fit. After `355c6b9`'s review, the regressions came first: on
+`355c6b9`'s binary, `one --phase smoke --n 1` exited 0 and wrote `smoke-n1-C0-0`, which the gate
+refused for its single respondent, with no fit; on its `sim/a2_size.py`, two of the three new
+Python tests stopped with a `TypeError` and the third found no reason given. After the correction:
+
+- `--test a2_probe`: 17 tests, one more — `Phase::takes` over `size` and four other phases, with
+  no `n`, 0, 1, 3,000, 4,000 and 6,000. `--test a2_probe_jobs`: 25 tests, one more — `one` with
+  `smoke --n 1`, `smoke` and `explore --n 4000`, `ind-val --n 6000`: each refused, exit 1, no
+  record. `python3 -m unittest discover -s sim -p 'test_a2_*.py'`: 54 tests, three more in
+  `test_a2_size.py`, each with text and JSON and exit 0 — no C0 replicate evaluable at both sizes
+  (Astra's case, with the fixture's two exclusions besides), C0 never evaluable at 6,000, and no C3
+  replicate evaluable at both sizes.
+
+As implemented on `87d6452`:
 
 - `cargo test -p characterization --test a2_probe`: 16 tests, two new — the 64 tasks, `n` in
   their keys and designs, 60 anchors, seeds shared by the sizes alone, 32 distinct and none of

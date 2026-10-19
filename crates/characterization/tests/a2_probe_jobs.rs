@@ -792,3 +792,25 @@ fn the_binary_plans_the_size_study_and_refuses_a_misplaced_size() {
     }
     assert!(!std::path::Path::new(out).exists());
 }
+
+/// `one` takes `--n` with `size` alone, 3,000 or 6,000: any other phase with any `--n` is refused.
+#[test]
+fn a_phase_other_than_size_is_refused_with_any_n() {
+    let _serial = serial();
+    let out = scratch("size-other-n");
+    for (phase, n) in [
+        ("smoke", "1"),
+        ("smoke", "4000"),
+        ("explore", "4000"),
+        ("ind-val", "6000"),
+    ] {
+        let got = Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .args(["one", "--phase", phase, "--case", "C0", "--n", n, "--out"])
+            .arg(&out)
+            .output()
+            .unwrap();
+        assert_eq!(got.status.code(), Some(1), "{phase} --n {n}");
+        assert!(String::from_utf8_lossy(&got.stderr).contains("--n is size's alone"));
+        assert!(!out.exists(), "{phase} --n {n} wrote a record");
+    }
+}
