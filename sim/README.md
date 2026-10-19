@@ -348,6 +348,19 @@ exits 0 after its reading, 1 without it unless both stages are the declared ones
 precision check, the threshold recomputed equals the frozen `threshold.tsv`, and the validation
 plan is bound to it.
 
+### `a2_tradeoff.py`
+
+A post-hoc, exploratory reading of the single-test study (`docs/19` §13.24): from preserved
+validation records and the frozen `threshold.tsv`, the empirical detection and false-alarm curves
+of the rule `I > t` over every threshold, for C3 and C5 each against C0 and C1, never pooled; ties
+and zeros kept, not-evaluable runs counted apart, the frozen point marked, each curve's area equal
+to the separation. It chooses no threshold. Standard library only, reusing `a2_probe.py`:
+
+```
+python3 sim/a2_tradeoff.py verification/reports/a2-ind-val-185ec93/records.jsonl verification/reports/a2-ind-cal-7bbfddb/threshold.tsv
+python3 -m unittest discover -s sim -p test_a2_tradeoff.py -v
+```
+
 ### `d3_selection_counts.py`
 
 D3's exact counts (`docs/15`, D3 section): the subsets `ContestedPool::draw` evaluates per fit,

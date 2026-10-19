@@ -116,9 +116,12 @@ direction of 2026-10-18
   `7bbfddb` for the calibration alone. The calibration ran there (§13.22; evidence and the frozen
   threshold in `verification/reports/a2-ind-cal-7bbfddb/`), accepted by Astra on `185ec93` as the
   application of the declared rule, not as a validation result. The validation ran on `185ec93`
-  against it (§13.23; evidence in `verification/reports/a2-ind-val-185ec93/`), its results not
-  reviewed. Whatever they are, it is a screening statistic, not §11.2's guarantee or §12's
-  coverage. It closes nothing.
+  against it (§13.23; evidence in `verification/reports/a2-ind-val-185ec93/`), its results accepted
+  by Astra on `ccb8f05` within the declared scope: C3 23 detections and 73 misses of 96 at the
+  frozen threshold, C5 no useful separation in these data; the check is not sufficient for the
+  whole-test objective. §13.24 reads the trade-off over the threshold, post hoc and exploratory,
+  not reviewed. It is a screening statistic, not §11.2's guarantee or §12's coverage. It closes
+  nothing.
 - **Suspended:** implementation of the certifier until its contract decisions are made.
   D38's treatment of pertinent factual-knowledge differences remains to be reconciled explicitly;
   no compensation or admission policy changes through this documentation.

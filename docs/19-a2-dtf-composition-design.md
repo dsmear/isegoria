@@ -444,6 +444,20 @@ Review of `185ec93` (§13.22), distinct from the reviews above:
 - **Owner's authorization:** the 400 validation runs on `185ec93` against the calibration frozen
   there, with their caps (§13.23).
 
+Review of `ccb8f05` (§13.23), distinct from the reviews above:
+
+- **Astra's evidence:** the contract, the complete audit and the binding to the calibration
+  verified; `check` rerun on the 5,200 values, passing; the report reproduced exactly save the
+  calibration's local path; the JSON reproduced byte for byte; a separate recomputation of the
+  counts, intervals and separations confirmed. No Rust and no new fit.
+- **Accepted:** the results, within the declared scope. A2 is not closed.
+- **Reading approved:** with the frozen threshold C3 has 23 detections and 73 misses among 96
+  evaluable runs; the observed ordering does not make this check sufficient for the whole-test
+  objective; C5 shows no useful separation in these data, with no deduction about an absence of
+  information in general; the separation of 0.72–0.76 is not classification accuracy.
+- **Owner's direction:** an exploratory reading of the trade-off between false alarms and
+  detections on the existing records, with no new fit or run (§13.24).
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -3500,7 +3514,9 @@ another configuration — with this directory committed and unmodified.
 
 **Status:** run by Claude Code on 2026-10-19 on `185ec93`, as §13.21 declares, against the
 calibration frozen there, after Astra's acceptance of the calibration and the owner's authorization
-of the 400 runs (record before §1). The results are not reviewed. Evidence: **E** the run; **C** the
+of the 400 runs (record before §1). The results were accepted by Astra on `ccb8f05` within the
+declared scope, with the reading recorded before §1 and below; A2 is not closed. Evidence: **E** the
+run; **C** the
 oracle's check, the declared reading and a recomputation apart from it, its intervals by SciPy; the
 records, plan, ledger, checks and readings in
 [`verification/reports/a2-ind-val-185ec93/`](../verification/reports/a2-ind-val-185ec93/README.md).
@@ -3577,6 +3593,79 @@ converged was set aside as "BIC not lower". The generating DTF spans 0.526–0.6
   family; they are not §11.2's guarantee or §12's coverage, and A2's obligations (§13.6) and the
   whole-test objective remain.
 
+**Reading approved on `ccb8f05`** (record before §1). With the frozen threshold C3 has 23
+detections and 73 misses among 96 evaluable runs. The observed ordering does not make this check
+sufficient for the whole-test objective. C5 shows no useful separation in these data, with no
+deduction about an absence of information in general. The separation of 0.72–0.76 is not
+classification accuracy.
+
 **Limits.** One calibration and one validation; 100 runs a case; one design and its item laws; the
 default `LatentParams`, the chosen start's solution kept; the indicator chosen after the
 development data (§13.20). No further experiment is started.
+
+### 13.24 The single-test trade-off: an exploratory reading (post hoc, on `ccb8f05`)
+
+**Status:** an analysis by Claude Code on `ccb8f05` at the owner's direction, after the validation
+and its review; not reviewed. Post hoc and exploratory: no fit and no run; `sim/a2_tradeoff.py`
+and its tests, its output in
+[`verification/reports/a2-tradeoff-ccb8f05/`](../verification/reports/a2-tradeoff-ccb8f05/README.md),
+apart from the original artefacts, which are unchanged. The validation's results, threshold and
+conclusions (§13.23) stand as they are. No threshold is chosen or adopted. A2 stays open and
+blocking; D38 stays apart.
+
+**What the validation now is.** This reading uses the validation's 400 records alone, with the
+frozen `t` to locate its point. Reading them over every threshold turns them into development
+material: any rule, threshold or indicator this reading suggests would need verifying on new data,
+under a new declaration, with new seeds (§13.10, item 4; §13.20).
+
+**Method.** For each comparison apart — C3/C0, C3/C1, C5/C0, C5/C1 — the evaluable values of the
+unbalanced case and of the neutral one; the rule `I > t`, `t` descending through every distinct
+value of either, then below every value, where all are flagged; at each `t`, the detections among
+the unbalanced case's evaluable runs and the false alarms among the neutral case's. Ties move both
+counts in one step; a zero is flagged only below every value. Not-evaluable runs stay outside the
+curves and are counted per case, as in §13.23: C0 99 evaluable of 100, C1 99, C3 96, C5 96. Each
+curve's trapezoidal area equals §13.21's separation, ties ½, in all four comparisons. The area
+rests on 96 and 99 runs, not on the 9,504 pairs, which are not independent observations; no
+interval is drawn on a curve or an area.
+
+**Curves.** For each count of false alarms, the most detections the curve reaches with at most
+that many, and the fewest false alarms reaching them (`tradeoff.json` keeps every point):
+
+| False alarms at most, of 99 | C3/C0 | C3/C1 | C5/C0 | C5/C1 |
+|---|---|---|---|---|
+| 0 | 1 at 0 | 14 at 0 | 0 at 0 | 1 at 0 |
+| 1 | 13 at 1 | 23 at 1 | 1 at 1 | 4 at 1 |
+| 2 | 13 at 1 | 34 at 2 | 1 at 1 | 7 at 2 |
+| 5 | 32 at 5 | 43 at 5 | 5 at 5 | 13 at 5 |
+| 10 | 39 at 10 | 57 at 9 | 12 at 10 | 18 at 10 |
+| 20 | 62 at 20 | 69 at 19 | 22 at 20 | 26 at 19 |
+| 50 | 74 at 47 | 75 at 46 | 41 at 50 | 45 at 50 |
+| Frozen `t` | 23 at 5 | 23 at 2 | 4 at 5 | 4 at 2 |
+| `t = 0`, zeros unflagged | 78 at 69 | 78 at 78 | 66 at 69 | 66 at 78 |
+| Area | 0.7209 | 0.7563 | 0.4737 | 0.5001 |
+
+Detections are of 96 evaluable runs. Each row but the frozen one picks its threshold on these same
+runs: it is in-sample and optimistic, not a rate a rule fixed in advance would reach. On C3/C0, for
+instance, 32 detections at 5 false alarms against the frozen `t`'s 23, a threshold set on other
+runs and for both neutral cases.
+
+**What the trade-off suggests**, for the owner's choice; no campaign is started or declared.
+
+- *C3.* Flagging most C3 runs costs many false alarms on these runs: 62 and 69 of 96 with 20 and
+  19 of 99 neutral runs flagged, about a fifth; 74 and 75, three quarters, only with 47 and 46,
+  about half. The frozen point sits at the low-false-alarm end. No threshold
+  of this indicator separates C3 from the neutral cases on a single test at `N = 3,000` here: the
+  trade-off is gradual, and a threshold chosen on these data would not change that.
+- *Zeros.* A single counted class sets `I` to 0 in 18–30% of every case's runs (C0 30, C1 21, C3
+  18, C5 30): no threshold flags a zero without flagging every zero of both cases, the last step of
+  each curve.
+- *C5.* The curves lie near the diagonal, areas 0.47 and 0.50: here C5 runs are flagged about as
+  often as neutral ones at every threshold.
+- *Paired and single.* §13.19's paired ordering, 14 of 16, and this unpaired separation, 0.72 and
+  0.76, measure different things; a single test faces the second.
+- *For a next step.* Used alone on one test at this size, this indicator cannot serve the
+  whole-test objective: any threshold either misses most C3-like forms or flags many neutral ones.
+  Directions a new declared study could take, each with its own development and validation data:
+  how the separation changes with the sample size; whether another statistic of the same fits
+  separates better, chosen on development data only; or whether A2's effort belongs on its other
+  questions — composition and the target (§13.13) — rather than on detection. None is adopted.
