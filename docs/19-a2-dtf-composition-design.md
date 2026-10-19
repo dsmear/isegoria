@@ -342,6 +342,13 @@ Static review of `d88853a` (§13.13, the proposal), distinct from the reviews ab
 - **Owner's authorization:** a bounded, read-only change to `scoring::latent` exposing the
   candidates already computed, and the harness to record them; not the 24 runs at full size.
 
+Approval of `2e2572c` (§13.14's diagnostics and harness), distinct from the reviews above:
+
+- **Approved:** for this exploratory look only.
+- **Astra's evidence:** the code, the gate and the checks read; the 21 Python tests of
+  `sim/test_a2_probe.py` run. No Rust and no fit.
+- **Then:** the owner authorized the 24 runs of phase `candidates` alone (§13.15).
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -2650,9 +2657,10 @@ experiment above, and is not taken here.
 
 ### 13.14 Candidates' diagnostics: implementation and declaration (not run)
 
-**Status:** implemented by Claude Code on `d88853a` under the owner's authorization (record before
-§1): the read-only change to `scoring::latent` and the harness; not reviewed. Not run: the 24 runs
-at full size, and every other fit at `N = 3,000`. A2 stays open and blocking; D38 is not decided.
+**Status:** implemented by Claude Code on `d88853a` under the owner's authorization: the read-only
+change to `scoring::latent` and the harness, committed as `2e2572c`; approved by Astra on `2e2572c`
+for this exploratory look (records before §1); its 24 runs authorized and run (§13.15). A2 stays
+open and blocking; D38 is not decided.
 
 **What changes in `scoring::latent`.** `latent_dif_with` now calls the same search with no
 collector; `latent_dif_candidates` calls it with one and returns the identical fit with every
@@ -2715,3 +2723,80 @@ python3 sim/a2_probe.py check characterization-results/a2-candidates
 python3 sim/a2_probe.py compare-first characterization-results/a2-candidates verification/reports/a2-probe-9511ce1/records.jsonl
 python3 sim/a2_probe.py candidates characterization-results/a2-candidates verification/reports/a2-probe-9511ce1/records.jsonl
 ```
+
+### 13.15 Candidates' diagnostics: result (run on `2e2572c`)
+
+**Status:** run by Claude Code on 2026-10-19 on `2e2572c`, as §13.14 declares, after Astra's
+approval for this exploratory look and the owner's authorization of its 24 runs (record before §1);
+not reviewed. Evidence: **E** the run; **C** the oracle's check and the reproduction check; the raw
+records, plan, ledger, checks and reports in
+[`verification/reports/a2-candidates-2e2572c/`](../verification/reports/a2-candidates-2e2572c/README.md).
+An exploratory look at the first probe's own 24 batches: no independent confirmation, no
+frequency, no bound. A2 stays open and blocking; D38 is not decided.
+
+**Execution and preconditions.** Candidate checked: `HEAD` = `origin` = `2e2572c`, no later commit,
+`crates/scoring/src/latent.rs` the engine's only difference from `6274270`, a clean tree, a new
+directory. The declared command, with its caps: exit 0, 24 of 24 runs `read`, no stop. Every
+condition held before any candidate was read: `check` exit 0 (312 values, largest `|A − B|`
+`1.9·10⁻¹⁵`); the audit of phase `candidates` complete, 24 records of 24, no duplicate, missing,
+failed or killed run; `compare-first` exit 0 against the first probe's records, 24 compared, no
+missing twin, no declared field differing. At full size, then, the diagnostic path reproduced the
+first probe's outputs for these batches. The candidates report exited 0.
+
+**Cost, measured.** CPU 599.4 s, 10.0 of the 30 minutes; wall time 90.2 s of the 15 minutes;
+largest sampled resident sum 53.2 MiB (54,480 KiB), each run's peak 6.2–6.5 MiB; largest gap
+between checks 150 ms; 8 workers. CPU a run, mean and range: C0 24.8 s (13.6–35.6), C3 25.9
+(18.4–32.5), C5 24.2 (14.7–30.5), for an estimate of 21–22 s: 10.0 CPU-minutes for an estimated
+8.7. The same fits took 21–22 s a run in §13.12: their time varies, their outputs do not.
+
+**Results.** Every run fitted three candidates — one class; two classes with shared slopes; two
+with per-class slopes — and selected the one-class fit; every two-class candidate was set aside
+as "BIC not lower", so no three-class candidate was tried. Ranges are over comparable candidates:
+the one-class baseline and the candidate both converged.
+
+| Case (generating DTF) | Baseline converged | Variant | Converged; comparable | Gain `2 Δ log L` | Penalty `Δk ln N` | `Δ BIC` | Two classes counted; their `DTF_F` | Gain minus C0's, paired: range; positive |
+|---|---|---|---|---|---|---|---|---|
+| C0 (0) | 8 of 8 | shared | 8; 8 | 10.65–26.46 | 80.06 | 53.61–69.41 | 4 of 8; 0.313–0.433 | — |
+| | | per-class | 8; 8 | 22.58–43.57 | 144.11 | 100.55–121.54 | 7 of 8; 0.104–0.736 | — |
+| C3 (0.560–0.652) | 6 of 8; r0, r2 `max_iters` | shared | 8; 6 | 11.88–19.59 | 80.06 | 60.47–68.19 | 5 of 6; 0.467–0.871 | −8.83 to +3.51; 3 of 6 |
+| | | per-class | 8; 6 | 23.42–44.67 | 144.11 | 99.45–120.70 | 5 of 6; 0.540–1.358 | −12.88 to +7.15; 3 of 6 |
+| C5 (0.132–0.154) | 8 of 8 | shared | 8; 8 | 10.46–24.96 | 80.06 | 55.11–69.60 | 4 of 8; 0.444–0.741 | −8.62 to +9.57; 4 of 8 |
+| | | per-class | 8; 8 | 25.55–41.81 | 144.11 | 102.31–118.57 | 6 of 8; 0.182–0.734 | −6.88 to +4.58; 3 of 8 |
+
+Every two-class candidate has two nominal classes; where one held under 5% it counted one, and its
+`DTF_F` is 0 by construction, "one counted class"; no `DTF_F` was unavailable. Proportions are in
+the records and the report. C3's r0 and r2 are listed apart: their baseline did not converge,
+both two-class candidates did, with `DTF_F` 0.52–0.97; their gains are not read.
+
+**Readings, proportionate.**
+
+- On these batches, C3's comparable two-class candidates do not separate from C0's: the paired gain
+  differences take both signs, 3 of 6 positive in each variant, and C3's gains fall within C0's
+  ranges (per-class maximum 44.67 against 43.57). C5 the same: 4 of 8 and 3 of 8 positive. As
+  §13.13 states, this shows neither the information absent nor the model generally unable: other
+  starts, sizes and estimators are untried, and a §13.8-type bound for C3-like alternatives is a
+  separate question.
+- The candidates' whole-form `DTF_F` does not follow the generating DTF here: under C0's null it
+  reached 0.10–0.74 where two classes were counted, overlapping C3's candidates (0.47–1.36) and
+  passing C3's generating DTF (0.56–0.65). On these batches a non-selected mixture's `DTF_F` is no
+  evidence about the form's DTF.
+- Every two-class gain (10.5–44.7) stayed below its penalty (80.06 and 144.11), `Δ BIC` 53.6–121.5.
+  Since C3's gains do not exceed C0's, this does not show a signal the penalty discards; nothing
+  here calls for a change of the BIC, and none is made.
+- C3's two `max_iters` runs: the one-class fit did not converge while both two-class candidates did.
+  This locates the non-convergence in the baseline on those two batches — B1–B3 — and attributes no
+  cause.
+
+**Against §13.13's three questions.** Composition is unchanged by this look. Detection: on these
+batches at `N = 3,000`, neither the selected fit (whole-form estimate 0) nor the non-selected
+candidates told C3's spread DIF apart from C0. Uncertainty: under the null, the candidates'
+statistics spread as widely as under C3, so these fits give no evidence separating a form balanced
+enough from one they cannot evaluate. A whole-test check resting on this model at this size would
+have to report such forms as not evaluable; that is a consequence for A2's design (§§11–13), not a
+policy adopted here.
+
+**Limits.** The 24 batches are §13.12's: exploratory, 8 replicates a case, no rate. One start per
+candidate kept; only the candidates tried; one design (`N = 3,000`, 60 anchors, eight open items);
+no bound, no change to the BIC, the model or the search. Questions left open, none started: whether
+C3-like spread DIF is distinguishable at this size at all, a §13.8-type bound for that alternative,
+and whether another size or estimator separates it.

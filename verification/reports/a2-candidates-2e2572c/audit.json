@@ -1,0 +1,17 @@
+{
+ "phase": "candidates",
+ "planned": 24,
+ "replicates": 8,
+ "records": 24,
+ "invalid_lines": [],
+ "duplicates": [],
+ "unplanned": [],
+ "inconsistent": [],
+ "ended_without_record": [],
+ "record_without_end": [],
+ "started_not_ended": [],
+ "never_started": [],
+ "not_observed": [],
+ "stop": null,
+ "status": "complete"
+}

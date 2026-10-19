@@ -103,8 +103,8 @@ direction of 2026-10-18
   by Astra on `9511ce1` for it alone, run on `9511ce1` (`19` §13.12; evidence in
   `verification/reports/a2-probe-9511ce1/`), its results accepted by Astra on `ee5cf3b` as bounded
   diagnostic evidence. It closes nothing: in C3 the whole-form estimate was 0 for forms whose
-  generating DTF is 0.56–0.65; §13.13 proposes and §13.14 implements and declares the next
-  bounded experiment, not run.
+  generating DTF is 0.56–0.65; §13.13 proposed, §13.14 implemented and §13.15 ran the next
+  bounded, exploratory look on the same batches (not reviewed); it closes nothing either.
 - **Suspended:** implementation of the certifier until its contract decisions are made.
   D38's treatment of pertinent factual-knowledge differences remains to be reconciled explicitly;
   no compensation or admission policy changes through this documentation.

@@ -1,0 +1,2 @@
+24 runs planned (8 replicates); 8 workers; caps Caps { cpu_ms: 1800000, wall_ms: 900000, run_ms: 600000, rss_kib: 2097152 }; out characterization-results/a2-candidates-2e2572c
+outcomes {"read": 24}, 0 already ended; session CPU 599440 ms, wall 90203 ms, largest sampled resident sum 54480 KiB, largest gap between checks 150 ms; stop: none

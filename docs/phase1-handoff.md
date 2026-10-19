@@ -25,9 +25,9 @@ bounded probe after a static reading and the 18 Python tests, with no Rust and n
 `9511ce1`, 2026-10-19 (`19` §13.12):** explore 6 of 6 and confirm 48 of 48 runs read, every check
 and report complete, `R = 8` from the cost rule, 28.7 CPU-minutes and 4.4 wall minutes in all.
 **Accepted by Astra on `ee5cf3b` as bounded diagnostic evidence,** after checking the preserved
-records and reproducing the confirm report and both analysis files, with no Rust and no new fit;
-A2 stays open and blocking. The current path read C1's ability difference and C5's weak signal
-exactly as C0. In C3, with spread DIF on active items (generating form DTF 0.56–0.65), no item was
+records and reproducing the confirm report and both analysis files, with no Rust and no new fit; A2
+stays open and blocking. The current path read C1's ability difference and C5's weak signal exactly
+as C0. In C3, with spread DIF on active items (generating form DTF 0.56–0.65), no item was
 contested, so the contested cost was absent, and the whole-form estimate was 0 in 6 of 6 converged
 runs; 2 of 8 did not converge. D38's balancing left out every uncompensated sourced fact in C2.
 Diagnostic examples, not rates; evidence in `verification/reports/a2-probe-9511ce1/`. **Next,
@@ -36,8 +36,17 @@ and uncertainty apart. Astra's review of `d88853a` was static (the proposal and 
 read, no test and no fit); the owner then authorized a read-only change to `scoring::latent`
 (`latent_dif_candidates`, the identical fit plus every candidate the search fitted) and the harness
 phase `candidates`: C0, C3 and C5 refitted on confirm's 8 seeds, an exploratory look at the same
-batches, its reproduction of the first probe binding. Small tests show the diagnostic fit equal bit
-for bit; the 24 runs at full size are not authorized and not run. D38's semantic choice stays apart.
+batches, its reproduction of the first probe binding. Small tests showed the diagnostic fit equal
+bit for bit. Astra approved `2e2572c` for this exploratory look alone, after reading the code, the
+gate and the checks and running the 21 Python tests, with no Rust and no fit. **Run on `2e2572c`,
+2026-10-19 (`19` §13.15):** 24 of 24 runs, no stop, every precondition held — check, a complete
+audit, the first probe reproduced on all 24 batches — 10.0 CPU-minutes, 90 s of wall time. On these
+batches C3's comparable two-class candidates did not separate from C0's (paired gains of both signs,
+3 of 6 positive in each variant), and the candidates' whole-form `DTF_F` under C0's null (0.10–0.74)
+overlapped C3's; every two-class gain stayed below its penalty, with no signal shown discarded and
+no BIC change. C3's two `max_iters` were the one-class baseline. Exploratory, no rate, not reviewed;
+evidence in `verification/reports/a2-candidates-2e2572c/`. No next step started. D38's semantic
+choice stays apart.
 
 The C6 record and earlier work below retain their historical states; current A2 work
 authorization is the paragraph above and `15`'s A2 state.
@@ -1103,8 +1112,8 @@ current status and next work are in §5.2. This does not close Phase 1.
   (`01` D44; `19` §13.10) now permits evaluation design and bounded, predeclared tests;
   certifier implementation awaits its contract decisions (`15`, A2's current state). The first
   such probe ran on `9511ce1` (`19` §13.12), accepted by Astra on `ee5cf3b` as bounded
-  diagnostic evidence; the next bounded experiment is proposed in §13.13 and implemented in
-  §13.14, not run.
+  diagnostic evidence; the next bounded experiment is proposed in §13.13, implemented in §13.14
+  and run on `2e2572c` (§13.15): exploratory, not reviewed.
 - **A1: closed for the conditional expected-score guarantee**, Astra’s judgment on
   `1bd865c` (`17` §14.15). O1, conditional design A (O2) and O3 are acquired; the premises
   are accepted as model assumptions, not properties of the current protocol. The original
@@ -1230,7 +1239,7 @@ decision, **L** a documented limit.
 |---|---|---|---|---|---|
 | A1, closed conditionally on `1bd865c` | `15` A1 current criterion; `17` §14.15 | exact expected-score claim, strategies and premises accepted by Astra as mathematical-model assumptions | operational gaps remain; not missing premises for this restricted judgment | no certification of current runtime, execution, resources, authentication or reputation | none to repeat the approved judgment; residual realization and A12’s conditional closure remain tracked |
 | A12, distinct, closed conditionally on `15b846c` | owner-amended AT-REP-01; `16` §7.3 | composed exact complete-offline affine claim, one final rounded conversion and frozen first/supplementary consumers; fixed opportunities/common filtration and joint invariance assumed | no missing premise for that restricted judgment; legacy/reset, causal influence/fit, generic betrayal and incomplete-data operation excluded | separate final-model, SC-1, A2 and T26 gates; Phase 1 incomplete | none to repeat the accepted closure; current scope and exclusions in `16` §7.3 |
-| A2, high, open; R1 approved | `15` A2; `19` §§11–13 | §11 contract approved on `5e600be`; §12 coverage proof accepted on `5102852` under its hypotheses; §13.3 corollary accepted in its domain (one-class truth, arbitrarily small shares, contrast admitted) | target domination, certified supremum, usefulness, cost and scope unresolved; no implementation | declared model/i.i.d. reference and independent split; symbolic target linkage; calibration undecided | the first bounded probe, declared in `19` §13.11, ran on `9511ce1` (§13.12), its results accepted by Astra on `ee5cf3b` as bounded diagnostic evidence; next bounded experiment proposed in §13.13, implemented and declared in §13.14, not run; §13.8's accepted obstacle remains; the design decision is pending and certifier implementation remains suspended |
+| A2, high, open; R1 approved | `15` A2; `19` §§11–13 | §11 contract approved on `5e600be`; §12 coverage proof accepted on `5102852` under its hypotheses; §13.3 corollary accepted in its domain (one-class truth, arbitrarily small shares, contrast admitted) | target domination, certified supremum, usefulness, cost and scope unresolved; no implementation | declared model/i.i.d. reference and independent split; symbolic target linkage; calibration undecided | the first bounded probe, declared in `19` §13.11, ran on `9511ce1` (§13.12), its results accepted by Astra on `ee5cf3b` as bounded diagnostic evidence; next bounded experiment proposed in §13.13, implemented in §13.14, run on `2e2572c` (§13.15, not reviewed); §13.8's accepted obstacle remains; the design decision is pending and certifier implementation remains suspended |
 | B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: S1's scenarios and decision criteria declared, then one campaign on an identified candidate, its design declared before execution; Pr where identification or coverage is claimed, which simulations do not replace | A2's target; the owner's authorization of the campaign | S1's declaration, no run |
 | A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; its producer `revalidate_pool` read a separated fit as DIF, corrected and closed on `52f3822` with the boolean's limit stated; (c), the retired proxy path, fixtures only: L, its contract clarified, closed on `52f3822`; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
 | A8, A9, medium; closed within the bounded claim rectification | `15`: distinguishability, identifiability and power apart (A8); hypotheses or a controlled approximation (A9) | bounded paper/document correction, exact A8 witness and nondegenerate A9 stationary witness with residual bound (`15` rectification record) | no missing evidence for these corrected claims; generic identifiability, detector power and error bounds for historical fits are not established | — | none to repeat the accepted rectification (`15`) |
@@ -1369,7 +1378,8 @@ A2: `docs/19` §11 (contract approved on `5e600be`), §12 (coverage proof accept
 its hypotheses), §13 (review, corollary accepted in its domain; the information check's contract
 accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the owner's deferral;
 §13.10, the owner's direction of 2026-10-18; §13.11, the first probe's declaration and harness;
-§13.12, its result; §13.13, the next step; §13.14, its implementation and declaration);
+§13.12, its result; §13.13, the next step; §13.14, its implementation and declaration; §13.15,
+its result);
 `sim/a2_probe.py`, `crates/scoring/src/latent.rs` (`latent_dif_candidates`),
 `crates/characterization/src/{probe,probe_jobs}.rs`,
 `crates/characterization/tests/{a2_probe,a2_probe_jobs}.rs`;
