@@ -566,6 +566,24 @@ Review of `6d57cac` (§13.30), distinct from the reviews above:
   binding to the calibration pass; the declared readings alone, the comparison with 3,000
   descriptive (§13.31).
 
+Review of `ea640e2` (§13.31), distinct from the reviews above:
+
+- **Astra's evidence:** the complete audit of the 400 records verified, no stop; the numerical
+  check rerun on the 5,200 values, with no error; the report reproduced save the calibration's
+  local path, the JSON identical; `val_check.py` and `cost_check.py` rerun, their results
+  agreeing; the calibration's manifests before and after identical. No Rust execution and no new
+  fit.
+- **Accepted:** the results, within the declared scope. A2 is not closed.
+- **Reading approved:** C3 has 46 detections and 54 misses of 100, and the indicator is not
+  justified as a sufficient check of the whole test; C0's 5/100 and C1's 4/99 are observed false
+  alarms, not a guarantee of 5%; C5 shows no evident useful separation in these data, with no
+  general deduction about the information available; C3's separation of 0.77–0.79 is not
+  classification accuracy, and the exploratory 0.94 of §13.27 did not recur in this larger
+  validation; the comparison with `N = 3,000` stays descriptive, size, seeds and thresholds
+  differing; no new threshold and no automatic increase of `N`.
+- **Owner's direction:** a short technical balance identifying the next concrete obstacle to A2's
+  closure, documentation only — no fit, run, code change or new quantitative analysis (§13.32).
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -4319,9 +4337,10 @@ C5 unmeasured at 6,000.
 
 **Status:** run by Claude Code on 2026-10-20 on `6d57cac`, once, as §§13.28–13.29 declare, against
 the calibration frozen there, after Astra's acceptance of the calibration and the owner's
-authorization of the 400 runs (record before §1). Not reviewed. Evidence: **E** the run; **C** the
-oracle's check, the declared reading and a recomputation apart from it, its intervals by SciPy; the
-records, plan, ledger, checks and readings in
+authorization of the 400 runs (record before §1). The results were accepted by Astra on `ea640e2`
+within the declared scope, with the reading recorded before §1 and below; A2 is not closed.
+Evidence: **E** the run; **C** the oracle's check, the declared reading and a recomputation apart
+from it, its intervals by SciPy; the records, plan, ledger, checks and readings in
 [`verification/reports/a2-ind-val6-6d57cac/`](../verification/reports/a2-ind-val6-6d57cac/README.md).
 The declared readings alone: no new threshold, no pooling of cases, no success criterion, no
 analysis suggested by the results. No rule, threshold, seed, engine or design changed after the
@@ -4390,9 +4409,106 @@ neither tested nor attributed to a cause, and nothing is pooled.
 **Scope, as declared in §13.28.** These are the screening's frequencies at this frozen `t` in four
 synthetic designs at `N = 6,000`, inside the model's family; nominal α = 0.05 was a target of the
 rule, not a guarantee. They are not §11.2's guarantee or §12's coverage, close no obligation of
-§13.6 and adopt no admission or compensation policy; the indicator stays diagnostic. The reading
-of these results awaits review.
+§13.6 and adopt no admission or compensation policy; the indicator stays diagnostic.
+
+**Reading approved on `ea640e2`** (record before §1). With the frozen threshold C3 has 46
+detections and 54 misses of 100; the indicator is not justified as a sufficient check of the whole
+test. C0's 5/100 and C1's 4/99 are observed false alarms, not a guarantee of 5%. C5 shows no
+evident useful separation in these data, with no general deduction about the information
+available. C3's separation of 0.77–0.79 is not classification accuracy; the exploratory 0.94 of
+§13.27 did not recur in this larger validation. The comparison with `N = 3,000` stays descriptive:
+size, seeds and thresholds differ. No new threshold and no automatic increase of `N`.
 
 **Limits.** One calibration and one validation; 100 runs a case; one size, one design and its item
 laws; the default `LatentParams`, the chosen start's solution kept; the indicator chosen after the
 development data (§13.20). No further experiment is started.
+
+### 13.32 Balance after the screening studies, and the next obstacle (proposal, not adopted)
+
+**Status:** written by Claude Code on `ea640e2` at the owner's direction (record before §1).
+Documentation only: no fit, run, code change or new quantitative analysis; earlier results are
+cited, not recomputed. The criterion (`15` A2; §§11–12; §13.9) is unchanged, no approved result is
+reopened, and the whole-test objective stays adopted. The recommended step is a proposal for
+review, not an authorization to start it. A2 stays open and blocking; D38 stays apart.
+
+**Against the closure criterion.** `15` A2 asks to specify the target measure, linking assumptions
+and whole-test contribution, then prove the bound and keep estimation error apart; a
+sampling-error margin alone does not close it. Per §13.6's obligations:
+
+| Obligation | Acquired | Added by §§13.11–13.31 | Missing |
+|---|---|---|---|
+| diagnosis, claims rectified | `0519626`; R1 on `d13bf09` | on the current path, the gap R1 names: C3's contested cost absent and its whole-form `DTF_F` 0 for a generating DTF of 0.56–0.65 (§13.12) | — |
+| target: `μ`, linkage, contrasts, whole-test contribution | symbolic objects, as a contract (§11.1) | within one fit the whole-form functional covers every item (§13.13); D38's reading changes which contrasts count (§§13.12–13.13) | `Γ_β`, `μ`, scale and `𝒢`, §11.5's owner declarations; composition across fits (§4 row 2, §9) |
+| a, domination | §3's conditional proposition | nothing: frequencies in synthetic designs bound no target | §11.2 a; §12.5's deliverable, set aside in §13.7 |
+| b, coverage | proof accepted on `5102852` under its hypotheses | nothing: no region computed; the studies read the BIC path and one candidate's plug-in | a computation meeting §12.3's inclusion, with c; the premises below |
+| c, conservative computation | the requirement (§12.3) | nothing: local fits, four seeded starts, the chosen solution kept (§13.19) | §11.2 c |
+| estimation error apart | carried by b and c | the intervals of §§13.23 and 13.31 are a screening frequency's sampling error in synthetic designs, not a test's estimation error | b and c realized |
+| usefulness | excluded in §13.3's domain and below §13.8's frontier | nothing about a certificate: a screening rule's frequencies are not a valid bound's acceptance probability | §11.3; achievability shown nowhere; §12's acceptance probability not studied |
+| cost | not assessed | a diagnostic fit's: about 39–44 CPU-seconds a run at 6,000 (§13.31) | §11.3; `15` D2, D4 |
+| decision and scope | missing | — | §11.5 row 4; §9.5 |
+| model and sampling premises | assumed | synthetic data inside the model's family only | `15` B1–B3; §12.1 |
+
+What the studies did add lies at the level of a screening indicator, in these designs: the
+selected fit keeps one class and zeroes the contrast where a two-class candidate holds C3's signal
+(§§13.12–13.19), and a rule frozen in advance on that candidate has the frequencies of §§13.23 and
+13.31, read as approved on `ea640e2`.
+
+**Indicator, estimate, bound** — three objects, not interchangeable (`01` D44: measure, constrain
+and certify are distinct):
+
+- *Indicator:* `I` against a frozen `t` (§§13.21, 13.28) flags possible imbalance, with frequencies
+  that belong to its designs. Not flagged is not balanced: 54 of §13.31's 100 C3 runs are not
+  flagged, for forms whose generating DTF §13.11 places at 0.567–0.641 (5% to 95% of the item law).
+- *Estimate:* one fit's plug-in `DTF_F`. The selected fit's is 0 by construction with one class: a
+  one-class selection means the chosen model has no classes to compare, not that no other class
+  exists (§13.13). A candidate's is a point value shown neither accurate nor a bound (§13.19).
+- *Bound:* `U(X)` with `inf_Ξ P(DTF_μ(T) ≤ U) ≥ 1 − α` (§11.2), the objective.
+
+The missing passage is from one fitted model to every law the data do not exclude: §12's inversion
+over all of `Ξ`, then a majorant's supremum over that region (a and c). No indicator or estimate
+crosses it at any `N`: a frequency over synthetic replicates is no coverage statement for a given
+test.
+The passage is blocked before a and c. On §12's `Ξ` — components of any share, a free linkage —
+under a one-class truth every valid certificate accepts at a tolerance below `½ Σ_{j∈T} (1 − c_j)`
+with probability at most `α` (§13.3); against spread small DIF, in §13.5's domain at `δ = 0.10`,
+every `(α, β)` with `α + β < 0.8138` is excluded at the declared forms and sizes, floors up to ½
+included (§13.8). A certificate always returning `m` or none would be valid and fail §11.3.
+**The next concrete obstacle is obligation a on a target that is not useless by construction:**
+`Γ_β` and `B_T` are unspecified, and the restrictions that could escape §§13.3 and 13.8 are owner
+decisions, deferred in §13.9 and never written precisely enough to be judged against those
+results.
+
+**Recommended next step: a conditional target-and-majorant specification (obligation a).**
+
+- *Problem.* §12.5's deliverable was set aside because on `Ξ` its certificate is useless (§13.7).
+  Whether a restriction already named leaves a target worth proving on is not established: a share
+  floor on `Ξ`'s components, or contrasts limited to groups present at some share at every ability
+  (§13.3); a larger tolerance, or an assumption excluding spread small DIF (§13.7).
+- *Deliverable,* in this document: `Γ_β`, `μ`, scale and `𝒢` for the fixed-form,
+  complete-administration reference, with what `β` fixes and what stays free; for each named
+  restriction, alone or combined — none adopted, its parameter symbolic — the proof of
+  `DTF_μ(T) ≤ B_T(β, γ)` for every admitted pair on all active and contested items, from §3 with
+  the envelope where composition varies with ability; and which of §13.3's construction and
+  §13.8's `Q_τ` it excludes, cited from §§13.3–13.8 or proved. A floor excludes the first, not the
+  second, whose classes sit at ½ at every ability.
+- *Premises and owner decisions.* The owner's authorization to develop a conditionally: §13.9
+  suspended it with the certifier's work, and §13.10 lifted that suspension for documentation,
+  evaluation design and bounded tests without naming a. No restriction, tolerance or level is
+  adopted by the step. D38's effective dependency: whether a sourced fact's difference is a
+  contrast to compensate or measured knowledge changes `𝒢` or the items it constrains; the
+  specification carries both readings as a parameter and decides neither (§13.13; `01` D44).
+- *Complete when* Astra has checked each proof, its support, measure and alignment hypotheses
+  explicit and no unidentified linkage collapsed to a plug-in, and each candidate's usefulness is
+  labelled excluded or open with its source, never shown. §13.7's stop rule holds: after two
+  reviews still blocked, §11's contract is re-examined rather than deepened.
+- *Then.* The owner can decide the claim with its consequences written. For a candidate kept, c
+  gains a defined objective, the supremum of a stated `B_T` over §12's region, and a study of §12's
+  acceptance probability under a balanced truth, usefulness's achievability side, becomes
+  declarable. Neither starts with this step.
+
+**Alternatives.** *More campaigns on `I`*, at other `N`, cases or thresholds, would refine a
+screening rule's frequencies, which no number of runs turns into a bound with coverage for a given
+test; the approved reading excludes a new threshold or an automatic increase of `N`. *Obligation c
+first*, or §12's region implemented, would have no objective without `B_T` and `Γ_β`, and on the
+unrestricted `Ξ` its certificate would be useless (§13.3). The specification comes first: c depends
+on it, it needs no run, and further campaigns on `I` would not move the objective closer.

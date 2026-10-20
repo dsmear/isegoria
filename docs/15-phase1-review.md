@@ -131,9 +131,18 @@ direction of 2026-10-18
   calibration, which ran there once (§13.30; evidence and the frozen threshold in
   `verification/reports/a2-ind-cal6-2a01b81/`), accepted by Astra on `6d57cac` as the application
   of the declared rule, not as a validation result. The validation ran there once against it
-  (§13.31; evidence in `verification/reports/a2-ind-val6-6d57cac/`), its results not yet reviewed:
-  at the frozen threshold, false alarms C0 5/100 and C1 4/99, detections C3 46/100 and C5 7/99.
-  It is a screening statistic, not §11.2's guarantee or §12's coverage. It closes nothing.
+  (§13.31; evidence in `verification/reports/a2-ind-val6-6d57cac/`), its results accepted by Astra
+  on `ea640e2` within the declared scope: at the frozen threshold, false alarms C0 5/100 and C1
+  4/99, observed, not a 5% guarantee; C3 46 detections and 54 misses of 100, the indicator not
+  justified as a sufficient whole-test check; C5 no evident useful separation in these data; no
+  new threshold and no automatic increase of `N`. It is a screening statistic, not §11.2's
+  guarantee or §12's coverage. It closes nothing.
+- **Balance and next obstacle (`19` §13.32, a proposal, not adopted):** the studies add evidence on
+  a screening indicator, none on obligations a–c, usefulness or a certificate's cost. The next
+  concrete obstacle is obligation a on a target not useless by construction (§§13.3, 13.8). The
+  recommended step, a conditional target-and-majorant specification under the restrictions
+  already named, none adopted, needs the owner's authorization of conditional work on a; it is
+  not started.
 - **Suspended:** implementation of the certifier until its contract decisions are made.
   D38's treatment of pertinent factual-knowledge differences remains to be reconciled explicitly;
   no compensation or admission policy changes through this documentation.
