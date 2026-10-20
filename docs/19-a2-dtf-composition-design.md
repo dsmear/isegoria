@@ -506,6 +506,23 @@ Review of `b8c9dce` (§13.26's correction), distinct from the reviews above:
 - **Owner's authorization:** one execution of the 64 declared tasks on `b8c9dce`, with their caps
   (§13.27).
 
+Review of `e0c7248` (§13.27), distinct from the reviews above:
+
+- **Astra's evidence:** the complete audit of the 64 records verified; the numerical check rerun
+  on the 832 values, with no error; `size-report.md` reproduced exactly and the JSON found to
+  coincide; `size_check.py` rerun, in agreement with the preserved readings. No Rust execution
+  and no new fit.
+- **Accepted:** the results, as bounded exploratory evidence.
+- **Reading approved:** at 6,000 the observed separation is higher both on every evaluable run
+  and on the common replicates; the improvement is not explained by the change of the excluded
+  runs alone, and the common comparison stays conditional on that subset; 0.942 is not
+  classification accuracy, and 1.0 on the common subset does not certify a perfect separation;
+  the result justifies looking further at `N = 6,000`, attributing the improvement to no specific
+  component; the ordinary path still selects one class, so the evidence concerns the diagnostic
+  indicator, not a check already operational.
+- **Owner's direction:** a declaration of a calibration and a validation at `N = 6,000`,
+  documentation only (§13.28).
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -3909,7 +3926,8 @@ this path. The reading is descriptive: 16 replicates a cell, no interval, no thr
 
 **Status:** run by Claude Code on 2026-10-19 on `b8c9dce`, once, as §§13.25–13.26 declare, after
 Astra's acceptance of the corrections and the owner's authorization (record before §1). The
-results are not reviewed. Evidence: **E** the run; **C** the oracle's check, the declared reading
+results were accepted by Astra on `e0c7248` as bounded exploratory evidence, with the reading
+recorded before §1 and below. Evidence: **E** the run; **C** the oracle's check, the declared reading
 and a recomputation apart from `sim/`; the records, plan, ledger, checks and readings in
 [`verification/reports/a2-size-b8c9dce/`](../verification/reports/a2-size-b8c9dce/README.md).
 Descriptive and coarse: 16 replicates a cell, no interval, threshold or success rule. A2 stays
@@ -3972,3 +3990,75 @@ separated here — and no interval is drawn. Which of §13.25's readings this re
 review. Nothing here sets a threshold at 6,000, carries 0.7984, measures an operational rate, or
 says anything about C1, C5 or other sizes; a later step would need its own declaration. A2's
 obligations (§13.6) and the whole-test objective remain open in any case.
+
+**Reading approved on `e0c7248`** (record before §1). At 6,000 the observed separation is higher
+both on every evaluable run and on the common replicates. The improvement is not explained by the
+change of the excluded runs alone; the common comparison stays conditional on that subset. 0.942
+is not classification accuracy, and 1.0 on the common subset does not certify a perfect
+separation. The result justifies looking further at `N = 6,000`, attributing the improvement to no
+specific component. The ordinary path still selects one class: the evidence concerns the
+diagnostic indicator, not a check already operational.
+
+### 13.28 Next study: calibration and validation at `N = 6,000` (proposal, not implemented)
+
+**Status:** proposed by Claude Code on `e0c7248` at the owner's direction (record before §1);
+documentation only — not reviewed, not implemented, not run; no fit. Implementation and execution
+await review of this declaration. A2 stays open and blocking; D38 stays apart.
+
+**What it would measure, and what not.** The screening's frequencies — false alarms on neutral
+cases, detections on unbalanced ones — of §13.21's rule at `N = 6,000`, in the declared synthetic
+designs. It would not realize §12's coverage or §11.2's guarantee, close A2 or discharge any of
+its obligations (§13.6), and it adopts no admission or compensation policy. The ordinary path
+keeps selecting what it selects; the indicator stays diagnostic.
+
+**Design**, §13.21's at another size; every run seen so far, §13.27's included, is development
+data and enters neither stage:
+
+| Item | Proposed |
+|---|---|
+| Indicator | `I`, the `DTF_F` of the two-class candidate with shared slopes, `LatentParams::default()`, evaluability as in §13.21 |
+| Engine | `crates/scoring` and `crates/protocol` as at `2e2572c`: the model, the search, the BIC rule unchanged (its penalty `Δk ln N` at 6,000 by its own definition) |
+| Size | `N = 6,000`; 60 anchors, eight open items, §13.11's other defaults |
+| Calibration | C0 and C1, 100 runs each |
+| Validation | C0, C1, C3 and C5, 100 runs each |
+| Seeds | new, one per stage, case and replicate: distinct between cases and between the two stages, disjoint from every earlier phase's — smoke to `size` |
+| Threshold rule | §13.21's, unchanged: per neutral case `k_c = ⌈19 (n_c + 1) / 20⌉` among its evaluable values, ties counted, zeros values; fewer than 19 evaluable runs give no finite threshold and stop the study; `t = max(t_C0, t_C1)`; flagged when `I > t` |
+| Target | nominal α = 0.05, as in §13.21: a property of the rule under exchangeability, not a guarantee |
+| Not carried | the threshold 0.7984, set at 3,000, is not used at 6,000 |
+| Freezing | the calibration's `threshold.tsv`, plan, ledger and records committed before validation; the harness binds the validation to them as in §13.21; one validation, no change suggested by its results |
+
+**Analysis, declared before any run**, as §§13.21 and 13.23: per case, never pooled — planned,
+observed, evaluable; scientific not-evaluable outcomes by reason; zeros of `I`; flagged and not
+flagged, as false alarms in C0 and C1 and as detections and misses in C3 and C5; each proportion
+over the planned and, labelled conditional, over the evaluable runs, with an exact two-sided 95%
+Clopper–Pearson interval, marginal, under §13.21's hypotheses; the separation without threshold
+of C3 and C5 each from C0 and C1, ties ½, conditional on evaluable runs, without an interval. A run
+missing, failed or killed, or a stop, is a technical failure: the stage is incomplete and gives no
+reading, with no automatic resumption. §13.23's results at 3,000 may be set beside, described,
+never pooled or tested against these. Not done: another threshold, a band, a success rule, an
+operational meaning for not evaluable, a reading chosen after the results.
+
+**Precision and limits.** With about 96–100 evaluable runs a case, the exact intervals are, for
+instance, [0.016, 0.113] at 5/100, [0.176, 0.360] at 25/96, [0.398, 0.602] at 50/100, [0.869,
+0.977] at 90/96 and [0.962, 1] at 96/96: enough to tell a few false alarms from many, or a
+quarter of detections from most, not to resolve a few points. Each case's threshold rests on its
+largest few calibration values — at 98 or 100 evaluable runs, `k` = 95 or 96. One size, one item
+law, four synthetic designs, one calibration and one validation: the frequencies would hold for
+these, inside the model's family, and say nothing about real populations.
+
+**Cost and caps.** Measured at 6,000 on this path (§13.27, 16 runs each): C0 40.0 s a run, C3
+38.6. Not measured at 6,000: C1 and C5. At 3,000 their per-case means were 21.5–24.6 s and
+21.1–24.2 s (§§13.12–13.23), close to C0's and C3's; at the ratios of C0's and C3's means,
+1.83–1.87, they would take about 39–46 s a run — an estimate, not a measurement. Calibration, 200
+runs: 7,930–8,600 s, 2.2–2.4 CPU-hours, about 18–19 minutes of wall time at §13.27's CPU-to-wall
+ratio of 7.4 with 8 workers. Validation, 400 runs: 15,650–16,980 s, 4.3–4.7 CPU-hours, 35–38
+minutes. Both, 600 runs: 6.6–7.1 CPU-hours, 53–58 minutes. The slowest run so far at 6,000 took
+58 s; each run's peak about 10 MiB. **Caps proposed:** calibration 4 CPU-hours (14,400 s) and 45
+minutes (2,700 s); validation 7.5 CPU-hours (27,000 s) and 90 minutes (5,400 s); each 10 minutes
+a run, 2 GiB aggregate resident, 8 workers; 11.5 CPU-hours and 135 minutes cumulative. Runs this
+long belong on the owner's machine with explicit authorization; a stop authorizes nothing.
+
+**Needs, if approved.** Stages at 6,000 in the harness — new phases or §13.21's with a size —
+with their seed tags, the calibration's binding and the engine check; the readings' contracts at
+that size, with tests on constructed records; review; the owner's authorization of the
+calibration and then, with its threshold committed, of the validation.
