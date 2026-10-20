@@ -98,9 +98,9 @@ common comparison conditional; 0.942 is not accuracy and 1.0 certifies nothing; 
 looking further at 6,000, attributing the gain to no component; the ordinary path still selects
 one class, so the evidence concerns the diagnostic indicator. Cost at 6,000: 38.6–40.0 s a run.
 Evidence in `verification/reports/a2-size-b8c9dce/`.
-**Validated and accepted; balance proposed (`19` §§13.28–13.32):** calibration (C0, C1) and
-validation (C0, C1, C3, C5) at `N = 6,000`, 100 runs a case and stage, new seeds disjoint from
-every earlier phase;
+**Validated and accepted; balance and conditional target (`19` §§13.28–13.33):** calibration
+(C0, C1) and validation (C0, C1, C3, C5) at `N = 6,000`, 100 runs a case and stage, new seeds
+disjoint from every earlier phase;
 §13.21's indicator, engine, rank rule, nominal α = 0.05, larger neutral threshold and `I > t`;
 0.7984 not carried; the threshold committed before one validation. Declared in §13.28, approved
 by Astra on `8e7a560` for the implementation, not the execution; implemented in §13.29 as phases
@@ -122,16 +122,22 @@ a sufficient whole-test check; C0's and C1's false alarms are observed, not a 5%
 evident useful separation, with no general deduction; 0.77–0.79 is not accuracy, and §13.27's
 exploratory 0.94 did not recur; the comparison with 3,000 descriptive; no new threshold and no
 automatic increase of `N`. These are the screening's frequencies in those designs, not §12's
-coverage, and close nothing. **Balance (§13.32, a proposal, not adopted):** the studies add
-evidence at the level of a screening indicator, none on obligations a–c, usefulness or cost of a
-certificate; not flagged is not balanced, and a one-class selection does not show other classes
-absent. The next concrete obstacle is obligation a on a target not useless by construction (§13.3,
-§13.8). Recommended step: a conditional target-and-majorant specification — `Γ_β`, `μ`, scale and
-`𝒢`, and the domination proof under each restriction already named, none adopted, with the known
-obstacle each excludes — after the owner's authorization of conditional work on a; no run. More
-campaigns on `I` come after it. No further experiment is started. D38's semantic choice stays
-apart, its effective dependency being the target's contrasts; the study replaces none of the
-whole-test obligations.
+coverage, and close nothing. **Balance (§13.32),** accepted substantially by Astra on `c314822`
+and rectified: the studies' indicators and frequencies do not realize the coverage and
+conservative-computation obligations; not flagged is not balanced, and a one-class selection does
+not show other classes absent; the next concrete obstacle is obligation a on a target not useless
+by construction (§§13.3, 13.8). **Conditional target and majorant (§13.33; not adopted, not
+reviewed),** under the owner's authorization of conditional mathematical work on a alone: under
+R-a–R-d and R-f's extension, scale and measure fixed by `β`, contrasts as class mixtures left
+free, and the all-class envelope `B_T(β)` dominating the target on every order, no 5% filter, by
+§3's proposition. Domination is not usefulness: §13.3's and §13.8's constructions still apply on
+this reference. The alternatives already named are tabulated by kind (family floor, target
+presence, tolerance, exclusion of spread small DIF); none has usefulness demonstrated, none is
+preferred. The owner's minimal decision: this reference as the working target, and whether to
+keep §13.3's obstruction or admit a floor or a presence limit in principle. The certifier's
+implementation, the other obligations and new experiments stay suspended; §13.7's stop rule
+holds. D38's semantic choice stays apart, its effective dependency being the item set the target
+constrains; the study replaces none of the whole-test obligations.
 
 The C6 record and earlier work below retain their historical states; current A2 work
 authorization is the paragraph above and `15`'s A2 state.
@@ -1208,7 +1214,8 @@ current status and next work are in §5.2. This does not close Phase 1.
   a calibration and validation at 6,000, approved on `8e7a560` for implementation, implemented
   in §13.29 and accepted on `2a01b81` for the calibration, which ran there (§13.30), accepted on
   `6d57cac`; the validation ran there (§13.31), accepted on `ea640e2`; §13.32 balances the studies
-  against the criterion and proposes obligation a's conditional specification, not adopted.
+  against the criterion, accepted substantially on `c314822` and rectified; §13.33 specifies a
+  conditional reference target and majorant for obligation a, not adopted, not reviewed.
 - **A1: closed for the conditional expected-score guarantee**, Astra’s judgment on
   `1bd865c` (`17` §14.15). O1, conditional design A (O2) and O3 are acquired; the premises
   are accepted as model assumptions, not properties of the current protocol. The original
@@ -1334,7 +1341,7 @@ decision, **L** a documented limit.
 |---|---|---|---|---|---|
 | A1, closed conditionally on `1bd865c` | `15` A1 current criterion; `17` §14.15 | exact expected-score claim, strategies and premises accepted by Astra as mathematical-model assumptions | operational gaps remain; not missing premises for this restricted judgment | no certification of current runtime, execution, resources, authentication or reputation | none to repeat the approved judgment; residual realization and A12’s conditional closure remain tracked |
 | A12, distinct, closed conditionally on `15b846c` | owner-amended AT-REP-01; `16` §7.3 | composed exact complete-offline affine claim, one final rounded conversion and frozen first/supplementary consumers; fixed opportunities/common filtration and joint invariance assumed | no missing premise for that restricted judgment; legacy/reset, causal influence/fit, generic betrayal and incomplete-data operation excluded | separate final-model, SC-1, A2 and T26 gates; Phase 1 incomplete | none to repeat the accepted closure; current scope and exclusions in `16` §7.3 |
-| A2, high, open; R1 approved | `15` A2; `19` §§11–13 | §11 contract approved on `5e600be`; §12 coverage proof accepted on `5102852` under its hypotheses; §13.3 corollary accepted in its domain (one-class truth, arbitrarily small shares, contrast admitted) | target domination, certified supremum, usefulness, cost and scope unresolved; no implementation | declared model/i.i.d. reference and independent split; symbolic target linkage; calibration undecided | the first bounded probe, declared in `19` §13.11, ran on `9511ce1` (§13.12), its results accepted by Astra on `ee5cf3b` as bounded diagnostic evidence; next bounded experiment proposed in §13.13, implemented in §13.14, run on `2e2572c` (§13.15, verified on `54d44fe`, readings rectified; §13.17's check approved on `55373cb`, implemented in §13.18, corrected and approved on `821f52d`, run there in §13.19, results accepted on `307530a`; §13.20's study reviewed on `53f2427`, implemented in §13.21, calibrated on `7bbfddb` in §13.22, accepted on `185ec93`, validated there in §13.23, accepted on `ccb8f05`; §13.24's trade-off, exploratory, accepted on `efc5494`; §13.25's sample-size study reviewed on `87d6452`, implemented in §13.26, corrected after `355c6b9`, run on `b8c9dce` in §13.27, accepted on `e0c7248`; §13.28's study at 6,000 approved on `8e7a560` for implementation, implemented in §13.29, calibrated on `2a01b81` in §13.30, accepted on `6d57cac`, validated there in §13.31, accepted on `ea640e2`; §13.32's balance and proposed next step, not adopted); §13.8's accepted obstacle remains; the design decision is pending and certifier implementation remains suspended |
+| A2, high, open; R1 approved | `15` A2; `19` §§11–13 | §11 contract approved on `5e600be`; §12 coverage proof accepted on `5102852` under its hypotheses; §13.3 corollary accepted in its domain (one-class truth, arbitrarily small shares, contrast admitted) | target domination, certified supremum, usefulness, cost and scope unresolved; no implementation | declared model/i.i.d. reference and independent split; symbolic target linkage; calibration undecided | the first bounded probe, declared in `19` §13.11, ran on `9511ce1` (§13.12), its results accepted by Astra on `ee5cf3b` as bounded diagnostic evidence; next bounded experiment proposed in §13.13, implemented in §13.14, run on `2e2572c` (§13.15, verified on `54d44fe`, readings rectified; §13.17's check approved on `55373cb`, implemented in §13.18, corrected and approved on `821f52d`, run there in §13.19, results accepted on `307530a`; §13.20's study reviewed on `53f2427`, implemented in §13.21, calibrated on `7bbfddb` in §13.22, accepted on `185ec93`, validated there in §13.23, accepted on `ccb8f05`; §13.24's trade-off, exploratory, accepted on `efc5494`; §13.25's sample-size study reviewed on `87d6452`, implemented in §13.26, corrected after `355c6b9`, run on `b8c9dce` in §13.27, accepted on `e0c7248`; §13.28's study at 6,000 approved on `8e7a560` for implementation, implemented in §13.29, calibrated on `2a01b81` in §13.30, accepted on `6d57cac`, validated there in §13.31, accepted on `ea640e2`; §13.32's balance, accepted on `c314822` and rectified; §13.33's conditional target and majorant, not adopted, not reviewed); §13.8's accepted obstacle remains; the design decision is pending and certifier implementation remains suspended |
 | B1–B3, open | `15`: decision-level sensitivity, search stability, simpler alternatives, misspecified populations | A3 closed on its nominal count; `19` §9.6's identification limits; the pre-D43 supplement, historical (`13` §8.7) | Em: S1's scenarios and decision criteria declared, then one campaign on an identified candidate, its design declared before execution; Pr where identification or coverage is claimed, which simulations do not replace | A2's target; the owner's authorization of the campaign | S1's declaration, no run |
 | A4 (b)–(d); A5's residues | the closures stand within their records; the residues are their "Left open" (`15`) | indeterminate readings typed on the decision paths (A4, A11, A4 (a)) | A4 (b), `emerging_dif` an untyped boolean whose `false` means no retirement: L, its typing O; its producer `revalidate_pool` read a separated fit as DIF, corrected and closed on `52f3822` with the boolean's limit stated; (c), the retired proxy path, fixtures only: L, its contract clarified, closed on `52f3822`; (d), a one-class fit reading `Evaluated` while mixture candidates failed: O, within B1–B3's search. A5: whether the extra draw weighs reviewers, O; an explicit `w_max` contract and a binding-cap test, non-blocking (Astra, `afc84d0`). None shown B | B1–B3 for (d) | none required; a decision where a kept guarantee is shown to rest on one |
 | A8, A9, medium; closed within the bounded claim rectification | `15`: distinguishability, identifiability and power apart (A8); hypotheses or a controlled approximation (A9) | bounded paper/document correction, exact A8 witness and nondegenerate A9 stationary witness with residual bound (`15` rectification record) | no missing evidence for these corrected claims; generic identifiability, detector power and error bounds for historical fits are not established | — | none to repeat the accepted rectification (`15`) |
@@ -1477,7 +1484,7 @@ accepted on `2aa136d`, its result in §13.8 accepted on `24cdfce`; §13.9, the o
 its result; §13.16, the paired DTF re-reading; §13.17, the next check; §13.18, its implementation
 and declaration; §13.19, its result; §13.20, the single-test study proposed;
 §13.21, its declaration and implementation; §13.22, its calibration; §13.23, its validation; §13.24, the trade-off read post hoc; §13.25, the sample-size study proposed; §13.26, its implementation and declaration; §13.27,
-its result; §13.28, the study at 6,000 proposed; §13.29, its implementation and declaration; §13.30, its calibration; §13.31, its validation; §13.32, the balance and next obstacle);
+its result; §13.28, the study at 6,000 proposed; §13.29, its implementation and declaration; §13.30, its calibration; §13.31, its validation; §13.32, the balance and next obstacle; §13.33, the conditional target and majorant);
 `sim/a2_probe.py`, `crates/scoring/src/latent.rs` (`latent_dif_candidates`),
 `crates/characterization/src/{probe,probe_jobs,probe_calibration}.rs`,
 `crates/characterization/tests/{a2_probe,a2_probe_jobs,a2_calibration}.rs`;

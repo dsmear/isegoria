@@ -137,13 +137,21 @@ direction of 2026-10-18
   justified as a sufficient whole-test check; C5 no evident useful separation in these data; no
   new threshold and no automatic increase of `N`. It is a screening statistic, not §11.2's
   guarantee or §12's coverage. It closes nothing.
-- **Balance and next obstacle (`19` §13.32, a proposal, not adopted):** the studies add evidence on
-  a screening indicator, none on obligations a–c, usefulness or a certificate's cost. The next
-  concrete obstacle is obligation a on a target not useless by construction (§§13.3, 13.8). The
-  recommended step, a conditional target-and-majorant specification under the restrictions
-  already named, none adopted, needs the owner's authorization of conditional work on a; it is
-  not started.
-- **Suspended:** implementation of the certifier until its contract decisions are made.
+- **Balance and next obstacle (`19` §13.32):** accepted substantially by Astra on `c314822` and
+  rectified. The studies' indicators and frequencies do not realize the coverage and
+  conservative-computation obligations; the next concrete obstacle is obligation a on a target
+  not useless by construction (§§13.3, 13.8).
+- **Conditional target and majorant (`19` §13.33, a specification, not adopted, not reviewed):**
+  under R-a–R-d and R-f's extension, a reference linkage — the model's scale and measure fixed by
+  `β`, contrasts as class mixtures left free — and the all-class envelope `B_T(β)`, which
+  dominates the target on every order with no 5% filter, by §3's proposition. Domination is kept
+  apart from usefulness: on this reference §13.3's and §13.8's constructions still make every valid
+  certificate useless in their domains. The four alternatives already named are tabulated by kind
+  — family floor, target presence, tolerance, exclusion of spread small DIF — none with
+  usefulness demonstrated and none preferred.
+- **Suspended:** implementation of the certifier until its contract decisions are made; after
+  `c314822`'s review the owner authorized conditional mathematical work on obligation a alone
+  (`19` §13.33), the other obligations' development and new experiments staying suspended.
   D38's treatment of pertinent factual-knowledge differences remains to be reconciled explicitly;
   no compensation or admission policy changes through this documentation.
 - **Blocking:** A2 remains blocking under the current criteria (its row; `10` §1.5's completion

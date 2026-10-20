@@ -584,6 +584,26 @@ Review of `ea640e2` (§13.31), distinct from the reviews above:
 - **Owner's direction:** a short technical balance identifying the next concrete obstacle to A2's
   closure, documentation only — no fit, run, code change or new quantitative analysis (§13.32).
 
+Review of `c314822` (§13.32), distinct from the reviews above:
+
+- **Astra's evidence:** the diff read and compared with §§3, 11, 12 and 13.3–13.10. No new
+  calculation, test or fit.
+- **Accepted:** the balance, substantially; the proposal narrowed as below.
+- **Rectified in §13.32:** (1) restrictions of the target's contrasts or linkage, restrictions of
+  the family of laws and the choice of tolerance kept apart — a larger tolerance changes the
+  decision and the usefulness problem, not domination by itself; (2) the conclusion stated as the
+  pertinent one: the indicators and frequencies of the studies run do not realize the coverage and
+  conservative-computation obligations; (3) separate proofs for every combination of restrictions
+  withdrawn.
+- **Owner's authorization:** conditional mathematical work on obligation a alone — a minimal
+  reference specification of `Γ_β`, `μ`, scale and contrasts for the fixed form under complete
+  administrations, what `β` determines, what stays unidentified and the support and representation
+  hypotheses; an explicit majorant on every item, active and contested, from §3's proposition, the
+  envelope where composition varies with ability, no estimated 5% filter and no restriction to the
+  BIC order; domination kept apart from a useful certificate; a compact table of the alternatives
+  already named. No policy is adopted; no implementation, campaign or fit is authorized; the
+  certifier's implementation and new experiments stay suspended; §13.7's stop rule holds (§13.33).
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -2372,7 +2392,11 @@ provenance changed.
 
 *Historical decision retained. The permitted next work was updated by the owner on
 2026-10-18 in [§13.10](#1310-owner-direction-foundations-and-iterative-testing-2026-10-18); its scope and the remaining
-design decisions are stated there.*
+design decisions are stated there. On 2026-10-20, after the review of `c314822`, the owner
+authorized conditional mathematical work on obligation a alone
+([§13.33](#1333-conditional-reference-target-and-majorant-obligation-a-specification-not-adopted)),
+adopting no policy; the certifier's implementation, the other obligations' development and new
+experiments stay suspended, and §13.7's stop rule holds.*
 
 **Decision (owner).** The design decision on A2 is deferred.
 
@@ -4428,8 +4452,9 @@ development data (§13.20). No further experiment is started.
 **Status:** written by Claude Code on `ea640e2` at the owner's direction (record before §1).
 Documentation only: no fit, run, code change or new quantitative analysis; earlier results are
 cited, not recomputed. The criterion (`15` A2; §§11–12; §13.9) is unchanged, no approved result is
-reopened, and the whole-test objective stays adopted. The recommended step is a proposal for
-review, not an authorization to start it. A2 stays open and blocking; D38 stays apart.
+reopened, and the whole-test objective stays adopted. Accepted substantially by Astra on
+`c314822`, rectified as that review asked (record before §1); its recommended step, authorized as
+conditional mathematics alone, is developed in §13.33. A2 stays open and blocking; D38 stays apart.
 
 **Against the closure criterion.** `15` A2 asks to specify the target measure, linking assumptions
 and whole-test contribution, then prove the bound and keep estimation error apart; a
@@ -4465,39 +4490,42 @@ and certify are distinct):
 - *Bound:* `U(X)` with `inf_Ξ P(DTF_μ(T) ≤ U) ≥ 1 − α` (§11.2), the objective.
 
 The missing passage is from one fitted model to every law the data do not exclude: §12's inversion
-over all of `Ξ`, then a majorant's supremum over that region (a and c). No indicator or estimate
-crosses it at any `N`: a frequency over synthetic replicates is no coverage statement for a given
-test.
-The passage is blocked before a and c. On §12's `Ξ` — components of any share, a free linkage —
-under a one-class truth every valid certificate accepts at a tolerance below `½ Σ_{j∈T} (1 − c_j)`
-with probability at most `α` (§13.3); against spread small DIF, in §13.5's domain at `δ = 0.10`,
-every `(α, β)` with `α + β < 0.8138` is excluded at the declared forms and sizes, floors up to ½
-included (§13.8). A certificate always returning `m` or none would be valid and fail §11.3.
-**The next concrete obstacle is obligation a on a target that is not useless by construction:**
-`Γ_β` and `B_T` are unspecified, and the restrictions that could escape §§13.3 and 13.8 are owner
-decisions, deferred in §13.9 and never written precisely enough to be judged against those
-results.
+over all of `Ξ`, then a majorant's supremum over that region (a and c). The indicators and
+frequencies of the studies run (§§13.12–13.31) do not realize the coverage and
+conservative-computation obligations. The passage is blocked before a and c. On §12's `Ξ` —
+components of any share, a free linkage — under a one-class truth every valid certificate accepts at
+a tolerance below `½ Σ_{j∈T} (1 − c_j)` with probability at most `α` (§13.3); against spread small
+DIF, in §13.5's domain at `δ = 0.10`, every `(α, β)` with `α + β < 0.8138` is excluded at the
+declared forms and sizes, floors up to ½ included (§13.8). A certificate always returning `m` or
+none would be valid and fail §11.3. **The next concrete obstacle is obligation a on a target that is
+not useless by construction:** `Γ_β` and `B_T` are unspecified, and the restrictions that could
+escape §§13.3 and 13.8 are owner decisions, deferred in §13.9 and never written precisely enough to
+be judged against those results.
 
 **Recommended next step: a conditional target-and-majorant specification (obligation a).**
 
 - *Problem.* §12.5's deliverable was set aside because on `Ξ` its certificate is useless (§13.7).
-  Whether a restriction already named leaves a target worth proving on is not established: a share
-  floor on `Ξ`'s components, or contrasts limited to groups present at some share at every ability
-  (§13.3); a larger tolerance, or an assumption excluding spread small DIF (§13.7).
+  Whether an alternative already named leaves a target worth proving on is not established. They
+  differ in kind (§§13.3, 13.7): a share floor on `Ξ`'s components, or an assumption excluding
+  spread small DIF, restricts the family of laws; contrasts limited to groups present at some share
+  at every ability restrict the target; a larger tolerance changes the decision and the usefulness
+  problem, not domination by itself.
 - *Deliverable,* in this document: `Γ_β`, `μ`, scale and `𝒢` for the fixed-form,
-  complete-administration reference, with what `β` fixes and what stays free; for each named
-  restriction, alone or combined — none adopted, its parameter symbolic — the proof of
+  complete-administration reference, with what `β` fixes and what stays free; the proof of
   `DTF_μ(T) ≤ B_T(β, γ)` for every admitted pair on all active and contested items, from §3 with
-  the envelope where composition varies with ability; and which of §13.3's construction and
-  §13.8's `Q_τ` it excludes, cited from §§13.3–13.8 or proved. A floor excludes the first, not the
-  second, whose classes sit at ½ at every ability.
-- *Premises and owner decisions.* The owner's authorization to develop a conditionally: §13.9
-  suspended it with the certifier's work, and §13.10 lifted that suspension for documentation,
-  evaluation design and bounded tests without naming a. No restriction, tolerance or level is
-  adopted by the step. D38's effective dependency: whether a sourced fact's difference is a
-  contrast to compensate or measured knowledge changes `𝒢` or the items it constrains; the
-  specification carries both readings as a parameter and decides neither (§13.13; `01` D44).
-- *Complete when* Astra has checked each proof, its support, measure and alignment hypotheses
+  the envelope where composition varies with ability; for each named alternative — none adopted,
+  its parameter symbolic — the object it changes and which of §13.3's construction and §13.8's
+  `Q_τ` it excludes, cited from §§13.3–13.8 or proved. A restriction that keeps target and
+  majorant inherits the domination; no proof per combination. A floor excludes the first
+  construction, not the second, whose classes sit at ½ at every ability.
+- *Premises and owner decisions.* The owner's authorization to develop a conditionally, given after
+  `c314822`'s review: §13.9 had suspended it with the certifier's work, and §13.10 lifted that
+  suspension for documentation, evaluation design and bounded tests without naming a. No
+  restriction, tolerance or level is adopted by the step. D38's effective dependency: whether a
+  sourced fact's difference is a contrast to compensate or measured knowledge changes `𝒢` or the
+  items it constrains; the specification carries both readings as a parameter and decides neither
+  (§13.13; `01` D44).
+- *Complete when* Astra has checked the proof, its support, measure and alignment hypotheses
   explicit and no unidentified linkage collapsed to a plug-in, and each candidate's usefulness is
   labelled excluded or open with its source, never shown. §13.7's stop rule holds: after two
   reviews still blocked, §11's contract is re-examined rather than deepened.
@@ -4507,8 +4535,120 @@ results.
   declarable. Neither starts with this step.
 
 **Alternatives.** *More campaigns on `I`*, at other `N`, cases or thresholds, would refine a
-screening rule's frequencies, which no number of runs turns into a bound with coverage for a given
-test; the approved reading excludes a new threshold or an automatic increase of `N`. *Obligation c
-first*, or §12's region implemented, would have no objective without `B_T` and `Γ_β`, and on the
-unrestricted `Ξ` its certificate would be useless (§13.3). The specification comes first: c depends
-on it, it needs no run, and further campaigns on `I` would not move the objective closer.
+screening rule's frequencies, which do not realize the coverage and conservative-computation
+obligations; the approved reading excludes a new threshold or an automatic increase of `N`.
+*Obligation c first*, or §12's region implemented, would have no objective without `B_T` and `Γ_β`,
+and on the unrestricted `Ξ` its certificate would be useless (§13.3). The specification comes first:
+c depends on it, it needs no run, and further campaigns on `I` would not move the objective closer.
+
+### 13.33 Conditional reference target and majorant (obligation a; specification, not adopted)
+
+**Status:** written by Claude Code on `c314822` under the owner's authorization of conditional
+mathematical work on obligation a alone (record before §1). **D** derivations from §§3, 9.6, 11 and
+12; no implementation, fit, run or new numerical result. Every parameter stays symbolic; no
+restriction, tolerance, level or policy is adopted. Not reviewed. A2 stays open and blocking; D38
+stays apart.
+
+**Setting.** §12.1's experiment and family: one fixed form `T`, every item active or contested;
+complete administrations; fixed class-invariant anchors; `Ξ` over every order `k = 1, …, 4` and
+both slope alternatives, shares `π_r > 0` with no floor, class ability laws
+`ν_r = Σ_q w_q δ_{η_r+u_q}`, curves `p_jr(t) = c_j + (1 − c_j) σ(a_jr(t − b_jr))`. For `S ⊆ T`,
+`P_{S,r}(t) = Σ_{j∈S} p_jr(t)` and `Δ_rr'(S; t) = P_{S,r}(t) − P_{S,r'}(t)`.
+
+**Reference linkage, conditional.** §9.6's candidate hypotheses, declared here, none established:
+
+| Object | Reference | What `β` determines | Hypothesis and its status |
+|---|---|---|---|
+| scale | the model's coordinate `t`: `η_1 = 0`, standardized shape | all of it; an increasing change of coordinate applied to curves and measure leaves the target unchanged (§9.6) | R-b: equal ability in the target is `t`, the classes aligned by informative class-invariant anchors. Within R-a the anchors fix the model's alignment; that this is the target's notion of equal ability is external |
+| measure | `μ_β = Σ_r π_r ν_r` | all of it | R-d. An externally prescribed `μ` is the alternative, fixed by its prescription |
+| contrasts `𝒢` | pairs of abstract groups, each with conditional response law at `t` a mixture `λ_g(t)` of the classes' laws there: `s_g(t) = Σ_r λ_gr(t) P_{T,r}(t)` | nothing: `λ_g` ranges over the simplex at each atom of `μ_β`. Responses carry no group label (invariant 1), so no `λ_g` is identified | R-c (§3's H2). A declared subfamily of mixtures is allowed; domination then holds a fortiori |
+| support | a class's conditional mean at an ability where it has no mass is its curve | — | R-f's extension: a model assumption the responses cannot check, having no respondents of that class there |
+
+On §12.1's discrete law the extension is needed, not convenient. Class `r`'s atoms are
+`η_r + u_q`, and two classes share an atom only if their shifts differ by a difference of nodes.
+Compared only where both have mass, classes with other shifts would have no contrast at equal
+ability: a property of the discrete reference, not a balance. The extension is §3's convention and
+the code's (`ClassCurves::{with_ability, at}`, R-f). The linkage is then `γ = (λ_g)_{g∈𝒢}`, and
+`Γ_β` is the set of maps from the atoms of `μ_β` to the simplex over `β`'s classes. Target:
+`DTF_μ(T) = sup_{g,h∈𝒢} ∫ |s_g − s_h| dμ_β`.
+
+**What stays unidentified.** The groups' mixtures `λ_g`, absorbed by the majorant's supremum
+below. `β` within its response law's class of representations: labels and coordinates are
+harmless; whether informative anchors fix curves and measure is not proved (§9.6; `18` §3).
+`B_T(β)` may then differ between parameters with one response law. Validity does not need
+identification: §12's region keeps or rejects such parameters together (§12.4), and its supremum
+takes the largest; non-identification bears on width. R-b and the extension are not identified by
+responses at all.
+
+**Majorant.** For every `β ∈ Ξ`, of any order and slope alternative, every class counted:
+
+`B_T(β) = ∫ max_{r,r'} |Δ_rr'(T; t)| dμ_β(t) = Σ_r π_r Σ_q w_q max_{s,s'} |Δ_ss'(T; η_r + u_q)|`.
+
+It depends on `β` alone, `0` when `k = 1`; label permutations, coordinate changes and the exact
+duplication of a component leave it unchanged (§9.6; §11.4). No estimated 5% filter enters, and no
+restriction to the BIC-selected order.
+
+**Proposition (domination; an instance of §3).** Under R-a, R-b, R-c, R-d and the extension,
+`DTF_μ(T) ≤ B_T(β)` for every `(β, γ) ∈ Ξ` — every order, shares however small. With `𝒢` the
+whole `Γ_β` it is an equality.
+
+*Proof.* §3's proposition with one fit holding all of `T` (H3), every class of `β` counted, `τ` the
+identity and the fit's measure `μ_β` (H1, by R-d), its `λ` defined at every atom by the extension
+(H2, by R-c), gives `DTF_μ(T) ≤ B_T(β)`. Two groups putting, at each atom, all weight on a class
+of largest and on one of smallest expected score have gap `max_{r,r'} |Δ_rr'(T; t)|` there, and
+attain it, as in R-c's sharpness (§9.6). ∎
+
+D38's effective dependency is the item set. Under D38 as implemented the target constrains every
+item of `T`. If the differences of facts that review and the source check mark as pertinent
+knowledge count as measured competence, it constrains `S ⊆ T` without them; responses do not
+identify that set (§13.13; `01` D44). The proposition holds for any `S` fixed before the data, by
+the same argument, with `B_S`, `T` replaced by `S`. `S = T` is the reference; the choice is D38's,
+not made here.
+
+**Domination is not a useful certificate.** The proposition settles obligation a for this
+reference, under its hypotheses. With §12's coverage, and c met, `U = sup_{ϑ∈𝒞} B_T` would bound
+`DTF_μ(T)` with probability at least `1 − α`; nothing bounds its size. On this reference both known
+constructions lie in `Ξ`. §13.3's added class shares the truth's ability law, so for one sign of
+its difficulties `±M` its `B_T` tends to at least `½ Σ_{j∈T} (1 − c_j)`. §13.8's `Q_τ` (shares ½,
+`η = (0, 0)`, every item's difficulty shifted by `∓τ`) has `μ_β = ν` and
+`B_T(Q_τ) = D(τ) > δ` at `τ_δ`. Given b and c, a certificate on this reference is valid, and
+useless in §13.3's domain and, in §13.5's, at every `(α, β)` below §13.8's frontier: the
+specification states the obstruction exactly, it does not remove it.
+
+**Alternatives already named** (§§13.3, 13.7; none adopted, parameters symbolic). A family
+restriction keeps target and majorant, so it inherits the proposition and §12's coverage for its
+own truths, the region inverted over the subfamily. A target restriction shrinks `𝒢`: `B_T` still
+dominates; a tighter majorant is the pointwise supremum over the remaining pairs, dominating by §3's
+pointwise step. The tolerance changes neither, only the decision and the usefulness problem.
+
+| Alternative | Changes | Known construction excluded, and when | Obstacle remaining | Guarantee lost or narrowed | Checkable in the responses |
+|---|---|---|---|---|---|
+| share floor `φ` on components | the family: `π_r ≥ φ`; target and `B_T` unchanged | §13.3's, which needs an added share `ε → 0` | §13.8's `Q_τ`, admitted for `φ ≤ ½`; alternatives §13.5 does not cover | no guarantee for a truth with a component rarer than `φ`; a component's share is not a group's (§9.6) | no: an assumption on the truth. A component of share `ε` moves the law of `n` respondents by at most `nε` in total variation (§9.6) |
+| presence `ρ` of groups at every ability | the target: groups of conditional share at least `ρ` everywhere, so `λ_gr(t) ≤ w_r(t)/ρ`, with `w_r(t)` class `r`'s share at `t`; majorant `B^ρ_T`, the pointwise supremum over those pairs, integrated | §13.3's: its class has share `ε` at every ability, so any admissible contrast is at most `(ε/ρ) Σ_j (1 − c_j)`, which tends to 0 | §13.8's `Q_τ`, both classes at ½ everywhere, admitted for `ρ ≤ ½` | contrasts of groups rarer than `ρ` somewhere. Presence being per atom on the discrete law, classes sharing no atom get no contrast; a band or a continuous law would be a further choice | nothing to check, a choice of target. Whether the groups of concern meet `ρ` is unknowable without group data, which invariant 1 excludes |
+| larger tolerance `δ'` | the decision `U ≤ δ'`; target, family, majorant and coverage unchanged | none by itself: §13.3's bound holds below `½ Σ_j (1 − c_j)`; §13.8's frontier falls at `2δ`, `4δ` in its domain, which removes pairs from the excluded set without making them feasible | §13.3's construction, unless combined with one of the two rows above | the certificate states `DTF_μ(T) ≤ δ'`, a weaker bound | nothing to check: the owner's tolerance, no assumption on the truth |
+| exclusion of declared spread-small-DIF laws | the family; target and `B_T` unchanged | §13.8's `Q_τ`, if the declared exclusion contains `Q_{τ_δ}` at the forms and sizes considered, with what it excludes and why stated (§13.7) | §13.3's construction, whose added class has difficulty `−M` or `+M` on every item, a large difference; alternatives §13.5 does not cover | no guarantee for small DIF accumulated across items, the omission A2 began from (§3, H3; §13.11's C3) | no: at the declared sizes the responses separate `Q_{τ_δ}` from a DIF-free law by at most `Δ̄_n` in total variation (§13.8); an external assumption |
+
+Excluding a construction removes one proof of uselessness; it shows no procedure useful. A floor or
+a presence limit excludes §13.3's construction; an exclusion removes §13.8's `Q_τ` and a larger
+tolerance lowers its frontier, within §13.5's domain. A combination is a subfamily, a smaller
+target or both, which the domination above already covers: no proof per combination is needed.
+**No alternative and no combination has demonstrated usefulness, and none is preferred here.**
+
+**The decision this allows.** The smallest decision for the owner is twofold. First, whether this
+reference is A2's working target for obligation a: R-b's alignment, R-d's measure, the extension,
+every class counted, contrasts as mixtures, and `S = T` pending D38. Second, how to answer
+§13.3's obstruction, which binds at every `n`. Keeping every component and contrast accepts a
+certificate useless under one-class truths in that domain, and leaves §13.7's other alternatives:
+another mechanism, or A2 kept open. Otherwise the owner admits in principle a family floor or a
+target presence limit, its parameter symbolic. The two differ in kind: the floor assumes of the
+truth what the responses cannot check; the presence limit narrows what is claimed, with nothing to
+check, and needs presence defined beyond single atoms. Neither excludes §13.8's `Q_τ`. An
+exclusion would remove it, and a larger tolerance lower its frontier, within §13.5's domain only,
+each a separate decision.
+
+**What would remain.** Obligation c: a certified upper bound on the supremum of `B_T`, or `B^ρ_T`,
+over §12's region, meeting §12.3's inclusion, with numerical error; the integral over `μ_β` is a
+finite sum. Usefulness: the achievability side, a balanced truth's acceptance probability at
+declared sizes, and the alternatives §13.5 leaves out. Then cost, decision and scope (§11.5 row 4;
+§9.5), and the premises — R-a to R-d, the extension and i.i.d. sampling — for real responses.
+Composition across fits lies outside this fixed-form reference. §13.7's stop rule holds.
