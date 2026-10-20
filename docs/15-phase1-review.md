@@ -150,7 +150,17 @@ direction of 2026-10-18
   Domination is kept apart from usefulness: §13.3's construction binds at tolerances below
   `½ Σ_j (1 − c_j)`, §13.8's below its frontier in its domain. The four alternatives already named
   are tabulated by kind; none is shown necessary, none has usefulness demonstrated, none is
-  preferred. D38 stays a separate semantic choice, `T` the reference item set.
+  preferred. D38 stays a separate semantic choice, `T` the reference item set. Reviewed again on
+  `e416eac`: the D38 and tolerance rectifications accepted; the support precision asked is made —
+  every compared real group present at every atom of positive mass, a qualitative condition,
+  apart from a threshold `ρ`, unverifiable from anonymous responses and removing no obstacle.
+- **Owner's decision (2026-10-20):** A2's working target is the difference in total score between
+  real groups of the reference population at equal competence, under the contract's explicit
+  hypotheses; the formal contrasts stay tools for a prudential majorant, not proof that such groups
+  exist (`19` §13.33). It keeps the whole `T` and invariant 1; it does not identify groups with
+  estimated components or adopt R-a–R-d as properties of real responses; the measure (`μ_β` stays
+  the derivation's conditional reference), D38's semantics, a floor, a presence limit and a
+  tolerance stay open; no usefulness is shown and A2 is not closed. §13.7's stop rule holds.
 - **Suspended:** implementation of the certifier until its contract decisions are made; after
   `c314822`'s review the owner authorized conditional mathematical work on obligation a alone
   (`19` §13.33), the other obligations' development and new experiments staying suspended.

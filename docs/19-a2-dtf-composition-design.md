@@ -626,6 +626,29 @@ Review of `3f1b22b` (§13.33), distinct from the reviews above:
   apart; the catalogue of alternatives not widened, acquired proofs not repeated. No further work
   started.
 
+Review of `e416eac` (§13.33's rectification), distinct from the reviews above:
+
+- **Astra's evidence:** the diff read and the rectifications compared with the earlier contracts.
+  No test, fit or new proof of usefulness.
+- **Accepted:** the rectifications on D38 and on the tolerance. The distinction between real
+  groups and formal contrasts is correct in its setting but needs a precision on support; no
+  unconditional approval of that version is recorded.
+- **Asked, made in §13.33:** `λ_gr(t) P(g | t) ≤ w_r(t)` gives `λ_gr(t) = 0` where `w_r(t) = 0`
+  only if `P(g | t) > 0`. Every compared group must be present `μ`-almost everywhere the means are
+  compared — on the discrete reference, at every atom of positive mass — as §11 asks; a mean
+  assigned to an absent group does not make a contrast between real groups. A qualitative
+  condition, apart from a threshold `ρ`; no minimum, ability band, continuous law or new measure.
+- **Owner's decision (2026-10-20):** A2's working target is the difference in total score between
+  real groups of the reference population at equal competence, under the contract's explicit
+  hypotheses; the formal contrasts stay mathematical tools for a prudential majorant, not by
+  themselves proof that the corresponding groups exist. It keeps the whole `T` as the reference and
+  invariant 1; it does not identify groups with estimated components, adopt R-a–R-d as properties
+  of real responses, or choose the measure, D38's semantics, a floor, a presence limit or a
+  tolerance; it demonstrates no usefulness and does not close A2. `μ_β` stays the derivation's
+  conditional reference, apart from the measure still to be adopted for the guarantee. The
+  certifier's implementation, the other obligations and new experiments stay suspended; §13.7's
+  stop rule holds, and this rectification authorizes no further deepening.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -4569,8 +4592,11 @@ mathematical work on obligation a alone (record before §1). **D** derivations f
 12; no implementation, fit, run or new numerical result. Reviewed by Astra on `3f1b22b`: the
 envelope's domination accepted under the declared hypotheses, the equality for the full family of
 admitted formal mixtures; no execution or new proof of usefulness; the target's adoption stays
-open. Rectified as that review asked (record before §1). Every parameter stays symbolic; no
-restriction, tolerance, level or policy is adopted. A2 stays open and blocking; D38 stays apart.
+open. Rectified as that review asked; reviewed again on `e416eac`, the rectifications on D38 and
+the tolerance accepted and a precision on support asked, made below; no unconditional approval of
+this version. The owner then decided the working target's object, real groups (below; records
+before §1). Every other parameter stays symbolic; no measure, restriction, tolerance, level or
+policy is adopted. A2 stays open and blocking; D38 stays apart.
 
 **Setting.** §12.1's experiment and family: one fixed form `T`, every item active or contested;
 complete administrations; fixed class-invariant anchors; `Ξ` over every order `k = 1, …, 4` and
@@ -4583,19 +4609,26 @@ both slope alternatives, shares `π_r > 0` with no floor, class ability laws
 | Object | Reference | What `β` determines | Hypothesis and its status |
 |---|---|---|---|
 | scale | the model's coordinate `t`: `η_1 = 0`, standardized shape | all of it; an increasing change of coordinate applied to curves and measure leaves the target unchanged (§9.6) | R-b: equal ability in the target is `t`, the classes aligned by informative class-invariant anchors. Within R-a the anchors fix the model's alignment; that this is the target's notion of equal ability is external |
-| measure | `μ_β = Σ_r π_r ν_r` | all of it | R-d. An externally prescribed `μ` is the alternative, fixed by its prescription |
+| measure | `μ_β = Σ_r π_r ν_r`, the derivation's conditional reference | all of it | R-d. The guarantee's measure is still to be adopted: R-d's, or an externally prescribed `μ`, fixed by its prescription |
 | contrasts | groups whose conditional response law at `t` is a mixture `λ_g(t)` of the classes' laws: `s_g(t) = Σ_r λ_gr(t) P_{T,r}(t)` | nothing: responses carry no group label (invariant 1), so no `λ_g` is identified | R-c (§3's H2); two readings of `λ`, kept apart below |
 
 **Two objects, kept apart.**
 
 - *Real groups.* If `λ_g` is a group's actual composition, it comes from a joint population law of
   group, class and ability: `λ_gr(t) P(g | t) ≤ w_r(t)`, with `w_r(t) = π_r ν_r({t}) / μ_β({t})`
-  class `r`'s share at `t`, so `λ_gr(t) = 0` where class `r` has no mass. `s_g` then reads each
-  class only where it has respondents. The target is `DTF_μ(T) = sup_{g,h∈𝒢} ∫ |s_g − s_h| dμ_β`
-  over the groups `𝒢` fixed in advance, each `s_g` defined at every atom of `μ_β`. Class `r`'s atoms
-  are `η_r + u_q`, and two classes share an atom only if their shifts differ by a difference of
-  nodes; at an atom held by one class, real groups have equal means. Classes sharing no atom thus
-  give no real contrast at equal ability: a property of §12.1's discrete reference, not a balance.
+  class `r`'s share at `t`. Where `P(g | t) > 0` this gives `λ_gr(t) = 0` wherever `w_r(t) = 0`;
+  where `P(g | t) = 0` it gives nothing, and the group has no conditional mean there. **Presence:**
+  every compared group has `P(g | t) > 0` `μ`-almost everywhere the means are compared — on the
+  discrete reference, at every atom of positive mass of `μ_β` — as §11.1 asks of `s_g`; a mean
+  assigned at will to an absent group does not make the comparison a contrast between real groups.
+  Presence is qualitative, not a threshold like the alternatives' `ρ`; anonymous responses do not
+  verify it (invariant 1), and it removes no obstacle to usefulness: §13.3's added class is present
+  at share `ε` at every atom. Under it `s_g` reads each class only where it has respondents. The
+  target, with `μ_β` as the derivation's measure, is `DTF_μ(T) = sup_{g,h∈𝒢} ∫ |s_g − s_h| dμ_β`
+  over the groups `𝒢` fixed in advance. Class `r`'s atoms are `η_r + u_q`, and two classes share an
+  atom only if their shifts differ by a difference of nodes; at an atom held by one class, real
+  groups have equal means. Classes sharing no atom thus give no real contrast at equal ability: a
+  property of §12.1's discrete reference, not a balance.
 - *Formal contrasts.* If `λ` is any map from the atoms of `μ_β` to the simplex over `β`'s classes,
   each class's curve extended where it has no mass (R-f; §3's convention and the code's,
   `ClassCurves::{with_ability, at}`), `∫ |Σ_r (λ_r − λ'_r) P_{T,r}| dμ_β` is a hypothetical
@@ -4624,15 +4657,16 @@ small:
 
 - (i) `B_T(β)` is the supremum of the formal contrasts over the full family of formal mixtures, an
   equality;
-- (ii) under R-a, R-b, R-c with compositions from a joint population law, and R-d,
-  `DTF_μ(T) ≤ B_T(β)` for real groups, whatever `γ`.
+- (ii) under R-a, R-b, R-c with compositions from a joint population law, every compared group
+  present at every atom of `μ_β`, and R-d, `DTF_μ(T) ≤ B_T(β)` for real groups, whatever `γ`.
 
 *Proof.* (i) At each atom two mixtures putting all weight on a class of largest and on one of
 smallest expected score have gap `max_{r,r'} |Δ_rr'(T; t)|`, and none exceeds it (§3's coupling
 step); integrate. (ii) §3's proposition with one fit holding all of `T` (H3), every class counted,
-`τ` the identity and the measure `μ_β` (H1, by R-d), the compositions as H2's `λ` (R-c): both lie
-at each atom on the classes present there, so their gap is at most the maximum over those, at most
-`max_{r,r'} |Δ_rr'(T; t)|`; integrate. ∎
+`τ` the identity and the measure `μ_β` (H1, by R-d), the compositions as H2's `λ` (R-c): each
+group being present at every atom, both compositions are defined there and lie on the classes
+present, so their gap is at most the maximum over those, at most `max_{r,r'} |Δ_rr'(T; t)|`;
+integrate. ∎
 
 The equality is R-c's sharpness at one representation (§9.6): it holds for the formal family and
 is not attributed to real groups fixed in advance, whose compositions the data do not fix and which
@@ -4688,22 +4722,31 @@ changes only the decision: the domination above covers each, with no proof per c
   restriction inherits the proposition, and `B_T` still dominates a smaller target; §13.3's
   corollary and §13.8's obstacle in their domains (accepted on `5102852` and `24cdfce`).
 - *Dependent on hypotheses not established:* (ii), on R-a, R-b, R-c with compositions from a joint
-  population law, and R-d; §12's coverage, on its model, sampling and split hypotheses; any reading
-  of formal contrasts as real groups', on R-f and on those groups' existence.
-- *For the owner, open:* the target's object — real groups fixed in advance, or hypothetical
-  contrasts declared as such — and its adoption for obligation a; the measure, R-d's or a prescribed
-  one; D38's semantics, `T` kept as the reference; any restriction or tolerance.
+  population law, the compared groups' presence at every atom, and R-d; §12's coverage, on its
+  model, sampling and split hypotheses; any reading of formal contrasts as real groups', on R-f and
+  on those groups' existence.
+- *Decided by the owner (2026-10-20):* the working target's object, below.
+- *For the owner, open:* the guarantee's measure, R-d's `μ_β` or a prescribed one; D38's
+  semantics, `T` kept as the reference; any floor, presence limit or tolerance.
 
-**The decision this allows.** The smallest is the target's: which object, real or hypothetical,
-with R-b's alignment, R-d's measure or a prescribed one, every class counted and `T` as the item
-set, is A2's working target for obligation a. The next is how to meet §13.3's obstruction, which
-binds at every `n` at tolerances below `½ Σ_{j∈T} (1 − c_j)`: keeping every component and contrast
-at such a tolerance accepts a certificate useless under one-class truths in that domain, with
-§13.7's other alternatives (another mechanism, or A2 kept open); a family floor assumes of the truth
-what the responses cannot check; a target presence limit narrows what is claimed; a tolerance at or
-above that value leaves the corollary without force, at the price of a weaker bound. None is shown
-necessary, and none shows feasibility. §13.8's obstacle is separate: an exclusion would remove
-`Q_τ` and a larger tolerance lower its frontier, within §13.5's domain only.
+**Owner's decision (2026-10-20).** A2's working target is the difference in total score between
+real groups of the reference population at equal competence, under the contract's explicit
+hypotheses. The formal contrasts stay mathematical tools for a prudential majorant; they do not by
+themselves show that the corresponding groups exist. The decision keeps the whole `T` as the
+reference and invariant 1, no group labels collected; it does not identify groups with estimated
+components, nor adopt R-a–R-d as properties of real responses; it chooses neither the measure —
+`μ_β` stays the derivation's conditional reference — nor D38's semantics, a floor, a presence limit
+or a tolerance; it demonstrates no usefulness and does not close A2.
+
+**What the decision leaves.** With the target's object decided, the next choice is how to meet
+§13.3's obstruction, which binds at every `n` at tolerances below `½ Σ_{j∈T} (1 − c_j)`: keeping
+every component and contrast at such a tolerance accepts a certificate useless under one-class
+truths in that domain, with §13.7's other alternatives (another mechanism, or A2 kept open); a
+family floor assumes of the truth what the responses cannot check; a target presence limit narrows
+what is claimed; a tolerance at or above that value leaves the corollary without force, at the price
+of a weaker bound. None is shown necessary, and none shows feasibility. §13.8's obstacle is
+separate: an exclusion would remove `Q_τ` and a larger tolerance lower its frontier, within §13.5's
+domain only.
 
 **What would remain.** Obligation c: a certified upper bound on the supremum of `B_T`, or `B^ρ_T`,
 over §12's region, meeting §12.3's inclusion, with numerical error; the integral over `μ_β` is a
@@ -4711,4 +4754,5 @@ finite sum. Usefulness: the achievability side, a balanced truth's acceptance pr
 declared sizes, and the alternatives §13.5 leaves out. Then cost, decision and scope (§11.5 row 4;
 §9.5), and the premises — R-a to R-d, R-f where formal contrasts are read, and i.i.d. sampling — for
 real responses. Composition across fits lies outside this fixed-form reference. §13.7's stop rule
-holds.
+holds: this rectification authorizes no further deepening, and the certifier's implementation, the
+other obligations and new experiments stay suspended.
