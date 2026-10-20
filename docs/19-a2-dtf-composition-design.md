@@ -538,6 +538,18 @@ Review of `8e7a560` (§13.28), distinct from the reviews above:
   with no fit at full size; the caps of §13.28 reported as not yet authorized (§13.29). No
   calibration, validation or other fit at `N` = 3,000 or 6,000.
 
+Review of `2a01b81` (§13.29), distinct from the reviews above:
+
+- **Astra's evidence:** the Rust and Python diff read; the 55 Python tests of the three files
+  examined run, all passing; the historical threshold at 3,000 reproduced byte for byte; the old
+  validation re-read, its checks passing and its JSON coinciding. No Rust execution and no fit.
+- **Accepted:** the implementation, for this calibration; A2 is not closed.
+- **Owner's authorization:** one execution of `ind-cal6` on `2a01b81` — its 200 declared tasks,
+  C0 and C1, 100 each — with §13.28's caps: 4 CPU-hours, 45 minutes, 10 minutes a run, 2 GiB
+  aggregate resident, 8 workers; no extension or resumption after a stop; `threshold.tsv` written
+  only after a complete audit, a passing check and exit 0, then frozen and recomputed apart
+  (§13.30). `ind-val6` is not authorized.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -4083,11 +4095,11 @@ calibration and then, with its threshold committed, of the validation.
 ### 13.29 The study at `N = 6,000`: implementation and declaration (not run)
 
 **Status:** implemented by Claude Code on `8e7a560`, under Astra's approval of §13.28 for the
-implementation, not the execution (record before §1). No calibration, validation or other fit at
-`N` = 3,000 or 6,000 was run: the checks below use constructed records, smoke-scale fits and
-generated batches. Execution awaits review of this implementation and the owner's authorization,
-first of the calibration, then, with its threshold committed, of the validation. A2 stays open and
-blocking; D38 stays apart.
+implementation, not the execution (record before §1); accepted by Astra on `2a01b81` for the
+calibration, which ran there (§13.30). "No calibration, validation or other fit", here and under
+the checks below, describes the state at the implementation: the checks use constructed records,
+smoke-scale fits and generated batches. The validation awaits review of the calibration and the
+owner's authorization. A2 stays open and blocking; D38 stays apart.
 
 **Design, unchanged from §13.28.** `I`, the engine of `2e2572c`, its model, search and BIC rule;
 `N = 6,000`, 60 anchors, eight open items; calibration C0 and C1, validation C0, C1, C3 and C5,
@@ -4219,3 +4231,68 @@ containing one.
 recomputed by the reading alone. The freeze check's positive path at 6,000 was exercised in a
 scratch repository, not on a real calibration. The cost at 6,000 of C1 and C5 remains §13.28's
 estimate. The readings' tests run at 22 replicates, `IND_REPLICATES` patched, as §13.21's did.
+
+### 13.30 The study at `N = 6,000`: calibration (run on `2a01b81`)
+
+**Status:** run by Claude Code on 2026-10-20 on `2a01b81`, once, as §§13.28–13.29 declare, after
+Astra's acceptance of the implementation for this calibration and the owner's authorization of its
+200 runs (record before §1). Not reviewed. Evidence: **E** the run; **C** the oracle's check, the
+threshold reading and a recomputation apart from it; the records, plan, ledger, threshold and
+checks in
+[`verification/reports/a2-ind-cal6-2a01b81/`](../verification/reports/a2-ind-cal6-2a01b81/README.md).
+Calibration proportions are not validation results. No rule, rank, seed, engine or design changed
+after the result. A2 stays open and blocking; D38 is not decided.
+
+**Execution and preconditions.** Candidate checked: `HEAD` = `origin` = `2a01b81` after a fetch,
+`crates/scoring` and `crates/protocol` identical to `2e2572c`, `crates` and `Cargo.lock` clean, a
+new directory; the release binary built before the run. The authorized command with its caps:
+exit 0, 200 of 200 runs `read`, no stop. `check` exit 0: 2,600 values, largest `|A − B|`
+`4.8·10⁻¹⁴`; the audit complete, 200 records of 200. `threshold --phase ind-cal6` exit 0, which it
+gives only with the declared stage — its plan alone, 100 replicates, the 200 tasks and seeds,
+designs and records at 6,000 — a complete audit and a passing check; its output went to a
+temporary file, renamed `threshold.tsv` after the exit code was read, with nothing on standard
+error. Run on the frozen copy, `threshold --phase ind-cal6` gives the same file byte for byte.
+
+**Cost, measured.** CPU 8,640.0 s, 144.0 of the 240 minutes; wall time 1,107.0 s, 18.4 of the 45
+minutes; largest sampled resident sum 81.8 MiB (83,780 KiB), each run's peak 9.6–10.3 MiB;
+largest gap between checks 146 ms; 8 workers. CPU a run, mean and range (`cost-check.txt`):
+C0 41.7 s (15.3–69.2), against §13.27's 40.0 s on 16 runs; C1 44.7 s (18.2–71.2), measured at
+6,000 for the first time, against §13.28's estimate of 39–46 s drawn from the ratios at 3,000.
+§13.28 estimated 7,930–8,600 s and 18–19 minutes for this stage: the CPU exceeds the upper end by
+40 s, the wall time falls within. The slowest run took 71.2 s; §13.27's slowest at 6,000, 58 s.
+
+**Threshold** (`threshold.tsv`; `rank-check.txt` recomputes it from the records apart from
+`sim/a2_probe.py`, with the same values). Ranks `k − 3` to `k + 3` around each case's threshold:
+
+| Case | Planned; observed; evaluable | Not evaluable | Zeros of `I` | `k` | `t_c` | Values at ranks `k − 3` … `k + 3` | Equal to `t_c`; above |
+|---|---|---|---|---|---|---|---|
+| C0 | 100; 100; 100 | 0 | 28 | 96 | 0.641178985817746 (r92) | 0.6171, 0.6357, 0.6406, **0.6412**, 0.7022, 0.7740, 0.8136 | 1, itself; 4 |
+| C1 | 100; 100; 99 | 1: one-class baseline `max_iters` (r90) | 27 | 95 | 0.5792607883805121 (r11) | 0.5124, 0.5279, 0.5379, **0.5793**, 0.5994, 1.0472, 1.0709 | 1, itself; 4 |
+
+`k = ⌈19 · 101 / 20⌉ = 96` for C0's 100 evaluable runs, `⌈19 · 100 / 20⌉ = 95` for C1's 99.
+`t = max(t_C0, t_C1) = 0.641178985817746` (bits `3fe48489cadf0783`), C0's. No tie sits at either
+threshold, so 4 values lie above each: a property of the rank at `n` = 100 and 99, not a
+false-alarm frequency. The gate refused no batch. The one not-evaluable run is a one-class
+baseline that did not converge; its shared candidate converged, and the rule leaves it out unread.
+Every shared two-class candidate converged and was set aside as "BIC not lower"; the selected fit
+kept one class in all 200 runs, C1's r90 at `max_iters`. Every zero is the zero of one counted
+class. Digests: `threshold.tsv` `ca93135a…e7b9`; it names `records.jsonl` `43603338…f4ee`,
+`plan-ind-cal6.tsv` `d2732a67…93fb` and `ledger.tsv` `b1f0562c…19dd`.
+
+Set beside §13.22, descriptively: at 3,000 `t_C0` was 0.7984 and `t_C1` 0.7164; here 0.6412 and
+0.5793. Two calibrations on different seeds at two sizes; the difference is neither tested nor
+attributed to a cause, and says nothing yet about false alarms or detections at 6,000.
+
+**What is fixed, and what is not known.** The threshold and the data it came from are identified by
+`threshold.tsv` and its three digests, and are frozen when this directory is committed. Nothing is
+known yet about false alarms on new neutral runs or detections in C3 and C5 at 6,000: that is the
+validation's question, on its own seeds.
+
+**Needs, before any validation.** Review of this calibration; the owner's authorization of
+`ind-val6`, run with `--calibration verification/reports/a2-ind-cal6-2a01b81` from a commit whose
+`crates` tree and `Cargo.lock` are this calibration's (`dfd81c1`, `e661541`) — the harness refuses
+another configuration — with this directory committed and unmodified; §13.28's validation caps,
+7.5 CPU-hours and 90 minutes, proposed and not authorized. With C0 and C1 as measured here, C3 at
+§13.27's 38.6 s and C5 still at §13.28's estimate of 39–46 s, the 400 runs would take about
+16,400–17,100 CPU-seconds and 35–37 minutes at this run's CPU-to-wall ratio of 7.8: an estimate,
+C5 unmeasured at 6,000.
