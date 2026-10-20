@@ -550,6 +550,22 @@ Review of `2a01b81` (§13.29), distinct from the reviews above:
   only after a complete audit, a passing check and exit 0, then frozen and recomputed apart
   (§13.30). `ind-val6` is not authorized.
 
+Review of `6d57cac` (§13.30), distinct from the reviews above:
+
+- **Astra's evidence:** the complete audit of the 200 records verified; the numerical check rerun
+  on the 2,600 values, with no error, largest difference about `4.8·10⁻¹⁴`; `threshold.tsv`
+  recomputed and reproduced byte for byte; `rank_check.py` and `cost_check.py` rerun, their outputs
+  identical; the artefacts' digests confirmed. No Rust execution and no fit.
+- **Accepted:** the calibration, as the application of the declared rule, not as a validation
+  result.
+- **Owner's authorization:** one execution of `ind-val6` on `6d57cac` — its 400 declared tasks,
+  C0, C1, C3 and C5, 100 each — against the calibration frozen in
+  `verification/reports/a2-ind-cal6-2a01b81/`, with §13.28's caps: 7.5 CPU-hours, 90 minutes, 10
+  minutes a run, 2 GiB aggregate resident, 8 workers; no extension or resumption after a stop; read
+  only after the contract, the audit, the numerical check, the threshold's recomputation and the
+  binding to the calibration pass; the declared readings alone, the comparison with 3,000
+  descriptive (§13.31).
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -4096,10 +4112,11 @@ calibration and then, with its threshold committed, of the validation.
 
 **Status:** implemented by Claude Code on `8e7a560`, under Astra's approval of §13.28 for the
 implementation, not the execution (record before §1); accepted by Astra on `2a01b81` for the
-calibration, which ran there (§13.30). "No calibration, validation or other fit", here and under
-the checks below, describes the state at the implementation: the checks use constructed records,
-smoke-scale fits and generated batches. The validation awaits review of the calibration and the
-owner's authorization. A2 stays open and blocking; D38 stays apart.
+calibration, which ran there (§13.30); the validation ran on `6d57cac` after the calibration's
+review and the owner's authorization (§13.31). "No calibration, validation or other fit" and the
+caps "not authorized", here and under the checks below, describe the state at the implementation:
+the checks use constructed records, smoke-scale fits and generated batches. A2 stays open and
+blocking; D38 stays apart.
 
 **Design, unchanged from §13.28.** `I`, the engine of `2e2572c`, its model, search and BIC rule;
 `N = 6,000`, 60 anchors, eight open items; calibration C0 and C1, validation C0, C1, C3 and C5,
@@ -4236,9 +4253,10 @@ estimate. The readings' tests run at 22 replicates, `IND_REPLICATES` patched, as
 
 **Status:** run by Claude Code on 2026-10-20 on `2a01b81`, once, as §§13.28–13.29 declare, after
 Astra's acceptance of the implementation for this calibration and the owner's authorization of its
-200 runs (record before §1). Not reviewed. Evidence: **E** the run; **C** the oracle's check, the
-threshold reading and a recomputation apart from it; the records, plan, ledger, threshold and
-checks in
+200 runs (record before §1). Accepted by Astra on `6d57cac` as the application of the declared
+rule, not as a validation result (record before §1); the validation ran against it in §13.31.
+Evidence: **E** the run; **C** the oracle's check, the threshold reading and a recomputation apart
+from it; the records, plan, ledger, threshold and checks in
 [`verification/reports/a2-ind-cal6-2a01b81/`](../verification/reports/a2-ind-cal6-2a01b81/README.md).
 Calibration proportions are not validation results. No rule, rank, seed, engine or design changed
 after the result. A2 stays open and blocking; D38 is not decided.
@@ -4296,3 +4314,85 @@ another configuration — with this directory committed and unmodified; §13.28'
 §13.27's 38.6 s and C5 still at §13.28's estimate of 39–46 s, the 400 runs would take about
 16,400–17,100 CPU-seconds and 35–37 minutes at this run's CPU-to-wall ratio of 7.8: an estimate,
 C5 unmeasured at 6,000.
+
+### 13.31 The study at `N = 6,000`: validation (run on `6d57cac`)
+
+**Status:** run by Claude Code on 2026-10-20 on `6d57cac`, once, as §§13.28–13.29 declare, against
+the calibration frozen there, after Astra's acceptance of the calibration and the owner's
+authorization of the 400 runs (record before §1). Not reviewed. Evidence: **E** the run; **C** the
+oracle's check, the declared reading and a recomputation apart from it, its intervals by SciPy; the
+records, plan, ledger, checks and readings in
+[`verification/reports/a2-ind-val6-6d57cac/`](../verification/reports/a2-ind-val6-6d57cac/README.md).
+The declared readings alone: no new threshold, no pooling of cases, no success criterion, no
+analysis suggested by the results. No rule, threshold, seed, engine or design changed after the
+result. A2 stays open and blocking; D38 is not decided.
+
+**Execution and preconditions.** Candidate checked: `HEAD` = `origin` = `6d57cac` after a fetch;
+its `crates` tree `dfd81c1` and `Cargo.lock` `e661541`, the calibration's, clean; `crates/scoring`
+and `crates/protocol` identical to `2e2572c`; `verification/reports/a2-ind-cal6-2a01b81/`
+committed, its 17 files' SHA-256 the same before and after the run; its `threshold.tsv`
+`ca93135a…e7b9`, `t = 0.641178985817746`, bits `3fe48489cadf0783`; a new directory; the
+calibration's binary. The authorized command: the harness accepted the calibration and bound the
+plan to it (`calibration`, `ca93135a…e7b9`, `3fe48489cadf0783`); exit 0, 400 of 400 runs `read`,
+no stop. `check` exit 0: 5,200 values, largest `|A − B|` `4.6·10⁻¹⁴`; the audit complete, 400
+records of 400. `ind-val --phase ind-val6` exit 0 as text and as JSON, nothing on standard error,
+which it gives only with the declared stage — its plan alone, the 400 tasks and seeds, designs and
+records at 6,000 — both stages' checks passing, the calibration of `ind-cal6` at 6,000, the
+threshold recomputed from it equal to the frozen file byte for byte, the plan bound to it and the
+two configurations alike but for the caps. Run on the frozen copy, `check` and both readings give
+the same files byte for byte.
+
+**Cost, measured.** CPU 16,708.2 s, 278.5 of the 450 minutes; wall time 2,113.4 s, 35.2 of the 90
+minutes; largest sampled resident sum 81.7 MiB (83,708 KiB), each run's peak 9.6–10.4 MiB; largest
+gap between checks 145 ms; 8 workers; CPU-to-wall ratio 7.9. CPU a run, mean and range
+(`cost-check.txt`): C0 40.5 s (17.6–64.2), C1 44.1 (16.5–70.0), C3 38.9 (14.7–64.7), C5 43.5
+(21.3–72.0), C5 measured at 6,000 for the first time, against §13.28's estimate of 39–46 s.
+§13.30 estimated 16,400–17,100 CPU-seconds and 35–37 minutes: both fall within. The slowest run
+took 72.0 s, in C5. With the calibration: 25,348.2 CPU-seconds, 7.0 of the 11.5 cumulative hours,
+and 53.7 of the 135 minutes of wall time.
+
+**Results, per case** (`ind-val-report.md`, `ind-val.json`; `val-check.txt` recomputes `t` from the
+calibration's records, checks the binding, the plan and the records, and recomputes every count,
+zero, value and share apart from `sim/a2_probe.py`, with the same values, and every interval by
+SciPy, within `1.4·10⁻¹⁶`). `t = 0.641178985817746`; flagged when `I > t`; no value equals `t`.
+
+| Case | Role | Planned; observed; evaluable | Not evaluable, by reason | Flagged | Not flagged | Zeros of `I` |
+|---|---|---|---|---|---|---|
+| C0 | neutral | 100; 100; 100 | 0 | 5 false alarms | 95 correct non-flags | 29 |
+| C1 | neutral | 100; 100; 99 | 1: baseline `max_iters` (r61) | 4 false alarms | 95 correct non-flags | 29 |
+| C3 | unbalanced | 100; 100; 100 | 0 | 46 detections | 54 misses | 18 |
+| C5 | unbalanced | 100; 100; 99 | 1: baseline `max_iters` (r77) | 7 detections | 92 misses | 30 |
+
+| Case | Flagged over evaluable, conditional; 95% | Flagged over planned; 95% | Not evaluable over planned; 95% |
+|---|---|---|---|
+| C0 | 5/100; [0.016, 0.113] | 5/100; [0.016, 0.113] | 0/100; [0.000, 0.036] |
+| C1 | 4/99; [0.011, 0.100] | 4/100; [0.011, 0.099] | 1/100; [0.000, 0.054] |
+| C3 | 46/100; [0.360, 0.563] | 46/100; [0.360, 0.563] | 0/100; [0.000, 0.036] |
+| C5 | 7/99; [0.029, 0.140] | 7/100; [0.029, 0.139] | 1/100; [0.000, 0.054] |
+
+Intervals as declared: Clopper–Pearson, exact two-sided 95%, each marginal; a case's runs taken as
+independent and identically distributed given the frozen `t`, the count binomial; conditional on
+`t` and, over evaluable runs, on their number; no adjustment across the twelve; sampling error in
+these designs, not a guarantee. The not-evaluable runs are reported apart, as neither passes nor
+flags.
+
+**Separation without threshold**, conditional on evaluable runs, ties counted ½, without an
+interval — the share of pairs where the unbalanced run's `I` exceeds the neutral one's: C3 against
+C0, 0.7705 (100 × 100 pairs); C3 against C1, 0.7925 (100 × 99); C5 against C0, 0.5071 (99 × 100);
+C5 against C1, 0.5309 (99 × 99).
+
+**Set beside §13.23, descriptively** (`N = 3,000`, `t = 0.7984`; here `N = 6,000`, `t = 0.6412`):
+false alarms C0 5/99 and 5/100, C1 2/99 and 4/99; detections C3 23/96 and 46/100, C5 4/96 and
+7/99; separation of C3 0.72–0.76 and 0.77–0.79, of C5 0.47–0.50 and 0.51–0.53. Two calibrations
+and two validations, on different seeds, at two sizes and two thresholds: the differences are
+neither tested nor attributed to a cause, and nothing is pooled.
+
+**Scope, as declared in §13.28.** These are the screening's frequencies at this frozen `t` in four
+synthetic designs at `N = 6,000`, inside the model's family; nominal α = 0.05 was a target of the
+rule, not a guarantee. They are not §11.2's guarantee or §12's coverage, close no obligation of
+§13.6 and adopt no admission or compensation policy; the indicator stays diagnostic. The reading
+of these results awaits review.
+
+**Limits.** One calibration and one validation; 100 runs a case; one size, one design and its item
+laws; the default `LatentParams`, the chosen start's solution kept; the indicator chosen after the
+development data (§13.20). No further experiment is started.

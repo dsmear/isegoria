@@ -129,9 +129,11 @@ direction of 2026-10-18
   calibration and validation at 6,000, approved by Astra on `8e7a560` for implementation, not
   execution, and implemented in §13.29; the implementation was accepted on `2a01b81` for the
   calibration, which ran there once (§13.30; evidence and the frozen threshold in
-  `verification/reports/a2-ind-cal6-2a01b81/`), its results not yet reviewed; the validation has
-  not run. It is a screening statistic, not §11.2's guarantee or §12's coverage. It closes
-  nothing.
+  `verification/reports/a2-ind-cal6-2a01b81/`), accepted by Astra on `6d57cac` as the application
+  of the declared rule, not as a validation result. The validation ran there once against it
+  (§13.31; evidence in `verification/reports/a2-ind-val6-6d57cac/`), its results not yet reviewed:
+  at the frozen threshold, false alarms C0 5/100 and C1 4/99, detections C3 46/100 and C5 7/99.
+  It is a screening statistic, not §11.2's guarantee or §12's coverage. It closes nothing.
 - **Suspended:** implementation of the certifier until its contract decisions are made.
   D38's treatment of pertinent factual-knowledge differences remains to be reconciled explicitly;
   no compensation or admission policy changes through this documentation.

@@ -1,0 +1,31 @@
+{
+ "values": 5200,
+ "max_diff": {
+  "dtf": 3.219646771412954e-15,
+  "raw_gap": 4.618527782440651e-14,
+  "grid": 3.3306690738754696e-16
+ },
+ "failures": [],
+ "tol": 1e-05,
+ "grid_tol": 1e-09,
+ "audits": [
+  {
+   "phase": "ind-val6",
+   "planned": 400,
+   "replicates": 100,
+   "records": 400,
+   "invalid_lines": [],
+   "duplicates": [],
+   "unplanned": [],
+   "inconsistent": [],
+   "ended_without_record": [],
+   "record_without_end": [],
+   "started_not_ended": [],
+   "never_started": [],
+   "not_observed": [],
+   "stop": null,
+   "status": "complete"
+  }
+ ],
+ "passed": true
+}
