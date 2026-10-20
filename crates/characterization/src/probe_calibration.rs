@@ -1,5 +1,5 @@
-//! The frozen calibration an `ind-val` run is bound to (`docs/19` §13.21): its `threshold.tsv`
-//! checked against the calibration's plan, records, ledger and configuration before any run.
+//! The frozen calibration a validation run is bound to (`docs/19` §§13.21, 13.29): its
+//! `threshold.tsv` checked against the calibration's plan, records, ledger and configuration.
 
 use crate::probe::{tasks, Phase};
 use crate::probe_jobs::Plan;
@@ -12,8 +12,40 @@ pub const THRESHOLD_SCHEMA: &str = "schema\ta2-ind/v1";
 pub const RULE: &str = "rule\torder-statistic\talpha\t1/20\tstrict";
 pub const REPLICATES: u32 = 100;
 pub const NEUTRAL: [&str; 2] = ["C0", "C1"];
+
 /// The calibration's files the threshold names by SHA-256, in its order.
-pub const DATA: [&str; 3] = ["records.jsonl", "plan-ind-cal.tsv", "ledger.tsv"];
+pub fn data(cal: Phase) -> [String; 3] {
+    [
+        "records.jsonl".into(),
+        format!("plan-{}.tsv", cal.name()),
+        "ledger.tsv".into(),
+    ]
+}
+
+/// The lines of `cal`'s `threshold.tsv` before its cases: `ind-cal`'s schema v1 and rule, or
+/// schema v2 naming the stage and its `N`, then the rule.
+pub fn header(cal: Phase) -> String {
+    match cal {
+        Phase::IndCal => format!("{THRESHOLD_SCHEMA}\n{RULE}\n"),
+        _ => format!(
+            "schema\ta2-ind/v2\nstage\t{}\tn\t{}\n{RULE}\n",
+            cal.name(),
+            cal.scale().0
+        ),
+    }
+}
+
+/// The stage and `N` a `threshold.tsv` declares: `ind-cal` at 3,000 by schema v1, else v2's.
+fn declared(lines: &[&str]) -> Option<(String, String)> {
+    match lines {
+        [THRESHOLD_SCHEMA, ..] => Some(("ind-cal".into(), "3000".into())),
+        ["schema\ta2-ind/v2", stage, ..] => match stage.split('\t').collect::<Vec<_>>()[..] {
+            ["stage", name, "n", n] => Some((name.into(), n.into())),
+            _ => None,
+        },
+        _ => None,
+    }
+}
 
 /// The rank `⌈19 (n + 1) / 20⌉` of a case's threshold among its `n` evaluable values, if `≤ n`.
 pub fn rank(n: u64) -> Option<u64> {
@@ -42,15 +74,27 @@ fn double(bits: &str, decimal: &str) -> Result<f64, String> {
     Ok(v)
 }
 
-/// `threshold.tsv` in the declared form: `t`'s bits, and the files it names with their digests.
-fn parse(text: &str) -> Result<(String, Vec<(String, String)>), String> {
-    let rows: Vec<Vec<&str>> = text.lines().map(|l| l.split('\t').collect()).collect();
-    let mut rows = rows.iter().map(Vec::as_slice).peekable();
-    if rows.next().map(|r| r.join("\t")).as_deref() != Some(THRESHOLD_SCHEMA)
-        || rows.next().map(|r| r.join("\t")).as_deref() != Some(RULE)
-    {
-        return Err("not the declared schema and rule".into());
+/// `cal`'s `threshold.tsv` in the declared form: `t`'s bits, and the files it names with their
+/// digests; another stage or size named by its header is refused as such.
+fn parse(text: &str, cal: Phase) -> Result<(String, Vec<(String, String)>), String> {
+    let lines: Vec<&str> = text.lines().collect();
+    let head = header(cal);
+    let head: Vec<&str> = head.lines().collect();
+    if lines.len() < head.len() || lines[..head.len()] != head[..] {
+        let want = (cal.name().to_string(), cal.scale().0.to_string());
+        return Err(match declared(&lines) {
+            Some(got) if got != want => format!(
+                "a calibration of {} at N = {}, not of {} at N = {}",
+                got.0, got.1, want.0, want.1
+            ),
+            _ => "not the declared schema and rule".into(),
+        });
     }
+    let rows: Vec<Vec<&str>> = lines[head.len()..]
+        .iter()
+        .map(|l| l.split('\t').collect())
+        .collect();
+    let mut rows = rows.iter().map(Vec::as_slice).peekable();
     let mut cases = Vec::new();
     for case in NEUTRAL {
         let Some(["case", c, "planned", p, "evaluable", n, "k", k, "t", bits, dec]) = rows.next()
@@ -97,7 +141,7 @@ fn parse(text: &str) -> Result<(String, Vec<(String, String)>), String> {
         return Err("the threshold is not the larger of the cases'".into());
     }
     let mut files = Vec::new();
-    for name in DATA {
+    for name in data(cal) {
         match rows.next() {
             Some(&["file", f, digest]) if f == name => files.push((f.into(), digest.into())),
             _ => return Err(format!("no digest line for {name}")),
@@ -116,28 +160,47 @@ fn kept(config: &str) -> Vec<&str> {
         .collect()
 }
 
-/// The `calibration` line binding a validation whose configuration is `config` to the threshold
-/// frozen in `dir`, or why `dir` is not the declared calibration for it (`docs/19` §13.21).
-pub fn calibration_line(dir: &Path, config: &str) -> Result<String, String> {
+/// Whether `dir` holds `cal`'s plan and no other: a calibration of another stage or size is
+/// refused by its plan's name before any content is read.
+pub fn held(dir: &Path, cal: Phase) -> Result<(), String> {
+    let entries = fs::read_dir(dir).map_err(|e| format!("the calibration: {e}"))?;
+    let mut plans: Vec<String> = entries
+        .filter_map(|e| e.ok()?.file_name().into_string().ok())
+        .filter(|name| name.starts_with("plan-") && name.ends_with(".tsv"))
+        .collect();
+    plans.sort();
+    if plans != [data(cal)[1].clone()] {
+        return Err(format!(
+            "the calibration is not {}'s at N = {}: its plans are {plans:?}",
+            cal.name(),
+            cal.scale().0
+        ));
+    }
+    Ok(())
+}
+
+/// The `calibration` line binding `validation`, whose configuration is `config`, to the threshold
+/// frozen in `dir`, or why `dir` is not its own calibration (`docs/19` §§13.21, 13.29).
+pub fn calibration_line(dir: &Path, validation: Phase, config: &str) -> Result<String, String> {
+    let cal = validation
+        .calibration()
+        .ok_or(format!("{} is not a validation", validation.name()))?;
+    held(dir, cal)?;
     let read = |name: &str| fs::read(dir.join(name)).map_err(|e| format!("{name}: {e}"));
     let threshold = read(THRESHOLD)?;
     let text = String::from_utf8(threshold.clone()).map_err(|_| "threshold.tsv is not text")?;
-    let (bits, files) = parse(&text).map_err(|e| format!("threshold.tsv: {e}"))?;
+    let (bits, files) = parse(&text, cal).map_err(|e| format!("threshold.tsv: {e}"))?;
     for (name, digest) in &files {
         if sha256_hex(&read(name)?) != *digest {
             return Err(format!("{name} is not the file the threshold names"));
         }
     }
-    let plan = String::from_utf8(read(DATA[1])?).map_err(|_| "the plan is not text")?;
+    let name = &data(cal)[1];
+    let plan = String::from_utf8(read(name)?).map_err(|_| "the plan is not text")?;
     let own = Plan::config(&plan);
-    let declared = Plan::new(
-        "",
-        Phase::IndCal,
-        REPLICATES,
-        tasks(Phase::IndCal, REPLICATES),
-    );
+    let declared = Plan::new("", cal, REPLICATES, tasks(cal, REPLICATES));
     if plan[own.len()..] != declared.text {
-        return Err("plan-ind-cal.tsv is not the declared calibration plan".into());
+        return Err(format!("{name} is not the declared calibration plan"));
     }
     if kept(own) != kept(config) {
         return Err("the calibration ran another configuration than this validation".into());

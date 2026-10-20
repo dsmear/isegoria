@@ -2,7 +2,7 @@
 //! (a single run in its own process, launched by `run`).
 
 use characterization::probe::{config_lines, run, tasks, Case, Phase, Task};
-use characterization::probe_calibration::{calibration_line, DATA, REPLICATES, THRESHOLD};
+use characterization::probe_calibration::{calibration_line, data, held, REPLICATES, THRESHOLD};
 use characterization::probe_jobs::{
     confirm_replicates, planned_replicates, read_ledger, self_cost, supervise, write_part, Caps,
     Plan, Refusal, DECLARED,
@@ -22,13 +22,16 @@ usage: a2-probe <plan|run|one> [options]
   one    one run (used by run): its record to <out>/parts
 
 options:
-  --phase smoke|explore|confirm|candidates|dtf-check|ind-cal|ind-val|size  (smoke)
+  --phase smoke|explore|confirm|candidates|dtf-check|ind-cal|ind-val|size|ind-cal6|ind-val6
+                                 (smoke)
   --replicates R                 (smoke only; explore runs 1, confirm takes R from the
                                  cost rule after explore, candidates refits confirm's 8,
                                  dtf-check runs 16 on its own seeds, ind-cal and ind-val 100,
-                                 size 16 at each of N = 3000 and 6000)
-  --calibration DIR              (ind-val only, required: the frozen calibration, with
-                                 its threshold.tsv, committed and unmodified)
+                                 size 16 at each of N = 3000 and 6000, ind-cal6 and ind-val6
+                                 100 at N = 6000)
+  --calibration DIR              (ind-val and ind-val6 only, required: the validation's own
+                                 calibration, ind-cal or ind-cal6, frozen, with its
+                                 threshold.tsv, committed and unmodified)
   --case C0..C5 --replicate R    (one only; --n N as well for size)
   --jobs J                       (8)
   --out DIR                      (characterization-results/a2-probe)
@@ -150,7 +153,13 @@ fn candidate(phase: Phase) -> Result<String, String> {
     let outside = format!(":(exclude){DIAGNOSTIC}");
     let (base, ok) = match phase {
         Phase::Explore | Phase::Confirm => (ENGINE_BASE, unchanged(&top, ENGINE_BASE, &engine)?),
-        Phase::Candidates | Phase::DtfCheck | Phase::IndCal | Phase::IndVal | Phase::Size => (
+        Phase::Candidates
+        | Phase::DtfCheck
+        | Phase::IndCal
+        | Phase::IndVal
+        | Phase::Size
+        | Phase::IndCal6
+        | Phase::IndVal6 => (
             REVIEWED_DIAGNOSTIC,
             unchanged(&top, REVIEWED_DIAGNOSTIC, &engine)?,
         ),
@@ -192,9 +201,13 @@ fn replicates(args: &Args) -> Result<u32, String> {
         (Phase::Candidates, Some(_)) => Err("candidates refits confirm's 8 replicates".into()),
         (Phase::DtfCheck, None | Some(16)) => Ok(16),
         (Phase::DtfCheck, Some(_)) => Err("dtf-check runs its declared 16 replicates".into()),
-        (Phase::IndCal | Phase::IndVal, None) => Ok(REPLICATES),
-        (Phase::IndCal | Phase::IndVal, Some(r)) if r == REPLICATES => Ok(REPLICATES),
-        (Phase::IndCal | Phase::IndVal, Some(_)) => Err(format!(
+        (Phase::IndCal | Phase::IndVal | Phase::IndCal6 | Phase::IndVal6, None) => Ok(REPLICATES),
+        (Phase::IndCal | Phase::IndVal | Phase::IndCal6 | Phase::IndVal6, Some(r))
+            if r == REPLICATES =>
+        {
+            Ok(REPLICATES)
+        }
+        (Phase::IndCal | Phase::IndVal | Phase::IndCal6 | Phase::IndVal6, Some(_)) => Err(format!(
             "{} runs its declared {REPLICATES} replicates",
             args.phase.name()
         )),
@@ -213,13 +226,13 @@ fn replicates(args: &Args) -> Result<u32, String> {
     }
 }
 
-/// The calibration directory, its threshold and data tracked by git and unmodified: frozen.
-fn frozen(dir: &Path) -> Result<(), String> {
+/// The calibration directory, its threshold and `cal`'s data tracked by git and unmodified: frozen.
+fn frozen(dir: &Path, cal: Phase) -> Result<(), String> {
     let not = |why: String| format!("the calibration is not frozen in the repository: {why}");
     let dir = std::fs::canonicalize(dir).map_err(|e| not(e.to_string()))?;
     let top = git_at(None, &["rev-parse", "--show-toplevel"])?;
-    for name in [THRESHOLD, DATA[0], DATA[1], DATA[2]] {
-        let path = dir.join(name);
+    for name in std::iter::once(THRESHOLD.to_string()).chain(data(cal)) {
+        let path = dir.join(&name);
         let path = path
             .to_str()
             .ok_or_else(|| not("a path is not UTF-8".into()))?;
@@ -237,11 +250,14 @@ fn frozen(dir: &Path) -> Result<(), String> {
 
 fn supervised(args: &Args) -> Result<bool, String> {
     let r = replicates(args)?;
-    match (args.phase, &args.calibration) {
-        (Phase::IndVal, Some(dir)) => frozen(dir)?,
-        (Phase::IndVal, None) => return Err("ind-val needs --calibration DIR".into()),
-        (_, Some(_)) => return Err("--calibration is ind-val's alone".into()),
-        (_, None) => {}
+    match (args.phase.calibration(), &args.calibration) {
+        (Some(cal), Some(dir)) => {
+            held(dir, cal).map_err(|e| format!("refused: {e}"))?;
+            frozen(dir, cal)?
+        }
+        (Some(_), None) => return Err(format!("{} needs --calibration DIR", args.phase.name())),
+        (None, Some(_)) => return Err("--calibration is ind-val's alone, or ind-val6's".into()),
+        (None, None) => {}
     }
     let caps = args.caps;
     let mut config = format!(
@@ -254,7 +270,8 @@ fn supervised(args: &Args) -> Result<bool, String> {
         config_lines(args.phase)
     );
     if let Some(dir) = &args.calibration {
-        let line = calibration_line(dir, &config).map_err(|e| format!("refused: {e}"))?;
+        let line =
+            calibration_line(dir, args.phase, &config).map_err(|e| format!("refused: {e}"))?;
         let at = config.find("schema\t").unwrap_or(config.len());
         config.insert_str(at, &line);
     }

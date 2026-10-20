@@ -4,8 +4,9 @@
 use characterization::generate::dif_batch;
 use characterization::grid::engine_seed;
 use characterization::probe::{
-    assess, diagnosed_record, gate, generating_dtf, probe_seed, raw_gap, record_of, route, run,
-    stopped_record, tasks, Case, Cost, Draw, Items, Outcome, Phase, Removal, Route, Task,
+    assess, config_lines, diagnosed_record, gate, generating_dtf, probe_seed, raw_gap, record_of,
+    route, run, stopped_record, tasks, Case, Cost, Draw, Items, Outcome, Phase, Removal, Route,
+    Task, PHASES,
 };
 use identity::nym::Nym;
 use protocol::admission::NullifierSet;
@@ -517,4 +518,84 @@ fn only_size_takes_an_n_and_only_its_two_sizes() {
             assert_eq!(phase.takes(n), n.is_none(), "{} {n:?}", phase.name());
         }
     }
+}
+
+/// `ind-cal6` and `ind-val6` (`docs/19` §13.29): 200 and 400 runs at 6,000, without `n`, each
+/// seeded apart from the other stage, every case and every earlier phase; known values.
+#[test]
+fn the_stages_at_6000_seed_every_run_apart_from_each_other_and_every_earlier_phase() {
+    let cal = tasks(Phase::IndCal6, 100);
+    let val = tasks(Phase::IndVal6, 100);
+    assert_eq!((cal.len(), val.len()), (200, 400));
+    assert!(cal.iter().all(|t| matches!(t.case, Case::C0 | Case::C1)));
+    for case in [Case::C0, Case::C1, Case::C3, Case::C5] {
+        assert_eq!(val.iter().filter(|t| t.case == case).count(), 100);
+    }
+    assert_eq!(
+        (cal[0].key(), val[399].key()),
+        ("ind-cal6-C0-0".to_string(), "ind-val6-C5-99".to_string())
+    );
+    for t in cal.iter().chain(&val) {
+        assert!(t.n.is_none() && t.phase.diagnostic());
+        assert_eq!(
+            (t.design().n, t.design().anchors, t.design().k),
+            (6000, 60, 8)
+        );
+        let mut same = t.case.design(Phase::IndVal);
+        same.n = 6000;
+        assert_eq!(t.design(), same);
+    }
+    let mut ours: Vec<u64> = cal.iter().chain(&val).map(Task::seed).collect();
+    ours.sort_unstable();
+    ours.dedup();
+    assert_eq!(ours.len(), 600);
+    let mut earlier: Vec<u64> = (0..64)
+        .flat_map(|r| [Phase::Smoke, Phase::Explore, Phase::Confirm].map(|p| probe_seed(p, r)))
+        .collect();
+    for (phase, r) in [
+        (Phase::Candidates, 8),
+        (Phase::DtfCheck, 16),
+        (Phase::IndCal, 100),
+        (Phase::IndVal, 100),
+        (Phase::Size, 16),
+    ] {
+        earlier.extend(tasks(phase, r).iter().map(Task::seed));
+    }
+    assert!(ours.iter().all(|s| !earlier.contains(s)));
+    assert_eq!(cal[0].seed(), 4800293454221026440);
+    assert_eq!(val[399].seed(), 4099950399348182921);
+}
+
+/// Each phase's scale, name and calibration: only the two new stages at 6,000, their
+/// configuration alike and every design at 6,000; the earlier phases unchanged (§13.29).
+#[test]
+fn only_the_new_stages_run_at_6000_and_each_validation_names_its_own_calibration() {
+    for phase in PHASES {
+        assert_eq!(Phase::parse(phase.name()), Some(phase));
+        let at6000 = matches!(phase, Phase::IndCal6 | Phase::IndVal6);
+        let n = if at6000 {
+            6000
+        } else if phase == Phase::Smoke {
+            400
+        } else {
+            3000
+        };
+        assert_eq!(phase.scale().0, n, "{}", phase.name());
+        assert_eq!(phase.takes(None), phase != Phase::Size);
+        assert!(!phase.takes(Some(6000)) || phase == Phase::Size);
+        let cal = match phase {
+            Phase::IndVal => Some(Phase::IndCal),
+            Phase::IndVal6 => Some(Phase::IndCal6),
+            _ => None,
+        };
+        assert_eq!(phase.calibration(), cal, "{}", phase.name());
+    }
+    let six = config_lines(Phase::IndCal6);
+    assert_eq!(six, config_lines(Phase::IndVal6));
+    assert_eq!(six.matches("\t6000\t60\t8\t").count(), 6);
+    assert_eq!(
+        six.replace("\t6000\t", "\t3000\t"),
+        config_lines(Phase::IndCal)
+    );
+    assert!(config_lines(Phase::IndVal).contains("design\tC0\t3000\t60\t8\tc0\t0.0\t0.0\t0.5\n"));
 }

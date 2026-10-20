@@ -323,8 +323,9 @@ against the harness's values; `budget` applies the cost-only rule for the confir
 replicates, and proposes none unless explore is complete, passes the precision check and shows
 no blocking defect; `report` counts every outcome with its denominators; `compare-first` and
 `candidates` read §13.14's phase, `dtf-check` §13.18's; `threshold` and `ind-val` §13.21's
-single-test study, the calibration's threshold and the validation against it. Standard library
-only, deterministic. From the repository root:
+single-test study, the calibration's threshold and the validation against it, and with `--phase
+ind-cal6` and `--phase ind-val6` §13.29's stages at `N = 6,000`. Standard library only,
+deterministic. From the repository root:
 
 ```
 python3 sim/a2_probe.py reference > sim/a2_probe_reference.json
@@ -341,12 +342,14 @@ malformed ledger stops `check`, `report` and `budget`; a stop named in a `sessio
 the `stop` line does. `dtf-check` exits 0 after its reading, 1 without analysis unless the
 directory holds the declared phase exactly — 16 replicates, its 32 tasks, records matching their
 keys, paired seeds, a complete audit — and the precision check passes. `threshold` prints
-`threshold.tsv` and exits 0, or prints why to standard error, nothing to standard output, and
-exits 1: the stage not exactly the declared one (100 replicates, its tasks and seeds, a complete
-audit), a failed precision check, or fewer than 19 evaluable runs in a neutral case. `ind-val`
-exits 0 after its reading, 1 without it unless both stages are the declared ones and pass the
-precision check, the threshold recomputed equals the frozen `threshold.tsv`, and the validation
-plan is bound to it.
+`threshold.tsv` (schema v1 for `ind-cal`, v2 naming the stage and its `N` for `ind-cal6`) and
+exits 0, or prints why to standard error, nothing to standard output, and exits 1: the stage not
+exactly the declared one (its plan alone, 100 replicates, its tasks and seeds, every design and
+record at the stage's `N`, a complete audit), a failed precision check, or fewer than 19
+evaluable runs in a neutral case. `ind-val` exits 0 after its reading, 1 without it unless both
+stages are the declared ones and pass the precision check, the calibration is the validation's
+own stage at its size, the threshold recomputed equals the frozen `threshold.tsv`, and the
+validation plan is bound to it.
 
 ### `a2_tradeoff.py`
 

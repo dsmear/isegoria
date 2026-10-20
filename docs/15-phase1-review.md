@@ -126,7 +126,8 @@ direction of 2026-10-18
   `verification/reports/a2-size-b8c9dce/`), its results accepted by Astra on `e0c7248` as bounded
   exploratory evidence: the single-test separation of C3 from C0 is higher at 6,000 than at 3,000,
   with no component isolated; the ordinary path still selects one class. §13.28 proposes a
-  calibration and validation at 6,000, not implemented. It is a screening statistic, not §11.2's
+  calibration and validation at 6,000, approved by Astra on `8e7a560` for implementation, not
+  execution, and implemented in §13.29, not run. It is a screening statistic, not §11.2's
   guarantee or §12's coverage. It closes nothing.
 - **Suspended:** implementation of the certifier until its contract decisions are made.
   D38's treatment of pertinent factual-knowledge differences remains to be reconciled explicitly;

@@ -54,7 +54,7 @@ impl Case {
         CASES.into_iter().find(|c| c.name() == name)
     }
 
-    /// The case's batch at `phase`'s scale: `N = 3,000` and 60 anchors, or 400 and 10 (smoke).
+    /// The case's batch at `phase`'s scale, [`Phase::scale`].
     pub fn design(self, phase: Phase) -> DifDesign {
         let (layout, delta, impact) = match self {
             Case::C0 => (Layout::Campaign(0), 0.0, 0.0),
@@ -64,16 +64,7 @@ impl Case {
             Case::C4 => (Layout::Mirror, 0.9, 0.0),
             Case::C5 => (Layout::Campaign(8), 0.04, 0.0),
         };
-        let (n, anchors) = match phase {
-            Phase::Smoke => (400, 10),
-            Phase::Explore
-            | Phase::Confirm
-            | Phase::Candidates
-            | Phase::DtfCheck
-            | Phase::IndCal
-            | Phase::IndVal
-            | Phase::Size => (3000, 60),
-        };
+        let (n, anchors) = phase.scale();
         DifDesign {
             n,
             anchors,
@@ -97,7 +88,22 @@ pub enum Phase {
     IndCal,
     IndVal,
     Size,
+    IndCal6,
+    IndVal6,
 }
+
+pub const PHASES: [Phase; 10] = [
+    Phase::Smoke,
+    Phase::Explore,
+    Phase::Confirm,
+    Phase::Candidates,
+    Phase::DtfCheck,
+    Phase::IndCal,
+    Phase::IndVal,
+    Phase::Size,
+    Phase::IndCal6,
+    Phase::IndVal6,
+];
 
 /// The two sizes of `size` (`docs/19` §13.26), each run at both on one seed.
 pub const SIZES: [u32; 2] = [3000, 6000];
@@ -113,33 +119,49 @@ impl Phase {
             Phase::IndCal => "ind-cal",
             Phase::IndVal => "ind-val",
             Phase::Size => "size",
+            Phase::IndCal6 => "ind-cal6",
+            Phase::IndVal6 => "ind-val6",
         }
     }
 
     pub fn parse(name: &str) -> Option<Phase> {
-        [
-            Phase::Smoke,
-            Phase::Explore,
-            Phase::Confirm,
-            Phase::Candidates,
-            Phase::DtfCheck,
-            Phase::IndCal,
-            Phase::IndVal,
-            Phase::Size,
-        ]
-        .into_iter()
-        .find(|p| p.name() == name)
+        PHASES.into_iter().find(|p| p.name() == name)
+    }
+
+    /// Respondents and anchors: 400 and 10 in smoke, 6,000 and 60 in `ind-cal6` and `ind-val6`
+    /// (`docs/19` §13.29), 3,000 and 60 in every other phase; a `size` task sets its own `n`.
+    pub fn scale(self) -> (usize, usize) {
+        match self {
+            Phase::Smoke => (400, 10),
+            Phase::IndCal6 | Phase::IndVal6 => (6000, 60),
+            Phase::Explore
+            | Phase::Confirm
+            | Phase::Candidates
+            | Phase::DtfCheck
+            | Phase::IndCal
+            | Phase::IndVal
+            | Phase::Size => (3000, 60),
+        }
+    }
+
+    /// The calibration a validation is bound to: `ind-cal` of `ind-val`, `ind-cal6` of `ind-val6`.
+    pub fn calibration(self) -> Option<Phase> {
+        match self {
+            Phase::IndVal => Some(Phase::IndCal),
+            Phase::IndVal6 => Some(Phase::IndCal6),
+            _ => None,
+        }
     }
 
     /// The cases a phase runs: `candidates` (`docs/19` §13.14) C0, C3 and C5, `dtf-check`
-    /// (§13.18) and `size` (§13.26) C0 and C3, `ind-cal` (§13.21) C0 and C1, `ind-val` C0, C1,
-    /// C3 and C5.
+    /// (§13.18) and `size` (§13.26) C0 and C3, `ind-cal` (§13.21) and `ind-cal6` (§13.29) C0 and
+    /// C1, `ind-val` and `ind-val6` C0, C1, C3 and C5.
     pub fn cases(self) -> &'static [Case] {
         match self {
             Phase::Candidates => &[Case::C0, Case::C3, Case::C5],
             Phase::DtfCheck | Phase::Size => &[Case::C0, Case::C3],
-            Phase::IndCal => &[Case::C0, Case::C1],
-            Phase::IndVal => &[Case::C0, Case::C1, Case::C3, Case::C5],
+            Phase::IndCal | Phase::IndCal6 => &[Case::C0, Case::C1],
+            Phase::IndVal | Phase::IndVal6 => &[Case::C0, Case::C1, Case::C3, Case::C5],
             _ => &CASES,
         }
     }
@@ -157,7 +179,13 @@ impl Phase {
     pub fn diagnostic(self) -> bool {
         matches!(
             self,
-            Phase::Candidates | Phase::DtfCheck | Phase::IndCal | Phase::IndVal | Phase::Size
+            Phase::Candidates
+                | Phase::DtfCheck
+                | Phase::IndCal
+                | Phase::IndVal
+                | Phase::Size
+                | Phase::IndCal6
+                | Phase::IndVal6
         )
     }
 }
@@ -190,11 +218,11 @@ impl Task {
     }
 
     /// The population seed: `candidates` reuses confirm's on purpose, the same batches refitted;
-    /// `ind-cal`, `ind-val` and `size` give each case its own ([`case_seed`]), `size` at both `n`.
+    /// the indicator's stages and `size` give each case its own ([`case_seed`]), `size` at both n.
     pub fn seed(&self) -> u64 {
         match self.phase {
             Phase::Candidates => probe_seed(Phase::Confirm, self.replicate),
-            Phase::IndCal | Phase::IndVal | Phase::Size => {
+            Phase::IndCal | Phase::IndVal | Phase::Size | Phase::IndCal6 | Phase::IndVal6 => {
                 case_seed(self.phase, self.case, self.replicate)
             }
             phase => probe_seed(phase, self.replicate),

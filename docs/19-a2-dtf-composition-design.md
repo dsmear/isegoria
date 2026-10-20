@@ -523,6 +523,21 @@ Review of `e0c7248` (§13.27), distinct from the reviews above:
 - **Owner's direction:** a declaration of a calibration and a validation at `N = 6,000`,
   documentation only (§13.28).
 
+Review of `8e7a560` (§13.28), distinct from the reviews above:
+
+- **Astra's evidence:** the documentation diff read; the Clopper–Pearson intervals, the ranks and
+  the cost conversions recomputed in Python, the values confirmed. No Rust execution and no fit.
+- **Approved:** the declaration, for the implementation, not the execution.
+- **Owner's direction:** implement §13.28 with its design whole, reusing the infrastructure with
+  bounded changes; make binding the stage's identity and size in plan, records and configuration,
+  the exact 200 and 400 tasks with their cases, replicates and seeds, the refusal of a calibration
+  at one size for a validation at the other — in the harness and in the Python readings — the
+  validation's binding to its own frozen threshold and artefacts, and the complete audit and
+  numerical check before any analysis, stops and the ban on automatic resumption unchanged; keep
+  the earlier phases' behaviour and the re-reading of their evidence; test on constructed records,
+  with no fit at full size; the caps of §13.28 reported as not yet authorized (§13.29). No
+  calibration, validation or other fit at `N` = 3,000 or 6,000.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -4001,9 +4016,11 @@ diagnostic indicator, not a check already operational.
 
 ### 13.28 Next study: calibration and validation at `N = 6,000` (proposal, not implemented)
 
-**Status:** proposed by Claude Code on `e0c7248` at the owner's direction (record before §1);
-documentation only — not reviewed, not implemented, not run; no fit. Implementation and execution
-await review of this declaration. A2 stays open and blocking; D38 stays apart.
+**Status:** proposed by Claude Code on `e0c7248` at the owner's direction; approved by Astra on
+`8e7a560` for the implementation, not the execution, its values recomputed (records before §1);
+implemented in §13.29, not run. The text below is the declaration as approved. Execution awaits
+review of the implementation and the owner's authorization. A2 stays open and blocking; D38
+stays apart.
 
 **What it would measure, and what not.** The screening's frequencies — false alarms on neutral
 cases, detections on unbalanced ones — of §13.21's rule at `N = 6,000`, in the declared synthetic
@@ -4062,3 +4079,143 @@ long belong on the owner's machine with explicit authorization; a stop authorize
 with their seed tags, the calibration's binding and the engine check; the readings' contracts at
 that size, with tests on constructed records; review; the owner's authorization of the
 calibration and then, with its threshold committed, of the validation.
+
+### 13.29 The study at `N = 6,000`: implementation and declaration (not run)
+
+**Status:** implemented by Claude Code on `8e7a560`, under Astra's approval of §13.28 for the
+implementation, not the execution (record before §1). No calibration, validation or other fit at
+`N` = 3,000 or 6,000 was run: the checks below use constructed records, smoke-scale fits and
+generated batches. Execution awaits review of this implementation and the owner's authorization,
+first of the calibration, then, with its threshold committed, of the validation. A2 stays open and
+blocking; D38 stays apart.
+
+**Design, unchanged from §13.28.** `I`, the engine of `2e2572c`, its model, search and BIC rule;
+`N = 6,000`, 60 anchors, eight open items; calibration C0 and C1, validation C0, C1, C3 and C5,
+100 runs a case; §13.21's rank rule, `t = max(t_C0, t_C1)`, flagged when `I > t`, nominal
+α = 0.05; 0.7984 not carried; the threshold committed before one validation; §13.28's analysis,
+metrics and denominators, not-evaluable runs and technical failures as declared there.
+
+**Stages and identity.** Two new phases, `ind-cal6` and `ind-val6`: §13.21's stages at a scale of
+their own (`Phase::scale`, 6,000 respondents and 60 anchors), so that the stage's name fixes its
+size; §13.21's phases are not given a size.
+
+- Keys `ind-cal6-C0-0` to `ind-cal6-C1-99` and `ind-val6-C0-0` to `ind-val6-C5-99`, without `n`
+  (`one --n` is refused, as in every phase but `size`). The plan's `phase` line names the stage and
+  its 100 replicates; every record carries the stage as `phase`, its key and `design.n` = 6,000;
+  the configuration's six `design` lines are at 6,000, the same for both stages.
+- Seeds: `case_seed` on the stage's name, one per stage, case and replicate — 600 distinct, none of
+  smoke's, explore's or confirm's first 64, `candidates`', `dtf-check`'s, `ind-cal`'s, `ind-val`'s
+  or `size`'s. `ind-cal6-C0-0` takes 4800293454221026440 and `ind-val6-C5-99`
+  4099950399348182921; the Python reading recomputes every planned seed.
+- `run` takes 100 replicates and no other count, and runs only with `crates/scoring` and
+  `crates/protocol` identical to `2e2572c` and `crates/` and `Cargo.lock` committed.
+
+**The threshold file at 6,000.** Schema v2: `schema a2-ind/v2`, then `stage ind-cal6 n 6000`, then
+§13.21's rule, cases, not-evaluable counts, threshold, and the SHA-256 of `records.jsonl`,
+`plan-ind-cal6.tsv` and `ledger.tsv`. `ind-cal`'s schema v1 is unchanged; a v1 file declares
+`ind-cal` at 3,000.
+
+**Binding** (`a2-probe run --phase ind-val6 --calibration DIR`). Before any directory, in this
+order, the harness refuses:
+
+- no `--calibration`, or `--calibration` with a phase other than `ind-val` and `ind-val6`;
+- `DIR` holding plans other than `plan-ind-cal6.tsv` alone (for `ind-val`, `plan-ind-cal.tsv`
+  alone): a calibration at 3,000 is refused for `ind-val6`, and one at 6,000 for `ind-val`, by name;
+- `DIR`'s threshold and three data files not committed and unmodified;
+- an engine or tree other than the above;
+- then, as §13.21: a `threshold.tsv` whose header names another stage or size — refused naming
+  both — or out of the declared form; a digest other than its file's; a calibration plan other
+  than `ind-cal6`'s 200 declared tasks and seeds; a configuration other than the validation's,
+  the caps apart.
+
+It then writes the `calibration` line, `threshold.tsv`'s SHA-256 and `t`'s bits, into the
+validation's plan, which the supervisor's plan check binds to the directory.
+
+**Readings** (`sim/a2_probe.py`). `threshold D --phase ind-cal6` prints the v2 `threshold.tsv`,
+or prints why to standard error, nothing to standard output, and exits 1. `ind-val D CAL --phase
+ind-val6 [--json]` reads the validation per case, as §13.21 declares, or stops with exit 1
+printing why. Both, as `threshold` and `ind-val` without `--phase` at 3,000, read nothing unless
+the directory holds the stage exactly: its plan alone, 100 replicates, the exact tasks and seeds,
+every case's design line at the stage's `N`, every record matching its key's phase, case,
+replicate and `N`, a complete audit and a passing numerical check. `ind-val` also requires its own
+calibration — `CAL` holding the calibration stage's plan alone and a `threshold.tsv` naming that
+stage and size, else it stops naming both — then, as §13.21, `t` recomputed from `CAL` equal to
+`threshold.tsv` byte for byte, the validation plan bound to it, and the two configurations alike
+but for the caps and that line.
+
+**Earlier stages.** `ind-cal` and `ind-val` keep their phases, keys, seeds, configuration,
+threshold format and commands. The checks added to their readings and binding — the plan alone,
+the designs and records at 3,000, the calibration's stage — are met by their preserved evidence.
+Re-read with this code, the preserved evidence gives outputs identical byte for byte to those of
+`8e7a560`'s code and to the preserved files: `threshold` on `a2-ind-cal-7bbfddb`, its
+`threshold.tsv`; `ind-val` on `a2-ind-val-185ec93` against it, `ind-val-report.md` and
+`ind-val.json`; `dtf-check` on `a2-dtf-check-821f52d`, `sim/a2_size.py` on `a2-size-b8c9dce` and
+`sim/a2_tradeoff.py` on the validation, their reports and JSON; `check` on the calibration's, the
+validation's and `size`'s directories, the same results.
+
+**Caps, proposed in §13.28 and not authorized:** calibration 4 CPU-hours (14,400 s) and 45 minutes
+(2,700 s); validation 7.5 CPU-hours (27,000 s) and 90 minutes (5,400 s); each 10 minutes a run,
+2 GiB aggregate resident, 8 workers; 11.5 CPU-hours and 135 minutes cumulative. The cost at 6,000
+of C1 and C5 remains unmeasured.
+
+**Commands, after review and authorization** (`C` and `V` new run directories, `F` the frozen copy
+`verification/reports/a2-ind-cal6-<commit>/`; the validation from a commit whose `crates` tree
+and `Cargo.lock` are the calibration's).
+
+```
+cargo run --release -p characterization --bin a2-probe -- run --phase ind-cal6 --jobs 8 --max-cpu-s 14400 --max-wall-s 2700 --max-run-s 600 --max-rss-mib 2048 --out C
+python3 sim/a2_probe.py check C
+python3 sim/a2_probe.py threshold C --phase ind-cal6 > C/threshold.tmp && mv C/threshold.tmp C/threshold.tsv
+# copy C's plan, ledger, records and threshold.tsv to F; review; commit
+cargo run --release -p characterization --bin a2-probe -- run --phase ind-val6 --calibration F --jobs 8 --max-cpu-s 27000 --max-wall-s 5400 --max-run-s 600 --max-rss-mib 2048 --out V
+python3 sim/a2_probe.py check V
+python3 sim/a2_probe.py ind-val V F --phase ind-val6
+python3 sim/a2_probe.py ind-val V F --phase ind-val6 --json
+```
+
+**Checks run here** (E). No calibration, validation or fit at `N` = 3,000 or 6,000, and no suite
+containing one.
+
+- `cargo test -p characterization --test a2_probe`: 19 tests, two new — the stages' 200 and 400
+  runs at 6,000, their keys and cases, designs otherwise §13.21's, 600 distinct seeds disjoint
+  from every earlier phase, two known values; each phase's scale, name and calibration, the two
+  stages' configuration alike with six designs at 6,000, the earlier phases' at 3,000.
+- `--test a2_calibration`: 6 tests, three new — `ind-cal6` binds `ind-val6` whatever the caps, its
+  header v2 and `ind-cal`'s v1; the other size's calibration refused both ways, by its plan's name,
+  by the stage or size its header names (also `ind-cal6` at 3,000), by `ind-cal`'s tasks under
+  `ind-cal6`'s plan name and by a configuration at 3,000; at 6,000, a data file changed, `t` not
+  the larger, 18 evaluable runs, counts not summing, another rule, a plan of one replicate or with
+  a changed seed, another tree or design, no threshold file — each refused. §13.21's three tests
+  pass, the fixture taking the stage.
+- `--test a2_probe_jobs`: 28 tests, three new — the binary plans the 200 and 400 runs with the
+  known seeds, refuses 50 replicates and `one --phase ind-val6 --n 6000`; `ind-val6` without a
+  calibration, `--calibration` with `ind-cal6`, a calibration at 3,000 for `ind-val6` and one at
+  6,000 for `ind-val`, an unfrozen one: each refused, exit 1, no directory; in a scratch git
+  repository, committed `ind-cal6` and `ind-cal` calibrations pass the stage and freeze checks of
+  their own validation (the next refusal the engine's), crossed or changed are refused.
+- `python3 -m unittest discover -s sim -p 'test_a2_*.py'`: 62 tests, eight new in
+  `test_a2_probe.py`, at 22 replicates a case with the quadratures memoized — the seeds at 6,000;
+  the v2 `threshold.tsv`, also through the command, and the default stage refusing it; the
+  validation per case at its own frozen threshold, zeros counted, values equal to `t` not
+  flagged, a gate refusal, a baseline or candidate not converged and a missing `DTF_F` counted
+  apart, the separation 418/440 worked by hand, the JSON through the command; the other size's
+  calibration refused both ways, also a v2 file rewritten to v1; records or threshold altered
+  after freezing, a plan unbound or bound to another digest, another configuration; a record or
+  the designs at 3,000, a record of another phase, another replicate count, task or seed, a
+  second stage's plan; 18 evaluable runs, and a threshold of 0 at which zeros are not flagged; a
+  calibration run killed, a validation run failed or missing; an unknown stage, or `--phase`
+  without one. §13.21's fixture writes the six design lines the harness writes, and its seed test
+  is restricted to its stages.
+- Once, not kept: `calibration_line` on the frozen `verification/reports/a2-ind-cal-7bbfddb/`,
+  with the configuration of `a2-ind-val-185ec93`'s plan, gave that plan's own `calibration` line,
+  and refused it for `ind-val6`. On this uncommitted tree the binary refused `run --phase ind-cal6`
+  and `run --phase ind-val --calibration verification/reports/a2-ind-cal-7bbfddb` for the
+  uncommitted changes, and `run --phase ind-val6` with that calibration for its stage, each
+  before any directory.
+- `crates/scoring` and `crates/protocol` identical to `2e2572c`; `cargo fmt`, `cargo clippy -p
+  characterization --all-targets`, the comment budget.
+
+**Limits.** The harness checks the threshold's form, stage and identity, not its value: `t` is
+recomputed by the reading alone. The freeze check's positive path at 6,000 was exercised in a
+scratch repository, not on a real calibration. The cost at 6,000 of C1 and C5 remains §13.28's
+estimate. The readings' tests run at 22 replicates, `IND_REPLICATES` patched, as §13.21's did.

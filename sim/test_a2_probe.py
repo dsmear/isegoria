@@ -448,11 +448,13 @@ BASES = {}
 
 
 def ind_record(phase, case, rep, dtf):
-    """A run of `docs/19` §13.21's stages, its shared candidate's `DTF_F` at `dtf`."""
+    """A run of `docs/19` §13.21's or §13.29's stages at their `N`, its shared candidate's `DTF_F`
+    at `dtf`."""
     if (phase, case) not in BASES:
         BASES[(phase, case)] = record(case, 0, phase=phase)
     rec = json.loads(json.dumps(BASES[(phase, case)]))
     rec.update(key=f"{phase}-{case}-{rep}", replicate=rep, seed=P.case_seed(phase, case, rep))
+    rec["design"]["n"] = P.IND_N[phase]
     rec["candidates"] = [candidate(1, False, 0.0), candidate(2, False, 20.0, dtf=dtf),
                          candidate(2, True, 30.0, dtf=dtf)]
     return rec
@@ -476,14 +478,20 @@ def memo(f):
     return run
 
 
-class SingleTest(unittest.TestCase):
-    """§13.21's stages at 22 replicates a case, the quadratures memoized: same values, less time."""
+def design_lines(n):
+    """The plan's design lines the harness writes, every case at `n` respondents."""
+    return "".join(f"design\t{c}\t{n}\t60\t8\t{lay}\t{d!r}\t{i!r}\t0.5\n" for c, (lay, d, i) in P.CASES.items())
+
+
+class Stages:
+    """The indicator's stages at 22 replicates a case, the quadratures memoized."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.cal, self.val = Path(self.tmp.name) / "cal", Path(self.tmp.name) / "val"
-        self.cal.mkdir()
-        self.val.mkdir()
+        self.cal6, self.val6 = Path(self.tmp.name) / "cal6", Path(self.tmp.name) / "val6"
+        for d in (self.cal, self.val, self.cal6, self.val6):
+            d.mkdir()
         for patch in (mock.patch.object(P, "IND_REPLICATES", 22), mock.patch.object(P, "dtf", memo(P.dtf)),
                       mock.patch.object(P, "grid_dtf", memo(P.grid_dtf)),
                       mock.patch.object(P, "raw_gap", memo(P.raw_gap))):
@@ -493,14 +501,20 @@ class SingleTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def stage(self, d, phase, value, edit=None, config="schema\tstand-in\n"):
+    def stage(self, d, phase, value, edit=None, config="schema\tstand-in\n", n=None):
+        """`phase`'s plan, records and ledger in `d`, the configuration's designs at `n` (the
+        stage's `N` by default) before `config`."""
         recs = [ind_record(phase, c, r, value(c, r)) for r in range(22) for c in P.IND_CASES[phase]]
         planned = [(x["key"], x["seed"]) for x in recs]
         if edit:
             edit({(x["case"], x["replicate"]): x for x in recs}, recs)
-        write(d, [x for x in recs if x], phase=phase, replicates=22, config=config,
+        write(d, [x for x in recs if x], phase=phase, replicates=22, config=design_lines(n or P.IND_N[phase]) + config,
               planned=[(k, x["seed"] if x else s) for (k, s), x in zip(planned, recs)])
         return recs
+
+
+class SingleTest(Stages, unittest.TestCase):
+    """§13.21's stages at 22 replicates a case, the quadratures memoized: same values, less time."""
 
     def calibrated(self):
         """C0 at r/100, C1 at r/50 with r3 refused by the gate and r4's candidate not converged."""
@@ -532,7 +546,7 @@ class SingleTest(unittest.TestCase):
         self.assertEqual((P.case_seed("ind-cal", "C0", 0), P.case_seed("ind-val", "C5", 99),
                           P.probe_seed("dtf-check", 0)),
                          (14817136108943293105, 12356750456368884976, 11841848735597837198))
-        ours = [P.case_seed(p, c, r) for p, cs in P.IND_CASES.items() for c in cs for r in range(100)]
+        ours = [P.case_seed(p, c, r) for p in ("ind-cal", "ind-val") for c in P.IND_CASES[p] for r in range(100)]
         earlier = {P.probe_seed(p, r) for p in ("smoke", "explore", "confirm") for r in range(64)}
         earlier |= {P.probe_seed("dtf-check", r) for r in range(16)}
         self.assertEqual(len(set(ours)), 600)
@@ -626,6 +640,208 @@ class SingleTest(unittest.TestCase):
         (self.cal / "threshold.tsv").write_text(frozen.replace(f"threshold\t{P.bits(0.42)}\t0.42",
                                                                 f"threshold\t{P.bits(0.5)}\t0.5"))
         self.assertIn("not the threshold the calibration gives", self.validated()[0])
+
+
+def run_main(argv):
+    """`P.main(argv)`'s exit code, standard output and standard error."""
+    out, err = io.StringIO(), io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            P.main(argv)
+    except SystemExit as e:
+        return e.code, out.getvalue(), err.getvalue()
+    raise AssertionError("main returned without exiting")
+
+
+class AtSixThousand(Stages, unittest.TestCase):
+    """§13.29's stages at `N = 6,000`, 22 replicates a case: identity and size, binding to their own
+    calibration, the order rule's edges, and stops."""
+
+    def calibrated(self, d, phase="ind-cal6", edit=None):
+        """C0 at r/100, zeros at r0–r3; C1 at r/50, r3 refused by the gate, r4's baseline not
+        converged: `t` = 0.42, C1's."""
+        def edits(by, recs):
+            unread(by[("C1", 3)], "refused")
+            by[("C1", 4)]["candidates"][0]["status"] = "max_iters"
+            if edit:
+                edit(by, recs)
+        self.stage(d, phase, lambda c, r: (0.0 if r < 4 else r / 100) if c == "C0" else r / 50, edits)
+        tsv, why = P.calibrate(d, phase)
+        if tsv:
+            (d / "threshold.tsv").write_text(tsv)
+        return tsv, why
+
+    def validated(self, d, phase, cal, edit=None, config=None):
+        """C0 at r/100, zeros r0–r2, r5 at `t`, r6 above; C1 at r/100, r2 refused, r8 without DTF;
+        C3 at 0.5, r1 and r9 not converged, r2 at `t`, r10 zero; C5 at r/50, r21 at `t`, r7 0.9."""
+        def values(c, r):
+            return {"C0": {5: 0.42, 6: 0.43}.get(r, 0.0 if r < 3 else r / 100), "C1": r / 100,
+                    "C3": {2: 0.42, 10: 0.0}.get(r, 0.5), "C5": 0.9 if r == 7 else r / 50}[c]
+
+        def edits(by, recs):
+            unread(by[("C1", 2)], "refused")
+            by[("C1", 8)]["candidates"][1].update(dtf=None, dtf_basis="unavailable")
+            by[("C3", 1)]["candidates"][1]["status"] = "max_iters"
+            by[("C3", 9)]["candidates"][0]["status"] = "max_iters"
+            if edit:
+                edit(by, recs)
+        line = f"calibration\t{P.sha256(cal / 'threshold.tsv')}\t{P.bits(0.42)}\n"
+        self.stage(d, phase, values, edits, config or line + "schema\tstand-in\n")
+        return P.ind_val(d, cal, phase)
+
+    def test_seeds_at_6000_are_the_harness_s_and_apart_from_every_earlier_run(self):
+        self.assertEqual((P.case_seed("ind-cal6", "C0", 0), P.case_seed("ind-val6", "C5", 99)),
+                         (4800293454221026440, 4099950399348182921))
+        ours = [P.case_seed(p, c, r) for p in ("ind-cal6", "ind-val6") for c in P.IND_CASES[p] for r in range(100)]
+        earlier = {P.probe_seed(p, r) for p in ("smoke", "explore", "confirm") for r in range(64)}
+        earlier |= {P.probe_seed("dtf-check", r) for r in range(16)}
+        earlier |= {P.case_seed(p, c, r) for p in ("ind-cal", "ind-val") for c in P.IND_CASES[p] for r in range(100)}
+        earlier |= {P.case_seed("size", c, r) for c in ("C0", "C3") for r in range(16)}
+        self.assertEqual(len(set(ours)), 600)
+        self.assertFalse(set(ours) & earlier)
+
+    def test_calibration_at_6000_names_its_stage_size_and_data(self):
+        tsv, why = self.calibrated(self.cal6)
+        self.assertEqual(why, [])
+        lines = tsv.splitlines()
+        self.assertEqual(lines[:3], ["schema\ta2-ind/v2", "stage\tind-cal6\tn\t6000",
+                                     "rule\torder-statistic\talpha\t1/20\tstrict"])
+        self.assertEqual(lines[3:8], [f"case\tC0\tplanned\t22\tevaluable\t22\tk\t22\tt\t{P.bits(0.21)}\t0.21",
+                                      f"case\tC1\tplanned\t22\tevaluable\t20\tk\t20\tt\t{P.bits(0.42)}\t0.42",
+                                      "not-evaluable\tC1\tbaseline not converged\t1",
+                                      "not-evaluable\tC1\tgate refused\t1", f"threshold\t{P.bits(0.42)}\t0.42"])
+        self.assertEqual(lines[8:], [f"file\t{f}\t{P.sha256(self.cal6 / f)}"
+                                     for f in ("records.jsonl", "plan-ind-cal6.tsv", "ledger.tsv")])
+        self.assertEqual(P.declared(self.cal6 / "threshold.tsv"), ("ind-cal6", 6000))
+        self.assertEqual(run_main(["threshold", str(self.cal6), "--phase", "ind-cal6"]), (0, tsv, ""))
+        code, out, err = run_main(["threshold", str(self.cal6)])
+        self.assertEqual((code, out), (1, ""))
+        self.assertIn("the directory holds the plans of ['ind-cal6'], not of ind-cal alone", err)
+        self.assertIn("no stage ind-val6", run_main(["threshold", str(self.cal6), "--phase", "ind-val6"])[2])
+
+    def test_validation_at_6000_reads_each_case_against_its_own_frozen_threshold(self):
+        self.calibrated(self.cal6)
+        text, summary, code = self.validated(self.val6, "ind-val6", self.cal6)
+        self.assertEqual(code, 0)
+        self.assertTrue(text.startswith("# A2 single-test study, validation at N = 6,000 (§13.29)\n"))
+        self.assertEqual(summary["threshold"], {"bits": P.bits(0.42), "value": 0.42})
+        got = {c: (x["evaluable"], x["flagged"], x["zeros"], x["not_evaluable"]) for c, x in summary["cases"].items()}
+        self.assertEqual(got, {"C0": (22, 1, 3, {}), "C1": (20, 0, 1, {"DTF unavailable": 1, "gate refused": 1}),
+                               "C3": (20, 18, 1, {"baseline not converged": 1, "candidate not converged": 1}),
+                               "C5": (22, 1, 1, {})})
+        self.assertEqual(summary["cases"]["C3"]["flagged_over_planned"], {"k": 18, "n": 22, "ci95": P.clopper_pearson(18, 22)})
+        self.assertEqual(summary["separation"]["C3>C0"], 418 / 440)
+        self.assertIn("- false alarms: 1 of 22 evaluable, conditional", text)
+        code, out, _ = run_main(["ind-val", str(self.val6), str(self.cal6), "--phase", "ind-val6", "--json"])
+        self.assertEqual((code, json.loads(out)), (0, json.loads(json.dumps(summary))))
+
+    def test_a_calibration_of_the_other_size_is_refused_both_ways(self):
+        self.calibrated(self.cal, "ind-cal")
+        self.calibrated(self.cal6)
+        self.assertIn("the calibration is not ind-cal6's at N = 6000: its plans are ['ind-cal'], its threshold.tsv "
+                      "names ('ind-cal', 3000)", self.validated(self.val6, "ind-val6", self.cal)[0])
+        self.assertIn("the calibration is not ind-cal's at N = 3000: its plans are ['ind-cal6'], its threshold.tsv "
+                      "names ('ind-cal6', 6000)", self.validated(self.val, "ind-val", self.cal6)[0])
+        self.assertIn("the directory holds the plans of ['ind-val6'], not of ind-val alone", P.ind_val(self.val6, self.cal6)[0])
+        frozen = (self.cal6 / "threshold.tsv").read_text()
+        (self.cal6 / "threshold.tsv").write_text(frozen.replace("schema\ta2-ind/v2\nstage\tind-cal6\tn\t6000\n",
+                                                                "schema\ta2-ind/v1\n"))
+        self.assertIn("its threshold.tsv names ('ind-cal', 3000)", self.validated(self.val6, "ind-val6", self.cal6)[0])
+        code, out, _ = run_main(["ind-val", str(self.val6), str(self.cal6), "--phase", "ind-val6", "--json"])
+        self.assertEqual(code, 1)
+        self.assertIn("Stopped, not read: the calibration is not ind-cal6's", out)
+
+    def test_a_validation_at_6000_reads_nothing_unless_bound_to_its_unaltered_calibration(self):
+        self.calibrated(self.cal6)
+        self.assertEqual(self.validated(self.val6, "ind-val6", self.cal6)[2], 0)
+        recs = self.cal6 / "records.jsonl"
+        kept = recs.read_text()
+        recs.write_text("".join(reversed(kept.splitlines(keepends=True))))
+        self.assertIn("not the threshold the calibration gives", self.validated(self.val6, "ind-val6", self.cal6)[0])
+        recs.write_text(kept)
+        frozen = (self.cal6 / "threshold.tsv").read_text()
+        (self.cal6 / "threshold.tsv").write_text(frozen.replace(f"threshold\t{P.bits(0.42)}\t0.42",
+                                                                f"threshold\t{P.bits(0.5)}\t0.5"))
+        self.assertIn("not the threshold the calibration gives", self.validated(self.val6, "ind-val6", self.cal6)[0])
+        (self.cal6 / "threshold.tsv").write_text(frozen)
+        self.assertIn("not bound to this threshold", self.validated(self.val6, "ind-val6", self.cal6,
+                                                                    config="schema\tstand-in\n")[0])
+        other = f"calibration\t{'0' * 64}\t{P.bits(0.42)}\n"
+        self.assertIn("not bound to this threshold", self.validated(self.val6, "ind-val6", self.cal6,
+                                                                    config=other + "schema\tstand-in\n")[0])
+        line = f"calibration\t{P.sha256(self.cal6 / 'threshold.tsv')}\t{P.bits(0.42)}\n"
+        self.assertIn("different configurations", self.validated(self.val6, "ind-val6", self.cal6,
+                                                                 config=line + "schema\tother\n")[0])
+        self.assertEqual(self.validated(self.val6, "ind-val6", self.cal6)[2], 0)
+
+    def test_a_stage_at_6000_with_another_size_phase_task_or_seed_stops(self):
+        def stops(why, edit=None, n=None):
+            self.stage(self.cal6, "ind-cal6", lambda c, r: 0.1, edit, n=n)
+            got = P.calibrate(self.cal6, "ind-cal6")
+            self.assertIsNone(got[0])
+            self.assertTrue(any(why in x for x in got[1]), (why, got[1]))
+
+        def at3000(by, _):
+            by[("C0", 3)]["design"]["n"] = 3000
+        stops("records not matching their key's phase, case, replicate and N = 6000: 1 ['ind-cal6-C0-3']", at3000)
+        stops("the plan's configuration is not every case's design at N = 6000: [('C0', '3000'), ", n=3000)
+
+        def phased(by, _):
+            by[("C1", 5)]["phase"] = "ind-cal"
+        stops("records not matching their key's phase, case, replicate and N = 6000: 1 ['ind-cal6-C1-5']", phased)
+
+        def reseeded(by, _):
+            by[("C1", 0)]["seed"] = 1
+        stops("seeds not the declared ones: 1 ['ind-cal6-C1-0']", reseeded)
+        plan = self.cal6 / "plan-ind-cal6.tsv"
+        for old, new, why in (("phase\tind-cal6\t22\n", "phase\tind-cal6\t21\n", "the plan declares 21 replicates, not 22"),
+                              ("task\tind-cal6-C1-21\t", "task\tind-cal6-C3-0\t", "the plan's tasks are not the 44 "
+                               "declared: missing 1 ['ind-cal6-C1-21'], unexpected 1 ['ind-cal6-C3-0']")):
+            self.stage(self.cal6, "ind-cal6", lambda c, r: 0.1)
+            plan.write_text(plan.read_text().replace(old, new))
+            self.assertIn(why, P.calibrate(self.cal6, "ind-cal6")[1])
+        self.stage(self.cal6, "ind-cal", lambda c, r: 0.1)
+        self.assertIn("the directory holds the plans of ['ind-cal', 'ind-cal6'], not of ind-cal6 alone",
+                      P.calibrate(self.cal6, "ind-cal6")[1])
+
+    def test_fewer_than_19_evaluable_runs_set_nothing_and_zeros_and_ties_at_t_are_not_flagged(self):
+        def refused(by, _):
+            for r in range(4):
+                unread(by[("C0", r)], "refused")
+        self.stage(self.cal6, "ind-cal6", lambda c, r: 0.1, refused)
+        self.assertEqual(P.calibrate(self.cal6, "ind-cal6"),
+                         (None, ["C0: 18 evaluable runs give no finite threshold (19 needed)"]))
+        self.assertEqual(run_main(["threshold", str(self.cal6), "--phase", "ind-cal6"])[:2], (1, ""))
+        self.stage(self.cal6, "ind-cal6", lambda c, r: 0.0)
+        tsv, _ = P.calibrate(self.cal6, "ind-cal6")
+        (self.cal6 / "threshold.tsv").write_text(tsv)
+        self.assertIn(f"threshold\t{P.bits(0.0)}\t0.0\n", tsv)
+        line = f"calibration\t{P.sha256(self.cal6 / 'threshold.tsv')}\t{P.bits(0.0)}\n"
+        self.stage(self.val6, "ind-val6", lambda c, r: 0.5 if c == "C3" else r / 50 if c == "C5" else 0.0,
+                   config=line + "schema\tstand-in\n")
+        _, summary, code = P.ind_val(self.val6, self.cal6, "ind-val6")
+        self.assertEqual(code, 0)
+        self.assertEqual({c: (x["flagged"], x["zeros"]) for c, x in summary["cases"].items()},
+                         {"C0": (0, 22), "C1": (0, 22), "C3": (22, 0), "C5": (21, 1)})
+
+    def test_a_technical_failure_leaves_a_stage_at_6000_unread(self):
+        def killed(by, _):
+            unread(by[("C0", 9)], "killed")
+        self.assertIn("the audit is partial, 44 records of 44 planned", self.calibrated(self.cal6, edit=killed)[1][0])
+        self.assertFalse((self.cal6 / "threshold.tsv").exists())
+        self.calibrated(self.cal6)
+
+        def failed(by, _):
+            unread(by[("C5", 21)], "failed")
+        text, summary, code = self.validated(self.val6, "ind-val6", self.cal6, failed)
+        self.assertEqual((code, summary), (1, None))
+        self.assertIn("the audit is partial, 88 records of 88 planned", text)
+
+        def missing(by, recs):
+            recs[recs.index(by[("C3", 4)])] = None
+        self.assertIn("the audit is partial, 87 records of 88 planned", self.validated(self.val6, "ind-val6", self.cal6, missing)[0])
+        self.assertIn("no stage ind-val7", run_main(["ind-val", str(self.val6), str(self.cal6), "--phase", "ind-val7"])[1])
+        self.assertEqual(run_main(["threshold", str(self.cal6), "--phase"])[:2], (1, ""))
 
 
 if __name__ == "__main__":

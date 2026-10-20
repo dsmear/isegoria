@@ -1,6 +1,6 @@
-"""A2 probe (`docs/19` §§13.11–13.21): truths, checks, cost rule, reports; standard library only.
+"""A2 probe (`docs/19` §§13.11–13.29): truths, checks, cost rule, reports; standard library only.
 `python3 sim/a2_probe.py reference | check D | budget D | report D [--phase P] | compare-first D F |
-candidates D F | dtf-check D [--json] | threshold D | ind-val D CAL [--json]`."""
+candidates D F | dtf-check D [--json] | threshold D | ind-val D CAL [--json]`, both [--phase S]."""
 import hashlib
 import json
 import math
@@ -715,9 +715,37 @@ def paired_dtf(d, phase, pairs):
 
 IND_REPLICATES = 100
 IND_ALPHA = Fraction(1, 20)
-IND_CASES = {"ind-cal": ("C0", "C1"), "ind-val": ("C0", "C1", "C3", "C5")}
+IND_CASES = {"ind-cal": ("C0", "C1"), "ind-val": ("C0", "C1", "C3", "C5"),
+             "ind-cal6": ("C0", "C1"), "ind-val6": ("C0", "C1", "C3", "C5")}
+IND_N = {"ind-cal": 3000, "ind-val": 3000, "ind-cal6": 6000, "ind-val6": 6000}
+CALIBRATION = {"ind-val": "ind-cal", "ind-val6": "ind-cal6"}
+TITLES = {"ind-val": "validation (§13.21)", "ind-val6": "validation at N = 6,000 (§13.29)"}
 NEUTRAL = ("C0", "C1")
-CAL_FILES = ("records.jsonl", "plan-ind-cal.tsv", "ledger.tsv")
+
+
+def cal_files(phase):
+    return ("records.jsonl", f"plan-{phase}.tsv", "ledger.tsv")
+
+
+CAL_FILES = cal_files("ind-cal")
+
+
+def header(phase):
+    """The lines of `phase`'s `threshold.tsv` before its cases: `ind-cal`'s schema v1 and rule, or
+    schema v2 naming the stage and its `N`, then the rule."""
+    stage = ["schema\ta2-ind/v1"] if phase == "ind-cal" else ["schema\ta2-ind/v2", f"stage\t{phase}\tn\t{IND_N[phase]}"]
+    return stage + ["rule\torder-statistic\talpha\t1/20\tstrict"]
+
+
+def declared(path):
+    """The stage and `N` a `threshold.tsv` names: `ind-cal` at 3,000 by schema v1, else v2's."""
+    lines = Path(path).read_text(encoding="utf-8").splitlines() + ["", ""]
+    stage = lines[1].split("\t")
+    if lines[0] == "schema\ta2-ind/v1":
+        return "ind-cal", 3000
+    if lines[0] == "schema\ta2-ind/v2" and len(stage) == 4 and stage[::2] == ["stage", "n"] and stage[3].isdigit():
+        return stage[1], int(stage[3])
+    return None
 
 
 def probe_seed(phase, r):
@@ -776,14 +804,28 @@ def listed(keys):
     return f"{len(keys)} {keys[:4]}{' …' if len(keys) > 4 else ''}"
 
 
+def designs(d, phase):
+    """Each case's `N` in the configuration of `phase`'s plan in `d`."""
+    path = Path(d) / f"plan-{phase}.tsv"
+    lines = config_of(path) if path.is_file() else []
+    return {f[1]: f[2] for f in (l.split("\t") for l in lines) if f[0] == "design" and len(f) > 2}
+
+
 def stage_reasons(d, phase):
-    """Why `d` does not hold §13.21's `phase` exactly: its replicates, tasks and seeds, records
-    matching their keys, a complete audit. Empty when it does."""
+    """Why `d` does not hold §13.21's or §13.29's `phase` exactly: its plan alone, its replicates,
+    tasks and seeds, every case's design at the stage's `N`, records matching their keys and
+    size, a complete audit. Empty when it does."""
     a = audit(d, phase)
-    plan = read_plans(d).get(phase, {"replicates": None, "tasks": {}})
-    tasks = plan["tasks"]
+    plans = read_plans(d)
+    plan = plans.get(phase, {"replicates": None, "tasks": {}})
+    tasks, n = plan["tasks"], IND_N[phase]
     want = {f"{phase}-{c}-{r}": case_seed(phase, c, r) for c in IND_CASES[phase] for r in range(IND_REPLICATES)}
     why = []
+    if sorted(plans) != [phase]:
+        why.append(f"the directory holds the plans of {sorted(plans)}, not of {phase} alone")
+    sizes = designs(d, phase)
+    if sizes != {c: str(n) for c in CASES}:
+        why.append(f"the plan's configuration is not every case's design at N = {n}: {sorted(sizes.items())}")
     if plan["replicates"] != IND_REPLICATES:
         why.append(f"the plan declares {plan['replicates']} replicates, not {IND_REPLICATES}")
     if set(tasks) != set(want):
@@ -795,9 +837,10 @@ def stage_reasons(d, phase):
     off = [str(r.get("key")) for r in read_records(d)[0]
            if (r.get("phase") == phase or str(r.get("key")).startswith(phase + "-"))
            and (r.get("phase") != phase or r.get("key") not in want
-                or r.get("key") != f"{phase}-{r.get('case')}-{r.get('replicate')}")]
+                or r.get("key") != f"{phase}-{r.get('case')}-{r.get('replicate')}"
+                or r.get("design", {}).get("n") != n)]
     if off:
-        why.append(f"records not matching their key's phase, case and replicate: {listed(off)}")
+        why.append(f"records not matching their key's phase, case, replicate and N = {n}: {listed(off)}")
     if a["status"] != "complete":
         why.append(f"the audit is {a['status']}, {a['records']} records of {a['planned']} planned")
     return why
@@ -818,12 +861,13 @@ def read_stage(d, phase):
     return {c: sorted((r for r in recs if r["case"] == c), key=lambda r: r["replicate"]) for c in IND_CASES[phase]}, []
 
 
-def calibrate(d):
-    """`docs/19` §13.21's calibration reading: the text of `threshold.tsv`, or why none is set."""
-    by_case, why = read_stage(d, "ind-cal")
+def calibrate(d, phase="ind-cal"):
+    """`docs/19` §13.21's calibration reading, or §13.29's at 6,000 for `ind-cal6`: the text of
+    `threshold.tsv`, or why none is set."""
+    by_case, why = read_stage(d, phase)
     if why:
         return None, why
-    lines, lost, ts = ["schema\ta2-ind/v1", "rule\torder-statistic\talpha\t1/20\tstrict"], [], []
+    lines, lost, ts = header(phase), [], []
     for case in NEUTRAL:
         seen = [indicator(r) for r in by_case[case]]
         values = [v for v, _ in seen if v is not None]
@@ -835,7 +879,7 @@ def calibrate(d):
             lost.append(f"not-evaluable\t{case}\t{reason}\t{sum(w == reason for _, w in seen)}")
         ts.append(t)
     t = max(ts)
-    lines += lost + [f"threshold\t{bits(t)}\t{t!r}"] + [f"file\t{f}\t{sha256(Path(d) / f)}" for f in CAL_FILES]
+    lines += lost + [f"threshold\t{bits(t)}\t{t!r}"] + [f"file\t{f}\t{sha256(Path(d) / f)}" for f in cal_files(phase)]
     return "\n".join(lines) + "\n", []
 
 
@@ -873,32 +917,42 @@ def config_of(path):
     return lines[:end]
 
 
-def ind_val(d, cal):
-    """`docs/19` §13.21's validation reading against the frozen calibration `cal`, per case."""
+def ind_val(d, cal, phase="ind-val"):
+    """`docs/19` §13.21's validation reading, or §13.29's at 6,000 for `ind-val6`, against its own
+    frozen calibration `cal`, per case."""
+    title = f"# A2 single-test study, {TITLES[phase]}"
+
     def stop(why):
-        return "# A2 single-test study, validation (§13.21)\n\nStopped, not read: " + "; ".join(why) + ".\n", None, 1
-    by_case, why = read_stage(d, "ind-val")
+        return f"{title}\n\nStopped, not read: " + "; ".join(why) + ".\n", None, 1
+    by_case, why = read_stage(d, phase)
     if why:
         return stop(why)
-    frozen = Path(cal) / "threshold.tsv"
+    frozen, stage = Path(cal) / "threshold.tsv", CALIBRATION[phase]
     if not frozen.is_file():
         return stop(["no threshold.tsv in the calibration"])
-    tsv, why = calibrate(cal)
+    try:
+        plans, named = sorted(read_plans(cal)), declared(frozen)
+    except ValueError as e:
+        return stop([f"the calibration: {e}"])
+    if plans != [stage] or named != (stage, IND_N[stage]):
+        return stop([f"the calibration is not {stage}'s at N = {IND_N[stage]}: its plans are {plans}, "
+                     f"its threshold.tsv names {named}"])
+    tsv, why = calibrate(cal, stage)
     if why:
         return stop(["the calibration: " + "; ".join(why)])
     if tsv.encode() != frozen.read_bytes():
         return stop(["threshold.tsv is not the threshold the calibration gives"])
     t_bits = next(l for l in tsv.splitlines() if l.startswith("threshold\t")).split("\t")[1]
     t = struct.unpack("<d", struct.pack("<Q", int(t_bits, 16)))[0]
-    own, theirs = config_of(Path(d) / "plan-ind-val.tsv"), config_of(Path(cal) / "plan-ind-cal.tsv")
+    own, theirs = config_of(Path(d) / f"plan-{phase}.tsv"), config_of(Path(cal) / f"plan-{stage}.tsv")
     if f"calibration\t{sha256(frozen)}\t{t_bits}" not in own:
         return stop(["the validation plan is not bound to this threshold"])
     if [l for l in own if not l.startswith(("caps\t", "calibration\t"))] != [l for l in theirs if not l.startswith("caps\t")]:
         return stop(["the two stages ran different configurations"])
     summary, values = {"threshold": {"bits": t_bits, "value": t}, "cases": {}, "separation": {}}, {}
-    lines = ["# A2 single-test study, validation (§13.21)", "", f"Threshold `t` = {t!r} ({t_bits}), frozen "
+    lines = [title, "", f"Threshold `t` = {t!r} ({t_bits}), frozen "
              f"in {frozen}; flagged when `I > t`.", ""]
-    for case in IND_CASES["ind-val"]:
+    for case in IND_CASES[phase]:
         seen = [indicator(r) for r in by_case[case]]
         vals = values[case] = [v for v, _ in seen if v is not None]
         lost = {w: sum(x == w for _, x in seen) for w in sorted({w for _, w in seen if w})}
@@ -928,6 +982,11 @@ def ind_val(d, cal):
               "independent and identically distributed given the frozen `t`; no adjustment across intervals. "
               "Cases are not pooled; nothing is set on validation."]
     return "\n".join(lines) + "\n", summary, 0
+
+
+def option(rest, flag, default):
+    """The value after `flag`, `default` without the flag, `None` with the flag and no value."""
+    return rest[rest.index(flag) + 1] if flag in rest[:-1] else None if flag in rest else default
 
 
 def main(argv):
@@ -960,12 +1019,15 @@ def main(argv):
         print(json.dumps(summary, indent=1) + "\n" if summary and "--json" in rest else text, end="")
         sys.exit(code)
     elif cmd == "threshold":
-        tsv, why = calibrate(rest[0])
+        phase = option(rest, "--phase", "ind-cal")
+        tsv, why = calibrate(rest[0], phase) if phase in CALIBRATION.values() else (None, [f"no stage {phase}"])
         print(tsv or "Stopped, no threshold: " + "; ".join(why) + ".", end="" if tsv else "\n",
               file=sys.stdout if tsv else sys.stderr)
         sys.exit(0 if tsv else 1)
     elif cmd == "ind-val":
-        text, summary, code = ind_val(rest[0], rest[1])
+        phase = option(rest, "--phase", "ind-val")
+        text, summary, code = (ind_val(rest[0], rest[1], phase) if phase in CALIBRATION
+                               else (f"Stopped, not read: no stage {phase}.\n", None, 1))
         print(json.dumps(summary, indent=1) + "\n" if summary and "--json" in rest else text, end="")
         sys.exit(code)
     elif cmd == "report":

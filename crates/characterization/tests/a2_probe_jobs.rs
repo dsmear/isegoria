@@ -814,3 +814,156 @@ fn a_phase_other_than_size_is_refused_with_any_n() {
         assert!(!out.exists(), "{phase} --n {n} wrote a record");
     }
 }
+
+/// The binary plans `ind-cal6`'s 200 runs and `ind-val6`'s 400, no other count, and refuses
+/// `--n` with them: their size is the phase's (§13.29).
+#[test]
+fn the_binary_plans_the_stages_at_6000_and_no_other_count() {
+    let _serial = serial();
+    let bin = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    for (phase, runs, first, last) in [
+        (
+            "ind-cal6",
+            200,
+            "ind-cal6-C0-0 seed 4800293454221026440",
+            "ind-cal6-C1-99 seed ",
+        ),
+        (
+            "ind-val6",
+            400,
+            "ind-val6-C0-0 seed ",
+            "ind-val6-C5-99 seed 4099950399348182921",
+        ),
+    ] {
+        let out = bin(&["plan", "--phase", phase]);
+        let text = String::from_utf8_lossy(&out.stdout).to_string();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(out.status.success() && lines.len() == runs, "{phase}");
+        assert!(lines[0].starts_with(first) && lines[runs - 1].starts_with(last));
+        let other = bin(&["plan", "--phase", phase, "--replicates", "50"]);
+        assert_eq!(other.status.code(), Some(1));
+    }
+    let out = scratch("ind6-one");
+    let got = bin(&[
+        "one",
+        "--phase",
+        "ind-val6",
+        "--case",
+        "C0",
+        "--n",
+        "6000",
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(got.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&got.stderr).contains("--n is size's alone"));
+    assert!(!out.exists());
+}
+
+/// `ind-val6` without a calibration, `--calibration` with `ind-cal6`, either size's calibration
+/// for the other's validation, and an unfrozen one: refused before any directory (§13.29).
+#[test]
+fn the_validation_at_6000_refuses_a_missing_or_other_size_calibration() {
+    let _serial = serial();
+    let out = scratch("ind-val6");
+    let (cal3, cal6) = (scratch("ind-val6-cal3"), scratch("ind-val6-cal6"));
+    for (dir, plan) in [(&cal3, "plan-ind-cal.tsv"), (&cal6, "plan-ind-cal6.tsv")] {
+        fs::create_dir_all(dir).unwrap();
+        for name in ["threshold.tsv", "records.jsonl", plan, "ledger.tsv"] {
+            fs::write(dir.join(name), "").unwrap();
+        }
+    }
+    let (cal3, cal6) = (cal3.to_str().unwrap(), cal6.to_str().unwrap());
+    for (args, why) in [
+        (
+            vec!["--phase", "ind-val6"],
+            "ind-val6 needs --calibration DIR",
+        ),
+        (
+            vec!["--phase", "ind-cal6", "--calibration", cal6],
+            "--calibration is ind-val's alone, or ind-val6's",
+        ),
+        (
+            vec!["--phase", "ind-val6", "--calibration", cal3],
+            "refused: the calibration is not ind-cal6's at N = 6000: its plans are \
+             [\"plan-ind-cal.tsv\"]",
+        ),
+        (
+            vec!["--phase", "ind-val", "--calibration", cal6],
+            "refused: the calibration is not ind-cal's at N = 3000: its plans are \
+             [\"plan-ind-cal6.tsv\"]",
+        ),
+        (
+            vec!["--phase", "ind-val6", "--calibration", cal6],
+            "not frozen in the repository",
+        ),
+    ] {
+        let got = Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .arg("run")
+            .args(&args)
+            .arg("--out")
+            .arg(&out)
+            .output()
+            .unwrap();
+        assert_eq!(got.status.code(), Some(1), "{why}");
+        assert!(String::from_utf8_lossy(&got.stderr).contains(why), "{why}");
+        assert!(!out.exists());
+    }
+}
+
+/// In a repository, a committed `ind-cal6` passes `ind-val6`'s stage and freeze checks, the next
+/// refusal the engine's, as `ind-cal`'s does `ind-val`'s; crossed or changed, refused (§13.29).
+#[test]
+fn only_its_own_committed_calibration_counts_for_the_validation_at_6000() {
+    let _serial = serial();
+    let repo = scratch("frozen6-repo");
+    for (name, plan) in [("cal3", "plan-ind-cal.tsv"), ("cal6", "plan-ind-cal6.tsv")] {
+        let dir = repo.join(name);
+        fs::create_dir_all(&dir).unwrap();
+        for file in ["threshold.tsv", "records.jsonl", plan, "ledger.tsv"] {
+            fs::write(dir.join(file), file).unwrap();
+        }
+    }
+    let git = |args: &[&str]| {
+        let ok = Command::new("git")
+            .args(["-c", "user.name=t", "-c", "user.email=t@t", "-C"])
+            .arg(&repo)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(ok.status.success(), "git {args:?}");
+    };
+    git(&["init", "-q"]);
+    git(&["add", "cal3", "cal6"]);
+    git(&["commit", "-q", "-m", "calibrations"]);
+    let stderr = |phase: &str, cal: &str| {
+        let got = Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .current_dir(&repo)
+            .args([
+                "run",
+                "--phase",
+                phase,
+                "--calibration",
+                cal,
+                "--out",
+                "out",
+            ])
+            .output()
+            .unwrap();
+        assert_eq!(got.status.code(), Some(1));
+        String::from_utf8_lossy(&got.stderr).to_string()
+    };
+    assert!(stderr("ind-val6", "cal6").contains("runs the engine of 2e2572c"));
+    assert!(stderr("ind-val", "cal3").contains("runs the engine of 2e2572c"));
+    assert!(stderr("ind-val6", "cal3").contains("the calibration is not ind-cal6's at N = 6000"));
+    assert!(stderr("ind-val", "cal6").contains("the calibration is not ind-cal's at N = 3000"));
+    fs::write(repo.join("cal6/records.jsonl"), "changed").unwrap();
+    assert!(stderr("ind-val6", "cal6")
+        .contains("not frozen in the repository: changed or untracked files"));
+    assert!(!repo.join("out").exists());
+}
