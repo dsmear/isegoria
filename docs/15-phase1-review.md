@@ -141,14 +141,16 @@ direction of 2026-10-18
   rectified. The studies' indicators and frequencies do not realize the coverage and
   conservative-computation obligations; the next concrete obstacle is obligation a on a target
   not useless by construction (§§13.3, 13.8).
-- **Conditional target and majorant (`19` §13.33, a specification, not adopted, not reviewed):**
-  under R-a–R-d and R-f's extension, a reference linkage — the model's scale and measure fixed by
-  `β`, contrasts as class mixtures left free — and the all-class envelope `B_T(β)`, which
-  dominates the target on every order with no 5% filter, by §3's proposition. Domination is kept
-  apart from usefulness: on this reference §13.3's and §13.8's constructions still make every valid
-  certificate useless in their domains. The four alternatives already named are tabulated by kind
-  — family floor, target presence, tolerance, exclusion of spread small DIF — none with
-  usefulness demonstrated and none preferred.
+- **Conditional target and majorant (`19` §13.33, a specification, not adopted):** reviewed by
+  Astra on `3f1b22b` — the envelope's domination accepted under the declared hypotheses, the
+  equality for the full family of formal mixtures; the target's adoption open — and rectified.
+  The all-class envelope `B_T(β)`, every order, no 5% filter, equals the supremum of hypothetical
+  contrasts over formal mixtures and, under R-a, R-b, R-c with compositions from a joint
+  population law, and R-d, dominates the target of real groups, with no equality claimed for them.
+  Domination is kept apart from usefulness: §13.3's construction binds at tolerances below
+  `½ Σ_j (1 − c_j)`, §13.8's below its frontier in its domain. The four alternatives already named
+  are tabulated by kind; none is shown necessary, none has usefulness demonstrated, none is
+  preferred. D38 stays a separate semantic choice, `T` the reference item set.
 - **Suspended:** implementation of the certifier until its contract decisions are made; after
   `c314822`'s review the owner authorized conditional mathematical work on obligation a alone
   (`19` §13.33), the other obligations' development and new experiments staying suspended.
