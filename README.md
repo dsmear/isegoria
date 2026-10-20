@@ -77,6 +77,11 @@ what happens — no opinions involved:
   the other has to decode it, it's measuring which side you're on, not what you
   know. That question is thrown out.
 
+People answer and review in the open: they may look things up or use AI tools. So "knowing
+the subject" here means doing well on it under those conditions; a right answer alone does
+not show unaided knowledge, and using scores to give weight or authority would need its own
+justification ([`docs/01` D45](docs/01-decisions.md)).
+
 > Think of testing a thermometer. You don't take a poll on whether it *looks*
 > accurate — you check it against reality. Check 2 is the reality check.
 
@@ -218,7 +223,9 @@ Honest, structural limits (not bugs):
    biased on a socio-economic one. Mitigation: multi-axis DIF, which must be looked
    for actively.
 4. **"Competence" is still a construct someone chooses.** The psychometrics verify
-   an item measures *one thing* coherently, not that it's the *right* thing.
+   an item measures *one thing* coherently, not that it's the *right* thing — and, in the
+   open environment assumed ([`docs/01` D45](docs/01-decisions.md)), that thing is
+   performance with outside resources available, not unaided knowledge.
 5. **The consortium's initial selection has no purely technical fix.** It's a human
    trust decision, made survivable (not fatal) by reproducible computation and the
    freedom to fork.

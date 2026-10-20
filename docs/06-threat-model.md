@@ -25,6 +25,7 @@
 | Betrayal by the whole consortium | Freedom to fork: the network abandons it with all the data | `04` |
 | Rewriting the past | Hourly anchoring to a public chain | `04` |
 | Collusion of the issuing committee | Threshold t-of-n issuance with heterogeneous issuers | `03` M2 |
+| Answers or reviews produced through delegation, automation, impersonation or strategic coordination outside the system | **Open** (`01` D45): an open environment is assumed, outside resources are part of the conditions, and these behaviours remain to be distinguished and governed; no rule adopted | `01` D45 |
 
 ---
 
@@ -89,7 +90,9 @@ Mitigation: multi-axis DIF, which must be actively sought.
 ### L4 — "Competence" is still a construct chosen by someone
 
 Psychometrics verifies that the test coherently measures *one* thing, not that that
-thing is the right thing to measure.
+thing is the right thing to measure. In the open environment of `01` D45 that thing is
+performance with outside resources available; a correct answer alone does not show unaided
+knowledge.
 
 ### L5 — The consortium's initial selection has no technical solution
 
@@ -103,7 +106,9 @@ contested: Brennan defends it (*Against Democracy*), Estlund criticizes it with 
 demographic objection — even a perfectly neutral test weights participation on a
 variable correlated with education, income, and native language. It is also in tension
 with universal suffrage. This is not a judgment on the project but a design constraint:
-if the goal is electoral, the main obstacle will not be technical.
+if the goal is electoral, the main obstacle will not be technical. Under `01` D45 a score is
+performance in an open environment; using it to attribute weight or authority needs a
+justification not yet established.
 
 The same infrastructure has less contested and more immediately achievable
 applications (independent certifications, fact-checking, licensing exams), useful also

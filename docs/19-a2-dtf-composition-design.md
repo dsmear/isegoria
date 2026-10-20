@@ -649,6 +649,16 @@ Review of `e416eac` (§13.33's rectification), distinct from the reviews above:
   certifier's implementation, the other obligations and new experiments stay suspended; §13.7's
   stop rule holds, and this rectification authorizes no further deepening.
 
+Review of `017c401` (§13.33's support correction), distinct from the reviews above:
+
+- **Astra's evidence:** the diff read; a static review, no test or fit.
+- **Accepted:** the rectification within the agreed scope — the presence condition explicit in
+  the definition and the proof; the decision on real groups recorded without adopting other
+  restrictions. A2 stays open.
+- **Owner's decision (2026-10-20):** Isegoria assumes an open environment, recorded as `01` D45;
+  its bearing on A2 is stated in §13.33. Documentation only; the certifier and new experiments
+  stay suspended.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -4591,12 +4601,14 @@ c depends on it, it needs no run, and further campaigns on `I` would not move th
 mathematical work on obligation a alone (record before §1). **D** derivations from §§3, 9.6, 11 and
 12; no implementation, fit, run or new numerical result. Reviewed by Astra on `3f1b22b`: the
 envelope's domination accepted under the declared hypotheses, the equality for the full family of
-admitted formal mixtures; no execution or new proof of usefulness; the target's adoption stays
-open. Rectified as that review asked; reviewed again on `e416eac`, the rectifications on D38 and
-the tolerance accepted and a precision on support asked, made below; no unconditional approval of
-this version. The owner then decided the working target's object, real groups (below; records
-before §1). Every other parameter stays symbolic; no measure, restriction, tolerance, level or
-policy is adopted. A2 stays open and blocking; D38 stays apart.
+admitted formal mixtures; no execution or new proof of usefulness; the target's adoption stays open.
+Rectified as that review asked; reviewed again on `e416eac`, the rectifications on D38 and the
+tolerance accepted and a precision on support asked, made below; no unconditional approval of that
+version. The owner then decided the working target's object, real groups (below; records before §1).
+The support correction was accepted on `017c401` within its scope; the owner's open-environment
+decision (`01` D45) bears on the target as stated below. Every other parameter stays symbolic; no
+measure, restriction, tolerance, level or policy is adopted. A2 stays open and blocking; D38 stays
+apart.
 
 **Setting.** §12.1's experiment and family: one fixed form `T`, every item active or contested;
 complete administrations; fixed class-invariant anchors; `Ξ` over every order `k = 1, …, 4` and
@@ -4737,6 +4749,17 @@ reference and invariant 1, no group labels collected; it does not identify group
 components, nor adopt R-a–R-d as properties of real responses; it chooses neither the measure —
 `μ_β` stays the derivation's conditional reference — nor D38's semantics, a floor, a presence limit
 or a tolerance; it demonstrates no usefulness and does not close A2.
+
+**Open environment (`01` D45, 2026-10-20).** The working target is unchanged: total-score
+differences between real groups at equal competence. What competence means here, and the role
+of outside resources, must be defined consistently with D45: answers are performances in an open
+environment, and latent classes or differences at equal `t` can reflect unequal use or
+availability of resources. No definition of ability, measure `μ`, D38 solution, presence
+threshold, tolerance, risk level, admission or weighting policy is adopted. Open conditions are
+not model hypotheses: they neither show nor refute R-a–R-d, local independence or the latent
+structure, whose adequacy stays to be checked. The studies of §§13.11–13.31 keep their results
+and scope; their synthetic responses represented no search, AI use, delegation or coordination,
+and they validate none.
 
 **What the decision leaves.** With the target's object decided, the next choice is how to meet
 §13.3's obstruction, which binds at every `n` at tolerances below `½ Σ_{j∈T} (1 − c_j)`: keeping

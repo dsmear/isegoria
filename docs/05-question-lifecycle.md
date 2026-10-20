@@ -84,7 +84,9 @@ reveal) draws nothing; its deposits wait for the next epoch.
   is no verifiable receipt.
 
 The reviewer **declares a probability** that the item passes validation (not a
-yes/no): input for the evaluator score `S_u` (`02` C.2).
+yes/no): input for the evaluator score `S_u` (`02` C.2). Reviewers work in an open
+environment (`01` D45): consulting and comparing sources fits the review, and a panel's
+agreement does not show that its checks were independent.
 
 ---
 
@@ -133,6 +135,9 @@ is not established. A fit that did not converge gives no verdict: the screen is
 indeterminate and the item stays in `Pilot1` or `Explored`, neither rejected nor
 measured; this schedules no new attempt and does not guarantee the pilot ends (`02` §B.2,
 `15` A11).
+
+Pilot answers are given in the open environment of `01` D45: the fitted parameters describe
+performance under those conditions, not how each answer was produced.
 
 **Stage 2, only for survivors.** The anonymous re-check has a code admission floor of
 3,000 distinct respondents. The 1,500 floor belongs to the group-labelled calibration

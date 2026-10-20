@@ -53,6 +53,13 @@ is their decision record.
   of willingness to accept partial progress, not an adopted statistical threshold.
   Estimates, enforced fitted-cost limits and demonstrated guarantees remain separate.
 
+**Open environment (2026-10-20, [`01` D45](01-decisions.md)).** Isegoria does not presume that
+reviewers or respondents are isolated from the Internet, documentation, search engines or AI
+tools. A score is performance under those declared conditions; a correct answer alone does not
+show unaided knowledge, and reading the score as competence, or using it to attribute weight or
+authority, needs a separate justification. D45 approves no behaviour automatically and records
+the tensions it raises with existing contracts, including Level B's resistance above.
+
 A2's whole-test guarantee remains open. The next bounded evaluation work is described
 in [`19` §13.10](19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18);
 no real-world performance level has been established by this decision.

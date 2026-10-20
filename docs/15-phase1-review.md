@@ -15,6 +15,9 @@ lines. Code symbols identify the implementation to re-check on a newer branch.
 
 ## How to read the documentation
 
+- [`01` D45](01-decisions.md) (owner, 2026-10-20): Isegoria assumes an open environment; a
+  score is performance under those conditions, not unaided knowledge. It records its tensions
+  with existing contracts without resolving them; no finding here is closed by it.
 - [`CLAUDE.md`](CLAUDE.md) holds the invariants; [`01`](01-decisions.md) records decisions.
   A decision's implementation status does not establish every mathematical claim made
   in its rationale. Design changes need an explicit decision amendment.
@@ -161,6 +164,13 @@ direction of 2026-10-18
   estimated components or adopt R-a–R-d as properties of real responses; the measure (`μ_β` stays
   the derivation's conditional reference), D38's semantics, a floor, a presence limit and a
   tolerance stay open; no usefulness is shown and A2 is not closed. §13.7's stop rule holds.
+  The support correction was accepted by Astra on `017c401` within its scope.
+- **Open environment (`01` D45, 2026-10-20):** the working target is unchanged; what competence
+  means there, and the role of outside resources, must be defined consistently with D45 (`19`
+  §13.33). No definition of ability, measure, D38 solution, threshold, tolerance, risk level,
+  admission or weighting policy is adopted. Open conditions neither show nor refute R-a–R-d;
+  the studies of `19` §§13.11–13.31 keep their scope and validate no search, AI use, delegation
+  or coordination, which they did not represent.
 - **Suspended:** implementation of the certifier until its contract decisions are made; after
   `c314822`'s review the owner authorized conditional mathematical work on obligation a alone
   (`19` §13.33), the other obligations' development and new experiments staying suspended.

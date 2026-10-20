@@ -6,7 +6,8 @@ supersede earlier choices. Implementation does not establish every claim in a
 decision's rationale. The open Phase 1 review findings are tracked in
 [`15-phase1-review.md`](15-phase1-review.md). New decisions and amendments are stated
 explicitly; D44 records the owner's foundational direction of 2026-10-18 without choosing
-new numerical thresholds.
+new numerical thresholds, and D45 the owner's decision of 2026-10-20 that Isegoria assumes an
+open environment.
 
 ---
 
@@ -44,6 +45,8 @@ brigading in this context).
 
 *Interpretation clarified by D44:* answer data supplies evidence about item functioning,
 not an automatic determination of political truth, relevance or the intended competence.
+*Under D45* those answers are performances in an open environment; the resistance claimed
+below is one of D45's recorded tensions.
 
 **Choice.** The final verdict on a question is given by psychometric statistics (IRT)
 and bias analysis (DIF) on real answer data, not by peer review.
@@ -1171,3 +1174,66 @@ No numerical tolerance, risk level, sample size, model assumption or certificati
 claim is selected here. The bounded testing direction and remaining decisions are
 recorded in [`19` §13.10](19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18);
 no existing closure is reopened and no production readiness is implied.
+
+---
+
+## D45 — An open environment: performance with outside resources, not unaided knowledge
+
+**Owner decision, 2026-10-20.** Isegoria is designed for an open, unsupervised
+environment. It does not presume that reviewers or respondents are isolated from the
+Internet, documentation, search engines or AI tools.
+
+**The score's interpretation follows these conditions.** A correct answer, by itself, does
+not show knowledge held without assistance, autonomous understanding or personal
+execution. The operational reference is the performance obtained in the declared open
+environment. Reading that performance as competence, and using it to attribute weight or
+authority, each need a separate justification, not yet established.
+
+**Not a licence.** The decision approves no behaviour automatically. Collaboration, full
+delegation, automation, impersonation and strategic coordination remain questions to
+distinguish and govern; no rule for them is adopted here.
+
+**Reviewers.** Consulting and comparing sources is compatible with checking an item's
+correctness, relevance and ambiguity. Agreement between assessments does not show that
+the checks were independent, above all when they share sources or tools.
+
+**Respondents.** Searching and using resources are part of the real conditions to account
+for. The system cannot infer from correctness alone how an answer was produced. Nominally
+open access does not mean equal availability of time, tools, language or source quality.
+No claim is made that harder questions, timers or other devices solve these problems
+automatically.
+
+**Models and evidence.** Open operating conditions are distinct from the models'
+hypotheses: by themselves they neither show nor refute local independence, a latent
+structure or other premises, whose adequacy remains to be checked. Tests already run keep
+their results and declared scope. They are not validation of online search, AI use,
+delegation or coordination where these were not represented; the synthetic studies of
+`19` §§13.11–13.31 generate responses from the model and represent none of them.
+
+**A2.** The working target stays the total-score difference between real groups of the
+reference population at equal competence, under the contract's explicit hypotheses
+([`19` §13.33](19-a2-dtf-composition-design.md#1333-conditional-reference-target-and-majorant-obligation-a-specification-not-adopted)).
+What "competence" means there, and the role of outside resources, must be defined
+consistently with this decision. Not adopted here: a mathematical definition of ability, a
+measure `μ`, a solution to D38, a presence threshold, a tolerance or risk level, an
+admission or weighting policy.
+
+**Tensions with existing contracts, recorded, not resolved.**
+- D3 and `00`'s Level B: answer data are called very hard to attack, since that requires
+  corrupting the sample. Answers produced with outside resources, delegation or
+  coordination are not identity-level corruption; how they bear on that claim is open.
+- `02` §C.3: peer prediction rewards agreement between reviewers, which shared sources or
+  tools can produce without independent checks; whether its incentive argument holds under
+  these conditions is open.
+- D39: correlated residuals can also come from honest reviewers sharing sources or tools,
+  which the dataset behind its thresholds (`02`, anti-collusion) does not represent.
+- D33–D35: the evaluator weight is attributed from forecasting performance in this
+  environment, justified so far by the incentive analysis (A1), not by a reading as
+  competence; whether weight as authority needs more is open under this decision.
+- D4 and `02` §B.3: latent classes, and differences at equal `θ`, can reflect unequal use or
+  availability of outside resources; whether such a difference is functioning to constrain,
+  competence, or neither belongs to the definition above.
+
+**Scope.** Documentation of a foundational decision only. No rule, threshold, policy,
+measure or model assumption is adopted; no review finding is closed; the certifier and new
+experiments stay suspended; A2 stays open and blocking; D38 stays apart.
