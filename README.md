@@ -69,18 +69,20 @@ through. The fix is designed and is the first item of the [roadmap](docs/10-road
 The questions that survive Check 1 are tried out on real people, and we **measure**
 what happens — no opinions involved:
 
-- Does the question actually tell apart people who know the subject from people
-  who don't? (A question everyone gets right, or everyone gets wrong, measures
-  nothing.)
-- Does it secretly favour one group over another **even when they know the subject
-  equally well**? If a question is worded so that one side "gets it" instantly and
-  the other has to decode it, it's measuring which side you're on, not what you
-  know. That question is thrown out.
+- Does the question actually tell apart people who do better on the subject's
+  questions from people who do worse? (A question everyone gets right, or everyone
+  gets wrong, measures nothing.)
+- Does it secretly favour one group over another **even when the statistical model
+  places them at the same level**? If a question is worded so that one side "gets it"
+  instantly and the other has to decode it, it's measuring which side you're on, not
+  the subject. That question is thrown out.
 
-People answer and review in the open: they may look things up or use AI tools. So "knowing
-the subject" here means doing well on it under those conditions; a right answer alone does
-not show unaided knowledge, and using scores to give weight or authority would need its own
-justification ([`docs/01` D45](docs/01-decisions.md)).
+People answer and review in the open: they may look things up or use AI tools. The model's
+"level" is a statistical parameter; what it means — knowledge, skill with outside help, or
+something else — is still to be settled, a right answer alone does not show unaided
+knowledge, and using scores to give weight or authority would need its own justification
+([`docs/01` D45](docs/01-decisions.md)). What the assessment aims at first is in
+[D46](docs/01-decisions.md).
 
 > Think of testing a thermometer. You don't take a poll on whether it *looks*
 > accurate — you check it against reality. Check 2 is the reality check.
@@ -223,9 +225,9 @@ Honest, structural limits (not bugs):
    biased on a socio-economic one. Mitigation: multi-axis DIF, which must be looked
    for actively.
 4. **"Competence" is still a construct someone chooses.** The psychometrics verify
-   an item measures *one thing* coherently, not that it's the *right* thing — and, in the
-   open environment assumed ([`docs/01` D45](docs/01-decisions.md)), that thing is
-   performance with outside resources available, not unaided knowledge.
+   an item measures *one thing* coherently, not that it's the *right* thing — and, with
+   answers given in the open ([`docs/01` D45](docs/01-decisions.md)), what that one thing
+   means relative to unaided knowledge is still to be settled.
 5. **The consortium's initial selection has no purely technical fix.** It's a human
    trust decision, made survivable (not fatal) by reproducible computation and the
    freedom to fork.

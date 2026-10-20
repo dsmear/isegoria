@@ -140,8 +140,9 @@ answers) and work back from there.
 **θ** (theta) is the standard symbol for the value of the construct in a person: their
 competence. It is not a percentage, it is a scale centered on 0 with standard deviation
 1 — so `θ = +1` means "one standard deviation above the mean". In Isegoria the answers are
-given in an open environment (`01` D45): `θ` scales performance under those conditions, and
-reading it as unaided competence needs a separate justification.
+produced in an open environment (`01` D45): `θ` stays the declared model's latent parameter,
+its meaning relative to competence and to outside resources, and that reading's adequacy,
+remain to be established, and a correct answer alone does not show unaided knowledge.
 
 ---
 

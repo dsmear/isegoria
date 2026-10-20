@@ -11,10 +11,11 @@ guarantees. Open disagreements and correction criteria are in
 those findings or change the code. Measurement claims retain their model/version scope.
 
 Notation: `u,v` nodes/reviewers; `j` questions (items); `i` respondents; `θ_i` the
-respondent's latent competence. Answers and reviews are given in an open environment
-(`01` D45): `θ_i` scales performance under those conditions, and a correct answer alone does
-not show unaided knowledge; reading `θ` as competence, or using scores for weight or
-authority, needs a separate justification.
+respondent's latent parameter in the declared model, called competence in this document.
+Answers and reviews are produced in an open environment (`01` D45): what `θ` means relative to
+competence and to the use of outside resources, and whether that reading is adequate, remain to
+be established; a correct answer alone does not show unaided knowledge. The assessment's
+priorities are in `01` D46.
 
 > **Revisions from the working paper (decided 2026-09-24).** The working paper
 > (`paper/`, version 0.2) found properties of this specification that `docs/01` D32–D41
@@ -302,9 +303,9 @@ with an inverted key.
 Estimates differential item functioning **without collecting personal group attributes**.
 It does not by itself establish political bias (foundational interpretation: `01` D44).
 
-The comparison is conditional on the model's competence `θ`, performance in the open
-environment of `01` D45; unequal use or availability of outside resources can also separate
-latent classes, a tension recorded there, not resolved. Better relevant knowledge
+The comparison is conditional on the model's competence `θ`, whose meaning under `01` D45 is
+still to be established (notation above); unequal use or availability of outside resources can
+also separate latent classes, a tension recorded there, not resolved. Better relevant knowledge
 may legitimately produce higher raw scores. A residual difference between latent classes
 can indicate nuisance content, pertinent specialist knowledge, an omitted competence
 dimension or model/estimation error; response data alone does not identify its cause.
@@ -508,7 +509,8 @@ The existing source and admissibility requirements remain. Strict taxonomy:
   counterfactual, and items that attribute causes to contested phenomena.
 
 Disputes over an item are resolved by an evidentiary procedure (comparison with the
-source), not by a vote.
+source), not by a vote. The assessment's priorities (`01` D46) record, unresolved, how judgments
+of a claim against its evidence relate to this taxonomy and to step 4 below.
 
 **The source check (`01` D38).** The evidentiary procedure as it decides whether an item
 the latent check flags (§B.3) is a *contested fact* (§B.7). It answers one question —

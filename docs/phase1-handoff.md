@@ -9,12 +9,18 @@ they win.
 
 **Owner decision, 2026-10-20 — an open environment (`01` D45).** Isegoria does not presume that
 reviewers or respondents are isolated from the Internet, documentation, search engines or AI
-tools. A score is performance under those conditions, not unaided knowledge; reading it as
-competence, or using it for weight or authority, needs a separate justification. No behaviour is
-approved automatically; delegation, automation, impersonation and coordination remain to be
-distinguished. D45 records its tensions with D3, `02` §C.3, D39, D33–D35 and D4 without resolving
-them. Pointers in `00`, the README, `02`, `05`, `06`, `99`, `15` and `19` §13.33. Documentation
-only; certifier and new experiments stay suspended.
+tools. Answers are produced under those conditions; `θ` stays the declared model's latent
+parameter, its meaning relative to competence and outside resources to be established; a correct
+answer alone does not show unaided knowledge, and using scores for weight or authority needs a
+separate justification. No behaviour is approved automatically; delegation, automation,
+impersonation and coordination remain to be distinguished. D45 records its tensions with D3, `02`
+§C.3, D39, D33–D35 and D4 without resolving them; Astra accepted its setting on `be4fda8`, the
+links rectified. **D46, the same day:** the assessment's priorities — (A) correct answers, even
+with assistance, to precise questions; (B) claims weighed against their evidence — distinct, with
+no subscore, weight, threshold, format, rubric or aggregate; its tensions with `02` §B.5, the
+one-trait model and total score, and §B.2 recorded, not resolved. Pointers in `00`, the README,
+`02`, `05`, `06`, `99`, `15` and `19` §13.33. Documentation only; certifier and new experiments
+stay suspended.
 
 **Current direction, 2026-10-18 — foundations before iterative A2 testing.** The owner
 asked to record the principles discussed, then test and refine rather than require perfect
@@ -155,7 +161,7 @@ usefulness shown. The certifier's implementation, the other obligations and new 
 suspended; §13.7's stop rule holds, and no further deepening is authorized. The support
 correction was accepted on `017c401`; under `01` D45 the meaning of competence and the role of
 outside resources in the target remain to be defined, and the studies validate no behaviour they
-did not represent. D38 stays a separate
+did not represent; D46's priorities orient that definition without fixing it. D38 stays a separate
 semantic choice, `T` the reference item set (a subset is one possible change, not a consequence);
 the study replaces none of the whole-test obligations.
 

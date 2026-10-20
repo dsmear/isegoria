@@ -15,9 +15,11 @@ lines. Code symbols identify the implementation to re-check on a newer branch.
 
 ## How to read the documentation
 
-- [`01` D45](01-decisions.md) (owner, 2026-10-20): Isegoria assumes an open environment; a
-  score is performance under those conditions, not unaided knowledge. It records its tensions
-  with existing contracts without resolving them; no finding here is closed by it.
+- [`01` D45](01-decisions.md) (owner, 2026-10-20): Isegoria assumes an open environment;
+  answers are produced under those conditions, `θ` stays the declared model's parameter, and a
+  correct answer alone does not show unaided knowledge. [D46](01-decisions.md) records the
+  assessment's two priorities. Both record their tensions with existing contracts without
+  resolving them; no finding here is closed by them.
 - [`CLAUDE.md`](CLAUDE.md) holds the invariants; [`01`](01-decisions.md) records decisions.
   A decision's implementation status does not establish every mathematical claim made
   in its rationale. Design changes need an explicit decision amendment.
@@ -170,7 +172,11 @@ direction of 2026-10-18
   §13.33). No definition of ability, measure, D38 solution, threshold, tolerance, risk level,
   admission or weighting policy is adopted. Open conditions neither show nor refute R-a–R-d;
   the studies of `19` §§13.11–13.31 keep their scope and validate no search, AI use, delegation
-  or coordination, which they did not represent.
+  or coordination, which they did not represent. Astra accepted D45's setting on `be4fda8`, its
+  links rectified so that knowledge, observed performance and `θ` stay apart. The owner's
+  assessment priorities (`01` D46) orient the future definition of the pertinent competence and
+  fix no definition of `θ`, measure, treatment of access differences, D38 semantics, tolerance,
+  risk, closure criterion or weighting justification.
 - **Suspended:** implementation of the certifier until its contract decisions are made; after
   `c314822`'s review the owner authorized conditional mathematical work on obligation a alone
   (`19` §13.33), the other obligations' development and new experiments staying suspended.

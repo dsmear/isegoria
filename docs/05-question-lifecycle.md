@@ -136,8 +136,10 @@ indeterminate and the item stays in `Pilot1` or `Explored`, neither rejected nor
 measured; this schedules no new attempt and does not guarantee the pilot ends (`02` §B.2,
 `15` A11).
 
-Pilot answers are given in the open environment of `01` D45: the fitted parameters describe
-performance under those conditions, not how each answer was produced.
+Pilot answers are produced in the open environment of `01` D45. The fitted parameters are the
+declared model's on those answers; what they mean relative to unaided knowledge or the use of
+outside resources is still to be established, and they do not show how an answer was
+produced.
 
 **Stage 2, only for survivors.** The anonymous re-check has a code admission floor of
 3,000 distinct respondents. The 1,500 floor belongs to the group-labelled calibration

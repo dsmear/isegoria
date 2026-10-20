@@ -659,6 +659,16 @@ Review of `017c401` (§13.33's support correction), distinct from the reviews ab
   its bearing on A2 is stated in §13.33. Documentation only; the certifier and new experiments
   stay suspended.
 
+Review of `be4fda8` (`01` D45 and its links), distinct from the reviews above:
+
+- **Astra's evidence:** the diff read; no test or fit.
+- **Accepted:** D45's foundational setting and the distinction between operating conditions,
+  model hypotheses and acquired results.
+- **Rectified:** knowledge, observed performance and the latent `θ` no longer identified in the
+  links; recorded in D45.
+- **Owner's decision (2026-10-20):** the assessment's two priorities, recorded as `01` D46; the
+  A2 target unchanged (§13.33). Documentation only.
+
 ## 1. What the code computes (L)
 
 - **Per fit.** `ClassCurves::of` keeps the classes with share `π_g ≥ 0.05` (`dtf.rs:158–184`,
@@ -4752,14 +4762,17 @@ or a tolerance; it demonstrates no usefulness and does not close A2.
 
 **Open environment (`01` D45, 2026-10-20).** The working target is unchanged: total-score
 differences between real groups at equal competence. What competence means here, and the role
-of outside resources, must be defined consistently with D45: answers are performances in an open
+of outside resources, must be defined consistently with D45: answers are produced in an open
 environment, and latent classes or differences at equal `t` can reflect unequal use or
 availability of resources. No definition of ability, measure `μ`, D38 solution, presence
 threshold, tolerance, risk level, admission or weighting policy is adopted. Open conditions are
 not model hypotheses: they neither show nor refute R-a–R-d, local independence or the latent
 structure, whose adequacy stays to be checked. The studies of §§13.11–13.31 keep their results
 and scope; their synthetic responses represented no search, AI use, delegation or coordination,
-and they validate none.
+and they validate none. The owner's assessment priorities (`01` D46: correct answers, even with
+assistance; claims weighed against their evidence) orient the future definition of the pertinent
+competence and fix none of the objects above; they are distinct from the reviewers' forecast of
+the pilot outcome and reopen no closure.
 
 **What the decision leaves.** With the target's object decided, the next choice is how to meet
 §13.3's obstruction, which binds at every `n` at tolerances below `½ Σ_{j∈T} (1 − c_j)`: keeping

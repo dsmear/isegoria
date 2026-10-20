@@ -6,8 +6,8 @@ supersede earlier choices. Implementation does not establish every claim in a
 decision's rationale. The open Phase 1 review findings are tracked in
 [`15-phase1-review.md`](15-phase1-review.md). New decisions and amendments are stated
 explicitly; D44 records the owner's foundational direction of 2026-10-18 without choosing
-new numerical thresholds, and D45 the owner's decision of 2026-10-20 that Isegoria assumes an
-open environment.
+new numerical thresholds; D45 the owner's decision of 2026-10-20 that Isegoria assumes an
+open environment, and D46 the assessment's priorities in it.
 
 ---
 
@@ -45,8 +45,8 @@ brigading in this context).
 
 *Interpretation clarified by D44:* answer data supplies evidence about item functioning,
 not an automatic determination of political truth, relevance or the intended competence.
-*Under D45* those answers are performances in an open environment; the resistance claimed
-below is one of D45's recorded tensions.
+*Under D45* those answers are produced in an open environment; the resistance claimed below
+is one of D45's recorded tensions.
 
 **Choice.** The final verdict on a question is given by psychometric statistics (IRT)
 and bias analysis (DIF) on real answer data, not by peer review.
@@ -1236,4 +1236,65 @@ admission or weighting policy.
 
 **Scope.** Documentation of a foundational decision only. No rule, threshold, policy,
 measure or model assumption is adopted; no review finding is closed; the certifier and new
+experiments stay suspended; A2 stays open and blocking; D38 stays apart.
+
+**Review (Astra, `be4fda8`).** From the diff, no test or fit: the foundational setting and the
+distinction between operating conditions, model hypotheses and acquired results accepted. A
+rectification asked in the links — knowledge, observed performance and the latent `θ` are not
+to be identified implicitly — made after it in the README, `00`, `02`, `05`, `06` and the
+glossary: answers are produced in the open environment; `θ` stays the declared model's latent
+parameter, whose meaning relative to competence and to outside resources, and that reading's
+adequacy, remain to be established; a correct answer alone does not show unaided knowledge.
+
+---
+
+## D46 — Assessment priorities: correct answers, and claims weighed against their evidence
+
+**Owner decision, 2026-10-20.** Within D45's open environment, two priority objectives of the
+assessment, kept conceptually distinct:
+
+- **A. Factually correct answers, even with assistance.** Correctness refers to a question
+  precise enough, with its time reference and the pertinent conditions.
+- **B. Telling reliable from misleading information,** by weighing the relation between a
+  specific claim and the evidence that supports it. Reliability does not reduce to a source's
+  reputation, its leaning or agreement with the conclusion: a generally reliable source can be
+  wrong, and a partisan source can report a fact correctly.
+
+**Not adopted.** Subscores, weights, thresholds, answer formats, rubrics or an aggregate index.
+Correctness obtained with assistance certifies no autonomous understanding, personal execution
+or ability without tools. The open questions of D45 — collaboration, delegation, automation,
+impersonation, coordination — are not settled by this decision.
+
+**Illustration, not a rule.** A headline claims school spending doubled; the document it cites
+shows that one extraordinary fund doubled. Establishing the fact: that fund doubled (A).
+Weighing the conclusion: the document does not show that total school spending doubled (B). The
+example is no item ready for the pool, adopted rubric or validated instrument, and creates no
+obligation to collect browsing histories, AI conversations or personal attributes.
+
+**Relation to existing roles and to A2.** The priorities concern what respondents are assessed
+on. They are distinct from the reviewers' forecast of an item's pilot outcome (`02` §C.2, A1's
+target), which they neither replace nor reopen; A1's and other conditional closures stand.
+A2's working target is unchanged
+([`19` §13.33](19-a2-dtf-composition-design.md#1333-conditional-reference-target-and-majorant-obligation-a-specification-not-adopted)):
+the priorities orient the future definition of the pertinent competence, but establish no
+mathematical definition of `θ`, measure `μ`, treatment of differences in access to resources,
+semantics for D38, tolerance, risk or closure criterion, nor a justification for attributing
+weight or authority. Tests already run keep their scope and validate neither these objectives
+nor assisted behaviours they did not represent.
+
+**Tensions with existing contracts, recorded, not resolved.**
+- `02` §B.5 admits verifiable procedural and institutional facts and, for a flagged item,
+  requires the key to be a declared, deterministic function of cited data, rejecting a key
+  that rests on interpretation. Whether and how B's judgments of a claim against its evidence
+  fit that taxonomy and step 4 is open.
+- `02` §§B.1–B.3 read one latent trait per batch, and A2's target sums a form's items
+  (`19` §11.1). A form holding items of both priorities would be read on one trait and one
+  total, while this decision keeps them distinct and adopts no aggregate; whether batches,
+  forms, scores or targets are kept per priority is open.
+- `02` §B.2 drops items too easy to be informative or that separate nobody; items most
+  respondents answer correctly with assistance may fall there, while A values such answers.
+  How the evidence filter's informativeness relates to A is open.
+
+**Scope.** Documentation of the owner's decision only, as D45: no rule, threshold, policy,
+format or model assumption adopted; no review finding closed; the certifier and new
 experiments stay suspended; A2 stays open and blocking; D38 stays apart.

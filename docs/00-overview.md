@@ -55,10 +55,17 @@ is their decision record.
 
 **Open environment (2026-10-20, [`01` D45](01-decisions.md)).** Isegoria does not presume that
 reviewers or respondents are isolated from the Internet, documentation, search engines or AI
-tools. A score is performance under those declared conditions; a correct answer alone does not
-show unaided knowledge, and reading the score as competence, or using it to attribute weight or
-authority, needs a separate justification. D45 approves no behaviour automatically and records
-the tensions it raises with existing contracts, including Level B's resistance above.
+tools. Answers are produced under those declared conditions, and a correct answer alone does
+not show unaided knowledge; reading scores or the model's `θ` as competence, or using them to
+attribute weight or authority, needs a separate justification. D45 approves no behaviour
+automatically and records the tensions it raises with existing contracts, including Level B's
+resistance above.
+
+**Assessment priorities (2026-10-20, [`01` D46](01-decisions.md)).** In that environment the
+assessment aims first at (A) factually correct answers, even with assistance, to questions
+precise enough, and (B) telling reliable from misleading information by how a specific claim
+relates to its evidence. The two stay distinct; no subscore, weight, threshold, format, rubric
+or aggregate is adopted, and assisted correctness certifies no unaided understanding.
 
 A2's whole-test guarantee remains open. The next bounded evaluation work is described
 in [`19` §13.10](19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18);
