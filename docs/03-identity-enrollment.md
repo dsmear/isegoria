@@ -1,5 +1,12 @@
 # Identity and enrollment
 
+**Scope.** Identity-layer requirements and design assumptions. The offline answer review
+checks credentials and role pseudonyms; it does not by itself establish end-to-end
+person uniqueness or anonymity. Implementation status is mapped in
+[Architecture](../ARCHITECTURE.md#identity--anonymous-enrollment) and the
+[audit](08-formal-specification.md). Review and quota rules belong in
+[05](05-question-lifecycle.md#the-answer-review-01-d49d52).
+
 **Design assumption.** Nodes are pseudonymous IDs. No personal, demographic, or
 affiliation information ever enters the system. The fact that behind each ID there is
 exactly one real person is guaranteed by this layer, which must preserve anonymity at
@@ -21,18 +28,8 @@ Without these, the engine's math (`02`) is decorative.
 **(P2) Non-rotatability.** The ID must be permanent and non-reissuable. It is the most
 often forgotten and most damaging requirement: if a person can abandon an ID with a
 ruined reputation and get a new one, negative reputation does not exist (the Friedman
-& Resnick result on cheap pseudonyms). A necessary operational consequence anyway:
-
-```
-probation period:  w_u = 0  for the first n_probation = 30 scored outcomes (D36; was
-                   ≈ 200) — they contribute to measuring S_u, not to determining
-                   outcomes
-```
-
-> **D36 (T50, done):** probation lasts 30 scored outcomes; afterwards the odds weight
-> of the evaluator score is shrunk toward 1 until evidence accumulates (`02` §C.2).
-> Whitewashing is prevented by non-rotatability (this requirement), not by the length of
-> probation.
+& Resnick result on cheap pseudonyms). This requirement concerns credential and pseudonym
+uniqueness, not reviewer probation: the answer review has no reviewer reputation update.
 
 **(P3) Unlinkability.** The issuer must not be able to link the credential to the
 derived IDs, nor the two role IDs of the same person to each other.
@@ -173,12 +170,8 @@ separate spaces. A niche case with imperfect mitigations.
 
 ## Cost of proposing
 
-The "bond" for proposing is in **reputation and rate limits**, never money (see `01`
-D13). The per-person technical limit is a **rate-limiting nullifier**: one token is
-generated for each slot of the epoch, `H(key, "propose", epoch, i)` with `i` below the
-quota, and you prove in ZK you are within the limit. Reusing a token (exceeding the
-quota) reveals the secret key by construction: the limit enforces itself. But the
-quota is not the real brake on spam — see the lottery in `05` and `01` D10.
+There is no monetary stake (D13). The current author quota and authenticated deposit
+checks are specified in [05](05-question-lifecycle.md#the-answer-review-01-d49d52).
 
 ---
 

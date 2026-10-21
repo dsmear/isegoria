@@ -17,38 +17,13 @@ competence and to the use of outside resources, and whether that reading is adeq
 be established; a correct answer alone does not show unaided knowledge. The assessment's
 priorities are in `01` D46.
 
-**Phase 1 direction (`01` D47–D52, owner, 2026-10-21).** The author states the key and reviewers
-answer the item. D47 asked the mathematics to evaluate the reviewers' reliability over time, with a
-possible reputational weight; for the first implementation D48 defers that evaluation. Reviewers
-drawn from the pool carry equal weights, ordinary reviews do not update their reputation, and the
-consensus of their answers is the review's operational criterion, not a guarantee of truth. A
-reviewer may answer that no alternative is correct; an item is never corrected retroactively, nor
-its key replaced automatically. D49–D52 approve the contract of that first implementation, the
-*answer review*: its outcome rule is a count of equally weighted answers in integers (D49, `05`
-§The answer review), not a fit of this engine; its author index is §C.1's with D50's inputs, and
-its quotas D51's (§C.1, *The answer review*). Bridging, the pilot, IRT, DIF and the source check
-are not conditions of acceptance in it (D52). Agreement with the key or with the majority is not
-demonstrated reliability. What follows describes the existing code, which the answer review
-does not change. In it a reviewer reveals a probability that the item
-passes the pilot; that value is Level A's rating `r_uj` and the forecast scored in §§C.2–C.4, the
-previous design's evaluator path, which stays implemented until the new mechanism replaces it. Level
-B's contracts and the author score (§C.1) are unchanged; whether and how Levels A and B read the
-answers is open, and they are not imposed on the new mechanism automatically. D47 decides that
-reviewers do not state or record the sources they consult; it leaves open whether the author's
-mandatory source at deposit and §B.5's source check remain, both unchanged here. The previous
-design's dossiers are archived (`archive/phase1-forecast-pilot/`, [`21`](21-d47-inventory.md)).
-
-> **Revisions from the working paper (decided 2026-09-24).** The working paper
-> (`paper/`, version 0.2) found properties of this specification that `docs/01` D32–D41
-> correct; the tasks are `docs/10` Phase 1.1 (T49–T57), the first phase of the roadmap.
-> D32–D40 are implemented (T49–T57, 2026-09-24/25): the text describes their formulas
-> and intended contracts, subject to the open findings in `15`, with measured limits —
-> the side-balanced score and
-> the appeal by the side gap (§A.3), the target latent model and its anchor precondition
-> (§B.3), the contested-facts pool (§B.5, §B.7), the evaluator score with exploration
-> (§C.2), the change detector and the cap (§C.4), coordination on residuals and panel
-> diversification (anti-collusion). D41, the beacon, is done too (`10` T37). `paper/README.md` lists
-> what changed since the paper's snapshot.
+**Which path uses this engine?** The current answer review uses the weighted author
+index in §C.1. Its outcome rule and quotas are specified in
+[05](05-question-lifecycle.md#the-answer-review-01-d49d52), under D49–D53.
+Levels A and B, the evaluator scores in §§C.2–C.4 and anti-collusion below belong to
+the retained forecast-and-pilot path. They are not acceptance conditions for the answer
+review (D52). Historical decisions and results are tracked in [01](01-decisions.md)
+and [15](15-phase1-review.md), not revalidated by this document.
 
 ---
 
@@ -57,8 +32,7 @@ design's dossiers are archived (`archive/phase1-forecast-pilot/`, [`21`](21-d47-
 ### A.1 Model
 
 Matrix factorization with asymmetric regularization. Let `r_uj ∈ [0,1]` be node `u`'s
-judgment of question `j` — in the code, the probability the reviewer reveals (`05` [4]); what
-the fit reads under D47 is open:
+judgment of question `j` — the forecast the legacy reviewer reveals (`05` [4]):
 
 ```
 r̂_uj = μ + b_u + b_j + ⟨f_u , f_j⟩          f ∈ ℝ^d,  d = 1 or 2

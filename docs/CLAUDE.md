@@ -1,9 +1,8 @@
 # Instructions for Claude Code
 
-This repository contains the specification of a distributed network for producing
-and validating quiz questions. You are here to **implement it**. Read
-`00-overview.md` first, then `02-scoring-engine.md` (the central piece), then the
-rest as needed.
+These instructions apply to repository work, regardless of the agent used. Read
+`00-overview.md`, then `05-question-lifecycle.md`'s answer-review contract. Current
+work is Phase 1 documentation; network and production work require a separate assignment.
 
 ## Invariants never to violate
 
@@ -34,8 +33,8 @@ D52 states they are not conditions of the answer review (below).
    mechanism reintroduces wealth-based access, which is exactly the problem to avoid.
 
 4. **Two separate scores, never combined.** The author score (`C`) and the evaluator
-   score (`E`) live on **different, unlinkable pseudonyms** of the same person. `E`
-   weights the review vote; `C` governs the rate limit on proposals. Do not merge
+   score (`E`) live on **different, unlinkable pseudonyms** of the same person. `C`
+   governs the rate limit on proposals; only the legacy path uses `E` as a review weight. Do not merge
    them into a single weight and do not have them share the same ID. In the answer review
    every reviewer weighs the same and ordinary reviews do not update `E` (`01` D48, D49);
    `C` follows D50 and governs D51's quotas there; the separation stands.
@@ -67,15 +66,11 @@ D52 states they are not conditions of the answer review (below).
 
 ## Current priorities
 
-The six crates exist. Follow `10-roadmap.md`: **mathematics**, then **P2P network**,
-then **the rest**. Task status belongs there; calibration procedures belong in
-`14-parameter-register.md`; measurement provenance belongs in `13-characterization.md`.
-
-For Phase 1 corrections, read `15-phase1-review.md` before implementing. It records
-the A–E review's open guarantees, code-contract findings and completion criteria.
-Verify each finding; do not silently change the specification to approve a code defect.
-T81 remains complete for the ten files listed in its run 22. Pre-D43 DIF measurements
-remain historical evidence, not current-model validation.
+Use `phase1-handoff.md` to resume. Task status belongs in `10-roadmap.md`, review
+findings and evidence in `15-phase1-review.md`, parameter procedures in
+`14-parameter-register.md`, and measurement provenance in `13-characterization.md`.
+Do not reopen or extend a closure without a concrete finding. Historical measurements
+retain their model and version scope.
 
 Inside a phase, fix defects before adding features. A code-defect correction starts
 with a test that fails on the current code. Documentation-only changes are checked
@@ -86,107 +81,34 @@ and implementation handoff is in `15-phase1-review.md`.
 
 ## Phase 1 direction: D47, D48 and the answer review (D49–D52, 2026-10-21)
 
-The owner changed Phase 1's direction before its implementation (`01-decisions.md` D47): the
-author states the key, reviewers answer the item with any resource, and forecasting the pilot
-outcome is no longer the reviewers' main contribution. D48 then settled its first implementation:
-reviewers are drawn by lot from the reviewer pool, with no new selection by specialist
-competence; every reviewer weighs the same; ordinary reviews do not update the reviewers'
-reputation, and the evaluation of their reliability over time that D47 asked for is deferred;
-the consensus of the answers is the review's operational criterion; a reviewer may answer that
-none of the alternatives is correct, which stays distinct from choosing another alternative; a
-question is never corrected retroactively (its author submits a new one), and its key is never
-replaced automatically. D45 and D46 stay the references for conditions and objectives.
+The current contract is D49–D53 in `01-decisions.md`, specified once in
+`05-question-lifecycle.md` (The answer review), with the author index in `02` §C.1.
+T87 and Phase 1 are closed only in the offline path's perimeter (`15`, closure record).
 
-D49–D52 are the owner's approved contract for the *answer review*, the offline path that
-implements D48: 12 distinct reviewers drawn at random from the pool; an answer is an
-alternative, "none is correct" or "don't know"; at least 9 usable answers (alternatives and
-"none"), abstentions and absences outside the count; an explicit closure; accepted when
-`4C ≥ 3V`, discarded when `4(V − C) ≥ 3V`, divided answers otherwise; only accepted questions
-usable (D49). The author's reputation keeps `02` §C.1's index and aging with adapted inputs —
-accepted 1 at weight 1, discarded 0 at weight 1, divided 0 at weight 1/4, insufficient
-participation nothing (D50) — and sets a quota of 1, 2 or 3 questions per epoch (D51). Bridging,
-the pilot, IRT, DIF and the source check are not conditions of acceptance there; A2's
-whole-test guarantee is not required for it, and A2 is not resolved (D52).
+- Preserve the approved contract. Do not add reviewer weights or reputation updates,
+  selection by competence, replacements, automatic closures, deadlines, retries, key
+  correction, source requirements or earlier filters without an owner decision.
+- Reviewers may use any resource; do not detect, infer or assess external-tool use,
+  or collect their sources. The author is not required to supply a source either.
+- Never turn consensus into a claim of truth or reviewer reliability. Divided answers
+  are not proved ambiguity; insufficient participation is not rejection. The author's
+  index records review outcomes, not measured factual quality or competence.
+- Deposits are deduplicated per authenticated author, not globally (AT-ANS-14).
+  The key remains in clear in state and log; the caller is trusted not to select a
+  beacon for a desired panel. Do not claim stronger confidentiality or randomness.
+- Parameters are provisional and uncalibrated; the decoder has not been fuzzed.
+  No truth, whole-quiz fairness or D46 assessment objective is certified. A2 remains
+  unresolved in its own scope and is not required for this path (D52).
+- The legacy code keeps its contracts. Its proofs, tests and closures do not certify
+  the answer review. `21-d47-inventory.md` records retained dependencies; the archive
+  is historical, not an active specification or work plan.
 
-- Keep three things apart: the approved contract (D49–D52), what is implemented (`10` T87:
-  `protocol::answer*`, `scoring::reputation::author_score_weighted`, specified in `05` §The
-  answer review), and what has been verified (the targeted tests in `tests/answer_review.rs` and
-  the modules' unit tests; Astra's final review, which closed T87 and Phase 1 in this path's
-  perimeter only, `15`). D53 confirms three of its choices for the first offline version: joining
-  the pool is availability, the draw follows the deposit epoch's closure, an unavailable question
-  stays so for good. The existing code still implements the previous design; the answer review
-  adds a path beside it and changes none of it.
-- The parameters 12, 9, 3/4, 1/4 and the quota bands are provisional and uncalibrated (D52,
-  `14`): keep them explicit in the configuration and in the results; do not tune them.
-- Do not add what the contract excludes: reviewer weights, a reputation update or penalty for
-  reviewers (an abstention or absence included), a selection by competence, a replacement in the
-  round, an automatic closure, deadline or retry, a new round, an automatic correction of the
-  key, a source requirement or check, or any previous filter as a condition of acceptance. Where
-  the contract is silent on a product choice, stop and report it instead of choosing a policy.
-- No answer to a request may depend on another participant's hidden data: deposits are
-  deduplicated per author, never globally, since a global check revealed keys (`05`, AT-ANS-14).
-  The offline state and log hold keys in clear, and the draw assumes its caller does not select
-  the beacon value: do not claim confidentiality or grind-resistance the offline path lacks.
-- Consensus is not truth, and agreement with the author's key or with the majority is not
-  reliability; divided answers are not demonstrated ambiguity, and insufficient participation
-  is not a discard. The exclusion of a Schelling point below stays. D48 records the risks it
-  accepts (shared errors, different competences under equal weights, superficial reviews,
-  coordination); the draw eliminates none of them, so do not describe the design as removing
-  them. Accepted questions establish no fairness of the whole quiz (D52).
-- The author's reputation stays separate (#4). The existing path's author score and its C5–C6
-  closures are unchanged and are not extended to D50's inputs.
-- Reviewers may use the Internet, documents and AI; they do not state or record the sources they
-  consult, and the system does not detect, infer or assess their use of outside tools. The
-  answer review asks the author for no source; the existing deposit's mandatory source and the
-  contested-fact path's source check (`02` §B.5) stay as they are in the existing path.
-- `21-d47-inventory.md` lists what the previous design's code is and what stays in place (§2,
-  §4).
-- `archive/phase1-forecast-pilot/` is historical: do not extend it or cite it as the active
-  specification. Its closures keep their perimeters; A2 is not resolved by its archiving.
-  Code comments citing `docs/16`, `docs/17`, `docs/19` or `docs/20` resolve through redirect
-  pages; the archive's index has the path map. The working handoff is `phase1-handoff.md`.
-- Phase 1 is closed in the answer review's perimeter only (2026-10-21, `15`): deposit and quotas,
-  the draw, commit-reveal, the closure, the outcome, the author's reputation from the next epoch,
-  and the usable set. Do not describe it as complete beyond that perimeter, as calibrated, fuzzed,
-  or certifying truth, the whole quiz's fairness or D46's objectives; do not treat the previous
-  mechanism's findings as closed by it, or extend earlier closures.
+## Implementation guidance
 
-## Original build order (done)
-
-The order the reference implementation was built in — each phase verifiable before the
-next:
-
-1. **`scoring/`** — the deterministic engine. Input: a ratings file (node ×
-   question) and an answers file (respondent × question). Output: bridging scores,
-   IRT parameters, DIF verdicts, reputations. It must run offline, with no network
-   or identity. The simulations in `sim/` supplied the original fixtures and scoped
-   differential oracles. Their retired BSS and proxy-DIF paths are historical;
-   current behavior is specified in `02` and checked by the corresponding Rust tests.
-2. **Tests against the corner cases** documented in `06` and in `sim/`: coordinated
-   cartel, elite consensus, true-but-divisive question, survival rate. These are the
-   engine's acceptance tests.
-3. **`identity/`** — enrollment adapters, threshold credential, role nullifiers.
-   See `03`.
-4. **`network/`** — signed append-only logs, gossip, DHT, erasure coding, anchoring.
-   See `04`.
-5. **`protocol/`** — lifecycle orchestration: random reviewer assignment,
-   commit-reveal, bridging gate, two-stage pilot, appeal channel, honeypot. See `05`.
-
-## Suggested stack (not binding)
-
-- **Scoring engine**: Rust is implemented; Python with NumPy/SciPy supplies research
-  prototypes and scoped numerical oracles. Keep their contracts explicit.
-- **Identity cryptography**: prefer mature, audited libraries — Semaphore for
-  nullifiers, BBS+ schemes for credentials, a threshold OPRF for anchoring. Rolling
-  our own is permitted when it genuinely serves the design — no suitable library
-  exists, or we need a variant a library does not provide (e.g. a threshold scheme
-  built from a vetted single-party one). When we do, keep it small, build it on
-  audited primitives (not from first principles), pin it down with known-answer and
-  property tests, and mark it clearly as bespoke. The bar is high, not absolute.
-- **P2P layer**: consider libp2p (gossipsub + Kademlia DHT). CRDTs with Automerge or
-  Yjs where converging state is needed.
-- **Anchoring**: OpenTimestamps or equivalent to publish the Merkle root on a public
-  chain.
+Rust is the reference implementation; Python prototypes and numerical oracles have
+their own scoped contracts. Prefer mature audited cryptographic primitives. Bespoke
+composition requires a stated need, small scope, known-answer/property tests and an
+explicit label as bespoke. See `ARCHITECTURE.md` for the code map and test strategy.
 
 ## What NOT to do
 
@@ -201,6 +123,11 @@ next:
   engine is deterministic and mathematical.
 
 ## Code style and docs
+
+- **Less is more.** Keep one authoritative description per subject and link to it.
+  Remove obsolete explanations and duplicated status summaries instead of appending
+  another qualification. Preserve unique decision records, proofs and measurements
+  with their historical scope. Write repository documentation in English.
 
 - **Comments are budgeted, and the budget is enforced.** The design docs are the source of
   truth for the logic (`ARCHITECTURE.md` principle #4); code comments never restate them.

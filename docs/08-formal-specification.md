@@ -12,54 +12,19 @@
 
 ## Reading the audit after the 2026-10-02 review
 
-The original audit body and dated remediation entries retain their historical scope.
-For the current correction pass, read them with
-[`15-phase1-review.md`](15-phase1-review.md). In particular, the historical closures
-of REPUTATION-008, DIF-011 and PROTO-008 do not settle the new A1/A2/A5 findings;
-the founder-reset correction (A6), the nonconvergence handling (A4), the stage-1
-nonconvergence correction (A11), A4's residual in the pilot's stage 2 and the appeal settled
-before the pilot concludes are closed, and A3 within its correction P1 (`18` §8).
-SC-6's local difference-score result does not establish protocol-level properness
-with a draw known before the report. This documentation pass records those limits;
-it is not a new implementation fix or a replacement for T26.
+The original audit and dated remediation entries retain their historical scope.
+Current findings, conditional closures and their exclusions belong in
+[15-phase1-review.md](15-phase1-review.md). The audit's original invariants and
+forecast-score claims describe the earlier mechanism, not the answer review.
 
-**D47 and D48 (owner, 2026-10-21).** Reviewers answer the item ([`01` D47](01-decisions.md)). For
-the first implementation [D48](01-decisions.md) draws them from the pool with equal weights, makes
-the consensus of their answers the review's operational criterion — rectifying the absolute ban that
-INV-2 and T1 below record — and defers the evaluation of their reliability. D49–D52 approve the
-contract of its offline path, the answer review (`05` §The answer review, `10` T87), which this
-audit did not cover; its rows (AT-ANS, ANSWER-001) were added with T87, and T87 and Phase 1 are
-closed in that path's perimeter only (`15`, 2026-10-21). INV-2 and T1 still describe the existing
-path's code. The REPUTATION and AT-REP entries below, A1 and A12 concern the previous design's
-forecast score, which the code still implements; they neither specify nor test the new mechanism.
-Their dossiers are archived ([`21`](21-d47-inventory.md)), and `sim/a12_*` named below is now under
-`archive/phase1-forecast-pilot/`; this audit's historical entries are unchanged.
+The answer-review contract is D49–D53, specified in
+[05](05-question-lifecycle.md#the-answer-review-01-d49d52). Its AT-ANS and ANSWER-001
+rows were added with T87; it was not covered by the original audit. Its
+[closure record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)
+does not constitute the external review SC-8 or extend earlier guarantees.
 
-**A12/AT-REP-01 amendment (owner, 2026-10-12).** The current Phase 1 claim is the exact
-complete-offline, invariant-information cumulative-weight guarantee in
-[`16` §7.2](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
-Its affine candidate has an accepted conditional proof and an exact-rational offline reference
-path (`sim/a12_offline.py`). Its explicit frozen-weight Rust integration package is accepted
-on 2026-10-13 on the owner's executable checks and Astra's source review (`16` §7.2),
-without operational adoption. The composed review closes A12 conditionally on the amended criterion (`16` §7.3); Phase 1 remains open. The owner explicitly withdraws
-the blanket betrayal/honesty claim as a Phase 1 claim without proving it. Historical detector,
-crowd and cap test evidence below keeps its scope and does not test the affine candidate.
-
-**Numerical qualification subsequently approved (owner, 2026-10-12).** The rational theorem
-remains exact; a single final binary64 conversion has per-weight error at most `2⁻⁵³` and
-expected deviation advantage at most `M·2⁻⁵²` for `M` prefixed opportunities (`16` §7.2).
-This explicitly replaces an exact numerical claim for the consumed `f64` coefficients;
-it does not cover a floating utility accumulator, optimizer or verdict error. The integration
-gate now has reported executable evidence: the owner's Rust compilation, five composed
-tests and formatting checks pass; Astra did not independently rerun Rust (`16` §7.2).
-
-For the earlier reviewed revisions, the owner reported that compilation and tests pass.
-This historical report does not cover the new affine adapters. The review did not independently
-run Rust tests; this does not indicate a failing suite. T81 remains complete within
-its ten-file scope (`11`, run 22). Post-D43 characterization and calibration status
-are recorded in `13` §8.8 and `14`.
-
----
+Archived paths in historical entries are mapped in
+[21](21-d47-inventory.md) and the [archive index](../archive/phase1-forecast-pilot/README.md).
 
 ## 0. How this document was produced, and what it did not do
 

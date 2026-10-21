@@ -1,5 +1,10 @@
 # 21 — D47: inventory of the affected material
 
+**Historical inventory at D47.** The classifications and path map below record the
+reorganization, not pending implementation instructions. D49–D53 subsequently defined
+the separate answer-review path in [05](05-question-lifecycle.md#the-answer-review-01-d49d52).
+Current task and finding states belong in [10](10-roadmap.md) and [15](15-phase1-review.md).
+
 | | |
 |---|---|
 | **Purpose** | What [`01` D47](01-decisions.md) affects in the repository, file by file: what is kept, what the next implementation must adapt, what is archived and why, and what stays in place as a dependency although it belongs to the previous design. |

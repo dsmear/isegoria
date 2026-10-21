@@ -1,56 +1,8 @@
 # Question lifecycle and protocol
 
-Orchestration of the whole process. Each stage indicates what it prevents (the attack
-it neutralizes).
-
-```
- [1] Draft          author fills in item + mandatory primary source
-      ↓
- [2] Deposit        reputation bond (not money) + hash on append-only log
-      ↓
- [3] Admission      LOTTERY: from the deposited drafts, a randomly drawn subset
-                    enters the pipeline (the queue does not explode)
-      ↓
- [4] Review         k reviewers assigned AT RANDOM, blind, commit-reveal
-      ↓
- [5] Bridging       S_j ≥ τ → passes;  S_j in band → k_extra more reviewers, re-decision
-      │                 (so is an item one side never rated, whatever S_j: `02` §A.3, D42)
-      ↓                 │
-      │                 └──→ [5b] APPEAL TO EVIDENCE
-      ↓                          if discarded for polarization (wide side gap), not for
-      │                          a defect — below the band or failing the re-decision;
-      ↓                          the author stakes reputation (`01` D27)
- [6] Pilot 1        initial screen, provisional floor ~300 respondents
-      ↓
- [7] Pilot 2        sample by format and power, IN BATCHES: IRT + latent DIF
-      ↓                 │
-      │                 └──→ [7b] CONTESTED FACT
-      │                          DIF, but the cited primary source establishes the key
-      │                          (`02` §B.5): a separate pool, drawn into a test only in
-      ↓                          balanced sets (`01` D38)
- [8] Active pool    usable; periodic re-validation of the whole pool
-      ↓
- [9] Retirement     exposure, drift, obsolescence, emerging DIF
-```
-
-**Phase 1 direction (`01` D47, owner, 2026-10-21).** At [1] the author writes the question in
-its context and states the correct answer. At [4] reviewers answer the question; they may
-consult any resource, they do not state or record the sources they consult, and the system does
-not detect, infer or assess their use of outside tools. D47 asked the mathematics to evaluate the
-reviewers' reliability over time, with a possible reputational weight. **For the first
-implementation (`01` D48)** reviewers are drawn by lot from the reviewer pool, with no new
-selection by specialist competence; every reviewer weighs the same, ordinary reviews do not
-update their reputation, and the evaluation of their reliability is deferred; the consensus of
-their answers is the review's operational criterion, not a guarantee of truth; a reviewer may
-answer that none of the alternatives is correct, distinct from choosing another alternative; a
-question is never corrected retroactively — its author submits a new one — and its key is never
-replaced automatically. **D49–D52** approve its contract, the answer review, specified
-[below](#the-answer-review-01-d49d52) as a path of its own. **The steps [1]–[9] that follow are
-the existing path**, which implements the previous design: a reviewer commits and reveals a
-probability that the item passes validation, which is the bridging rating at [5] and the forecast
-scored against pilot outcomes, golden items and explored rejections; the draft carries the key
-inside the item's bytes, with no structured field, and a mandatory source; [7b] keeps its source
-check. The answer review changes none of it.
+The current Phase 1 contract is the answer review below (D49–D53). The later
+numbered steps [1]–[9] specify the separate, retained forecast-and-pilot path; none is
+an additional acceptance gate for the answer review.
 
 ## The answer review (`01` D49–D52)
 
@@ -146,8 +98,8 @@ contract leaves to the implementation:
   unavailable question stays so for good — its slot spent, no observation, no new attempt, not
   recovered by reviewers who join later, the same author's identical deposit still a duplicate.
 - *Commit-reveal.* Drawn reviewers commit `H(answer, nonce, reviewer, question)` with a proof bound
-  to the commitment; an explicit end of commits opens the reveals, so no answer is visible before
-  every commitment is in. A reviewer who commits and does not reveal is an absence. The closure
+  to the commitment; an explicit end of commits opens the reveals, so protocol reveals cannot occur before
+  the commitment phase closes. A reviewer who commits and does not reveal is an absence. The closure
   needs the end of commits.
 - *Epochs and time.* Epochs are numbered from 0; each explicit closure is a closing, the age unit
   of the author's observations, as `02` §C.1's contract with one closing per epoch and no skipped
@@ -160,9 +112,14 @@ contract leaves to the implementation:
 
 ---
 
+## Previous forecast-and-pilot path
+
+The remaining sections specify the retained legacy path. Its mandatory source,
+lottery, reviewer forecasts, filters and appeals do not apply to the answer review.
+
 ## [2] Deposit and [3] admission by lottery
 
-The cost of proposing is reputation and rate limits (rate-limiting nullifier, `03`),
+The cost of proposing is reputation and rate limits,
 never money.
 
 **Why a lottery** (`01` D10). Admission must stay within measured validation capacity.

@@ -1,18 +1,14 @@
 # Simulations
 
-Research prototypes, fixture generators and differential oracles. Their role is
-specific to each script: they are **not a complete executable specification of the
-current engine**. The current mechanism is in [`docs/02`](../docs/02-scoring-engine.md);
-open correctness questions are in [`docs/15`](../docs/15-phase1-review.md).
+Historical research prototypes, fixture generators and scoped differential oracles
+for the earlier forecast-and-pilot mechanism. They do not specify or validate the
+current [answer review](../docs/05-question-lifecycle.md#the-answer-review-01-d49d52).
 
-The bridging prototype includes D32/D42, but the BSS evaluator score and proxy-ability
-DIF paths remain historical. Rust retains those functions for scoped regression and
-oracle comparisons; the production path uses the difference score and
-`scoring::latent::latent_dif` with formats and the protocol's admission checks.
-Reproducing an old fixture does not validate the newer model. Under
-[`docs/01` D47](../docs/01-decisions.md) the difference score is itself the previous design's
-evaluator path; the scripts below that serve current code stay here, and A12's and A2's moved
-to the archive (below).
+Some scripts still serve retained Rust code; retired BSS and proxy-DIF paths remain
+historical. Reproducing their fixtures validates only the numerical contracts named
+by the corresponding tests. Current engine contracts are in
+[02](../docs/02-scoring-engine.md), evidence and finding states in
+[15](../docs/15-phase1-review.md), and archived paths are listed below.
 
 ## Requirements
 
