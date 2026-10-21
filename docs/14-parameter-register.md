@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | The five items `docs/07` §13 asks of every threshold in `docs/02`'s parameter table — why it exists, how it is calibrated, how much the mechanism depends on it, what breaks if it moves, where its value is fixed — so that no threshold is an accidental constant (SC-1, `docs/08` §16.1). |
 | **Derived from** | `docs/02` (the parameter table, §A.1–§A.3), `docs/13` §7.4 and §8.7.4 (the measurements), `docs/01` (the decisions), `docs/05` [4]–[5b], `docs/10` T25 step 4. |
-| **Status** | Level A written (2026-10-01). Level B waits on the supplement's DIF studies run again on the corrected model (`docs/13` §8.8). Level C's restricted A12 offline candidate has procedures below (2026-10-12), without a calibrated operating point; the remaining Level C entries and operational values remain pending. Under D47 (2026-10-21) the forecast path's Level C entries and the A12 procedures are suspended (Level C below). |
+| **Status** | Level A written (2026-10-01). Level B waits on the supplement's DIF studies run again on the corrected model (`docs/13` §8.8). Level C's restricted A12 offline candidate has procedures below (2026-10-12), without a calibrated operating point; the remaining Level C entries and operational values remain pending. Under D47 (2026-10-21) the forecast path's Level C entries and the A12 procedures are suspended (Level C below). Under D48 the new review's group size, quorum and consensus thresholds are not decided; `k` below is the bridging panel's size, and whether it carries over is part of that decision. No entry is written for them before the owner decides. |
 
 ## How to read an entry
 
@@ -195,7 +195,9 @@ floor prior's weight, `KR20_MIN` or a minimum number of anchors, `N_LATENT_MIN`,
 ## Level C — reputation and coordination
 
 **D47 (owner, 2026-10-21).** Reviewers answer the item; the reliability measure and its
-reputation update are still to define ([`01` D47](01-decisions.md)). The parameters of the
+reputation update are still to define ([`01` D47](01-decisions.md)). **D48** defers that
+evaluation for the first implementation, which weighs reviewers equally and updates no reviewer
+reputation from ordinary reviews ([`01` D48](01-decisions.md)). The parameters of the
 previous design's forecast path — `γ`, the odds model's `k₀`, the CUSUM's `k` and `h`, `w_max`,
 `N_PROBATION`, the honeypot and exploration rates, and A12's `η`, `k₀`, probation and cap below —
 are suspended: no procedure or value is to be written for them until the new mechanism says

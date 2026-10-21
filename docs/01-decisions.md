@@ -8,11 +8,20 @@ decision's rationale. The open Phase 1 review findings are tracked in
 explicitly; D44 records the owner's foundational direction of 2026-10-18 without choosing
 new numerical thresholds; D45 the owner's decision of 2026-10-20 that Isegoria assumes an
 open environment, and D46 the assessment's priorities in it; D47 the owner's decision of
-2026-10-21 that reviewers answer the item and their reliability is evaluated over time.
+2026-10-21 that reviewers answer the item and their reliability is evaluated over time; D48 the
+owner's decisions for its first implementation: reviewers drawn from the pool with equal weights,
+the consensus of their answers as the review's operational criterion, the evaluation of their
+reliability deferred.
 
 ---
 
 ## D1 — Quality is not decided by majority
+
+> **Rectified by D48 (owner, 2026-10-21).** In the first implementation of D47's mechanism the
+> consensus of the drawn reviewers' answers, each with equal weight, is the review's operational
+> criterion; the absolute ban below no longer binds it. Consensus is not a guarantee of truth, and
+> the draw does not remove the concern below (D48, *Accepted risks*). The choice below describes
+> the existing mechanism, which the code still implements.
 
 **Choice.** Accepting a question goes through two filters: bridging (opinion) +
 empirical validation (evidence). Never a majority vote count.
@@ -83,6 +92,10 @@ education). Dropped for incompatibility with anonymity.
 
 ## D5 — Reputation: two separate scores, never combined
 
+> **D48 (owner, 2026-10-21).** In the first implementation of D47's mechanism every reviewer
+> weighs the same and ordinary reviews do not update `E`; the evaluation of reviewers is deferred.
+> The separation below stands, and the author score is unchanged.
+
 **Choice.** Author score `C` and evaluator score `E` live on different, unlinkable
 pseudonyms. `E` weights the review vote; `C` governs only the rate limit on
 proposals. No combined weight.
@@ -102,6 +115,10 @@ Dropped.
 > probability that it passes validation; how their reliability is evaluated is still to be
 > defined. The exclusion of a Schelling point stands. The code still implements the choice
 > below.
+
+> **D48 (owner, 2026-10-21).** For the first implementation the evaluation of the reviewers is
+> deferred and ordinary reviews do not update their reputation; agreement with the majority is
+> not rewarded.
 
 **Choice.** The evaluator declares a probability that the question passes validation,
 and is scored with a proper scoring rule normalized on the crowd baseline (Brier
@@ -1336,6 +1353,13 @@ experiments stay suspended; A2 stays open and blocking; D38 stays apart.
 
 ## D47 — Reviewers answer the item; their reliability is evaluated over time
 
+> **Modified by D48 (owner, 2026-10-21)** for the first implementation: reviewers drawn from the
+> pool carry equal weights, ordinary reviews do not update their reputation, and the evaluation of
+> their reliability is deferred; the consensus of their answers is the review's operational
+> criterion, which rectifies the binding of invariant #2 and D1 stated below; a reviewer may answer
+> that no alternative is correct; a question is never corrected retroactively, nor its key
+> replaced automatically. The text below is D47 as decided; D48 lists what it modifies.
+
 **Owner decision, 2026-10-21.** The direction of Phase 1's mechanism, decided before it is
 implemented:
 
@@ -1452,3 +1476,115 @@ reviewers consult, apart from the author's deposit source and the contested-fact
 which stay open; invariants #2 and #8 in `CLAUDE.md` separate the retained principle from the
 existing mechanism's contracts; the README's account of the engine and of its scoring rule is
 limited to what is implemented and verified. No decision content was added.
+
+---
+
+## D48 — First implementation: drawn reviewers, equal weights, consensus on the answers
+
+**Owner decisions, recorded 2026-10-21, after D47.** They settle part of D47's mechanism for its
+first implementation. D47 stays the record of the direction; the points below modify it where
+stated.
+
+1. **Draw.** Reviewers are drawn by lot from the reviewer pool. No new selection by specialist
+   competence is introduced. That the pool suits the item's context is a premise, not a property
+   the draw demonstrates.
+2. **Equal weights.** Every reviewer carries the same weight. Ordinary reviews do not update the
+   reviewers' reputation; the evaluation of their reliability is deferred. Agreement with the
+   majority is not rewarded.
+3. **Consensus as the operational criterion.** The consensus of the reviewers' answers is the
+   review's operational criterion. This explicitly rectifies the earlier absolute ban on deciding
+   quality by voting (D1; invariant #2 in [`CLAUDE.md`](CLAUDE.md) as worded until D47). It does
+   not make consensus a guarantee of truth: a consensus shows neither that the key, or the answer
+   the reviewers agree on, is correct, nor that the reviewers are reliable.
+4. **"None of the alternatives is correct."** A reviewer may answer that none of the alternatives
+   is correct. That answer stays distinct from choosing an alternative other than the one the
+   author states as correct.
+5. **No retroactive correction.** A question is not corrected after the fact: to correct it, its
+   author submits a new question. No automatic replacement of the correct answer is introduced,
+   by the reviewers' consensus or otherwise.
+6. **Outside resources.** The Internet, documents and AI are freely usable. The tools used are not
+   detected, and the sources reviewers consult are not recorded (as in D47).
+
+**Accepted risks.** The owner accepts the risks this choice leaves, and the draw eliminates none
+of them:
+- *shared errors:* reviewers who rely on the same wrong source, document or tool can agree on the
+  same wrong answer, and the consensus follows them;
+- *different competences, equal weights:* a reviewer who knows the subject counts as much as one
+  who does not;
+- *superficial reviews:* an answer given without checking counts as much as a checked one;
+- *coordination:* reviewers who agree among themselves outside the system can carry the
+  consensus.
+
+D1's concern is not removed either: a draw does not stop a group that is numerous in the pool, or
+coordinated, from carrying the consensus. A mechanism that evaluates the reviewers may become
+necessary; it would need a credible reference to evaluate them against, and a distinct decision.
+
+**Author reputation.** The author's reputation stays separate from the reviewers' (invariant #4,
+D5). Rewards for acceptance and penalties for contestation or rejection have been discussed; their
+formula, size and conditions are not defined, including what counts as a contestation (the
+implemented author score counts an item in D38's contested pool as a pass, D27). This direction is
+not an executable rule: the author score as implemented (`02` §C.1, D27, `15` C5–C6) is unchanged.
+
+**What it modifies in D47.**
+- *Reliability over time.* D47's mathematics was to evaluate the reviewers' reliability over time,
+  with a possible reputational weight. For the first implementation that evaluation is deferred,
+  and no reputational weight applies (point 2).
+- *The points D47 left to define.* The aggregation is the consensus of equally weighted answers
+  (point 3), with its thresholds still to define. The reviewers' reputation update: none from
+  ordinary reviews. The contested key: no retroactive correction or automatic replacement (point
+  5), and "none is correct" stays distinct from another alternative (point 4); what happens to the
+  item is among the outcomes still to define. The guarantees: consensus guarantees no truth.
+- *Invariant #2 and D1.* D47 kept their exclusion of a majority count as binding the new
+  mechanism; point 3 rectifies that. The exclusion of a Schelling point (D6) stands: no reviewer is
+  rewarded for agreeing with the majority (point 2).
+- *Golden items.* D47 left open whether they serve the reviewers' reliability; that question is
+  deferred with the evaluation.
+- *`E`.* D47 left what `E` measures to the reliability still to define. In the first
+  implementation ordinary reviews do not update it and it weights no answer; `C` and `E` stay on
+  unlinkable pseudonyms.
+
+Unchanged from D47: the author states the key; reviewers answer the item, with any resource;
+forecasting the pilot outcome is no longer their main contribution; agreement with the key or with
+the majority is not demonstrated reliability; a balanced split of correct and wrong answers is a
+signal to study, not a rule; random assignment, blindness and commit-reveal stay; D45 and D46 stay
+the references for conditions and objectives.
+
+**Other earlier commitments it modifies.**
+- D1 and invariant #2: rectified by point 3 for the new mechanism's review. Their two filters stay
+  the description of the existing mechanism.
+- D5 and invariant #4: `E` weights the review in the existing mechanism; in the first
+  implementation every reviewer weighs the same. The separation stands.
+- D33–D36, already set aside by D47 as the intended evaluator mechanism: equal weights and the
+  absence of a reputation update leave their odds weights, cap, probation and change detector no
+  role in the first implementation.
+
+**Still to decide before implementing.**
+- The size of the drawn group, the quorum, and what absences do.
+- The thresholds and the outcomes, among them what happens to an item whose consensus differs from
+  the key or answers that no alternative is correct.
+- Whether reviewers may answer "don't know", and how such an answer counts.
+- The author's reputation: formula, size and conditions (above).
+- The author's mandatory source at deposit and the contested-fact path's source check (D47,
+  *Sources*).
+- The role of the previous filters: Level A (bridging, the draw stratified on its axis, the band,
+  the appeal), Level B (the pilot, IRT, DIF, contested facts, re-validation), D39's coordination
+  detector and D40's panel constraint.
+- A2's disposition for the new design, and Phase 1's completion criteria.
+
+A later evaluation of the reviewers, if it becomes necessary, is a distinct decision with its
+credible reference.
+
+**Closures and A2.** As in D47: A1, A12, A10, A3–A9, A11, C5, C6, D3 and the Variant 1 fit states
+keep their perimeters, conditionally where so recorded, and certify nothing of this mechanism. A2
+stays open, and Phase 1 cannot be declared complete before the owner decides.
+
+**Current code.** Nothing implements D47 or D48. Reviewers commit and reveal a probability, which
+is both the bridging rating and the forecast the evaluator path scores and weighs (`02`
+§§C.2–C.4); the draw is stratified on the bridging axis and constrained by D40; the draft holds the
+item's bytes and its mandatory source, with no structured field for the key. These keep their
+tests and documented behaviour until the implementation adapts them ([`21`](21-d47-inventory.md)
+§2).
+
+**Scope.** Decision record only. No group size, quorum, threshold, outcome, formula or reputation
+rule is adopted; no code, test or archive changes; no review finding is closed; Phase 1 stays
+open. The implementation is a later assignment.

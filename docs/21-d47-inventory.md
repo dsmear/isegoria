@@ -72,6 +72,14 @@ the reveal's new payload when it changes: `lifecycle.rs`, `lifecycle_model.rs`,
 `indeterminate_pilot2.rs`, `appeal_stake.rs`, `contested_facts.rs`, `author_inputs.rs`,
 `author_records.rs`, `author_time_replay.rs`.
 
+**D48 (owner, 2026-10-21)** settles part of the right-hand column for the first implementation
+([`01` D48](01-decisions.md)): every reviewer weighs the same, so the forecast weights, probation
+and cap have no role in it; ordinary reviews update no reviewer reputation, and the reliability
+record, golden items' and peer prediction's role in evaluating reviewers are deferred with that
+evaluation; the committed value is an answer, which may be that no alternative is correct. What
+happens to Level A's input, the gate and the draw follows the previous filters' role, still to
+decide. The code and its tests are unchanged.
+
 **Specification sections** describing the previous design as current behaviour, to be replaced
 when D47's mechanism is specified: `02` §§C.2–C.4, `05` [4], §Golden items and §Cold start, `14`
 Level C, `08`'s AT-REP rows, `99` Part 4.
@@ -115,8 +123,11 @@ split a mixed document. These are **residual separations**: the separation is no
 
 ## 5. Not settled here
 
-D47's open points stay open: the aggregation, the reputation update, the contested key, the
-thresholds, outcomes and guarantees; Level A's and Level B's relation to the answers; golden
-items; the author's source at deposit and §B.5's check (the reviewers' sources are decided: not
-stated or recorded); A2's disposition for the new design. This inventory says where the
-material is, not what the new mechanism will be.
+D47's open points stay open, except what D48 settles for the first implementation (equal
+weights, no reputation update from ordinary reviews, consensus as the operational criterion,
+"none is correct", no retroactive correction or automatic key replacement): the group's size,
+quorum and absences; thresholds and outcomes; a possible "don't know"; the author's reputation;
+Level A's and Level B's relation to the answers; the author's source at deposit and §B.5's check
+(the reviewers' sources are decided: not stated or recorded); A2's disposition for the new design
+and Phase 1's completion criteria. This inventory says where the material is, not what the new
+mechanism will be.

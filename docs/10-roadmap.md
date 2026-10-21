@@ -23,6 +23,17 @@ A12's and A2's tools and A2's results are in `archive/phase1-forecast-pilot/`; p
 `sim/a12_offline.py` or `verification/reports/a2-…` named in the records below are there now
 (its path map). Phase 1 is not complete.
 
+**D48 — the first implementation's choices (owner, 2026-10-21).** Reviewers drawn by lot from the
+pool with no new selection by competence; equal weights; no reputation update from ordinary
+reviews, the evaluation of reviewers deferred; the consensus of the answers as the review's
+operational criterion, not a guarantee of truth; an answer that no alternative is correct; no
+retroactive correction or automatic replacement of the key ([`01` D48](01-decisions.md)). Before
+the specification the owner still decides the group's size, quorum and absences, thresholds and
+outcomes, a possible "don't know", the author's reputation, the source at deposit, the previous
+filters' role, A2 and Phase 1's completion criteria ([handoff](phase1-handoff.md) §4). T58's
+no-show rule, decided for the previous design's panels, belongs to the absences question; T68 to
+the source question.
+
 **C6 closed (2026-10-17).** The owner adopted B, a nominal cadence of 28 days and H = 45
 closings. The offline implementation, including declared context and configuration replay
 and the B-b snapshot's transition alignment, was prepared statically by Sol and corrected
@@ -321,8 +332,10 @@ provisional with the pilot that will set it; the mechanism's decision logic is
 mutation-tested (T81).
 
 **Completion qualification after D47.** The milestones below were defined for the previous
-design. Phase 1's completion now also requires D47's mechanism to be specified, implemented and
-reviewed with its guarantees; meeting the milestones below does not complete it.
+design. Phase 1's completion now also requires D47's mechanism, in the first implementation D48
+settles, to be specified, implemented and reviewed with its guarantees; meeting the milestones
+below does not complete it. Phase 1's completion criteria are themselves among the decisions D48
+leaves to the owner.
 
 **Completion qualification.** The label also requires resolving the critical/high
 findings in `15`, or explicitly narrowing the claimed domain with a justified decision.

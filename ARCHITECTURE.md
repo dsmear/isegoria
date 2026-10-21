@@ -42,11 +42,13 @@ Four rules shape every crate:
    `scripts/comment_budget.py` enforces the budget (`docs/CLAUDE.md`, "Code style and
    docs") in CI and after every edit made through Claude Code.
 
-**Phase 1 direction (`docs/01` D47, 2026-10-21).** Reviewers are to answer the item, whose key
-the author states, and the mathematics is to evaluate their reliability over time. Nothing below
-implements that yet: the reviewer path in `protocol` and Level C's evaluator score in `scoring`
-implement the previous design, in which a reviewer reveals a probability that the item passes
-the pilot. [`docs/21`](docs/21-d47-inventory.md) lists the modules to adapt and the residual
+**Phase 1 direction (`docs/01` D47 and D48, 2026-10-21).** Reviewers are to answer the item, whose
+key the author states. For the first implementation D48 draws them from the reviewer pool with equal
+weights, makes the consensus of their answers the review's operational criterion, and defers the
+evaluation of their reliability; group size, quorum, thresholds and outcomes are still to decide.
+Nothing below implements that yet: the reviewer path in `protocol` and Level C's evaluator score in
+`scoring` implement the previous design, in which a reviewer reveals a probability that the item
+passes the pilot. [`docs/21`](docs/21-d47-inventory.md) lists the modules to adapt and the residual
 separations; the previous design's dossiers, A12's and A2's scripts and A2's results are in
 [`archive/phase1-forecast-pilot/`](archive/phase1-forecast-pilot/README.md), which holds no crate.
 
@@ -270,9 +272,9 @@ The invariants from [`docs/CLAUDE.md`](docs/CLAUDE.md):
 | # | Invariant | Where |
 |---|---|---|
 | 1 | Anonymity is the base; no demographic attributes in the deployment path | Anonymous DIF uses `scoring::latent`; observed-group routines are calibration-only (`docs/02` §B.3) |
-| 2 | Quality is never decided by majority vote | `scoring::bridging` + `scoring::latent`; `protocol::gate` has no vote count |
+| 2 | Consensus is an operational criterion, never a guarantee of truth (rectified by `docs/01` D48; until D47, quality never decided by majority vote) | Existing mechanism: `scoring::bridging` + `scoring::latent`; `protocol::gate` has no vote count. D48's consensus is not implemented |
 | 3 | No money as stake | Bond is reputation (`protocol::deposit`, `scoring::reputation`) |
-| 4 | Two reputation scores, never combined | `scoring::reputation` (`author_score` vs `loo_scores`/`odds_weight`, the previous design's evaluator score; D47's is still to define); separate role nyms in `identity::nym` |
+| 4 | Two reputation scores, never combined | `scoring::reputation` (`author_score` vs `loo_scores`/`odds_weight`, the previous design's evaluator score; under D48 the first implementation weighs reviewers equally and defers their evaluation); separate role nyms in `identity::nym` |
 | 5 | One role, one deterministic non-rotatable pseudonym | `identity::nym::derive_nym` |
 | 6 | The state authenticates, does not issue | `identity::enrollment` (`UniquenessOracle`) separate from `credential::BlindIssuer` |
 | 7 | Scoring is deterministic and reproducible | `scoring` (pinned toolchain, seeded RNG); `tests/reproducibility.rs` |
@@ -396,9 +398,11 @@ to make the pipeline testable end-to-end.
 
 ## Future work
 
-D47's mechanism — reviewers' answers and their reliability over time — is to be specified, then
-implemented; its aggregation, reputation update, contested key, thresholds, outcomes and
-guarantees are open, and no plug point exists for it yet.
+D47's mechanism — reviewers' answers, in D48's first implementation drawn reviewers with equal
+weights and the consensus of their answers as the operational criterion — is to be specified,
+then implemented; the group's size, quorum and absences, thresholds and outcomes, a possible
+"don't know", the author's reputation, the source at deposit, the previous filters' role and A2
+are still to decide (`docs/phase1-handoff.md` §4), and no plug point exists for it yet.
 
 [`docs/10`](docs/10-roadmap.md) is the task-status source. Start Phase 1 corrections
 from [`docs/15`](docs/15-phase1-review.md); complete parameter procedures in

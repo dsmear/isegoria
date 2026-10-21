@@ -23,6 +23,11 @@ lines. Code symbols identify the implementation to re-check on a newer branch.
   `archive/phase1-forecast-pilot/`; paths such as `phase1-handoff.md`, `sim/a12_offline.py`,
   `sim/dtf_composition.py` or `verification/reports/a2-…` named in the records below are there now ([path map](../archive/phase1-forecast-pilot/README.md#path-map),
   inventory in [`21`](21-d47-inventory.md)). The records themselves are unchanged.
+- [`01` D48](01-decisions.md) (owner, 2026-10-21): for the first implementation, reviewers drawn
+  from the pool with equal weights, no reputation update from ordinary reviews (the evaluation of
+  their reliability deferred), the consensus of their answers as the review's operational
+  criterion, not a guarantee of truth. It rectifies invariant #2's absolute ban on deciding by
+  votes; its effect on this register is [below](#d47-disposition-2026-10-21).
 - [`01` D45](01-decisions.md) (owner, 2026-10-20): Isegoria assumes an open environment;
   answers are produced under those conditions, `θ` stays the declared model's parameter, and a
   correct answer alone does not show unaided knowledge. [D46](01-decisions.md) records the
@@ -96,6 +101,13 @@ rewritten and no finding is closed by it.
 - **B1–B7, C1–C4, C7, C8, D1, D2, D4–D6, E.** Unchanged.
 - **New findings.** The new mechanism's guarantees are still to define; findings about it will
   be recorded here once it is specified. Phase 1 is not complete.
+
+**D48 (owner, 2026-10-21).** The choices for the first implementation change none of the above:
+no record is rewritten and no closure is reopened or extended; A1, A12 and A10 certify nothing of
+the consensus review either. A2 stays open. Phase 1's completion criteria, like the group's size,
+quorum, thresholds and outcomes, are among the decisions D48 leaves to the owner
+([handoff](phase1-handoff.md) §4); findings about the consensus review will be recorded here once
+it is specified.
 
 ### A1 current closure criterion after O1–O3
 
@@ -762,6 +774,7 @@ For that history with the escrow, `C_a` crosses `2/5` at `45 log₂ 15 ≈ 175.8
 | **C7** | Names the current and retired entry points in the architecture and handoff. | Stale Rust doc comments in `revalidation.rs:22–25` and `pilot.rs:356–358` remain for the code pass; no `.rs` files are changed here. |
 | **C8** | States T81's ten-file scope explicitly. | T81 stays complete in that scope; it is not a proof of every composed guarantee. |
 | **D47** (2026-10-21) | Records D47's disposition of the findings, archives the previous design's dossiers, A12's and A2's tools and A2's results with a path map, and inventories the affected material (`21`). | It closes no finding, does not resolve A2 and specifies no new mechanism. |
+| **D48** (2026-10-21) | Records the owner's choices for the first implementation and realigns the active documents, the agent instructions and the handoff. | It closes no finding, does not resolve A2, and adopts no group size, quorum, threshold, outcome or reputation rule. |
 
 ## Working agreement for implementation and design review
 

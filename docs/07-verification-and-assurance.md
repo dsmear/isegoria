@@ -254,9 +254,11 @@ Then measure false-positive and false-negative rates.
 
 Generate colluding groups of different sizes and coordination strengths. Measure effective influence against independent participants.
 
-### Reviewers' reliability (`01` D47)
+### Reviewers' answers and their consensus (`01` D47, D48)
 
-The mechanism that evaluates reviewers' answers over time is not yet specified. Before any claim about it is accepted, state the experiments that could refute it, among them: reviewers who copy the author's key or the majority; an author's wrong key with correct reviewers; answers correlated by shared sources or tools; a reviewer whose accuracy changes over time; an item that splits correct and wrong answers evenly. Agreement with the key or the majority is not evidence of reliability. The previous design's forecast-score tests and the A1/A12 closures do not test this mechanism.
+In D48's first implementation the consensus of equally weighted answers is the review's operational criterion, and the evaluation of reviewers is deferred. The consensus is not specified yet: the group's size, quorum, thresholds and outcomes are still to decide. A claim about it states what it measures and its limits — a consensus is not a guarantee of truth — and the accepted risks (shared errors, different competences under equal weights, superficial reviews, coordination) are described, not reported as removed by the draw.
+
+A later mechanism that evaluates reviewers' answers over time would need a credible reference and a distinct decision. Before any claim about it is accepted, state the experiments that could refute it, among them: reviewers who copy the author's key or the majority; an author's wrong key with correct reviewers; answers correlated by shared sources or tools; a reviewer whose accuracy changes over time; an item that splits correct and wrong answers evenly. Agreement with the key or the majority is not evidence of reliability. The previous design's forecast-score tests and the A1/A12 closures do not test this mechanism.
 
 ---
 

@@ -358,21 +358,33 @@ does not yield that formula (`15` C5).
 
 # Part 4 — Incentives: how honesty is rewarded
 
-## Reviewers' answers and reliability (`01` D47)
+## Reviewers' answers and their consensus (`01` D47, D48)
 
 **Problem.** A question comes with the answer its author calls correct: the *key*. Does the key
-hold, and which reviewers can be trusted to check it? Counting how many reviewers agree with the
-key would hand the decision to whoever has the most reviewers, the capture the system exists to
-prevent (`01` D1).
+hold, and how should the reviewers' answers settle it? Counting how many reviewers agree is the
+simplest answer and a risky one: it can hand the decision to whoever has the most reviewers, the
+capture `01` D1 was written against.
 
-**What is decided.** Reviewers answer the question, free to look things up; they do not have to
-state or record the sources they consult, and the system does not detect or assess the tools
-they use. (Whether the author must still attach a source to the question is a separate, open
-question.) The mathematics is to process the answers and judge, over time, how reliable each
-reviewer is, possibly giving reputational weight on that basis.
+**What is decided.** Reviewers answer the question, free to use the Internet, documents and AI;
+they do not have to state or record the sources they consult, and the system does not detect or
+assess the tools they use (D47). (Whether the author must still attach a source to the question
+is a separate, open question.) For the first implementation (D48), reviewers are drawn by lot
+from the reviewer pool and count equally, and the *consensus* of their answers is the review's
+operational criterion: it settles the review, but it is not a guarantee of truth. The owner chose
+this knowingly, rectifying the earlier absolute ban on deciding by votes, and accepted its risks:
+shared errors, different competences counted alike, superficial reviews, coordination; the draw
+removes none of them. A reviewer may answer that *none of the alternatives is correct*, which is
+not the same as picking another alternative. A question is never corrected after the fact: its
+author submits a new one, and no automatic rule replaces the key.
 
-**What is not.** How the answers are combined, how reliability is updated, what happens when the
-answers dispute the key, and every threshold. An item on which correct and wrong answers split
+**Deferred.** D47 asked the mathematics to judge, over time, how reliable each reviewer is,
+possibly giving reputational weight on that basis. D48 defers it: ordinary reviews do not change a
+reviewer's reputation, and a later evaluation would need a credible reference — something to
+measure reviewers against — and a distinct decision.
+
+**What is not decided.** How many reviewers are drawn, the quorum and what absences do; how much
+agreement a review needs and what happens to the item otherwise; whether "don't know" is an
+answer; how the author's reputation responds. An item on which correct and wrong answers split
 evenly is a signal to study, not a proven sign of ambiguity or a reason to reject it. Agreeing
 with the key, or with the majority, is not by itself evidence of reliability.
 
@@ -469,8 +481,8 @@ The second term estimates *baseline* agreement, the one you would get by chance 
 shared bias. Subtracting it leaves only informative agreement — the one arising from
 having actually observed the same object. Technical result: telling the truth is the
 highest-paying equilibrium among symmetric strategies. Whether it has a role in judging the
-reviewers' answers under `01` D47 is open; shared sources or tools can produce agreement too
-(D45).
+reviewers' answers belongs to the evaluation of reviewers `01` D48 defers; shared sources or
+tools can produce agreement too (D45).
 
 ## Bayesian Truth Serum (Prelec, 2004)
 

@@ -14,7 +14,8 @@ fact-checking, licensing exams removed from the profession that has a stake in t
 ## The idea in one line
 
 The quality of a question is **not decided by voting** (whoever holds the majority
-would control the questions). It is decided by two filters in a row:
+would control the questions). It is decided by two filters in a row (the existing mechanism;
+[`01` D48](01-decisions.md) rectifies this for the new one, below):
 
 1. **Opinion filter** — aggregated peer review *across the bridge* (bridging): what
    matters is where the approval comes from, not how much of it there is. A question
@@ -24,12 +25,18 @@ would control the questions). It is decided by two filters in a row:
    Here nobody's opinion is needed.
 
 **Phase 1 direction ([`01` D47](01-decisions.md), 2026-10-21).** In review, the author states
-the key and reviewers answer the question, free to consult any resource; the mathematics is to
-evaluate the reviewers' reliability over time, with a possible reputational weight. The
-principle above stays; whether and how the answers enter the two filters, which describe the
-existing mechanism, and the new mechanism's formula, thresholds, outcomes and guarantees are
-still to define. The code still implements the previous design, in which reviewers forecast
-whether the item passes the pilot.
+the key and reviewers answer the question, free to consult any resource. For the first
+implementation [D48](01-decisions.md) decides: reviewers drawn by lot from the reviewer pool,
+with equal weights; ordinary reviews do not update their reputation, and the evaluation of their
+reliability over time that D47 asked for is deferred; the consensus of their answers is the
+review's operational criterion, which rectifies the principle above without making consensus a
+guarantee of truth; a reviewer may answer that no alternative is correct; a question is never
+corrected retroactively, nor its key replaced automatically. D48 records the risks it accepts
+(shared errors, different competences under equal weights, superficial reviews, coordination).
+Still to decide: the group's size, quorum and absences, thresholds and outcomes, a possible
+"don't know", the author's reputation, the source at deposit, the role of the two filters, A2
+and Phase 1's completion criteria ([handoff](phase1-handoff.md) §4). The code still implements
+the previous design, in which reviewers forecast whether the item passes the pilot.
 
 The anonymity of the nodes is the non-negotiable base. The uniqueness of a person is
 guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
@@ -68,9 +75,10 @@ guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
 The reference implementation exists (see Status below); what remains is ordered in
 [`10-roadmap.md`](10-roadmap.md) in three phases:
 
-1. **Mathematics** — D47 changed Phase 1's direction before its implementation: the next work
-   is to specify the mechanism by which reviewers answer the item and their reliability is
-   evaluated, then implement it ([`21`](21-d47-inventory.md) lists what to adapt). The previous
+1. **Mathematics** — D47 changed Phase 1's direction before its implementation, and D48 settled
+   part of its first implementation: the next work is to take the decisions D48 leaves open,
+   specify the mechanism by which reviewers answer the item, then implement it
+   ([`21`](21-d47-inventory.md) lists what to adapt). The previous
    design is implemented and its work suspended; read [`15`](15-phase1-review.md) for the A–E
    review findings and D47's disposition (A2 open), [`10`](10-roadmap.md) for task status and
    [`14`](14-parameter-register.md) for parameter procedures. D32–D41 are implemented; they are

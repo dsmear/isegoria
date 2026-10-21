@@ -23,10 +23,13 @@ SC-6's local difference-score result does not establish protocol-level propernes
 with a draw known before the report. This documentation pass records those limits;
 it is not a new implementation fix or a replacement for T26.
 
-**D47 (owner, 2026-10-21).** Reviewers answer the item; their reliability over time is to be
-evaluated by a mechanism not yet specified ([`01` D47](01-decisions.md)). The REPUTATION and
-AT-REP entries below, A1 and A12 concern the previous design's forecast score, which the code
-still implements; they neither specify nor test the new mechanism. Their dossiers are archived
+**D47 and D48 (owner, 2026-10-21).** Reviewers answer the item ([`01` D47](01-decisions.md)).
+For the first implementation [D48](01-decisions.md) draws them from the pool with equal weights,
+makes the consensus of their answers the review's operational criterion — rectifying the absolute
+ban that INV-2 and T1 below record — and defers the evaluation of their reliability; that
+mechanism is not yet specified. INV-2 and T1 still describe the code. The REPUTATION and AT-REP
+entries below, A1 and A12 concern the previous design's forecast score, which the code still
+implements; they neither specify nor test the new mechanism. Their dossiers are archived
 ([`21`](21-d47-inventory.md)), and `sim/a12_*` named below is now under
 `archive/phase1-forecast-pilot/`; this audit's historical entries are unchanged.
 

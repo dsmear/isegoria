@@ -36,16 +36,23 @@ it neutralizes).
 **Phase 1 direction (`01` D47, owner, 2026-10-21).** At [1] the author writes the question in
 its context and states the correct answer. At [4] reviewers answer the question; they may
 consult any resource, they do not state or record the sources they consult, and the system does
-not detect, infer or assess their use of outside tools. The mathematics is to evaluate the
-reviewers' reliability over time, with a possible reputational weight. Still to define: the
-aggregation, the reputation update, the treatment of a contested key, thresholds and outcomes,
-and whether and how [5]–[7] read the answers. A separate question, also open: whether the
-author keeps attaching a mandatory source at [1] and [7b] keeps its source check; both stay as
-below until the owner decides. **The code implements the previous design:** a reviewer commits and reveals
-a probability that the item passes validation, which is the bridging rating at [5] and the
-forecast scored against pilot outcomes, golden items and explored rejections; the draft carries
-the key inside the item's bytes, with no structured field. Nothing below is changed by D47 until
-the new mechanism is specified and implemented.
+not detect, infer or assess their use of outside tools. D47 asked the mathematics to evaluate the
+reviewers' reliability over time, with a possible reputational weight. **For the first
+implementation (`01` D48)** reviewers are drawn by lot from the reviewer pool, with no new
+selection by specialist competence; every reviewer weighs the same, ordinary reviews do not
+update their reputation, and the evaluation of their reliability is deferred; the consensus of
+their answers is the review's operational criterion, not a guarantee of truth; a reviewer may
+answer that none of the alternatives is correct, distinct from choosing another alternative; a
+question is never corrected retroactively — its author submits a new one — and its key is never
+replaced automatically. Still to define: the group's size, the quorum and absences, the
+thresholds and outcomes, a possible "don't know", and whether and how [5]–[7] read the answers.
+A separate question, also open: whether the author keeps attaching a mandatory source at [1] and
+[7b] keeps its source check; both stay as below until the owner decides. **The code implements
+the previous design:** a reviewer commits and reveals a probability that the item passes
+validation, which is the bridging rating at [5] and the forecast scored against pilot outcomes,
+golden items and explored rejections; the draft carries the key inside the item's bytes, with no
+structured field. Nothing below is changed by D47 or D48 until the new mechanism is specified and
+implemented.
 
 ---
 
@@ -102,8 +109,12 @@ probability** that the item passes validation (not a yes/no): the previous desig
 bridging and for the evaluator score `S_u` (`02` §C.2). Reviewers work in an open environment
 (`01` D45) and may consult any resource; they do not state or record the sources they consult,
 and the system does not detect, infer or assess their use of outside tools (D47). The author's
-source at [1] is a separate, open question. A panel's agreement, with the key or among its
-members, does not show that its checks were independent or that its reviewers are reliable.
+source at [1] is a separate, open question. Under D48 the drawn reviewers' answers carry equal
+weights, a reviewer may answer that no alternative is correct, and their consensus is the review's
+operational criterion; the weights, probation and stratified draw described above are the code's.
+A panel's agreement, with the key or among its members, does not show that the key is true, that
+its checks were independent or that its reviewers are reliable (D48's accepted risks: shared
+errors, different competences under equal weights, superficial reviews, coordination).
 
 ---
 
@@ -255,8 +266,8 @@ An item used a lot gets memorized and circulates: it loses value. Countermeasure
 ## Golden items (honeypot)
 
 > **D47 (2026-10-21).** Golden items and exploration scored the previous design's forecast.
-> Exploration is suspended; whether and how golden items serve the reviewers' reliability under
-> D47 is open. The implemented paths below stay current behaviour.
+> Exploration is suspended; whether and how golden items serve the reviewers' reliability belongs
+> to the evaluation D48 defers. The implemented paths below stay current behaviour.
 
 > **Extended by D35 (T52, done).** Golden items stay at 5%, but alone they are too few to
 > learn an evaluator's skill (about one every two epochs per reviewer). Evaluators are
@@ -286,7 +297,8 @@ defense against meta-level capture: they must not be choosable by anyone.
 - No differential weight before 30 scored outcomes per node (the probation period,
   `03` P2; `01` D36, T50 — was 200), then the shrinkage of the odds weight toward 1 as
   evidence accumulates (`02` §C.2). These count forecast scores: implemented, suspended as a
-  specification by D47, whose reputation update is still to define.
+  specification by D47; D48's first implementation weighs reviewers equally, with no reputation
+  update from ordinary reviews.
 - Start from a **low-political-temperature domain** (e.g. verifiable administrative
   procedures) to calibrate `τ`, `λ`, `k`, `ε` on real data before tackling hot
   questions.

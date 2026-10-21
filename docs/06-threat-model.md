@@ -10,9 +10,9 @@
 | Joining the proposals register with the votes register | Unlinkable role pseudonyms | `03` M3 |
 | Brigading specific items | Random reviewer assignment; item not searchable before the verdict | `05` [4] |
 | Herding / information cascades | Commit-reveal, blind judgments, no visibility of others' votes | `05` [4] |
-| Majority capture | Bridging: the majority alone is not enough, cross-cutting approval is needed (on master the score still keeps part of the camp-size effect; corrected by the side-balanced score, D32/T49) | `02` A |
+| Majority capture | Bridging: the majority alone is not enough, cross-cutting approval is needed (on master the score still keeps part of the camp-size effect; corrected by the side-balanced score, D32/T49). Under `01` D48 the new review's operational criterion is the consensus of drawn reviewers with equal weights: the draw does not remove this risk (shared errors, coordination are accepted), and whether bridging keeps a role is still to decide | `02` A, `01` D48 |
 | Coordinated cartel | Detection on the correlation of model residuals over long histories — a jittered cartel is flagged, like-minded honest reviewers are not (D39, T56); a detected cluster is never seated twice on a panel (D40, T57); the √k discount stays in the engine for analysis | `02` anti-collusion, `05` [4] |
-| Long-con (reputation accumulated and spent) | Implemented on the previous design's forecast scores: the CUSUM change detector on the per-item scores sends the reviewer back to probation (D34, T51); `w_max` cap on the odds scale (D33, T50); continuous honeypots. Under D47 the reliability and its reputation update are still to define, so this protection is not yet specified for the new mechanism | `02` C.4, `05`, `01` D47 |
+| Long-con (reputation accumulated and spent) | Implemented on the previous design's forecast scores: the CUSUM change detector on the per-item scores sends the reviewer back to probation (D34, T51); `w_max` cap on the odds scale (D33, T50); continuous honeypots. In D48's first implementation every reviewer weighs the same and ordinary reviews update no reviewer reputation, so there is no reviewer weight to accumulate; a later evaluation of reviewers would have to specify its own protection | `02` C.4, `05`, `01` D47, D48 |
 | Biased item passing peer review | Field-data DIF (does not depend on opinions) | `02` B.3 |
 | Biased item passed off as a contested fact | The source check: the key must follow, by a declared rule, from a primary source cited at deposit — an interpretive key is rejected on DIF as before; and a contested fact reaches a test only in a selection whose admission cost is within the tolerance: the sum of each fit's estimated DTF over its own distribution and counted classes (D38). Cancellation can occur within a fit; this cost does not certify the whole test's DTF (`15` A2) | `02` §B.5, §B.7 |
 | Profiling a respondent's camp from the contested facts they miss, joined across batches | **Open** (`10` T69): the respondent pseudonym is the same on every batch, and contested facts are administered continuously since D38; a batch-scoped nullifier, sheets never kept with the id, or a per-epoch rate limit are the options, none chosen | `08` §8.2 PRIV-P8, `10` T69 |
@@ -25,9 +25,10 @@
 | Betrayal by the whole consortium | Freedom to fork: the network abandons it with all the data | `04` |
 | Rewriting the past | Hourly anchoring to a public chain | `04` |
 | Collusion of the issuing committee | Threshold t-of-n issuance with heterogeneous issuers | `03` M2 |
-| Answers or reviews produced through delegation, automation, impersonation or strategic coordination outside the system | **Open** (`01` D45): an open environment is assumed, outside resources are part of the conditions, and these behaviours remain to be distinguished and governed; no rule adopted. The system does not detect, infer or assess the use of outside tools (D47) | `01` D45, D47 |
-| A wrong, ambiguous or contestable key stated by the author | **Open** (`01` D47): the treatment of a contested key is still to define; a balanced split of correct and wrong answers is a signal to study, not a validated criterion or a rejection rule | `01` D47 |
-| Reviewers' answers aligned on the author's key or on the majority without independent checks (copying, shared sources or tools, coordination) | **Open** (`01` D47): agreement is not demonstrated reliability; the aggregation and the reliability evaluation are still to define, bound by invariant #2's exclusion of a majority count and the exclusion of a Schelling point (D6). Commit-reveal and random assignment still apply | `01` D47, D45 |
+| Answers or reviews produced through delegation, automation, impersonation or strategic coordination outside the system | **Open** (`01` D45): an open environment is assumed, outside resources — the Internet, documents, AI — are part of the conditions, and these behaviours remain to be distinguished and governed; no rule adopted. The system does not detect, infer or assess the use of outside tools (D47, D48) | `01` D45, D47, D48 |
+| A wrong, ambiguous or contestable key stated by the author | **Partly decided** (`01` D48): a reviewer may answer that no alternative is correct, distinct from choosing another alternative; a question is never corrected retroactively and its key never replaced automatically — to correct it, the author submits a new question. What happens to the item, the thresholds and the outcomes are still to define; a balanced split of correct and wrong answers is a signal to study, not a validated criterion or a rejection rule | `01` D47, D48 |
+| Reviewers' answers aligned on the author's key or on the majority without independent checks (copying, shared sources or tools, superficial reviews, coordination) | **Accepted risk** (`01` D48): in the first implementation the consensus of equally weighted answers is the review's operational criterion, not a guarantee of truth; shared errors, superficial reviews and coordination are accepted, and the draw eliminates none of them. Agreement is not demonstrated reliability, and none is rewarded (no Schelling point, D6). Commit-reveal and random assignment still apply. A later evaluation of reviewers would need a credible reference and a distinct decision | `01` D47, D48, D45 |
+| Reviewers of different competence counted alike, or a pool unsuited to the item's context | **Accepted risk** (`01` D48): reviewers are drawn from the pool with no selection by specialist competence and carry equal weights; that the pool suits the context is a premise, not a property the draw demonstrates | `01` D48 |
 
 ---
 
@@ -45,7 +46,9 @@ A 60/40 unbalanced network. A cartel pushing a partisan item:
   item passes only once about **60 of the 80 of the opposing camp (75%)** approve it —
   55–60 in 90% of 200 drawn orders (T24, `13` §7.4)
 
-Bridging drastically raises the cost of capture.
+Bridging drastically raises the cost of capture. This is the existing mechanism; under `01`
+D48 the new review's criterion is the consensus of equally weighted answers, and whether it keeps
+bridging, and this protection, depends on the previous filters' role, still to decide.
 
 ### The biased item that passes review
 

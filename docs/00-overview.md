@@ -20,6 +20,11 @@ The design rests on three pillars, in order of importance:
    approved *across* the lines of division, not if it collects more votes than the
    opposing front (`02`, bridging).
 
+These pillars describe the existing mechanism. For the first implementation of the new review,
+[`01` D48](01-decisions.md) rectifies the absolute ban on deciding by votes: the consensus of the
+drawn reviewers' answers, each with equal weight, is the review's operational criterion. It is not
+a guarantee of truth, and the draw does not remove the concern above (D48, *Accepted risks*).
+
 ## Two-level architecture
 
 | | Level A — Opinion | Level B — Evidence |
@@ -29,8 +34,9 @@ The design rests on three pillars, in order of importance:
 | Attackable? | Yes, with coalitions | Very hard: requires corrupting the sample |
 | Role | Upstream filter | Final verdict |
 
-Under [`01` D47](01-decisions.md) a reviewer's contribution is an answer to the item, and the
-mathematics is to evaluate the reviewers' reliability over time. Whether and how the answers
+Under [`01` D47](01-decisions.md) a reviewer's contribution is an answer to the item; in D48's
+first implementation the consensus of those answers, with equal weights, is the review's
+operational criterion, and the evaluation of the reviewers is deferred. Whether and how the answers
 enter the opinion filter, and how they relate to Level B, is still to define: the two levels
 describe the existing mechanism and are not imposed on the new one automatically. The code
 still reads a forecast of the pilot outcome as the reviewer's rating.
@@ -87,6 +93,21 @@ agreement with the key or the majority is not demonstrated reliability. D45 and 
 references for conditions and objectives. The code still implements the previous design, whose
 dossiers are archived ([`21`](21-d47-inventory.md)); D47 changes no code.
 
+**First implementation (2026-10-21, [`01` D48](01-decisions.md)).** Reviewers are drawn by lot
+from the reviewer pool, with no new selection by specialist competence; that the pool suits the
+context is a premise, not a property of the draw. Every reviewer weighs the same; ordinary
+reviews do not update the reviewers' reputation, and the evaluation of their reliability over
+time is deferred: a later one would need a credible reference and a distinct decision. The
+consensus of the answers is the review's operational criterion, not a guarantee of truth. A
+reviewer may answer that none of the alternatives is correct, distinct from choosing another
+alternative. A question is not corrected retroactively: its author submits a new one, and the key
+is never replaced automatically. The Internet, documents and AI are freely usable. Accepted risks:
+shared errors, different competences under equal weights, superficial reviews, coordination. The
+author's reputation stays separate; rewards and penalties for it were discussed, not defined.
+Still to decide: the group's size, quorum and absences, thresholds and outcomes, a possible
+"don't know", the author's reputation, the source at deposit, the role of the previous filters,
+A2 and Phase 1's completion criteria. D48 changes no code.
+
 A2's whole-test guarantee remains open: D47 and the archiving of its dossier neither resolve nor
 withdraw it. Its bounded studies, run under
 [`19` §13.10](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18),
@@ -99,8 +120,9 @@ Every node (person) can take three distinct actions, each under a **separate
 pseudonym not linkable to the others**:
 
 - **Propose** — write a new question.
-- **Judge** — evaluate other people's questions during review; under D47, by answering them
-  (the code still collects a forecast of the pilot outcome).
+- **Judge** — evaluate other people's questions during review; under D47, by answering them,
+  with equal weights in D48's first implementation (the code still collects a forecast of the
+  pilot outcome).
 - **Answer** — act as a sample for the trial: answer quizzes in which the new
   question is mixed with already-validated ones, without the answer counting toward
   one's own score.
@@ -137,9 +159,11 @@ the same person.
  [8] Retirement     for exposure, drift, obsolescence, or emerging DIF
 ```
 
-Under D47 the author states the key at [1] and reviewers answer the item at [3]; whether and
-how [4]–[6] read the answers, and whether [1] and [6]'s contested-fact branch keep the author's
-source and its check, is still to define (`05`).
+Under D47 the author states the key at [1] and reviewers answer the item at [3]; under D48 their
+consensus is the review's operational criterion, a reviewer may answer that no alternative is
+correct, and an item is never corrected after the fact. Whether and how [4]–[6] read the answers,
+and whether [1] and [6]'s contested-fact branch keep the author's source and its check, is still
+to define (`05`).
 
 Sample floors and capacity are specified in `02` §B.6. They are not universal power
 guarantees; the current model still needs post-D43 characterization. Open guarantee

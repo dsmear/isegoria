@@ -10,38 +10,59 @@ Its histories, runs and evidence stay there.
 
 ## 1. Where things stand (2026-10-21)
 
-**Owner decision — [`01` D47](01-decisions.md).** The author writes the question in its context
-and states the correct answer; reviewers answer it, free to consult any resource; they do not
-state or record the sources they consult, and the system does not detect, infer or assess their
-use of outside tools; the mathematics is to process the answers and evaluate the reviewers'
-reliability over time, with a possible reputational weight. Forecasting the pilot outcome is no
-longer the reviewers' main contribution. D45 (open environment) and D46 (the assessment's two
-priorities) remain the references for conditions and objectives.
+**Owner decision — [`01` D47](01-decisions.md).** The author writes the question in its context and
+states the correct answer; reviewers answer it, free to consult any resource; they do not state or
+record the sources they consult, and the system does not detect, infer or assess their use of
+outside tools; the mathematics is to process the answers and evaluate the reviewers' reliability
+over time, with a possible reputational weight (deferred by D48, below). Forecasting the pilot
+outcome is no longer the reviewers' main contribution. D45 (open environment) and D46 (the
+assessment's two priorities) remain the references for conditions and objectives.
 
-**Still to define, by the owner and Astra, before any implementation:** the aggregation formula,
-the reputation update, the treatment of a contested key, thresholds, outcomes and guarantees;
-whether and how Level A (bridging, band, appeal) and Level B (pilot, DIF, contested facts) read
-the answers, which invariants #2 and #8 do not impose on the new mechanism automatically; the
-role of golden items; separately from the reviewers' sources, whether the deposit keeps the
-author's mandatory source and the contested-fact path its source check; whether the new design
-needs a whole-test guarantee (A2). A balanced split of correct and wrong answers is a signal to
-study, not a rule; agreement with the key or the majority is not demonstrated reliability.
-Invariant #2's exclusion of a majority count and the exclusion of a Schelling point (D6) bind
-the choice. Do not fill these gaps with a formula or a policy of your own.
+**Owner decisions for the first implementation — [`01` D48](01-decisions.md).** They modify D47
+where stated; D47 stays readable as the earlier decision.
+- Reviewers are drawn by lot from the reviewer pool; no new selection by specialist competence.
+  That the pool suits the context is a premise, not a property the draw demonstrates.
+- Every reviewer weighs the same. Ordinary reviews do not update the reviewers' reputation; the
+  evaluation of their reliability over time is deferred. Agreement with the majority is not
+  rewarded.
+- The consensus of the answers is the review's operational criterion. This rectifies the earlier
+  absolute ban on deciding quality by voting (D1, invariant #2) without making consensus a
+  guarantee of truth.
+- A reviewer may answer that none of the alternatives is correct, which stays distinct from
+  choosing an alternative other than the author's.
+- A question is not corrected retroactively: its author submits a new question. The correct
+  answer is never replaced automatically.
+- The Internet, documents and AI are freely usable; tools are not detected and the reviewers'
+  sources are not recorded.
 
-**What the code does.** Nothing implements D47. A reviewer commits and reveals a probability that
-the item passes the pilot; it is the bridging rating and the forecast that `scoring::reputation`,
-`protocol::{honeypot, exploration, probation, panel_scores, cohort_scores, affine_weights}`
-score and weigh (`02` §§C.2–C.4, the previous design). [`21`](21-d47-inventory.md) §2 lists what
-the implementation will have to adapt.
+**Accepted risks (D48):** shared errors, different competences under equal weights, superficial
+reviews, coordination. The draw eliminates none of them. An evaluation of the reviewers may
+become necessary later; it would need a credible reference and a distinct decision. **The
+author's reputation** stays separate: rewards for acceptance and penalties for contestation or
+rejection were discussed, but formula, size and conditions are not defined, and nothing of it is
+an executable rule; the implemented author score is unchanged.
 
-**The reorganization (local commits, not pushed):** `9cbb446` records D47; `c158670` moves the
-previous design's dossiers (`16`, `17`, `19`, `20`, the previous handoff), A12's and A2's tools
-and the nine A2 reports to [`archive/phase1-forecast-pilot/`](../archive/phase1-forecast-pilot/README.md),
-renames only; `76f12f5` adds the archive's index and path map, the inventory `21`, the redirect
-pages and the link targets; `990fe9d` and `72237c5` realign the specification and the
-registers; the front pages, the index, this note and the agent instructions follow. No result
-was regenerated; no fit, benchmark or campaign was run.
+**Still incomplete:** the contract cannot be implemented until the decisions in §4 are taken by
+the owner and reviewed by Astra. Agreement with the key or the majority is not demonstrated
+reliability, and a balanced split of correct and wrong answers is a signal to study, not a rule.
+The exclusion of a Schelling point (D6) stands. Do not fill the gaps with a formula or a policy
+of your own.
+
+**What the code does.** Nothing implements D47 or D48. A reviewer commits and reveals a probability
+that the item passes the pilot; it is the bridging rating and the forecast that
+`scoring::reputation`, `protocol::{honeypot, exploration, probation, panel_scores, cohort_scores,
+affine_weights}` score and weigh (`02` §§C.2–C.4, the previous design). [`21`](21-d47-inventory.md)
+§2 lists what the implementation will have to adapt.
+
+**The reorganization (on `docs/phase1-review-alignment`):** `9cbb446` records D47; `c158670` moves
+the previous design's dossiers (`16`, `17`, `19`, `20`, the previous handoff), A12's and A2's tools
+and the nine A2 reports to
+[`archive/phase1-forecast-pilot/`](../archive/phase1-forecast-pilot/README.md), renames only;
+`76f12f5` adds the archive's index and path map, the inventory `21`, the redirect pages and the link
+targets; `990fe9d` and `72237c5` realign the specification and the registers; `47a1698` the front
+pages, the index, this note and the agent instructions; `17524b0` and `0b4f4ff` rectify them after
+Astra's reviews. D48 is recorded on top of them, documentation only. No result was regenerated; no
+fit, benchmark or campaign was run.
 
 **Residual separations** (`21` §4): the A2 harness stays in `crates/characterization` because
 `a2-probe run` guards its provenance on `crates/`; `scoring::latent::latent_dif_candidates`;
@@ -78,10 +99,36 @@ states (`18e1b5f`, `6274270`); A1 conditionally on `1bd865c`, A12 conditionally 
 A1, A12 and A10 concern the previous design's forecast score and certify nothing of D47's
 mechanism; A10's residual is suspended (`15`, D47 disposition).
 
-## 4. Open work
+## 4. Decisions still needed to implement
 
-- **D47's mechanism:** its specification (above), then its implementation as a separate
-  assignment, adapting `21` §2. New task ids come with the specification (`10` Priorities).
+From [`01` D48](01-decisions.md); none is to be settled in code or by a default of one's own.
+
+1. **The drawn group:** its size, the quorum, and what absences (a drawn reviewer who does not
+   answer) do. `10` T58 decided, for the previous design's panels and not implemented, a
+   replacement from the same stratum, a floor of seven reveals, and a no-show losing vote weight
+   and being suspended from the draw; with D48's equal weights and no reputation update from
+   ordinary reviews, whether any of it carries over is part of this decision.
+2. **Thresholds and outcomes:** the consensus a review needs, and what happens to the item in
+   each case, among them a consensus on an alternative other than the author's and a consensus
+   that no alternative is correct.
+3. **"Don't know":** whether reviewers may give it, and how it counts.
+4. **The author's reputation:** whether and how acceptance, contestation or rejection move it —
+   formula, size, conditions, and what counts as a contestation. The implemented author score
+   counts an item in D38's contested pool as a pass (D27).
+5. **The source at deposit:** whether the author keeps attaching a mandatory primary source, and
+   whether the contested-fact path keeps its source check (`02` §B.5, D38, `10` T68).
+6. **The previous filters:** whether and how Level A (bridging, the draw stratified on its axis,
+   the band, the appeal), Level B (the pilot, IRT, DIF, contested facts, re-validation), D39's
+   coordination detector and D40's panel constraint keep a role.
+7. **A2 and Phase 1's completion criteria:** whether the new design needs a whole-test guarantee
+   and which, and what completes Phase 1 once the mechanism is implemented (`10` §1.5's
+   qualification, `15`).
+
+## 5. Open work
+
+- **The new mechanism:** the decisions in §4, then its specification and implementation as a
+  separate assignment, adapting `21` §2. New task ids come with the specification (`10`
+  Priorities).
 - **A2 (high), open:** the old requirement's disposition and the guarantees still to decide for
   the new design (`15`, A2's D47 entry). Certifier, other obligations and experiments suspended.
 - **Suspended with the previous design:** A1's O1/O2 premises and T1, A12's candidate and
@@ -92,9 +139,9 @@ mechanism; A10's residual is suspended (`15`, D47 disposition).
   status on the inputs already reported; C2, C4; T25's Level A and B steps; T82's re-run.
 - **Phase 2** runs on its own branch (`feat/phase2-runtime`) and is not touched here.
 
-## 5. Essential reading to resume
+## 6. Essential reading to resume
 
-`CLAUDE.md` and `docs/CLAUDE.md`; `docs/01` D44–D47; `docs/21`; `docs/15` (How to read, the D47
+`CLAUDE.md` and `docs/CLAUDE.md`; `docs/01` D44–D48; `docs/21`; `docs/15` (How to read, the D47
 disposition, A2's current state); `docs/02` (its Reading status, Levels A and B, §C.1, and
 §§C.2–C.4 as the previous design's code); `docs/05`; `docs/10` Priorities; the archive's index
 for the previous design's material. Code: `crates/protocol/src/{review,lifecycle,orchestrator,
