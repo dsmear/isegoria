@@ -38,9 +38,8 @@ where stated; D47 stays readable as the earlier decision.
 **Accepted risks (D48):** shared errors, different competences under equal weights, superficial
 reviews, coordination. The draw eliminates none of them. An evaluation of the reviewers may
 become necessary later; it would need a credible reference and a distinct decision. **The
-author's reputation** stays separate: rewards for acceptance and penalties for contestation or
-rejection were discussed, but formula, size and conditions are not defined, and nothing of it is
-an executable rule; the implemented author score is unchanged.
+author's reputation** stays separate; D48 left its rewards and penalties undefined, and D50
+defines them for the answer review (below); the existing path's author score is unchanged.
 
 **The answer review's contract — [`01` D49–D52](01-decisions.md), approved by the owner.** The
 decisions §4 listed are taken for the offline path of the first implementation:
@@ -70,12 +69,19 @@ decisions §4 listed are taken for the offline path of the first implementation:
 Agreement with the key or the majority is not demonstrated reliability; divided answers are not
 demonstrated ambiguity. The exclusion of a Schelling point (D6) stands.
 
-**What the code does.** The answer review is being implemented as `10` T87; the existing code,
-which implements the previous design, is unchanged. A reviewer of the existing path commits and
-reveals a probability that the item passes the pilot; it is the bridging rating and the forecast
-that `scoring::reputation`, `protocol::{honeypot, exploration, probation, panel_scores,
-cohort_scores, affine_weights}` score and weigh (`02` §§C.2–C.4). [`21`](21-d47-inventory.md) §2
-lists that code.
+**What the code does.** The answer review is implemented offline as `10` T87, beside the
+existing path, which it does not change: `scoring::reputation::author_score_weighted` (`3d88b9b`),
+`protocol::{answer, answer_rule}` (`9427158`), `protocol::answer_author` (`6908992`),
+`protocol::{answer_path, answer_events, answer_node}` (`f230edf`); its technical choices are in
+`05` §The answer review. *Verified (executed, E):* AT-ANS-01–13 in `tests/answer_review.rs`,
+`scoring/tests/author_weighted.rs` and the modules' unit tests; the existing tests of the shared
+code (`inv10_beacon_seed`, `draw_order`, `node_replay`, `level_c`); fmt, workspace clippy with and
+without `calibration`, the comment budget. *Not run:* the full suites (they start fits), fits,
+benchmarks, campaigns, fuzzing. *Not reviewed:* Astra's review is pending. A reviewer of the
+existing path commits and reveals a probability that the item passes the pilot; it is the
+bridging rating and the forecast that `scoring::reputation`, `protocol::{honeypot, exploration,
+probation, panel_scores, cohort_scores, affine_weights}` score and weigh (`02` §§C.2–C.4).
+[`21`](21-d47-inventory.md) §2 lists that code.
 
 **The reorganization (on `docs/phase1-review-alignment`):** `9cbb446` records D47; `c158670` moves
 the previous design's dossiers (`16`, `17`, `19`, `20`, the previous handoff), A12's and A2's tools
@@ -84,8 +90,9 @@ and the nine A2 reports to
 `76f12f5` adds the archive's index and path map, the inventory `21`, the redirect pages and the link
 targets; `990fe9d` and `72237c5` realign the specification and the registers; `47a1698` the front
 pages, the index, this note and the agent instructions; `17524b0` and `0b4f4ff` rectify them after
-Astra's reviews. D48 (`9afdb09`) and D49–D52 are recorded on top of them. No result was
-regenerated; no fit, benchmark or campaign was run.
+Astra's reviews. D48 (`9afdb09`) and D49–D52 (`45e2b5b`) are recorded on top of them, and T87
+implements the answer review after them. No result was regenerated; no fit, benchmark or
+campaign was run.
 
 **Residual separations** (`21` §4): the A2 harness stays in `crates/characterization` because
 `a2-probe run` guards its provenance on `crates/`; `scoring::latent::latent_dif_candidates`;
@@ -140,11 +147,33 @@ Not settled by the contract, and not to be settled in code with a policy of one'
 - a later evaluation of the reviewers (D48), and any calibration of the provisional parameters
   (D52, `14`).
 
+Choices T87 made where the contract is silent, to confirm or correct in review (`05` §The
+answer review, *Implementation*):
+- *A pool too small is final for that question.* The draw reads the pool as it was when the
+  deposit's epoch closed and that epoch's beacon value, so that nobody can steer it by joining or
+  by timing; with fewer than 12 the round is `Unavailable` for good — no redraw (D49 excludes
+  retries), the author's slot spent (no refund, D51) and no observation. Whether such a question
+  deserves another treatment is a product choice.
+- *A question is drawn only after its deposit epoch closes*, since the beacon value is recorded at
+  the closure: a round runs at the earliest in the epoch after the deposit.
+- *The pool* is the set of reviewers who joined under their `Judge` pseudonym; nobody leaves it,
+  and nothing records availability per epoch. "Available" reads as "joined by the closure".
+- *Well-formedness:* non-empty context and text, 2–256 alternatives, none empty, no two equal, the
+  key one of them. A duplicate is the same content id, key included: a question that changes only
+  its key is a new question.
+- *Commit-reveal* has an explicit end of commits before the reveals and the closure; a reviewer who
+  commits and does not reveal is an absence.
+- *The usable set* takes an accepted question at its closure; a new author is one with no
+  observation counting in the epoch; epochs are numbered from 0, one closing each.
+- *Not addressed offline:* the key is in clear in the log, so its confidentiality from reviewers
+  in a distributed log is not addressed; the beacon value is the caller's input, its formation
+  outside the offline path; the deposit's admission lottery (D10) is not part of the path.
+
 ## 5. Open work
 
-- **T87, the answer review offline** (`10`): the path creation → deposit and quota → draw →
-  answers → closure → outcome → reputation → next epoch → usable questions, with its targeted
-  tests; then Astra's review.
+- **T87, the answer review offline** (`10`): implemented with its targeted tests (above); Astra's
+  review of the commits from `45e2b5b` to the branch's tip, and of the choices above, is next.
+  Phase 1 is not declared complete before it (D52).
 - **A2 (high), open:** unresolved within its scope; not required for the answer review (D52).
   Certifier, other obligations and experiments suspended.
 - **Suspended with the previous design:** A1's O1/O2 premises and T1, A12's candidate and

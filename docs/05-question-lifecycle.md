@@ -103,7 +103,45 @@ quarters, the weight 1/4 and the quota bands — are provisional and uncalibrate
 
 Consensus is the operational criterion, not a guarantee of truth: an accepted key may be wrong,
 a discarded one right (D48's accepted risks: shared errors, different competences under equal
-weights, superficial reviews, coordination). The implementation is `10` T87.
+weights, superficial reviews, coordination).
+
+**Implementation (`10` T87, offline; Astra's review pending).** `protocol::answer_path::AnswerPath`
+is the path's state, a function of its accepted events (`protocol::answer_events::AnswerEvent`)
+applied in order, each checked whole before it applies; `protocol::answer_node::AnswerNode` pins the
+configuration (`AnswerConfig`: the rule, the weight 1/4, the bands, `H`) in its log's first record,
+writes each accepted event and replays the log on open. The outcome rule and the distribution are
+`protocol::answer_rule`, the question and answers `protocol::answer`, the author's record and quotas
+`protocol::answer_author` over `scoring::reputation::author_score_weighted`. Technical choices the
+contract leaves to the implementation:
+- *Question.* Well formed when its context and text are not empty, it has 2 to 256 alternatives,
+  none empty and no two equal, and its key names one of them; otherwise the deposit is an invalid
+  request. Its content id covers context, text, alternatives and key: a duplicate is a deposit of
+  the same content id, and a question that differs in its key alone is a new one.
+- *Identities.* An author deposits under the `Propose` pseudonym its proof establishes, bound to
+  the content id and the epoch (`deposit::deposit_context`); a reviewer joins the pool and commits
+  under its `Judge` pseudonym, each proof bound to its action (INV-9).
+- *What reviewers see.* A question is known to its reviewers by its number and its view
+  (`Question::view`): context, text and alternatives, no key, and no content id, from which the
+  key could be recovered. The offline log holds the key in clear.
+- *Pool and draw.* The pool is append-only. The open epoch's explicit closure records the epoch's
+  beacon value, an input the offline path takes from its caller, and how many reviewers have
+  joined. A question is drawn after its deposit epoch closes, from those reviewers, seeded from
+  that epoch's beacon value and the question's number (`randomness::ANSWER_DRAW`): 12 distinct,
+  uniformly (`lottery::admit`), in canonical order, whatever the order they joined in. With fewer
+  than 12 the round is `Unavailable` and has no group; since its inputs are fixed, the draw is
+  not repeated.
+- *Commit-reveal.* Drawn reviewers commit `H(answer, nonce, reviewer, question)` with a proof bound
+  to the commitment; an explicit end of commits opens the reveals, so no answer is visible before
+  every commitment is in. A reviewer who commits and does not reveal is an absence. The closure
+  needs the end of commits.
+- *Epochs and time.* Epochs are numbered from 0; each explicit closure is a closing, the age unit
+  of the author's observations, as `02` §C.1's contract with one closing per epoch and no skipped
+  identifier. An observation records the epoch and closings of its round's closure.
+- *Quota.* Fixed at the author's first accepted deposit of an epoch and kept with its count; a new
+  author is one with no observation counting in the epoch.
+- *Results.* Each closure carries its distribution, verdict, the rule that decided it and its
+  observation with its weight; the configuration is in the log. Accepted questions are usable
+  from their closure.
 
 ---
 

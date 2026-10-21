@@ -649,8 +649,9 @@ The implementation draws contested facts using the per-fit DTF cost below and a
 provisional tolerance. The intended guarantee is to control the whole test's
 differential functioning. That guarantee is **open**, for the cross-fit and
 active-item reasons below (`15` A2); selection by the implemented cost alone does
-not establish it. D47 neither resolves nor withdraws it: A2's dossier and studies are archived,
-and whether the new design needs a whole-test guarantee, and which, is still to decide.
+not establish it. D47 neither resolves nor withdraws it: A2's dossier and studies are archived.
+D52 makes it unnecessary for the answer review, which uses no DTF; A2 stays unresolved within its
+scope, here.
 
 **DTF within one fit.** Let `F` be a target-model fit (§B.3) in which the items of a set
 `S` were trial items, with counted classes `g` (share ≥ 5%, as for `DIF_j`), shares
@@ -883,6 +884,9 @@ C_a  =  ────────────────────────
   the epoch. This replaces, in the answer review, the linear `q_a` below.
 - *Scope.* C5 and C6 stay closed within their scope (the existing path) and are not extended to
   these inputs (`15`). The parameters are provisional and uncalibrated (`14`, D52).
+- *Code (`10` T87).* `reputation::author_score_weighted` (with unit weights it is
+  `author_score_closings` bit for bit); `protocol::answer_author::{contribution, AuthorRecord,
+  QuotaBands}`; the path that records them is `05` §The answer review.
 
 **Appeal stake (`01` D27, `05` [5b]).** An appeal is a pseudo-observation *inside* this
 average, not a deduction from it: filing escrows `q = 0` at weight 1 for the appealed item;

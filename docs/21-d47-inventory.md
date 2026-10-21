@@ -81,7 +81,9 @@ happens to Level A's input, the gate and the draw follows the previous filters' 
 decide. The code and its tests are unchanged.
 
 **D49–D52 (owner, 2026-10-21)** approve the contract of the *answer review*, implemented as `10`
-T87 beside the code above rather than by changing it: a uniform draw of 12 from the pool, an
+T87 (`protocol::{answer, answer_rule, answer_author, answer_path, answer_events, answer_node}`,
+`scoring::reputation::author_score_weighted`, `tests/answer_review.rs`) beside the code above
+rather than by changing it: a uniform draw of 12 from the pool, an
 answer committed and revealed, an outcome by consensus, the author's reputation with D50's
 inputs and D51's quotas. In that path bridging, the gate, the pilot, IRT, DIF, the source check,
 the forecast weights, probation, golden items and exploration have no role (D48, D52); the code in

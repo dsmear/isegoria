@@ -20,10 +20,10 @@ every citizen to speak in the assembly.
 > answers is the review's operational criterion — not a guarantee of truth — and evaluating their
 > reliability is deferred. The owner then approved its contract, the *answer review*
 > ([D49–D52](docs/01-decisions.md)): 12 reviewers drawn at random, at least 9 usable answers,
-> three quarters to accept or to discard, provisional numbers. It is being implemented as an
-> offline path beside the existing code, in which reviewers still forecast whether a question
-> passes its trial. The previous design's dossiers and studies are in
-> [`archive/phase1-forecast-pilot/`](archive/phase1-forecast-pilot/README.md).
+> three quarters to accept or to discard, provisional numbers. It is implemented as an offline
+> path beside the existing code (`protocol::answer*`), its review pending; in the existing path
+> reviewers still forecast whether a question passes its trial. The previous design's dossiers
+> and studies are in [`archive/phase1-forecast-pilot/`](archive/phase1-forecast-pilot/README.md).
 
 ---
 
@@ -85,7 +85,7 @@ people **from different sides** like it.
 *Where the code stands:* Check 1 averages the two sides' predicted approval, each side counting
 once; what is left of the larger camp's advantage is a small measured leak (`docs/01` D32, done;
 [`docs/13`](docs/13-characterization.md) §7.4). Since D47 the reviewers answer the question
-instead of rating it; whether and how Check 1 reads their answers is still to be decided, and the
+instead of rating it; in the answer review (D49–D52) Check 1 plays no part, and the existing
 code still reads the earlier rating.
 
 **Check 2 — "Does the question actually work when we try it?"**
@@ -290,7 +290,7 @@ dependency on identity or network** — it runs offline and is reproducible
 | [`scoring`](crates/scoring) | Deterministic engine: bridging (A), IRT/DIF (B), reputation (C), anti-collusion | **Implemented** for the previous design. Golden-output tests pin its outputs bit for bit across platforms and build profiles; scoped Python oracles check the numerical contracts their tests name, within tolerance. Open findings in [`docs/15`](docs/15-phase1-review.md), A2 among them; thresholds provisional; its evaluator score is the forecast score D47 sets aside |
 | [`identity`](crates/identity) | Anonymous enrollment: source adapters, threshold-issued credential, role nullifiers | Scaffold + real mechanisms (single-server + threshold OPRF label, single + threshold BBS+ blind credential, ZK nullifier) |
 | [`network`](crates/network) | Content addressing, Merkle, transparency log, consortium checkpoints, the epoch's beacon round, a node's durable log and objects, the replicated signed set and its cuts, erasure coding, anchoring | Real integrity primitives (incl. OpenTimestamps proofs), durable store (T13), replicated set and cuts (T18, T74); anchoring format-level only (T17) |
-| [`protocol`](crates/protocol) | Lifecycle orchestration: deposit, lottery, blind review, gate + appeal, pilot, honeypot; a node's state from its log and from signed cuts | Wires the three layers together; the state replays from the log (T73) and from consortium-signed cuts (T74); no epoch run between nodes yet (T79) |
+| [`protocol`](crates/protocol) | Lifecycle orchestration: deposit, lottery, blind review, gate + appeal, pilot, honeypot; a node's state from its log and from signed cuts; the answer review's offline path (D49–D52) | Wires the three layers together; the state replays from the log (T73) and from consortium-signed cuts (T74); no epoch run between nodes yet (T79) |
 | [`p2p`](crates/p2p) | The libp2p transport: gossip announcements and pull sync of the replicated signed set; a consortium member's duties | Real (T18); a replica on disk, members cutting and running the beacon (T74); serves its whole set to any peer (T77); started only from tests (T78) |
 | [`characterization`](crates/characterization) | The characterization harness: seeded simulation studies of the detectors and gates — a tool, not part of a node | T24's full run done: 54,412 runs, results in [`docs/13`](docs/13-characterization.md) §7; T25's supplement done: 19,700 runs, results in §8.7; also hosts the A2 probe binary, whose studies are archived |
 
@@ -385,11 +385,11 @@ need `numpy`/`scipy` (see `sim/`).
 | Identity, network, protocol | Working scaffolds; deterministic mechanisms + single-server & threshold OPRF label + single & threshold BBS+ credential + ZK nullifier + OpenTimestamps anchoring proofs real, remaining heavy crypto/transport behind traits |
 | Transport and external backends | libp2p replication and consortium-signed cuts implemented (T18/T74); committee DKG/transport and live anchoring remain roadmap work |
 | Meta-level governance (stratified sortition) | Future work |
-| Reviewers answer the question (`docs/01` D47, 2026-10-21); first implementation (D48): reviewers drawn from the pool, equal weights, the consensus of the answers as the operational criterion, the evaluation of reviewers deferred; the answer review's contract (D49–D52) | Contract approved, parameters provisional; being implemented offline (`docs/10` T87); A2 unresolved in its scope, not required for the answer review |
+| Reviewers answer the question (`docs/01` D47, 2026-10-21); first implementation (D48): reviewers drawn from the pool, equal weights, the consensus of the answers as the operational criterion, the evaluation of reviewers deferred; the answer review's contract (D49–D52) | Contract approved, parameters provisional; implemented offline with targeted tests (`docs/10` T87), Astra's review pending; A2 unresolved in its scope, not required for the answer review |
 
 **What comes next**, in order (task status lives in the [roadmap](docs/10-roadmap.md)):
 
-1. **Mathematics** — implement the answer review offline (D49–D52, `docs/10` T87) and have it
+1. **Mathematics** — have the answer review, implemented offline (D49–D52, `docs/10` T87),
    reviewed; keep the findings in
    [`docs/15`](docs/15-phase1-review.md) within their scopes (A2 stays open); complete T25's
    measurements and parameter procedures where D47 leaves them in place. T81 is complete for its ten named files.

@@ -38,9 +38,9 @@ reviewers drawn, an alternative, "none" or "don't know" as answers, a quorum of 
 three quarters of them to accept or to discard, divided answers otherwise; the author's
 reputation with adapted inputs and quotas of 1, 2 or 3 questions per epoch; the two filters are
 not conditions of acceptance there; A2's whole-test guarantee is not required for it, and A2 is
-not resolved; the parameters are provisional. It is being implemented offline (`10` T87); the
-existing code implements the previous design, in which reviewers forecast whether the item
-passes the pilot.
+not resolved; the parameters are provisional. It is implemented offline (`10` T87), its review
+pending; the existing code implements the previous design, in which reviewers forecast whether
+the item passes the pilot.
 
 The anonymity of the nodes is the non-negotiable base. The uniqueness of a person is
 guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
@@ -80,8 +80,8 @@ The reference implementation exists (see Status below); what remains is ordered 
 [`10-roadmap.md`](10-roadmap.md) in three phases:
 
 1. **Mathematics** — D47 changed Phase 1's direction before its implementation, D48 settled
-   part of its first implementation and D49–D52 approved its contract, the answer review: the
-   next work is to implement it offline (`10` T87) and have it reviewed. The previous
+   part of its first implementation and D49–D52 approved its contract, the answer review,
+   implemented offline (`10` T87): the next work is its review. The previous
    design is implemented and its work suspended; read [`15`](15-phase1-review.md) for the A–E
    review findings and D47's disposition (A2 open), [`10`](10-roadmap.md) for task status and
    [`14`](14-parameter-register.md) for parameter procedures. D32–D41 are implemented; they are

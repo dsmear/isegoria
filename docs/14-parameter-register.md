@@ -200,7 +200,9 @@ under it (`01` D52).
 - **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
 - **If it moves.** Larger: more usable answers per round and fewer rounds below the quorum, at
   more reviewers' time; smaller: fewer answers decide, and a pool reaches it sooner.
-- **Location.** `01` D49, D52; code with `10` T87.
+- **Location.** `01` D49, D52; `protocol::answer_rule::ConsensusRule::default()`. The
+  configuration is pinned in the log's first record (`protocol::answer_node`), and each closure
+  carries the rule that decided it.
 
 ### The quorum — 9 usable answers
 
@@ -210,7 +212,7 @@ under it (`01` D52).
 - **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
 - **If it moves.** Up: more rounds end in insufficient participation; down: fewer answers
   decide an outcome.
-- **Location.** `01` D49, D52; code with `10` T87.
+- **Location.** `01` D49, D52; `ConsensusRule::default()`, as the group.
 
 ### The threshold — three quarters (`4C ≥ 3V`, `4(V − C) ≥ 3V`)
 
@@ -221,7 +223,7 @@ under it (`01` D52).
 - **If it moves.** Up: fewer acceptances and discards, more divided answers; down toward one
   half: more questions decided by a narrower majority. At one half or below, acceptance and
   discard could both hold, so the rule needs a threshold above one half.
-- **Location.** `01` D49, D52; code with `10` T87.
+- **Location.** `01` D49, D52; `ConsensusRule::default()`, as the group.
 
 ### The weight of divided answers — 1/4
 
@@ -230,7 +232,8 @@ under it (`01` D52).
 - **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
 - **If it moves.** Toward 1, divided answers cost the author as much as a discard; toward 0,
   nothing.
-- **Location.** `01` D50, D52; code with `10` T87.
+- **Location.** `01` D50, D52; `protocol::answer_path::AnswerConfig::default()`, pinned with
+  the rest; each observation carries its weight.
 
 ### The quota bands — 1, 2 or 3 questions per epoch at 0.30 and 0.70; a new author 2
 
@@ -241,7 +244,8 @@ under it (`01` D52).
 - **If it moves.** The bands decide how many questions an author deposits in an epoch; with the
   prior at 0.40 an author needs failures to fall to 1 and a sustained record of acceptances to
   reach 3.
-- **Location.** `01` D51, D52; code with `10` T87. The prior `(2, 3)` and `H` are §C.1's, below.
+- **Location.** `01` D51, D52; `protocol::answer_author::QuotaBands::default()`, pinned with the
+  rest. The prior `(2, 3)` and `H` are §C.1's, below; `AnswerConfig` pins `H` too.
 
 ## Level B — the empirical validation
 

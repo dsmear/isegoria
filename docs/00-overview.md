@@ -36,10 +36,10 @@ a guarantee of truth, and the draw does not remove the concern above (D48, *Acce
 
 Under [`01` D47](01-decisions.md) a reviewer's contribution is an answer to the item; in D48's
 first implementation the consensus of those answers, with equal weights, is the review's
-operational criterion, and the evaluation of the reviewers is deferred. Whether and how the answers
-enter the opinion filter, and how they relate to Level B, is still to define: the two levels
-describe the existing mechanism and are not imposed on the new one automatically. The code
-still reads a forecast of the pilot outcome as the reviewer's rating.
+operational criterion, and the evaluation of the reviewers is deferred. In the answer review,
+its approved contract (D49–D52), neither level is a condition of acceptance: the two levels
+describe the existing mechanism, whose code still reads a forecast of the pilot outcome as the
+reviewer's rating.
 
 The system's center of gravity is Level B: peer review decides *which questions are
 worth field-testing*, subject to the appeal path. The empirical decision uses statistics
@@ -103,8 +103,8 @@ reviewer may answer that none of the alternatives is correct, distinct from choo
 alternative. A question is not corrected retroactively: its author submits a new one, and the key
 is never replaced automatically. The Internet, documents and AI are freely usable. Accepted risks:
 shared errors, different competences under equal weights, superficial reviews, coordination. The
-author's reputation stays separate; rewards and penalties for it were discussed, not defined.
-D48 changes no code.
+author's reputation stays separate; D48 left its rewards and penalties undefined, and D50 defines
+them for the answer review (below). D48 changes no code.
 
 **The answer review (2026-10-21, [`01` D49–D52](01-decisions.md)).** The owner approved the
 contract of that first implementation, an offline path beside the existing one. The author
@@ -120,13 +120,13 @@ one a failure, divided answers a failure at weight 1/4 (D50); it sets a quota of
 questions per epoch, 2 for a new author (D51). Bridging, the pilot, IRT, DIF and the source check
 are not conditions of acceptance in it; A2's whole-test guarantee is not required for it and A2
 stays unresolved; no fairness of the whole quiz is guaranteed; the parameters are provisional
-and uncalibrated (D52). Its implementation is `10` T87.
+and uncalibrated (D52). It is implemented offline (`10` T87), its review pending.
 
 A2's whole-test guarantee remains open: D47 and the archiving of its dossier neither resolve nor
 withdraw it. Its bounded studies, run under
 [`19` §13.10](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18),
-keep their domains; whether the new design needs a whole-test guarantee, and which, is still to
-decide. No real-world performance level has been established.
+keep their domains. D52 decides that the answer review does not need it; A2 stays unresolved
+within its scope. No real-world performance level has been established.
 
 ## The three actions of a node
 

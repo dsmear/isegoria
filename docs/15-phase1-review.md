@@ -15,14 +15,15 @@ lines. Code symbols identify the implementation to re-check on a newer branch.
 
 ## How to read the documentation
 
-- [`01` D47](01-decisions.md) (owner, 2026-10-21): the author states the key, reviewers answer
-  the item with any resource, and the mathematics is to evaluate the reviewers' reliability over
-  time; the mechanism is still to specify. Its disposition of this register's findings is
-  [below](#d47-disposition-2026-10-21). The previous design's dossiers (`16`, `17`, `19`, `20`),
-  the previous handoff, A12's and A2's tools and A2's results are archived in
+- [`01` D47](01-decisions.md) (owner, 2026-10-21): the author states the key, reviewers answer the
+  item with any resource, and the mathematics is to evaluate the reviewers' reliability over time;
+  D49–D52 specify its first implementation (below). Its disposition of this register's findings is
+  [below](#d47-disposition-2026-10-21). The previous design's dossiers (`16`, `17`, `19`, `20`), the
+  previous handoff, A12's and A2's tools and A2's results are archived in
   `archive/phase1-forecast-pilot/`; paths such as `phase1-handoff.md`, `sim/a12_offline.py`,
-  `sim/dtf_composition.py` or `verification/reports/a2-…` named in the records below are there now ([path map](../archive/phase1-forecast-pilot/README.md#path-map),
-  inventory in [`21`](21-d47-inventory.md)). The records themselves are unchanged.
+  `sim/dtf_composition.py` or `verification/reports/a2-…` named in the records below are there now
+  ([path map](../archive/phase1-forecast-pilot/README.md#path-map), inventory in
+  [`21`](21-d47-inventory.md)). The records themselves are unchanged.
 - [`01` D48](01-decisions.md) (owner, 2026-10-21): for the first implementation, reviewers drawn
   from the pool with equal weights, no reputation update from ordinary reviews (the evaluation of
   their reliability deferred), the consensus of their answers as the review's operational
@@ -122,7 +123,8 @@ components keep their scope in the existing path, open or closed as recorded, an
 guarantee to the new one (D52). A2's disposition is
 [in its section](#a2-current-state-design-decision-deferred), D52 entry. Phase 1 is not declared
 complete before Astra's final review of the implemented path (D52); findings about the answer
-review will be recorded here.
+review will be recorded here. Its offline implementation is `10` T87 (`08` ANSWER-001, tested,
+not reviewed).
 
 ### A1 current closure criterion after O1–O3
 

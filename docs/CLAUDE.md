@@ -108,8 +108,10 @@ participation nothing (D50) — and sets a quota of 1, 2 or 3 questions per epoc
 the pilot, IRT, DIF and the source check are not conditions of acceptance there; A2's
 whole-test guarantee is not required for it, and A2 is not resolved (D52).
 
-- Keep three things apart: the approved contract (D49–D52), what is implemented (`10` T87), and
-  what has been verified (tests run, and Astra's review). The existing code still implements the
+- Keep three things apart: the approved contract (D49–D52), what is implemented (`10` T87:
+  `protocol::answer*`, `scoring::reputation::author_score_weighted`, specified in `05` §The
+  answer review), and what has been verified (the targeted tests in `tests/answer_review.rs` and
+  the modules' unit tests; Astra's review pending). The existing code still implements the
   previous design; the answer review adds a path beside it and changes none of it.
 - The parameters 12, 9, 3/4, 1/4 and the quota bands are provisional and uncalibrated (D52,
   `14`): keep them explicit in the configuration and in the results; do not tune them.
