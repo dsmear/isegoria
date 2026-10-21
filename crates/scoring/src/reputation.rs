@@ -52,6 +52,28 @@ pub fn author_score_closings(
     (prior.alpha0 + sum_wq) / (prior.alpha0 + prior.beta0 + sum_w)
 }
 
+/// [`author_score_closings`] with each observation's weight `ω_j` multiplying its time weight in
+/// both sums (`docs/02` §C.1, the answer review; `docs/01` D50). Slices of equal length.
+pub fn author_score_weighted(
+    qualities: &[f64],
+    weights: &[f64],
+    ages: &[u64],
+    half_life: u64,
+    prior: &AuthorPrior,
+) -> f64 {
+    assert!(half_life > 0);
+    assert!(qualities.len() == weights.len() && weights.len() == ages.len());
+    let decay_time = half_life as f64 / crate::fmath::ln(2.0);
+    let mut sum_wq = 0.0;
+    let mut sum_w = 0.0;
+    for ((q, omega), age) in qualities.iter().zip(weights).zip(ages) {
+        let w = exp(-(*age as f64) / decay_time) * omega;
+        sum_wq += w * q;
+        sum_w += w;
+    }
+    (prior.alpha0 + sum_wq) / (prior.alpha0 + prior.beta0 + sum_w)
+}
+
 pub fn proposal_rate(c_a: f64, q_min: f64, q_max: f64) -> f64 {
     q_min + (q_max - q_min) * c_a
 }
