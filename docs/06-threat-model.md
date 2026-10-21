@@ -27,7 +27,7 @@
 | Collusion of the issuing committee | Threshold t-of-n issuance with heterogeneous issuers | `03` M2 |
 | Answers or reviews produced through delegation, automation, impersonation or strategic coordination outside the system | **Open** (`01` D45): an open environment is assumed, outside resources are part of the conditions, and these behaviours remain to be distinguished and governed; no rule adopted. The system does not detect, infer or assess the use of outside tools (D47) | `01` D45, D47 |
 | A wrong, ambiguous or contestable key stated by the author | **Open** (`01` D47): the treatment of a contested key is still to define; a balanced split of correct and wrong answers is a signal to study, not a validated criterion or a rejection rule | `01` D47 |
-| Reviewers' answers aligned on the author's key or on the majority without independent checks (copying, shared sources or tools, coordination) | **Open** (`01` D47): agreement is not demonstrated reliability; the aggregation and the reliability evaluation are still to define, bound by invariant #2 and the exclusion of a Schelling point (D6). Commit-reveal and random assignment still apply | `01` D47, D45 |
+| Reviewers' answers aligned on the author's key or on the majority without independent checks (copying, shared sources or tools, coordination) | **Open** (`01` D47): agreement is not demonstrated reliability; the aggregation and the reliability evaluation are still to define, bound by invariant #2's exclusion of a majority count and the exclusion of a Schelling point (D6). Commit-reveal and random assignment still apply | `01` D47, D45 |
 
 ---
 

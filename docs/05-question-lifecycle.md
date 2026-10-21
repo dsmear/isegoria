@@ -35,12 +35,13 @@ it neutralizes).
 
 **Phase 1 direction (`01` D47, owner, 2026-10-21).** At [1] the author writes the question in
 its context and states the correct answer. At [4] reviewers answer the question; they may
-consult any resource; the system does not detect, infer or assess the use of outside tools,
-and does not require the sources consulted to be stated or recorded. The mathematics is to
-evaluate the reviewers' reliability over time, with a possible reputational weight. Still to
-define: the aggregation, the reputation update, the treatment of a contested key, thresholds and
-outcomes, and how [5]–[7] read the answers; the deposit's mandatory source and [7b]'s source check
-are open questions. **The code implements the previous design:** a reviewer commits and reveals
+consult any resource, they do not state or record the sources they consult, and the system does
+not detect, infer or assess their use of outside tools. The mathematics is to evaluate the
+reviewers' reliability over time, with a possible reputational weight. Still to define: the
+aggregation, the reputation update, the treatment of a contested key, thresholds and outcomes,
+and whether and how [5]–[7] read the answers. A separate question, also open: whether the
+author keeps attaching a mandatory source at [1] and [7b] keeps its source check; both stay as
+below until the owner decides. **The code implements the previous design:** a reviewer commits and reveals
 a probability that the item passes validation, which is the bridging rating at [5] and the
 forecast scored against pilot outcomes, golden items and explored rejections; the draft carries
 the key inside the item's bytes, with no structured field. Nothing below is changed by D47 until
@@ -99,10 +100,10 @@ reveal) draws nothing; its deposits wait for the next epoch.
 **Under D47 the reviewer answers the item.** The code still has the reviewer **declare a
 probability** that the item passes validation (not a yes/no): the previous design's input for
 bridging and for the evaluator score `S_u` (`02` §C.2). Reviewers work in an open environment
-(`01` D45) and may consult any resource; the system does not detect, infer or assess the use
-of outside tools, and does not record the sources consulted (D47). A panel's agreement, with the
-key or among its members, does not show that its checks were independent or that its reviewers
-are reliable.
+(`01` D45) and may consult any resource; they do not state or record the sources they consult,
+and the system does not detect, infer or assess their use of outside tools (D47). The author's
+source at [1] is a separate, open question. A panel's agreement, with the key or among its
+members, does not show that its checks were independent or that its reviewers are reliable.
 
 ---
 

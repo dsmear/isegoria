@@ -25,8 +25,11 @@ define, and agreement with the key or with the majority is not demonstrated reli
 follows describes the code as it is. In it a reviewer reveals a probability that the item passes
 the pilot; that value is Level A's rating `r_uj` and the forecast scored in §§C.2–C.4, the
 previous design's evaluator path, which stays implemented until the new mechanism replaces it.
-Level B's contracts and the author score (§C.1) are unchanged; how Level A and Level B relate to
-the answers is open. The previous design's dossiers are archived
+Level B's contracts and the author score (§C.1) are unchanged; whether and how Levels A and B
+read the answers is open, and they are not imposed on the new mechanism automatically. D47
+decides that reviewers do not state or record the sources they consult; it leaves open whether
+the author's mandatory source at deposit and §B.5's source check remain, both unchanged here. The
+previous design's dossiers are archived
 (`archive/phase1-forecast-pilot/`, [`21`](21-d47-inventory.md)).
 
 > **Revisions from the working paper (decided 2026-09-24).** The working paper
@@ -513,7 +516,8 @@ shows why the gate needs reassessment (§B.6; `15` B2/B5).
 Psychometrics does not save you from badly conceived questions. The context supplies
 proponents and reviewers with the test's purpose; relevance is assessed through review,
 not inferred from DIF or from the numerical engine's understanding of the text (`01` D44).
-The existing source and admissibility requirements remain. Strict taxonomy:
+The existing source and admissibility requirements remain; under `01` D47 whether they stay is
+open, apart from the reviewers, who do not state or record their sources. Strict taxonomy:
 
 - **Admitted**: verifiable procedural and institutional facts, with a **mandatory
   citation to a primary source** (Official Gazette, parliamentary act, official

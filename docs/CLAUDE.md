@@ -9,7 +9,8 @@ rest as needed.
 
 These constraints are non-negotiable: breaking one destroys the property that makes
 the system useful. Before every implementation choice, check you are not violating
-them.
+them. Invariants 2 and 8 also name contracts of the existing mechanism; those bind the
+existing code in its scope, while their role in D47's mechanism is open (below).
 
 1. **Anonymity is the base.** No personal, demographic, or affiliation data ever
    enters the system. Nodes are pseudonymous IDs and nothing else. Do not add
@@ -17,9 +18,12 @@ them.
    bias analysis runs on latent axes, not on declared labels (see `02`, §DIF).
 
 2. **Quality is not decided by voting.** Never implement a simple-majority
-   aggregation to accept or reject a question. Acceptance goes through bridging
-   (opinion filter) + empirical validation (evidence filter). If you find yourself
-   writing `if positive_votes > negative_votes`, you have drifted from the design.
+   aggregation to accept or reject a question. If you find yourself writing
+   `if positive_votes > negative_votes`, you have drifted from the design. This
+   principle binds every mechanism, D47's included. *Existing mechanism:* acceptance
+   goes through bridging (opinion filter) + empirical validation (evidence filter);
+   keep that contract in the existing code. It is not automatically a requirement of
+   D47's mechanism, whose relation to the two filters is open (`01` D47).
 
 3. **No money as stake.** No token, no economic stake, no monetary bond to propose
    or vote. The cost of proposing is reputation and rate limits. A money-based
@@ -48,10 +52,12 @@ them.
    `scoring::fmath` — timestamps in the computation). Reproducibility is the defense
    that unmasks a dishonest signer.
 
-8. **Empirical validation happens in batches, never on a single question.** The
-   protocol validates groups of questions with shared anchors. Historical simulations
-   show weak detection of an isolated biased item; they do not prove universal
-   non-identifiability (`15-phase1-review.md`, A8). Always validate groups of questions.
+8. **The existing evidence filter validates in batches, never a single question.**
+   Level B, as implemented, validates groups of questions with shared anchors; keep it
+   so. Historical simulations show weak detection of an isolated biased item; they do
+   not prove universal non-identifiability (`15-phase1-review.md`, A8). Whether D47's
+   mechanism uses empirical validation, and in what form, is open: this contract is
+   not imposed on it automatically.
 
 ## Current priorities
 
@@ -83,10 +89,14 @@ for conditions and objectives.
 - The aggregation, the reputation update, the treatment of a contested key, thresholds, outcomes
   and guarantees are **not specified**. Do not implement them, or fill the gaps with a formula or
   policy of your own, before the owner and the design review specify them.
-- Agreement with the author's key or with the majority is not reliability. Invariant #2 and the
-  exclusion of a Schelling point below bind the future mechanism.
-- Do not detect, infer or assess the reviewers' use of outside tools, and do not require or
-  record the sources they consulted.
+- Agreement with the author's key or with the majority is not reliability. Invariant #2's
+  principle and the exclusion of a Schelling point below bind the future mechanism; bridging,
+  empirical validation and batches are contracts of the existing code (#2, #8), and their role
+  in the new mechanism is open.
+- Decided: reviewers do not state or record the sources they consult, and the system does not
+  detect, infer or assess their use of outside tools. Still open, and not to be settled in
+  code: whether the author keeps attaching a mandatory source at deposit, and whether the
+  contested-fact path keeps its source check (`02` §B.5); leave both as they are.
 - The code still implements the previous design. `21-d47-inventory.md` lists what the
   implementation must adapt (§2) and the residual separations that stay in place (§4).
 - `archive/phase1-forecast-pilot/` is historical: do not extend it or cite it as the active

@@ -474,7 +474,7 @@ Not a phase; done alongside every task.
   draws replacements from the beacon (T37, done). T20 supersedes T11. T37's
   threshold-signature variant needs T19. T68 computes the source check T55 takes as an
   input; whether that check stays, and whether the deposit keeps its mandatory source, is open
-  under D47, whose contract introduces no automatic verifier. T69 waits on an owner decision: one of its options changes the scope of the
+  under D47, whose decision on sources concerns only what reviewers consult. T69 waits on an owner decision: one of its options changes the scope of the
   respondent pseudonym (invariant #5).
 - **External.** Nothing in Phases 1–2 needs the external gates.
 

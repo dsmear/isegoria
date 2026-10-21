@@ -30,9 +30,10 @@ The design rests on three pillars, in order of importance:
 | Role | Upstream filter | Final verdict |
 
 Under [`01` D47](01-decisions.md) a reviewer's contribution is an answer to the item, and the
-mathematics is to evaluate the reviewers' reliability over time. How the answers enter the
-opinion filter, and how they relate to Level B, is still to define; the code still reads a
-forecast of the pilot outcome as the reviewer's rating.
+mathematics is to evaluate the reviewers' reliability over time. Whether and how the answers
+enter the opinion filter, and how they relate to Level B, is still to define: the two levels
+describe the existing mechanism and are not imposed on the new one automatically. The code
+still reads a forecast of the pilot outcome as the reviewer's rating.
 
 The system's center of gravity is Level B: peer review decides *which questions are
 worth field-testing*, subject to the appeal path. The empirical decision uses statistics
@@ -73,9 +74,11 @@ relates to its evidence. The two stay distinct; no subscore, weight, threshold, 
 or aggregate is adopted, and assisted correctness certifies no unaided understanding.
 
 **Phase 1 direction (2026-10-21, [`01` D47](01-decisions.md)).** The author writes the question
-in its context and states the correct answer; reviewers answer it, free to consult any resource,
-and the system does not detect, infer or assess the use of outside tools or require the sources
-consulted to be recorded. The mathematical mechanism is to process the answers and evaluate the
+in its context and states the correct answer; reviewers answer it, free to consult any resource;
+they do not state or record the sources they consult, and the system does not detect, infer or
+assess their use of outside tools. Whether the author keeps attaching a mandatory source at
+deposit, and the contested-fact path its source check, is a separate question, still open. The
+mathematical mechanism is to process the answers and evaluate the
 reviewers' reliability over time, with a possible reputational weight. Forecasting whether an
 item passes the pilot is no longer the reviewers' main contribution. Still to define: the
 aggregation, the reputation update, the treatment of a contested key, thresholds, outcomes and
@@ -134,8 +137,9 @@ the same person.
  [8] Retirement     for exposure, drift, obsolescence, or emerging DIF
 ```
 
-Under D47 the author states the key at [1] and reviewers answer the item at [3]; how [4]–[6]
-read the answers, and whether [1] keeps its mandatory source, is still to define (`05`).
+Under D47 the author states the key at [1] and reviewers answer the item at [3]; whether and
+how [4]–[6] read the answers, and whether [1] and [6]'s contested-fact branch keep the author's
+source and its check, is still to define (`05`).
 
 Sample floors and capacity are specified in `02` §B.6. They are not universal power
 guarantees; the current model still needs post-D43 characterization. Open guarantee

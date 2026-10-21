@@ -69,9 +69,9 @@ people **from different sides** like it.
 
 *Where the code stands:* Check 1 averages the two sides' predicted approval, each side counting
 once; what is left of the larger camp's advantage is a small measured leak (`docs/01` D32, done;
-[`docs/13`](docs/13-characterization.md) §7.4). Since D47 the reviewers
-answer the question instead of rating it; how Check 1 reads their answers is still to be decided,
-and the code still reads the earlier rating.
+[`docs/13`](docs/13-characterization.md) §7.4). Since D47 the reviewers answer the question
+instead of rating it; whether and how Check 1 reads their answers is still to be decided, and the
+code still reads the earlier rating.
 
 **Check 2 — "Does the question actually work when we try it?"**
 The questions that survive Check 1 are tried out on real people, and we **measure**
@@ -173,8 +173,9 @@ flowchart TD
 - **Nobody sees the author** (prevents voting on the person).
 - **Nobody sees others' judgments before committing their own** (prevents cascades).
 - **Under D47** the author states the key at step 1 and reviewers answer the question at step 4,
-  free to look things up; nobody records which sources they used. How steps 5–7 read the answers
-  is still to be decided.
+  free to look things up; reviewers do not state or record the sources they used. Whether the
+  author keeps attaching a mandatory source at step 1, and whether and how steps 5–7 read the
+  answers, are still to be decided.
 - The **appeal** branch is the key correction: a *true but politically divisive*
   fact produces the same voting pattern as one-sided propaganda, so bridging would
   wrongly kill it. The appeal lets the author send it straight to the data-based
@@ -192,9 +193,14 @@ evaluator score is to measure, over time, how reliable a reviewer's answers are.
 decided, with constraints carried over: agreeing with the author or with the majority is not,
 by itself, reliability, and rewarding agreement with the majority stays excluded. *Where
 the code stands:* it implements the previous design, in which reviewers forecast whether a
-question passes its trial and are scored with a *proper scoring rule* against the other
-reviewers' forecasts — following the majority scores zero — with 5% of the gate's rejections
-piloted for measurement only (`docs/01` D33–D35).
+question passes its trial and are scored by the difference between the other reviewers' Brier
+error and their own — exactly zero for a reviewer who reports the others' mean — with 5% of the
+gate's rejections piloted for measurement only (`docs/01` D33–D35). That rule is strictly proper
+only under stated conditions: a defined baseline whose joint law with the outcome the report
+does not move (`docs/02` §C.2). No general incentive guarantee is claimed for the protocol as
+implemented: A1's and A12's closures are conditional, on a design the runtime does not implement
+and on an offline candidate it does not use; A2 stays open
+([`docs/15`](docs/15-phase1-review.md)).
 
 ### Anti-collusion
 
@@ -256,7 +262,7 @@ dependency on identity or network** — it runs offline and is reproducible
 
 | Crate | Role | Status |
 |---|---|---|
-| [`scoring`](crates/scoring) | Deterministic engine: bridging (A), IRT/DIF (B), reputation (C), anti-collusion | **Complete** for the previous design, validated against `sim/`; its evaluator score is the forecast score D47 sets aside |
+| [`scoring`](crates/scoring) | Deterministic engine: bridging (A), IRT/DIF (B), reputation (C), anti-collusion | **Implemented** for the previous design. Golden-output tests pin its outputs bit for bit across platforms and build profiles; scoped Python oracles check the numerical contracts their tests name, within tolerance. Open findings in [`docs/15`](docs/15-phase1-review.md), A2 among them; thresholds provisional; its evaluator score is the forecast score D47 sets aside |
 | [`identity`](crates/identity) | Anonymous enrollment: source adapters, threshold-issued credential, role nullifiers | Scaffold + real mechanisms (single-server + threshold OPRF label, single + threshold BBS+ blind credential, ZK nullifier) |
 | [`network`](crates/network) | Content addressing, Merkle, transparency log, consortium checkpoints, the epoch's beacon round, a node's durable log and objects, the replicated signed set and its cuts, erasure coding, anchoring | Real integrity primitives (incl. OpenTimestamps proofs), durable store (T13), replicated set and cuts (T18, T74); anchoring format-level only (T17) |
 | [`protocol`](crates/protocol) | Lifecycle orchestration: deposit, lottery, blind review, gate + appeal, pilot, honeypot; a node's state from its log and from signed cuts | Wires the three layers together; the state replays from the log (T73) and from consortium-signed cuts (T74); no epoch run between nodes yet (T79) |
@@ -306,9 +312,10 @@ CI runs the comment budget (`scripts/comment_budget.py`, see `docs/CLAUDE.md`), 
 clippy (`-D warnings`), the full test suite, and coverage on every push and pull request
 (`.github/workflows/ci.yml`).
 
-The scoring tests run against **fixtures exported from the Python simulations** in
-[`sim/`](sim/): the Rust engine must reproduce the simulations' results on the same
-input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
+Part of the scoring tests run against **fixtures exported from the Python simulations** in
+[`sim/`](sim/), each within the contract its test names; the simulations keep retired models
+and are not a complete specification of the current engine. To regenerate the fixtures you
+need `numpy`/`scipy` (see `sim/`).
 
 ---
 
@@ -347,7 +354,7 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
 
 | Layer | State |
 |---|---|
-| Scoring engine (A + B + C + anti-collusion) | Implemented, with Rust golden-output checks across platforms/build profiles and scoped Python comparisons; open guarantees and code-contract findings in [`docs/15`](docs/15-phase1-review.md); thresholds provisional |
+| Scoring engine (A + B + C + anti-collusion) | Implemented, with Rust golden-output checks across platforms/build profiles and scoped Python comparisons; open guarantees and code-contract findings in [`docs/15`](docs/15-phase1-review.md), A2 open; thresholds provisional |
 | Design revisions from the working paper ([`paper/`](paper/)): side-balanced bridge score, evaluator difference score with exploration, DIF anchor precondition and target model, contested-facts selection, residual-based coordination detection (`docs/01` D32–D41) | D32–D41 implemented (T49–T57, T37); implementation completion does not close the guarantee findings in `docs/15` |
 | Findings of the third review (2026-09-24): deposit replay, respondents not identity-gated, consortium threshold, appeal stake, band items without appeal (`docs/08` §0-quinquies) | Deposit replay (T64), respondent gate (T65), band items without appeal (T59), the band's re-decision on the same panel (T60), the appeal stake (T61) and the consortium threshold (T63) fixed; the rest — no-show reviewers, a hand-built empty panel, the honeypot's fixed draw — confirmed by tests on master and planned in Phase 3 (`docs/10` T58, T66, T67) |
 | Identity, network, protocol | Working scaffolds; deterministic mechanisms + single-server & threshold OPRF label + single & threshold BBS+ credential + ZK nullifier + OpenTimestamps anchoring proofs real, remaining heavy crypto/transport behind traits |

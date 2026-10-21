@@ -11,21 +11,23 @@ Its histories, runs and evidence stay there.
 ## 1. Where things stand (2026-10-21)
 
 **Owner decision — [`01` D47](01-decisions.md).** The author writes the question in its context
-and states the correct answer; reviewers answer it, free to consult any resource; the system does
-not detect, infer or assess the use of outside tools and does not require the sources consulted
-to be stated or recorded; the mathematics is to process the answers and evaluate the reviewers'
+and states the correct answer; reviewers answer it, free to consult any resource; they do not
+state or record the sources they consult, and the system does not detect, infer or assess their
+use of outside tools; the mathematics is to process the answers and evaluate the reviewers'
 reliability over time, with a possible reputational weight. Forecasting the pilot outcome is no
 longer the reviewers' main contribution. D45 (open environment) and D46 (the assessment's two
 priorities) remain the references for conditions and objectives.
 
 **Still to define, by the owner and Astra, before any implementation:** the aggregation formula,
 the reputation update, the treatment of a contested key, thresholds, outcomes and guarantees;
-how Level A (bridging, band, appeal) and Level B (pilot, DIF, contested facts) read the answers;
-the role of golden items; whether the deposit keeps its mandatory source and the contested-fact
-path its source check; whether the new design needs a whole-test guarantee (A2). A balanced split
-of correct and wrong answers is a signal to study, not a rule; agreement with the key or the
-majority is not demonstrated reliability. Invariant #2 and the exclusion of a Schelling point
-(D6) bind the choice. Do not fill these gaps with a formula or a policy of your own.
+whether and how Level A (bridging, band, appeal) and Level B (pilot, DIF, contested facts) read
+the answers, which invariants #2 and #8 do not impose on the new mechanism automatically; the
+role of golden items; separately from the reviewers' sources, whether the deposit keeps the
+author's mandatory source and the contested-fact path its source check; whether the new design
+needs a whole-test guarantee (A2). A balanced split of correct and wrong answers is a signal to
+study, not a rule; agreement with the key or the majority is not demonstrated reliability.
+Invariant #2's exclusion of a majority count and the exclusion of a Schelling point (D6) bind
+the choice. Do not fill these gaps with a formula or a policy of your own.
 
 **What the code does.** Nothing implements D47. A reviewer commits and reveals a probability that
 the item passes the pilot; it is the bridging rating and the forecast that `scoring::reputation`,

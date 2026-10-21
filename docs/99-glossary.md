@@ -365,8 +365,10 @@ hold, and which reviewers can be trusted to check it? Counting how many reviewer
 key would hand the decision to whoever has the most reviewers, the capture the system exists to
 prevent (`01` D1).
 
-**What is decided.** Reviewers answer the question, free to look things up; the system does not
-detect or assess the tools they use, and nobody has to list the sources consulted. The
+**What is decided.** Reviewers answer the question, free to look things up; they do not have to
+state or record the sources they consult, and the system does not detect or assess the tools
+they use. (Whether the author must still attach a source to the question is a separate, open
+question.) The
 mathematics is to process the answers and judge, over time, how reliable each reviewer is,
 possibly giving reputational weight on that basis.
 

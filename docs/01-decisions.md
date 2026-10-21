@@ -1344,11 +1344,19 @@ implemented:
   their main expected contribution.
 - Reviewers may consult any resource. The system does not detect, infer or assess the use of
   outside tools.
-- Searching for sources and weighing them is the people's task. The new contract does not
-  require the sources consulted to be specified or recorded, and introduces no automatic
-  verifier.
+- Searching for sources and weighing them is the people's task. Reviewers are not required to
+  state or record the sources they consult, and their contract introduces no automatic verifier
+  of those sources.
 - The mathematical mechanism processes the answers and evaluates the reviewers' reliability over
   time, with a possible reputational weight.
+
+**Sources: what is decided and what is open.** Decided: reviewers do not state or record the
+sources they consult, and the system does not detect, infer or assess their use of outside
+tools. Open, and not decided by D47: whether the author keeps attaching a mandatory primary
+source at deposit, and whether the contested-fact path keeps its source check (`02` §B.5, D38,
+`10` T68). Both stay as they are until the owner decides: the deposit refuses a draft without
+a source (`protocol::deposit`), and the check's verdict enters the lifecycle as an input,
+`source_verified`, its computation in code being T68.
 
 **Still to define, not settled here.** The aggregation formula, the reputation update, the
 treatment of a contested key, the thresholds, the outcomes and the new mechanism's guarantees.
@@ -1398,14 +1406,14 @@ and records are kept, and its closures keep their perimeters.
 - Level A. Today the reviewer's revealed probability is both the bridging rating `r_uj` and the
   forecast the evaluator score reads. Whether bridging (D2, D32, D42) reads the answers, another
   review signal or nothing, and what follows for the band (D26) and the appeal (D8, D27), is
-  not decided. Invariant #2 stays.
+  not decided. Invariant #2's exclusion of a majority count stays; its two filters, like D1's,
+  describe the existing mechanism and are not imposed on the new one automatically.
 - Level B. The relation between the reviewers' answers and the pilot, IRT, DIF, contested facts
   and re-validation (D3, D11, D37, D38, D43) is not decided. Their contracts and code stand as
   specified.
 - Golden items (D21, `05`): whether and how they serve the reviewers' reliability.
-- The deposit's mandatory primary source and §B.5's source check (D38). The new contract
-  requires no source to be specified or recorded and adds no automatic verifier; whether the
-  deposit and the contested-fact path keep theirs is open.
+- The author's mandatory source at deposit and the contested-fact path's source check, as
+  stated under *Sources* above.
 - Peer prediction and the Bayesian Truth Serum (`02` §C.3), with D45's tension on shared sources.
 - D39's coordination detector infers no tool use, yet shared tools can produce its signal (D45);
   under D47 its flags are not evidence of tool use, and how the two coexist is open.
@@ -1438,3 +1446,9 @@ with its index and path map.
 **Scope.** Decision record only. No formula, threshold, policy, format or rubric is adopted; no
 code behaviour changes; no review finding is closed; Phase 1 stays open. The implementation of
 the new mechanism is a later assignment.
+
+**Rectified after Astra's review of `47a1698`.** The decision on sources is scoped to what
+reviewers consult, apart from the author's deposit source and the contested-fact source check,
+which stay open; invariants #2 and #8 in `CLAUDE.md` separate the retained principle from the
+existing mechanism's contracts; the README's account of the engine and of its scoring rule is
+limited to what is implemented and verified. No decision content was added.

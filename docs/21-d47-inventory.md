@@ -117,5 +117,6 @@ split a mixed document. These are **residual separations**: the separation is no
 
 D47's open points stay open: the aggregation, the reputation update, the contested key, the
 thresholds, outcomes and guarantees; Level A's and Level B's relation to the answers; golden
-items; the deposit's source and §B.5's check; A2's disposition for the new design. This inventory
-says where the material is, not what the new mechanism will be.
+items; the author's source at deposit and §B.5's check (the reviewers' sources are decided: not
+stated or recorded); A2's disposition for the new design. This inventory says where the
+material is, not what the new mechanism will be.

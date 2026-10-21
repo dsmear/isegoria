@@ -25,9 +25,10 @@ would control the questions). It is decided by two filters in a row:
 
 **Phase 1 direction ([`01` D47](01-decisions.md), 2026-10-21).** In review, the author states
 the key and reviewers answer the question, free to consult any resource; the mathematics is to
-evaluate the reviewers' reliability over time, with a possible reputational weight. How the
-answers enter the two filters, and the mechanism's formula, thresholds, outcomes and guarantees,
-are still to define. The code still implements the previous design, in which reviewers forecast
+evaluate the reviewers' reliability over time, with a possible reputational weight. The
+principle above stays; whether and how the answers enter the two filters, which describe the
+existing mechanism, and the new mechanism's formula, thresholds, outcomes and guarantees are
+still to define. The code still implements the previous design, in which reviewers forecast
 whether the item passes the pilot.
 
 The anonymity of the nodes is the non-negotiable base. The uniqueness of a person is
