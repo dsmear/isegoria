@@ -368,18 +368,19 @@ prevent (`01` D1).
 **What is decided.** Reviewers answer the question, free to look things up; they do not have to
 state or record the sources they consult, and the system does not detect or assess the tools
 they use. (Whether the author must still attach a source to the question is a separate, open
-question.) The
-mathematics is to process the answers and judge, over time, how reliable each reviewer is,
-possibly giving reputational weight on that basis.
+question.) The mathematics is to process the answers and judge, over time, how reliable each
+reviewer is, possibly giving reputational weight on that basis.
 
 **What is not.** How the answers are combined, how reliability is updated, what happens when the
 answers dispute the key, and every threshold. An item on which correct and wrong answers split
 evenly is a signal to study, not a proven sign of ambiguity or a reason to reject it. Agreeing
 with the key, or with the majority, is not by itself evidence of reliability.
 
-**Before D47.** A reviewer declared a probability that the item passes the pilot, scored with a
-proper scoring rule against the crowd (the two entries below). The code still works that way
-until the new mechanism is specified and implemented.
+**Before D47.** A reviewer declared a probability that the item passes the pilot, scored against
+the other reviewers' forecasts with a rule that is proper under stated conditions (the two
+entries below). The code still works that way until the new mechanism is specified and
+implemented. No general incentive guarantee is shown for that code: A1's and A12's closures are
+conditional, and neither certifies D47's mechanism (`02` §C.2).
 
 ## Proper scoring rule
 
@@ -403,11 +404,16 @@ when overconfidence is the vice to discourage.
 
 **One more condition.** A proper rule stays proper only if the forecast cannot decide
 whether its own outcome is observed. In the previous design, still in the code, Isegoria's gate
-does exactly that — a rejected
-item never reaches the pilot that would reveal its outcome — so a random 5% of the
-rejections is piloted for measurement only and each observed score is weighted by the
-inverse of its probability of being observed (`01` D35): the expected score is then the
-one with every outcome observed, and honesty is again the convenient choice.
+does exactly that — a rejected item never reaches the pilot that would reveal its outcome — so a
+random 5% of the rejections is piloted for measurement only and each observed score is weighted
+by the inverse of its probability of being observed (`01` D35). That weighting recovers the
+expected score with every outcome observed only under its hypotheses: the inclusion
+probabilities fixed by what the reviewer knows when choosing the report, and a positive chance
+of observation. The current draw can be computed from the public beacon before reports are
+committed, and in a simplified gate an adaptive report beats the truthful one (`15` A1). So
+exploration and inverse weighting do not by themselves give the current protocol a general
+incentive guarantee; A1's closure is conditional on a design the runtime does not implement
+(`02` §C.2).
 
 ## Brier Skill Score
 
@@ -427,11 +433,17 @@ S = (crowd error − your error)        per scored item, Brier errors
 
 (The first design divided instead of subtracting — a Brier *skill* score, `1 − your
 error / baseline error`. A ratio of two sums is not proper: it paid a dissenter to move
-toward the crowd. The difference keeps the property and the honesty.)
+toward the crowd. The difference is strictly proper under stated conditions — a defined
+baseline whose joint law with the outcome the report does not move — and gives exactly zero to
+a reviewer who copies the crowd. Where no other reviewer carries weight, the fallback baseline
+is the reviewer's own forecast and the score is uninformative (`02` §C.2, `15` A10).)
 
-This is the property we need: in a system that must resist majority capture, the correct
-dissenter must be rewarded structurally, not out of the designer's goodwill. The concept
-comes from meteorology, where forecasters have been evaluated methodically for decades.
+This is the property the previous design sought: in a system that must resist majority capture,
+the correct dissenter must be rewarded structurally, not out of the designer's goodwill. It is a
+property of the score on an item, not a guarantee of the reputation or the review weights built
+on it: A12's closure is conditional on an offline candidate the runtime does not use, and
+neither A1 nor A12 certifies D47's mechanism. The concept comes from meteorology, where
+forecasters have been evaluated methodically for decades.
 
 ## Peer prediction
 
