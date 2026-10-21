@@ -14,6 +14,12 @@ Mechanism for Validating Test Items** (working paper, version 0.2, September 202
   [`docs/08-formal-specification.md`](../docs/08-formal-specification.md). A new version of the
   paper names the commit it describes.
 - **Versions:** 0.1, the analysis; 0.2, adds Section 7, *Adopted revisions*.
+- **Status under D47 (2026-10-21):** a historical snapshot. Its Level C analysis (finding 4
+  below, Section 7's D33–D36 row, `prop:ipw`) concerns the reviewers' forecast score, which
+  [`docs/01` D47](../docs/01-decisions.md) sets aside as their main contribution; its Level A and
+  B analyses concern code still implemented. It stays in place: `scripts/common.py` is imported by
+  `sim/oracle_bridging.py` and `sim/oracle_mixture.py`, which CI runs as differential oracles, and
+  its scripts write the data its LaTeX reads ([`docs/21`](../docs/21-d47-inventory.md) §4).
 
 ## What it contains
 

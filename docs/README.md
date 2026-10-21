@@ -23,6 +23,13 @@ would control the questions). It is decided by two filters in a row:
    psychometric statistics (IRT) and bias analysis (DIF) give the final verdict.
    Here nobody's opinion is needed.
 
+**Phase 1 direction ([`01` D47](01-decisions.md), 2026-10-21).** In review, the author states
+the key and reviewers answer the question, free to consult any resource; the mathematics is to
+evaluate the reviewers' reliability over time, with a possible reputational weight. How the
+answers enter the two filters, and the mechanism's formula, thresholds, outcomes and guarantees,
+are still to define. The code still implements the previous design, in which reviewers forecast
+whether the item passes the pilot.
+
 The anonymity of the nodes is the non-negotiable base. The uniqueness of a person is
 guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
 **cryptographically severed** from what the node does.
@@ -47,24 +54,26 @@ guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
 | [`13-characterization.md`](13-characterization.md) | T24 and T25's supplement: the simulation studies that characterize the detectors and gates, the harness that runs them, and their results |
 | [`14-parameter-register.md`](14-parameter-register.md) | Every threshold's reason, calibration procedure, sensitivity, failure and location (`07` §13) |
 | [`15-phase1-review.md`](15-phase1-review.md) | Current review findings, evidence limits and correction handoff; distinguishes implemented behavior from unresolved guarantees |
-| [`16-a1-incentive-design.md`](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md) | A1 dossier, for design review: the exploration draw's information sequence, the adaptive counterexample, the corrected IPW theorem and the candidate fixes |
-| [`17-a1-pilot-batch-design.md`](../archive/phase1-forecast-pilot/docs/17-a1-pilot-batch-design.md) | A1 pilot batches and missing outcomes, approved on `37addca` as a conditional analysis (no batching policy approved): what a verdict depends on, the batch contract C3 needs, four alternatives and their costs, missing outcomes; A1's candidate contract, §14, approved on `d2be7da` as a conditional candidate contract; a decision proposal on A1's path, §14.8, partly reviewed on `23283f2`, its rectifications approved on `7d1b19e`; the contract of B-b's scorer, §14.9, approved on `6b9f42a` as an isolated component; the specification of its future caller's snapshot, §14.10, approved on `8dc7087`; that snapshot and its two corrections, §14.11, approved on `93f3f7c` within the isolated perimeter, with no production caller; O1 decided by the owner on 2026-10-11, semantic amendment §14.12 approved on `e735a8e`; experimental terminal verifier contract §14.13 partly reviewed on `c6b3ca7`, rectified and approved on `a14364c`; O3/A12 incorporation approved on `af42035` (§14.14); O2 subsequently chooses conditional A; Astra closes A1 on `1bd865c` for §14.15’s conditional expected-score guarantee only; A12 and Phase 1 open, no operational adoption or T1, state in the handoff §5.2 |
 | [`18-a3-latent-shape-design.md`](18-a3-latent-shape-design.md) | A3 diagnosis and its correction P1 (closed on `16e862c`): the latent ability histogram's parametrization, the moment penalty, the dimension and the BIC count |
-| [`19-a2-dtf-composition-design.md`](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md) | A2 diagnosis (approved on `0519626`) and its rectification R1 (approved on `d13bf09`; A2 open): what the contested pool's admission cost computes, a sufficient proposition for a test-level bound and its hypotheses, counterexamples, directions; §11 candidate contract approved on `5e600be` as a specification of obligations; §12 split-likelihood coverage proof accepted on `5102852` under its hypotheses; §13 review, its corollary accepted in its domain, the information check's contract accepted on `2aa136d` and its result (§13.8) accepted on `24cdfce` as an obstacle in its domain; A2's design decision deferred by the owner (§13.9): A2 open and blocking, its certifier suspended |
-| [`20-s2-synthetic-check.md`](../archive/phase1-forecast-pilot/docs/20-s2-synthetic-check.md) | S2's synthetic-event technical check, its specification approved on `c76c035`, its implementation in test code approved on `3559396` within the check's perimeter: what it executes and what its fixtures supply, the fixtures with their expected results and failure criteria, the conclusions it does not support; the absent baseline's correction and A1's adaptive verification on finite constructions (§§10–11), approved on `d7a4449`; the check through B-b's scorer (§12), approved on `6b9f42a` |
+| [`21-d47-inventory.md`](21-d47-inventory.md) | What `01` D47 affects, file by file: kept, to adapt in the next implementation, archived (with motivation and dependencies), still needed as dependencies |
+| [`phase1-handoff.md`](phase1-handoff.md) | Working note for resuming Phase 1 work between sessions; not normative |
+| [`archive/phase1-forecast-pilot/`](../archive/phase1-forecast-pilot/README.md) | **Archived under D47:** the previous design's dossiers — `16` (A1 and A12), `17` (A1's pilot batches, B-b, O1–O3), `19` (A2; **not resolved**), `20` (S2) — the previous handoff, A12's and A2's tools and A2's results, with an index and a path map. `16`, `17`, `19` and `20` here are redirect pages |
 | [`99-glossary.md`](99-glossary.md) | Every concept explained from scratch, from the problem to the formula |
-| [`sim/`](../sim/) | Historical research prototypes and scoped fixture/differential oracles; see its README for current vs retired paths |
-| [`paper/`](../paper/) | Working paper: formal statement and analysis of the scoring mechanism, with proofs, reproducible experiments and open problems |
+| [`sim/`](../sim/) | Historical research prototypes and scoped fixture/differential oracles; see its README for current vs retired paths (A12's and A2's tools are archived) |
+| [`paper/`](../paper/) | Working paper: formal statement and analysis of the scoring mechanism, with proofs, reproducible experiments and open problems — a dated snapshot whose evaluator score is the previous design's (D47); kept in place because CI's differential oracles import its scripts |
 
 ## Development priorities
 
 The reference implementation exists (see Status below); what remains is ordered in
 [`10-roadmap.md`](10-roadmap.md) in three phases:
 
-1. **Mathematics** — the mechanism is implemented, with corrections and calibration
-   still open. Read [`15`](15-phase1-review.md) for the A–E review findings, [`10`](10-roadmap.md)
-   for T25/T82/T83 and completed tasks, and [`14`](14-parameter-register.md) for parameter
-   procedures. D32–D41 are implemented; they are not an unstarted feature list.
+1. **Mathematics** — D47 changed Phase 1's direction before its implementation: the next work
+   is to specify the mechanism by which reviewers answer the item and their reliability is
+   evaluated, then implement it ([`21`](21-d47-inventory.md) lists what to adapt). The previous
+   design is implemented and its work suspended; read [`15`](15-phase1-review.md) for the A–E
+   review findings and D47's disposition (A2 open), [`10`](10-roadmap.md) for task status and
+   [`14`](14-parameter-register.md) for parameter procedures. D32–D41 are implemented; they are
+   not an unstarted feature list.
 2. **P2P network** (`04`) — persistence, transport and replication, a grind-free
    randomness beacon, live anchoring: a single-organization testnet.
 3. **The rest** — the protocol boundary (`05`), distributed identity and the external
@@ -81,7 +90,8 @@ A reference implementation exists as a Cargo workspace (`crates/{scoring,identit
 network,protocol,p2p,characterization}`); see the top-level `README.md` and `ARCHITECTURE.md` for the
 current state, and `docs/08-formal-specification.md` for an independent audit of what
 is implemented, tested, and still open. Read its dated audit and remediation log with
-[`15`](15-phase1-review.md). Current Rust golden outputs pin bits; Python oracles
+[`15`](15-phase1-review.md). The previous design's dossiers, tools and results are kept, outside
+the active specification, in [`archive/phase1-forecast-pilot/`](../archive/phase1-forecast-pilot/README.md). Current Rust golden outputs pin bits; Python oracles
 check the particular numerical contracts their tests name, within tolerance.
 
 ## License

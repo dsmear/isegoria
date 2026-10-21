@@ -42,6 +42,14 @@ Four rules shape every crate:
    `scripts/comment_budget.py` enforces the budget (`docs/CLAUDE.md`, "Code style and
    docs") in CI and after every edit made through Claude Code.
 
+**Phase 1 direction (`docs/01` D47, 2026-10-21).** Reviewers are to answer the item, whose key
+the author states, and the mathematics is to evaluate their reliability over time. Nothing below
+implements that yet: the reviewer path in `protocol` and Level C's evaluator score in `scoring`
+implement the previous design, in which a reviewer reveals a probability that the item passes
+the pilot. [`docs/21`](docs/21-d47-inventory.md) lists the modules to adapt and the residual
+separations; the previous design's dossiers, A12's and A2's scripts and A2's results are in
+[`archive/phase1-forecast-pilot/`](archive/phase1-forecast-pilot/README.md), which holds no crate.
+
 ## Workspace and dependency graph
 
 ```
@@ -209,6 +217,15 @@ Each module's doc comment names the attack the stage neutralizes (brigading,
 information cascades, queue explosion, the true-but-divisive false negative, block
 voting).
 
+**The previous design's reviewer path (D47).** `review` commits and reveals a probability;
+`lifecycle` carries it in `Reveal` and holds the exploration path (`Explore`, `Explored`,
+`Measured`); `orchestrator` turns reveals into ratings weighted by forecast skill, and its
+`affine_*` adapters read A12's frozen tables (`affine_weights`); `probation`,
+`honeypot::reviewer_skills`, `exploration`, `panel_scores`, `cohort_scores`, `cohort_snapshot`
+and `results`' reviewer records score and weigh that forecast. They are current behaviour, to be
+adapted when D47's mechanism is specified (`docs/21` §2); `cohort_snapshot` also serves C6's
+evidence (`docs/21` §4).
+
 ## `p2p` — the libp2p transport
 
 Replication between nodes over libp2p (`docs/04` §Replication between nodes): `Handle`
@@ -234,6 +251,9 @@ full run, 54,412 runs, is stated in `docs/13` §7 and its tables are in
 measures the model with the guessing floor and the band's extra round, stated in §8.7 and
 tabled in `verification/reports/t25/`.
 
+The A2 probe (`src/bin/a2-probe.rs`, `probe`, `probe_jobs`, `probe_calibration`) stays here
+although its studies are archived: its provenance guard reads `crates/` (`docs/21` §4).
+
 | Module | Role |
 |---|---|
 | `grid` | the studies — T24's ten and the supplement's six (`T24`, `SUPPLEMENT`) — their cells (`Cell::key`, `Cell::parse`), replicates, each run's seed and its draws' (`draw_seed`) |
@@ -252,7 +272,7 @@ The invariants from [`docs/CLAUDE.md`](docs/CLAUDE.md):
 | 1 | Anonymity is the base; no demographic attributes in the deployment path | Anonymous DIF uses `scoring::latent`; observed-group routines are calibration-only (`docs/02` §B.3) |
 | 2 | Quality is never decided by majority vote | `scoring::bridging` + `scoring::latent`; `protocol::gate` has no vote count |
 | 3 | No money as stake | Bond is reputation (`protocol::deposit`, `scoring::reputation`) |
-| 4 | Two reputation scores, never combined | `scoring::reputation` (`author_score` vs `loo_scores`/`odds_weight`); separate role nyms in `identity::nym` |
+| 4 | Two reputation scores, never combined | `scoring::reputation` (`author_score` vs `loo_scores`/`odds_weight`, the previous design's evaluator score; D47's is still to define); separate role nyms in `identity::nym` |
 | 5 | One role, one deterministic non-rotatable pseudonym | `identity::nym::derive_nym` |
 | 6 | The state authenticates, does not issue | `identity::enrollment` (`UniquenessOracle`) separate from `credential::BlindIssuer` |
 | 7 | Scoring is deterministic and reproducible | `scoring` (pinned toolchain, seeded RNG); `tests/reproducibility.rs` |
@@ -375,6 +395,10 @@ Reference implementations are clearly marked and provide **no** security; they e
 to make the pipeline testable end-to-end.
 
 ## Future work
+
+D47's mechanism — reviewers' answers and their reliability over time — is to be specified, then
+implemented; its aggregation, reputation update, contested key, thresholds, outcomes and
+guarantees are open, and no plug point exists for it yet.
 
 [`docs/10`](docs/10-roadmap.md) is the task-status source. Start Phase 1 corrections
 from [`docs/15`](docs/15-phase1-review.md); complete parameter procedures in

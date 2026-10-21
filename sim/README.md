@@ -9,7 +9,10 @@ The bridging prototype includes D32/D42, but the BSS evaluator score and proxy-a
 DIF paths remain historical. Rust retains those functions for scoped regression and
 oracle comparisons; the production path uses the difference score and
 `scoring::latent::latent_dif` with formats and the protocol's admission checks.
-Reproducing an old fixture does not validate the newer model.
+Reproducing an old fixture does not validate the newer model. Under
+[`docs/01` D47](../docs/01-decisions.md) the difference score is itself the previous design's
+evaluator path; the scripts below that serve current code stay here, and A12's and A2's moved
+to the archive (below).
 
 ## Requirements
 

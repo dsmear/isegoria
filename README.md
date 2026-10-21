@@ -13,6 +13,12 @@ every citizen to speak in the assembly.
 > [roadmap](docs/10-roadmap.md), and the [parameter register](docs/14-parameter-register.md).
 > Implemented mechanisms and passing tests do not establish every claimed guarantee.
 > See [Project status](#project-status) for deployment dependencies.
+>
+> **Phase 1 direction (2026-10-21, [`docs/01` D47](docs/01-decisions.md)):** reviewers now answer
+> the question, whose key the author states, and their reliability is to be evaluated over time.
+> That mechanism is not yet specified or implemented; the code still has reviewers forecast
+> whether a question passes its trial. The previous design's dossiers and studies are in
+> [`archive/phase1-forecast-pilot/`](archive/phase1-forecast-pilot/README.md).
 
 ---
 
@@ -61,9 +67,11 @@ people **from different sides** like it.
 > genuinely good — not just pandering to one crowd. A film only one camp loves
 > gets filtered out.
 
-*Where the code stands:* today's version of Check 1 still leans towards the larger
-camp — when the camps are very unequal, a question only the majority likes can scrape
-through. The fix is designed and is the first item of the [roadmap](docs/10-roadmap.md).
+*Where the code stands:* Check 1 averages the two sides' predicted approval, each side counting
+once; what is left of the larger camp's advantage is a small measured leak (`docs/01` D32, done;
+[`docs/13`](docs/13-characterization.md) §7.4). Since D47 the reviewers
+answer the question instead of rating it; how Check 1 reads their answers is still to be decided,
+and the code still reads the earlier rating.
 
 **Check 2 — "Does the question actually work when we try it?"**
 The questions that survive Check 1 are tried out on real people, and we **measure**
@@ -138,7 +146,8 @@ Each person can do three things, each under a **separate, unlinkable pseudonym**
 
 - **Propose** — write a new question.
 - **Judge** — peer-review other people's questions (this is the "voting" of the
-  original idea).
+  original idea). Since D47 a reviewer answers the question, as a respondent would, and is
+  judged over time on how reliable those answers are; the code still asks for a forecast.
 - **Answer** — act as a test subject so new questions can be trialled against real
   data.
 
@@ -163,6 +172,9 @@ flowchart TD
 - **Nobody chooses what to review** (prevents brigading).
 - **Nobody sees the author** (prevents voting on the person).
 - **Nobody sees others' judgments before committing their own** (prevents cascades).
+- **Under D47** the author states the key at step 1 and reviewers answer the question at step 4,
+  free to look things up; nobody records which sources they used. How steps 5–7 read the answers
+  is still to be decided.
 - The **appeal** branch is the key correction: a *true but politically divisive*
   fact produces the same voting pattern as one-sided propaganda, so bridging would
   wrongly kill it. The appeal lets the author send it straight to the data-based
@@ -173,17 +185,16 @@ flowchart TD
 
 - **Author score `C_a`** — how good your proposed questions turn out to be;
   it only controls your **rate limit** on new proposals.
-- **Evaluator score `S_u`** — how good your reviews are; it **weights your review
-  vote**.
+- **Evaluator score** — how reliable your reviews are; it may **weight your review**.
 
-They live on **different, unlinkable pseudonyms** and are never merged. The
-evaluator score uses a *proper scoring rule*: you gain reputation only by being
-**right when the crowd is wrong** — simply following the majority scores zero. In a
-system meant to resist capture by the majority, the correct dissenter must be
-rewarded structurally. Because the gate decides which outcomes are ever observed, a
-random 5% of its rejections is piloted for measurement only and each observed outcome
-is weighted by its inverse probability, so the score stays proper and the gate's
-false-negative rate is measured (`docs/01` D35).
+They live on **different, unlinkable pseudonyms** and are never merged. Under D47 the
+evaluator score is to measure, over time, how reliable a reviewer's answers are. How is not yet
+decided, with constraints carried over: agreeing with the author or with the majority is not,
+by itself, reliability, and rewarding agreement with the majority stays excluded. *Where
+the code stands:* it implements the previous design, in which reviewers forecast whether a
+question passes its trial and are scored with a *proper scoring rule* against the other
+reviewers' forecasts — following the majority scores zero — with 5% of the gate's rejections
+piloted for measurement only (`docs/01` D33–D35).
 
 ### Anti-collusion
 
@@ -245,12 +256,12 @@ dependency on identity or network** — it runs offline and is reproducible
 
 | Crate | Role | Status |
 |---|---|---|
-| [`scoring`](crates/scoring) | Deterministic engine: bridging (A), IRT/DIF (B), reputation (C), anti-collusion | **Complete**, validated against `sim/` |
+| [`scoring`](crates/scoring) | Deterministic engine: bridging (A), IRT/DIF (B), reputation (C), anti-collusion | **Complete** for the previous design, validated against `sim/`; its evaluator score is the forecast score D47 sets aside |
 | [`identity`](crates/identity) | Anonymous enrollment: source adapters, threshold-issued credential, role nullifiers | Scaffold + real mechanisms (single-server + threshold OPRF label, single + threshold BBS+ blind credential, ZK nullifier) |
 | [`network`](crates/network) | Content addressing, Merkle, transparency log, consortium checkpoints, the epoch's beacon round, a node's durable log and objects, the replicated signed set and its cuts, erasure coding, anchoring | Real integrity primitives (incl. OpenTimestamps proofs), durable store (T13), replicated set and cuts (T18, T74); anchoring format-level only (T17) |
 | [`protocol`](crates/protocol) | Lifecycle orchestration: deposit, lottery, blind review, gate + appeal, pilot, honeypot; a node's state from its log and from signed cuts | Wires the three layers together; the state replays from the log (T73) and from consortium-signed cuts (T74); no epoch run between nodes yet (T79) |
 | [`p2p`](crates/p2p) | The libp2p transport: gossip announcements and pull sync of the replicated signed set; a consortium member's duties | Real (T18); a replica on disk, members cutting and running the beacon (T74); serves its whole set to any peer (T77); started only from tests (T78) |
-| [`characterization`](crates/characterization) | The characterization harness: seeded simulation studies of the detectors and gates — a tool, not part of a node | T24's full run done: 54,412 runs, results in [`docs/13`](docs/13-characterization.md) §7; T25's supplement done: 19,700 runs, results in §8.7 |
+| [`characterization`](crates/characterization) | The characterization harness: seeded simulation studies of the detectors and gates — a tool, not part of a node | T24's full run done: 54,412 runs, results in [`docs/13`](docs/13-characterization.md) §7; T25's supplement done: 19,700 runs, results in §8.7; also hosts the A2 probe binary, whose studies are archived |
 
 The uniqueness label runs on a real single-server **VOPRF** (RFC 9497, via `voprf`)
 *and* on a real **threshold** t-of-n OPRF (Shamir shares + per-share DLEQ over
@@ -321,10 +332,14 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
   - [`13-characterization.md`](docs/13-characterization.md) — T24 and T25's supplement: the characterization studies, their harness, and their results
   - [`14-parameter-register.md`](docs/14-parameter-register.md) — the thresholds' register: why each exists, how it is calibrated, what breaks if it moves
   - [`15-phase1-review.md`](docs/15-phase1-review.md) — open review findings and correction handoff
+  - [`21-d47-inventory.md`](docs/21-d47-inventory.md) — what D47 affects: kept, to adapt, archived, still needed
   - [`99-glossary.md`](docs/99-glossary.md) — glossary, from scratch
 - **[`sim/`](sim/)** — historical research prototypes and scoped test oracles.
+- **[`archive/phase1-forecast-pilot/`](archive/phase1-forecast-pilot/README.md)** — the previous
+  Phase 1 design's dossiers, A12's and A2's tools and A2's results, with a path map (D47).
 - **[`paper/`](paper/)** — working paper on the mathematics of the mechanism: formal statement,
-  proofs, reproducible experiments and open problems ([PDF](paper/main.pdf)).
+  proofs, reproducible experiments and open problems ([PDF](paper/main.pdf)); a dated snapshot,
+  whose evaluator score is the previous design's.
 
 ---
 
@@ -338,12 +353,14 @@ input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
 | Identity, network, protocol | Working scaffolds; deterministic mechanisms + single-server & threshold OPRF label + single & threshold BBS+ credential + ZK nullifier + OpenTimestamps anchoring proofs real, remaining heavy crypto/transport behind traits |
 | Transport and external backends | libp2p replication and consortium-signed cuts implemented (T18/T74); committee DKG/transport and live anchoring remain roadmap work |
 | Meta-level governance (stratified sortition) | Future work |
+| Reviewers answer the question; their reliability over time (`docs/01` D47, 2026-10-21) | Decided as a direction; aggregation, reputation update, contested key, thresholds, outcomes and guarantees still to define; not implemented |
 
 **What comes next**, in order (task status lives in the [roadmap](docs/10-roadmap.md)):
 
-1. **Mathematics** — verify and correct the findings in
-   [`docs/15`](docs/15-phase1-review.md), stabilize the model, then complete T25's
-   measurements and parameter procedures. T81 is complete for its ten named files.
+1. **Mathematics** — specify D47's mechanism, then implement it, adapting what
+   [`docs/21`](docs/21-d47-inventory.md) lists; keep the findings in
+   [`docs/15`](docs/15-phase1-review.md) within their scopes (A2 stays open); complete T25's
+   measurements and parameter procedures where D47 leaves them in place. T81 is complete for its ten named files.
    T24 and the guessing supplement are historical campaigns; their DIF/DTF/floor
    records predate D43 and must not be presented as validation of that model.
 2. **P2P network** — finish the runtime, recovery, discovery, availability and

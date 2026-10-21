@@ -72,6 +72,28 @@ Long characterization runs belong on the owner's machine and require explicit
 authorization; use targeted tests and the smoke grid during development. The design
 and implementation handoff is in `15-phase1-review.md`.
 
+## Phase 1 direction: D47 (2026-10-21)
+
+The owner changed Phase 1's direction before its implementation (`01-decisions.md` D47): the
+author states the key, reviewers answer the item with any resource, and the mathematics is to
+evaluate the reviewers' reliability over time, with a possible reputational weight. Forecasting
+the pilot outcome is no longer the reviewers' main contribution. D45 and D46 stay the references
+for conditions and objectives.
+
+- The aggregation, the reputation update, the treatment of a contested key, thresholds, outcomes
+  and guarantees are **not specified**. Do not implement them, or fill the gaps with a formula or
+  policy of your own, before the owner and the design review specify them.
+- Agreement with the author's key or with the majority is not reliability. Invariant #2 and the
+  exclusion of a Schelling point below bind the future mechanism.
+- Do not detect, infer or assess the reviewers' use of outside tools, and do not require or
+  record the sources they consulted.
+- The code still implements the previous design. `21-d47-inventory.md` lists what the
+  implementation must adapt (§2) and the residual separations that stay in place (§4).
+- `archive/phase1-forecast-pilot/` is historical: do not extend it or cite it as the active
+  specification. Its closures keep their perimeters; A2 is not resolved by its archiving.
+  Code comments citing `docs/16`, `docs/17`, `docs/19` or `docs/20` resolve through redirect
+  pages; the archive's index has the path map. The working handoff is `phase1-handoff.md`.
+
 ## Original build order (done)
 
 The order the reference implementation was built in — each phase verifiable before the
