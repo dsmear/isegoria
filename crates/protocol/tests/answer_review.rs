@@ -406,7 +406,7 @@ fn at_ans_03_closure_is_explicit_and_final() {
     );
 }
 
-// AT-ANS-04: invalid or duplicate requests spend no slot; slots are never refunded or carried.
+// AT-ANS-04: invalid or repeated requests spend no slot; slots are never refunded or carried.
 #[test]
 fn at_ans_04_duplicates_and_the_quotas_consumption() {
     let mut w = World::new(12, 2);
@@ -439,12 +439,14 @@ fn at_ans_04_duplicates_and_the_quotas_consumption() {
         w.deposit(0, &question("q0")),
         Err(Refused::Duplicate { question: q0 })
     );
-    assert_eq!(
-        w.deposit(1, &question("q0")),
-        Err(Refused::Duplicate { question: q0 })
-    );
+    let other = w.deposit(1, &question("q0")).unwrap();
+    assert_ne!(other, q0);
     assert_eq!(w.path.slots(&a, 0), Some(Slots { quota: 2, used: 1 }));
-    assert_eq!(w.path.questions(), 1);
+    assert_eq!(
+        w.path.slots(&w.author(1), 0),
+        Some(Slots { quota: 2, used: 1 })
+    );
+    assert_eq!(w.path.questions(), 2);
     w.close_epoch();
     assert_eq!(w.round(q0, &parts(12, 0, 0)).verdict, Verdict::Discarded);
     let corrected = Question {
@@ -459,6 +461,15 @@ fn at_ans_04_duplicates_and_the_quotas_consumption() {
         w.deposit(0, &question("q3")),
         Err(Refused::OverQuota { quota: 2 })
     );
+    assert_eq!(
+        w.deposit(0, &corrected),
+        Err(Refused::Duplicate { question: q1 })
+    );
+    assert_eq!(
+        w.deposit(0, &question("q0")),
+        Err(Refused::Duplicate { question: q0 })
+    );
+    assert_eq!(w.path.slots(&a, 1), Some(Slots { quota: 2, used: 2 }));
     w.close_epoch();
     let new_key = [Part::Answers(Alternative(1)); 12];
     assert_eq!(w.round(q1, &new_key).verdict, Verdict::Accepted);
@@ -849,4 +860,52 @@ fn at_ans_13_codec_and_node_boundaries() {
     assert!(AnswerPath::new(invalid).is_none());
     let reopened = AnswerNode::open(&dir, issuer.public(), AnswerConfig::default()).unwrap();
     assert_eq!(reopened.state(), &w.path);
+}
+
+// AT-ANS-14: at an exhausted quota, copies with each key are refused alike (Astra's attack).
+#[test]
+fn at_ans_14_no_key_oracle_at_an_exhausted_quota() {
+    let mut w = World::new(0, 2);
+    let original = w.deposit(0, &question("secret")).unwrap();
+    w.deposit(1, &question("own 0")).unwrap();
+    w.deposit(1, &question("own 1")).unwrap();
+    let copy = |key| Question {
+        key,
+        ..question("secret")
+    };
+    let before = w.path.clone();
+    let answers: Vec<_> = (0..3).map(|key| w.deposit(1, &copy(key))).collect();
+    assert!(
+        answers
+            .iter()
+            .all(|r| *r == Err(Refused::OverQuota { quota: 2 })),
+        "{answers:?}"
+    );
+    assert_eq!(w.path, before);
+    assert_eq!(w.path.entry(original).unwrap().question, question("secret"));
+}
+
+// AT-ANS-14: with a slot free, another author's copy is accepted alike whatever the key.
+#[test]
+fn at_ans_14_no_key_oracle_with_a_free_slot() {
+    let mut w = World::new(0, 2);
+    let b = w.author(1);
+    w.deposit(0, &question("secret")).unwrap();
+    let (base, logged) = (w.path.clone(), w.log.len());
+    let mut outcomes = Vec::new();
+    for key in 0..3 {
+        w.path = base.clone();
+        w.log.truncate(logged);
+        let outcome = w.deposit(
+            1,
+            &Question {
+                key,
+                ..question("secret")
+            },
+        );
+        outcomes.push((outcome, w.path.slots(&b, 0), w.path.questions()));
+        assert_eq!(w.replay(), w.path);
+    }
+    assert!(outcomes.windows(2).all(|p| p[0] == p[1]), "{outcomes:?}");
+    assert_eq!(outcomes[0], (Ok(1), Some(Slots { quota: 2, used: 1 }), 2));
 }

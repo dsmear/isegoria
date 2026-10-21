@@ -142,6 +142,8 @@ pub enum Refused {
     Malformed(Malformed),
     Unproven(Unproven),
     AlreadyInPool,
+    /// This author already deposited this content: the request is not repeated. Only the
+    /// author's own deposits answer it, never another author's; it is not a plagiarism check.
     Duplicate {
         question: u64,
     },
@@ -176,7 +178,7 @@ pub struct AnswerPath {
     pool: Vec<Nym>,
     in_pool: BTreeSet<Nym>,
     seals: BTreeMap<u64, Seal>,
-    contents: BTreeMap<Cid, u64>,
+    contents: BTreeMap<(Nym, Cid), u64>,
     entries: Vec<Entry>,
     slots: BTreeMap<(u64, Nym), Slots>,
     authors: BTreeMap<Nym, AuthorRecord>,
@@ -257,7 +259,7 @@ impl AnswerPath {
             Role::Propose,
             &deposit_context(content, epoch),
         )?;
-        if let Some(&existing) = self.contents.get(&content) {
+        if let Some(&existing) = self.contents.get(&(author, content)) {
             return Err(Refused::Duplicate { question: existing });
         }
         let slots = self.slots.get(&(epoch, author)).copied().unwrap_or(Slots {
@@ -275,7 +277,7 @@ impl AnswerPath {
             epoch,
             round: Round::Pending,
         });
-        self.contents.insert(content, number);
+        self.contents.insert((author, content), number);
         let used = slots.used + 1;
         self.slots.insert((epoch, author), Slots { used, ..slots });
         Ok(Applied::Deposited {
