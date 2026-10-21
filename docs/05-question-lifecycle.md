@@ -1,43 +1,125 @@
 # Question lifecycle and protocol
 
-Orchestration of the whole process. Each stage indicates what it prevents (the attack
-it neutralizes).
+The current Phase 1 contract is the answer review below (D49–D53). The later
+numbered steps [1]–[9] specify the separate, retained forecast-and-pilot path; none is
+an additional acceptance gate for the answer review.
 
-```
- [1] Draft          author fills in item + mandatory primary source
-      ↓
- [2] Deposit        reputation bond (not money) + hash on append-only log
-      ↓
- [3] Admission      LOTTERY: from the deposited drafts, a randomly drawn subset
-                    enters the pipeline (the queue does not explode)
-      ↓
- [4] Review         k reviewers assigned AT RANDOM, blind, commit-reveal
-      ↓
- [5] Bridging       S_j ≥ τ → passes;  S_j in band → k_extra more reviewers, re-decision
-      │                 (so is an item one side never rated, whatever S_j: `02` §A.3, D42)
-      ↓                 │
-      │                 └──→ [5b] APPEAL TO EVIDENCE
-      ↓                          if discarded for polarization (wide side gap), not for
-      │                          a defect — below the band or failing the re-decision;
-      ↓                          the author stakes reputation (`01` D27)
- [6] Pilot 1        initial screen, provisional floor ~300 respondents
-      ↓
- [7] Pilot 2        sample by format and power, IN BATCHES: IRT + latent DIF
-      ↓                 │
-      │                 └──→ [7b] CONTESTED FACT
-      │                          DIF, but the cited primary source establishes the key
-      │                          (`02` §B.5): a separate pool, drawn into a test only in
-      ↓                          balanced sets (`01` D38)
- [8] Active pool    usable; periodic re-validation of the whole pool
-      ↓
- [9] Retirement     exposure, drift, obsolescence, emerging DIF
-```
+## The answer review (`01` D49–D52)
+
+The offline path of the first implementation, on the owner's approved contract. It is separate
+from the steps [1]–[9] below and reuses none of their filters as a condition of acceptance:
+bridging, the band, the appeal, the pilot, IRT, DIF, contested facts, the source check and the
+admission lottery have no role in it, and the coordination detector changes nothing in it
+automatically (D52). Its parameters — the group of 12, the quorum of 9, the threshold of three
+quarters, the weight 1/4 and the quota bands — are provisional and uncalibrated (`14`).
+
+1. **Creation.** The author supplies the question, its context, its alternatives and the
+   alternative stated as correct (the key). No source is asked for, and nothing checks one. The
+   question is immutable: a correction is a new question, and the key is never replaced.
+2. **Deposit and quota.** An accepted deposit consumes one of the author's slots for the epoch:
+   1, 2 or 3 from the author's reputation, 2 for a new author, fixed once per epoch (D51, `02`
+   §C.1). An invalid request consumes none; a duplicate creates no other question and consumes
+   no second slot; no slot is refunded, carried over or changed within the epoch.
+3. **Draw.** 12 distinct reviewers are drawn at random from the available pool, with no
+   competence filter and equal weights. If 12 distinct reviewers cannot be drawn, the draw returns
+   an explicit unavailability; the group is never silently reduced.
+4. **Answers.** Each drawn reviewer commits, then reveals, one of: an alternative, "none of the
+   alternatives is correct", "don't know". The key is not shown before the commitment, and no
+   reviewer sees another's answer before committing. Reviewers may use any resource; their
+   sources are not collected and their tools not detected. No reviewer is replaced, and none is
+   penalized for an abstention or an absence; ordinary reviews update no reviewer reputation.
+5. **Closure.** An explicit event closes the round; it never closes by itself at the ninth
+   answer, and there is no real deadline, early closure or automatic retry. After the closure no
+   answer enters the round.
+6. **Outcome.** `V` is the number of usable answers (alternatives and "none"), `C` the number
+   that coincide with the key; "don't know" (an abstention) and a drawn reviewer with no answer
+   (an absence) count in neither:
+   - `V < 9`: insufficient participation — not a discard;
+   - `V ≥ 9` and `4C ≥ 3V`: accepted;
+   - `V ≥ 9` and `4(V − C) ≥ 3V`: discarded — "none" counts against the key, and the dissenters
+     need not agree on an alternative;
+   - otherwise: divided answers — not a demonstrated ambiguity.
+
+   The full distribution — each alternative's count, "none", the abstentions and the absences —
+   is kept with the outcome. There is no new round.
+7. **Reputation.** The outcome and the author's observation are recorded together, atomically and
+   once per question: accepted 1 at weight 1, discarded 0 at weight 1, divided 0 at weight 1/4,
+   insufficient participation no observation (D50, `02` §C.1). An observation counts from the
+   next epoch; a corrected question adds its own and erases none.
+8. **Epochs.** Epochs are logical and close by an explicit offline event; the next epoch's
+   quotas read the observations recorded before it.
+9. **Usable questions.** Only accepted questions enter the answer review's usable set. That set
+   says nothing of the whole quiz: no fairness of the quiz is guaranteed, A2's whole-test
+   guarantee is not required here and A2 stays unresolved, and accepted questions do not show
+   that a quiz measures D45's and D46's capabilities (D52).
+
+Consensus is the operational criterion, not a guarantee of truth: an accepted key may be wrong,
+a discarded one right (D48's accepted risks: shared errors, different competences under equal
+weights, superficial reviews, coordination).
+
+**Implementation (`10` T87, offline; done 2026-10-21 after Astra's final review, which closes T87
+and Phase 1 in this path's perimeter only: `15`).** `protocol::answer_path::AnswerPath` is the
+path's state, a function of its accepted events (`protocol::answer_events::AnswerEvent`) applied in
+order, each checked whole before it applies; `protocol::answer_node::AnswerNode` pins the
+configuration (`AnswerConfig`: the rule, the weight 1/4, the bands, `H`) in its log's first record,
+writes each accepted event and replays the log on open. The outcome rule and the distribution are
+`protocol::answer_rule`, the question and answers `protocol::answer`, the author's record and quotas
+`protocol::answer_author` over `scoring::reputation::author_score_weighted`. Technical choices the
+contract leaves to the implementation:
+- *Question.* Well formed when its context and text are not empty, it has 2 to 256 alternatives,
+  none empty and no two equal, and its key names one of them; otherwise the deposit is an invalid
+  request. Its content id covers context, text, alternatives and key.
+- *Duplicates.* A duplicate is the same author's repeated deposit of the same content id: no new
+  question, no second slot, also at an exhausted quota. It is read per author, the author being
+  the one the valid proof establishes, so no answer to a deposit depends on another author's
+  question or its key (AT-ANS-14): two authors depositing the same content make two questions,
+  and a question that differs in its key alone is a new one. This is the idempotence of an
+  author's requests, not a global plagiarism check. (A global check, keyed by content and read
+  before the quota, revealed another author's key; Astra found it, corrected in `822fa22`.)
+- *Identities.* An author deposits under the `Propose` pseudonym its proof establishes, bound to
+  the content id and the epoch (`deposit::deposit_context`); a reviewer joins the pool and commits
+  under its `Judge` pseudonym, each proof bound to its action (INV-9).
+- *What reviewers see.* A question is known to its reviewers by its number and its view
+  (`Question::view`): context, text and alternatives, no key, and no content id, from which the
+  key could be recovered. The offline state and log hold the key in clear: neither the view nor
+  the per-author duplicates give any confidentiality toward whoever can read them.
+- *Pool and draw.* The pool is append-only. The open epoch's explicit closure records the epoch's
+  beacon value, an input the offline path takes from its caller, and how many reviewers have
+  joined. A question is drawn after its deposit epoch closes, from those reviewers, seeded from
+  that epoch's beacon value and the question's number (`randomness::ANSWER_DRAW`): 12 distinct,
+  uniformly (`lottery::admit`), in canonical order, whatever the order they joined in. With fewer
+  than 12 the round is `Unavailable` and has no group; since its inputs are fixed, the draw is
+  not repeated. The code makes the draw reproducible from these inputs and lets nothing change
+  them after the closure; it does not ensure that the caller did not choose the beacon value by
+  trying several. **Assumption of the offline path:** the program that drives it supplies the
+  random input correctly, without selecting it for a desired group. The owner confirmed for the
+  first offline version (`01` D53) that joining the pool is availability, with no exit or
+  availability per epoch; that the draw follows the deposit epoch's closure; and that an
+  unavailable question stays so for good — its slot spent, no observation, no new attempt, not
+  recovered by reviewers who join later, the same author's identical deposit still a duplicate.
+- *Commit-reveal.* Drawn reviewers commit `H(answer, nonce, reviewer, question)` with a proof bound
+  to the commitment; an explicit end of commits opens the reveals, so protocol reveals cannot occur before
+  the commitment phase closes. A reviewer who commits and does not reveal is an absence. The closure
+  needs the end of commits.
+- *Epochs and time.* Epochs are numbered from 0; each explicit closure is a closing, the age unit
+  of the author's observations, as `02` §C.1's contract with one closing per epoch and no skipped
+  identifier. An observation records the epoch and closings of its round's closure.
+- *Quota.* Fixed at the author's first accepted deposit of an epoch and kept with its count; a new
+  author is one with no observation counting in the epoch.
+- *Results.* Each closure carries its distribution, verdict, the rule that decided it and its
+  observation with its weight; the configuration is in the log. Accepted questions are usable
+  from their closure.
 
 ---
 
+## Previous forecast-and-pilot path
+
+The remaining sections specify the retained legacy path. Its mandatory source,
+lottery, reviewer forecasts, filters and appeals do not apply to the answer review.
+
 ## [2] Deposit and [3] admission by lottery
 
-The cost of proposing is reputation and rate limits (rate-limiting nullifier, `03`),
+The cost of proposing is reputation and rate limits,
 never money.
 
 **Why a lottery** (`01` D10). Admission must stay within measured validation capacity.
@@ -83,8 +165,18 @@ reveal) draws nothing; its deposits wait for the next epoch.
 - Vote-buying neutralized: you do not know in advance what you will judge, and there
   is no verifiable receipt.
 
-The reviewer **declares a probability** that the item passes validation (not a
-yes/no): input for the evaluator score `S_u` (`02` C.2).
+**Under D47 the reviewer answers the item.** The code still has the reviewer **declare a
+probability** that the item passes validation (not a yes/no): the previous design's input for
+bridging and for the evaluator score `S_u` (`02` §C.2). Reviewers work in an open environment
+(`01` D45) and may consult any resource; they do not state or record the sources they consult,
+and the system does not detect, infer or assess their use of outside tools (D47). The author's
+source at [1] is a separate, open question. Under D48 the drawn reviewers' answers carry equal
+weights, a reviewer may answer that no alternative is correct, and their consensus is the review's
+operational criterion, specified for the answer review [above](#the-answer-review-01-d49d52); the
+weights, probation and stratified draw described above are the existing path's.
+A panel's agreement, with the key or among its members, does not show that the key is true, that
+its checks were independent or that its reviewers are reliable (D48's accepted risks: shared
+errors, different competences under equal weights, superficial reviews, coordination).
 
 ---
 
@@ -99,17 +191,22 @@ two sides' predicted approval (`02` §A.3), not a formal defect — whether it w
 below the band or failed the band's re-decision (`01` D26, amended by T59), can, at the
 author's initiative, **skip review and go straight to the pilot**:
 
-- filing escrows a zero-quality pseudo-observation in the author's history, so `C_a`
-  falls at once; an author whose `C_a` is below the stake floor — the prior mean of
-  `02` §C.1 — cannot file (`01` D27, T61)
+- filing escrows a zero pseudo-observation, at weight 1, for the appealed item in the
+  author's history, so `C_a` falls at once; an author whose `C_a` is below the stake
+  floor — the prior mean of `02` §C.1 — cannot file (`01` D27, T61). An epoch's requests
+  are checked one at a time in item-CID order, each counting the escrows admitted before
+  it, and a request outside the appeal window is refused before its coverage is read (`02`
+  §C.1). Filing starts the appeal: the record that escrows the zero moves the item to the
+  pilot in the same event, or neither happens, so no stake is held for an appeal that
+  cannot start; the stake is not checked a second time
 - if the Level B psychometrics **promote** it — to the active pool, or to the contested
-  pool when its DIF concerns a sourced fact ([7b]) — the pseudo-observation is replaced
-  by the item's real quality: the author gains a real, good observation, having been
-  right against the opinion filter — there is no additive bonus
-- if it **fails**, the zero stands — it is the item's real result — and it costs the
-  next appeal until the author's average has recovered
+  pool when its DIF concerns a sourced fact ([7b]) — the escrow becomes a pass, the
+  author's observation for having been right against the opinion filter; there is no
+  additive bonus, and the item counts once (`02` §C.1)
+- if it **fails**, the zero stands as the item's outcome, and it bars the next appeal
+  while `C_a` stays below the floor
 - only the pilot's conclusion settles the appeal: while the pilot is pending, as after an
-  indeterminate stage, the escrow stays open (`15` A11 (f))
+  indeterminate stage, the escrow stays open at weight 1 (`15` A11 (f), C5–C6)
 
 It is the only way to recover "true but inconvenient", moving the decision from peer
 judgment to the data.
@@ -128,6 +225,11 @@ is not established. A fit that did not converge gives no verdict: the screen is
 indeterminate and the item stays in `Pilot1` or `Explored`, neither rejected nor
 measured; this schedules no new attempt and does not guarantee the pilot ends (`02` §B.2,
 `15` A11).
+
+Pilot answers are produced in the open environment of `01` D45. The fitted parameters are the
+declared model's on those answers; what they mean relative to unaided knowledge or the use of
+outside resources is still to be established, and they do not show how an answer was
+produced.
 
 **Stage 2, only for survivors.** The anonymous re-check has a code admission floor of
 3,000 distinct respondents. The 1,500 floor belongs to the group-labelled calibration
@@ -193,9 +295,10 @@ measured on the new fit — which gives contested facts from different batches o
 classes, where they can balance each other; one whose source no longer passes the check
 (the act was amended) retires, as does one made obsolete (the act was repealed, [9]).
 
-**Scores.** A contested fact is admitted to the bank: the reviewers who judged it are
-scored as for an item that reaches the pool (`o_j = 1`, `01` D35), and an appeal that
-ends in the contested pool is promoted ([5b], `01` D27).
+**Scores.** A contested fact is admitted to the bank: in the implemented forecast path the
+reviewers who judged it are scored as for an item that reaches the pool (`o_j = 1`, `01` D35;
+previous design, D47), and an appeal that ends in the contested pool is promoted ([5b], `01`
+D27).
 
 ---
 
@@ -224,6 +327,10 @@ An item used a lot gets memorized and circulates: it loses value. Countermeasure
 
 ## Golden items (honeypot)
 
+> **D47 (2026-10-21).** Golden items and exploration scored the previous design's forecast.
+> Exploration is suspended; whether and how golden items serve the reviewers' reliability belongs
+> to the evaluation D48 defers. The implemented paths below stay current behaviour.
+
 > **Extended by D35 (T52, done).** Golden items stay at 5%, but alone they are too few to
 > learn an evaluator's skill (about one every two epochs per reviewer). Evaluators are
 > also scored on every reviewed item that reaches Level B and on a random 5% of gate
@@ -251,7 +358,9 @@ defense against meta-level capture: they must not be choosable by anyone.
   outcomes, and never again after a change-detector alarm (`01` D34).
 - No differential weight before 30 scored outcomes per node (the probation period,
   `03` P2; `01` D36, T50 — was 200), then the shrinkage of the odds weight toward 1 as
-  evidence accumulates (`02` §C.2).
+  evidence accumulates (`02` §C.2). These count forecast scores: implemented, suspended as a
+  specification by D47; D48's first implementation weighs reviewers equally, with no reputation
+  update from ordinary reviews.
 - Start from a **low-political-temperature domain** (e.g. verifiable administrative
   procedures) to calibrate `τ`, `λ`, `k`, `ε` on real data before tackling hot
   questions.

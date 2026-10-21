@@ -1,0 +1,1 @@
+$ cargo run --release -p characterization --bin a2-probe -- run --phase ind-val --calibration verification/reports/a2-ind-cal-7bbfddb --jobs 8 --max-cpu-s 14400 --max-wall-s 3600 --max-run-s 600 --max-rss-mib 2048 --out characterization-results/a2-ind-val-185ec93

@@ -1,8 +1,8 @@
-"""Section 3.4: the origin of the latent axis decides how majoritarian the bridge score is.
+"""Section 3.4: the latent-axis origin affects the majoritarian bridge score.
 
-Mirror-pair design (common.mirror_design): the leak is the gap b(P+) - b(P-) as a fraction of
-the gap a camp-size-weighted mean would produce, 2 (pi_B - pi_A) delta. Proposition 2 predicts
-1 / (1 + rho) with rho = (lam_b / lam_f) sqrt(S / N), S = sum of squared item leans.
+Mirror-pair leak: b(P+) - b(P-) divided by the camp-size gap, 2 (pi_B - pi_A) delta.
+Historical approximation: 1 / (1 + rho), rho = (lam_b / lam_f) sqrt(S / N), raw S.
+The fitted identity and residual bound in docs/15 A9 are not verified by this script.
 Writes data/levelA_leak.csv.
 """
 import numpy as np

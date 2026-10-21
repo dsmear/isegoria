@@ -129,8 +129,10 @@ least under the system's control, because respondents are self-selected members 
     validation capacity, not proposals, is the bottleneck.
   \item \textbf{Review.} Each admitted item is reviewed blind by $k=7$--$11$ reviewers,
     assigned at random and stratified on their estimated latent position. Each reviewer
-    declares a probability that the item will pass empirical validation; that number is both
-    the rating used by Level~A and the forecast scored by Level~C.
+    declares a scalar probability, used as both the Level~A rating and the Level~C forecast.
+    The September design meant passing empirical validation; the O1 decision of 11 October
+    2026 changes A1's target to $q_c$ where $c>0$, undefined at $c=0$
+    (\cref{prop:ipw}). The implemented binary path has not been adapted.
   \item \textbf{Bridging gate.} Level~A computes a bridge score $B_j$. The item passes if
     $B_j\ge\tau+\varepsilon$. If $B_j$ falls in the band $[\tau-\varepsilon,\tau+\varepsilon)$,
     the item gets more reviewers and is re-decided against $\tau$. Below the band, it is

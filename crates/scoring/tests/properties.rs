@@ -134,7 +134,7 @@ proptest! {
 // ------------------------------- Level C -------------------------------
 
 proptest! {
-/// `C_a` is a posterior mean, always strictly inside (0, 1), and never lowered by a better item.
+    /// `C_a` stays strictly inside (0, 1) and is never lowered by a better item.
     #[test]
     fn author_score_is_a_probability_and_rewards_quality(
         items in prop::collection::vec((0.0f64..=1.0, 0.0f64..120.0), 0..12),
@@ -149,6 +149,24 @@ proptest! {
             let j = which.index(q.len());
             better[j] = 1.0;
             prop_assert!(author_score(&better, &age, &p) >= c);
+        }
+    }
+
+    /// C6 (`docs/15`): adding Δ to every age moves `C_a` toward α₀/(α₀+β₀), never across it.
+    #[test]
+    fn c6_common_aging_moves_c_a_toward_the_prior_mean_never_across(
+        items in prop::collection::vec((0.0f64..=1.0, 0.0f64..120.0), 1..12),
+        shift in 0.0f64..240.0,
+    ) {
+        let p = AuthorPrior::default();
+        let mean = p.alpha0 / (p.alpha0 + p.beta0);
+        let (q, age): (Vec<f64>, Vec<f64>) = items.iter().copied().unzip();
+        let aged: Vec<f64> = age.iter().map(|a| a + shift).collect();
+        let now = author_score(&q, &age, &p) - mean;
+        let later = author_score(&q, &aged, &p) - mean;
+        prop_assert!(later.abs() <= now.abs() + 1e-12, "{now} -> {later}");
+        if now.abs() > 1e-6 {
+            prop_assert!(later.signum() == now.signum(), "{now} -> {later}");
         }
     }
 

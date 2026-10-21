@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | The five items `docs/07` §13 asks of every threshold in `docs/02`'s parameter table — why it exists, how it is calibrated, how much the mechanism depends on it, what breaks if it moves, where its value is fixed — so that no threshold is an accidental constant (SC-1, `docs/08` §16.1). |
 | **Derived from** | `docs/02` (the parameter table, §A.1–§A.3), `docs/13` §7.4 and §8.7.4 (the measurements), `docs/01` (the decisions), `docs/05` [4]–[5b], `docs/10` T25 step 4. |
-| **Status** | Level A written (2026-10-01). Level B waits on the supplement's DIF studies run again on the corrected model (`docs/13` §8.8); Level C gets its procedures next, its values provisional until the pilots (T27). |
+| **Status** | Level A written (2026-10-01). Level B waits on the supplement's DIF studies run again on the corrected model (`docs/13` §8.8). Level C's restricted A12 offline candidate has procedures below (2026-10-12), without a calibrated operating point; the remaining Level C entries and operational values remain pending. Under D47 (2026-10-21) the forecast path's Level C entries and the A12 procedures are suspended (Level C below). The answer review's parameters (D49–D52, 2026-10-21) are approved as provisional and uncalibrated: the group of 12, the quorum of 9, the threshold of three quarters, the weight 1/4 of divided answers and the quota bands ([The answer review](#the-answer-review--provisional-uncalibrated)); no calibration procedure or operating point is decided for them. `k` below is the bridging panel's size, which the answer review does not use. |
 
 ## How to read an entry
 
@@ -185,6 +185,68 @@ The register records provisional values; it does not close those findings.
 - **Location.** No constant: the protocol takes the panel its caller draws (`k` in
   `review::assign_reviewers` and `assign_diverse`); `docs/02`'s table, `docs/05` [4].
 
+## The answer review — provisional, uncalibrated
+
+The owner approved these values with the answer review's contract (`01` D49–D52, 2026-10-21) as
+provisional initial parameters, not calibrated. No calibration procedure, operating point or
+study is decided for them, and no campaign is run; their sensitivity is not measured. A value
+changes only through a decision record, and the configuration pinned in a log does not change
+under it (`01` D52).
+
+### The drawn group — 12 distinct reviewers
+
+- **Reason.** The number of reviewers drawn at random from the pool for one question's round
+  (D49). Fewer than 12 in the pool is an explicit unavailability, not a smaller group.
+- **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
+- **If it moves.** Larger: more usable answers per round and fewer rounds below the quorum, at
+  more reviewers' time; smaller: fewer answers decide, and a pool reaches it sooner.
+- **Location.** `01` D49, D52; `protocol::answer_rule::ConsensusRule::default()`. The
+  configuration is pinned in the log's first record (`protocol::answer_node`), and each closure
+  carries the rule that decided it.
+
+### The quorum — 9 usable answers
+
+- **Reason.** The fewest usable answers (alternatives chosen and "none") for an outcome; below
+  it the round ends in insufficient participation, which is not a discard and gives the author
+  no observation (D49, D50). Abstentions ("don't know") and absences do not count toward it.
+- **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
+- **If it moves.** Up: more rounds end in insufficient participation; down: fewer answers
+  decide an outcome.
+- **Location.** `01` D49, D52; `ConsensusRule::default()`, as the group.
+
+### The threshold — three quarters (`4C ≥ 3V`, `4(V − C) ≥ 3V`)
+
+- **Reason.** The share of usable answers that accepts (coinciding with the key) or discards
+  (not coinciding, "none" included) a question; between the two, divided answers (D49). The
+  comparisons are exact in integers.
+- **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
+- **If it moves.** Up: fewer acceptances and discards, more divided answers; down toward one
+  half: more questions decided by a narrower majority. At one half or below, acceptance and
+  discard could both hold, so the rule needs a threshold above one half.
+- **Location.** `01` D49, D52; `ConsensusRule::default()`, as the group.
+
+### The weight of divided answers — 1/4
+
+- **Reason.** The observation weight of a divided round in the author's index, a failure of
+  value 0 (D50); accepted and discarded rounds weigh 1.
+- **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
+- **If it moves.** Toward 1, divided answers cost the author as much as a discard; toward 0,
+  nothing.
+- **Location.** `01` D50, D52; `protocol::answer_path::AnswerConfig::default()`, pinned with
+  the rest; each observation carries its weight.
+
+### The quota bands — 1, 2 or 3 questions per epoch at 0.30 and 0.70; a new author 2
+
+- **Reason.** An author's quota, fixed once per epoch from D50's reputation: 1 below 0.30, 2
+  from 0.30 below 0.70, 3 from 0.70; a new author 2 (D51). The comparisons are in binary64
+  against the decimal values.
+- **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
+- **If it moves.** The bands decide how many questions an author deposits in an epoch; with the
+  prior at 0.40 an author needs failures to fall to 1 and a sustained record of acceptances to
+  reach 3.
+- **Location.** `01` D51, D52; `protocol::answer_author::QuotaBands::default()`, pinned with the
+  rest. The prior `(2, 3)` and `H` are §C.1's, below; `AnswerConfig` pins `H` too.
+
 ## Level B — the empirical validation
 
 To be written by step 4 once the supplement's DIF studies have run on the corrected model
@@ -194,7 +256,96 @@ floor prior's weight, `KR20_MIN` or a minimum number of anchors, `N_LATENT_MIN`,
 
 ## Level C — reputation and coordination
 
-To be written by step 4, with procedures and values provisional until the pilots (T27):
-`γ` and `k₀`, the CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the implemented
-reputation decay time `T` (half-life `T ln 2`; the intended convention is a decision,
-`15` C6), the honeypot and exploration rates, `α`, `min_shared`, `ρ_min` and `p_max`.
+**D47 (owner, 2026-10-21).** Reviewers answer the item; the reliability measure and its
+reputation update are still to define ([`01` D47](01-decisions.md)). **D48** defers that
+evaluation for the first implementation, which weighs reviewers equally and updates no reviewer
+reputation from ordinary reviews ([`01` D48](01-decisions.md)). The parameters of the
+previous design's forecast path — `γ`, the odds model's `k₀`, the CUSUM's `k` and `h`, `w_max`,
+`N_PROBATION`, the honeypot and exploration rates, and A12's `η`, `k₀`, probation and cap below —
+are suspended: no procedure or value is to be written for them until the new mechanism says
+whether they survive. The coordination parameters (`α`, `min_shared`, `ρ_min`, `p_max`) and the
+author's `H` are not affected. The answer review (D49–D52) uses none of the forecast path's
+parameters; its author index keeps the prior `(2, 3)` and `H` with D50's inputs, and its own
+parameters are [above](#the-answer-review--provisional-uncalibrated).
+
+Remaining legacy/operational entries to be written by step 4, with procedures and values
+provisional until the pilots (T27): `γ` and the old odds model's `k₀`, its punitive
+CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the honeypot and exploration rates, `α`,
+`min_shared`, `ρ_min` and `p_max`.
+
+### `H` — author weight half-life (45 applied closings, provisional)
+
+- **Reason.** Candidate B and the authoritative-cut amendment were adopted by the owner
+  on 2026-10-17, with a nominal 28-day cadence and long memory (`15` C6, closed on the
+  offline candidate `825cabc`; the value stays provisional and uncalibrated). An outcome's
+  weight is `exp(−(k − k_j)/(H/ln 2))`; the prior remains `(2,3)`. Identifiers skipped
+  without applied closings add no age. Empty closing cuts count; open escrows do not age.
+- **Calibration.** Not calibrated. `H = 45` gives a half-life of 1,260 nominal days at
+  28 days per closing, about 3.5 years, retaining about 82% of a weight after 13 closings.
+  These are nominal scenarios, not real-calendar guarantees. T25/T83/T27 still determine
+  operational calibration; no new campaign is authorized or run by this choice.
+- **Sensitivity.** Larger `H` preserves both past passes and failures longer; smaller `H`
+  discounts them faster. Neither changes the prior, the fixed escrow, binary quality or
+  the ordering of a closed request set. A different cadence changes the real half-life.
+- **If it moves.** Coverage and quota values can change; no historical log may silently
+  replay under another `H`. This candidate supports immutable configuration per log,
+  with no parameter-update governance or retroactive change. A future change needs its
+  effective epoch and replay contract decided first.
+- **Location.** `author_time::AuthorConfig::default()` explicitly supplies the provisional
+  `45`; `new(H)` accepts positive integer counts, used by explicit fixture configurations
+  and `Node::open_with_config`. The versioned offline log pins that configuration in its
+  first record and rejects a mismatch before replay. `Ledger::new` supports the fixed
+  initial `H = 45` only; no custom ledger configuration is claimed to be authenticated.
+- **Nominal cadence.** 28 days is shared operational intent documented here; no new driver
+  option, timestamp, clock rule or consensus check is implemented. Today's driver closes
+  by `cuts_per_epoch`, so its actual elapsed cadence can differ or stall. `E_m` and the
+  protocol's conversion from identifier differences to months are retired.
+
+### A12 offline affine candidate — procedure contract, 2026-10-12
+
+> **Suspended under D47 (2026-10-21).** Kept as the record of the procedures A12's closure
+> relied on; it calibrates nothing for D47's mechanism. Its dossier `16` is archived.
+
+These entries apply only to [`16` §7.2](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
+They do not calibrate or replace the current Rust odds/reset path. Example values and
+exact test fixtures are not operating choices. The current candidate fixes probation at
+30 terminal A/R/I assignments and the cap multiplier at 3; `η` and `k₀` must be explicit
+inputs. No new parameter measurements or campaigns were run for these procedures. The owner-approved
+binary64 conversion allowance (`16` §7.2) is a structural numerical bound, not a tunable
+parameter or an empirically calibrated tolerance: one final nearest-even conversion,
+absolute error at most `2^-53` and expected deviation advantage at most `M · 2^-52` over
+fixed opportunities. Parameter comparisons must state whether they report exact rational
+utility or the mathematical sum of the converted coefficients; neither is fit error.
+
+**Common procedure.** Before measuring, freeze the candidate revision, complete assignment
+and opportunity calendars, invariant signal/reference model, finite horizons, held-out
+scenarios and parameter grid. Record the owner's operating objectives and permissible
+weight variability/concentration, onboarding delay and diagnostic false-alarm budgets
+before selecting a point. Use no personal attributes. Compare the same exogenous histories
+and opportunities for every candidate point; report results per declared scenario, rather
+than postselecting completed histories. Separate algebraic bounds, finite exact checks and
+measured distributions. Operational pilot observations can inform the scenario law but do
+not establish information invariance or make conditional incentive results unconditional.
+If no point meets the recorded objectives, report that result rather than relaxing them.
+Any costly campaign requires the existing authorization; this procedure authorizes none.
+
+| Parameter | Reason and admissible domain | Procedure and observable | Sensitivity / if it moves | Where fixed |
+|---|---|---|---|---|
+| `η` | Sets the size of the score's contribution; `0 < η ≤ 4/5` preserves the proven range and slack cap. | On the frozen grid, report the weight distribution, concentration, finite-horizon truthful-versus-deviation expected-weight gaps, and variation between adjacent complete prefixes. Select jointly with `k₀` against the owner's recorded objectives; record ties explicitly. | Not measured. For fixed `k₀`, every established score contribution and every gap in the accepted proof scales linearly with `η`; small `η` can make incentives practically negligible despite exact weak optimality. Above `4/5`, the range/cap argument is no longer this proof. | Explicit offline input; no default. An operating point belongs in `01` before use; domain in `16` §7.2. |
+| `k₀` | Shrinks accumulated scores toward unit weight; `k₀ ≥ 0`. | Joint grid with `η`; report response to sustained changes in forecast quality, prefix-to-prefix variability, time/exposure to the recorded target weight separation, and cumulative-weight gaps over each horizon. Retain an admissible point only if all declared objectives hold on the held-out scenarios. | Not measured. Larger `k₀` reduces the contribution at every fixed exposure and slows separation; smaller increases it. It does not alter probation eligibility. At zero the established denominator is still at least 30. | Explicit offline input; no default. The old odds model's `100` and the proof examples supply no calibrated value here. |
+| Probation `30` | Requires a fixed number of observed verified terminal assignments before affine weight; I counts as an observed terminal with zero score. | At the frozen rule, report time to 30 under declared exogenous completion rates, founder/non-founder exposure, weight distribution at entry and later stability. If an alternative fixed positive threshold is proposed, review its rule and acceptance tests before reusing measurements. | Not measured. Longer delays non-founders' positive weight and extends founders' unit bootstrap; shorter admits less score history. A stopping time selected from score, outcome or arrival is outside the fixed calendar proof. | `16` §7.2 and the offline candidate; not a tunable CLI parameter in this version. Changing it requires a recorded rule change. |
+| Cap multiplier `3` | Preserves the existing cap form while making it slack on the homogeneous affine/founder carrying roster. | Check all roster weights satisfy the accepted bounds and exclude zero-weight probationers from the median. Test empty, odd and even carrying rosters. No fitted threshold is needed for this mathematical identity. | Algebraic: established weights are in `[2/5, 6/5]`, founder bootstrap is 1, hence `3 × median ≥ 6/5`. A smaller multiplier or mixed odds roster needs a new composition review. | Fixed by `16` §7.2; this is a structural condition, not an empirical operating point. |
+
+**Diagnostic CUSUM (optional for amended A12; `16` §7.3).** With `diagnostic_policy: none`,
+the offline reference path has no detector effect on the amended incentive quantities; it
+rejects other policies. Its absence does not block conditional A12 closure. The path does not implement a detector or adopt
+the old `k = 0.03`, `h = 1.5`. Before adding one, freeze its statistic, preceding-history
+reference, allowance, threshold, initialization/reset and I treatment on the new score;
+record them here and in `02`. On held-out invariant complete histories, measure false
+alarms per reviewer-horizon and detection delay under declared sustained forecast-quality
+changes, jointly over allowance/threshold and at the chosen `η`, `k₀`, probation and horizon.
+Select only against the owner's recorded diagnostic budgets. The emitted diagnostics must
+remain unavailable to reporting/assignment policies during the compared horizon and have
+no effect on scores, counts, weights, eligibility, resources or opportunities. Detector
+state resets, if specified, must not reset reputation. Until this contract and its evidence
+exist, diagnostic behavior is unimplemented; prior detector rates do not characterize it.

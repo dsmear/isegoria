@@ -2,9 +2,10 @@
 //! fit's per-reviewer weights ([`bridging_weights`], D33) and drives an item's stage
 //! transitions through `lifecycle::step` ([`run_item`], [`review_round`]).
 
-use crate::appeal::{AppealOutcome, AuthorHistory, Escrow};
+use crate::appeal::{pilot_outcome, AuthorError, AuthorHistory};
+use crate::author_time::AuthorPoint;
 use crate::gate::GateOutcome;
-use crate::lifecycle::{step, Event, Invalid, RejectReason, State};
+use crate::lifecycle::{step, Event, Invalid, State};
 use crate::pilot::Screening;
 use crate::probation::{effective_review_weight, status, Status};
 use crate::revalidation::Recheck;
@@ -94,6 +95,26 @@ pub fn weighted_ratings(
         .with_axis(axis_mask(prev));
     ratings.validate()?;
     Ok(ratings)
+}
+
+/// First-panel A12 input from a caller-pinned complete offline epoch (`docs/16` §7.2).
+pub fn affine_first_ratings(
+    r: &[Vec<f64>],
+    mask: &[Vec<bool>],
+    rows: &[Nym],
+    epoch: &crate::affine_weights::FrozenAffineEpoch,
+) -> Result<crate::affine_weights::AffineRatings, crate::affine_weights::AffineError> {
+    crate::affine_weights::AffineRatings::first(r, mask, rows, epoch)
+}
+
+/// Supplementary A12 input retaining the first panel's pinned epoch and row bits.
+pub fn affine_supplementary_ratings(
+    base: &crate::affine_weights::AffineRatings,
+    epoch: &crate::affine_weights::FrozenAffineEpoch,
+    item: usize,
+    reveals: &[(Nym, f64)],
+) -> Result<crate::affine_weights::AffineRatings, crate::affine_weights::AffineError> {
+    base.supplementary(epoch, item, reveals)
 }
 
 /// The gate and pilot verdicts an epoch computes for one item, for [`run_item`].
@@ -318,33 +339,20 @@ pub fn run_item(
     Ok(s)
 }
 
-/// Settles an appeal's escrow on its pilot's conclusion (D27): the pool, or the contested pool
-/// (D38), promotes it via `quality`; a pilot rejection leaves the zero standing. Any other state,
-/// a pilot still pending included, settles nothing and hands the escrow back (`docs/15` A11).
+/// Why [`settle_appeal`] settled nothing: the state concludes no pilot, or the history refused.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Unsettled {
+    Pending,
+    Refused(AuthorError),
+}
+
+/// Settles `item`'s escrow at `at` with the outcome `terminal` concludes; else nothing (D27, A11).
 pub fn settle_appeal(
     author: &mut AuthorHistory,
-    escrow: Escrow,
+    item: Cid,
     terminal: &State,
-    quality: f64,
-) -> Result<(), Escrow> {
-    let outcome = match terminal {
-        State::ActivePool | State::Contested => AppealOutcome::Promoted { quality },
-        State::Rejected(RejectReason::Screen | RejectReason::Dif) => AppealOutcome::Failed,
-        State::Deposited
-        | State::Admitted
-        | State::InReview { .. }
-        | State::Revealing { .. }
-        | State::SupplementaryReview { .. }
-        | State::AppealEligible
-        | State::Pilot1 { .. }
-        | State::Pilot2 { .. }
-        | State::Rejected(
-            RejectReason::Defect | RejectReason::Polarized | RejectReason::Borderline,
-        )
-        | State::Explored { .. }
-        | State::Measured { .. }
-        | State::Retired(_) => return Err(escrow),
-    };
-    author.settle(escrow, outcome);
-    Ok(())
+    at: AuthorPoint,
+) -> Result<(), Unsettled> {
+    let passed = pilot_outcome(terminal).ok_or(Unsettled::Pending)?;
+    author.settle(item, passed, at).map_err(Unsettled::Refused)
 }

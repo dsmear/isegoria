@@ -59,16 +59,18 @@ features of the design.
     zero within a fit, so the gate is relative to the batch (\cref{prop:zerosum}). The origin
     of the latent axis, which decides whether the score is camp-balanced or majoritarian, is
     fixed only by the regularization; in a two-camp model we obtain the interpolation weight
-    in closed form (\cref{prop:leak}) and confirm it on the full model (\cref{tab:leak}).
+    in closed form on fitted means, with an explicit bound for the residuals against raw ratings
+    (\cref{prop:leak}); the historical full-model comparison uses an approximation
+    (\cref{tab:leak}).
     Finally, no rule that reads only ratings can separate true-but-divisive items from
     partisan ones (\cref{prop:equivalence}).
-  \item \textbf{Level B} (\cref{sec:levelb}). We show why latent-class DIF is identified by
-    the conditional covariance between biased items, and why a single biased item is nearly
-    invisible (\cref{prop:single,prop:pair}). We also show that measurement error in the
+  \item \textbf{Level B} (\cref{sec:levelb}). We distinguish the marginal signal of one class-dependent item from
+    the conditional covariance signature of a biased pair, and describe the tested detector's
+    limited single-item power (\cref{prop:single,prop:pair}). We also show that measurement error in the
     ability proxy produces spurious latent classes (\cref{prop:proxy}), and we measure its
     effect on the production detector.
   \item \textbf{Level C} (\cref{sec:levelc}). The ratio-form Brier skill score is not proper,
-    a known property of skill scores that here reverses the intended incentive (\cref{prop:bss}). A leave-one-out difference score is proper and keeps the property that
+    a known property of skill scores that here reverses the intended incentive (\cref{prop:bss}). A leave-one-out difference score is proper under the conditions of \cref{prop:loo} and keeps the property that
     matters for the design, namely zero reward for following the crowd (\cref{prop:loo}).
     As currently parameterized, the weight cap never binds (\cref{prop:cap}).
   \item \textbf{Coordination} (\cref{sec:collusion}). The sublinear discount rewards evading
@@ -77,8 +79,9 @@ features of the design.
   \item \textbf{Adopted revisions} (\cref{sec:revisions}, new in version 0.2). Each finding comes
     with the correction adopted in the repository (decisions D32--D41) and the experiments that
     support it. Among them are a side-balanced bridge score, invariant under every gauge and exactly
-    camp-balanced in the two-camp model (\cref{prop:side}), and randomized exploration that keeps
-    the evaluator score proper when outcomes are selected by the gate (\cref{prop:ipw}).
+    camp-balanced in the two-camp model (\cref{prop:side}), and randomized exploration. The
+    O1 target amendment of 11 October 2026 restates \cref{prop:ipw} as a conditional result
+    for the expected score; it supplies no properness guarantee for the current draw or reputation.
   \item \textbf{Evidence and plan} (\cref{sec:implementation,sec:limitations,sec:plan}).
     The evidence level of every claim, the structural limits, and an evaluation plan with
     decision rules fixed in advance.

@@ -1,0 +1,1 @@
+$ cargo run --release -p characterization --bin a2-probe -- run --phase size --jobs 8 --max-cpu-s 7200 --max-wall-s 1800 --max-run-s 600 --max-rss-mib 2048 --out characterization-results/a2-size-b8c9dce

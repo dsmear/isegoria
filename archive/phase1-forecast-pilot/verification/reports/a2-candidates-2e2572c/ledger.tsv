@@ -1,0 +1,50 @@
+ledger	a2-probe/v2
+start	candidates-C0-0	64062
+start	candidates-C3-0	64063
+start	candidates-C5-0	64064
+start	candidates-C0-1	64065
+start	candidates-C3-1	64066
+start	candidates-C5-1	64067
+start	candidates-C0-2	64068
+start	candidates-C3-2	64069
+end	candidates-C0-1	read	13580	13819	self
+start	candidates-C5-2	64289
+end	candidates-C5-1	read	16070	16248	self
+start	candidates-C0-3	64311
+end	candidates-C3-1	read	20230	20505	self
+start	candidates-C3-3	64366
+end	candidates-C3-2	read	21590	21816	self
+start	candidates-C5-3	64369
+end	candidates-C3-0	read	26400	26597	self
+start	candidates-C0-4	64376
+end	candidates-C5-0	read	28200	28429	self
+start	candidates-C3-4	64384
+end	candidates-C0-0	read	31810	31986	self
+start	candidates-C5-4	64427
+end	candidates-C0-2	read	35560	35796	self
+start	candidates-C0-5	64448
+end	candidates-C5-3	read	14710	14788	self
+start	candidates-C3-5	64451
+end	candidates-C0-3	read	20430	20493	self
+start	candidates-C5-5	64453
+end	candidates-C5-2	read	25250	25362	self
+start	candidates-C0-6	64489
+end	candidates-C0-4	read	16340	16439	self
+start	candidates-C3-6	64533
+end	candidates-C3-4	read	18400	18449	self
+start	candidates-C5-6	64577
+end	candidates-C3-3	read	32450	32522	self
+start	candidates-C0-7	64638
+end	candidates-C5-4	read	27480	27634	self
+start	candidates-C3-7	64716
+end	candidates-C5-5	read	25640	25786	self
+start	candidates-C5-7	64731
+end	candidates-C0-5	read	28750	28978	self
+end	candidates-C0-6	read	25800	25910	self
+end	candidates-C3-5	read	29870	30095	self
+end	candidates-C3-6	read	27780	27929	self
+end	candidates-C5-6	read	30490	30645	self
+end	candidates-C0-7	read	26290	26516	self
+end	candidates-C5-7	read	25630	25743	self
+end	candidates-C3-7	read	30310	30518	self
+session	90203	380	54480	150	-	head=2e2572c427c755f02449e2b7306fe8248c6a624d exe=88b6387e7fc7ae3b627acc587ea320dff62b73eddcaca932c320fe6db9ebf088

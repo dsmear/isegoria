@@ -1,110 +1,79 @@
 # Overview
 
-## The real problem
+Isegoria's current Phase 1 product is an **offline process for reviewing quiz
+questions**, ending with a set of accepted questions. It does not yet compose or
+administer a quiz, measure respondents' competence, or operate as a distributed service.
 
-If the quality of a question is decided by voting, whoever controls the majority of
-votes controls the questions: power shifts from the government to the largest or
-best-organized faction. A naive reputation system (whoever gets more upvotes rises)
-makes things worse, because it concentrates power in a cohesive group faster than
-plain voting does.
+## How it works
 
-The design rests on three pillars, in order of importance:
+1. An author deposits a question, context, alternatives and a **key**: the alternative
+   the author states is correct. The key is a reference for counting answers, not a fact
+   established by the program. No source is required at deposit.
+2. After the deposit epoch closes, the program draws 12 distinct reviewers from the
+   registered pool. Joining means being available; reviewers have equal weight.
+3. Reviewers see the question without the key. They may choose an alternative, say
+   that none is correct, or abstain with "don't know". They commit before revealing.
+4. The round closes explicitly. At least 9 usable answers are needed. With that quorum,
+   agreement with the key by at least three quarters accepts the question; disagreement
+   by at least three quarters discards it; otherwise the answers are divided. "None"
+   counts as disagreement; abstentions and absences count in neither quorum nor denominator.
+5. Only accepted questions enter the usable set. The recorded outcome contributes to
+   the author's reputation from the next epoch, governing their proposal quota.
 
-1. **Sybil resistance** — if creating identities is cheap, no reputation math has
-   any value. It is the constraint that holds up all the rest; it is solved by the
-   enrollment layer (`03`).
-2. **Non-opinion quality signals** — you need at least one source of truth that is
-   not anybody's judgment. In our case one exists: psychometrics on real answer data
-   (`02`, evidence filter).
-3. **Bridging aggregation, not majority** — a question is accepted only if it is
-   approved *across* the lines of division, not if it collects more votes than the
-   opposing front (`02`, bridging).
+There is no automatic correction of the key or new review round: a correction requires
+a new question. With fewer than 12 reviewers in the pool fixed at the deposit epoch's
+closure, the question stays unavailable, its slot spent and no reputation observation made.
+The [lifecycle specification](05-question-lifecycle.md#the-answer-review-01-d49d52)
+defines the full contract, including counts, quotas, duplicates and closure.
 
-## Two-level architecture
+## People and code
 
-| | Level A — Opinion | Level B — Evidence |
-|---|---|---|
-| Input | Peer reviews from nodes | Real answers from samples |
-| Question | "Does this question look good?" | "Does this question behave well?" |
-| Attackable? | Yes, with coalitions | Very hard: requires corrupting the sample |
-| Role | Upstream filter | Final verdict |
+People judge factual correctness, clarity and relevance to the stated context. Internet,
+documents and AI are part of the open environment: reviewers do not report their sources,
+and the system does not detect, infer or assess their use of outside tools (D45, D47–D49).
 
-The system's center of gravity is Level B: peer review only decides *which questions
-are worth field-testing*. The final decision is made by statistics computed on
-answer data, not by votes. This moves the system from "what the network thinks" to
-"what the question does", which is much harder to manipulate.
+The code authenticates actions under role pseudonyms, draws reviewers from the fixed pool,
+checks commitments and state transitions, counts answers, records outcomes and computes
+reputation and quotas. It neither evaluates sources nor performs automatic fact-checking.
+Pool suitability is a human premise; random selection does not establish expertise.
 
-## The three actions of a node
+The author's reputation summarizes review outcomes under the adopted rule. It is not
+a direct measure of truth or competence. Reviewers receive no reputation update or weight
+for agreeing with the key or the majority; their future evaluation remains deferred.
 
-Every node (person) can take three distinct actions, each under a **separate
-pseudonym not linkable to the others**:
+## Principles and limits
 
-- **Propose** — write a new question.
-- **Judge** — evaluate other people's questions during review.
-- **Answer** — act as a sample for the trial: answer quizzes in which the new
-  question is mixed with already-validated ones, without the answer counting toward
-  one's own score.
+- **Consensus is the operational criterion, not a truth guarantee.** Shared mistakes,
+  unequal expertise, superficial reviews and coordination are accepted risks (D48).
+  Divided answers do not prove ambiguity; insufficient participation is not rejection.
+- **No financial stake and no personal-attribute profiling.** Author and reviewer roles
+  use separate pseudonyms; author reputation governs quotas, not reviewer influence.
+  End-to-end uniqueness and anonymity depend on the identity layer's assumptions and
+  limits, not on the answer-review algorithm alone ([identity](03-identity-enrollment.md)).
+- **Reproducible computation.** Recorded inputs determine the result. The caller must
+  supply the random input without choosing it to obtain a desired panel. The offline
+  state and log contain the key in clear; the reviewer view does not protect against
+  someone who reads them ([threat model](06-threat-model.md)).
+- **Assessment goals remain goals.** D46 seeks factually correct answers, including
+  assisted answers, and the ability to weigh claims against their evidence. This path
+  neither measures nor validates those abilities. Correctness alone establishes no
+  unaided knowledge; item acceptance establishes no balanced coverage of a whole quiz.
 
-Propose and judge were the two roles envisaged from the start. Answering emerged as
-a need of the evidence filter: someone has to answer for a question to be trialled.
-It is convenient for the same nodes to do it, provided the system does not know it is
-the same person.
+These are the current principles after the owner's revisions in
+[D44–D53](01-decisions.md). D48 changed the original ban on deciding by votes;
+D52 excludes bridging and empirical validation from this path's acceptance conditions.
+They are deliberate changes to the earlier design, not promises that those filters will
+be added later.
 
-## Lifecycle of a question
+## Completion and retained work
 
-```
- [1] Draft          author fills in item + mandatory primary source
-      ↓
- [2] Deposit        reputation bond (not money) + hash on the log
-      ↓
- [3] Review         k reviewers assigned AT RANDOM, blind,
-     (peer)         commit-reveal, nobody sees others' votes
-      ↓
- [4] Bridging       S_j gate, uncertainty band, supplementary review (`02` §A.3)
-      ↓                 │
-      │                 └──→ appeal to evidence (if discarded for polarization)
-      ↓
- [5] Pilot 1        initial screen, provisional floor ~300 respondents
-                    (filter limits measured in `13` §8.7.5)
-      ↓
- [6] Pilot 2        sample by format and required power: IRT + latent DIF
-                    (in batches, never a single item)
-      ↓                 │
-      │                 └──→ contested fact: DIF, but the primary source establishes
-      ↓                      the key → a separate pool, drawn only in balanced sets
- [7] Active pool    usable; periodic re-validation of the whole pool
-      ↓
- [8] Retirement     for exposure, drift, obsolescence, or emerging DIF
-```
+Phase 1 and T87 are closed only within the offline answer-review perimeter. The
+[review register](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)
+records the checks and exclusions; the [handoff](phase1-handoff.md) identifies work outside it.
+Parameters remain provisional and uncalibrated, and the decoder has not been fuzzed.
 
-Sample floors and capacity are specified in `02` §B.6. They are not universal power
-guarantees; the current model still needs post-D43 characterization. Open guarantee
-and protocol-contract findings are tracked in [`15`](15-phase1-review.md).
-
-Nobody chooses what to review (prevents brigading). Nobody sees the author (prevents
-voting on the person). Nobody sees others' judgments before casting their own
-(prevents information cascades).
-
-The **[4]→appeal** branch is the most important correction to emerge from testing: a
-true but politically divisive question produces the same voting pattern as one-sided
-propaganda, and bridging wrongly discards it. The appeal channel lets the author send
-it straight to the pilot, staking their own reputation: a zero-quality observation
-enters their average when they file, and the item's real quality replaces it if the
-psychometrics promote it (`01` D27). It is the only way to recover the "true but
-inconvenient" category, politically the most important. Details in `05`.
-
-## Node types (network layer)
-
-Three infrastructural roles, not to be confused with the three actions of people:
-
-- **Person-nodes** — the pseudonymous participants. Number: unlimited, the more the
-  better (security grows with the count).
-- **Signer-nodes** (consortium) — a few dozen always-on machines, heterogeneous and
-  in different jurisdictions, that keep a full copy and sign the state. Number:
-  limited by the coordination cost (~n²). Security comes from the diversity of who
-  controls them, not from the number.
-- **Light-nodes** — anyone can run one: it keeps only the slice of data it needs and
-  verifies signatures without taking part in the agreement. Number: unlimited, slows
-  nothing down.
-
-Details in `04`.
+The earlier forecast-and-pilot path remains implemented with its own contracts in
+[02](02-scoring-engine.md) and [05](05-question-lifecycle.md). Its findings and simulations
+retain their original scopes. A2 remains unresolved there and is not required for the
+answer review. The [paper](../paper/README.md) is historical; the
+[D47 inventory](21-d47-inventory.md) explains what was retained and archived.

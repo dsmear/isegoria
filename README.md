@@ -1,365 +1,63 @@
 # Isegoria
 
-**A distributed network for producing and validating quiz questions, where no
-single authority decides what counts as a fair question.**
-
-*Isegoria* (ἰσηγορία) was the ancient Athenian principle of the equal right of
-every citizen to speak in the assembly.
-
-> **Status:** a research reference implementation. The Rust engine has deterministic
-> golden-output checks; Python comparisons are scoped numerical oracles, not bitwise
-> equality with every current component. Phase 1 is still open: see the
-> [review and correction register](docs/15-phase1-review.md), the
-> [roadmap](docs/10-roadmap.md), and the [parameter register](docs/14-parameter-register.md).
-> Implemented mechanisms and passing tests do not establish every claimed guarantee.
-> See [Project status](#project-status) for deployment dependencies.
-
----
-
-## Table of contents
-
-- [In plain words](#in-plain-words)
-- [A step deeper](#a-step-deeper)
-- [What it deliberately does *not* solve](#what-it-deliberately-does-not-solve)
-- [Code architecture](#code-architecture)
-- [Try it](#try-it)
-- [Documentation](#documentation)
-- [Project status](#project-status)
-- [License](#license)
-
----
-
-## In plain words
-
-*(No technical background needed for this section.)*
-
-### The problem
-
-Imagine we want a big, trustworthy set of quiz questions — say, questions about
-how your country's institutions actually work. Who gets to decide which questions
-are **fair** and **good**?
-
-- If the **government** decides, it can quietly pick questions that make it look
-  good.
-- If we just let people **vote** on which questions are good, then whichever side
-  has the most votes controls the questions — the problem just moves from the
-  government to the biggest crowd.
-
-So the hard part isn't collecting questions. It's deciding which ones are fair
-**without trusting any single boss, and without it becoming a popularity contest.**
-
-### The idea
-
-Isegoria decides a question is good using **two checks in a row**, not a vote.
-
-**Check 1 — "Do people across the divide agree it's good?"**
-A question doesn't pass just because *a lot* of people like it. It passes only if
-people **from different sides** like it.
-
-> Think of a film that both the action-movie critics *and* the art-house critics
-> praise. That agreement across very different tastes is a strong sign the film is
-> genuinely good — not just pandering to one crowd. A film only one camp loves
-> gets filtered out.
-
-*Where the code stands:* today's version of Check 1 still leans towards the larger
-camp — when the camps are very unequal, a question only the majority likes can scrape
-through. The fix is designed and is the first item of the [roadmap](docs/10-roadmap.md).
-
-**Check 2 — "Does the question actually work when we try it?"**
-The questions that survive Check 1 are tried out on real people, and we **measure**
-what happens — no opinions involved:
-
-- Does the question actually tell apart people who know the subject from people
-  who don't? (A question everyone gets right, or everyone gets wrong, measures
-  nothing.)
-- Does it secretly favour one group over another **even when they know the subject
-  equally well**? If a question is worded so that one side "gets it" instantly and
-  the other has to decode it, it's measuring which side you're on, not what you
-  know. That question is thrown out.
-
-> Think of testing a thermometer. You don't take a poll on whether it *looks*
-> accurate — you check it against reality. Check 2 is the reality check.
-
-The whole point: the final decision is about **what the question does**, measured
-in data, not about **what the network thinks** — and that's far harder to rig.
-
-### "Anonymous, but one person = one voice"
-
-Everyone takes part **anonymously** — no names, no political affiliation, nothing.
-But the system still guarantees that behind each anonymous participant there is
-**exactly one real person**, so nobody can create an army of fake accounts to tilt
-the results.
-
-> Think of a masked ball. At the door, a guard checks your ID to make sure one
-> real person gets one mask. But once you're inside, nobody — not even the guard —
-> can tell which mask is you.
-
-Crucially, the guard (the ID check, e.g. a national digital ID) and the party
-organiser (who hands out the anonymous "mask") are **different parties who never
-compare notes**. That separation is what keeps the state from linking a person to
-what they do.
-
-### No money, ever
-
-There is **no token, no stake, no payment** to take part. Paying to participate
-would just recreate rule-by-the-wealthy — the very thing we're trying to avoid.
-The only "cost" of proposing questions is your **reputation** and a rate limit.
-
----
-
-## A step deeper
-
-*(Still conceptual, a bit more precise. The full specification lives in
-[`docs/`](docs/).)*
-
-### Two levels
-
-| | **Level A — Opinion** | **Level B — Evidence** |
-|---|---|---|
-| Input | Peer reviews from nodes | Real answers from samples of people |
-| Question asked | "Does this look like a good item?" | "Does this item behave well?" |
-| Attackable? | Yes, with coalitions | Very hard: you'd have to corrupt the sample |
-| Role | Upstream filter | Final verdict |
-
-Level A ("bridging") is essentially an **anti-spam filter for partisan items**.
-The real verdict is Level B, computed from response data with standard
-psychometrics (Item Response Theory + Differential Item Functioning).
-
-### The three actions
-
-Each person can do three things, each under a **separate, unlinkable pseudonym**:
-
-- **Propose** — write a new question.
-- **Judge** — peer-review other people's questions (this is the "voting" of the
-  original idea).
-- **Answer** — act as a test subject so new questions can be trialled against real
-  data.
-
-### The lifecycle of a question
-
-```mermaid
-flowchart TD
-    A["1. Draft — item + mandatory primary source"] --> B["2. Deposit — reputation bond, hashed onto an append-only log"]
-    B --> C["3. Admission by lottery — a random subset enters the pipeline"]
-    C --> D["4. Review — k reviewers assigned at random, blind, commit-reveal"]
-    D --> E{"5. Bridging gate"}
-    E -->|score above band| F["6. Pilot 1, provisional ~300 — initial item screening"]
-    E -->|inside uncertainty band| D
-    E -->|rejected for a defect| X["Rejected"]
-    E -->|rejected for polarization| G["5b. Appeal to evidence — stake reputation, skip to pilot"]
-    G --> F
-    F --> H["7. Pilot 2, size by format and power — batch IRT + latent DIF"]
-    H --> I["8. Active pool — usable, periodically re-validated"]
-    I --> J["9. Retirement — exposure, drift, obsolescence, emerging bias"]
-```
-
-- **Nobody chooses what to review** (prevents brigading).
-- **Nobody sees the author** (prevents voting on the person).
-- **Nobody sees others' judgments before committing their own** (prevents cascades).
-- The **appeal** branch is the key correction: a *true but politically divisive*
-  fact produces the same voting pattern as one-sided propaganda, so bridging would
-  wrongly kill it. The appeal lets the author send it straight to the data-based
-  filter, at the cost of their reputation, refunded if the psychometrics vindicate
-  the item.
-
-### Reputation: two separate scores, never combined
-
-- **Author score `C_a`** — how good your proposed questions turn out to be;
-  it only controls your **rate limit** on new proposals.
-- **Evaluator score `S_u`** — how good your reviews are; it **weights your review
-  vote**.
-
-They live on **different, unlinkable pseudonyms** and are never merged. The
-evaluator score uses a *proper scoring rule*: you gain reputation only by being
-**right when the crowd is wrong** — simply following the majority scores zero. In a
-system meant to resist capture by the majority, the correct dissenter must be
-rewarded structurally. Because the gate decides which outcomes are ever observed, a
-random 5% of its rejections is piloted for measurement only and each observed outcome
-is weighted by its inverse probability, so the score stays proper and the gate's
-false-negative rate is measured (`docs/01` D35).
-
-### Anti-collusion
-
-A cartel that votes as a block is detected by the correlation of what its ratings leave
-**unexplained by the bridging model** — its residuals — over long histories, so honest
-reviewers who merely share a position are not mistaken for one (`docs/01` D39). A
-detected cluster is never seated twice on a panel (D40). The engine also keeps the
-sub-linear measure of a bloc's influence: 500 coordinated nodes count for about
-√500 ≈ 22 independent ones.
-
-### Anonymous identity
-
-Uniqueness is established by an external ID (national eID / CIE / SPID) that is
-**cryptographically severed** from everything you then do. Each role's pseudonym is
-derived deterministically, so it is **not rotatable** — you cannot burn a bad
-reputation and start fresh (no "whitewashing").
-
-### Tamper-proof storage without a blockchain
-
-Questions and votes live on **signed, append-only logs** replicated across a
-diverse consortium, made durable with **erasure coding** and periodically
-**anchored** to a public chain. There is no heavy global consensus: the security
-comes from operator **diversity** and from the fact that the scoring computation is
-**reproducible** — every consortium member re-runs it, so a dishonest signer is caught,
-while the votes stay with the members and the public checks commitments (`docs/01` D17,
-D44).
-
----
-
-## What it deliberately does *not* solve
-
-Honest, structural limits (not bugs):
-
-1. **True-but-divisive false negatives.** Bridging cannot tell a true polarizing
-   fact from partisan propaganda; no threshold fixes this. Mitigation: the appeal
-   channel.
-2. **Pool-level bias.** Every item can pass the fairness test while the *choice of
-   topics* is still skewed. Mitigation: fixed per-domain coverage quotas, set by
-   lottery.
-3. **The elite blind spot.** An item can be neutral on the political axis yet
-   biased on a socio-economic one. Mitigation: multi-axis DIF, which must be looked
-   for actively.
-4. **"Competence" is still a construct someone chooses.** The psychometrics verify
-   an item measures *one thing* coherently, not that it's the *right* thing.
-5. **The consortium's initial selection has no purely technical fix.** It's a human
-   trust decision, made survivable (not fatal) by reproducible computation and the
-   freedom to fork.
-
-See [`docs/06-threat-model.md`](docs/06-threat-model.md) for the full threat
-model.
-
----
-
-## Code architecture
-
-A Rust Cargo workspace. The scoring engine is isolated in a crate with **no
-dependency on identity or network** — it runs offline and is reproducible
-*in a way the compiler enforces*.
-
-| Crate | Role | Status |
-|---|---|---|
-| [`scoring`](crates/scoring) | Deterministic engine: bridging (A), IRT/DIF (B), reputation (C), anti-collusion | **Complete**, validated against `sim/` |
-| [`identity`](crates/identity) | Anonymous enrollment: source adapters, threshold-issued credential, role nullifiers | Scaffold + real mechanisms (single-server + threshold OPRF label, single + threshold BBS+ blind credential, ZK nullifier) |
-| [`network`](crates/network) | Content addressing, Merkle, transparency log, consortium checkpoints, the epoch's beacon round, a node's durable log and objects, the replicated signed set and its cuts, erasure coding, anchoring | Real integrity primitives (incl. OpenTimestamps proofs), durable store (T13), replicated set and cuts (T18, T74); anchoring format-level only (T17) |
-| [`protocol`](crates/protocol) | Lifecycle orchestration: deposit, lottery, blind review, gate + appeal, pilot, honeypot; a node's state from its log and from signed cuts | Wires the three layers together; the state replays from the log (T73) and from consortium-signed cuts (T74); no epoch run between nodes yet (T79) |
-| [`p2p`](crates/p2p) | The libp2p transport: gossip announcements and pull sync of the replicated signed set; a consortium member's duties | Real (T18); a replica on disk, members cutting and running the beacon (T74); a writer rebuilds its feed before it writes (T80); serves its whole set to any peer (T77) |
-| [`node`](crates/node) | The node process: `isegoria-node <config.toml>`, its configuration, files and status | Real (T78); no epoch's work yet (T79) |
-| [`characterization`](crates/characterization) | The characterization harness: seeded simulation studies of the detectors and gates — a tool, not part of a node | T24's full run done: 54,412 runs, results in [`docs/13`](docs/13-characterization.md) §7; T25's supplement done: 19,700 runs, results in §8.7 |
-
-The uniqueness label runs on a real single-server **VOPRF** (RFC 9497, via `voprf`)
-*and* on a real **threshold** t-of-n OPRF (Shamir shares + per-share DLEQ over
-Ristretto255), so no sub-threshold coalition can compute it; the anonymous credential
-runs on real **BBS+** blind issuance (via `bbs_plus`), single-issuer *and* **threshold**
-t-of-n (a DKG + base-OT + MPC signing protocol, so no `t-1` members can issue); each
-per-role pseudonym carries a real Semaphore-style **ZK nullifier** proving it derives
-from a valid credential (a sigma-protocol bound to the BBS+ credential — no
-circom/Groth16 stack); and anchoring runs on the real **OpenTimestamps** proof format
-(via `opentimestamps`). What remains is a real distributed key-generation ceremony and
-transport for the two committees, the live network side of anchoring (a calendar server
-and a Bitcoin block source), plus peer-to-peer transport (libp2p) and convergent state
-(CRDT).
-The rule throughout is *prefer mature,
-audited libraries* behind clean traits; bespoke cryptography is a considered exception
-— allowed when it serves the design, kept small, built on vetted primitives, and
-tested — not the default.
-
-For how the design maps onto the code, module by module, see
-[`ARCHITECTURE.md`](ARCHITECTURE.md).
-
----
-
-## Try it
-
-```sh
-cargo test --workspace                 # acceptance + property (proptest) + reproducibility + end-to-end
-cargo clippy --workspace --all-targets
-cargo llvm-cov --workspace --summary-only   # line coverage (~97%); needs cargo-llvm-cov
-cargo run --release -p characterization -- run --grid smoke   # every study, one tiny cell each
-```
-
-The full characterization (T24) is 54,412 seeded runs, about 30 hours on an 8-core
-desktop; it is resumable and runs on demand, never in CI
-([`docs/13`](docs/13-characterization.md) §2). Its results are in `docs/13` §7, its
-tables in [`verification/reports/t24/`](verification/reports/t24/). T25's supplement —
-the model with the guessing floor, and the band's extra round — is `--study t25`, 19,700
-runs, about 10 hours on the same machine; its results are in `docs/13` §8.7, its tables in
-[`verification/reports/t25/`](verification/reports/t25/).
-
-CI runs the comment budget (`scripts/comment_budget.py`, see `docs/CLAUDE.md`), fmt,
-clippy (`-D warnings`), the full test suite, and coverage on every push and pull request
-(`.github/workflows/ci.yml`).
-
-The scoring tests run against **fixtures exported from the Python simulations** in
-[`sim/`](sim/): the Rust engine must reproduce the simulations' results on the same
-input. To regenerate the fixtures you need `numpy`/`scipy` (see `sim/`).
-
----
+An offline prototype for reviewing quiz questions. Authors supply a question and its
+answer key; randomly drawn reviewers answer it, with equal weight and free access to
+Internet, documents and AI. The program applies the agreed consensus rule, records
+the outcome and updates the author's proposal quota through their reputation.
+
+**Phase 1 is complete only for this offline answer-review path (T87, D49–D53).**
+The [closure record](docs/15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)
+defines its evidence and limits. Parameters are provisional and uncalibrated; the new
+decoder has not been fuzzed. Consensus certifies neither truth nor the fairness of a
+quiz, and does not establish D46's assessment objectives. Quiz composition, exposure,
+retirement, distributed operation and production are outside this closure.
 
 ## Documentation
 
-- **This README** — the layered overview above.
-- **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — design-to-code map, invariants, plug
-  points, test strategy (English).
-- **[`docs/`](docs/)** — the full conceptual specification:
-  - [`00-overview.md`](docs/00-overview.md) — overview
-  - [`01-decisions.md`](docs/01-decisions.md) — architectural decisions (ADR)
-  - [`02-scoring-engine.md`](docs/02-scoring-engine.md) — the mathematical core
-  - [`03-identity-enrollment.md`](docs/03-identity-enrollment.md) — identity
-  - [`04-storage-network.md`](docs/04-storage-network.md) — storage & network
-  - [`05-question-lifecycle.md`](docs/05-question-lifecycle.md) — lifecycle protocol
-  - [`06-threat-model.md`](docs/06-threat-model.md) — threat model
-  - [`07-verification-and-assurance.md`](docs/07-verification-and-assurance.md) — verification methodology
-  - [`08-formal-specification.md`](docs/08-formal-specification.md) — independent audit: what is implemented, tested, still open
-  - [`10-roadmap.md`](docs/10-roadmap.md) — **the development plan, by priority**
-  - [`11-mutation-testing.md`](docs/11-mutation-testing.md), [`12-panic-audit.md`](docs/12-panic-audit.md) — test-quality reports
-  - [`13-characterization.md`](docs/13-characterization.md) — T24 and T25's supplement: the characterization studies, their harness, and their results
-  - [`14-parameter-register.md`](docs/14-parameter-register.md) — the thresholds' register: why each exists, how it is calibrated, what breaks if it moves
-  - [`15-phase1-review.md`](docs/15-phase1-review.md) — open review findings and correction handoff
-  - [`99-glossary.md`](docs/99-glossary.md) — glossary, from scratch
-- **[`sim/`](sim/)** — historical research prototypes and scoped test oracles.
-- **[`paper/`](paper/)** — working paper on the mathematics of the mechanism: formal statement,
-  proofs, reproducible experiments and open problems ([PDF](paper/main.pdf)).
+- [Overview](docs/00-overview.md): the current product, responsibilities and principles.
+- [Answer-review specification](docs/05-question-lifecycle.md#the-answer-review-01-d49d52):
+  the full lifecycle and implementation contract.
+- [Documentation index](docs/README.md): specifications, decisions and evidence registers.
+- [Architecture](ARCHITECTURE.md): the design-to-code map, including retained older modules.
+- [Handoff](docs/phase1-handoff.md): where to resume work.
 
----
+The earlier forecast-and-pilot mechanism remains in the repository as a separate path.
+Its filters and guarantees do not transfer to the answer review. The
+[historical paper](paper/README.md) analyses that earlier design; its PDF and amended
+sources are different snapshots. Retired dossiers, tools and results are indexed in the
+[archive](archive/phase1-forecast-pilot/README.md).
 
-## Project status
+## Code architecture
 
-| Layer | State |
-|---|---|
-| Scoring engine (A + B + C + anti-collusion) | Implemented, with Rust golden-output checks across platforms/build profiles and scoped Python comparisons; open guarantees and code-contract findings in [`docs/15`](docs/15-phase1-review.md); thresholds provisional |
-| Design revisions from the working paper ([`paper/`](paper/)): side-balanced bridge score, evaluator difference score with exploration, DIF anchor precondition and target model, contested-facts selection, residual-based coordination detection (`docs/01` D32–D41) | D32–D41 implemented (T49–T57, T37); implementation completion does not close the guarantee findings in `docs/15` |
-| Findings of the third review (2026-09-24): deposit replay, respondents not identity-gated, consortium threshold, appeal stake, band items without appeal (`docs/08` §0-quinquies) | Deposit replay (T64), respondent gate (T65), band items without appeal (T59), the band's re-decision on the same panel (T60), the appeal stake (T61) and the consortium threshold (T63) fixed; the rest — no-show reviewers, a hand-built empty panel, the honeypot's fixed draw — confirmed by tests on master and planned in Phase 3 (`docs/10` T58, T66, T67) |
-| Identity, network, protocol | Working scaffolds; deterministic mechanisms + single-server & threshold OPRF label + single & threshold BBS+ credential + ZK nullifier + OpenTimestamps anchoring proofs real, remaining heavy crypto/transport behind traits |
-| Transport and external backends | libp2p replication and consortium-signed cuts implemented (T18/T74); committee DKG/transport and live anchoring remain roadmap work |
-| Meta-level governance (stratified sortition) | Future work |
+The Cargo workspace contains `scoring`, `identity`, `network`, `protocol`, `p2p`, `node` and
+`characterization`. The answer review is implemented by `protocol::answer*` and
+`scoring::reputation::author_score_weighted`. See [Architecture](ARCHITECTURE.md) for
+module contracts and dependencies.
 
-**What comes next**, in order (task status lives in the [roadmap](docs/10-roadmap.md)):
+## Phase 2 runtime
 
-1. **Mathematics** — verify and correct the findings in
-   [`docs/15`](docs/15-phase1-review.md), stabilize the model, then complete T25's
-   measurements and parameter procedures. T81 is complete for its ten named files.
-   T24 and the guessing supplement are historical campaigns; their DIF/DTF/floor
-   records predate D43 and must not be presented as validation of that model.
-2. **P2P network** — finish the runtime, recovery, discovery, availability and
-   confidentiality work listed in `docs/10` §2.3. Persistence and replication already
-   exist; they are not an unstarted transport project.
-3. **The rest** — protocol-boundary completion, distributed identity, external
-   reviews, statistical privacy and empirical pilots.
+This branch also contains the node process (`isegoria-node`), writer recovery, view
+changes and exclusion of beacon withholders (T78, T80, T76). The process drives cuts
+and the beacon; it does not yet run the answer-review lifecycle between nodes (T79).
+See [storage and runtime](docs/04-storage-network.md) and the
+[Phase 2 roadmap](docs/10-roadmap.md#23--build-the-runtime).
 
-This is a research/specification-stage project. Nothing here is production-ready
-security; the cryptographic plug points are explicitly non-production. A `p2p` node
-serves everything it replicates — the drafts under review and every reviewer's rating
-joined to its pseudonym included — to any peer that connects; the remedy is decided
-(`docs/01` D44) and not built ([`docs/10`](docs/10-roadmap.md) T77): run it only among
-machines you control.
+Replication still serves its whole set to connected peers. D54's access tiers, blind
+relays and state tree are decided but not implemented (T77, T85, T86): run nodes only
+among machines you control. No production readiness is claimed.
 
-**Scale.** Sample-size constants are provisional admission floors, not demonstrated
-power requirements. Guessing-aware results depend strongly on format and batch design;
-the historical tables predate D43. A viable capacity estimate must count anchor answers,
-rejected/inconclusive batches and distinct respondents. See
-[`docs/02-scoring-engine.md`](docs/02-scoring-engine.md) §B.6.
+## Try it
 
----
+From the repository root, run the focused offline integration tests:
+
+```sh
+cargo test -p protocol --test answer_review
+```
+
+This exercises a library path, not a user interface or a deployed service. Broader
+tests and characterization procedures are documented in
+[Architecture](ARCHITECTURE.md#testing-strategy) and the
+[verification methodology](docs/07-verification-and-assurance.md); full suites can run fits.
 
 ## License
 

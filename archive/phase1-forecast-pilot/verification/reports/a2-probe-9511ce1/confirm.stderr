@@ -1,0 +1,2 @@
+48 runs planned (8 replicates); 8 workers; caps Caps { cpu_ms: 7200000, wall_ms: 2700000, run_ms: 600000, rss_kib: 2097152 }; out characterization-results/a2-probe-9511ce1
+outcomes {"read": 48}, 0 already ended; session CPU 1551080 ms, wall 219999 ms, largest sampled resident sum 56356 KiB, largest gap between checks 147 ms; stop: none

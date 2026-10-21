@@ -515,7 +515,9 @@ name = "characterization"
 version = "0.0.0"
 dependencies = [
  "identity",
+ "libc",
  "libm",
+ "network",
  "protocol",
  "rand 0.8.8",
  "rand_chacha 0.3.1",
@@ -2689,6 +2691,7 @@ version = "0.0.0"
 dependencies = [
  "ed25519-dalek",
  "identity",
+ "libm",
  "network",
  "proptest",
  "rand 0.8.8",

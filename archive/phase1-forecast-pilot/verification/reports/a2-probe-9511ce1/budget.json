@@ -1,0 +1,15 @@
+{
+ "costs_ms": {
+  "C0": 21660,
+  "C1": 21540,
+  "C2": 44410,
+  "C3": 25510,
+  "C4": 37630,
+  "C5": 22000
+ },
+ "spent_ms": 172870,
+ "cap_ms": 7200000,
+ "per_replicate_ms": 259125.0,
+ "replicates": 8,
+ "reason": "cost rule"
+}

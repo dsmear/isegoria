@@ -103,7 +103,7 @@ The **two ultimate defenses** matter more than any entry rule:
    and the code is open: the community takes it, abandons that consortium, and restarts
    with a different set of signers. The votes and the drafts under review stay with the
    members (`01` D17); a fork keeps them through a member that joins it, and otherwise
-   restarts from the state tree, each nym opening its own leaf (`01` D44, §Who reads). Not
+   restarts from the state tree, each nym opening its own leaf (`01` D54, §Who reads). Not
    the barrier to entry, but the freedom to leave, keeps the consortium honest.
 
 System parameters and meta-level composition: **stratified sortition** (see `05`), not
@@ -262,9 +262,14 @@ earlier logs replay unchanged, and a decoder from before A11 refuses byte 2); a 
 reading one byte in the order of the boolean `passed` it replaced, unlike the re-check's
 (0 DIF, 1 no DIF detected, 2 indeterminate: earlier logs replay unchanged, and a decoder from
 before `15` A4's residual (a) refuses byte 2). A deposit
-the node accepts starts its item in `Deposited`; a lifecycle step applies `lifecycle::step` to the item's state and is
+the node accepts starts its item in `Deposited` and records the author id its proof proved; a
+lifecycle step applies `lifecycle::step` to the item's state and is
 refused for an unknown item, for an assignment naming another item than the one it moves,
-and wherever the §9.1 table refuses it.
+and wherever the §9.1 table refuses it. An `Appeal` step is always refused
+(`Rejection::AppealStep`): an appeal starts only with its filing record, below. Its encoding
+(number 9) still decodes, so a log holding one is refused on replay. A step out of `Pilot1`
+or `Pilot2` into either pool, `Rejected(Screen)` or `Rejected(Dif)` records the item's pilot
+conclusion and whether it was appealed (`02` §C.1).
 
 A nullifier proof travels as its role (one byte: 0 propose, 1 judge, 2 respond), the
 nullifier and the Schnorr commitment (compressed G1 points, 48 bytes each) and the BBS+
@@ -283,20 +288,59 @@ happened that this node cannot accept, and quietly skipping it would give anothe
 **Results and their inputs.** The engine's outputs for an epoch enter the node as one
 results event, whose records are, by number: 1 a reviewer's observed score (reviewer,
 score, inclusion probability: `SkillTrack::record_observed`), 2 a reviewer's unobserved item,
-3 an author's quality (author, quality, age in months: `AuthorHistory::record`), 4 an appeal
-filed (author: `file_appeal`, which escrows a zero observation), 5 an appeal settled (author,
-the escrow's position, and failed, or promoted with the measured quality), 6 exposure (item,
-administrations), 7 a residual (reviewer, the item's global id, `r − r̂`), 8 a contested fit
+6 exposure (item, administrations), 7 a residual (reviewer, the item's global id, `r − r̂`), 8 a contested fit
 (each class's share, ability mean and item parameters, each item's guessing floor, and
 the classes' ability histogram, its nodes and weights — `ClassCurves::with_ability`
 recomputes the curves from them — and the members with their index in the fit:
 `ContestedPool::record`),
-9 a contested fact removed. Reviewers and authors are their proven ids (INV-9); the CUSUM
-parameters and the author prior are the node's configuration. The event is applied whole or
-not at all, and refused for a second results event of the same epoch, an inclusion outside
-`(0, 1]`, a value that is not finite, an appeal the author's reputation does not cover, a
-settlement of an escrow that is not open, and a contested fit whose classes or ability
-describe no fit or whose members repeat or fall outside it.
+9 a contested fact removed, 10 an item's pilot outcome (author, item, passed:
+`AuthorHistory::conclude`), 12 an appeal settled (author, item, passed: `settle`), 13 an
+appeal started (author, item, and the request's window reading, one byte: `file_appeal`
+escrows a zero, and the node moves the item to `Pilot1 { appealed: true }` in the same event).
+Retired, so that a log holding one no longer decodes: 3 to 5, the author records that named no
+item (none was produced outside tests), and 11, a filing that left its appeal to a later step
+(produced only offline, by `5b1ff4c` and `322dd52`; `15` C5–C6). Its bytes are not read as a
+13. A results event's epoch is its data/root identifier only; author recording and
+assessment use the applying cut's `(epoch, closing count)` (`02` §C.1, `15` C6).
+Reviewers and authors are their proven ids (INV-9); the CUSUM parameters and author prior
+are unchanged. The initial ledger uses the adopted provisional H = 45 closing configuration;
+custom offline nodes pin their H in the versioned log header (`14`). The event is applied
+whole or not at all, and refused for a second results event of the same epoch, an inclusion outside `(0, 1]`, a value that is not finite, a second
+author record for one item, an author record without applying context, a second accepted
+filing event for the same recording epoch, a filing whose window reading is false, or one the
+author's `C_a` does not cover once the event's earlier filings are counted, a settlement of an escrow that is not open, and a contested fit whose classes or ability
+describe no fit, whose members repeat or fall outside it, or that lies outside the pool's
+resource domain (`15` D3). A contested fit with no members passes the same checks and records
+nothing. The node also checks each author record against its own log. The author must be the
+id the item's accepted deposit proved. An outcome or settlement needs the pilot conclusion the
+item's step reached, with that outcome and appeal flag (`node::Conclusion`). A filing needs an
+item that is appeal-eligible, and the accepted event moves every filed item to
+`Pilot1 { appealed: true }` with its escrow; a refused event moves none (`NodeState::apply`).
+`ResultsState::apply` alone records escrows only: it is the piece the node composes, not a
+path that starts an appeal. Replay checks the recorded filings in sequence and refuses the
+whole event at an invalid one; which of an epoch's requests to record is selected beforehand,
+in CID order, a request's window read before its coverage (`authorship::author_records`, `02`
+§C.1). The requests themselves are not on the log, so replay cannot check that selection. The
+window reading is the producer's explicit input: the node checks the value the record
+carries, not the window, whose duration and authentication are undecided.
+
+**Offline node framing (C6, closed on the offline candidate `825cabc`; `15` C6).**
+The durable node log now stores `OfflineRecord`: magic `ISEGORIA-C6\0`, then tag 0 and H
+for the first immutable configuration record; tag 1 and `(cut number, epoch, closes)` for
+Begin; tag 2 and a length-prefixed canonical `NodeEvent` for Event; tag 3 for End. Every Event
+needs an active frame; Begin and End enforce progression. A closing increments the count
+only on End. Reopening a valid incomplete frame resumes it, and another Begin is refused
+until it ends; malformed or repeated boundaries fail. A mismatched H is refused before
+replay. Old raw-event node logs do not decode as this format, with no automatic migration.
+`Node::log_len` counts accepted protocol events, excluding these metadata records.
+This is declared context, with no cut signatures; it is not authenticated ledger history.
+Ledger feeds still carry only `NodeEvent` or member objects: offline metadata cannot set
+ledger time or configuration. The ledger brackets its events with the verified cut itself.
+
+The item–author link these records carry is the one the deposit already logs: the draft gives
+the CID, and the `Propose` proof's id is the author's role pseudonym, the same for every
+context. The author records add no join a reader of the log lacks. They restate it, with the
+outcome, in the results event, so whatever T77 decides for deposits must cover them too.
 
 The node applies these results as written: it does not recompute them, and the inputs —
 every reviewer's ratings and every respondent's answers — are not in the event, since they
@@ -314,7 +358,7 @@ carries the judge's nym, its probability and its nonce, so the log holds every r
 first panel or an extra round joined to its judge's nym, and since replication every
 replica holds them, relays included, for any peer to read (§Who reads). The results event
 keeps the engine's inputs off the log; the reveals put the ratings on it, against `01`
-D17. `01` D44 keeps every lifecycle step, the reveals included, in the members' circle, and
+D17. `01` D54 keeps every lifecycle step, the reveals included, in the members' circle, and
 publishes the inputs' root with the state tree's (`10` T77, T86).
 
 With the four kinds before it, this is a node's whole protocol state (`10` T73); the
@@ -330,13 +374,13 @@ network's **writer set** (configuration). A person never signs an entry: one key
 person's deposits and reviews would link its author and evaluator pseudonyms (`00`
 invariant 4). The event carries its own nullifier proof, and the writer's signature says
 only that this writer logged it. Today the writer set holds the consortium members and the
-relays, and a person hands its event to a relay. `01` D44 decides that only the members
+relays, and a person hands its event to a relay. `01` D54 decides that only the members
 write: a person sends its event encrypted to a member through a **blind relay**, as Oblivious
 HTTP (RFC 9458) with HPKE (RFC 9180) — the relay learns where the message comes from and not
 what it says, the member what it says and not where it comes from — and any member may log
 it (`10` T85).
 
-**Who reads (`01` D44).** Every kind of object belongs to one tier:
+**Who reads (`01` D54).** Every kind of object belongs to one tier:
 
 | Tier | Who reads | Objects |
 |---|---|---|
@@ -617,7 +661,7 @@ lives only on the signers but on **all** nodes, even the light ones that come an
 Slower to write (encoding + distribution) and read (fragment gathering), but
 **simultaneously more distributed and more reliable**.
 
-**What is coded (`01` D44).** The **public archive**: the cuts and their signatures, the
+**What is coded (`01` D54).** The **public archive**: the cuts and their signatures, the
 beacon's records, the anchors, each epoch's roots, the state tree's shape and the released
 items. It is the history that must outlive the consortium, so it is spread over every node.
 The circle's data is not: Reed–Solomon here is systematic, its first `k` shards are the
@@ -656,7 +700,7 @@ schedule are `10` T17.
 | | Person-nodes | Signer-nodes (consortium) | Light-nodes |
 |---|---|---|---|
 | What they are | pseudonymous participants | always-on servers | any client |
-| What they do | propose, judge, answer; keep their own records (`01` D44) | full copy + sign the state | shards of the public archive + verify signatures |
+| What they do | propose, judge, answer; keep their own records (`01` D54) | full copy + sign the state | shards of the public archive + verify signatures |
 | How many | unlimited | a few dozen (cap ~n²) | unlimited |
 | More of them = | safer | slower | slows nothing |
 | Security from | quantity + independence | diversity of who controls them | — |

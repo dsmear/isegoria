@@ -11,19 +11,19 @@ guarantees. Open disagreements and correction criteria are in
 those findings or change the code. Measurement claims retain their model/version scope.
 
 Notation: `u,v` nodes/reviewers; `j` questions (items); `i` respondents; `θ_i` the
-respondent's latent competence.
+respondent's latent parameter in the declared model, called competence in this document.
+Answers and reviews are produced in an open environment (`01` D45): what `θ` means relative to
+competence and to the use of outside resources, and whether that reading is adequate, remain to
+be established; a correct answer alone does not show unaided knowledge. The assessment's
+priorities are in `01` D46.
 
-> **Revisions from the working paper (decided 2026-09-24).** The working paper
-> (`paper/`, version 0.2) found properties of this specification that `docs/01` D32–D41
-> correct; the tasks are `docs/10` Phase 1.1 (T49–T57), the first phase of the roadmap.
-> D32–D40 are implemented (T49–T57, 2026-09-24/25): the text describes their formulas
-> and intended contracts, subject to the open findings in `15`, with measured limits —
-> the side-balanced score and
-> the appeal by the side gap (§A.3), the target latent model and its anchor precondition
-> (§B.3), the contested-facts pool (§B.5, §B.7), the evaluator score with exploration
-> (§C.2), the change detector and the cap (§C.4), coordination on residuals and panel
-> diversification (anti-collusion). D41, the beacon, is done too (`10` T37). `paper/README.md` lists
-> what changed since the paper's snapshot.
+**Which path uses this engine?** The current answer review uses the weighted author
+index in §C.1. Its outcome rule and quotas are specified in
+[05](05-question-lifecycle.md#the-answer-review-01-d49d52), under D49–D53.
+Levels A and B, the evaluator scores in §§C.2–C.4 and anti-collusion below belong to
+the retained forecast-and-pilot path. They are not acceptance conditions for the answer
+review (D52). Historical decisions and results are tracked in [01](01-decisions.md)
+and [15](15-phase1-review.md), not revalidated by this document.
 
 ---
 
@@ -32,7 +32,7 @@ respondent's latent competence.
 ### A.1 Model
 
 Matrix factorization with asymmetric regularization. Let `r_uj ∈ [0,1]` be node `u`'s
-judgment of question `j`:
+judgment of question `j` — the forecast the legacy reviewer reveals (`05` [4]):
 
 ```
 r̂_uj = μ + b_u + b_j + ⟨f_u , f_j⟩          f ∈ ℝ^d,  d = 1 or 2
@@ -296,12 +296,17 @@ with an inverted key.
 
 ### B.3 DIF analysis on latent groups — the neutrality test
 
-Establishes whether a question is politically biased **without knowing anyone's
-identity or attributes**.
+Estimates differential item functioning **without collecting personal group attributes**.
+It does not by itself establish political bias (foundational interpretation: `01` D44).
 
-Idea: two people with the *same* competence `θ` but from different groups must have
-the same probability of answering correctly. If they don't, the question is measuring
-group membership.
+The comparison is conditional on the model's competence `θ`, whose meaning under `01` D45 is
+still to be established (notation above); unequal use or availability of outside resources can
+also separate latent classes, a tension recorded there, not resolved. Better relevant knowledge
+may legitimately produce higher raw scores. A residual difference between latent classes
+can indicate nuisance content, pertinent specialist knowledge, an omitted competence
+dimension or model/estimation error; response data alone does not identify its cause.
+The intended competence and the treatment of such differences must be stated separately.
+Equal estimated `θ` is not proof of equal true competence in every relevant dimension.
 
 **Variant 1 — logistic regression on continuous `f`** (uses the Level A latent axis):
 
@@ -365,7 +370,9 @@ parameters. It counts the histogram's `Q − 1` logits less their shift (`Q = 41
 `free_params`): the nominal dimension of the parametrized ability family, not a dimension the
 responses are shown to identify. The count is the same in every candidate of a call, so it
 cancels in the comparisons in exact arithmetic; estimated shape can still change the likelihood
-differences and the selected number of classes (`13` §8.8).
+differences and the selected number of classes (`13` §8.8). `latent_dif_candidates` returns the
+same fit with each candidate the search fitted, from its chosen start, for diagnostics (`19`
+§13.14); it changes no fit or selection.
 
 **Open interpretation (`15` A3, B1–B3).** Whether the responses identify all `Q − 1` directions,
 how weakly the data inform them, what the moment penalty does to fits and mixtures, and how the
@@ -464,6 +471,19 @@ calibration/proxy procedure uses iterative purification:
 6. repeat until the set of discarded items stops changing
 ```
 
+`validation::purify_theta` (calibration only) implements this loop with θ re-standardized
+from the anchor totals plus the unflagged items each round. Its result tells three ends
+apart (`15`, Variant 1 fit states, closed within its scope on `6274270`). `Completed` is a
+numerical fixed point of this procedure: two consecutive rounds of converged fits with the
+same flags, the initial all-false vector not counting as a round, the flags read on the
+returned θ; it certifies neither statistical validity nor the absence of DIF. `Interrupted`
+stops at a round where a fit is separated or unconverged: every item of that round is read
+on the same θ, θ is not updated, and no inconclusive item is retried, included or excluded.
+`Exhausted` means `max_rounds` passed with no verified fixed point, including
+`max_rounds = 0`, where no fit runs and no flag is presented; differing last rounds show no
+cycle by themselves. Earlier rounds and partial readings travel as diagnostics, apart from
+`Completed`'s result.
+
 The historical prototype estimates `θ` from 30 anchor totals. The current anonymous
 model instead fits anchor parameters in the likelihood and integrates over ability
 (§B.3); it does not perform that proxy loop as its production re-check. Its admission
@@ -473,7 +493,11 @@ shows why the gate needs reassessment (§B.6; `15` B2/B5).
 
 ### B.5 Upstream admissibility
 
-Psychometrics does not save you from badly conceived questions. Strict taxonomy:
+Psychometrics does not save you from badly conceived questions. The context supplies
+proponents and reviewers with the test's purpose; relevance is assessed through review,
+not inferred from DIF or from the numerical engine's understanding of the text (`01` D44).
+The existing source and admissibility requirements remain; under `01` D47 whether they stay is
+open, apart from the reviewers, who do not state or record their sources. Strict taxonomy:
 
 - **Admitted**: verifiable procedural and institutional facts, with a **mandatory
   citation to a primary source** (Official Gazette, parliamentary act, official
@@ -482,7 +506,8 @@ Psychometrics does not save you from badly conceived questions. Strict taxonomy:
   counterfactual, and items that attribute causes to contested phenomena.
 
 Disputes over an item are resolved by an evidentiary procedure (comparison with the
-source), not by a vote.
+source), not by a vote. The assessment's priorities (`01` D46) record, unresolved, how judgments
+of a claim against its evidence relate to this taxonomy and to step 4 below.
 
 **The source check (`01` D38).** The evidentiary procedure as it decides whether an item
 the latent check flags (§B.3) is a *contested fact* (§B.7). It answers one question —
@@ -581,13 +606,14 @@ are owner decisions (`10` T83; `15` D2/E).
 
 ### B.7 Contested facts and differential test functioning (`01` D38)
 
-DIF shows that an item measures a second dimension on which the latent classes differ;
-whether that dimension is a nuisance is a judgment (paper §4.7). When the key is a fact
-a primary source establishes, the second dimension is knowledge of the fact: one class
-is misinformed about it. Rejecting such items would bar every fact a camp disputes from
-the bank, and the appeal of `05` [5b] could not recover them — Level B would reject them
-for the reason Level A did. So an item the latent check flags (§B.3) goes one of two
-ways:
+DIF is a signal of response differences beyond the model's account of competence;
+its cause and relevance are not identified by that signal alone (`01` D44). A sourced
+fact may show such a difference because its knowledge differs across classes; rejecting
+every flagged fact would also exclude this case. D38 therefore retains the contested-fact
+path rather than treating a statistical flag as proof of unfairness. The question of
+which pertinent knowledge differences should be compensated remains an explicit A2
+design decision; the existing classification and balancing policy is not changed here.
+An item the latent check flags (§B.3) goes one of two ways:
 
 - its key passes the source check (§B.5) → a **contested fact**, kept in a separate
   *contested pool* (from the pilot, or from the active pool at re-validation);
@@ -597,7 +623,9 @@ The implementation draws contested facts using the per-fit DTF cost below and a
 provisional tolerance. The intended guarantee is to control the whole test's
 differential functioning. That guarantee is **open**, for the cross-fit and
 active-item reasons below (`15` A2); selection by the implemented cost alone does
-not establish it.
+not establish it. D47 neither resolves nor withdraws it: A2's dossier and studies are archived.
+D52 makes it unnecessary for the answer review, which uses no DTF; A2 stays unresolved within its
+scope, here.
 
 **DTF within one fit.** Let `F` be a target-model fit (§B.3) in which the items of a set
 `S` were trial items, with counted classes `g` (share ≥ 5%, as for `DIF_j`), shares
@@ -668,9 +696,9 @@ tolerance, and any margin below it, are T25's.
 its subsets of at most `n` contested facts whose own DTF is within the tolerance (the
 empty one included); a table of the least cost that completes `n` from the fits not yet
 visited keeps only the candidates that can still be completed, and one is drawn
-uniformly among them. So the draw fails only when no balanced selection of `n` exists —
-it then reports the sizes that do — and every balanced selection has a positive
-probability. The cost is summed in fixed point (each fit's DTF rounded up to `2⁻³²`
+uniformly among them. So, inside the resource domain below, the draw fails only when no
+balanced selection of `n` exists — it then reports the sizes that do — and every balanced
+selection has a positive probability. The cost is summed in fixed point (each fit's DTF rounded up to `2⁻³²`
 score points), so the budget is exact (`protocol::contested`). The draw is a function
 of the pool's content and the seed alone: the pool keeps a canonical order — within a
 fit, the members by content id; the fits by their least member, unique since a fact
@@ -680,40 +708,124 @@ recorded, re-measured or retired. Two replicas holding the same facts in the sam
 draw the same test from the same seed, and whoever records the facts cannot pick the
 test by the order of recording (the order-dependence the lottery had until T37).
 
-**Scores.** A contested fact is admitted to the bank. Its Level B outcome for the
-evaluator score is 1, as for an item that reaches the pool (§C.2) — scoring it 0 would
-pay reviewers to predict the rejection of true facts a camp disputes — and an appealed
-item that becomes a contested fact promotes the appeal (§C.1, `05` [5b]).
+**The resource domain (`15` D3).** The draw's work grows with the subsets it enumerates, so
+it runs on a bounded offline domain the owner adopted. Before it enumerates or allocates its
+table it checks exact integer counts of the pool's shape and `n` alone — never the seed, the
+tolerance or a DTF — against `protocol::contested::DRAW_LIMITS`: at most `2²⁰` subsets
+visited, `2²²` member entries, `2²⁹` DTF point terms, `2²⁰` cells of the least-cost table
+and `2²⁶` scans of it. Inside, the draw is the one above, unchanged in law, exactness,
+candidate order and seeding. Outside, it returns `DrawError::OutOfDomain`, typed apart from
+`DrawError::NoBalancedDraw`: the pool was not evaluated, so it states nothing on whether a
+balanced selection exists, and it is no licence to assemble the test without its contested
+facts, or with fewer; what a caller does with it is not specified here. The guarantees of the
+previous paragraph hold on the admitted domain. The pool is bounded too
+(`POOL_LIMITS`): per fit at most 16 classes, `2¹²` ability points and `2¹²` items, at most
+`2¹²` fits, and at most `2²⁷` bytes by its estimate. A record is checked on its members and
+on the fit alone, with members or none, then on the pool it would leave. A refusal of the
+members or the fit comes before the curves are built or the members copied; the check on the
+resulting pool may copy the member ids, already bounded to 128 KiB. A refused record changes
+nothing. The limits derive from the owner's targets on the reference machine — about 2 s per
+admitted draw and 256 MiB beyond the pool — targets checked by measurement on that machine,
+not universal time guarantees; the memory is an estimate, not a certified peak. They bound
+resources, not a test's DTF (`15` A2).
+
+**Current scores.** A contested fact is admitted to the bank. Its binary Level B outcome for
+the implemented evaluator score is 1, as for an item that reaches the pool (§C.2) — scoring it
+0 would pay reviewers to predict the rejection of true facts a camp disputes — and an appealed
+item that becomes a contested fact promotes the appeal (§C.1, `05` [5b]). The decided O1 target
+for A1 is stated in §C.2; this implemented mapping is not a definition of its reference `Y`.
 
 ---
 
 ## Level C — Node reputation
 
-Two **separate** scores, on unlinkable pseudonyms (see `01` D5). Never combined.
+Two **separate** scores, on unlinkable pseudonyms (see `01` D5). Never combined. D47 and D48 keep
+the separation; §§C.2–C.4 describe the previous design's evaluator score, still implemented. In
+D48's first implementation every reviewer weighs the same and ordinary reviews do not update `E`;
+the evaluation of reviewers is deferred. In the answer review the author's index adapts §C.1's
+inputs (D50) and sets D51's quotas (§C.1, *The answer review*); the existing path's author score
+below is unchanged.
 
 ### C.1 Author score `C_a`
 
-**Implemented score.** Let `q_j ∈ [0,1]` be an item's quality input. The code uses a
-regularized, time-discounted weighted average:
+**Implemented score.** Let `q_j ∈ {0, 1}` be an item's pilot outcome (below). The code uses
+a regularized, time-discounted weighted average:
 
 ```
           α₀ + Σ_j w_j q_j
-C_a  =  ─────────────────────      w_j = exp(−Δt_j / T)
+C_a  =  ─────────────────────      w_j = exp(−(k − k_j) / T_e)
         α₀ + β₀ + Σ_j w_j
 
-α₀ = 2, β₀ = 3; T = 18 months (exponential decay time, provisional)
+α₀ = 2, β₀ = 3; H = 45 applied closings, T_e = H / ln 2 (provisional)
 ```
 
-This is the formula in `reputation::author_score`. Its half-life is `T ln 2`, not T.
+This is the regularized index in `reputation::author_score_closings`. The owner adopted
+C6 candidate B on 2026-10-17: a weight's half-life is `H` applied closings. The nominal
+cadence is 28 days, hence 1,260 nominal days, about 3.5 years; the protocol verifies no
+calendar cadence. The older `author_score` helper and its 18-month numeric fixtures remain
+for historical scoring comparisons; the author protocol does not call that helper. Were
+every weight aged alike with no new observation, `C_a` would move toward the prior mean
+`α₀/(α₀+β₀)`, not toward 0, and never across it, in exact arithmetic; an escrow held at a
+fixed weight while the rest ages breaks this, and binary64 can round a value just below
+the floor up to it (`15` C5–C6).
 The earlier Beta–Beta hierarchy `q_j | ψ_a ~ Beta(κψ_a, κ(1−ψ_a))`,
 `ψ_a ~ Beta(α₀,β₀)` does **not** have this posterior mean (`15` C5).
 Describing the implemented index correctly does not decide whether a different
-inferential model is wanted. The meaning of continuous `q_j` and the intended decay
-policy remain explicit design/calibration questions (`08` REPUTATION-001; `15` C5–C6).
+inferential model is wanted.
+
+**Inputs (the owner's candidate, adopted 2026-10-16; `15`: C5 closed on it, C6 closed on
+its time amendment, `825cabc`).** A procedural outcome, not a psychometric quality, and no
+Bayesian reading is adopted:
+
+- *Value.* `q_j = 1` when the item's pilot concludes in the active or the contested pool,
+  `0` when it concludes in `Rejected(Screen)` or `Rejected(Dif)`
+  (`appeal::pilot_outcome`).
+- *No observation* for a gate rejection (`Defect`, unappealed `Polarized`, `Borderline`), a
+  pilot still pending or indeterminate, an explored outcome (`Measured`), or a later
+  re-validation or retirement: only the step out of `Pilot1` or `Pilot2` concludes.
+- *One per item.* The record names its item; a second record for the item is refused, and
+  nothing is revised.
+- *Appeal.* The escrow is the appealed item's only slot: its outcome settles the escrow and
+  adds no second observation. Filing and starting are one operation of the node: a filing
+  record escrows the zero and moves its item from `AppealEligible` to
+  `Pilot1 { appealed: true }` in the same results event, or, refused, does neither. The
+  record carries the request's window reading, an explicit input refused when false. Coverage
+  is checked on the history before the filing and not again after it, so a fresh author at
+  0.4 starts the appeal and is left at 1/3. A lifecycle `Appeal` step is refused (`04`
+  §Events and replay), so no accepted event holds an escrow while its item waits to start.
+- *Provenance.* The node keeps the author each accepted deposit proved and the conclusion each
+  step reaches (`node::Conclusion`). It refuses an author record naming another author, or an
+  outcome and appeal flag that step did not reach. It also refuses a filing on an item that is
+  not appeal-eligible. `authorship::author_records` derives an epoch's records from these, so
+  no caller supplies `q_j`.
+- *Time.* The data epoch of `EpochResults` identifies its root and prevents duplicate
+  results; it sets neither end of an age. The applying cut supplies recording/evaluation
+  epoch `E`. `k(E)` counts applied closing cuts before the first cut of `E`, fixed through
+  `E`; a closing increments it at the end of that cut. An outcome or settlement records
+  `(E_j, k_j)` on its first valid application and counts only when `E_j < E`, weighted by
+  `exp(−(k(E) − k_j)/(H/ln 2))` through deterministic `fmath`. Skipped identifiers and
+  unclosed epochs add no age; an empty closing counts, without needing results or a beacon.
+  An open escrow stays at `q = 0`, weight 1. A delayed conclusion starts aging when recorded.
+- *Within an epoch.* A filing in `e` is checked against the outcomes of epochs before `e` and
+  every escrow filed before it, those filed earlier in `e` included. An escrow settled in `e`
+  counts through `e`, and its outcome replaces it from `e + 1`. The epoch's appeal requests,
+  once their set is closed, are *selected* one at a time in ascending item CID (the
+  lottery's order). A request outside its window is refused before coverage is read, so it
+  spends none; one within it is admitted if covered, refused otherwise. Their arrival order
+  cannot move the outcome. *Replay* of the recorded filings is atomic instead: one invalid
+  filing (uncovered, outside its window, or on an item not appeal-eligible) refuses the whole
+  results event, the admissible filings before it and their items' moves included.
+  At most one accepted results event containing filings is allowed per recording `E`,
+  across all authors and cuts; a rejected event consumes no slot. This does not establish
+  completeness of the request set. Events without filings can still apply in the same `E`.
+- *Quota.* The value for epoch `e`'s quota is fixed once, from the outcomes of epochs before
+  `e` and the escrows open at the end of `e − 1` (`AuthorHistory::quota_reputation`).
+  Turning it into a quota is not implemented.
 
 Shrinkage is indispensable: a node with 2 of 2 items accepted must not be worth as
-much as one with 180 of 200. Example with `Beta(2,3)`: author A (2/2) → 4/7 ≈ 57%;
-author B (180/200) → 182/205 ≈ 89%.
+much as one with 180 of 200. Example with `Beta(2,3)`, reading an accepted item as
+`q = 1` at age 0 for illustration: author A (2/2) → 4/7 ≈ 57%; author B (180/200) →
+182/205 ≈ 89%.
 
 **Use.** `C_a` governs the **rate limit on proposals**, not the vote weight:
 
@@ -721,29 +833,107 @@ author B (180/200) → 182/205 ≈ 89%.
 q_a = q_min + (q_max − q_min) · C_a
 ```
 
+`reputation::proposal_rate` computes it; only tests call it, and a deposit event carries its
+quota as written: the snapshot above is computed, its conversion to a quota is not (`15`
+C5–C6).
+
+**The answer review (`01` D50, D51; owner, 2026-10-21).** The same regularized index and aging,
+with each observation's weight `ω_j` multiplying its time weight in both sums:
+
+```
+          α₀ + Σ_j ω_j w_j q_j
+C_a  =  ─────────────────────────       w_j as above; α₀ = 2, β₀ = 3, H = 45
+        α₀ + β₀ + Σ_j ω_j w_j
+```
+
+- *Inputs.* A round accepted: `q_j = 1`, `ω_j = 1`. Discarded: `q_j = 0`, `ω_j = 1`. Divided
+  answers: `q_j = 0`, `ω_j = 1/4`. Insufficient participation: no observation. No fixed
+  subtraction replaces the rule; there is no appeal and no escrow.
+- *Recording.* The outcome and its observation are recorded together, atomically and once per
+  question, at the round's closure; an observation recorded in epoch `E_j` counts from `E_j + 1`,
+  aged as above. A new, corrected question adds its own observation and erases none.
+- *Quota (D51).* Fixed once per epoch `e` from `C_a` at `e`: 1 question when `C_a < 0.30`, 2
+  when `0.30 ≤ C_a < 0.70`, 3 when `C_a ≥ 0.70`, in binary64; a new author 2. A deposit consumes
+  a slot; an invalid or duplicate request does not; no refund, no accumulation, no change within
+  the epoch. This replaces, in the answer review, the linear `q_a` below.
+- *Scope.* C5 and C6 stay closed within their scope (the existing path) and are not extended to
+  these inputs (`15`). The parameters are provisional and uncalibrated (`14`, D52).
+- *Code (`10` T87).* `reputation::author_score_weighted` (with unit weights it is
+  `author_score_closings` bit for bit); `protocol::answer_author::{contribution, AuthorRecord,
+  QuotaBands}`; the path that records them is `05` §The answer review.
+
 **Appeal stake (`01` D27, `05` [5b]).** An appeal is a pseudo-observation *inside* this
-average, not a deduction from it: filing appends `q = 0` at `Δt = 0` (the escrow); the
-verdict replaces it with the item's real `q_j` if the pilot promotes the item — to the
-active pool, or to the contested pool (§B.7) — and leaves it otherwise. The stake floor
-is the prior mean `α₀ / (α₀ + β₀)` (0.4 with `Beta(2,3)`): an author files only while
-`C_a` covers it, so a failed appeal costs the next one until the evidence has restored
-the average. There is no additive gain — the reward for being
-right is the good observation itself (`protocol::appeal`, T61). Floor provisional (T25).
+average, not a deduction from it: filing escrows `q = 0` at weight 1 for the appealed item;
+the pilot's conclusion settles it — a pass if the item reaches the active or the contested
+pool (§B.7), the zero standing on a pilot rejection — and the outcome then ages from its
+recording cut like any other. Held at weight 1 while the rest ages, a long-pending escrow can
+pull `C_a` below the floor (`15` C5–C6). The stake floor is the prior mean `α₀ / (α₀ + β₀)` (0.4 with
+`Beta(2,3)`): an author files only while `C_a` covers it, so a failed appeal bars the next
+one while `C_a` stays below the floor (a fresh author's does; ten items at `q = 1` keep
+`C_a` near 0.75 after one). The check is `C_a ≥ floor` in binary64: an old enough failure
+rounds `C_a` up to 0.4 exactly and covers the stake (`15` C5–C6). There is no additive gain — the reward for being right is the
+good observation itself (`protocol::appeal`, T61). Floor provisional (T25).
 
 ### C.2 Evaluator score `S_u` and review weight `w_u`
+
+> **Previous design, still implemented (`01` D47, 2026-10-21).** This section scores a forecast
+> of the pilot outcome. Under D47 reviewers answer the item; D48's first implementation weighs
+> them equally and defers the evaluation of their reliability. A1's and A12's conditional
+> closures below keep their perimeters and certify nothing of the new mechanism. O1, O2,
+> exploration, B-b and A12's candidate are suspended; their dossiers `16` and `17` and the
+> `sim/a12_*` tools named below are archived (`archive/phase1-forecast-pilot/`).
 
 > **Revised by D33 and D35 (T50 and T52, done).** The ratio-form Brier skill score of the
 > first design is not a proper scoring rule (paper Prop. 12): it paid a dissenter to move
 > toward the crowd. Since T50 the score is the leave-one-out difference score below and
 > the weight lives on the odds scale. Since T52 the scored items are the live outcomes
 > too, with inverse-probability weighting intended to correct gate-dependent
-> observation. Its protocol-level incentive guarantee remains open (`15` A1).
+> observation. Its protocol-level incentive guarantee remains unjustified; A1’s conditional
+> closure on `1bd865c` covers the decided design only (`17` §14.15).
 
-The reviewer does not give a binary judgment: they **declare a probability** `p_uj`
-that the item passes Level B empirical validation. On every scored item — a golden item
+**Decided target for A1 (O1, 2026-10-11; amendment approved on `e735a8e`).** The scalar forecast
+`p_uj` targets `q_c = P(Y_j = A | Y_j ≠ I, F_u)` where `c = P(Y_j ≠ I | F_u) > 0`.
+For `c = 0` the expected score is flat and `q_c` is undefined; no target value is imputed.
+B-b's terminal contribution is the difference below on `A` (`o = 1`) or `R` (`o = 0`),
+and zero on a positively evidenced terminal `I`. The approved scorer's other cases remain
+in force (`17` §§8.2, 14.9); the decision's motivation, domain and limits are in
+[`17` §14.12](../archive/phase1-forecast-pilot/docs/17-a1-pilot-batch-design.md#1412-o1-target-amendment-owners-decision-2026-10-11).
+
+**Decided observation design (O2, after `af42035`).** A prescribes every reviewed item to
+the pilot in its prefixed group, `π=1`, with no observation draw in the score, for A1's
+conditional correction. Resource sustainability is not established, no operational start or
+T1 adopted; conditions and Astra’s conditional A1 closure on `1bd865c` only in
+[`17` §14.15](../archive/phase1-forecast-pilot/docs/17-a1-pilot-batch-design.md#1415-o2-decision-and-proposed-conditional-a1-closure).
+
+**Decided A12 domain; affine candidate specified (owner, 2026-10-12).** Phase 1's exact
+cumulative-effective-weight guarantee is restricted to complete offline inputs and invariant
+information, with the assumptions explicitly accepted in
+[`16` §7.2](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
+That section owns the fixed-benchmark affine formula, prefixed counts/calendar, diagnostic
+CUSUM, conditional proof and refusal of incomplete prefixes. `sim/a12_offline.py` implements
+an exact-rational offline reference. The frozen-weight Rust integration package is accepted
+on 2026-10-13, on the owner's executable checks and Astra's review (`16` §7.2), without
+operational adoption. The package acceptance alone did not close A12; the composed review closes A12 conditionally (`16` §7.3), while Phase 1 remains open. It supplies
+no general proof against betrayal or policy for pending operational weights. The current
+difference/odds/reset paths below and their acquired tests remain distinct; A1 is not reopened.
+
+**Approved numerical qualification (owner, 2026-10-12).** The rational theorem stays exact.
+The affine offline bridge may convert each final weight once to binary64 and transfer its
+bits unchanged: per-weight error at most `2⁻⁵³`, expected deviation advantage at most
+`M·2⁻⁵²` on `M` prefixed opportunities (`16` §7.2). This is a bounded numerical guarantee
+for the mathematical sum of consumed coefficients, not exact properness of the rounded
+path or a bound on fit/decision error. The same frozen table must supply first and extra
+panels; no odds conversion, reset or mixed-roster cap is allowed in that path. The owner
+reports passing Rust compilation, all five composed tests and formatting; evidence and
+provenance of the integration-package acceptance are recorded in `16` §7.2.
+
+**Current implementation (binary/exploration path; not yet adapted to O1/O2).** The runtime
+still reads `p_uj` as the probability that an item passes Level B. On every scored item — a golden item
 (`05` §Golden items) or a live item whose outcome `o_j ∈ {0,1}` is known (`01` D35, T52) —
-the difference rule below is **strictly proper conditional on a report-independent
-baseline and a fixed outcome law**. Its transfer to selected live outcomes also needs
+the difference rule below is **strictly proper conditional on a joint law of baseline and
+outcome, given the reviewer's information, that the report does not move** (`16` C6); a
+report-independent baseline and a fixed outcome law taken apart are not enough (`16` §4.2).
+Its transfer to selected live outcomes also needs
 the information/selection assumptions discussed under Exploration:
 
 ```
@@ -758,7 +948,12 @@ expectation is maximized by the true belief, by exactly `Σ_j (p_uj − q_uj)²`
 other report under those conditions (`08` AT-REP-05). With no other positive panel
 weight, `reputation::loo_baseline` (the golden-item path, `honeypot::reviewer_skills`)
 falls back to the reviewer's own forecast as baseline, producing zero for every report;
-this case is uninformative, not strictly proper (`15` A10).
+this case is uninformative, not strictly proper. Its zero is not neutral where it is
+recorded: as an observed score without an alarm it would advance `k_u`, probation and `N_u`
+and can move `S_u` toward 0; past probation it first reaches the change detector, whose
+alarm resets the track before those increments. No caller records it. What an absent
+baseline does is a residual to decide before integration, with no automatic conversion
+(`15` A10).
 
 **Band items (`01` D26, D33; `16` C5).** On an item that went through the extra round, a
 first panelist's baseline is the weighted leave-one-out mean of the *other first panelists*
@@ -775,16 +970,18 @@ does to the denominator, probation and reputation is not decided. Implemented as
 with no production caller yet. This composes baselines; it is no proof of the protocol's
 properness and changes neither the gate nor bridging.
 
-**Fundamental property.** Someone who replicates the consensus gets `S_u = 0`. You
-gain reputation only by being right **when the crowd is wrong**. This is the incentive
-needed against majority capture.
+**Score property.** With a defined baseline, reporting that baseline gives a zero difference
+term on either conclusive verdict; B-b also assigns zero to a terminal `I`. This is a property
+of the score. It does not show incentives of the reputation or of review weights; O3 is
+resolved and that distinct requirement was tracked as A12 (`15`, `17` §14.14); its amended offline scope is closed conditionally (`16` §7.3).
 
 `S_u` is the mean of `S_uj` over the reviewer's `k_u` scored items — the symmetric
 long-window mean of `01` D34 (the change detector on the per-item scores is T51).
 
-**Exploration (`01` D35, T52).** Golden items alone are too few (about one every two
-epochs per reviewer). A reviewer is therefore scored on every reviewed item whose Level
-B outcome is known: the golden items, every live item that reaches a pilot (a pass — a
+**Current exploration (`01` D35, T52; unchanged by the O2 specification).** Golden items
+alone are too few (about one every two epochs per reviewer). A reviewer is therefore scored
+on every reviewed item whose
+Level B outcome is known: the golden items, every live item that reaches a pilot (a pass — a
 contested fact is one, §B.7 — or a screen or DIF rejection: `o_j = 0`), and a random
 `ε = 5%` of the items the gate rejects, drawn from the public beacon (`protocol::exploration`, keyed on the admitted
 slot) and piloted for measurement only — never entering the pool. Scoring only the
@@ -813,8 +1010,8 @@ false-negative rate — how many rejected items would have passed Level B — an
 about `ε` of pilot capacity. The draw is grind-free: it reads the commit-reveal beacon of
 `01` D41 (`04` §The epoch's beacon, T37).
 
-**Use.** `S_u` weights the review vote, on the odds scale and shrunk by the number of
-scored items:
+**Current use (legacy path; A12 conditionally closed under its amended offline scope, `16` §7.3).** The implemented binary `S_u` weights the review vote, on the
+odds scale and shrunk by the number of scored items:
 
 ```
 w_u = exp( γ · S_u · k_u / (k_u + k₀) )       γ ≈ 35,  k₀ ≈ 100   (provisional, T25)
@@ -838,6 +1035,10 @@ the same story (the expert beats the crowd, the followers do not) and stays prop
 
 ### C.3 Judgments without verifiable truth
 
+> **D47, D48.** Whether peer prediction or the Bayesian Truth Serum has a role in evaluating the
+> reviewers' answers belongs to the evaluation D48 defers; neither is implemented beyond
+> `reputation::dasgupta_ghosh`.
+
 For dimensions that never receive an empirical verdict (formal clarity, source
 quality, tone), there is no `o_j`. A **peer-prediction** mechanism with correlated
 agreement (Dasgupta–Ghosh), incentive-compatible without ground truth. For reviewer
@@ -849,7 +1050,10 @@ Score(p) = 1[ x_p(shared_item) = x_q(shared_item) ]
 ```
 
 The second term subtracts baseline agreement (chance or common bias). Reporting the
-honest signal is the highest-payoff equilibrium among symmetric strategies.
+honest signal is the highest-payoff equilibrium among symmetric strategies. In the open
+environment of `01` D45 reviewers may share sources or tools, and agreement does not show
+independent checks; whether this incentive argument holds under those conditions is one of
+D45's recorded tensions.
 
 Richer variant: **Bayesian Truth Serum** (Prelec). Each reviewer declares (a) their
 own judgment, (b) the expected distribution of the others. The **surprisingly common**
@@ -857,6 +1061,15 @@ answer is rewarded — more frequent than the group predicted. It extracts infor
 from the informed minority.
 
 ### C.4 Temporal dynamics and cap
+
+> **Previous design, still implemented (`01` D47).** The detector, probation and cap below act
+> on forecast scores. D48's first implementation has equal weights and no reputation update from
+> ordinary reviews; whether they apply to a later evaluation of reviewers belongs to that
+> decision.
+
+The following is the implemented D34/D36 behavior. The A12 affine candidate's
+diagnostic-only detector and bounded/slack cap are specified separately in `16` §7.2;
+the domain decision does not change this code or certify those choices through its tests.
 
 > **Revised by D33, D34 and D36 (T50, T51 — done).** The cap applies on the odds scale,
 > where it binds, probation lasts 30 scored outcomes, and the asymmetric update of the
@@ -953,7 +1166,8 @@ detector no longer confuses with a cartel.
 
 Each threshold's reason, calibration procedure, sensitivity, what breaks if it moves and its
 location are in `docs/14` (SC-1): Level A's are written, Level B's and C's come with T25's
-step 4.
+step 4. `w_max`, `η` and the exploration rate `ε` belong to the previous design's evaluator path:
+their calibration is suspended under D47.
 
 | Parameter | Value | Notes |
 |---|---|---|
@@ -977,7 +1191,7 @@ step 4.
 | `min_shared` (coordination) | 30 | shared items before a pair's residual correlation is read (D39); at the design scale two reviewers share under one item per epoch, so a pair is read only after many epochs |
 | `ρ_min`, `p_max` (coordination) | 0.7, 0.001 | a flagged pair's residual correlation and permutation p-value (999 permutations); 0.5 flags honest pairs by chance |
 | `w_max` | 3× median | individual cap |
-| `T` (implemented exponential decay time) | 18 months, provisional | `exp(−age/T)`; half-life `T ln 2`; intended decay policy open (`15` C6) |
+| `H` (author weight half-life) | 45 applied closings, provisional | `T_e = H/ln 2`; 28 days nominal per closing, no calendar enforcement (`15` C6) |
 | `η` (honeypot rate) | 5% | see `05` |
 | `ε` (exploration rate) | 5% of gate rejections | measurement only, never the pool; the observed score at weight `1/ε` (D35) |
 

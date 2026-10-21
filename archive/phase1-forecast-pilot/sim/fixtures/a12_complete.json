@@ -1,0 +1,147 @@
+{
+  "manifest": {
+    "assignments": [
+      {
+        "epoch": "e0",
+        "id": "a-e0-u-0",
+        "item": "i-e0-u-0",
+        "reviewer": "u"
+      },
+      {
+        "epoch": "e1",
+        "id": "a-e1-u-0",
+        "item": "i-e1-u-0",
+        "reviewer": "u"
+      }
+    ],
+    "assumptions": {
+      "common_initial_history": true,
+      "ex_ante_fixed_calendar": true,
+      "no_report_controlled_resources": true,
+      "policy_invariant_completion": true,
+      "policy_invariant_joint_information": true,
+      "policy_invariant_outcomes": true
+    },
+    "diagnostic_policy": "none",
+    "epochs": [
+      {
+        "closes_at": 110,
+        "cut": 100,
+        "id": "e0",
+        "opens_at": 102,
+        "opportunities": {
+          "u": 1
+        },
+        "prefixes": {
+          "u": []
+        }
+      },
+      {
+        "closes_at": 130,
+        "cut": 120,
+        "id": "e1",
+        "opens_at": 122,
+        "opportunities": {
+          "u": 1
+        },
+        "prefixes": {
+          "u": [
+            "a-e0-u-0"
+          ]
+        }
+      }
+    ],
+    "frozen_at": 50,
+    "groups": [
+      {
+        "id": "g-initial",
+        "items": [
+          "unassigned-initial-0",
+          "unassigned-initial-1"
+        ],
+        "reference": "ref-initial",
+        "rule": "intrinsic-ARI-v1",
+        "verifier": "local-verifier"
+      },
+      {
+        "id": "g-e0",
+        "items": [
+          "i-e0-u-0",
+          "unassigned-e0-1"
+        ],
+        "reference": "ref-e0",
+        "rule": "intrinsic-ARI-v1",
+        "verifier": "local-verifier"
+      },
+      {
+        "id": "g-e1",
+        "items": [
+          "i-e1-u-0",
+          "unassigned-e1-1"
+        ],
+        "reference": "ref-e1",
+        "rule": "intrinsic-ARI-v1",
+        "verifier": "local-verifier"
+      }
+    ],
+    "initial_history_hash": "650a4ba672052e26cb6d11764489f99e75a98752ecde3854aaa915c811edcb65",
+    "parameters": {
+      "eta": "4/5",
+      "k0": "0"
+    },
+    "reviewers": [
+      {
+        "founder": true,
+        "id": "u"
+      }
+    ],
+    "version": 1,
+    "weight_policy": "affine_complete_v1"
+  },
+  "snapshot": {
+    "evidence_mode": "trusted_local_assertion",
+    "observed_at": 135,
+    "reports": [
+      {
+        "assignment": "a-e0-u-0",
+        "available_at": 104,
+        "frozen_at": 103,
+        "p": "1/2"
+      },
+      {
+        "assignment": "a-e1-u-0",
+        "available_at": 124,
+        "frozen_at": 123,
+        "p": "1/2"
+      }
+    ],
+    "terminals": [
+      {
+        "available_at": 113,
+        "disclosed_at": 112,
+        "evidence_id": "ev-i-e0-u-0",
+        "group": "g-e0",
+        "item": "i-e0-u-0",
+        "outcome": "A",
+        "reference": "ref-e0",
+        "rule": "intrinsic-ARI-v1",
+        "terminal_at": 111,
+        "verified": true,
+        "verifier": "local-verifier"
+      },
+      {
+        "available_at": 133,
+        "disclosed_at": 132,
+        "evidence_id": "ev-i-e1-u-0",
+        "group": "g-e1",
+        "item": "i-e1-u-0",
+        "outcome": "A",
+        "reference": "ref-e1",
+        "rule": "intrinsic-ARI-v1",
+        "terminal_at": 131,
+        "verified": true,
+        "verifier": "local-verifier"
+      }
+    ]
+  }
+}

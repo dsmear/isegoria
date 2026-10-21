@@ -1,0 +1,360 @@
+# Archived simulations — Phase 1 forecast-pilot
+
+Archived on 2026-10-21 under [`docs/01` D47](../../../docs/01-decisions.md): these scripts serve
+the previous Phase 1 design's A12 reference and A2's studies. Their sections below are moved
+verbatim from `sim/README.md` at `38780af`; only link targets changed for this location. The
+archive's index and path map are in [`../README.md`](../README.md); the current simulations and
+oracles stay in [`sim/`](../../../sim/README.md), with their requirements.
+
+**Paths.** The commands below keep their original form, from the repository root: they run as
+written on a checkout of the commit a result names. On the current tree, read `sim/` as
+`archive/phase1-forecast-pilot/sim/` and `verification/reports/a2-…` as
+`archive/phase1-forecast-pilot/verification/reports/a2-…`. The scripts' imports, their fixtures
+and the A2 reports moved together and keep their relative paths.
+
+## Files
+
+### `a12_offline.py`
+
+An executable **exact offline reference path** for the owner-approved A12 affine
+candidate ([`docs/16` §7.2](../docs/16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12)).
+It consumes a prefixed manifest and a snapshot of trusted local evidence, checks their
+structural/timing composition, scores reports, counts complete cumulative exposures,
+applies probation/founder and affine weights, computes the homogeneous-roster median
+cap, freezes epoch weights and sums assigned-opportunity utility. It does not call or
+replace the Rust difference/odds/reset consumers, bridging or empirical validation.
+The frozen binary64 exporter and explicit Rust first/supplementary adapters now compose
+this reference path within their scoped contract. A12 is closed conditionally by the
+combined review ([`docs/16` §7.3](../docs/16-a1-incentive-design.md#73-a12-closure-review--2026-10-13)).
+
+Python standard library only, supported numerical profile below. From the repository root:
+
+```
+python3 sim/a12_offline.py sim/fixtures/a12_complete.json
+python3 sim/a12_offline.py sim/fixtures/a12_incomplete.json
+python3 -m unittest discover -s sim -p test_a12_offline.py -v
+python3 scripts/comment_budget.py sim/a12_offline.py sim/test_a12_offline.py
+```
+
+The second command deliberately exits 2 with `Unavailable`; a complete result exits 0.
+Use `-` as input path to read stdin. Output is one canonical JSON line. The callable
+interfaces are `load_document(text)`, `evaluate(document)` and `evaluate_json(text)`;
+`evaluate` returns a result object, whereas `load_document` raises `InvalidInput` for
+invalid JSON. `canonical_json` and `content_hash` expose the provenance serialization.
+The small committed fixtures use a bootstrap founder with no initial history; tests
+construct complete 29/30-item histories in memory rather than storing bulky examples.
+The fixture's explicit parameters are test examples, **not operating defaults**.
+
+#### Closed version-1 JSON input schema
+
+Every listed object has **exactly** the listed fields; no optional/unknown fields,
+duplicate JSON keys or implicit defaults. `ID` is an opaque ASCII string matching
+`[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}`. Only evaluator pseudonyms are represented; there
+are no author/respondent links or personal attributes. ID syntax does not establish
+anonymous credential provenance. `N` is a nonnegative JSON integer, never a boolean.
+Positions are ordered experiment positions, not wall-clock measurements. `Q` is a
+canonical reduced rational **string**: `0`, an integer without leading zeroes, or
+`numerator/positive-denominator`; fractions with denominator 1, redundant signs,
+`-0`, decimals and unreduced fractions are rejected. Floating JSON numbers and
+NaN/Infinity are rejected before interpretation. The supported integer conversion/resource
+limits can reject extremely large inputs; no precision truncation is used.
+
+| Object | Exact fields and types |
+|---|---|
+| Root | `manifest: Manifest`, `snapshot: Snapshot` |
+| Manifest | `version: 1`, `frozen_at: N`, `assumptions: Assumptions`, `parameters: Parameters`, `reviewers: Reviewer[]`, `groups: Group[]`, `assignments: Assignment[]`, `epochs: Epoch[]`, `initial_history_hash: lowercase SHA-256`, `weight_policy: "affine_complete_v1"`, `diagnostic_policy: "none"` |
+| Assumptions | `ex_ante_fixed_calendar`, `common_initial_history`, `policy_invariant_outcomes`, `policy_invariant_joint_information`, `policy_invariant_completion`, `no_report_controlled_resources`: each exactly `true` |
+| Parameters | `eta: Q`, `k0: Q`; mandatory, `0 < eta <= 4/5`, `k0 >= 0` |
+| Reviewer | `id: ID`, `founder: boolean`; nonempty unique roster |
+| Group | `id: ID`, `rule: ID`, `reference: ID`, `verifier: ID`, `items: ID[]` |
+| Assignment | `id: ID`, `reviewer: ID`, `item: ID`, `epoch: ID` or reserved `"initial"` |
+| Epoch | `id: ID`, `cut: N`, `opens_at: N`, `closes_at: N`, `prefixes: {reviewer-ID: assignment-ID[]}`, `opportunities: {reviewer-ID: N}` |
+| Snapshot | `observed_at: N`, `evidence_mode: "trusted_local_assertion"`, `reports: Report[]`, `terminals: Terminal[]` |
+| Report | `assignment: ID`, `p: Q` in `[0,1]`, `frozen_at: N`, `available_at: N` |
+| Terminal | `item: ID`, `group: ID`, `rule: ID`, `reference: ID`, `verifier: ID`, `outcome: "A"`/`"R"`/`"I"`, `terminal_at: N`, `disclosed_at: N`, `available_at: N`, `verified: true`, `evidence_id: ID` |
+
+The input validator additionally enforces these relationships:
+
+- IDs are unique within each record type. Every item belongs to one declared group,
+  with at least two distinct items. Each assignment references its reviewer, item and
+  epoch; a reviewer/item pair contributes once. Assignments for one item are its
+  **entire declared cohort** and share one epoch and one terminal record. Duplicate
+  terminal records cannot encode different outcomes for different reviewers. Reference,
+  rule, group and verifier fields must match the manifest. Evidence IDs are unique.
+  A group may contain items without reviewer assignments; no cohort is silently added.
+- Assignment array order fixes each reviewer's ordered history. It starts with that
+  reviewer's common initial history, then follows epoch order. For every epoch and
+  every reviewer, `prefixes` must equal **all assignments in earlier epochs**, including
+  all initial records, in that order. This v1 update calendar consumes complete prior
+  epochs; it does not implement arbitrary subepoch prefix calendars. Both `prefixes`
+  and `opportunities` must contain exactly the whole roster, including probationers.
+- `opportunities[u]` equals the number of u's assignments in that epoch. It is never an
+  independent multiplier or count derived from arrivals/outcomes. The epoch weight
+  is calculated at `cut`, before `opens_at`, and reused for all these opportunities.
+  Current reports never enter their own epoch weight. The nonempty epoch array is the
+  finite horizon; `initial` cannot name a measured epoch.
+- `manifest.frozen_at <= first cut`; for later epochs `previous closes_at <= cut`,
+  and always `cut < opens_at <= closes_at <= snapshot.observed_at`. Every compared
+  report freezes in its assigned epoch, strictly after the declared manifest freeze.
+  Report freeze precedes report availability, which cannot exceed snapshot observation.
+- A terminal satisfies `terminal_at <= disclosed_at <= available_at <= observed_at`.
+  Every supplied report on that item must freeze **strictly before disclosure**;
+  the terminal may already have formed while still hidden. For every required prefix,
+  both report and terminal evidence must be available at its **original cut**. Later
+  arrival or snapshot observation does not move that cut or retroactively repair it.
+- All assigned reports are required so the compared policy was actually recorded.
+  Terminals are required for the union of prefixes read by the horizon, including
+  every initial assignment. A final assignment never read by a later prefix can lack
+  its terminal: it appears in `unscored_assignments`, never as an imputed zero/I.
+  Optional supplied terminal records are still validated. An unconsumed final report
+  has zero coefficient in this horizon's utility, independent of whether it is scored.
+- Common initial reports and terminal evidence must already be available at the
+  manifest freeze. `initial_history_hash` pins their complete record objects: SHA-256
+  of `{"reports": [...], "terminals": [...]}` using `canonical_json`, sorting initial
+  reports by assignment and distinct initial terminals by item. Use
+  `initial_history_hash(manifest, snapshot)` to construct it before compared reports.
+  The manifest itself is not secretly rewritten when later evidence arrives.
+
+`verified: true`, the reference/verifier labels and all invariance flags are **trusted
+local assertions**. The program checks their presence, associations and consistency;
+it does not authenticate signatures, prove actual ex ante commitment, check off-log
+knowledge, infer a common filtration or run a batch fit. A declared group with two
+items does not establish empirical validation quality. The declared terminal meaning
+must be intrinsic A/R/I under that group's procedure, not missing work/resources.
+Changing a boolean or timestamp in a fabricated input is not evidence that the theorem's
+assumptions hold. The harness cannot infer policy-dependent disclosure from one transcript.
+
+#### Numerical and refusal contract
+
+The fixed score is `1/4 - (p-y)^2` on A/R and `0` on intrinsic terminal I. At 30
+complete observed assignments, initial history included, the weight becomes
+`1 + eta * score_sum / (k0+n)`. Before 30 a founder weighs 1 and another reviewer 0;
+no denominator is evaluated. CUSUM is **not implemented**, and no reset or detector
+side effect is adopted. Its diagnostic-only statistic/reference/threshold contract
+and calibration remain to be specified ([`docs/14`](../../../docs/14-parameter-register.md)).
+
+The supported numerical profile is `cpython-3.11+-int4300-v1`: CPython version 3.11
+or newer, with `sys.get_int_max_str_digits() == 4300`. The executable checks this
+before input decoding/evaluation; another implementation/version or configured limit
+returns `Unavailable` with an **unsupported environment** reason. It does not change
+process-global settings or silently disable integer limits. The profile is named in
+complete outputs. This fixes `PYTHONINTMAXSTRDIGITS` variability for supported replays.
+An input within that profile can still produce an exact intermediate/result exceeding
+the integer-to-decimal encoding limit (for example a squared rational denominator).
+That returns `Unavailable` with an **exact computation or encoding limit** reason,
+atomically without partial numeric certificates. Memory/time resource exhaustion is
+not an arithmetic accuracy guarantee; no large-input performance claim is made.
+
+All computation uses `fractions.Fraction`, including an even roster's median (mean
+of the two middle positive weights), the `3*median` cap and opportunity utility.
+Zero-weight probationers are excluded from that median. An empty carrying roster has
+`cap: null` and zero weights. Positive weights follow the same candidate/founder rule,
+so the cap is slack within the declared parameter range. No existing odds weight is
+accepted in the roster. Exact canonical rational strings are used for scores, sums,
+weights, caps, contributions and utilities; counts remain integers. There is no
+float conversion, tolerance, rounding or transcendental operation.
+
+This is an exact executable contract on **rational inputs**, a subset of the real
+mathematical domain. If the truthful `q_c` is irrational or not represented, the harness
+does not certify a rounded report as maximizing utility. The finite incentive tests
+use rational conditional beliefs and a prefixed common outcome/information law. They
+are composed regression evidence, not a replacement for the conditional proof or a
+claim about every possible policy. At `c=0` no truthful target is imputed; final
+unrewarded reports demonstrate the separate `beta=0` flat case. The separate frozen
+binary64 exporter and Rust adapters have the bounded conversion contract in `docs/16`
+§§7.2–7.3; these exact-reference results alone do not certify binary floating behavior.
+
+A complete output contains `manifest_id`, `snapshot_id`, exact per-assignment scores,
+`unscored_assignments`, epoch IDs/cuts, roster counts/sums/raw and capped weights,
+assigned opportunity counts, epoch contributions and cumulative utilities. Completion
+certifies this calculation **conditional on the supplied trusted assertions**, not
+empirical properness or a general anti-betrayal property.
+
+Any malformed schema, unsupported evidence/policy, missing required prefix member or
+invalid timing returns `Unavailable` with deterministic `reasons`, **without any
+numeric weight, score, partial epoch result or cumulative-utility certificate**. In
+particular it never returns a certified hold-old weight, fabricated zero or intrinsic I.
+The first structural error may stop validation; completeness errors are collected
+where structure permits. Validly encodable manifest/snapshot objects retain their
+provenance hashes in a refusal; unparsable JSON need not have them.
+
+Canonical serialization is ASCII JSON, sorted object keys, compact separators, plus
+one trailing newline, hashed with SHA-256. Array order is retained and meaningful;
+whitespace/object-key order changes do not change hashes. Output maps and reasons are
+deterministically ordered. These hashes identify declared inputs, **not their author
+or authenticity**; a new snapshot has a new ID even if its calculated weights coincide.
+The process does not keep a mutable history that could overwrite an old certificate.
+
+### `a12_weight_counterexample.py`
+
+A12's accepted finite counterexample ([`docs/16` §7.1](../docs/16-a1-incentive-design.md#71-a12-finite-effective-weight-counterexample)):
+exact Fraction scores, track/CUSUM transitions, full-roster cap and a rational Taylor8
+certificate, with Decimal expectations. A mathematical transcription of the declared
+item-level bridge, not a Rust test, bitwise `fmath` check or end-to-end protocol run.
+Deterministic; Python standard library only, with no additional dependencies. From the
+repository root:
+
+```
+python3 sim/a12_weight_counterexample.py
+```
+
+### `dtf_composition.py`
+
+A2's calculations (`docs/19`): the DTF figures of the dossier by continuous quadrature beside
+the 41-node grid `scoring::dtf` uses, and the three-class example where a group's gap exceeds
+the per-pair maximum, in exact rationals. numpy and scipy; deterministic.
+
+```
+python dtf_composition.py
+```
+
+### `a2_information_check.py`
+
+A2's bounded two-point information check (`docs/19` §13.5, result in §13.8). It certifies
+`D(τ_δ)`, the information bound `K̄`, the total-variation bounds `Δ̄_n` and the frontier
+`1 − Δ̄_n` with outward-rounded intervals on exact integers, enclosures of `exp`, `ln`, `√`, `π`
+and `Φ⁻¹` included, then runs the floating-point consistency checks of §13.5. Python standard
+library only, deterministic; about 20 s. The committed output differs between runs only in its
+`run` block (environment and timings). From the repository root:
+
+```
+python3 sim/a2_information_check.py > sim/a2_information_check.json
+python3 -m unittest discover -s sim -p test_a2_information_check.py -v
+```
+
+It exits 1, with the reason on stderr, if a certification or a consistency check fails.
+
+### `a2_probe.py`
+
+The A2 probe's oracle and analysis (`docs/19` §13.11), for the output directory of the Rust
+harness `a2-probe` (`crates/characterization`). `reference` recomputes the cases' true DTF and
+raw-score gap by its own quadrature (method B) on reference items and on 500 seeded draws of the
+item law, with the indicative information bound of C5, into `a2_probe_reference.json` (about 40 s).
+`audit` compares a phase's plan, ledger and records; `check` recomputes every truth of a directory
+against the harness's values; `budget` applies the cost-only rule for the confirmation's
+replicates, and proposes none unless explore is complete, passes the precision check and shows
+no blocking defect; `report` counts every outcome with its denominators; `compare-first` and
+`candidates` read §13.14's phase, `dtf-check` §13.18's; `threshold` and `ind-val` §13.21's
+single-test study, the calibration's threshold and the validation against it, and with `--phase
+ind-cal6` and `--phase ind-val6` §13.29's stages at `N = 6,000`. Standard library only,
+deterministic. From the repository root:
+
+```
+python3 sim/a2_probe.py reference > sim/a2_probe_reference.json
+python3 sim/a2_probe.py check characterization-results/a2-probe
+python3 sim/a2_probe.py report characterization-results/a2-probe --phase confirm
+python3 -m unittest discover -s sim -p test_a2_probe.py -v
+```
+
+`check` exits 1 when nothing is verified, a value departs from the oracle beyond its tolerance, or
+an audit is invalid; agreement is a consistency check between two methods, not a certified error
+bound. `report` exits 0 on a complete phase, 2 on a partial one (declared with its counts), 1
+without analysis on an empty or invalid phase, a failed precision check or the blocking defect. A
+malformed ledger stops `check`, `report` and `budget`; a stop named in a `session` line binds as
+the `stop` line does. `dtf-check` exits 0 after its reading, 1 without analysis unless the
+directory holds the declared phase exactly — 16 replicates, its 32 tasks, records matching their
+keys, paired seeds, a complete audit — and the precision check passes. `threshold` prints
+`threshold.tsv` (schema v1 for `ind-cal`, v2 naming the stage and its `N` for `ind-cal6`) and
+exits 0, or prints why to standard error, nothing to standard output, and exits 1: the stage not
+exactly the declared one (its plan alone, 100 replicates, its tasks and seeds, every design and
+record at the stage's `N`, a complete audit), a failed precision check, or fewer than 19
+evaluable runs in a neutral case. `ind-val` exits 0 after its reading, 1 without it unless both
+stages are the declared ones and pass the precision check, the calibration is the validation's
+own stage at its size, the threshold recomputed equals the frozen `threshold.tsv`, and the
+validation plan is bound to it.
+
+### `a2_tradeoff.py`
+
+A post-hoc, exploratory reading of the single-test study (`docs/19` §13.24): from preserved
+validation records and the frozen `threshold.tsv`, the empirical detection and false-alarm curves
+of the rule `I > t` over every threshold, for C3 and C5 each against C0 and C1, never pooled; ties
+and zeros kept, not-evaluable runs counted apart, the frozen point marked, each curve's area equal
+to the separation. It chooses no threshold. Standard library only, reusing `a2_probe.py`:
+
+```
+python3 sim/a2_tradeoff.py verification/reports/a2-ind-val-185ec93/records.jsonl verification/reports/a2-ind-cal-7bbfddb/threshold.tsv
+python3 -m unittest discover -s sim -p test_a2_tradeoff.py -v
+```
+
+### `a2_size.py`
+
+The sample-size study's reading (`docs/19` §13.26), for the directory of `a2-probe run --phase
+size`: C3's single-test separation from C0 at `N` = 3,000 and 6,000, on every evaluable run and on
+the replicates evaluable at both sizes, ties ½; per replicate the change of `I` and of its zeros;
+the placements of C3 runs. It reads nothing unless the plan is the declared 64 tasks with their
+seeds, the records match their keys and sizes, the two sizes' runs share seed, items and generating
+DTF, the audit is complete and the precision check passes; then it exits 0, else 1. No interval,
+no threshold. Standard library only, reusing `a2_probe.py`:
+
+```
+python3 sim/a2_size.py characterization-results/a2-size
+python3 -m unittest discover -s sim -p test_a2_size.py -v
+```
+
+
+### `export_a12_affine.py` — frozen binary64 bridge
+
+A complete `a12_offline` document with canonical lowercase 64-hex evaluator Nyms can
+produce one frozen table per epoch. For example, from the repository root:
+
+```
+python3 sim/export_a12_affine.py sim/fixtures/a12_affine_nyms.json /tmp/a12-new-epochs
+python3 -m unittest discover -s sim -p test_export_a12_affine.py -v
+```
+
+The exporter calls the exact validated reference over the **entire** manifest and
+snapshot before emitting any table. An `Unavailable` result, unsupported environment,
+or alias reviewer ID produces no numerical export. The specimen input and two golden
+artifacts in `crates/protocol/tests/fixtures/a12_affine/` are generated by this same
+exporter. Regenerating them deterministically is a test; the four reviewer Nyms,
+including a founder, probationer and 29-to-30 transition, are real 32-byte values
+in the transfer format, not hashes of local aliases. The sample parameter values are
+examples, not operating defaults.
+
+`affine-frozen-v1` is ASCII TSV with one terminal LF, no CR or extra fields. The header
+has `manifest_id`, `snapshot_id`, epoch ID, cut, rational `eta`, rational `k0`, exact
+rational cap or `null`, and roster count. Exactly that many sorted `row` records follow. A row contains Nym, founder bit, complete prefix count,
+assigned opportunities, exact score sum, raw and capped rational weight, 16-digit
+big-endian binary64 bits, exact epoch contribution and cumulative utility, the
+mathematical epoch and cumulative utility of the binary64 coefficients interpreted
+as exact dyadic rationals, then three exact rational upper bounds: epoch opportunity count × 2⁻⁵³, cumulative opportunity
+count × 2⁻⁵³, and cumulative opportunity count × 2⁻⁵². The last is the uniform
+truth-versus-deviation advantage bound on a common prefixed horizon of at most that
+many opportunities; it is **not** a measured trajectory error. Utility means the mathematical sum of the resulting binary64 coefficients,
+not recursive `f64` accumulation. Nothing here bounds bridging fit or gate error.
+
+The exporter retains all scores, sums, counts, parameters, cap and utility as `Fraction`.
+Only the final exact weight is converted once with Python's correctly rounded binary64
+conversion and transferred by raw bits. For every emitted weight, it checks
+`|Fraction.from_float(float(weight)) - weight| <= 2⁻⁵³`. Founder 1 and probation 0
+have exact bits. Every first and supplementary row uses `f64::from_bits` of the **same**
+frozen roster; no affine or cap arithmetic is recalculated by Rust.
+
+The wire accepts canonical unsigned `u64` cuts, prefix counts and opportunities; an
+otherwise complete exact input outside that wire profile returns `Unavailable` without
+a table. The output directory must be new. The CLI writes into a temporary sibling
+directory and publishes the complete set by directory rename; a repeated invocation
+refuses without replacing the earlier certificate. To compare regeneration with the
+committed specimen, export to a fresh path and compare its files byte for byte.
+
+The caller supplies the trusted producer's expected SHA-256 of each entire artifact
+and the expected manifest ID, snapshot ID, epoch and cut to
+`FrozenAffineEpoch::import`. Import checks byte identity, closed grammar and counts,
+unique complete Nym rows, finite range, and founder/probation/established shape.
+The digest binds to an **already verified** offline export; it does not authenticate
+its producer or prove the rational arithmetic from a hostile arbitrary table.
+`AffineRatings` owns immutable ratings, row IDs and frozen context; first and
+supplementary adapters reject malformed shape, unknown/duplicate rows, duplicate
+observations, out-of-range/NaN probabilities and mixed snapshots/epochs before
+returning a new value. Existing odds/reset entry points retain their separate scope.
+The present report-triggered supplementary gate does not establish the guarantee's
+prefixed, invariant-information assumptions.
+
+On a Rust 1.86 machine, the focused gate is:
+
+```
+cargo fmt --all -- --check
+cargo check -p protocol
+cargo test -p protocol --test affine_weights
+python3 scripts/comment_budget.py sim/a12_offline.py sim/export_a12_affine.py sim/test_a12_offline.py sim/test_export_a12_affine.py crates/protocol/src/affine_weights.rs crates/protocol/src/orchestrator.rs crates/protocol/tests/affine_weights.rs
+```

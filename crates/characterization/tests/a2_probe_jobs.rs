@@ -1,0 +1,969 @@
+//! The A2 probe's supervisor (`docs/19` §13.11) on stand-in children (`true`, `false`, `sleep`)
+//! and constructed records, never a fit: stops, kills, locks, ledgers, plans, the cost rule.
+#![cfg(target_os = "linux")]
+
+use characterization::probe::{stopped_record, Case, Cost, Phase, Task, CASES};
+use characterization::probe_jobs::{
+    confirm_replicates, lock_dir, read_ledger, session, supervise, validate, write_part, Caps,
+    Journal, Ledger, Plan, Refusal, Session, LEDGER_HEADER, POLL,
+};
+use std::fs;
+use std::io;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::sync::Barrier;
+use std::time::{Duration, Instant};
+
+fn scratch(name: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!("a2-jobs-{}-{name}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    dir
+}
+
+fn task(case: Case) -> Task {
+    Task {
+        phase: Phase::Smoke,
+        case,
+        replicate: 0,
+        n: None,
+    }
+}
+
+fn all() -> Vec<Task> {
+    CASES.into_iter().map(task).collect()
+}
+
+fn caps(run_ms: u64, wall_ms: u64) -> Caps {
+    Caps {
+        cpu_ms: 3_600_000,
+        wall_ms,
+        run_ms,
+        rss_kib: 1 << 30,
+    }
+}
+
+fn record(t: &Task, outcome: &str) -> String {
+    let cost = Cost {
+        wall_ms: 0,
+        cpu_ms: Some(0),
+        hwm_kib: None,
+    };
+    stopped_record(t, outcome, "stand-in", cost)
+}
+
+fn fake(t: &Task, out: &Path) -> Command {
+    write_part(out, t, &record(t, "read")).unwrap();
+    Command::new("true")
+}
+
+fn sleep(_: &Task, _: &Path) -> Command {
+    let mut c = Command::new("sleep");
+    c.arg("30");
+    c
+}
+
+fn run<F>(
+    tasks: &[Task],
+    jobs: usize,
+    out: &Path,
+    caps: Caps,
+    f: F,
+) -> io::Result<Result<Session, Refusal>>
+where
+    F: Fn(&Task, &Path) -> Command,
+{
+    let plan = Plan::new("schema\tstand-in\n", Phase::Smoke, 1, tasks.to_vec());
+    supervise(&plan, jobs, out, caps, "test", f)
+}
+
+fn lines(out: &Path, name: &str) -> Vec<String> {
+    let text = fs::read_to_string(out.join(name)).unwrap_or_default();
+    text.lines().map(str::to_string).collect()
+}
+
+fn pids(out: &Path) -> Vec<u32> {
+    let started = lines(out, "ledger.tsv");
+    started
+        .iter()
+        .filter_map(|l| l.strip_prefix("start\t")?.split('\t').nth(1)?.parse().ok())
+        .collect()
+}
+
+/// A process neither gone, zombie (`Z`) nor being reaped (`X`, `x`).
+fn alive(pid: u32) -> bool {
+    fs::read_to_string(format!("/proc/{pid}/stat"))
+        .map(|s| !s[s.rfind(')').unwrap() + 2..].starts_with(['Z', 'X', 'x']))
+        .unwrap_or(false)
+}
+
+/// One test at a time spawns: a fork in another test thread would hold a copy of a directory's
+/// lock until its `exec`, a refusal no single supervisor process meets.
+fn serial() -> std::sync::MutexGuard<'static, ()> {
+    static SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    SERIAL.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// Each ended run is recorded once; a later session skips them and runs nothing again.
+#[test]
+fn ended_runs_are_recorded_once_and_never_rerun() {
+    let _serial = serial();
+    let out = scratch("resume");
+    let first = run(&all(), 3, &out, caps(60_000, 60_000), fake)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        (first.outcomes.get("read"), first.stop.as_deref()),
+        (Some(&6), None)
+    );
+    let again = run(&all(), 3, &out, caps(60_000, 60_000), fake)
+        .unwrap()
+        .unwrap();
+    assert_eq!((again.skipped, again.outcomes.len()), (6, 0));
+    assert_eq!(lines(&out, "records.jsonl").len(), 6);
+    assert_eq!(lines(&out, "ledger.tsv")[0], LEDGER_HEADER);
+    assert!(fs::read_dir(out.join("parts")).unwrap().next().is_none());
+}
+
+/// A gate refusal is an observation of the probe, recorded, and stops nothing.
+#[test]
+fn a_gate_refusal_is_an_observation_not_a_stop() {
+    let _serial = serial();
+    let out = scratch("refused");
+    let refused = |t: &Task, o: &Path| {
+        write_part(o, t, &record(t, "refused")).unwrap();
+        Command::new("true")
+    };
+    let s = run(&all(), 2, &out, caps(60_000, 60_000), refused)
+        .unwrap()
+        .unwrap();
+    assert_eq!((s.outcomes.get("refused"), s.stop), (Some(&6), None));
+}
+
+/// A failed child stops new launches, kills the running ones and refuses any later session.
+#[test]
+fn a_failed_child_stops_new_launches_and_kills_the_running_ones() {
+    let _serial = serial();
+    let out = scratch("failed");
+    let launch = |t: &Task, o: &Path| match t.case {
+        Case::C0 => Command::new("false"),
+        Case::C1 => sleep(t, o),
+        _ => fake(t, o),
+    };
+    let s = run(&all(), 2, &out, caps(60_000, 60_000), launch)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        (s.outcomes.get("failed"), s.outcomes.get("killed")),
+        (Some(&1), Some(&1))
+    );
+    assert!(
+        s.stop
+            .as_deref()
+            .unwrap()
+            .starts_with("technical: smoke-C0-0"),
+        "{s:?}"
+    );
+    assert_eq!(lines(&out, "records.jsonl").len(), 2);
+    assert!(pids(&out).iter().all(|&p| !alive(p)));
+    let again = run(&all(), 2, &out, caps(60_000, 60_000), fake).unwrap();
+    assert!(matches!(again, Err(Refusal::Stopped(_))));
+}
+
+/// An invalid record, another run's record and a record carrying the defect are technical stops,
+/// each record kept apart in `rejected/` and the run recorded as failed.
+#[test]
+fn an_invalid_foreign_or_defective_record_is_a_technical_stop() {
+    let _serial = serial();
+    let defective = |t: &Task| {
+        let r = record(t, "read");
+        format!(
+            "{},\"defect\":\"selection over DTF_MAX\"}}",
+            &r[..r.len() - 1]
+        )
+    };
+    type Writer<'a> = (&'a str, &'a dyn Fn(&Task) -> String);
+    let writers: [Writer; 3] = [
+        ("garbage", &|_: &Task| "not a record".to_string()),
+        ("foreign", &|_: &Task| record(&task(Case::C5), "read")),
+        ("defect", &defective),
+    ];
+    for (name, write) in writers {
+        let out = scratch(name);
+        let launch = |t: &Task, o: &Path| {
+            write_part(o, t, &write(t)).unwrap();
+            Command::new("true")
+        };
+        let s = run(&all()[..3], 1, &out, caps(60_000, 60_000), launch)
+            .unwrap()
+            .unwrap();
+        assert_eq!(s.outcomes.get("failed"), Some(&1), "{name}: {s:?}");
+        assert!(
+            s.stop.unwrap().starts_with("technical: smoke-C0-0"),
+            "{name}"
+        );
+        assert!(out.join("rejected/smoke-C0-0.json").exists(), "{name}");
+        let records = lines(&out, "records.jsonl");
+        assert_eq!(records.len(), 1, "{name}");
+        assert!(records[0].contains("\"outcome\":\"failed\""), "{name}");
+    }
+}
+
+/// A supervisor error kills the running children, records them and a stop, and is returned.
+#[test]
+fn a_supervisor_error_kills_the_running_children_and_records_a_stop() {
+    let _serial = serial();
+    let out = scratch("error");
+    let launch = |t: &Task, o: &Path| match t.case {
+        Case::C0 => sleep(t, o),
+        _ => Command::new("/nonexistent/a2-probe-stand-in"),
+    };
+    let r = run(&all()[..2], 2, &out, caps(60_000, 60_000), launch);
+    assert!(r.is_err());
+    assert!(pids(&out).iter().all(|&p| !alive(p)));
+    let ledger = read_ledger(&out).unwrap();
+    assert!(ledger.stop.unwrap().starts_with("supervisor error"));
+    assert_eq!(
+        ledger.ended.get("smoke-C0-0").map(|e| e.0.as_str()),
+        Some("killed")
+    );
+}
+
+/// The run limit kills every running child, and the stop refuses a resumption.
+#[test]
+fn the_run_limit_kills_every_running_child_and_refuses_a_resumption() {
+    let _serial = serial();
+    let out = scratch("run-limit");
+    let s = run(&all(), 2, &out, caps(300, 60_000), sleep)
+        .unwrap()
+        .unwrap();
+    assert_eq!(s.outcomes.get("killed"), Some(&2));
+    assert!(s.wall_ms < 5_000, "{s:?}");
+    assert!(s.stop.as_deref().unwrap().starts_with("run limit: smoke-C"));
+    assert!(pids(&out).iter().all(|&p| !alive(p)));
+    let refused = run(&all(), 2, &out, caps(300, 60_000), sleep).unwrap();
+    assert!(matches!(refused, Err(Refusal::Stopped(_))), "{refused:?}");
+}
+
+/// The wall cap kills every running child, each recorded as killed.
+#[test]
+fn the_wall_cap_kills_every_running_child() {
+    let _serial = serial();
+    let out = scratch("wall");
+    let s = run(&all(), 2, &out, caps(60_000, 400), sleep)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        (s.outcomes.get("killed"), s.stop.as_deref()),
+        (Some(&2), Some("wall cap"))
+    );
+    let ledger = read_ledger(&out).unwrap();
+    assert_eq!((ledger.ended.len(), ledger.unfinished.len()), (2, 0));
+}
+
+/// The check interval actually reached is recorded: the poll, plus the loop's own work.
+#[test]
+fn the_largest_gap_between_checks_is_recorded() {
+    let _serial = serial();
+    let out = scratch("gap");
+    let s = run(&all(), 3, &out, caps(60_000, 60_000), fake)
+        .unwrap()
+        .unwrap();
+    let poll = POLL.as_millis() as u64;
+    assert!(s.max_gap_ms >= poll && s.max_gap_ms < 10 * poll, "{s:?}");
+    println!("largest gap between checks: {} ms", s.max_gap_ms);
+}
+
+/// A second supervisor on the same directory is refused while the first holds it.
+#[test]
+fn a_second_supervisor_on_the_directory_is_refused() {
+    let _serial = serial();
+    let out = scratch("lock");
+    fs::create_dir_all(&out).unwrap();
+    let held = lock_dir(&out).unwrap().unwrap();
+    assert!(matches!(
+        run(&all(), 2, &out, caps(60_000, 60_000), fake).unwrap(),
+        Err(Refusal::Locked)
+    ));
+    drop(held);
+    let both = Barrier::new(2);
+    let slow = |t: &Task, o: &Path| {
+        write_part(o, t, &record(t, "read")).unwrap();
+        let mut c = Command::new("sleep");
+        c.arg("0.3");
+        c
+    };
+    let outcomes: Vec<bool> = std::thread::scope(|s| {
+        let go = || {
+            both.wait();
+            matches!(
+                run(&all(), 2, &out, caps(60_000, 60_000), slow).unwrap(),
+                Err(Refusal::Locked)
+            )
+        };
+        let (a, b) = (s.spawn(go), s.spawn(go));
+        vec![a.join().unwrap(), b.join().unwrap()]
+    });
+    assert_eq!(outcomes.iter().filter(|&&locked| locked).count(), 1);
+    assert_eq!(lines(&out, "records.jsonl").len(), 6);
+}
+
+/// Stand-in supervisor for the next test: runs only with `A2_PROBE_STAND_IN` set.
+#[test]
+fn stand_in_supervisor() {
+    let Ok(dir) = std::env::var("A2_PROBE_STAND_IN") else {
+        return;
+    };
+    let _ = run(&all()[..2], 2, Path::new(&dir), caps(60_000, 60_000), sleep);
+}
+
+/// The children die with a supervisor killed by SIGKILL, and the next session refuses.
+#[test]
+fn the_children_die_with_a_killed_supervisor() {
+    let _serial = serial();
+    let out = scratch("orphans");
+    fs::create_dir_all(&out).unwrap();
+    let mut helper = Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", "stand_in_supervisor", "--test-threads=1"])
+        .env("A2_PROBE_STAND_IN", &out)
+        .stdout(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    let t0 = Instant::now();
+    while pids(&out).len() < 2 && t0.elapsed() < Duration::from_secs(20) {
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let children = pids(&out);
+    assert_eq!(children.len(), 2);
+    helper.kill().unwrap();
+    helper.wait().unwrap();
+    let t1 = Instant::now();
+    while children.iter().any(|&p| alive(p)) && t1.elapsed() < Duration::from_secs(5) {
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let survivors: Vec<u32> = children.iter().copied().filter(|&p| alive(p)).collect();
+    for p in &survivors {
+        let _ = Command::new("kill").args(["-9", &p.to_string()]).status();
+    }
+    assert!(
+        survivors.is_empty(),
+        "children outlived the supervisor: {survivors:?}"
+    );
+    println!(
+        "children gone {} ms after the supervisor's SIGKILL",
+        t1.elapsed().as_millis()
+    );
+    let refused = run(&all()[..2], 2, &out, caps(60_000, 60_000), sleep).unwrap();
+    assert!(matches!(refused, Err(Refusal::Unfinished(_))));
+}
+
+/// A malformed ledger is an error, never a zero cost; a run started twice or ended without
+/// starting is malformed too.
+#[test]
+fn a_malformed_ledger_is_refused_not_read_as_zero() {
+    let bad = [
+        "end\tsmoke-C0-0\tread\t5\t5\tself\n",
+        "ledger\ta2-probe/v2\nstart\tsmoke-C0-0\t7\nend\tsmoke-C0-0\tread\tNaN\t5\tself\n",
+        "ledger\ta2-probe/v2\nbogus\n",
+        "ledger\ta2-probe/v2\nend\tsmoke-C0-0\tread\t5\t5\tself\n",
+        "ledger\ta2-probe/v2\nstart\tsmoke-C0-0\t7\nstart\tsmoke-C0-0\t8\n",
+        "ledger\ta2-probe/v2\nsession\t10\t-1\t0\t0\t-\tx\n",
+    ];
+    for (i, text) in bad.iter().enumerate() {
+        let out = scratch(&format!("ledger{i}"));
+        fs::create_dir_all(&out).unwrap();
+        fs::write(out.join("ledger.tsv"), text).unwrap();
+        let e = read_ledger(&out).unwrap_err();
+        assert_eq!(e.kind(), io::ErrorKind::InvalidData, "{i}: {e}");
+        assert!(
+            run(&all(), 1, &out, caps(60_000, 60_000), fake).is_err(),
+            "{i}"
+        );
+    }
+}
+
+/// Another configuration, or another plan for the same phase, refuses the directory.
+#[test]
+fn an_incompatible_plan_is_refused() {
+    let _serial = serial();
+    let out = scratch("plan");
+    run(&all()[..1], 1, &out, caps(60_000, 60_000), fake)
+        .unwrap()
+        .unwrap();
+    let other = Plan::new("schema\tother\n", Phase::Smoke, 1, all()[..1].to_vec());
+    let r = supervise(&other, 1, &out, caps(60_000, 60_000), "test", fake).unwrap();
+    assert!(matches!(r, Err(Refusal::Incompatible(_))), "{r:?}");
+    let more = Plan::new("schema\tstand-in\n", Phase::Smoke, 2, all());
+    let r = supervise(&more, 1, &out, caps(60_000, 60_000), "test", fake).unwrap();
+    assert!(matches!(r, Err(Refusal::Incompatible(_))), "{r:?}");
+}
+
+/// A record is valid only for its own run, with an observed outcome and a measured CPU.
+#[test]
+fn only_a_record_of_this_run_with_a_measured_cpu_is_valid() {
+    let t = task(Case::C2);
+    assert_eq!(
+        validate(&record(&t, "read"), &t),
+        Ok(("read".to_string(), 0))
+    );
+    assert_eq!(
+        validate(&record(&t, "refused"), &t),
+        Ok(("refused".to_string(), 0))
+    );
+    assert!(validate(&record(&t, "killed"), &t).is_err());
+    assert!(validate(&record(&task(Case::C3), "read"), &t).is_err());
+    let unmeasured = stopped_record(&t, "read", "stand-in", Cost::default());
+    assert!(validate(&unmeasured, &t).is_err());
+}
+
+/// The confirmation's replicates follow the cost rule alone, and are refused without it.
+#[test]
+fn the_confirmation_s_replicates_follow_the_cost_rule_alone() {
+    let ledger = |cpu: u64, outcome: &str, skip: Option<&str>| {
+        let mut l = Ledger::default();
+        for c in CASES.iter().filter(|c| Some(c.name()) != skip) {
+            l.ended
+                .insert(format!("explore-{}-0", c.name()), (outcome.into(), cpu));
+            l.cpu_ms += cpu;
+        }
+        l.cpu_ms += 2_000;
+        l
+    };
+    let cap = 7_200_000;
+    assert_eq!(
+        confirm_replicates(&ledger(100_000, "read", None), cap),
+        Ok(7)
+    );
+    assert_eq!(
+        confirm_replicates(&ledger(10_000, "refused", None), cap),
+        Ok(8)
+    );
+    assert!(confirm_replicates(&ledger(100_000, "killed", None), cap).is_err());
+    assert!(confirm_replicates(&ledger(100_000, "read", Some("C3")), cap).is_err());
+    assert!(confirm_replicates(&ledger(700_000, "read", None), cap).is_err());
+    let mut stopped = ledger(1_000, "read", None);
+    stopped.stop = Some("cpu cap".into());
+    assert!(confirm_replicates(&stopped, cap).is_err());
+}
+
+/// The binary exits 3 after a stop and 1 when the stop refuses the next session; smoke children,
+/// refused at the gate, never fit.
+#[test]
+fn the_binary_exits_non_zero_after_a_stop() {
+    let _serial = serial();
+    let out = scratch("binary");
+    let probe = |extra: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .args(["run", "--phase", "smoke", "--jobs", "2", "--out"])
+            .arg(&out)
+            .args(extra)
+            .stderr(std::process::Stdio::null())
+            .status()
+            .unwrap()
+            .code()
+    };
+    assert_eq!(probe(&["--max-rss-mib", "0"]), Some(3));
+    assert!(read_ledger(&out)
+        .unwrap()
+        .stop
+        .is_some_and(|s| s == "memory cap"));
+    assert_eq!(probe(&[]), Some(1));
+}
+
+/// A journal in memory: each started pid, each record, and at every failed record whether the
+/// other started children were still alive; `fail_starts` refuses every `start` line.
+#[derive(Default)]
+struct Memory {
+    fail_starts: bool,
+    pids: Vec<(String, u32)>,
+    records: Vec<String>,
+    alive_at_failure: Vec<(String, bool)>,
+}
+
+impl Journal for Memory {
+    fn note(&mut self, line: &str) -> io::Result<()> {
+        if let Some(rest) = line.strip_prefix("start\t") {
+            let (key, pid) = rest.split_once('\t').unwrap();
+            self.pids.push((key.to_string(), pid.parse().unwrap()));
+            if self.fail_starts {
+                return Err(io::Error::other("stand-in write failure"));
+            }
+        }
+        Ok(())
+    }
+
+    fn record(&mut self, line: &str) -> io::Result<()> {
+        if line.contains("\"outcome\":\"failed\"") {
+            for (key, pid) in &self.pids {
+                if !line.contains(&format!("\"key\":\"{key}\"")) {
+                    self.alive_at_failure.push((key.clone(), alive(*pid)));
+                }
+            }
+        }
+        self.records.push(line.to_string());
+        Ok(())
+    }
+}
+
+fn plan_of(tasks: &[Task]) -> Plan {
+    Plan::new("schema\tstand-in\n", Phase::Smoke, 1, tasks.to_vec())
+}
+
+/// A child whose `start` cannot be written is killed and reaped before the error returns, the
+/// caller still alive.
+#[test]
+fn a_child_is_killed_when_its_start_cannot_be_written() {
+    let _serial = serial();
+    let out = scratch("start-write");
+    fs::create_dir_all(out.join("parts")).unwrap();
+    let mut journal = Memory {
+        fail_starts: true,
+        ..Memory::default()
+    };
+    let tasks = [task(Case::C0)];
+    let caps = caps(60_000, 60_000);
+    let r = session(
+        &plan_of(&tasks),
+        1,
+        &out,
+        caps,
+        "test",
+        &Ledger::default(),
+        sleep,
+        &mut journal,
+    );
+    assert!(r.is_err());
+    let (_, pid) = journal.pids[0];
+    assert!(!alive(pid), "child {pid} outlived the failed write");
+}
+
+/// A technical failure kills and reaps every running child before its diagnostic record is
+/// built; the failed run's record and its rejected part are kept.
+#[test]
+fn the_children_are_killed_before_a_failure_s_record_is_built() {
+    let _serial = serial();
+    for invalid in [false, true] {
+        let out = scratch(if invalid {
+            "order-invalid"
+        } else {
+            "order-failed"
+        });
+        fs::create_dir_all(out.join("parts")).unwrap();
+        let launch = |t: &Task, o: &Path| match t.case {
+            Case::C0 if invalid => {
+                write_part(o, t, "not a record").unwrap();
+                Command::new("true")
+            }
+            Case::C0 => Command::new("false"),
+            _ => sleep(t, o),
+        };
+        let mut journal = Memory::default();
+        let tasks = [task(Case::C0), task(Case::C1)];
+        let caps = caps(60_000, 60_000);
+        let s = session(
+            &plan_of(&tasks),
+            2,
+            &out,
+            caps,
+            "test",
+            &Ledger::default(),
+            launch,
+            &mut journal,
+        )
+        .unwrap();
+        assert!(s.stop.unwrap().starts_with("technical: smoke-C0-0"));
+        assert_eq!(
+            journal.alive_at_failure,
+            vec![("smoke-C1-0".to_string(), false)]
+        );
+        assert!(journal
+            .records
+            .iter()
+            .any(|r| r.contains("\"key\":\"smoke-C0-0\"") && r.contains("\"outcome\":\"failed\"")));
+        assert!(journal
+            .records
+            .iter()
+            .any(|r| r.contains("\"key\":\"smoke-C1-0\"") && r.contains("\"outcome\":\"killed\"")));
+        assert_eq!(out.join("rejected/smoke-C0-0.json").exists(), invalid);
+    }
+}
+
+/// A ledger ending on a session line that names a stop refuses resumption and the cost rule,
+/// although the `stop` line after it is missing.
+#[test]
+fn a_stop_in_the_session_line_binds_without_the_stop_line() {
+    let _serial = serial();
+    let out = scratch("session-stop");
+    fs::create_dir_all(&out).unwrap();
+    let mut text = format!("{LEDGER_HEADER}\n");
+    for c in CASES {
+        let k = format!("explore-{}-0", c.name());
+        text += &format!("start\t{k}\t1\nend\t{k}\tread\t1000\t1\tself\n");
+    }
+    text += "session\t10\t0\t0\t100\tcpu cap\tx\n";
+    fs::write(out.join("ledger.tsv"), &text).unwrap();
+    let ledger = read_ledger(&out).unwrap();
+    assert_eq!(ledger.stop.as_deref(), Some("cpu cap"));
+    assert!(confirm_replicates(&ledger, 7_200_000).is_err());
+    let r = run(&all(), 1, &out, caps(60_000, 60_000), fake).unwrap();
+    assert_eq!(r, Err(Refusal::Stopped("cpu cap".into())));
+}
+
+/// The binary plans `dtf-check`'s 32 runs and refuses another replicate count.
+#[test]
+fn the_binary_plans_dtf_check_s_32_runs_and_no_other_count() {
+    let _serial = serial();
+    let plan = |extra: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .args(["plan", "--phase", "dtf-check"])
+            .args(extra)
+            .output()
+            .unwrap()
+    };
+    let out = plan(&[]);
+    assert!(out.status.success());
+    let lines: Vec<String> = String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .map(String::from)
+        .collect();
+    assert_eq!(lines.len(), 32);
+    assert!(
+        lines[0].starts_with("dtf-check-C0-0 seed ")
+            && lines[31].starts_with("dtf-check-C3-15 seed ")
+    );
+    assert_eq!(plan(&["--replicates", "8"]).status.code(), Some(1));
+}
+
+/// The binary plans `ind-cal`'s 200 runs and `ind-val`'s 400, and no other count (§13.21).
+#[test]
+fn the_binary_plans_the_indicator_stages_and_no_other_count() {
+    let _serial = serial();
+    let plan = |phase: &str, extra: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .args(["plan", "--phase", phase])
+            .args(extra)
+            .output()
+            .unwrap()
+    };
+    for (phase, runs, last) in [
+        ("ind-cal", 200, "ind-cal-C1-99 "),
+        ("ind-val", 400, "ind-val-C5-99 "),
+    ] {
+        let out = plan(phase, &[]);
+        let text = String::from_utf8_lossy(&out.stdout).to_string();
+        assert!(out.status.success() && text.lines().count() == runs);
+        assert!(text.lines().last().is_some_and(|l| l.starts_with(last)));
+        assert_eq!(plan(phase, &["--replicates", "50"]).status.code(), Some(1));
+    }
+}
+
+/// `ind-val` without a frozen calibration, or `--calibration` elsewhere: refused, no directory.
+#[test]
+fn the_validation_refuses_to_run_without_a_frozen_calibration() {
+    let _serial = serial();
+    let (out, cal) = (scratch("ind-val"), scratch("ind-val-cal"));
+    fs::create_dir_all(&cal).unwrap();
+    for name in [
+        "threshold.tsv",
+        "records.jsonl",
+        "plan-ind-cal.tsv",
+        "ledger.tsv",
+    ] {
+        fs::write(cal.join(name), "").unwrap();
+    }
+    let cal = cal.to_str().unwrap();
+    for (args, why) in [
+        (
+            vec!["--phase", "ind-val"],
+            "ind-val needs --calibration DIR",
+        ),
+        (
+            vec!["--phase", "ind-val", "--calibration", cal],
+            "not frozen in the repository",
+        ),
+        (
+            vec!["--phase", "ind-cal", "--calibration", cal],
+            "--calibration is ind-val's alone",
+        ),
+    ] {
+        let got = Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .arg("run")
+            .args(&args)
+            .arg("--out")
+            .arg(&out)
+            .output()
+            .unwrap();
+        assert_eq!(got.status.code(), Some(1));
+        assert!(String::from_utf8_lossy(&got.stderr).contains(why), "{why}");
+        assert!(!out.exists());
+    }
+}
+
+/// A committed calibration passes the freeze check; changed or beside untracked files, refused.
+#[test]
+fn only_a_committed_unmodified_calibration_counts_as_frozen() {
+    let _serial = serial();
+    let repo = scratch("frozen-repo");
+    let cal = repo.join("cal");
+    fs::create_dir_all(&cal).unwrap();
+    for name in [
+        "threshold.tsv",
+        "records.jsonl",
+        "plan-ind-cal.tsv",
+        "ledger.tsv",
+    ] {
+        fs::write(cal.join(name), name).unwrap();
+    }
+    let git = |args: &[&str]| {
+        let ok = Command::new("git")
+            .args(["-c", "user.name=t", "-c", "user.email=t@t", "-C"])
+            .arg(&repo)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(ok.status.success(), "git {args:?}");
+    };
+    git(&["init", "-q"]);
+    git(&["add", "cal"]);
+    git(&["commit", "-q", "-m", "calibration"]);
+    let stderr = || {
+        let got = Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .current_dir(&repo)
+            .args([
+                "run",
+                "--phase",
+                "ind-val",
+                "--calibration",
+                "cal",
+                "--out",
+                "out",
+            ])
+            .output()
+            .unwrap();
+        assert_eq!(got.status.code(), Some(1));
+        String::from_utf8_lossy(&got.stderr).to_string()
+    };
+    assert!(stderr().contains("runs the engine of 2e2572c"));
+    fs::write(cal.join("extra"), "").unwrap();
+    assert!(stderr().contains("not frozen in the repository: changed or untracked files"));
+    fs::remove_file(cal.join("extra")).unwrap();
+    fs::write(cal.join("ledger.tsv"), "changed").unwrap();
+    assert!(stderr().contains("not frozen in the repository: changed or untracked files"));
+    assert!(!repo.join("out").exists());
+}
+
+/// The binary plans `size`'s 64 runs, `n` in each key, refuses another count and a misplaced `--n`.
+#[test]
+fn the_binary_plans_the_size_study_and_refuses_a_misplaced_size() {
+    let _serial = serial();
+    let bin = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    let out = bin(&["plan", "--phase", "size"]);
+    let text = String::from_utf8_lossy(&out.stdout).to_string();
+    let lines: Vec<&str> = text.lines().collect();
+    assert!(out.status.success() && lines.len() == 64);
+    assert!(
+        lines[0].starts_with("size-n3000-C0-0 seed ")
+            && lines[63].starts_with("size-n6000-C3-15 seed ")
+    );
+    assert_eq!(
+        bin(&["plan", "--phase", "size", "--replicates", "8"])
+            .status
+            .code(),
+        Some(1)
+    );
+    let out = scratch("size-one");
+    let out = out.to_str().unwrap();
+    for args in [
+        vec!["one", "--phase", "size", "--case", "C0", "--out", out],
+        vec![
+            "one", "--phase", "size", "--case", "C0", "--n", "4000", "--out", out,
+        ],
+        vec![
+            "one", "--phase", "smoke", "--case", "C0", "--n", "3000", "--out", out,
+        ],
+    ] {
+        let got = bin(&args);
+        assert_eq!(got.status.code(), Some(1));
+        assert!(String::from_utf8_lossy(&got.stderr).contains("--n is size's alone"));
+    }
+    assert!(!std::path::Path::new(out).exists());
+}
+
+/// `one` takes `--n` with `size` alone, 3,000 or 6,000: any other phase with any `--n` is refused.
+#[test]
+fn a_phase_other_than_size_is_refused_with_any_n() {
+    let _serial = serial();
+    let out = scratch("size-other-n");
+    for (phase, n) in [
+        ("smoke", "1"),
+        ("smoke", "4000"),
+        ("explore", "4000"),
+        ("ind-val", "6000"),
+    ] {
+        let got = Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .args(["one", "--phase", phase, "--case", "C0", "--n", n, "--out"])
+            .arg(&out)
+            .output()
+            .unwrap();
+        assert_eq!(got.status.code(), Some(1), "{phase} --n {n}");
+        assert!(String::from_utf8_lossy(&got.stderr).contains("--n is size's alone"));
+        assert!(!out.exists(), "{phase} --n {n} wrote a record");
+    }
+}
+
+/// The binary plans `ind-cal6`'s 200 runs and `ind-val6`'s 400, no other count, and refuses
+/// `--n` with them: their size is the phase's (§13.29).
+#[test]
+fn the_binary_plans_the_stages_at_6000_and_no_other_count() {
+    let _serial = serial();
+    let bin = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    for (phase, runs, first, last) in [
+        (
+            "ind-cal6",
+            200,
+            "ind-cal6-C0-0 seed 4800293454221026440",
+            "ind-cal6-C1-99 seed ",
+        ),
+        (
+            "ind-val6",
+            400,
+            "ind-val6-C0-0 seed ",
+            "ind-val6-C5-99 seed 4099950399348182921",
+        ),
+    ] {
+        let out = bin(&["plan", "--phase", phase]);
+        let text = String::from_utf8_lossy(&out.stdout).to_string();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(out.status.success() && lines.len() == runs, "{phase}");
+        assert!(lines[0].starts_with(first) && lines[runs - 1].starts_with(last));
+        let other = bin(&["plan", "--phase", phase, "--replicates", "50"]);
+        assert_eq!(other.status.code(), Some(1));
+    }
+    let out = scratch("ind6-one");
+    let got = bin(&[
+        "one",
+        "--phase",
+        "ind-val6",
+        "--case",
+        "C0",
+        "--n",
+        "6000",
+        "--out",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(got.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&got.stderr).contains("--n is size's alone"));
+    assert!(!out.exists());
+}
+
+/// `ind-val6` without a calibration, `--calibration` with `ind-cal6`, either size's calibration
+/// for the other's validation, and an unfrozen one: refused before any directory (§13.29).
+#[test]
+fn the_validation_at_6000_refuses_a_missing_or_other_size_calibration() {
+    let _serial = serial();
+    let out = scratch("ind-val6");
+    let (cal3, cal6) = (scratch("ind-val6-cal3"), scratch("ind-val6-cal6"));
+    for (dir, plan) in [(&cal3, "plan-ind-cal.tsv"), (&cal6, "plan-ind-cal6.tsv")] {
+        fs::create_dir_all(dir).unwrap();
+        for name in ["threshold.tsv", "records.jsonl", plan, "ledger.tsv"] {
+            fs::write(dir.join(name), "").unwrap();
+        }
+    }
+    let (cal3, cal6) = (cal3.to_str().unwrap(), cal6.to_str().unwrap());
+    for (args, why) in [
+        (
+            vec!["--phase", "ind-val6"],
+            "ind-val6 needs --calibration DIR",
+        ),
+        (
+            vec!["--phase", "ind-cal6", "--calibration", cal6],
+            "--calibration is ind-val's alone, or ind-val6's",
+        ),
+        (
+            vec!["--phase", "ind-val6", "--calibration", cal3],
+            "refused: the calibration is not ind-cal6's at N = 6000: its plans are \
+             [\"plan-ind-cal.tsv\"]",
+        ),
+        (
+            vec!["--phase", "ind-val", "--calibration", cal6],
+            "refused: the calibration is not ind-cal's at N = 3000: its plans are \
+             [\"plan-ind-cal6.tsv\"]",
+        ),
+        (
+            vec!["--phase", "ind-val6", "--calibration", cal6],
+            "not frozen in the repository",
+        ),
+    ] {
+        let got = Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .arg("run")
+            .args(&args)
+            .arg("--out")
+            .arg(&out)
+            .output()
+            .unwrap();
+        assert_eq!(got.status.code(), Some(1), "{why}");
+        assert!(String::from_utf8_lossy(&got.stderr).contains(why), "{why}");
+        assert!(!out.exists());
+    }
+}
+
+/// In a repository, a committed `ind-cal6` passes `ind-val6`'s stage and freeze checks, the next
+/// refusal the engine's, as `ind-cal`'s does `ind-val`'s; crossed or changed, refused (§13.29).
+#[test]
+fn only_its_own_committed_calibration_counts_for_the_validation_at_6000() {
+    let _serial = serial();
+    let repo = scratch("frozen6-repo");
+    for (name, plan) in [("cal3", "plan-ind-cal.tsv"), ("cal6", "plan-ind-cal6.tsv")] {
+        let dir = repo.join(name);
+        fs::create_dir_all(&dir).unwrap();
+        for file in ["threshold.tsv", "records.jsonl", plan, "ledger.tsv"] {
+            fs::write(dir.join(file), file).unwrap();
+        }
+    }
+    let git = |args: &[&str]| {
+        let ok = Command::new("git")
+            .args(["-c", "user.name=t", "-c", "user.email=t@t", "-C"])
+            .arg(&repo)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(ok.status.success(), "git {args:?}");
+    };
+    git(&["init", "-q"]);
+    git(&["add", "cal3", "cal6"]);
+    git(&["commit", "-q", "-m", "calibrations"]);
+    let stderr = |phase: &str, cal: &str| {
+        let got = Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .current_dir(&repo)
+            .args([
+                "run",
+                "--phase",
+                phase,
+                "--calibration",
+                cal,
+                "--out",
+                "out",
+            ])
+            .output()
+            .unwrap();
+        assert_eq!(got.status.code(), Some(1));
+        String::from_utf8_lossy(&got.stderr).to_string()
+    };
+    assert!(stderr("ind-val6", "cal6").contains("runs the engine of 2e2572c"));
+    assert!(stderr("ind-val", "cal3").contains("runs the engine of 2e2572c"));
+    assert!(stderr("ind-val6", "cal3").contains("the calibration is not ind-cal6's at N = 6000"));
+    assert!(stderr("ind-val", "cal6").contains("the calibration is not ind-cal's at N = 3000"));
+    fs::write(repo.join("cal6/records.jsonl"), "changed").unwrap();
+    assert!(stderr("ind-val6", "cal6")
+        .contains("not frozen in the repository: changed or untracked files"));
+    assert!(!repo.join("out").exists());
+}

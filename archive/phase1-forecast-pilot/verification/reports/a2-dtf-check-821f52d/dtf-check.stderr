@@ -1,0 +1,4 @@
+    Finished `release` profile [optimized] target(s) in 0.09s
+     Running `target/release/a2-probe run --phase dtf-check --jobs 8 --max-cpu-s 1800 --max-wall-s 900 --max-run-s 600 --max-rss-mib 2048 --out characterization-results/a2-dtf-check-821f52d`
+32 runs planned (16 replicates); 8 workers; caps Caps { cpu_ms: 1800000, wall_ms: 900000, run_ms: 600000, rss_kib: 2097152 }; out characterization-results/a2-dtf-check-821f52d
+outcomes {"read": 32}, 0 already ended; session CPU 645310 ms, wall 91106 ms, largest sampled resident sum 54544 KiB, largest gap between checks 155 ms; stop: none

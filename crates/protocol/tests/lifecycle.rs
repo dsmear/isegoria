@@ -291,6 +291,25 @@ fn pilot_stage2_reports_undetermined_on_a_separated_item() {
     assert_eq!(v[0], DifVerdict::Undetermined);
 }
 
+/// A real fit that cannot leave its start reads NotConverged, so Undetermined (T2, `15`).
+#[cfg(feature = "calibration")]
+#[test]
+fn pilot_stage2_reports_undetermined_on_an_unconverged_fit() {
+    let (theta, group) = synthetic();
+    let item: Vec<f64> = theta
+        .iter()
+        .enumerate()
+        .map(|(i, &t)| noisy(i, t > 0.0))
+        .collect();
+    let extreme: Vec<f64> = theta.iter().map(|t| t * 1e100).collect();
+    let fit = scoring::dif::logistic_dif(&item, &extreme, &group);
+    assert_eq!(fit.status, scoring::LogisticFit::NotConverged);
+    assert_eq!(
+        stage2_dif(&extreme, &group, &[item])[0],
+        DifVerdict::Undetermined
+    );
+}
+
 #[test]
 fn sortition_is_stratified_deterministic_and_sized() {
     // 100 candidates spread along the axis; draw a committee of 9 across 3 strata.
@@ -575,6 +594,43 @@ fn revalidation_catches_dif_on_any_axis_including_the_blind_spot() {
     assert!(!multi[0].emerging_dif, "clean item wrongly flagged");
     assert!(multi[1].emerging_dif, "political DIF missed");
     assert!(multi[2].emerging_dif, "education DIF missed");
+}
+
+/// AT-DIF-06 in re-validation: a separated fit flags no DIF and retires nothing (`15` A4 (b)).
+#[cfg(feature = "calibration")]
+#[test]
+fn pool_revalidation_reads_no_verdict_from_a_separated_fit() {
+    let (theta, group) = synthetic();
+    let perfect: Vec<f64> = theta.iter().map(|&t| (t > 0.0) as u8 as f64).collect();
+    assert_eq!(
+        stage2_dif(&theta, &group, &[perfect.clone()])[0],
+        DifVerdict::Undetermined
+    );
+    let rows: Vec<Vec<f64>> = perfect.iter().map(|&x| vec![x]).collect();
+    let health = revalidate_pool(&theta, &[group], &rows);
+    assert!(!health[0].emerging_dif);
+    let item = [Template::new(b"separated".to_vec()).variant(b"1")];
+    assert_eq!(
+        items_to_retire(&item, &health, &ExposureLedger::new(), 2000),
+        vec![]
+    );
+}
+
+/// A missing health entry triggers nothing: only exposure retires its item (`docs/15` A4).
+#[test]
+fn a_missing_health_entry_retires_only_on_exposure() {
+    let items = [
+        Template::new(b"item A".to_vec()).variant(b"1"),
+        Template::new(b"item B".to_vec()).variant(b"1"),
+    ];
+    let mut exposure = ExposureLedger::new();
+    for _ in 0..2000 {
+        exposure.record(items[0]);
+    }
+    assert_eq!(
+        items_to_retire(&items, &[], &exposure, 2000),
+        vec![(items[0], RetirementReason::Exposure)]
+    );
 }
 
 #[test]

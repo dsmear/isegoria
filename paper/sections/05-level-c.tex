@@ -5,9 +5,10 @@ author score limits how much an author may propose. The evaluator score weights 
 
 \subsection{Author score}
 
-Let $q_j\in[0,1]$ be the final quality of author $a$'s item $j$, a function of its Level~B
-statistics whose exact definition is still open. The author score is the shrunken, time-discounted
-average
+Let $q_j\in\{0,1\}$ be the pilot's procedural outcome for author $a$'s item $j$: 1 when the item
+enters the active or the contested pool, 0 when it fails the screen or is rejected for DIF, and no
+observation otherwise; it is not a psychometric quality. The author score is the shrunken,
+time-discounted average
 \begin{equation}\label{eq:author}
   C_a=\frac{\alpha_0+\sum_j w_jq_j}{\alpha_0+\beta_0+\sum_j w_j},\qquad w_j=e^{-\Delta t_j/T},
 \end{equation}
@@ -15,12 +16,21 @@ with prior $(\alpha_0,\beta_0)=(2,3)$ and $T=18$ months. Two accepted items out 
 $4/7\approx0.57$; 180 out of 200 give $182/205\approx0.89$. $C_a$ sets the proposal rate
 $q_{\min}+(q_{\max}-q_{\min})C_a$. It never weights a vote \designchoice. A failed appeal to
 evidence is to be recorded as a negative pseudo-observation inside $C_a$, escrowed when the appeal
-is filed (design decision D27). The reference implementation still applies a simpler
-stake-and-refund rule.
+is filed (design decision D27) and settled by the item's outcome. The reference implementation
+does so; $C_a$ is a regularized index, not the posterior mean of a Beta--Beta hierarchy, and $T$
+is a decay time (a weight's half-life is $T\ln 2$). An outcome ages from the epoch that records
+it; the number of epochs per month is undecided (\code{docs/15}, C5--C6).
 
 \subsection{Evaluator score: forecasts scored on golden items}
 
-Every reviewer declares a probability $p_{uj}$ that item $j$ will pass empirical validation. The
+This subsection records the September binary design and its analysis. For A1's correction,
+the owner's O1 amendment of 11 October 2026 changes the forecast target to $q_c$ where $c>0$;
+at $c=0$ it is undefined and the expected score is flat (\cref{prop:ipw}).
+The binary equations and their proofs below remain historical / conclusive special cases;
+they imply no incentives of the reputation actually used.
+
+In that historical design, every reviewer declares a probability $p_{uj}$ that item $j$
+will pass empirical validation. The
 same number is the rating $r_{uj}$ of Level~A. About 5\% of every review queue consists of
 \emph{golden} items. These are indistinguishable from the rest, and their outcome
 $o_j\in\{0,1\}$ is known from validated history (design decision D21). The forecasts on golden
@@ -134,14 +144,20 @@ golden items is therefore in the regime of the largest distortion.
 \subsection{A proper alternative}
 
 \begin{proposition}[Leave-one-out difference score]\label{prop:loo}\proved{}
-Let $\bar p_{-u,j}$ be the weighted mean forecast of the \emph{other} panelists on item $j$, and
+Fix before the reports the set of scored items and its size $m$, the denominator. Let
+$\bar p_{-u,j}$ be the weighted mean forecast of the \emph{other} panelists on item $j$, defined
+because their total weight is positive, and
 \begin{equation}\label{eq:loo}
   S_u=\frac1m\sum_{j}\Bigl[(\bar p_{-u,j}-o_j)^2-(p_{uj}-o_j)^2\Bigr].
 \end{equation}
-Under \cref{ass:blind}, so that $\bar p_{-u,j}$ does not depend on $p_{uj}$:
+Let the reviewer's reports be chosen on its information $F_u$, let $q_j=\Pr(o_j=1\mid F_u)$, and
+suppose that, given $F_u$, the joint law of $(\bar p_{-u,j},o_j)$ is the same under every
+deviation of the reviewer's reports. Blind commit--reveal (\cref{ass:blind}) does not by itself
+establish these conditions. Then:
 \begin{enumerate}[label=(\roman*)]
-  \item $S_u$ is strictly proper: $\E[S_u]=c_u-\frac1m\sum_j(p_{uj}-q_j)^2$ with $c_u$ not
-    depending on the reports, so truthful reporting is the unique optimum;
+  \item $S_u$ is strictly proper: $\E[S_u\mid F_u]=c_u-\frac1m\sum_j(p_{uj}-q_j)^2$ with $c_u$
+    not depending on the reports, by the joint invariance, so truthful reporting is the unique
+    optimum;
   \item a reviewer who copies the crowd ($p_{uj}=\bar p_{-u,j}$) scores exactly $0$ for every
     outcome, not only in expectation;
   \item $S_u>0$ if and only if the reviewer's Brier score on the scored items beats the crowd's;

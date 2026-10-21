@@ -1,6 +1,6 @@
 //! The baselines of a band item's reviewers (`docs/02` §C.2, `docs/16` C5): a first panelist
 //! against the other first panelists, an extra reviewer against the frozen first panel, no
-//! extra report in any baseline, no baseline where no weight remains.
+//! extra report in any baseline, no baseline where no weight remains, whatever the weights' scale.
 
 use identity::nym::Nym;
 use network::cid::cid;
@@ -283,4 +283,45 @@ fn a_band_item_is_scored_through_the_lifecycle() {
             "reviewer {who}"
         );
     }
+}
+
+fn at(prob: f64, weight: f64) -> Forecast {
+    Forecast { prob, weight }
+}
+
+/// `17` §14.9's bound: a weighted mean over `n` forecasts within `2nε` of its value.
+fn near(b: Option<f64>, want: f64, n: usize) -> bool {
+    matches!(b, Some(b) if (b - want).abs() <= 2.0 * n as f64 * f64::EPSILON)
+}
+
+/// A1 C5, `17` §14.9 (A, B): weights near the largest `f64` leave every baseline the reports' mean.
+#[test]
+fn weights_near_the_largest_f64_leave_the_weighted_means() {
+    let got: Vec<_> = [0.5, 1.0]
+        .map(|x| {
+            let first = [at(0.5, 1.0), at(x, 1e308), at(x, 1e308)];
+            (
+                x,
+                first_panel_baselines(&first),
+                extra_round_baseline(&first),
+            )
+        })
+        .to_vec();
+    let right = |(x, b, e): &(f64, Vec<Option<f64>>, Option<f64>)| {
+        b.iter().all(|&b| near(b, *x, 2)) && near(*e, *x, 3)
+    };
+    assert!(got.iter().all(right), "{got:?}");
+}
+
+/// A1 C5, `17` §14.9 (C): the smallest positive weights still weigh; no baseline is lost to 0.
+#[test]
+fn the_smallest_positive_weights_still_weigh() {
+    let tiny = f64::from_bits(1);
+    let b = first_panel_baselines(&[at(0.75, 1.0), at(0.5, tiny)]);
+    assert!(near(b[0], 0.5, 1) && near(b[1], 0.75, 1), "{b:?}");
+    let tinies = [at(0.25, tiny), at(0.875, tiny)];
+    let b = first_panel_baselines(&tinies);
+    assert!(near(b[0], 0.875, 1) && near(b[1], 0.25, 1), "{b:?}");
+    let e = extra_round_baseline(&tinies);
+    assert!(near(e, 0.5625, 2), "{e:?}");
 }

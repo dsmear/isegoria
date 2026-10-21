@@ -1,0 +1,10 @@
+schema	a2-ind/v2
+stage	ind-cal6	n	6000
+rule	order-statistic	alpha	1/20	strict
+case	C0	planned	100	evaluable	100	k	96	t	3fe48489cadf0783	0.641178985817746
+case	C1	planned	100	evaluable	99	k	95	t	3fe2894debbe621c	0.5792607883805121
+not-evaluable	C1	baseline not converged	1
+threshold	3fe48489cadf0783	0.641178985817746
+file	records.jsonl	436033382d80b855095885897a9a02283e76d5d5bc71cf8cfbaf2bf8ffc9f4ee
+file	plan-ind-cal6.tsv	d2732a676b5047061f18fe8edf0cf4e0abbc80dc313d14b2a23019221e5f93fb
+file	ledger.tsv	b1f0562c4e95879c1adbd66857686b44f1b407663441b193206f40e431f519dd

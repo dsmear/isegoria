@@ -21,12 +21,53 @@ impl Default for AuthorPrior {
     }
 }
 
-/// Posterior-mean author score (shrinkage, time decay): `qualities[j] ∈ [0,1]`, `ages_months[j]`.
+/// Not the Beta–Beta hierarchy's posterior mean (`docs/15` C5); `decay_months` a decay time (C6).
 pub fn author_score(qualities: &[f64], ages_months: &[f64], prior: &AuthorPrior) -> f64 {
     let mut sum_wq = 0.0;
     let mut sum_w = 0.0;
     for (q, age) in qualities.iter().zip(ages_months.iter()) {
         let w = exp(-age / prior.decay_months);
+        sum_wq += w * q;
+        sum_w += w;
+    }
+    (prior.alpha0 + sum_wq) / (prior.alpha0 + prior.beta0 + sum_w)
+}
+
+/// Author index with ages and half-life in applied closings (`docs/15` C6).
+pub fn author_score_closings(
+    qualities: &[f64],
+    ages: &[u64],
+    half_life: u64,
+    prior: &AuthorPrior,
+) -> f64 {
+    assert!(half_life > 0);
+    let decay_time = half_life as f64 / crate::fmath::ln(2.0);
+    let mut sum_wq = 0.0;
+    let mut sum_w = 0.0;
+    for (q, age) in qualities.iter().zip(ages) {
+        let w = exp(-(*age as f64) / decay_time);
+        sum_wq += w * q;
+        sum_w += w;
+    }
+    (prior.alpha0 + sum_wq) / (prior.alpha0 + prior.beta0 + sum_w)
+}
+
+/// [`author_score_closings`] with each observation's weight `ω_j` multiplying its time weight in
+/// both sums (`docs/02` §C.1, the answer review; `docs/01` D50). Slices of equal length.
+pub fn author_score_weighted(
+    qualities: &[f64],
+    weights: &[f64],
+    ages: &[u64],
+    half_life: u64,
+    prior: &AuthorPrior,
+) -> f64 {
+    assert!(half_life > 0);
+    assert!(qualities.len() == weights.len() && weights.len() == ages.len());
+    let decay_time = half_life as f64 / crate::fmath::ln(2.0);
+    let mut sum_wq = 0.0;
+    let mut sum_w = 0.0;
+    for ((q, omega), age) in qualities.iter().zip(weights).zip(ages) {
+        let w = exp(-(*age as f64) / decay_time) * omega;
         sum_wq += w * q;
         sum_w += w;
     }
@@ -53,12 +94,13 @@ impl Default for EvaluatorParams {
     }
 }
 
-/// Per-item Brier improvement over the baseline (D33): strictly proper, 0 at the baseline.
+/// Per-item Brier improvement over `baseline` (D33), 0 at it: strictly proper under a joint law of
+/// baseline and outcome that the report leaves unchanged (`docs/02` §C.2, `docs/15` A10).
 pub fn difference_score(p: f64, baseline: f64, o: f64) -> f64 {
     (baseline - o).powi(2) - (p - o).powi(2)
 }
 
-/// Leave-one-out crowd baseline (D33); with no other weight, a reviewer's own forecast.
+/// Leave-one-out crowd baseline (D33); with no other weight the reviewer's own: every score 0, A10.
 pub fn loo_baseline(predictions: &[Vec<f64>], weights: &[f64]) -> Vec<Vec<f64>> {
     let m = predictions.first().map_or(0, |row| row.len());
     (0..predictions.len())

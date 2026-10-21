@@ -1,0 +1,402 @@
+ledger	a2-probe/v2
+start	ind-cal-C0-0	132718
+start	ind-cal-C1-0	132719
+start	ind-cal-C0-1	132720
+start	ind-cal-C1-1	132721
+start	ind-cal-C0-2	132722
+start	ind-cal-C1-2	132723
+start	ind-cal-C0-3	132724
+start	ind-cal-C1-3	132725
+end	ind-cal-C0-1	read	20820	20848	self
+start	ind-cal-C0-4	132791
+end	ind-cal-C0-3	read	21310	21351	self
+start	ind-cal-C1-4	132793
+end	ind-cal-C1-1	read	21880	21998	self
+start	ind-cal-C0-5	132794
+end	ind-cal-C0-0	read	22150	22242	self
+start	ind-cal-C1-5	132795
+end	ind-cal-C0-2	read	24770	24858	self
+start	ind-cal-C0-6	132860
+end	ind-cal-C1-3	read	25300	25374	self
+start	ind-cal-C1-6	132861
+end	ind-cal-C1-0	read	29960	30060	self
+start	ind-cal-C0-7	132870
+end	ind-cal-C1-2	read	33820	33881	self
+start	ind-cal-C1-7	132896
+end	ind-cal-C0-4	read	24130	24214	self
+end	ind-cal-C1-5	read	22720	22854	self
+start	ind-cal-C0-8	132939
+start	ind-cal-C1-8	132940
+end	ind-cal-C0-5	read	29730	29841	self
+end	ind-cal-C0-7	read	21760	21803	self
+start	ind-cal-C0-9	132946
+start	ind-cal-C1-9	132947
+end	ind-cal-C1-4	read	30720	30806	self
+start	ind-cal-C0-10	132948
+end	ind-cal-C1-7	read	24860	24943	self
+start	ind-cal-C1-10	133005
+end	ind-cal-C1-6	read	33640	33664	self
+start	ind-cal-C0-11	133006
+end	ind-cal-C0-6	read	38420	38540	self
+start	ind-cal-C1-11	133032
+end	ind-cal-C1-8	read	28130	28190	self
+start	ind-cal-C0-12	133047
+end	ind-cal-C0-10	read	22560	22624	self
+start	ind-cal-C1-12	133074
+end	ind-cal-C0-8	read	32440	32466	self
+start	ind-cal-C0-13	133078
+end	ind-cal-C1-10	read	19890	19933	self
+start	ind-cal-C1-13	133081
+end	ind-cal-C1-11	read	16630	16691	self
+start	ind-cal-C0-14	133083
+end	ind-cal-C1-9	read	28560	28580	self
+start	ind-cal-C1-14	133084
+end	ind-cal-C0-11	read	22710	22796	self
+start	ind-cal-C0-15	133086
+end	ind-cal-C0-9	read	35080	35170	self
+start	ind-cal-C1-15	133116
+end	ind-cal-C0-15	read	11120	11190	self
+start	ind-cal-C0-16	133120
+end	ind-cal-C1-12	read	18540	18580	self
+start	ind-cal-C1-16	133121
+end	ind-cal-C0-12	read	20350	20438	self
+start	ind-cal-C0-17	133154
+end	ind-cal-C0-14	read	14970	15035	self
+start	ind-cal-C1-17	133155
+end	ind-cal-C1-14	read	16590	16648	self
+start	ind-cal-C0-18	133156
+end	ind-cal-C0-13	read	28140	28201	self
+start	ind-cal-C1-18	133192
+end	ind-cal-C1-13	read	27060	27095	self
+start	ind-cal-C0-19	133194
+end	ind-cal-C0-17	read	16980	17081	self
+start	ind-cal-C1-19	133197
+end	ind-cal-C1-15	read	25530	25628	self
+start	ind-cal-C0-20	133198
+end	ind-cal-C0-16	read	23380	23414	self
+start	ind-cal-C1-20	133228
+end	ind-cal-C1-17	read	21440	21556	self
+start	ind-cal-C0-21	133229
+end	ind-cal-C1-16	read	25790	25855	self
+start	ind-cal-C1-21	133232
+end	ind-cal-C0-18	read	22370	22392	self
+start	ind-cal-C0-22	133233
+end	ind-cal-C1-18	read	15460	15558	self
+start	ind-cal-C1-22	133234
+end	ind-cal-C1-19	read	21670	21774	self
+start	ind-cal-C0-23	133287
+end	ind-cal-C0-19	read	30160	30266	self
+start	ind-cal-C1-23	133326
+end	ind-cal-C0-22	read	21280	21392	self
+start	ind-cal-C0-24	133329
+end	ind-cal-C0-20	read	29730	29762	self
+start	ind-cal-C1-24	133330
+end	ind-cal-C1-21	read	26500	26595	self
+start	ind-cal-C0-25	133366
+end	ind-cal-C1-20	read	30990	31092	self
+start	ind-cal-C1-25	133367
+end	ind-cal-C1-22	read	29530	29608	self
+start	ind-cal-C0-26	133370
+end	ind-cal-C0-21	read	34200	34334	self
+start	ind-cal-C1-26	133371
+end	ind-cal-C1-23	read	15990	16031	self
+start	ind-cal-C0-27	133372
+end	ind-cal-C0-23	read	22720	22815	self
+start	ind-cal-C1-27	133406
+end	ind-cal-C0-24	read	22120	22186	self
+start	ind-cal-C0-28	133429
+end	ind-cal-C0-25	read	19090	19144	self
+start	ind-cal-C1-28	133457
+end	ind-cal-C1-24	read	22860	22916	self
+start	ind-cal-C0-29	133458
+end	ind-cal-C1-25	read	20720	20780	self
+start	ind-cal-C1-29	133462
+end	ind-cal-C1-27	read	17210	17296	self
+start	ind-cal-C0-30	133463
+end	ind-cal-C0-28	read	16290	16390	self
+start	ind-cal-C1-30	133495
+end	ind-cal-C0-27	read	28200	28225	self
+start	ind-cal-C0-31	133497
+end	ind-cal-C0-26	read	30310	30404	self
+start	ind-cal-C1-31	133498
+end	ind-cal-C1-26	read	31970	32020	self
+start	ind-cal-C0-32	133499
+end	ind-cal-C0-29	read	22980	23072	self
+start	ind-cal-C1-32	133534
+end	ind-cal-C1-29	read	25790	25884	self
+start	ind-cal-C0-33	133543
+end	ind-cal-C1-30	read	15040	15098	self
+start	ind-cal-C1-33	133569
+end	ind-cal-C1-28	read	35430	35531	self
+start	ind-cal-C0-34	133572
+end	ind-cal-C1-31	read	22330	22437	self
+start	ind-cal-C1-34	133573
+end	ind-cal-C0-30	read	32480	32587	self
+start	ind-cal-C0-35	133599
+end	ind-cal-C1-32	read	18430	18516	self
+start	ind-cal-C1-35	133604
+end	ind-cal-C0-31	read	26600	26658	self
+start	ind-cal-C0-36	133605
+end	ind-cal-C0-32	read	29960	30044	self
+start	ind-cal-C1-36	133612
+end	ind-cal-C1-33	read	22890	22970	self
+start	ind-cal-C0-37	133645
+end	ind-cal-C0-33	read	24360	24431	self
+start	ind-cal-C1-37	133648
+end	ind-cal-C0-36	read	14560	14665	self
+start	ind-cal-C0-38	133655
+end	ind-cal-C0-34	read	25040	25136	self
+end	ind-cal-C1-35	read	18730	18747	self
+start	ind-cal-C1-38	133683
+start	ind-cal-C0-39	133684
+end	ind-cal-C0-35	read	23740	23829	self
+start	ind-cal-C1-39	133688
+end	ind-cal-C1-34	read	29050	29107	self
+start	ind-cal-C0-40	133701
+end	ind-cal-C1-36	read	27150	27226	self
+start	ind-cal-C1-40	133734
+end	ind-cal-C0-37	read	26120	26223	self
+start	ind-cal-C0-41	133743
+end	ind-cal-C0-38	read	27670	27703	self
+start	ind-cal-C1-41	133771
+end	ind-cal-C0-39	read	24230	24270	self
+start	ind-cal-C0-42	133772
+end	ind-cal-C1-37	read	33010	33111	self
+start	ind-cal-C1-42	133777
+end	ind-cal-C0-40	read	27260	27280	self
+start	ind-cal-C0-43	133806
+end	ind-cal-C0-41	read	17930	18008	self
+start	ind-cal-C1-43	133807
+end	ind-cal-C1-40	read	21920	21986	self
+start	ind-cal-C0-44	133813
+end	ind-cal-C1-39	read	33890	33927	self
+start	ind-cal-C1-44	133822
+end	ind-cal-C1-38	read	37610	37712	self
+start	ind-cal-C0-45	133823
+end	ind-cal-C0-42	read	16920	16963	self
+start	ind-cal-C1-45	133854
+end	ind-cal-C1-42	read	15320	15362	self
+start	ind-cal-C0-46	133855
+end	ind-cal-C0-43	read	12700	12750	self
+start	ind-cal-C1-46	133909
+end	ind-cal-C1-41	read	30220	30247	self
+start	ind-cal-C0-47	133946
+end	ind-cal-C1-44	read	19140	19237	self
+start	ind-cal-C1-47	133952
+end	ind-cal-C1-43	read	21310	21334	self
+start	ind-cal-C0-48	133953
+end	ind-cal-C0-46	read	16780	16893	self
+start	ind-cal-C1-48	133955
+end	ind-cal-C0-45	read	24310	24323	self
+start	ind-cal-C0-49	133982
+end	ind-cal-C0-44	read	26830	26920	self
+start	ind-cal-C1-49	133985
+end	ind-cal-C0-47	read	10030	10097	self
+start	ind-cal-C0-50	133986
+end	ind-cal-C1-46	read	20870	20894	self
+start	ind-cal-C1-50	133987
+end	ind-cal-C1-45	read	32860	32945	self
+start	ind-cal-C0-51	134020
+end	ind-cal-C0-48	read	17490	17553	self
+start	ind-cal-C1-51	134021
+end	ind-cal-C1-47	read	24530	24551	self
+start	ind-cal-C0-52	134055
+end	ind-cal-C1-49	read	20370	20451	self
+start	ind-cal-C1-52	134060
+end	ind-cal-C1-48	read	26240	26367	self
+start	ind-cal-C0-53	134062
+end	ind-cal-C0-50	read	21020	21087	self
+start	ind-cal-C1-53	134067
+end	ind-cal-C0-49	read	23370	23480	self
+start	ind-cal-C0-54	134068
+end	ind-cal-C1-50	read	20750	20810	self
+start	ind-cal-C1-54	134070
+end	ind-cal-C1-51	read	24470	24504	self
+end	ind-cal-C1-52	read	15490	15513	self
+start	ind-cal-C0-55	134160
+start	ind-cal-C1-55	134161
+end	ind-cal-C0-51	read	26550	26588	self
+start	ind-cal-C0-56	134168
+end	ind-cal-C0-54	read	16080	16172	self
+start	ind-cal-C1-56	134170
+end	ind-cal-C0-52	read	28600	28680	self
+start	ind-cal-C0-57	134209
+end	ind-cal-C0-53	read	30650	30752	self
+start	ind-cal-C1-57	134219
+end	ind-cal-C1-53	read	30700	30751	self
+start	ind-cal-C0-58	134220
+end	ind-cal-C0-56	read	18460	18501	self
+start	ind-cal-C1-58	134224
+end	ind-cal-C1-54	read	31520	31555	self
+start	ind-cal-C0-59	134251
+end	ind-cal-C1-55	read	26770	26813	self
+start	ind-cal-C1-59	134254
+end	ind-cal-C0-55	read	31190	31260	self
+start	ind-cal-C0-60	134308
+end	ind-cal-C1-56	read	30360	30426	self
+start	ind-cal-C1-60	134309
+end	ind-cal-C0-57	read	25200	25296	self
+start	ind-cal-C0-61	134312
+end	ind-cal-C0-59	read	18370	18484	self
+start	ind-cal-C1-61	134321
+end	ind-cal-C1-58	read	20160	20244	self
+start	ind-cal-C0-62	134322
+end	ind-cal-C0-58	read	27070	27133	self
+start	ind-cal-C1-62	134350
+end	ind-cal-C1-57	read	31690	31707	self
+start	ind-cal-C0-63	134355
+end	ind-cal-C1-59	read	21390	21485	self
+start	ind-cal-C1-63	134357
+end	ind-cal-C0-61	read	19310	19332	self
+start	ind-cal-C0-64	134386
+end	ind-cal-C0-60	read	24420	24432	self
+start	ind-cal-C1-64	134387
+end	ind-cal-C0-62	read	21830	21844	self
+start	ind-cal-C0-65	134418
+end	ind-cal-C1-60	read	31570	31593	self
+start	ind-cal-C1-65	134433
+end	ind-cal-C1-61	read	29630	29661	self
+start	ind-cal-C0-66	134442
+end	ind-cal-C0-63	read	24380	24482	self
+start	ind-cal-C1-66	134468
+end	ind-cal-C1-62	read	30200	30261	self
+start	ind-cal-C0-67	134471
+end	ind-cal-C1-65	read	10880	10938	self
+start	ind-cal-C1-67	134474
+end	ind-cal-C0-64	read	25500	25615	self
+start	ind-cal-C0-68	134504
+end	ind-cal-C1-64	read	26090	26119	self
+start	ind-cal-C1-68	134507
+end	ind-cal-C1-63	read	33500	33633	self
+start	ind-cal-C0-69	134508
+end	ind-cal-C0-66	read	18100	18145	self
+start	ind-cal-C1-69	134512
+end	ind-cal-C0-65	read	26240	26263	self
+start	ind-cal-C0-70	134513
+end	ind-cal-C1-67	read	21780	21842	self
+start	ind-cal-C1-70	134558
+end	ind-cal-C0-70	read	10280	10389	self
+start	ind-cal-C0-71	134566
+end	ind-cal-C1-66	read	28550	28578	self
+start	ind-cal-C1-71	134592
+end	ind-cal-C0-67	read	31660	31693	self
+start	ind-cal-C0-72	134599
+end	ind-cal-C0-69	read	24880	24887	self
+start	ind-cal-C1-72	134600
+end	ind-cal-C0-68	read	27450	27469	self
+start	ind-cal-C0-73	134602
+end	ind-cal-C1-68	read	28320	28371	self
+start	ind-cal-C1-73	134604
+end	ind-cal-C1-70	read	14220	14329	self
+start	ind-cal-C0-74	134630
+end	ind-cal-C1-71	read	15130	15207	self
+start	ind-cal-C1-74	134633
+end	ind-cal-C0-71	read	20330	20388	self
+start	ind-cal-C0-75	134634
+end	ind-cal-C0-73	read	11130	11169	self
+start	ind-cal-C1-75	134635
+end	ind-cal-C1-69	read	39240	39317	self
+start	ind-cal-C0-76	134671
+end	ind-cal-C0-72	read	27370	27451	self
+start	ind-cal-C1-76	134704
+end	ind-cal-C1-75	read	13800	13827	self
+start	ind-cal-C0-77	134705
+end	ind-cal-C1-72	read	26880	26970	self
+start	ind-cal-C1-77	134708
+end	ind-cal-C1-73	read	25270	25339	self
+start	ind-cal-C0-78	134717
+end	ind-cal-C1-74	read	20700	20790	self
+start	ind-cal-C1-78	134718
+end	ind-cal-C0-74	read	26530	26569	self
+start	ind-cal-C0-79	134719
+end	ind-cal-C0-76	read	20100	20157	self
+start	ind-cal-C1-79	134751
+end	ind-cal-C0-75	read	30250	30284	self
+start	ind-cal-C0-80	134752
+end	ind-cal-C0-77	read	20190	20261	self
+start	ind-cal-C1-80	134786
+end	ind-cal-C0-78	read	19540	19630	self
+start	ind-cal-C0-81	134789
+end	ind-cal-C1-77	read	26770	26821	self
+start	ind-cal-C1-81	134798
+end	ind-cal-C1-78	read	23990	24074	self
+start	ind-cal-C0-82	134799
+end	ind-cal-C1-76	read	29380	29422	self
+start	ind-cal-C1-82	134825
+end	ind-cal-C1-79	read	19030	19049	self
+start	ind-cal-C0-83	134832
+end	ind-cal-C0-79	read	27990	28049	self
+start	ind-cal-C1-83	134833
+end	ind-cal-C0-80	read	17610	17662	self
+start	ind-cal-C0-84	134834
+end	ind-cal-C0-81	read	21530	21560	self
+start	ind-cal-C1-84	134866
+end	ind-cal-C0-84	read	13650	13695	self
+start	ind-cal-C0-85	134875
+end	ind-cal-C1-80	read	28080	28163	self
+start	ind-cal-C1-85	134901
+end	ind-cal-C1-82	read	24250	24268	self
+start	ind-cal-C0-86	134904
+end	ind-cal-C0-82	read	26440	26531	self
+start	ind-cal-C1-86	134905
+end	ind-cal-C1-81	read	27630	27687	self
+start	ind-cal-C0-87	134914
+end	ind-cal-C0-83	read	24370	24421	self
+start	ind-cal-C1-87	134916
+end	ind-cal-C1-83	read	29830	29858	self
+start	ind-cal-C0-88	134950
+end	ind-cal-C1-84	read	23700	23804	self
+end	ind-cal-C0-86	read	13830	13901	self
+start	ind-cal-C1-88	134952
+start	ind-cal-C0-89	134953
+end	ind-cal-C0-87	read	13090	13170	self
+start	ind-cal-C1-89	134980
+end	ind-cal-C1-85	read	23780	23827	self
+start	ind-cal-C0-90	134985
+end	ind-cal-C0-85	read	27420	27494	self
+start	ind-cal-C1-90	134986
+end	ind-cal-C0-88	read	16220	16309	self
+start	ind-cal-C0-91	135016
+end	ind-cal-C1-87	read	25000	25008	self
+start	ind-cal-C1-91	135019
+end	ind-cal-C1-86	read	28510	28604	self
+start	ind-cal-C0-92	135020
+end	ind-cal-C1-88	read	15840	15948	self
+start	ind-cal-C1-92	135021
+end	ind-cal-C0-89	read	17460	17476	self
+start	ind-cal-C0-93	135022
+end	ind-cal-C1-90	read	17610	17625	self
+start	ind-cal-C1-93	135077
+end	ind-cal-C1-89	read	24890	24938	self
+start	ind-cal-C0-94	135078
+end	ind-cal-C1-91	read	21340	21441	self
+start	ind-cal-C1-94	135108
+end	ind-cal-C0-90	read	32930	33003	self
+start	ind-cal-C0-95	135109
+end	ind-cal-C0-91	read	27520	27549	self
+start	ind-cal-C1-95	135110
+end	ind-cal-C0-92	read	24930	25008	self
+start	ind-cal-C0-96	135115
+end	ind-cal-C1-92	read	30240	30338	self
+start	ind-cal-C1-96	135144
+end	ind-cal-C1-93	read	21220	21266	self
+start	ind-cal-C0-97	135145
+end	ind-cal-C0-93	read	33550	33570	self
+start	ind-cal-C1-97	135157
+end	ind-cal-C1-95	read	13670	13764	self
+start	ind-cal-C0-98	135197
+end	ind-cal-C0-95	read	15840	15920	self
+start	ind-cal-C1-98	135201
+end	ind-cal-C0-94	read	29080	29163	self
+start	ind-cal-C0-99	135207
+end	ind-cal-C0-97	read	15040	15068	self
+start	ind-cal-C1-99	135235
+end	ind-cal-C1-94	read	25450	25565	self
+end	ind-cal-C0-99	read	17220	17230	self
+end	ind-cal-C1-98	read	20260	20289	self
+end	ind-cal-C1-96	read	28330	28429	self
+end	ind-cal-C0-98	read	22420	22461	self
+end	ind-cal-C0-96	read	35010	35027	self
+end	ind-cal-C1-97	read	27940	28028	self
+end	ind-cal-C1-99	read	21380	21408	self
+session	609111	2810	55564	150	-	head=7bbfddb9660551e1de4b7aff3e0538b00deb2ddf exe=61f048fb919038f890789bb15ee274368bc8d086538c05eeec48390b66248e7d

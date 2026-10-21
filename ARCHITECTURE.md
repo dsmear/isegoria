@@ -43,6 +43,13 @@ Four rules shape every crate:
    `scripts/comment_budget.py` enforces the budget (`docs/CLAUDE.md`, "Code style and
    docs") in CI and after every edit made through Claude Code.
 
+**Scope.** This maps the whole retained workspace. The active Phase 1 answer review is
+`protocol::answer*` plus `scoring::reputation::author_score_weighted`; its contract is in
+[05](docs/05-question-lifecycle.md#the-answer-review-01-d49d52). Earlier bridging, pilot,
+reviewer-scoring and coordination modules are separate from that path. Network components
+are outside its offline closure. Evidence and closure scopes belong in
+[15](docs/15-phase1-review.md), retained dependencies in [21](docs/21-d47-inventory.md).
+
 ## Workspace and dependency graph
 
 ```
@@ -80,8 +87,8 @@ between contracts, guarantees and implementation are tracked in
 | `dif` | §B.3 | `logistic_dif`, `mantel_haenszel` (`EtsClass`), `mixture_dif` (the proxy-θ model, retired from the production path by T54, kept for the fixtures; `MixtureDif::differential` is a diagnostic, D37), `BETA2_MAX`, `MIXTURE_DIF_MAX` |
 | `latent` | §B.1, §B.3 (D37, D25, D43) | `latent_dif`, `latent_dif_with`, `LatentParams`, `LatentDif::flags`, `Ability`, `Format`, `Formats`, `BadFormats`, `FLOOR_PRIOR_WEIGHT` — the target model: the anchors inside the likelihood, θ integrated on a grid, classes by BIC, an analytic gradient from the EM artificial data (T54); each column's guessing floor set by its declared format, fitted under a prior (T25); the classes' ability a shared histogram, standardized, estimated with the rest (T82), or held normal (`estimate_shape`, the pilot's screen) |
 | `dtf` | §B.7 (D38) | `ClassCurves` (`new`, `with_floors`, `with_ability`, `of` a latent fit, `dtf`), `DTF_MAX` — the unsigned DTF of a set of items at the worst pair of counted classes, over the batch's ability density, the fit's histogram (T55, T82) |
-| `validation` | §B.4 | `purify_theta` (iterative purification to a fixed point) |
-| `reputation` | §C | `author_score`, `loo_scores`, `mean_score`, `inverse_probability_mean` (D35), `odds_weight` (D33), `Cusum` (D34), `weight_cap`, `brier_skill_score` (sim oracle only), `dasgupta_ghosh` |
+| `validation` | §B.4 | `purify_theta` → `Purification::{Completed, Interrupted, Exhausted}` (iterative purification; only a verified fixed point of converged fits completes), `Reading`, `Round`, `Purified` |
+| `reputation` | §C | `author_score_closings` (the author protocol's, `H` in closings), `author_score_weighted` (the answer review's: an observation weight in both sums, D50), `author_score` (historical months fixtures), `loo_scores`, `mean_score`, `inverse_probability_mean` (D35), `odds_weight` (D33), `Cusum` (D34), `weight_cap`, `brier_skill_score` (sim oracle only), `dasgupta_ghosh` |
 | `collusion` | §Anti-collusion | `ResidualHistory`, `coordination_clusters`, `permutation_p_value`, `CoordinationParams` (residual-correlation detection, D39/T56); `sublinear_group_weight`, `discount_weights` (analysis only, D40); `correlation_matrix`, `cluster_by_correlation` (the retired raw rule, kept as reference) |
 | `glm` (private) | — | shared maximum-likelihood logistic regression |
 | `optim` (private) | §A.5 | in-house L-BFGS + numerical gradient |
@@ -181,32 +188,52 @@ steps are seeded for reproducibility.
 | Module | Stage | Key items | Uses |
 |---|---|---|---|
 | `events` | §Events and replay (`docs/04`) | `NodeEvent` (deposit, reviewer admitted, respondent admitted, lifecycle step, epoch results), `encode`, `decode` (T73) | `network::codec`, `identity::nullifier` |
-| `node` | §Events and replay (`docs/04`) | `Node::{open, submit, state}`, `NodeState::{apply, item, results}`, `Outcome`, `NodeError`, `Rejection` — the protocol state rebuilt by replaying the durable log (T73) | `events`, `results`, `deposit`, `review`, `pilot`, `network::store` |
-| `ledger` | §Cuts (`docs/04`), PROTO-015 | `Ledger` (`apply`, `apply_in_view`, `state`, `last`, `refused`, `beacon`, `excluded`), `Refusal`, `CutReport`, `LedgerError` — the protocol state from signed cuts over the replicated set, the first of conflicting events winning; the epoch's beacon on cuts (T74) | `node`, `events`, `network::cut`, `network::replica` |
+| `node` | §Events and replay (`docs/04`) | `Node::{open, open_with_config, begin_cut, end_cut, submit, state}`, `NodeState::{apply, item, results, proposer, conclusions, with_author_config, begin_cut, end_cut}`, `Conclusion`, `Outcome`, `NodeError`, `Rejection` — the protocol state rebuilt by replaying the durable log (T73), which pins `H` in its first record and frames events in declared cut contexts (`offline_log`, `docs/15` C6); each item's proven author and pilot conclusion, against which author records are checked; a filing record escrows and starts its appeal in one results event, or does neither, and an `Appeal` step is refused (`docs/15` C5–C6) | `events`, `results`, `deposit`, `review`, `pilot`, `network::store` |
+| `ledger` | §Cuts (`docs/04`), PROTO-015 | `Ledger` (`apply`, `apply_in_view`, `state`, `last`, `refused`, `beacon`, `excluded`), `Refusal`, `CutReport`, `LedgerError` — the protocol state from signed cuts over the replicated set, the first of conflicting events winning; the epoch's beacon on cuts (T74); each verified cut opens and closes the author clock's context (`docs/15` C6) | `node`, `events`, `author_time`, `network::cut`, `network::replica` |
 | `results` | §Events and replay (`docs/04`), PRIV-004 | `EpochResults`, `ResultRecord`, `ResultsState`, `ResultsRejected`; `rating_leaf`, `answer_leaf`, `inputs_root`, `inclusion_proof`, `verify_inclusion` — an epoch's engine outputs as one event, bound to the Merkle root of its inputs (T73) | `reputation`, `appeal`, `exposure`, `contested`, `network::merkle` |
 | `admission` | INV-9/ID-008 | `admit`, `NullifierSet` (T6); `QuotaLedger` — per-credential proposal quota (T11) | `identity::nullifier`, `identity::ratelimit` |
 | `blueprint` | [8]/L2 | `Blueprint`, `quotas`, `coverage_deviation`, `assemble_test` | — |
-| `contested` | [7b] (D38) | `ContestedPool` (`record`, `remove`, `dtf`, `draw`, `draw_from_beacon`), `NoBalancedDraw`, `RecordError` — contested facts by the fit that last measured them, drawn into a test only in selections whose admission cost (the sum of per-fit estimated DTFs, no bound on the test's DTF: `docs/15` A2) is within `DTF_MAX`; the draw exact and seeded from the beacon (T55) | `randomness`, `scoring::dtf` |
+| `contested` | [7b] (D38) | `ContestedPool` (`record`, `admits`, `remove`, `dtf`, `admission`, `draw`, `draw_from_beacon`), `draw_counts`, `DRAW_LIMITS`, `POOL_LIMITS`, `DrawError`, `NoBalancedDraw`, `OutOfDomain`, `RecordError` — contested facts by the fit that last measured them, drawn into a test only in selections whose admission cost (the sum of per-fit estimated DTFs, no bound on the test's DTF: `docs/15` A2) is within `DTF_MAX`; the draw exact and seeded from the beacon (T55), on a bounded resource domain checked before it allocates (`docs/15` D3) | `randomness`, `scoring::dtf` |
 | `deposit` | [2] | `Draft`, `deposit`, `deposit_with_identity` (identity-gated) | `admission`, `identity`, `network::{log,cid}` |
 | `exposure` | [9] | `ExposureLedger`, `should_retire`, `Template` (its `id`, D43), `least_exposed_variant` | `network::cid` |
-| `randomness` | INV-10 | `Beacon::{from_outcome, seed}` — every draw seeds from the epoch's commit-reveal beacon (D41, T37; checkpoint-derived until then, T8) | `network::beacon` |
+| `randomness` | INV-10 | `Beacon::{from_outcome, seed}` (and a crate-private value constructor for the answer review's offline epoch closure, `ANSWER_DRAW`) — every draw seeds from the epoch's commit-reveal beacon (D41, T37; checkpoint-derived until then, T8) | `network::beacon` |
 | `lottery` | [3] | `admit`, `admit_from_beacon` (beacon-seeded; the deposits read as a set, in content-id order, T37) | `randomness` |
 | `review` | [4] | `Reviewer`, `assign_reviewers`, `commit`, `reveal`, `submit_review` (identity-gated), `assign_extra_from_beacon`, `K_EXTRA` (the band's extra panel, T60); `assign_diverse`, `assign_diverse_from_beacon`, `assign_extra_diverse_from_beacon` (at most one member of a coordination cluster per panel, D40/T57) | `admission`, `identity`, `network::cid` |
 | `gate` | [5]/[5b] | `GateOutcome`, `bridging_gate`, `supplementary_review` (D26 re-decision, T10/T30/T59), `MIN_COVERAGE` (an item one side never rated goes to review, D42) | `scoring::bridging` |
-| `appeal` | [5b] | `AuthorHistory::{record, reputation, covers_stake, file_appeal, settle}`, `appeal_floor`, `STAKE_QUALITY` — the stake as a pseudo-observation inside `C_a` (D27, T61) | `scoring::reputation` |
-| `pilot` | [6]/[7] | `stage1_screen`, `stage1_fit` and `stage1_verdicts` (`r_pbis`, then the one-class target model on the items it keeps, the ability held normal: `a`, `\|b\|`, the floor over chance — D25/T25 step 2; each item `Screening::{Pass, Fail, Indeterminate}`, indeterminate for every item of a fit that did not converge — `docs/15` A11), `stage2_dif`; batch/sample gates `screen`, `dif_batch`, `admit_dif_batch`, `admit_anchors` (KR-20 floor, D37/T53), `admit_templates` with `Templates` (one template per batch, D43/T82) (INV-8, T9) | `scoring::irt`, `scoring::dif` |
+| `appeal` | [5b] | `AuthorHistory::{conclude, file_appeal, settle, reputation, quota_reputation, covers_stake}`, `pilot_outcome`, `appeal_floor`, `STAKE_QUALITY` — one binary pilot outcome per item, its origin the applying cut's `AuthorPoint`, aged in applied closings (`docs/15` C6); the stake an item-keyed zero at weight 1 inside `C_a` (D27, T61; `docs/15` C5–C6) | `lifecycle`, `author_time`, `scoring::reputation` |
+| `author_time` | §C.1 (`docs/15` C6) | `AuthorConfig` (`H`, 45 closings, provisional), `AuthorPoint` (epoch and closings), `CutContext`, `ContextError` — the closings counted at the end of each applied cut, checked for number and epoch progression | — |
+| `offline_log` | §Events and replay (`docs/04`) | `OfflineRecord` (configuration, Begin, Event, End) — the offline node's versioned log records; declared context, not authenticated | `author_time`, `events`, `network::codec` |
+| `authorship` | §C.1 (`docs/15` C5–C6) | `author_records`, `AppealRequest`, `AppealRefusal`, `AuthorRecords`, `AuthorRecordsError` — the author records at a planned applying point from the node's state: unrecorded pilot conclusions, then the epoch's appeals selected in item-CID order, a request's window read before its coverage | `node`, `results`, `appeal` |
+| `pilot` | [6]/[7] | `stage1_screen`, `stage1_fit` and `stage1_verdicts` (`r_pbis`, then the one-class target model on the items it keeps, the ability held normal: `a`, `\|b\|`, the floor over chance — D25/T25 step 2; each item `Screening::{Pass, Fail, Indeterminate}`, indeterminate for every item of a fit that did not converge — `docs/15` A11), `stage2_dif` (calibration only; a separated or unconverged logistic fit `Undetermined`); batch/sample gates `screen`, `dif_batch`, `admit_dif_batch`, `admit_anchors` (KR-20 floor, D37/T53), `admit_templates` with `Templates` (one template per batch, D43/T82) (INV-8, T9) | `scoring::irt`, `scoring::dif` |
 | `honeypot` | Golden items | `inject`, `reviewer_skill`, `HONEYPOT_RATE` | `scoring::reputation` |
 | `exploration` | §C.2 exploration (D35) | `explore`, `explore_from_beacon`, `EXPLORATION_RATE`, `Observation`, `Scored`, `outcome_of`, `record_outcome`, `FalseNegatives` — the beacon's draw of gate rejections piloted for measurement only, their outcomes into the reviewers' tracks at weight `1/ε`, the gate's false-negative rate (T52) | `lifecycle`, `probation`, `randomness`, `scoring::reputation` |
 | `governance` | Meta-level | `stratified_sortition` (a function of the candidate set, T72), `change_approved` | — |
 | `probation` | Cold start / P2 | `status`, `review_weight`, `effective_review_weight` (of a `ReviewerStanding`: the capped odds weight, D33; the founder seed only with no alarm on record, `docs/15` A6), `SkillTrack` (the mean, the count and the CUSUM; an alarm → probation, a founder's too, D34; `record_observed` at `1/π`, `record_unobserved`, `reference` — the inverse-probability mean over every reviewed item, the detector on the unweighted scores, D35/T52), `FounderSet`, `N_PROBATION` (30, D36) | `identity::nym`, `scoring::reputation` |
-| `revalidation` | [8] | `revalidate_pool` (multi-axis), `revalidate_batch_latent` (the gated production entry: items, respondents, a format and a template per column, anchor reliability — T9/T65/T25/T82/T53 — then the target model, T54), `latent_batch` (the admitted fit itself, whose curves the contested pool records, T55), `target_flags` and `target_rechecks` (per item `Recheck`: DIF, none detected, or indeterminate when the fit did not converge, `docs/15` A4), `revalidate_pool_latent`/`latent_flags` (the retired proxy path, fixtures only), `items_to_retire` | `scoring::latent`, `scoring::dif`, `exposure` |
+| `revalidation` | [8] | `revalidate_pool` (multi-axis, calibration only: an axis flags only on a converged logistic fit, `docs/15` A4 (b)), `revalidate_batch_latent` (the gated production entry: items, respondents, a format and a template per column, anchor reliability — T9/T65/T25/T82/T53 — then the target model, T54), `latent_batch` (the admitted fit itself, whose curves the contested pool records, T55), `target_flags` and `target_rechecks` (per item `Recheck`: DIF, none detected, or indeterminate when the fit did not converge, `docs/15` A4), `revalidate_pool_latent`/`latent_flags` (the retired proxy path, fixtures only), `items_to_retire` | `scoring::latent`, `scoring::dif`, `exposure` |
+| `answer` | The answer review (`docs/05`, D49) | `Question` (context, text, alternatives, key; `check`, `content_id`, `view`), `ReviewerView` (no key), `Answer` (an alternative, `NoneCorrect`, `DontKnow`), `commit_answer` (bound to reviewer and question number) | `network::{cid, codec}` |
+| `answer_rule` | The answer review (D49) | `ConsensusRule` (12, 9, 3/4; provisional), `Verdict`, `Tally` (each alternative, none, abstentions, absences; `usable`, `coinciding`) — the outcome in integers | `answer` |
+| `answer_author` | §C.1, the answer review (D50, D51) | `contribution`, `Observation`, `AuthorRecord` (one per question; counted from the next epoch), `QuotaBands` (1/2/3 at 0.30 and 0.70, a new author 2) | `author_time`, `scoring::reputation` |
+| `answer_path` | The answer review (D49–D52) | `AnswerPath::{new, apply, usable, closure, view, reputation, quota, slots, …}`, `AnswerConfig`, `Round`, `Closure`, `Applied`, `Refused`, `commit_context`, `POOL_CONTEXT` — pool, deposit and quota, draw, commit-reveal, closure, outcome and observation, epochs; each event checked whole before it applies (T87) | `answer*`, `admission`, `deposit`, `lottery`, `randomness` |
+| `answer_events` | The answer review | `AnswerEvent` (join, deposit, draw, commit, end of commits, reveal, close, close epoch), `encode`, `decode` | `answer`, `network::codec` |
+| `answer_node` | The answer review | `AnswerNode::{open, submit, state, events}`, `AnswerNodeError` — the durable offline node: configuration pinned in the first record, accepted events replayed on open | `answer_path`, `answer_events`, `network::store` |
 | `lifecycle` | §9.1 | `State`, `Event`, `step`, `deposit`, `K_MIN` — rejects every invalid transition (T12); `Event::Resolve` re-decides the band (T10/T30); `SupplementaryReview` carries the extra round, `AssignExtraReviewers` then commit-reveal, `K_EXTRA_MAX` (T60); `Event::Explore` takes a gate rejection to `Explored` and `Measured`, never the pool (D35, T52); `State::Contested` — a DIF item with a verified source, from `Pilot2` or the pool, re-validated into either pool (D38, T55) | `gate`, `review`, `exposure`, `identity::nym` |
-| `orchestrator` | Epoch glue | `bridging_weights`, `weighted_ratings` (prior-epoch `w_u` → the fit, T5), `epoch_weight_cap` (`3 × median` over the weights that count, D33), `run_item`, `ItemVerdicts` (drives the epoch through `step`, T12), `ExtraRound`, `extra_round`, `expanded_ratings` (the band's second round and the re-decision's ratings, T60), `settle_appeal` (the escrow on the pilot's conclusion, T61; any other state hands it back, `docs/15` A11 (f)), `ItemVerdicts::dif` (stage 2's `Recheck`, indeterminate kept pending, `docs/15` A4), `ItemVerdicts::explored` (the beacon's exploration draw walked to `Measured`, T52), `ItemVerdicts::source_verified` (a DIF failure with a verified source is `Contested`, and settles an appeal as promoted, T55), `axis_mask`, `N_MIN_REVIEWS` (the reviewer floor of the axis, T39) | `lifecycle`, `appeal`, `probation`, `scoring::bridging` |
-| `panel_scores` | §C.2 band baselines (`docs/16` C5) | `Forecast`, `first_panel_baselines` (the other first panelists), `extra_round_baseline` (the first panel, fixed before the extra round), `item_scores`; `None` where no weight remains, never the reviewer's own forecast or 0 | `scoring::reputation` |
+| `orchestrator` | Epoch glue | `bridging_weights`, `weighted_ratings` (prior-epoch `w_u` → the fit, T5), `epoch_weight_cap` (`3 × median` over the weights that count, D33), `run_item`, `ItemVerdicts` (drives the epoch through `step`, T12), `ExtraRound`, `extra_round`, `expanded_ratings` (the band's second round and the re-decision's ratings, T60), `settle_appeal` (the escrow settled by the outcome the terminal state concludes, T61, `docs/15` C5–C6; any other state settles nothing, `docs/15` A11 (f)), `ItemVerdicts::dif` (stage 2's `Recheck`, indeterminate kept pending, `docs/15` A4), `ItemVerdicts::explored` (the beacon's exploration draw walked to `Measured`, T52), `ItemVerdicts::source_verified` (a DIF failure with a verified source is `Contested`, and settles an appeal as promoted, T55), `axis_mask`, `N_MIN_REVIEWS` (the reviewer floor of the axis, T39) | `lifecycle`, `appeal`, `probation`, `scoring::bridging` |
+| `panel_scores` | §C.2 band baselines (`docs/16` C5) | `Forecast`, `first_panel_baselines` (the other first panelists), `extra_round_baseline` (the first panel, fixed before the extra round), `item_scores`; `None` where no weight remains, never the reviewer's own forecast or 0; weights scaled by a power of two (`docs/17` §14.9) | `scoring::reputation`, `libm` |
+| `cohort_scores` | B-b's scorer, a candidate with no production caller (`docs/17` §14.9) | `score` over typed `Item`s (first panel and extra round, `Report`, frozen weights, `Φ_j` reached, an explicit `Selection` with `π_j`) and prefixed `Cohort`s: each assignment's `Case`, baseline and term `g/π_j`; `Counts` (`N_u`, `O_u`, `V_u`); each cohort's `Value` — final, D3's bound of radius `Σ 1/π_j`, or `Unavailable` with every cause; a term or sum beyond `f64` named `OutOfRange`, never NaN or ∞; `InputError` refuses, never repairs | `panel_scores`, `scoring::reputation`, `libm` |
+| `cohort_snapshot` | The scorer's inputs from a ledger prefix, experimental, with no production caller (`docs/17` §§14.10–14.11) | `snapshot` over `CutInput`s (every cut's number, epoch, `closes` and digest; `Slot`s, the entries the ledger applied and experimental `Proposed` records — weights, design, draw, terminal with the verifier's verdict supplied, cohort list; the ledger's refusals as evidence): the checks of `NodeState::step` with `lifecycle::step` replayed, the register of every assignment, `K(u, e)` closed on the cuts' metadata, a refused record keeping the state, an item's `Invalidity` settled at its first assignment, `score` on the valid items only; `Incoherence` where the input breaks a checked precondition, `Error::Defect` for an `InputError` | `cohort_scores`, `lifecycle`, `events`, `ledger`, `network::{cut, replica, cid, codec}` |
 
 Each module's doc comment names the attack the stage neutralizes (brigading,
 information cascades, queue explosion, the true-but-divisive false negative, block
 voting).
+
+**The previous design's reviewer path (D47).** `review` commits and reveals a probability;
+`lifecycle` carries it in `Reveal` and holds the exploration path (`Explore`, `Explored`,
+`Measured`); `orchestrator` turns reveals into ratings weighted by forecast skill, and its
+`affine_*` adapters read A12's frozen tables (`affine_weights`); `probation`,
+`honeypot::reviewer_skills`, `exploration`, `panel_scores`, `cohort_scores`, `cohort_snapshot`
+and `results`' reviewer records score and weigh that forecast. These remain legacy
+components (`docs/21` §2); `cohort_snapshot` also serves C6's
+evidence (`docs/21` §4).
 
 ## `p2p` — the libp2p transport
 
@@ -245,6 +272,9 @@ full run, 54,412 runs, is stated in `docs/13` §7 and its tables are in
 measures the model with the guessing floor and the band's extra round, stated in §8.7 and
 tabled in `verification/reports/t25/`.
 
+The A2 probe (`src/bin/a2-probe.rs`, `probe`, `probe_jobs`, `probe_calibration`) stays here
+although its studies are archived: its provenance guard reads `crates/` (`docs/21` §4).
+
 | Module | Role |
 |---|---|
 | `grid` | the studies — T24's ten and the supplement's six (`T24`, `SUPPLEMENT`) — their cells (`Cell::key`, `Cell::parse`), replicates, each run's seed and its draws' (`draw_seed`) |
@@ -261,9 +291,9 @@ The invariants from [`docs/CLAUDE.md`](docs/CLAUDE.md):
 | # | Invariant | Where |
 |---|---|---|
 | 1 | Anonymity is the base; no demographic attributes in the deployment path | Anonymous DIF uses `scoring::latent`; observed-group routines are calibration-only (`docs/02` §B.3) |
-| 2 | Quality is never decided by majority vote | `scoring::bridging` + `scoring::latent`; `protocol::gate` has no vote count |
+| 2 | Consensus is an operational criterion, never a guarantee of truth (rectified by `docs/01` D48; until D47, quality never decided by majority vote) | Existing mechanism: `scoring::bridging` + `scoring::latent`; `protocol::gate` has no vote count. The answer review's consensus (D49): `protocol::answer_rule`, `answer_path` (T87) |
 | 3 | No money as stake | Bond is reputation (`protocol::deposit`, `scoring::reputation`) |
-| 4 | Two reputation scores, never combined | `scoring::reputation` (`author_score` vs `loo_scores`/`odds_weight`); separate role nyms in `identity::nym` |
+| 4 | Two reputation scores, never combined | `scoring::reputation` (`author_score` vs `loo_scores`/`odds_weight`, the previous design's evaluator score; under D48 the first implementation weighs reviewers equally and defers their evaluation); separate role nyms in `identity::nym` |
 | 5 | One role, one deterministic non-rotatable pseudonym | `identity::nym::derive_nym` |
 | 6 | The state authenticates, does not issue | `identity::enrollment` (`UniquenessOracle`) separate from `credential::BlindIssuer` |
 | 7 | Scoring is deterministic and reproducible | `scoring` (pinned toolchain, seeded RNG); `tests/reproducibility.rs` |
@@ -377,7 +407,7 @@ cargo clippy --workspace --all-targets
 | Gossip transport, replication of the signed set | **Real** — libp2p gossipsub + request-response, a grow-only set with equivocation evidence (T18) | — |
 | Protocol state from the replicated set, merge rules; cuts and beacon between nodes | **Real** — signed cuts fix the order, the first of conflicting events wins; members propose in turn, co-sign, commit and reveal on their feeds (T74); a silent proposer replaced by a change of view, single-decree Paxos over the cuts (T76, step 1); an epoch's withholders excluded from its next cuts (T76, step 2) | — |
 | DHT | Documented, not implemented (T75) | libp2p Kademlia |
-| Who may read the replicated set | **None** — a node serves its whole set to any peer that connects, the drafts under review and the reveals included, against D17 (T77) | D44: three tiers, two feeds per member, the circle served only to member-bound transport keys (T77); blind relays (T85); a state tree keyed by nym (T86) |
+| Who may read the replicated set | **None** — a node serves its whole set to any peer that connects, the drafts under review and the reveals included, against D17 (T77) | D54: three tiers, two feeds per member, the circle served only to member-bound transport keys (T77); blind relays (T85); a state tree keyed by nym (T86) |
 | A node process | **Real** — `isegoria-node` from a TOML configuration, its files resumed on restart, its status on a period (T78) | an epoch's work (T79) |
 | An epoch run between nodes | **None** — the draws, reviews, engine run and results are driven by tests (`end_to_end.rs::run_epoch`) (T79) | a member's epoch duties, specified first |
 | A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80) | — |
@@ -388,13 +418,8 @@ to make the pipeline testable end-to-end.
 
 ## Future work
 
-[`docs/10`](docs/10-roadmap.md) is the task-status source. Start Phase 1 corrections
-from [`docs/15`](docs/15-phase1-review.md); complete parameter procedures in
-[`docs/14`](docs/14-parameter-register.md) after the relevant guarantees and model
-choices are settled. The target re-check and stage-1 screen already support guessing
-floors; 3PL is not merely a proposed future refinement.
-
-For runtime and deployment work, use the plug-point table above and `docs/10` §2–§3.
-Persistence (T13), replication (T18) and signed cuts (T74) are implemented; external
-review and real-world calibration remain separate gates. Optional research ideas
-such as Bayesian Truth Serum are not prerequisites for closing Phase 1.
+Task status belongs in the [roadmap](docs/10-roadmap.md); evidence and unresolved findings
+belong in the [review register](docs/15-phase1-review.md). The
+[handoff](docs/phase1-handoff.md) separates the closed offline answer review from work
+requiring another assignment. No legacy measurement or network task is implicitly a
+prerequisite for that closed perimeter.

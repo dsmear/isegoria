@@ -1,0 +1,17 @@
+{
+ "phase": "dtf-check",
+ "planned": 32,
+ "replicates": 16,
+ "records": 32,
+ "invalid_lines": [],
+ "duplicates": [],
+ "unplanned": [],
+ "inconsistent": [],
+ "ended_without_record": [],
+ "record_without_end": [],
+ "started_not_ended": [],
+ "never_started": [],
+ "not_observed": [],
+ "stop": null,
+ "status": "complete"
+}

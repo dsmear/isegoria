@@ -1,0 +1,16 @@
+date: 2026-10-19T13:35:20+02:00
+commit: 7bbfddb9660551e1de4b7aff3e0538b00deb2ddf
+crates tree: b618aaa972e2964a98469b5931255dcc9ad517f8
+Cargo.lock: e6615413de1f60d7f75b3fa2ce126dd3051ce242
+latent.rs: fe101c88ea988c06a329dd48ce0c6dc311a5a329
+scoring, protocol vs 2e2572c: identical
+working tree:  M .gitignore;?? c6-implementation.patch;
+uname: Linux 7.1.5-76070105-generic x86_64
+cpu: Model name: AMD Ryzen 7 5800X 8-Core Processor
+threads: 16
+memory: 32000 MiB
+rustc: rustc 1.86.0 (05f9846f8 2025-03-31)
+cargo: cargo 1.86.0 (adf9b6ad1 2025-02-28)
+python: Python 3.12.3
+load before: 0.85 1.12 1.43 1/2726 132664
+61f048fb919038f890789bb15ee274368bc8d086538c05eeec48390b66248e7d  target/release/a2-probe

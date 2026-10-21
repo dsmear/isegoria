@@ -9,7 +9,9 @@ use scoring::irt::{fit_2pl_item, theta_from_anchors};
 #[cfg(feature = "calibration")]
 use scoring::irt::{point_biserial, R_PBIS_MIN};
 #[cfg(feature = "calibration")]
-use scoring::validation::purify_theta;
+use scoring::validation::{purify_theta, Purification, Purified, Reading};
+#[cfg(feature = "calibration")]
+use scoring::LogisticFit;
 use std::fs;
 use std::path::PathBuf;
 
@@ -145,7 +147,7 @@ fn purification_reaches_a_stable_flagged_set() {
     let x = read_matrix("levelb_X.csv");
     let grp = read_vector("levelb_grp.csv");
 
-    let res = purify_theta(&xa, &x, &grp, 10);
+    let res = completed(purify_theta(&xa, &x, &grp, 10));
     assert!(res.flagged[3], "ESM item should be flagged");
     for j in [0usize, 1, 2, 7, 8, 9] {
         assert!(!res.flagged[j], "clean item {j} should not be flagged");
@@ -360,4 +362,174 @@ fn mantel_haenszel_without_discordant_cells_is_infinite_and_class_c() {
     let r = mantel_haenszel(&item, &theta, &group, 1);
     assert_eq!(r.alpha, f64::INFINITY);
     assert_eq!(r.class, EtsClass::C);
+}
+
+/// A deterministic stream with no transcendental function, so the data are the same everywhere.
+#[cfg(feature = "calibration")]
+struct Lcg(u64);
+
+#[cfg(feature = "calibration")]
+impl Lcg {
+    fn next(&mut self) -> f64 {
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        ((self.0 >> 11) as f64) / ((1u64 << 53) as f64)
+    }
+    fn noise(&mut self) -> f64 {
+        (0..12).map(|_| self.next()).sum::<f64>() - 6.0
+    }
+}
+
+/// 400 respondents, 10 anchors and `items` trial items answered by threshold with noise.
+#[cfg(feature = "calibration")]
+fn generated(seed: u64) -> (Lcg, Vec<f64>, Vec<f64>, Vec<Vec<f64>>) {
+    let mut r = Lcg(seed);
+    let group: Vec<f64> = (0..400)
+        .map(|i| if i % 2 == 0 { 1.0 } else { -1.0 })
+        .collect();
+    let theta: Vec<f64> = (0..400).map(|_| r.noise()).collect();
+    let anchors = (0..400)
+        .map(|i| {
+            (0..10)
+                .map(|j| (theta[i] + 1.5 - 0.33 * j as f64 + 1.7 * r.noise() > 0.0) as u8 as f64)
+                .collect()
+        })
+        .collect();
+    (r, group, theta, anchors)
+}
+
+#[cfg(feature = "calibration")]
+fn trial(r: &mut Lcg, theta: &[f64], group: &[f64], dif: &[f64]) -> Vec<Vec<f64>> {
+    (0..theta.len())
+        .map(|i| {
+            (0..dif.len())
+                .map(|j| {
+                    let b = -0.5 + 0.3 * j as f64;
+                    (theta[i] - b + dif[j] * group[i] + 1.7 * r.noise() > 0.0) as u8 as f64
+                })
+                .collect()
+        })
+        .collect()
+}
+
+#[cfg(feature = "calibration")]
+fn refit(batch: &[Vec<f64>], theta: &[f64], group: &[f64]) -> Vec<bool> {
+    (0..batch[0].len())
+        .map(|j| logistic_dif(&column(batch, j), theta, group).beta2.abs() > BETA2_MAX)
+        .collect()
+}
+
+#[cfg(feature = "calibration")]
+fn completed(res: Purification) -> Purified {
+    match res {
+        Purification::Completed(p) => p,
+        other => panic!("not completed: {other:?}"),
+    }
+}
+
+/// Real fits: a clean batch completes at round 2, not 1; its flags re-read on the returned θ.
+#[cfg(feature = "calibration")]
+#[test]
+fn a_clean_batch_completes_at_round_two_on_its_returned_theta() {
+    let (mut r, group, theta, anchors) = generated(672);
+    let batch = trial(&mut r, &theta, &group, &[0.0; 4]);
+    let res = completed(purify_theta(&anchors, &batch, &group, 10));
+    assert_eq!((res.iterations, res.flagged.clone()), (2, vec![false; 4]));
+    assert_eq!(refit(&batch, &res.theta, &group), res.flagged);
+}
+
+/// Real fits: an all-clean first round is not completed when the returned θ flags an item.
+#[cfg(feature = "calibration")]
+#[test]
+fn an_all_clean_first_round_is_not_a_verified_fixed_point() {
+    let (mut r, group, theta, anchors) = generated(670);
+    let delta = 0.1 + 0.4 * r.next();
+    let batch = trial(&mut r, &theta, &group, &[delta, 0.0, 0.0, 0.0]);
+    let res = purify_theta(&anchors, &batch, &group, 10);
+    let Purification::Exhausted {
+        rounds,
+        last: Some(last),
+        previous: Some(previous),
+        ..
+    } = res
+    else {
+        panic!("{res:?}");
+    };
+    assert_eq!((rounds, last.index, previous.index), (10, 10, 9));
+    let flags = |round: &scoring::validation::Round| -> Vec<bool> {
+        round
+            .readings
+            .iter()
+            .map(|&r| r == Reading::Flagged)
+            .collect()
+    };
+    assert_eq!(refit(&batch, &last.theta, &group), flags(&last));
+    assert_ne!(flags(&last), flags(&previous));
+}
+
+/// Real fits: an item separated on the starting θ interrupts round 1, θ not updated (`15`).
+#[cfg(feature = "calibration")]
+#[test]
+fn a_separated_fit_interrupts_the_first_round() {
+    let (mut r, group, theta, anchors) = generated(671);
+    let totals: Vec<f64> = anchors
+        .iter()
+        .map(|row: &Vec<f64>| row.iter().sum())
+        .collect();
+    let mut batch = trial(&mut r, &theta, &group, &[0.0, 0.0, 0.0]);
+    for (row, total) in batch.iter_mut().zip(&totals) {
+        row.push((*total > 5.0) as u8 as f64);
+    }
+    for max_rounds in [1, 10] {
+        let res = purify_theta(&anchors, &batch, &group, max_rounds);
+        let Purification::Interrupted { round, previous } = res else {
+            panic!("{res:?}");
+        };
+        assert_eq!((round.index, previous), (1, None));
+        assert_eq!(round.inconclusive(), vec![(3, LogisticFit::Separated)]);
+        assert_eq!(round.readings.len(), 4);
+        assert_eq!(round.theta, theta_from_anchors(&anchors));
+    }
+}
+
+/// With no round, no fit and no flag: the budget is exhausted (`15`).
+#[cfg(feature = "calibration")]
+#[test]
+fn a_zero_budget_presents_no_flags() {
+    let xa = read_matrix("levelb_XA.csv");
+    let x = read_matrix("levelb_X.csv");
+    let grp = read_vector("levelb_grp.csv");
+    let res = purify_theta(&xa, &x, &grp, 0);
+    let Purification::Exhausted {
+        rounds: 0,
+        last: None,
+        previous: None,
+        ..
+    } = res
+    else {
+        panic!("{res:?}");
+    };
+}
+
+/// Real fits on the fixture: one round exhausts the budget, two complete at the last round.
+#[cfg(feature = "calibration")]
+#[test]
+fn the_fixture_exhausts_one_round_and_completes_at_the_second() {
+    let xa = read_matrix("levelb_XA.csv");
+    let x = read_matrix("levelb_X.csv");
+    let grp = read_vector("levelb_grp.csv");
+    let res = purify_theta(&xa, &x, &grp, 1);
+    let Purification::Exhausted {
+        rounds: 1,
+        last: Some(last),
+        previous: None,
+        ..
+    } = res
+    else {
+        panic!("{res:?}");
+    };
+    assert_eq!(last.readings[3], Reading::Flagged);
+    assert_eq!(completed(purify_theta(&xa, &x, &grp, 2)).iterations, 2);
 }

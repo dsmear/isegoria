@@ -2,11 +2,14 @@
 //! T73): events are checked, applied, then written; opening replays them all.
 
 use crate::admission::{NullifierSet, QuotaLedger};
+use crate::appeal::pilot_outcome;
+use crate::author_time::{AuthorConfig, ContextError, CutContext};
 use crate::deposit::{deposit_with_identity, DepositRejected};
 use crate::events::NodeEvent;
 use crate::lifecycle::{step, Event, Invalid, State};
+use crate::offline_log::OfflineRecord;
 use crate::pilot::{submit_response, ResponseRejected};
-use crate::results::{ResultsRejected, ResultsState};
+use crate::results::{EpochResults, ResultRecord, ResultsRejected, ResultsState};
 use crate::review::{submit_review, ReviewRejected};
 use identity::credential::IssuerPublic;
 use identity::nym::Nym;
@@ -28,6 +31,8 @@ pub enum Rejection {
     UnknownItem,
     /// An assignment that names another item than the one it moves.
     ItemMismatch,
+    /// An appeal as a step: an appeal starts only with its filing record (`docs/15` C5–C6).
+    AppealStep,
     Results(ResultsRejected),
 }
 
@@ -57,10 +62,19 @@ pub enum NodeError {
     },
     /// A write failed after the state changed: reopen the node.
     Poisoned,
+    Context(ContextError),
+    Configuration,
+}
+
+/// An item's pilot conclusion as its step reached it (`docs/02` §C.1, `docs/15` C5).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Conclusion {
+    pub passed: bool,
+    pub appealed: bool,
 }
 
 /// Drafts on record, quotas per epoch, panels and respondents per `(item or batch, epoch)`,
-/// and each item's lifecycle state.
+/// each item's lifecycle state, the author its deposit proved and its pilot conclusion.
 #[derive(Debug, Default, PartialEq)]
 pub struct NodeState {
     drafts: TransparencyLog,
@@ -68,10 +82,27 @@ pub struct NodeState {
     panels: BTreeMap<(Cid, u64), NullifierSet>,
     respondents: BTreeMap<(Cid, u64), NullifierSet>,
     items: BTreeMap<Cid, State>,
+    proposers: BTreeMap<Cid, Nym>,
+    conclusions: BTreeMap<Cid, Conclusion>,
     results: ResultsState,
 }
 
 impl NodeState {
+    pub fn with_author_config(config: AuthorConfig) -> Self {
+        Self {
+            results: ResultsState::with_author_config(config),
+            ..Self::default()
+        }
+    }
+
+    pub fn begin_cut(&mut self, cut: CutContext) -> Result<(), ContextError> {
+        self.results.begin_cut(cut)
+    }
+
+    pub fn end_cut(&mut self) -> Result<(), ContextError> {
+        self.results.end_cut()
+    }
+
     /// Checks and applies one event, as the entry points do (`deposit_with_identity`,
     /// `submit_review`, `submit_response`); the proven id on success.
     pub fn apply(
@@ -109,25 +140,78 @@ impl NodeState {
             .map_err(Rejection::Response),
             NodeEvent::Step { item, event } => return self.step(*item, event),
             NodeEvent::Results(results) => {
-                return self
-                    .results
-                    .apply(results)
-                    .map(|()| Outcome::Moved)
-                    .map_err(Rejection::Results)
+                let started = self.check_authors(results).map_err(Rejection::Results)?;
+                self.results.apply(results).map_err(Rejection::Results)?;
+                for item in started {
+                    self.items.insert(item, State::Pilot1 { appealed: true });
+                }
+                return Ok(Outcome::Moved);
             }
         };
-        if let (Ok(_), NodeEvent::Deposit { draft, .. }) = (&admitted, event) {
+        if let (Ok(proposer), NodeEvent::Deposit { draft, .. }) = (&admitted, event) {
             self.items.insert(draft.content_id(), State::Deposited);
+            self.proposers.insert(draft.content_id(), *proposer);
         }
         admitted.map(Outcome::Admitted)
     }
 
+    /// Each author record names its item's proven author and, for an outcome, the conclusion
+    /// its step reached; a filing, an appeal-eligible item, returned to start its appeal
+    /// (`docs/04` §Events and replay).
+    fn check_authors(&self, results: &EpochResults) -> Result<Vec<Cid>, ResultsRejected> {
+        let mut started = Vec::new();
+        for (record, r) in results.records.iter().enumerate() {
+            let (author, item, outcome) = match r {
+                ResultRecord::AuthorOutcome {
+                    author,
+                    item,
+                    passed,
+                } => (author, item, Some((*passed, false))),
+                ResultRecord::AppealSettled {
+                    author,
+                    item,
+                    passed,
+                } => (author, item, Some((*passed, true))),
+                ResultRecord::AppealStarted { author, item, .. } => (author, item, None),
+                _ => continue,
+            };
+            if self.proposers.get(item) != Some(author) {
+                return Err(ResultsRejected::NotTheProposer { record });
+            }
+            let consistent = match outcome {
+                Some((passed, appealed)) => {
+                    self.conclusions.get(item) == Some(&Conclusion { passed, appealed })
+                }
+                None => self.items.get(item) == Some(&State::AppealEligible),
+            };
+            match (consistent, outcome) {
+                (true, Some(_)) => {}
+                (true, None) => started.push(*item),
+                (false, Some(_)) => return Err(ResultsRejected::OutcomeMismatch { record }),
+                (false, None) => return Err(ResultsRejected::NotAppealable { record }),
+            }
+        }
+        Ok(started)
+    }
+
     fn step(&mut self, item: Cid, event: &Event) -> Result<Outcome, Rejection> {
         let state = self.items.get(&item).ok_or(Rejection::UnknownItem)?;
-        if matches!(event, Event::AssignReviewers { item: named, .. } if *named != item) {
-            return Err(Rejection::ItemMismatch);
+        match event {
+            Event::AssignReviewers { item: named, .. } if *named != item => {
+                return Err(Rejection::ItemMismatch)
+            }
+            Event::Appeal { .. } => return Err(Rejection::AppealStep),
+            _ => {}
         }
         let next = step(state.clone(), event.clone()).map_err(Rejection::Lifecycle)?;
+        let appealed = match state {
+            State::Pilot1 { appealed } | State::Pilot2 { appealed } => Some(*appealed),
+            _ => None,
+        };
+        if let (Some(appealed), Some(passed)) = (appealed, pilot_outcome(&next)) {
+            self.conclusions
+                .insert(item, Conclusion { passed, appealed });
+        }
         self.items.insert(item, next);
         Ok(Outcome::Moved)
     }
@@ -138,6 +222,15 @@ impl NodeState {
 
     pub fn results(&self) -> &ResultsState {
         &self.results
+    }
+
+    /// The author `item`'s accepted deposit proved (INV-9).
+    pub fn proposer(&self, item: &Cid) -> Option<Nym> {
+        self.proposers.get(item).copied()
+    }
+
+    pub fn conclusions(&self) -> &BTreeMap<Cid, Conclusion> {
+        &self.conclusions
     }
 
     pub fn drafts(&self) -> &TransparencyLog {
@@ -184,28 +277,69 @@ pub struct Node {
     issuer: IssuerPublic,
     state: NodeState,
     poisoned: bool,
+    events: usize,
 }
 
 impl Node {
     /// Opens or creates the node in `dir` (files `log` and `objects`) and replays its log.
     pub fn open(dir: &Path, issuer: IssuerPublic) -> Result<Self, NodeError> {
+        Self::open_from(dir, issuer, NodeState::default())
+    }
+
+    /// Opens under the immutable configuration pinned in the log (`docs/15` C6).
+    pub fn open_with_config(
+        dir: &Path,
+        issuer: IssuerPublic,
+        config: AuthorConfig,
+    ) -> Result<Self, NodeError> {
+        Self::open_from(dir, issuer, NodeState::with_author_config(config))
+    }
+
+    fn open_from(
+        dir: &Path,
+        issuer: IssuerPublic,
+        mut state: NodeState,
+    ) -> Result<Self, NodeError> {
         fs::create_dir_all(dir).map_err(|e| StoreError::Io(e.kind()))?;
-        let (objects, _) = ObjectStore::open(&dir.join("objects"))?;
-        let (log, _) = DurableLog::open(&dir.join("log"))?;
-        let mut state = NodeState::default();
+        let (mut objects, _) = ObjectStore::open(&dir.join("objects"))?;
+        let (mut log, _) = DurableLog::open(&dir.join("log"))?;
+        if log.log().is_empty() {
+            let id =
+                objects.put(&OfflineRecord::Config(state.results().author_config()).encode())?;
+            log.append(id)?;
+        }
+        let mut events = 0;
         for (i, entry) in log.log().entries().iter().enumerate() {
             let entry_no = i as u64;
             let bytes = objects
                 .get(&entry.payload)?
                 .ok_or(NodeError::MissingObject { entry: entry_no })?;
-            let event =
-                NodeEvent::decode(&bytes).ok_or(NodeError::Undecodable { entry: entry_no })?;
-            state
-                .apply(&event, &issuer)
-                .map_err(|rejection| NodeError::ReplayRejected {
-                    entry: entry_no,
-                    rejection,
-                })?;
+            let record =
+                OfflineRecord::decode(&bytes).ok_or(NodeError::Undecodable { entry: entry_no })?;
+            if i == 0 {
+                let pinned = state.results().author_config();
+                if !matches!(record, OfflineRecord::Config(c) if c == pinned) {
+                    return Err(NodeError::Configuration);
+                }
+                continue;
+            }
+            match record {
+                OfflineRecord::Config(_) => return Err(NodeError::Configuration),
+                OfflineRecord::Begin(cut) => state.begin_cut(cut).map_err(NodeError::Context)?,
+                OfflineRecord::End => state.end_cut().map_err(NodeError::Context)?,
+                OfflineRecord::Event(event) => {
+                    if state.results().author_point().is_none() {
+                        return Err(NodeError::Context(ContextError::NotOpen));
+                    }
+                    state.apply(&event, &issuer).map_err(|rejection| {
+                        NodeError::ReplayRejected {
+                            entry: entry_no,
+                            rejection,
+                        }
+                    })?;
+                    events += 1;
+                }
+            }
         }
         Ok(Node {
             log,
@@ -213,6 +347,7 @@ impl Node {
             issuer,
             state,
             poisoned: false,
+            events,
         })
     }
 
@@ -221,26 +356,52 @@ impl Node {
         if self.poisoned {
             return Err(NodeError::Poisoned);
         }
+        if self.state.results().author_point().is_none() {
+            return Err(NodeError::Context(ContextError::NotOpen));
+        }
         let id = self
             .state
             .apply(&event, &self.issuer)
             .map_err(NodeError::Rejected)?;
+        self.write(OfflineRecord::Event(event))?;
+        self.events += 1;
+        Ok(id)
+    }
+
+    fn write(&mut self, record: OfflineRecord) -> Result<(), NodeError> {
         let written = self
             .objects
-            .put(&event.encode())
+            .put(&record.encode())
             .and_then(|object| self.log.append(object));
         if let Err(e) = written {
             self.poisoned = true;
             return Err(NodeError::Store(e));
         }
-        Ok(id)
+        Ok(())
+    }
+
+    pub fn begin_cut(&mut self, cut: CutContext) -> Result<(), NodeError> {
+        if self.poisoned {
+            return Err(NodeError::Poisoned);
+        }
+        self.state.begin_cut(cut).map_err(NodeError::Context)?;
+        self.write(OfflineRecord::Begin(cut))
+    }
+
+    pub fn end_cut(&mut self) -> Result<(), NodeError> {
+        if self.poisoned {
+            return Err(NodeError::Poisoned);
+        }
+        self.state.end_cut().map_err(NodeError::Context)?;
+        self.write(OfflineRecord::End)
     }
 
     pub fn state(&self) -> &NodeState {
         &self.state
     }
 
+    /// Accepted protocol events, excluding configuration and frame records.
     pub fn log_len(&self) -> usize {
-        self.log.log().len()
+        self.events
     }
 }

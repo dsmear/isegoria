@@ -1,0 +1,743 @@
+{
+ "note": "post-hoc, exploratory; both variants refit the same batches, so they are not independent replicates",
+ "shared": {
+  "pairs": [
+   {
+    "case": "C3",
+    "replicate": 0,
+    "comparable": false,
+    "order_vs_c0": null,
+    "case_cell": {
+     "baseline": "max_iters",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.6810921039338796,
+     "dtf_basis": "counted classes",
+     "generating": 0.6248986585444852
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 1,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.7227124226065477,
+     "dtf_basis": "counted classes",
+     "generating": 0.6380597778238921
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.3133584274780927,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 2,
+    "comparable": false,
+    "order_vs_c0": null,
+    "case_cell": {
+     "baseline": "max_iters",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.9746984856114442,
+     "dtf_basis": "counted classes",
+     "generating": 0.6245746975405093
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 3,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.8705296830466366,
+     "dtf_basis": "counted classes",
+     "generating": 0.5667279056522627
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 4,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.6290041047847864,
+     "dtf_basis": "counted classes",
+     "generating": 0.6216802416509875
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.38027462912739923,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 5,
+    "comparable": true,
+    "order_vs_c0": "smaller",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.560418564159518
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.43314082820171546,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 6,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.7425478711398976,
+     "dtf_basis": "counted classes",
+     "generating": 0.6518557406954828
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 7,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.4669911992293855,
+     "dtf_basis": "counted classes",
+     "generating": 0.6175939774942649
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.4183221059926558,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 0,
+    "comparable": true,
+    "order_vs_c0": "equal",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.14727998480308904
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 1,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.6672940544455335,
+     "dtf_basis": "counted classes",
+     "generating": 0.15039315256973468
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.3133584274780927,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 2,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.7072742795332799,
+     "dtf_basis": "counted classes",
+     "generating": 0.1471960544705042
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 3,
+    "comparable": true,
+    "order_vs_c0": "equal",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.13352253225784178
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 4,
+    "comparable": true,
+    "order_vs_c0": "smaller",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.1465111074024966
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.38027462912739923,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 5,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.7412460418395617,
+     "dtf_basis": "counted classes",
+     "generating": 0.13204153301503066
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.43314082820171546,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 6,
+    "comparable": true,
+    "order_vs_c0": "equal",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.15365681541187676
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 7,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.44447987622681223,
+     "dtf_basis": "counted classes",
+     "generating": 0.14555145458985963
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.4183221059926558,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   }
+  ],
+  "tally": {
+   "C3": {
+    "comparable": 6,
+    "greater": 5,
+    "smaller": 1,
+    "equal": 0
+   },
+   "C5": {
+    "comparable": 8,
+    "greater": 4,
+    "smaller": 1,
+    "equal": 3
+   }
+  }
+ },
+ "per-class": {
+  "pairs": [
+   {
+    "case": "C3",
+    "replicate": 0,
+    "comparable": false,
+    "order_vs_c0": null,
+    "case_cell": {
+     "baseline": "max_iters",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.792604619243448,
+     "dtf_basis": "counted classes",
+     "generating": 0.6248986585444852
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.7360868999937331,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 1,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.5396080168275055,
+     "dtf_basis": "counted classes",
+     "generating": 0.6380597778238921
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.32318143800260163,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 2,
+    "comparable": false,
+    "order_vs_c0": null,
+    "case_cell": {
+     "baseline": "max_iters",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.5211728462550301,
+     "dtf_basis": "counted classes",
+     "generating": 0.6245746975405093
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.43502121728103693,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 3,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.789502953782244,
+     "dtf_basis": "counted classes",
+     "generating": 0.5667279056522627
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.10415659430839387,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 4,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.6453605065976357,
+     "dtf_basis": "counted classes",
+     "generating": 0.6216802416509875
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.5704863299895893,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 5,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 1.358144009786798,
+     "dtf_basis": "counted classes",
+     "generating": 0.560418564159518
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.3028643776245092,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 6,
+    "comparable": true,
+    "order_vs_c0": "smaller",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.6518557406954828
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.44809634774135965,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C3",
+    "replicate": 7,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.9778949366606248,
+     "dtf_basis": "counted classes",
+     "generating": 0.6175939774942649
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 0,
+    "comparable": true,
+    "order_vs_c0": "smaller",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.7336245115064624,
+     "dtf_basis": "counted classes",
+     "generating": 0.14727998480308904
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.7360868999937331,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 1,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.3810317412836833,
+     "dtf_basis": "counted classes",
+     "generating": 0.15039315256973468
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.32318143800260163,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 2,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.6309019881295054,
+     "dtf_basis": "counted classes",
+     "generating": 0.1471960544705042
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.43502121728103693,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 3,
+    "comparable": true,
+    "order_vs_c0": "greater",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.18173722486492938,
+     "dtf_basis": "counted classes",
+     "generating": 0.13352253225784178
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.10415659430839387,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 4,
+    "comparable": true,
+    "order_vs_c0": "smaller",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.48476458999224453,
+     "dtf_basis": "counted classes",
+     "generating": 0.1465111074024966
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.5704863299895893,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 5,
+    "comparable": true,
+    "order_vs_c0": "smaller",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.2794532575327148,
+     "dtf_basis": "counted classes",
+     "generating": 0.13204153301503066
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.3028643776245092,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 6,
+    "comparable": true,
+    "order_vs_c0": "smaller",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.15365681541187676
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 2,
+     "dtf": 0.44809634774135965,
+     "dtf_basis": "counted classes",
+     "generating": 0.0
+    }
+   },
+   {
+    "case": "C5",
+    "replicate": 7,
+    "comparable": true,
+    "order_vs_c0": "equal",
+    "case_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.14555145458985963
+    },
+    "c0_cell": {
+     "baseline": "converged",
+     "candidate": "converged",
+     "counted": 1,
+     "dtf": 0.0,
+     "dtf_basis": "one counted class",
+     "generating": 0.0
+    }
+   }
+  ],
+  "tally": {
+   "C3": {
+    "comparable": 6,
+    "greater": 5,
+    "smaller": 1,
+    "equal": 0
+   },
+   "C5": {
+    "comparable": 8,
+    "greater": 3,
+    "smaller": 4,
+    "equal": 1
+   }
+  }
+ }
+}

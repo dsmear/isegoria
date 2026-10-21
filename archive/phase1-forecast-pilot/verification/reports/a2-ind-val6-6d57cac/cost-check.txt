@@ -1,0 +1,7 @@
+C0: 100 runs, CPU 4053.8 s, a run 40.5 s mean (17.6–64.2); each run's peak 9.6–10.2 MiB
+C1: 100 runs, CPU 4405.5 s, a run 44.1 s mean (16.5–70.0); each run's peak 10.1–10.4 MiB
+C3: 100 runs, CPU 3893.9 s, a run 38.9 s mean (14.7–64.7); each run's peak 9.6–10.1 MiB
+C5: 100 runs, CPU 4347.0 s, a run 43.5 s mean (21.3–72.0); each run's peak 9.6–10.2 MiB
+runs' CPU 16700.21 s; supervisor's own 7.98 s; total 16708.19 s
+sessions: wall [2113.422] s; largest sampled resident sum [83708] KiB; largest gap between checks [145] ms; stop ['-']
+with the calibration: CPU 25348.18 s, wall 3220.4 s

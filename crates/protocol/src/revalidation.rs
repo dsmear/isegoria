@@ -11,6 +11,8 @@ use scoring::dif::{logistic_dif, BETA2_MAX};
 use scoring::dif::{mixture_dif, MixtureDif, MIXTURE_DIF_MAX};
 use scoring::latent::{latent_dif, DifFlags, Formats, LatentDif};
 use scoring::Convergence;
+#[cfg(feature = "calibration")]
+use scoring::LogisticFit;
 
 pub const N_LATENT_MIN: usize = 3000;
 
@@ -19,9 +21,9 @@ fn column(responses: &[Vec<f64>], j: usize) -> Vec<f64> {
     responses.iter().map(|row| row[j]).collect()
 }
 
-/// Multi-axis DIF re-check over the pool: flags an item with uniform DIF on ANY axis
-/// (catching bias neutral on one axis but not another). Variant 1, calibration-only
-/// (D20); production uses [`revalidate_pool_latent`].
+/// Multi-axis DIF re-check, Variant 1, calibration-only (D20): uniform DIF on ANY converged axis;
+/// a separated or unconverged fit flags nothing (T2), so `false` is no DIF retirement, not absence
+/// (`docs/15` A4 (b)). Production uses [`revalidate_batch_latent`].
 #[cfg(feature = "calibration")]
 pub fn revalidate_pool(
     theta: &[f64],
@@ -36,9 +38,10 @@ pub fn revalidate_pool(
     (0..m)
         .map(|j| {
             let item = column(responses, j);
-            let emerging = axes
-                .iter()
-                .any(|axis| logistic_dif(&item, theta, axis).beta2.abs() > BETA2_MAX);
+            let emerging = axes.iter().any(|axis| {
+                let fit = logistic_dif(&item, theta, axis);
+                fit.status == LogisticFit::Converged && fit.beta2.abs() > BETA2_MAX
+            });
             ItemHealth {
                 emerging_dif: emerging,
                 ..Default::default()
@@ -63,6 +66,7 @@ pub fn revalidate_pool_latent(theta: &[f64], responses: &[Vec<f64>], seed: u64) 
 }
 
 /// Per-item verdict of a proxy-θ mixture fit (T35): flags only a converged, multi-class fit.
+/// `false` is no flag, also for an unconverged fit: not evidence of no DIF (`docs/15` A4 (c)).
 pub fn latent_flags(res: &MixtureDif) -> Vec<bool> {
     let trustworthy = res.status == Convergence::Converged && res.classes >= 2;
     res.dif
@@ -156,6 +160,7 @@ pub fn latent_batch(
     latent_dif(anchors, responses, formats, seed).map_err(|_| PilotError::BadFormats)
 }
 
+/// `health` by position; a missing entry triggers nothing, so only exposure retires (`docs/15` A4).
 pub fn items_to_retire(
     items: &[Cid],
     health: &[ItemHealth],

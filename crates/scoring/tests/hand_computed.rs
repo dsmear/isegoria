@@ -21,6 +21,23 @@ fn author_score_decays_old_items_by_exp_minus_age_over_t() {
     assert!((author_score(&[], &[], &p) - 2.0 / 5.0).abs() < EPS);
 }
 
+/// C5 (`docs/15`): one item of quality 0.8 at age 0 gives the index `2.8 / 6 = 7/15`.
+#[test]
+fn c5_one_item_of_quality_0_8_at_age_0_gives_seven_fifteenths() {
+    let got = author_score(&[0.8], &[0.0], &AuthorPrior::default());
+    assert!((got - 7.0 / 15.0).abs() < EPS, "{got}");
+}
+
+/// C6 (`docs/15`): a weight halves at age `T ln 2` (≈ 12.48 months), not at `T` = 18 months.
+#[test]
+fn c6_a_weight_halves_at_t_ln_2_months_not_at_t() {
+    let p = AuthorPrior::default();
+    let half_life = p.decay_months * std::f64::consts::LN_2;
+    let got = author_score(&[1.0], &[half_life], &p);
+    assert!((got - 5.0 / 11.0).abs() < EPS, "{got}");
+    assert!(author_score(&[1.0], &[p.decay_months], &p) < got);
+}
+
 /// `p̄_j = Σ w_u p_uj / Σ w_u`: a weight-2 reviewer counts twice.
 #[test]
 fn crowd_baseline_is_the_weighted_mean() {

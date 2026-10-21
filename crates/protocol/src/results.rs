@@ -1,8 +1,9 @@
 //! An epoch's engine outputs as one event (`docs/04` §Events and replay, T73): the records
 //! a node applies, and the Merkle root that binds them to the epoch's inputs.
 
-use crate::appeal::{AppealOutcome, AuthorHistory, Escrow};
-use crate::contested::ContestedPool;
+use crate::appeal::{AuthorError, AuthorHistory};
+use crate::author_time::{AuthorClock, AuthorConfig, AuthorPoint, ContextError, CutContext};
+use crate::contested::{ContestedPool, PoolLimit, RecordError};
 use crate::exposure::ExposureLedger;
 use crate::probation::SkillTrack;
 use identity::nym::Nym;
@@ -13,7 +14,7 @@ use scoring::collusion::ResidualHistory;
 use scoring::dtf::ClassCurves;
 use scoring::latent::Ability;
 use scoring::reputation::{AuthorPrior, CusumParams};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ResultRecord {
@@ -25,19 +26,25 @@ pub enum ResultRecord {
     ReviewerUnobserved {
         reviewer: Nym,
     },
-    AuthorQuality {
+    /// An unappealed item's pilot outcome; its origin is the applying context (`docs/15` C6).
+    AuthorOutcome {
         author: Nym,
-        quality: f64,
-        age_months: f64,
+        item: Cid,
+        passed: bool,
     },
-    AppealFiled {
+    /// An appeal on `item` filed and started at once (`docs/15` C5–C6): its escrow, checked at this
+    /// epoch after the event's earlier filings, and on a node its item's move to the pilot; refused
+    /// unless `within_window`, the request's window reading.
+    AppealStarted {
         author: Nym,
+        item: Cid,
+        within_window: bool,
     },
-    /// `promoted`: the measured quality, or `None` for a failed appeal.
+    /// The appealed `item`'s pilot outcome, settling its escrow.
     AppealSettled {
         author: Nym,
-        escrow: u64,
-        promoted: Option<f64>,
+        item: Cid,
+        passed: bool,
     },
     Exposure {
         item: Cid,
@@ -75,12 +82,53 @@ pub struct EpochResults {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ResultsRejected {
     EpochRecorded,
-    BadInclusion { record: usize },
-    NotFinite { record: usize },
-    AppealNotCovered { record: usize },
-    NoOpenEscrow { record: usize },
-    BadClasses { record: usize },
-    BadMembers { record: usize },
+    BadInclusion {
+        record: usize,
+    },
+    NotFinite {
+        record: usize,
+    },
+    AppealNotCovered {
+        record: usize,
+    },
+    /// A filing whose request came after its item's appeal window.
+    AppealWindowClosed {
+        record: usize,
+    },
+    NoOpenEscrow {
+        record: usize,
+    },
+    /// An author record for an item that already has an outcome or an escrow.
+    DuplicateItem {
+        record: usize,
+    },
+    MissingContext {
+        record: usize,
+    },
+    FilingBatchRecorded,
+    /// Refused by the node: the item's deposit proved another author, or none.
+    NotTheProposer {
+        record: usize,
+    },
+    /// Refused by the node: no pilot conclusion of this outcome and appeal on record.
+    OutcomeMismatch {
+        record: usize,
+    },
+    /// Refused by the node: a filing on an item that is not appeal-eligible.
+    NotAppealable {
+        record: usize,
+    },
+    BadClasses {
+        record: usize,
+    },
+    BadMembers {
+        record: usize,
+    },
+    /// A contested fit outside the pool's domain (`docs/15` D3), refused before its curves exist.
+    ContestedOutOfDomain {
+        record: usize,
+        limit: PoolLimit,
+    },
 }
 
 /// A rating's leaf: the judge's proven id, the item, the probability's bits.
@@ -133,7 +181,9 @@ pub struct ResultsState {
     roots: BTreeMap<u64, [u8; 32]>,
     tracks: BTreeMap<Nym, SkillTrack>,
     authors: BTreeMap<Nym, AuthorHistory>,
-    escrows: BTreeMap<Nym, BTreeSet<u64>>,
+    config: AuthorConfig,
+    clock: AuthorClock,
+    filing_epoch: Option<u64>,
     exposure: ExposureLedger,
     reviewer_index: BTreeMap<Nym, usize>,
     residuals: ResidualHistory,
@@ -141,14 +191,60 @@ pub struct ResultsState {
 }
 
 impl ResultsState {
-    /// Applies every record or none (`docs/04` §Events and replay).
+    pub fn with_author_config(config: AuthorConfig) -> Self {
+        Self {
+            config,
+            ..Self::default()
+        }
+    }
+
+    pub fn begin_cut(&mut self, cut: CutContext) -> Result<(), ContextError> {
+        self.clock.begin(cut)
+    }
+
+    pub fn end_cut(&mut self) -> Result<(), ContextError> {
+        self.clock.end()
+    }
+
+    pub fn author_point(&self) -> Option<AuthorPoint> {
+        self.clock.point()
+    }
+
+    pub fn closing_count(&self) -> u64 {
+        self.clock.closings()
+    }
+
+    pub fn filing_batch_at(&self, epoch: u64) -> bool {
+        self.filing_epoch == Some(epoch)
+    }
+
+    pub fn author_config(&self) -> AuthorConfig {
+        self.config
+    }
+
+    /// Applies every record or none (`docs/04` §Events and replay); a filing records its escrow
+    /// only, and `NodeState::apply` moves its item in the same event.
     pub fn apply(&mut self, results: &EpochResults) -> Result<(), ResultsRejected> {
         if self.roots.contains_key(&results.epoch) {
             return Err(ResultsRejected::EpochRecorded);
         }
+        let filings = results
+            .records
+            .iter()
+            .any(|r| matches!(r, ResultRecord::AppealStarted { .. }));
+        if filings
+            && self
+                .author_point()
+                .is_some_and(|at| self.filing_epoch == Some(at.epoch))
+        {
+            return Err(ResultsRejected::FilingBatchRecorded);
+        }
         let mut next = self.clone();
         for (i, record) in results.records.iter().enumerate() {
             next.record(i, record)?;
+        }
+        if filings {
+            next.filing_epoch = next.author_point().map(|at| at.epoch);
         }
         next.roots.insert(results.epoch, results.inputs_root);
         *self = next;
@@ -160,6 +256,17 @@ impl ResultsState {
             v.is_finite()
                 .then_some(())
                 .ok_or(ResultsRejected::NotFinite { record: i })
+        };
+        let point = || {
+            self.clock
+                .point()
+                .ok_or(ResultsRejected::MissingContext { record: i })
+        };
+        let at = match record {
+            ResultRecord::AuthorOutcome { .. }
+            | ResultRecord::AppealStarted { .. }
+            | ResultRecord::AppealSettled { .. } => Some(point()?),
+            _ => None,
         };
         match record {
             ResultRecord::ReviewerScore {
@@ -180,45 +287,46 @@ impl ResultsState {
                     .or_default()
                     .record_unobserved();
             }
-            ResultRecord::AuthorQuality {
+            ResultRecord::AuthorOutcome {
                 author,
-                quality,
-                age_months,
+                item,
+                passed,
             } => {
-                finite(*quality)?;
-                finite(*age_months)?;
                 let history = self.authors.entry(*author).or_default();
-                history.record(*quality, *age_months);
+                history
+                    .conclude(*item, *passed, at.expect("author record"))
+                    .map_err(|e| author_refusal(e, i))?;
             }
-            ResultRecord::AppealFiled { author } => {
+            ResultRecord::AppealStarted {
+                author,
+                item,
+                within_window,
+            } => {
+                if !within_window {
+                    return Err(ResultsRejected::AppealWindowClosed { record: i });
+                }
                 let history = self.authors.entry(*author).or_default();
-                let escrow = history
-                    .file_appeal(&AuthorPrior::default())
-                    .map_err(|_| ResultsRejected::AppealNotCovered { record: i })?;
-                let open = self.escrows.entry(*author).or_default();
-                open.insert(escrow.index() as u64);
+                history
+                    .file_appeal(
+                        *item,
+                        at.expect("author record"),
+                        self.config,
+                        &AuthorPrior::default(),
+                    )
+                    .map_err(|e| author_refusal(e, i))?;
             }
             ResultRecord::AppealSettled {
                 author,
-                escrow,
-                promoted,
+                item,
+                passed,
             } => {
-                if let Some(quality) = promoted {
-                    finite(*quality)?;
-                }
-                let open = self.escrows.get_mut(author);
-                if !open.is_some_and(|o| o.remove(escrow)) {
-                    return Err(ResultsRejected::NoOpenEscrow { record: i });
-                }
-                let outcome = match promoted {
-                    Some(quality) => AppealOutcome::Promoted { quality: *quality },
-                    None => AppealOutcome::Failed,
-                };
                 let history = self
                     .authors
                     .get_mut(author)
-                    .expect("an escrow has a history");
-                history.settle(Escrow::at(*escrow as usize), outcome);
+                    .ok_or(ResultsRejected::NoOpenEscrow { record: i })?;
+                history
+                    .settle(*item, *passed, at.expect("author record"))
+                    .map_err(|e| author_refusal(e, i))?;
             }
             ResultRecord::Exposure { item, times } => {
                 let times = usize::try_from(*times).unwrap_or(usize::MAX);
@@ -243,16 +351,27 @@ impl ResultsState {
                 ability,
                 members,
             } => {
+                let refused = |e| match e {
+                    RecordError::OutOfDomain(limit) => {
+                        ResultsRejected::ContestedOutOfDomain { record: i, limit }
+                    }
+                    _ => ResultsRejected::BadMembers { record: i },
+                };
+                let points = pi
+                    .len()
+                    .checked_mul(ability.nodes.len())
+                    .unwrap_or(usize::MAX);
+                self.contested
+                    .admits(pi.len(), points, c.len(), members)
+                    .map_err(refused)?;
                 let curves = ClassCurves::with_ability(pi, eta, ability, a, b, c)
                     .map_err(|_| ResultsRejected::BadClasses { record: i })?;
                 let members: Option<Vec<(Cid, usize)>> = members
                     .iter()
                     .map(|(c, j)| usize::try_from(*j).ok().map(|j| (*c, j)))
                     .collect();
-                members
-                    .ok_or(())
-                    .and_then(|m| self.contested.record(curves, &m).map_err(|_| ()))
-                    .map_err(|_| ResultsRejected::BadMembers { record: i })?;
+                let members = members.ok_or(ResultsRejected::BadMembers { record: i })?;
+                self.contested.record(curves, &members).map_err(refused)?;
             }
             ResultRecord::ContestedRemove { item } => {
                 self.contested.remove(item);
@@ -273,10 +392,18 @@ impl ResultsState {
         self.authors.get(author)
     }
 
-    pub fn open_escrows(&self, author: &Nym) -> Vec<u64> {
-        self.escrows
+    pub fn open_escrows(&self, author: &Nym) -> Vec<Cid> {
+        self.authors
             .get(author)
-            .map_or_else(Vec::new, |o| o.iter().copied().collect())
+            .map_or_else(Vec::new, AuthorHistory::open_escrows)
+    }
+
+    /// The quota snapshot for the active cut's epoch (`docs/15` C6).
+    pub fn quota_reputation(&self, author: &Nym) -> Option<f64> {
+        let at = self.author_point()?;
+        let fresh = AuthorHistory::new();
+        let history = self.authors.get(author).unwrap_or(&fresh);
+        Some(history.quota_reputation(at, self.config, &AuthorPrior::default()))
     }
 
     pub fn exposure(&self, item: &Cid) -> usize {
@@ -290,6 +417,14 @@ impl ResultsState {
 
     pub fn contested(&self) -> &ContestedPool {
         &self.contested
+    }
+}
+
+fn author_refusal(e: AuthorError, record: usize) -> ResultsRejected {
+    match e {
+        AuthorError::Duplicate => ResultsRejected::DuplicateItem { record },
+        AuthorError::Uncovered(_) => ResultsRejected::AppealNotCovered { record },
+        AuthorError::NoOpenEscrow => ResultsRejected::NoOpenEscrow { record },
     }
 }
 
@@ -324,27 +459,33 @@ pub(crate) fn write_results(w: &mut Writer, results: &EpochResults) {
                 .u64(score.to_bits())
                 .u64(inclusion.to_bits()),
             ResultRecord::ReviewerUnobserved { reviewer } => w.u8(2).fixed(&reviewer.0),
-            ResultRecord::AuthorQuality {
+            ResultRecord::AuthorOutcome {
                 author,
-                quality,
-                age_months,
+                item,
+                passed,
             } => w
-                .u8(3)
+                .u8(10)
                 .fixed(&author.0)
-                .u64(quality.to_bits())
-                .u64(age_months.to_bits()),
-            ResultRecord::AppealFiled { author } => w.u8(4).fixed(&author.0),
+                .fixed(&item.0)
+                .u8(u8::from(*passed)),
+            ResultRecord::AppealStarted {
+                author,
+                item,
+                within_window,
+            } => w
+                .u8(13)
+                .fixed(&author.0)
+                .fixed(&item.0)
+                .u8(u8::from(*within_window)),
             ResultRecord::AppealSettled {
                 author,
-                escrow,
-                promoted,
-            } => {
-                w.u8(5).fixed(&author.0).u64(*escrow);
-                match promoted {
-                    Some(quality) => w.u8(1).u64(quality.to_bits()),
-                    None => w.u8(0),
-                }
-            }
+                item,
+                passed,
+            } => w
+                .u8(12)
+                .fixed(&author.0)
+                .fixed(&item.0)
+                .u8(u8::from(*passed)),
             ResultRecord::Exposure { item, times } => w.u8(6).fixed(&item.0).u64(*times),
             ResultRecord::Residual {
                 reviewer,
@@ -425,6 +566,11 @@ pub(crate) fn read_results(r: &mut Reader) -> Option<EpochResults> {
 fn read_record(r: &mut Reader) -> Option<ResultRecord> {
     let nym = |r: &mut Reader| r.fixed().ok().map(Nym);
     let cid = |r: &mut Reader| r.fixed().ok().map(Cid);
+    let flag = |r: &mut Reader| match r.u8().ok()? {
+        0 => Some(false),
+        1 => Some(true),
+        _ => None,
+    };
     Some(match r.u8().ok()? {
         1 => ResultRecord::ReviewerScore {
             reviewer: nym(r)?,
@@ -432,21 +578,6 @@ fn read_record(r: &mut Reader) -> Option<ResultRecord> {
             inclusion: read_f64(r)?,
         },
         2 => ResultRecord::ReviewerUnobserved { reviewer: nym(r)? },
-        3 => ResultRecord::AuthorQuality {
-            author: nym(r)?,
-            quality: read_f64(r)?,
-            age_months: read_f64(r)?,
-        },
-        4 => ResultRecord::AppealFiled { author: nym(r)? },
-        5 => ResultRecord::AppealSettled {
-            author: nym(r)?,
-            escrow: r.u64().ok()?,
-            promoted: match r.u8().ok()? {
-                0 => None,
-                1 => Some(read_f64(r)?),
-                _ => return None,
-            },
-        },
         6 => ResultRecord::Exposure {
             item: cid(r)?,
             times: r.u64().ok()?,
@@ -489,6 +620,21 @@ fn read_record(r: &mut Reader) -> Option<ResultRecord> {
             }
         }
         9 => ResultRecord::ContestedRemove { item: cid(r)? },
+        10 => ResultRecord::AuthorOutcome {
+            author: nym(r)?,
+            item: cid(r)?,
+            passed: flag(r)?,
+        },
+        12 => ResultRecord::AppealSettled {
+            author: nym(r)?,
+            item: cid(r)?,
+            passed: flag(r)?,
+        },
+        13 => ResultRecord::AppealStarted {
+            author: nym(r)?,
+            item: cid(r)?,
+            within_window: flag(r)?,
+        },
         _ => return None,
     })
 }

@@ -12,6 +12,12 @@ decisions D32--D41 (commit \texttt{7507eab}) of \url{https://github.com/DavideMa
 \begin{document}
 \maketitle
 
+\noindent\textit{Historical design. This paper analyses the September forecast-and-pilot
+mechanism, not the offline answer review adopted in D49--D53. Its requirements, planned
+work and implementation claims refer to that snapshot. The sources include the October
+11 O1 qualification and October 14 A8/A9 corrections; the stored PDF has not been rebuilt.
+Current specification and review status: \texttt{docs/05} and \texttt{docs/15}.}
+
 \begin{abstract}
 \noindent
 Who decides whether a quiz question is fair when no institution is credibly impartial?
@@ -42,16 +48,20 @@ when ability is estimated from 10 or 20 anchors, and passes at 30 anchors by a m
 proper. With one scored item and a crowd baseline $b$, the optimal report satisfies
 $\operatorname{logit}p^{*}=\operatorname{logit}q+2\operatorname{logit}b$, which pushes
 dissenters toward the crowd.
-A leave-one-out difference score is strictly proper and still gives exactly zero to a reviewer
-who copies the crowd.
+A leave-one-out difference score is strictly proper under stated conditions (fixed scored items,
+a defined baseline, a joint law of baseline and outcome that the report does not move), and still
+gives exactly zero to a reviewer who copies the crowd.
 (v)~The sublinear anti-collusion discount is only as strong as its detector, and at design
 scale two reviewers share under one item per epoch, so random assignment, not the discount,
 carries the per-epoch defence.
 Version~0.2 adds the revisions adopted in response. They are a side-balanced bridge score that
-removes the leak and the batch dependence in our tests, a proper evaluator score learned from
+removes the leak and the batch dependence in our tests, an evaluator score learned from
 randomly explored live outcomes and watched by a change detector, a reliability precondition
 for latent DIF, and coordination detection on model residuals. Each is supported by the
 experiments in the paper.
+The O1 source amendment of 11 October 2026 qualifies the expected-score properness claim
+under explicit information, law and selection hypotheses (\cref{prop:ipw}); it establishes
+no properness of the current draw or of reputational incentives.
 We state the evidence level of every claim, list what remains open, and give an evaluation plan.
 \end{abstract}
 

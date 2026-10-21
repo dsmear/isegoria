@@ -9,7 +9,7 @@ use identity::nullifier::NullifierProof;
 use identity::nym::{Nym, Role};
 use network::cid::{cid, Cid};
 #[cfg(feature = "calibration")]
-use scoring::dif::{logistic_dif, BETA2_MAX};
+use scoring::dif::{logistic_dif, DifCoefs, BETA2_MAX};
 use scoring::irt::{kr20, point_biserial, A_MIN, B_ABS_MAX, C_EXCESS_MAX, KR20_MIN, R_PBIS_MIN};
 use scoring::latent::{latent_dif_with, Format, Formats, LatentParams};
 use scoring::Convergence;
@@ -370,18 +370,59 @@ pub fn stage1_verdicts(fit: &Stage1Fit, formats: &Formats) -> Vec<Screening> {
 }
 
 /// Stage 2, run on the surviving batch: rejects items with uniform DIF against the axis
-/// (Variant 1, calibration-only, D20; production uses `revalidate_pool_latent`, Variant 2).
+/// (Variant 1, calibration-only, D20; production uses `revalidate_batch_latent`, the target model).
 #[cfg(feature = "calibration")]
 pub fn stage2_dif(theta: &[f64], group: &[f64], item_responses: &[Vec<f64>]) -> Vec<DifVerdict> {
     item_responses
         .iter()
-        .map(|item| {
-            let c = logistic_dif(item, theta, group);
-            match c.status {
-                LogisticFit::Separated => DifVerdict::Undetermined,
-                _ if c.beta2.abs() <= BETA2_MAX => DifVerdict::Pass,
-                _ => DifVerdict::Reject,
-            }
-        })
+        .map(|item| dif_verdict(&logistic_dif(item, theta, group)))
         .collect()
+}
+
+/// Only a converged fit's `β₂` meets `BETA2_MAX`; a separated or unconverged one decides nothing.
+#[cfg(feature = "calibration")]
+fn dif_verdict(c: &DifCoefs) -> DifVerdict {
+    match c.status {
+        LogisticFit::Converged if c.beta2.abs() <= BETA2_MAX => DifVerdict::Pass,
+        LogisticFit::Converged => DifVerdict::Reject,
+        LogisticFit::Separated | LogisticFit::NotConverged => DifVerdict::Undetermined,
+    }
+}
+
+#[cfg(all(test, feature = "calibration"))]
+mod tests {
+    use super::*;
+
+    fn coefs(status: LogisticFit, beta2: f64) -> DifCoefs {
+        DifCoefs {
+            beta0: 0.0,
+            beta1: 1.0,
+            beta2,
+            beta3: 0.0,
+            status,
+        }
+    }
+
+    // Constructed statuses: a converged β₂ against the cut, any other status Undetermined.
+    #[test]
+    fn only_a_converged_fit_meets_the_cut() {
+        use DifVerdict::{Pass, Reject, Undetermined};
+        let cases = [
+            (LogisticFit::Converged, 0.0, Pass),
+            (LogisticFit::Converged, -BETA2_MAX, Pass),
+            (LogisticFit::Converged, BETA2_MAX + 1e-12, Reject),
+            (LogisticFit::Converged, f64::NAN, Reject),
+            (LogisticFit::Separated, 0.0, Undetermined),
+            (LogisticFit::Separated, 9.0, Undetermined),
+            (LogisticFit::NotConverged, 0.0, Undetermined),
+            (LogisticFit::NotConverged, 9.0, Undetermined),
+        ];
+        for (status, beta2, want) in cases {
+            assert_eq!(
+                dif_verdict(&coefs(status, beta2)),
+                want,
+                "{status:?} {beta2}"
+            );
+        }
+    }
 }

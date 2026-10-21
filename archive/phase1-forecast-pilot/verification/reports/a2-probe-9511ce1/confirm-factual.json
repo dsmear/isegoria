@@ -1,0 +1,625 @@
+[
+ {
+  "key": "confirm-C2-0",
+  "outcome": "read",
+  "roles": "++cccccc",
+  "rechecks": "DDNNNNNN",
+  "contested": [
+   0,
+   1
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 2,
+   "feasible": [
+    0
+   ],
+   "members": []
+  },
+  "cost": 0.0,
+  "selection": [],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.0,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.8731971236848758,
+  "dtf_fixed": 0.8731971236848773
+ },
+ {
+  "key": "confirm-C2-1",
+  "outcome": "read",
+  "roles": "++cccccc",
+  "rechecks": "DDNNNNNN",
+  "contested": [
+   0,
+   1
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 2,
+   "feasible": [
+    0
+   ],
+   "members": []
+  },
+  "cost": 0.0,
+  "selection": [],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.0,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.8031192834417796,
+  "dtf_fixed": 0.8031192834417793
+ },
+ {
+  "key": "confirm-C2-2",
+  "outcome": "read",
+  "roles": "++cccccc",
+  "rechecks": "DDNNNNNN",
+  "contested": [
+   0,
+   1
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 2,
+   "feasible": [
+    0
+   ],
+   "members": []
+  },
+  "cost": 0.0,
+  "selection": [],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.0,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.809912887648379,
+  "dtf_fixed": 0.8099128876483808
+ },
+ {
+  "key": "confirm-C2-3",
+  "outcome": "read",
+  "roles": "++cccccc",
+  "rechecks": "DDNNNNNN",
+  "contested": [
+   0,
+   1
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 2,
+   "feasible": [
+    0
+   ],
+   "members": []
+  },
+  "cost": 0.0,
+  "selection": [],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.0,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.7313091448613587,
+  "dtf_fixed": 0.7313091448613586
+ },
+ {
+  "key": "confirm-C2-4",
+  "outcome": "read",
+  "roles": "++cccccc",
+  "rechecks": "DDNNNNNN",
+  "contested": [
+   0,
+   1
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 2,
+   "feasible": [
+    0
+   ],
+   "members": []
+  },
+  "cost": 0.0,
+  "selection": [],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.0,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.8161317290935397,
+  "dtf_fixed": 0.8161317290935377
+ },
+ {
+  "key": "confirm-C2-5",
+  "outcome": "read",
+  "roles": "++cccccc",
+  "rechecks": "NNNNNNNN",
+  "contested": [],
+  "draw": {
+   "outcome": "not_needed"
+  },
+  "cost": null,
+  "selection": null,
+  "dtf_active": 0.6103921816422977,
+  "dtf_composed": 0.6103921816422977,
+  "size_composed": 8,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.6103921816422997,
+  "dtf_fixed": 0.6103921816422977
+ },
+ {
+  "key": "confirm-C2-6",
+  "outcome": "read",
+  "roles": "++cccccc",
+  "rechecks": "DDNNNNNN",
+  "contested": [
+   0,
+   1
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 2,
+   "feasible": [
+    0
+   ],
+   "members": []
+  },
+  "cost": 0.0,
+  "selection": [],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.0,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.7801717727724959,
+  "dtf_fixed": 0.7801717727724955
+ },
+ {
+  "key": "confirm-C2-7",
+  "outcome": "read",
+  "roles": "++cccccc",
+  "rechecks": "DDNNNNNN",
+  "contested": [
+   0,
+   1
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 2,
+   "feasible": [
+    0
+   ],
+   "members": []
+  },
+  "cost": 0.0,
+  "selection": [],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.0,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.7293026603697124,
+  "dtf_fixed": 0.7293026603697099
+ },
+ {
+  "key": "confirm-C4-0",
+  "outcome": "read",
+  "roles": "+-+-cccc",
+  "rechecks": "DDDDNNNN",
+  "contested": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 4,
+   "feasible": [
+    0,
+    2
+   ],
+   "members": [
+    0,
+    1
+   ]
+  },
+  "cost": 0.058719411259517074,
+  "selection": [
+   0,
+   1
+  ],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.033566712055868655,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.20496956918023546,
+  "dtf_fixed": 0.20496978517908357
+ },
+ {
+  "key": "confirm-C4-1",
+  "outcome": "read",
+  "roles": "+-+-cccc",
+  "rechecks": "DDDDNNNN",
+  "contested": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 4,
+   "feasible": [
+    0,
+    2
+   ],
+   "members": [
+    1,
+    2
+   ]
+  },
+  "cost": 0.04952316731214523,
+  "selection": [
+   1,
+   2
+  ],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.03333455377877655,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.1256395574732908,
+  "dtf_fixed": 0.12563974781535037
+ },
+ {
+  "key": "confirm-C4-2",
+  "outcome": "read",
+  "roles": "+-+-cccc",
+  "rechecks": "DDDDNNNN",
+  "contested": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 4,
+   "feasible": [
+    0,
+    2
+   ],
+   "members": [
+    2,
+    3
+   ]
+  },
+  "cost": 0.05078115640208125,
+  "selection": [
+   2,
+   3
+  ],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.08484889676948369,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.06592353563736501,
+  "dtf_fixed": 0.06592358018591174
+ },
+ {
+  "key": "confirm-C4-3",
+  "outcome": "read",
+  "roles": "+-+-cccc",
+  "rechecks": "DDDDNNNN",
+  "contested": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 4,
+   "feasible": [
+    0,
+    2
+   ],
+   "members": [
+    1,
+    2
+   ]
+  },
+  "cost": 0.030708874110132456,
+  "selection": [
+   1,
+   2
+  ],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.027941480076666247,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.12442448805624558,
+  "dtf_fixed": 0.12442464413401416
+ },
+ {
+  "key": "confirm-C4-4",
+  "outcome": "read",
+  "roles": "+-+-cccc",
+  "rechecks": "DDDDNNNN",
+  "contested": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "draw": {
+   "outcome": "selected",
+   "members": [
+    0,
+    1,
+    2,
+    3
+   ]
+  },
+  "cost": 0.05911139561794698,
+  "selection": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.04722506735785378,
+  "size_composed": 8,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.047225074012881424,
+  "dtf_fixed": 0.04722506735785378
+ },
+ {
+  "key": "confirm-C4-5",
+  "outcome": "read",
+  "roles": "+-+-cccc",
+  "rechecks": "DDDDNNNN",
+  "contested": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 4,
+   "feasible": [
+    0,
+    2
+   ],
+   "members": [
+    2,
+    3
+   ]
+  },
+  "cost": 0.06554636149667203,
+  "selection": [
+   2,
+   3
+  ],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.0639809319022188,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.13795685945502495,
+  "dtf_fixed": 0.13795686685264988
+ },
+ {
+  "key": "confirm-C4-6",
+  "outcome": "read",
+  "roles": "+-+-cccc",
+  "rechecks": "DDDDNNNN",
+  "contested": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 4,
+   "feasible": [
+    0,
+    2
+   ],
+   "members": [
+    0,
+    3
+   ]
+  },
+  "cost": 0.07520527485758066,
+  "selection": [
+   0,
+   3
+  ],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.0874670592055393,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.16299418653300246,
+  "dtf_fixed": 0.16299428641268487
+ },
+ {
+  "key": "confirm-C4-7",
+  "outcome": "read",
+  "roles": "+-+-cccc",
+  "rechecks": "DDDDNNNN",
+  "contested": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "draw": {
+   "outcome": "reduced",
+   "requested": 4,
+   "feasible": [
+    0,
+    2
+   ],
+   "members": [
+    1,
+    2
+   ]
+  },
+  "cost": 0.07943946402519941,
+  "selection": [
+   1,
+   2
+  ],
+  "dtf_active": 0.0,
+  "dtf_composed": 0.05728449343538245,
+  "size_composed": 6,
+  "members_kept": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "dtf_all_sourced_kept": 0.27046339814373377,
+  "dtf_fixed": 0.27046388298170154
+ }
+]

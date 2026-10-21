@@ -3,122 +3,36 @@
 | | |
 |---|---|
 | **Purpose** | The ordered plan of work: what is left to fix or build, in priority order, and what each step must show to count as done. |
-| **Derived from** | `docs/08` §14 (gaps), §12 (adversarial tests AT-*), §16 (acceptance gate); `docs/01` D17–D44; the working paper in `paper/`; three reviews — the `docs/08` audit, the second review (2026-09-23), the third review (2026-09-24, `docs/08` §0-quinquies). |
-| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)), and Phase 1's remaining work was re-planned on 2026-09-28 from T24's results (T25 in four steps, T81). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). On 2026-10-07 the owner put Phase 2 in parallel with Phase 1's remaining work, on its own branch; decided T77's mechanism (`docs/01` D44), its work split into T77, T85 and T86; brought the erasure-coded distribution of the public history into the phase (T84); and confirmed the phase's order. Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). |
+| **Derived from** | `docs/08` §14 (gaps), §12 (adversarial tests AT-*), §16 (acceptance gate); `docs/01` D17–D42; the working paper in `paper/`; three reviews — the `docs/08` audit, the second review (2026-09-23), the third review (2026-09-24, `docs/08` §0-quinquies). |
+| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)), and Phase 1's remaining work was re-planned on 2026-09-28 from T24's results (T25 in four steps, T81). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). On 2026-10-21 the owner's D47 changed Phase 1's direction before its implementation, and Phase 1 was then closed in the perimeter of the offline answer review only (D49–D53, T87; [Priorities](#priorities)). |
 
 ## Priorities
 
-**Review overlay (2026-10-02).** The A–E review's findings and correction criteria
-are in [`15-phase1-review.md`](15-phase1-review.md). They add open guarantee and
-protocol-contract questions to the remaining work below. Historical task completion
-is preserved; it is not a claim that these new findings are fixed. Verify and resolve
-the affected properties before declaring Phase 1 complete. This documentation pass
-does not introduce new task IDs or choose T83's operating point.
+**T87 and Phase 1 are closed only for the offline answer review (D49–D53).** The
+[closure record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)
+defines the perimeter, evidence and exclusions; [05](05-question-lifecycle.md#the-answer-review-01-d49d52)
+is the contract. Parameters remain provisional and uncalibrated; the decoder has not
+been fuzzed. This closure certifies neither truth, whole-quiz fairness nor D46's objectives.
 
-Three phases, in this order:
+The earlier mechanism's tasks below retain their scopes and statuses. D47 suspended
+the forecast-path work; D52 leaves A2 unresolved but does not require it for the answer
+review. Review findings belong in [15](15-phase1-review.md), not in a second status list
+here. Retired paths referenced by old task records are mapped in the
+[archive](../archive/phase1-forecast-pilot/README.md).
 
-1. **[Phase 1 — Mathematics](#phase-1--mathematics).** The scoring mechanism and the
-   decisions built on it. The mechanism is built — every decision D32–D42 is implemented,
-   and T24 characterized the detectors and gates it runs on (`docs/13` §7), and its
-   selected decision files are mutation-tested (T81, `docs/11` run 22). Remaining work
-   includes the findings in `docs/15`, thresholds (T25), and the implemented model
-   revision to be measured again (T82). T24
-   changed what T25 is: on a population that guesses, the latent re-check flags 12–17% of the clean items, and the
-   system's items (true/false or multiple-choice) always guess, so T25 corrects the model
-   first (D25), measures it again, and only then sets the thresholds; measuring it again
-   found that templates and a skewed ability are read as bias too (T82). Every other layer consumes these numbers,
-   and changing them changes the affected golden outputs and fixtures on purpose
-   (historical `sim/` oracles keep their declared scope):
-   building the rest first would mean validating it twice.
-2. **[Phase 2 — P2P network](#phase-2--p2p-network).** Nodes that persist, talk, agree,
-   and draw randomness nobody can grind. A node's log survives a restart, nodes replicate
-   the signed set over libp2p and agree on its order through consortium-signed cuts, and
-   the beacon runs between them, and a writer rebuilds its feed before it writes (T13, T73,
-   T18, T74, T80), and the cuts go on past a silent proposer, an epoch's withholders
-   excluded from its next cuts (T76), and a node runs as a process (T78). Still missing:
-   live anchoring (T17), who reads the replicated set — decided by D44, to build: the
-   tiers (T77), blind relays (T85), the state tree (T86) —, finding an object by its CID
-   (T75), the public history in erasure-coded shards (T84), and an epoch run between
-   nodes (T79).
-3. **[Phase 3 — The rest](#phase-3--the-rest).** The protocol boundary (every entry point
-   checks, nothing is taken on the caller's word), distributed identity and the
-   cryptographic review, statistical privacy, real-world pilots.
+Use the [handoff](phase1-handoff.md) for work outside the closure. Listed future tasks
+do not themselves authorize experiments, network work or production work.
 
-**Phases 1 and 2 in parallel (2026-10-07).** By the owner's decision, Phase 2 proceeds on
-its own branch while Phase 1's review closes. Phase 2 reaches the scoring numbers only through
-T79, which runs the engine between nodes, so T79 comes last, once Phase 1's event formats and
-pilot path have settled. Until then Phase 2 changes `network`, `p2p` and the protocol's
-ledger, and changes Phase 1's interfaces — the event codec (`protocol::events`), the results
-event (T86, with `docs/08` PRIV-004.1), and the cuts and ledger `docs/20`'s fixtures run on —
-only together with their users.
+**Phase 2 integration (2026-10-21).** The separate runtime branch retains T80
+(writer recovery), T76 (view changes and withholders) and T78 (node process). The owner's
+2026-10-07 work order and remaining tasks are in §2.3 below; T79 remains last. Changes
+to shared event formats, results, cuts or ledger must update their callers together.
+D54 preserves the network decision previously numbered D44 on this branch.
 
-**What falls where.** Phase 1 holds everything that *computes a verdict from the data*:
-the `scoring` crate and the `protocol` rules that turn its numbers into outcomes (gate,
-band re-decision, appeal, reputation weights, panel composition). It opens with two
-severe defects of the protocol boundary (T64, T65, both done), moved ahead of their
-natural place for their severity. Phase 2 holds the `network` and `p2p` crates, the
-randomness beacon, and what a testnet needs to run between nodes: its processes, its
-epochs, and who may read what they replicate. Phase 3 holds the rest of *who may act*
-(panels, no-shows, honeypot, validated types) and
-everything that needs people outside the project.
-
-**Inside a phase,** defects in code that exists come before new features, and each task
-starts with a test that fails on the current code: see it fail, fix, see it pass. The
-docs that describe the behaviour (`docs/08` §15, this roadmap) change in the same commit.
-
-**External gates.** Three things are outside our control and block "production"
-regardless of code: external cryptographic review (T23, `docs/08` §7.4), external
-psychometric review (T26, SC-8), and real-world pilots for every empirical parameter
-(T27, `docs/08` §19). Until they are done, the README and the docs call the system a
-reference implementation / testnet.
-
-## Where we stand
-
-- **Done:** the audit's six concrete defects (`docs/08` §0-bis); the decisions D17–D42;
-  the wiring of reputation, identity proofs, commit binding, beacon seeding and batch
-  gates into the protocol; signed-log consistency, checkpoint hardening and shard
-  authentication; the second review's defects, mutation testing, property and
-  model-based suites, and the fuzzing of `network` and `identity`; the deposit replay
-  (T64), the respondent gate (T65), the engine's input validation (T62), the
-  side-balanced bridge score (T49), cross-platform reproducibility (AT-BR-04), the
-  appeal channel for polarized band items (T59), the appeal stake as a
-  pseudo-observation inside the author's average (D27, T61), the anchor-reliability
-  gate of the latent re-check (D37, T53), the proper evaluator score with odds weights
-  and the short probation (D33, D36, T50), the change detector on the per-item scores
-  (D34, T51), the band's extra round of reviewers (D26, T60), the coordination
-  detector on model residuals (D39, T56), panel diversification (D40, T57), live
-  outcomes with randomized exploration (D35, T52), the latent DIF target model with
-  θ inside the likelihood (D37, T54), the reviewer floor of the axis (T39), the
-  differential oracles on random datasets (T45), the contested-facts pool with its
-  balanced draw (D38, T55), the sides of the bridge score (D42, T71, found by T24's
-  first pass) and the characterization of the detectors and gates (T24, 54,412 runs,
-  `docs/13` §7); in Phase 2, the consortium's configuration check (T63), the
-  commit-reveal beacon (D41, T37), the draws' canonical candidate order (T72), a node's
-  durable log and object store (T13), the protocol state rebuilt from the log (T73),
-  replication of the signed set over libp2p (T18) and the protocol state from
-  consortium-signed cuts, with the beacon run between nodes (T74), and a writer's feed
-  rebuilt from the replicas before it writes (T80), and the cuts kept going past a silent
-  proposer, an epoch's withholders excluded from its next cuts (T76), and the node process
-  (T78). Details and
-  evidence: [Completed work](#completed-work).
-- **Open:** the thresholds (T25), in four steps from T24's results (`docs/13` §7.5) — the
-  guessing correction (D25) in the latent re-check (step 1, done 2026-09-28), then in the
-  pilot screen (step 2, done 2026-09-30), a supplement of the DIF studies on the corrected
-  model (done on 2026-09-30, `docs/13` §8.7, the screen's study included), then the
-  thresholds with their calibration procedures
-  ([1.4](#14--characterize-the-parameters)); the re-check's robustness to templates and a
-  skewed ability, which the supplement found (T82); the third review's remaining findings,
-  all in Phase 3 (T58, T66, T67, T46); the rest of the network runtime — the DHT (T75), live
-  anchoring (T17) — and the four gaps of the
-  Phase 2 check (2026-09-28): a replicated set any peer reads, against D17 (T77), a node
-  process (T78, done 2026-10-07), an epoch run between nodes (T79);
-  D44's blind relays (T85) and state tree (T86); the public history in erasure-coded shards
-  (T84);
-  distributed identity; privacy hardening; everything external; the
-  [open problems](#open-problems) that wait on an owner decision (T69 and the thresholds' operating
-  point, T83).
-
----
+The merge carries the closed offline answer review alongside the existing runtime;
+it does not wire that review into the node process or adopt distributed deadlines,
+pilot gates or automatic rounds for it. T79 must first specify that integration
+against D49–D53. Its older lifecycle description below remains the legacy path.
 
 ## Phase 1 — Mathematics
 
@@ -169,6 +83,14 @@ DTF and histogram findings (`15` A1–A3) cannot be closed by selecting threshol
 Resolve changes that affect the candidate model before its final measurements;
 choose the error/resource criteria of T83 before final threshold selection. No new
 full characterization run is implied by this documentation update.
+
+Under D47 the A12 candidate's procedures and the forecast path's Level C calibration are
+suspended (`14` Level C); the rest of this section stands.
+
+For the A12 candidate, `14` records procedures for `η`, `k₀`, probation and any future
+diagnostic CUSUM on the new score/model (`16` §§7.2–7.3). `0 < η ≤ 0.8`, `k₀ ≥ 0` is the
+proof's parameter domain, not a calibrated operating point; current odds/reset detector
+measurements remain evidence of their original components, not the affine candidate.
 
 Every value set above is provisional until it is measured: τ ≈ 0.80 (T49), the latent
 DIF cut (T35, T54), `γ` and the cap (T50), the CUSUM `k`/`h` (T51), the KR-20 floor
@@ -267,11 +189,29 @@ regenerated on purpose; every threshold is either characterized (T24, T25) or ma
 provisional with the pilot that will set it; the mechanism's decision logic is
 mutation-tested (T81).
 
+**Completion qualification after D47.** *Met in the answer review's perimeter only (2026-10-21,
+[record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)); the milestones
+below, for the previous design, are not.* The milestones below were defined for the previous design.
+Phase 1's completion now also requires D47's mechanism, in the first implementation D48 settles, to
+be specified, implemented and reviewed with its guarantees; meeting the milestones below does not
+complete it. Phase 1's completion criteria are themselves among the decisions D48 leaves to the
+owner. D52 (2026-10-21): A2's whole-test guarantee is not required to complete the answer review
+(T87), A2 stays unresolved within its scope, and Phase 1 is not declared complete before Astra's
+final review of the implemented path.
+
 **Completion qualification.** The label also requires resolving the critical/high
 findings in `15`, or explicitly narrowing the claimed domain with a justified decision.
 T81 covers the ten files named in its task row, not every statistical claim or composed
 path. Provisional parameters with defined pilots remain permitted; actual field
 validation remains T27. No documentation-only change closes a code or proof finding.
+
+### 1.6 · The answer review (D49–D52)
+
+The first implementation of D47's mechanism as D48 modified it, on the contract the owner
+approved (`01` D49–D52). An offline path beside the existing one, which it does not change.
+
+**Done (2026-10-21), in this perimeter only:** T87 is in [Completed
+work](#phase-16--the-answer-review-d49d52).
 
 ---
 
@@ -307,7 +247,7 @@ between nodes — the steps and results the cuts order are produced only by test
 and a writer that loses its files cannot rebuild its feed, and restarted empty it
 equivocates (T80). T77, T80 and T76 are defects in code that exists.
 
-**Decided by the owner (2026-10-07).** T77's mechanism is `docs/01` D44, its work split into
+**Decided by the owner (2026-10-07).** T77's mechanism is `docs/01` D54, its work split into
 T77 (the tiers and the transport), T85 (blind relays) and T86 (the state tree and the fork).
 The erasure-coded distribution of the public history, which no task covered, is part of the
 phase (T84). The order: T80, T76, T78 with T17 alongside, then T77, T85, T86, T75, T84, and
@@ -320,11 +260,11 @@ formats.
 |---|---|---|---|---|
 | T75 | **Finding an object by its CID** (split from T18): the DHT (libp2p Kademlia) for light nodes that hold no full replica — who holds an object, fetched and checked against its CID | NET-010, `docs/04` §The four P2P structures | a light node fetches an object it was only given the CID of, from a node it did not know | M |
 | T17 | **Real anchoring:** submit to a calendar, read Bitcoin headers, schedule it, anchor the checkpoint head | NET-009, DS-5 | a checkpoint head is anchored and verified end to end | M |
-| T77 | **The replicated set keeps what D17 keeps private** (found 2026-09-28, a defect against D17 and `docs/CLAUDE.md`; mechanism decided 2026-10-07, `docs/01` D44). Today a node answers the Summary and Want of any peer and pulls from it on connect, a node without a writer key replicates the whole set, and the transport authenticates a libp2p key bound to no writer key: any peer reads the drafts under review, the panels before their verdict, every reveal with its judge's nym, the batches of each respondent id and the results' records per nym. Build D44's tiers: every kind of object assigned its tier (`docs/04` §Who reads); two feeds per member, public and circle, each under its own key, a cut marking both; a member's signature binding a transport key, a circle feed's entries served and announced only to bound keys; a node without a member key holding the public tier only. Until it is done, a network runs only among machines its operator controls | D17, D44, PRIV-004, PRIV-P5, PRIV-P6, `docs/08` G-21 | a test with a reader outside the circle: it obtains no circle entry or object by sync, gossip or on connect, and learns of a circle feed only its marks; members converge on both tiers and cut them; `docs/04` §Who reads and `docs/08` PRIV-P5/P6 restated | M |
-| T79 | **An epoch run between nodes** (found 2026-09-28). The members only cut and run the beacon (`p2p::member`); nothing reads the ledger's state to do an epoch's work — the lottery at the closing cut, the reviewer draws, the commit and reveal deadlines, the engine and its results event, the band's extra round, appeals and pilots. That flow lives in `end_to_end.rs::run_epoch` and `orchestrator`, called by tests, so no question is processed between nodes. Persons have no way in either: a review's commit and reveal are lifecycle steps, which the ledger takes only from the consortium. Specify first (`docs/04`, `docs/05`): which member publishes each step, how the others check it before co-signing the cut that applies it (the same deterministic computation, invariant 7), how a person's commit and reveal reach a member (T85), the deadlines as cuts, and which tier each step belongs to (D44, T77) | PROTO-015, INV-7, `docs/08` G-22, `docs/05` [3]–[6] | node processes (T78) run an epoch end to end — deposits, lottery, panels, commits, reveals, scoring, results — every node reaching the same state; a step that differs from the deterministic computation is not co-signed | L |
-| T84 | **The public history in erasure-coded shards** (found missing from every task on 2026-10-07; part of the phase by the owner's decision). `network::erasure` codes and authenticates shards (T16); nothing places a shard, audits a holder or repairs a segment. Code the public archive per cut segment — the public entries a cut adds and their objects, the state tree's shape (T86) —; bind each segment's shard manifest to a consortium-signed object; place each shard by a function of the segment, its index and the storage nodes (found through T75); audit holders on a period; rebuild a segment below its threshold and place its shards again; record `(k, m)` in `docs/14`. A circle object is never coded to a node outside the circle: the code is systematic (D44) | D14, D44, NET-007, `docs/08` G-24, DS-4 | with `m` holders of a segment stopped, a node with no replica rebuilds it and checks it against the signed cut; after holders are lost, repair restores every shard; a corrupted shard is dropped (AT-NET-06) | L |
-| T85 | **Blind relays** (D44, 2026-10-07). A person sends each event sealed to a member's key (HPKE, RFC 9180) through a relay, as Oblivious HTTP (RFC 9458): the relay forwards bytes it cannot read, the member opens the event, checks it as its entry point does and logs it on its circle feed. Relays leave the writer set; any member may log a person's event, the first in a cut winning (PROTO-015); the members' HPKE keys are part of the network's configuration. An audited HPKE library is preferred (`docs/CLAUDE.md`). It is the channel T79 uses for a review's commit and reveal | D44, invariant 4, PRIV-P4, PRIV-003 | a person's event reaches the ledger through a relay that never holds its plaintext, and the member receives it from the relay's peer, never from the person's (a test over loopback with a relay between); a relay's own entry is refused | M |
-| T86 | **The state tree and the fork** (D44, 2026-10-07). A sparse Merkle tree with one leaf per nym, at a position fixed by the nym, holding a hiding commitment to its records, re-salted each epoch from a key the nym derives per role from its credential and hands the circle once. Each epoch the members publish its root with the inputs' root, and its shape in the public archive; a nym fetches its leaf and path; a new nym proves its position empty. The results event with its records stays in the circle (`protocol::results`, together with Phase 1 and `docs/08` PRIV-004.1). Specify the fork: from a member, or from the last anchored root with each nym opening its leaf | D44, D16, invariant 5, INV-7, `docs/08` DS-9 | a nym proves its records against an anchored root; a nym with a record cannot prove its position empty; every leaf changes each epoch, so the public tree does not tell which nyms acted; a fork with no member rebuilds the state of every nym that opens its leaf, and a nym that does not cannot enter as new | L |
+| T77 | **The replicated set keeps what D17 keeps private** (found 2026-09-28, a defect against D17 and `docs/CLAUDE.md`; mechanism decided 2026-10-07, `docs/01` D54). Today a node answers the Summary and Want of any peer and pulls from it on connect, a node without a writer key replicates the whole set, and the transport authenticates a libp2p key bound to no writer key: any peer reads the drafts under review, the panels before their verdict, every reveal with its judge's nym, the batches of each respondent id and the results' records per nym. Build D54's tiers: every kind of object assigned its tier (`docs/04` §Who reads); two feeds per member, public and circle, each under its own key, a cut marking both; a member's signature binding a transport key, a circle feed's entries served and announced only to bound keys; a node without a member key holding the public tier only. Until it is done, a network runs only among machines its operator controls | D17, D54, PRIV-004, PRIV-P5, PRIV-P6, `docs/08` G-21 | a test with a reader outside the circle: it obtains no circle entry or object by sync, gossip or on connect, and learns of a circle feed only its marks; members converge on both tiers and cut them; `docs/04` §Who reads and `docs/08` PRIV-P5/P6 restated | M |
+| T79 | **An epoch run between nodes** (found 2026-09-28). The members only cut and run the beacon (`p2p::member`); nothing reads the ledger's state to do an epoch's work — the lottery at the closing cut, the reviewer draws, the commit and reveal deadlines, the engine and its results event, the band's extra round, appeals and pilots. That flow lives in `end_to_end.rs::run_epoch` and `orchestrator`, called by tests, so no question is processed between nodes. Persons have no way in either: a review's commit and reveal are lifecycle steps, which the ledger takes only from the consortium. Specify first (`docs/04`, `docs/05`): which member publishes each step, how the others check it before co-signing the cut that applies it (the same deterministic computation, invariant 7), how a person's commit and reveal reach a member (T85), the deadlines as cuts, and which tier each step belongs to (D54, T77) | PROTO-015, INV-7, `docs/08` G-22, `docs/05` [3]–[6] | node processes (T78) run an epoch end to end — deposits, lottery, panels, commits, reveals, scoring, results — every node reaching the same state; a step that differs from the deterministic computation is not co-signed | L |
+| T84 | **The public history in erasure-coded shards** (found missing from every task on 2026-10-07; part of the phase by the owner's decision). `network::erasure` codes and authenticates shards (T16); nothing places a shard, audits a holder or repairs a segment. Code the public archive per cut segment — the public entries a cut adds and their objects, the state tree's shape (T86) —; bind each segment's shard manifest to a consortium-signed object; place each shard by a function of the segment, its index and the storage nodes (found through T75); audit holders on a period; rebuild a segment below its threshold and place its shards again; record `(k, m)` in `docs/14`. A circle object is never coded to a node outside the circle: the code is systematic (D54) | D14, D54, NET-007, `docs/08` G-24, DS-4 | with `m` holders of a segment stopped, a node with no replica rebuilds it and checks it against the signed cut; after holders are lost, repair restores every shard; a corrupted shard is dropped (AT-NET-06) | L |
+| T85 | **Blind relays** (D54, 2026-10-07). A person sends each event sealed to a member's key (HPKE, RFC 9180) through a relay, as Oblivious HTTP (RFC 9458): the relay forwards bytes it cannot read, the member opens the event, checks it as its entry point does and logs it on its circle feed. Relays leave the writer set; any member may log a person's event, the first in a cut winning (PROTO-015); the members' HPKE keys are part of the network's configuration. An audited HPKE library is preferred (`docs/CLAUDE.md`). It is the channel T79 uses for a review's commit and reveal | D54, invariant 4, PRIV-P4, PRIV-003 | a person's event reaches the ledger through a relay that never holds its plaintext, and the member receives it from the relay's peer, never from the person's (a test over loopback with a relay between); a relay's own entry is refused | M |
+| T86 | **The state tree and the fork** (D54, 2026-10-07). A sparse Merkle tree with one leaf per nym, at a position fixed by the nym, holding a hiding commitment to its records, re-salted each epoch from a key the nym derives per role from its credential and hands the circle once. Each epoch the members publish its root with the inputs' root, and its shape in the public archive; a nym fetches its leaf and path; a new nym proves its position empty. The results event with its records stays in the circle (`protocol::results`, together with Phase 1 and `docs/08` PRIV-004.1). Specify the fork: from a member, or from the last anchored root with each nym opening its leaf | D54, D16, invariant 5, INV-7, `docs/08` DS-9 | a nym proves its records against an anchored root; a nym with a record cannot prove its position empty; every leaf changes each epoch, so the public tree does not tell which nyms acted; a fork with no member rebuilds the state of every nym that opens its leaf, and a nym that does not cannot enter as new | L |
 
 **Milestone 2 — "nodes talk and agree".** Several processes (T78) persist, gossip,
 replicate the signed log and converge on the same checkpoint, a silent proposer
@@ -418,7 +358,7 @@ Not a phase; done alongside every task.
   carries the beacon's commits and reveals between nodes. T73 (done) gave T18 its codecs for proofs and events. T13 and T74 give T5's weights
   and the reputation histories of T50–T51 a durable place to live. Of the gaps found on
   2026-09-28, T80, a defect in code that exists, came first; T76 followed (both done 2026-10-07). T77 is a
-  defect too, against D17, whose mechanism is D44 (2026-10-07); it precedes T75 and T84,
+  defect too, against D17, whose mechanism is D54 (2026-10-07); it precedes T75 and T84,
   since the DHT and the shards hand objects to nodes that hold no replica, and T79, whose
   specification depends on which tier each step belongs to. T85 is the channel T79's
   persons use; T86 changes the results event T79 publishes; T84 needs T75 to find holders
@@ -427,7 +367,8 @@ Not a phase; done alongside every task.
 - **Phase 3.** T66 is the minimal form of T46's `Panel`. T58 builds on T33/T43 and
   draws replacements from the beacon (T37, done). T20 supersedes T11. T37's
   threshold-signature variant needs T19. T68 computes the source check T55 takes as an
-  input. T69 waits on an owner decision: one of its options changes the scope of the
+  input; whether that check stays, and whether the deposit keeps its mandatory source, is open
+  under D47, whose decision on sources concerns only what reviewers consult. T69 waits on an owner decision: one of its options changes the scope of the
   respondent pseudonym (invariant #5).
 - **External.** Nothing in Phases 1–2 needs the external gates.
 
@@ -440,7 +381,7 @@ owner before it becomes a task with a "done when". The options are stated and no
 taken. `docs/08` §17 keeps the older unresolved questions (Q-1–Q-17) in the same spirit,
 and §18 the residual risks each one carries meanwhile.
 
-T77's mechanism, open here until 2026-10-07, was decided by the owner that day (`docs/01` D44).
+T77's mechanism, open here until 2026-10-07, was decided by the owner that day (`docs/01` D54).
 
 | Id | Problem | Options | Refs |
 |---|---|---|---|
@@ -468,7 +409,7 @@ other documents and commit messages refer to these ids and block names.
 | T49 | **Side-balanced bridge score. Done (2026-09-24):** `bridging::two_means` (deterministic 1-D 2-means on `f_u`, initialized at its extremes, as the paper's script), `bridging::side_balanced(&Fit) -> SideScores` (per-side mean predictions, `score = (A + B)/2`, `gap = \|A − B\|`), `bridge_scores -> BridgeScores { robust: bootstrap-min of the score, full }`; `gate::bridging_gate(score, gap, τ, ε, appeal_gap)` with the provisional constants `TAU = 0.80`, `EPS = 0.02`, `APPEAL_GAP = 0.25` (`docs/02` §A.3); `supplementary_review` re-decides on the full fit's `S_j`. `sim/bridging_irt_dif.py` and `sim/export_fixtures.py` compute the same score; `expected_levelA.csv` gained `side_a_full, side_b_full, side_full, gap_full`, `expected_meta.csv` has `tau = 0.80`, `levelc_p/bss.csv` follow the new verdicts, `golden_bits.txt` regenerated; the README warning is gone. *Evidence:* `level_a.rs` matches the oracle (`S_j` to 0.004, the gap to 0.008, sides of 80 and 120); `side_balanced.rs` — AT-BR-08: leak ≤ 0.1 with 60/40 and 80/20 camps from 200 to 3,200 reviewers where the intercept leaks 0.5–0.9, and on the review's mirror-item dataset the camp-size effect on `S_j` stays within 0.1 at every ratio from 50/50 to 95/5 in both orientations while the intercept's is 0.7–0.9, neither mirror item passes and both stay polarized; AT-BR-09: ten decoys move no item by more than 0.02 and change no verdict, the consensus items alone stay within 0.02, the intercept moves by more than 0.1. `end_to_end.rs`: the pool is unchanged ({01, 07}: item 02 passes Level A on `S_j` and dies in the pilot screen with a 2PL slope of 0.47), and the appeal still recovers the true-but-divisive item on its gap (0.67). *Measured limits, recorded in `docs/02` §A.3:* a residual leak of 0.1–0.2 with 50–100 reviewers (a fraction of the intercept's), and noisy side means with a minority side of about ten reviewers (at 95/5 one consensus item in eight fell to 0.78). *Deviation from this row's target:* the leak bound holds from 200 reviewers, not from 50. *Mutation testing:* the re-run the plan scheduled after this step (`docs/11`, [1.5](#15--order-of-execution-and-milestones)) was T81's (`docs/11` run 22) | D32; paper §3.3–3.4, §7.1; BRIDGE-008/009 | `AT-BR-08` and `AT-BR-09` pass — both fail on the intercept | M |
 | T53 | **Anchor-reliability gate for latent DIF. Done (2026-09-25):** `irt::kr20(anchors)` — KR-20 of the anchor total on the batch's respondents (population variances, as the paper's `revisions_dif.py`; 0, not NaN, with fewer than two anchors or no spread) — and `irt::KR20_MIN = 0.90` (provisional, T25); `pilot::admit_anchors` refuses below the floor (`PilotError::UnreliableAnchors { kr20, need }`, NaN-safe); `revalidate_batch_latent(respondents, anchors, responses, seed)` takes the anchors instead of θ, checks items, respondents, rows and anchors in that order, and computes θ itself (`theta_from_anchors`), so a caller cannot vouch for a proxy the gate has not measured; `MixtureDif::differential` reports the differential gap — the signed shift between the two most populous counted classes less its median over the batch — as a diagnostic only, pinned in the golden bits, never read by `latent_flags`. `anchor_reliability.rs` (AT-DIF-11): null batches drawn as the paper's `dif_generate` (N = 6,000, K = 8) give KR-20 within 0.03 of the paper's table for 10, 20, 30 and 60 anchors; 20 anchors → `UnreliableAnchors` before any fit, while the bare engine on the same batch selects a spurious two-class model; 60 anchors → accepted, no flag; an undefined reliability (one anchor, no spread, a NaN) is refused; anchor rows are the respondents' (`RowCountMismatch`). `latent_classes.rs`: with 6 of 8 items shifted the same way the raw gap flags exactly the shifted items (θ known) and the differential gap inverts. *Note:* the reference fixtures' 30 anchors (KR-20 ≈ 0.87) are below the floor; they exercise the engine (`revalidate_pool_latent`), not the gate | D37; paper Prop 10, Table 6, §7.3; DIF-010 | `AT-DIF-11`: the paper's null batches with 20 anchors are refused, those with 60 are accepted and raise no flag | S |
 | T50 | **Proper evaluator score, odds weights, short probation. Done (2026-09-25):** `reputation::difference_score` (`(p̄_{−u,j} − o_j)² − (p_uj − o_j)²`), `loo_baseline` (the weight-adjusted mean of the *other* panelists; a reviewer with no weighted others is scored against their own forecast, 0), `loo_scores`, `mean_score` (`S_u`), `odds_weight(S_u, k_u)` = `exp(γ·S_u·k_u/(k_u+k₀))` with `EvaluatorParams { gamma: 35, k0: 100 }` (provisional, T25); `evaluator_score` (`σ(γ·BSS)`) removed, `brier_skill_score` kept as the sim oracle; `honeypot::reviewer_skills` returns `S_u` on the golden items; `probation::N_PROBATION` 200 → 30 (D36), `effective_review_weight(is_founder, k_u, skill, w_max)` = the capped odds weight once established; `ReviewerStanding.skill` replaces `e_u`; `orchestrator::epoch_weight_cap` = `3 × median` over the reviewers who carry weight (founders and established, not probationers), `+∞` with none. `evaluator_score.rs`: AT-REP-05 — for random beliefs and baselines (`m ≤ 4`, all `2^m` outcomes enumerated) the truthful report beats any other by exactly `Σ_j (p_j − q_j)²`; the retired ratio-form score reproduces the paper's dissenter (belief 0.30, crowd 0.65 → report 0.60); AT-REP-02 — a copier of the others scores exactly 0 and weighs exactly 1 (also on the fixture, `level_c.rs`); AT-REP-04 — a reviewer reliably 0.1 better than nine crowd-level ones weighs 16 uncapped, 3 capped; D33's arithmetic (×2 for a reliable 0.02; luck after 16 items ×2.4 → ×1.13). `properties.rs`: scores bounded by 1, the copier at 0, the weight finite and positive, 1 with nothing scored. `lifecycle.rs`, `orchestrator_driver.rs` follow the new scale (the discounted bloc of the T5 test is now `S_u = −0.5`, weight ≈ 0.02) | D33, D36; paper Props 12, 14, 15; REPUTATION-005/008, G-12 | `AT-REP-05`, `AT-REP-02` and `AT-REP-04` pass; probation ends at 30 scored outcomes | M |
-| T51 | **Change detector instead of the asymmetric update. Done (2026-09-25):** `reputation::{Cusum, CusumParams}` — a one-sided CUSUM on a reviewer's per-item scores against their own mean, `s ← max(0, s + (S_u − S_uj) − k)`, alarm at `s > h`, then restart (`k = 0.03`, `h = 1.5`, provisional, T25); `probation::SkillTrack` — the running mean (the weight's `S_u`), the count (`k_u`, which decides probation) and the statistic; the detector runs only out of probation (a mean over few items is no reference) and an alarm restarts the track, so the reviewer is on probation (weight 0) until 30 new scored outcomes; `standing()` hands the next epoch's `ReviewerStanding` to `bridging_weights`. `asymmetric_ema` removed with its tests; `adversarial.rs::a_long_con_is_unprofitable` reworked on the detector. `change_detector.rs` (AT-REP-07): honest per-item scores drawn as the paper's `panel_bias` (10,000 items, seed 7) raise at most one alarm; a reviewer honest for 300 items who then flips 20% of forecasts is caught within 100 items on nine of ten seeds — median 25 (the paper's 36), the tenth after 356: at `k = 0.03` the drift is about 0.01 per item, detection is noise-driven and the tail is long (a T25 calibration item; the paper's `k = 0.02`, `h = 1.0` halves the median at 2.3 false alarms per 1,000) — is on probation with weight 0, and is established again after 30 honest outcomes; no alarm during probation. `level_c.rs`: alternating ±0.3 never alarms, a drop of 0.1 alarms at item 22; `properties.rs`: the statistic stays in `[0, h]` and a score at or above the reference never alarms | D34; paper §5.5, §7.2; REPUTATION-004 | `AT-REP-07` passes (the game-theoretic `AT-REP-01` stays open) | M |
+| T51 | **Change detector instead of the asymmetric update. Done (2026-09-25):** `reputation::{Cusum, CusumParams}` — a one-sided CUSUM on a reviewer's per-item scores against their own mean, `s ← max(0, s + (S_u − S_uj) − k)`, alarm at `s > h`, then restart (`k = 0.03`, `h = 1.5`, provisional, T25); `probation::SkillTrack` — the running mean (the weight's `S_u`), the count (`k_u`, which decides probation) and the statistic; the detector runs only out of probation (a mean over few items is no reference) and an alarm restarts the track, so the reviewer is on probation (weight 0) until 30 new scored outcomes; `standing()` hands the next epoch's `ReviewerStanding` to `bridging_weights`. `asymmetric_ema` removed with its tests; `adversarial.rs::a_long_con_is_unprofitable` reworked on the detector. `change_detector.rs` (AT-REP-07): honest per-item scores drawn as the paper's `panel_bias` (10,000 items, seed 7) raise at most one alarm; a reviewer honest for 300 items who then flips 20% of forecasts is caught within 100 items on nine of ten seeds — median 25 (the paper's 36), the tenth after 356: at `k = 0.03` the drift is about 0.01 per item, detection is noise-driven and the tail is long (a T25 calibration item; the paper's `k = 0.02`, `h = 1.0` halves the median at 2.3 false alarms per 1,000) — is on probation with weight 0, and is established again after 30 honest outcomes; no alarm during probation. `level_c.rs`: alternating ±0.3 never alarms, a drop of 0.1 alarms at item 22; `properties.rs`: the statistic stays in `[0, h]` and a score at or above the reference never alarms | D34; paper §5.5, §7.2; REPUTATION-004 | `AT-REP-07` passes (the game-theoretic `AT-REP-01` was then open; current Phase 1 criterion amended 2026-10-12, `16` §7.2) | M |
 | T56 | **Coordination detector on residuals. Done (2026-09-25):** `collusion::ResidualHistory` (residuals `r − r̂` per reviewer and item, keyed by a global item id, accumulated across epochs; `record_epoch(ratings, fit, item_ids)`), `MIN_SHARED_ITEMS = 30` (a pair is read only from there), `permutation_p_value` (seeded, one-sided), `CoordinationParams { min_shared: 30, rho_min: 0.7, p_max: 0.001, permutations: 999 }` (provisional, T25), `coordination_clusters` → `CoordinationReport { flagged, clusters }`: a pair is flagged at `ρ ≥ ρ_min` with `p ≤ p_max`, clusters by average linkage over the flagged pairs (a merge needs the mean over all cross pairs, an unflagged pair counting 0, to reach `ρ_min`), everyone else a singleton whose id is its own index. The raw rule (`correlation_matrix`, `cluster_by_correlation`) and the discount stay in the engine as reference and analysis (D40). *Evidence:* `coordination.rs` — the paper's dataset (`revisions_collusion.py`) ported with ChaCha8: raw same-camp +0.93 vs cartel +0.92 (indistinguishable), residual same-camp +0.015, cross-camp +0.018, cartel +0.89; all 45 cartel pairs flagged, none of the 18,000 honest pairs, the cartel one cluster, every honest reviewer a singleton (AT-COL-07, AT-COL-02); the raw rule at the paper's threshold chains the whole majority camp into one cluster; a pair below 30 shared items is never read; the history accumulates across epochs in the sparse regime and reads a coordinated pair once it reaches 30 shared items; the permutation null is seeded and discriminates; a mimic of an honest reviewer forms a pair with them and chains nobody else (AT-COL-05). *Measured:* `ρ_min = 0.5` flags four honest pairs by chance; 0.7 none | D39; paper Prop 18; COLLUSION-002/003/005/006 | `AT-COL-02` (a cartel jittered by σ = 0.05 is detected) and `AT-COL-07` (honest reviewers of the same camp are not flagged; opposite camps are not joined; pairs with fewer than 30 shared items never are) pass | M |
 | T57 | **Panel diversification. Done (2026-09-25):** `review::assign_diverse(reviewers, clusters, taken, k, seed)` — the stratified draw of `assign_reviewers` that excludes the `taken` nyms and every cluster already seated (one cluster id per reviewer, as `coordination_clusters` returns them; a mismatched length yields no panel); a stratum the constraint empties is filled by the eligible reviewer nearest the stratum centre; `assign_diverse_from_beacon` (first panel) and `assign_extra_diverse_from_beacon` (the band's extra round, outside the first panel and its clusters) are the beacon entry points. The protocol applies no weight discount: `bridging_weights` takes no cluster input. *Evidence:* `panel_diversification.rs` — the paper's population (1,000 reviewers, a cluster of 50, panels of 9), 2,000 draws: no panel holds two members of the cluster, nine distinct reviewers, every panel spans the axis, while the uniform draw seats two or more on 6.6% of panels (paper 7.0%); the extra round avoids the first panel and its clusters over 200 beacon slots; a stratum emptied by the constraint is filled from the axis and singleton clusters reproduce the plain draw; a flagged and an honest reviewer with the same standing weigh the same | D40; paper Prop 17 | `AT-BR-10` passes: over randomized draws no panel holds two members of one flagged cluster, and no honest reviewer's weight changes | M |
 | T52 | **Live outcomes with exploration. Done (2026-09-25):** `protocol::exploration` — `EXPLORATION_RATE = 0.05` (provisional, T25), `explore(seed, rate)`, `explore_from_beacon(beacon, slot, rate)` (`randomness::EXPLORATION`, keyed on the admitted slot, never the draft), `Observation { outcome, inclusion }`, `Scored::{Observed, Unobserved, Pending}`, `outcome_of(state, rate)`, `record_outcome(track, state, rate, score, params)`, `FalseNegatives { explored, passed }::rate`; `lifecycle`: `Event::Explore { seed_from_beacon }` (named `seed_from_checkpoint` until T37) takes a gate rejection (`RejectReason::at_the_gate`) to `State::Explored { reason, screened }`, the two pilot batches under the pilot's own floors, then `State::Measured { reason, passed }` — terminal, never `ActivePool`; `ItemVerdicts.explored` and `run_item` walk it; `probation::SkillTrack::{record_observed(score, inclusion), record_unobserved, reference, statistic, reviewed}` — the mean at `1/π_j` over every reviewed item, the CUSUM on the unweighted observed scores; `reputation::inverse_probability_mean`. *Evidence:* `exploration_weights.rs` (AT-REP-06): under a gate that observes a report of at least 0.5 with certainty and the rest at 5%, the weighted score's exact expectation is `(b − q)² − (p − q)²` for 2,000 random cases — the true belief its unique optimum — while the bare observed score pays the paper's dissenter (0.40 against a crowd at 0.70) 0.08 to report 0.50 against 0.0045 for the truth (0 without exploration); nine reviewers with noise 0.05–0.30 on 100,000 items, the gate on the panel's mean forecast: the weighted mean within 2.1 standard errors of the full-information mean for every reviewer, the passed-only mean 11.6 off for the noisiest; `exploration.rs` (AT-PRO-07): the draw reproduces from the beacon, 4.8% and 5.1% of 20,000 slots under two beacons with 0.27% in common (re-derived with T37's beacon; 5.0%, 4.9% and 0.24% on the checkpoint seed), a participant's seed refused, every explored path ends `Measured`, a pilot rejection cannot be explored, the track weighs an explored −0.5 at −10 in the mean and reads −0.5 to the detector (no alarm); the model suites cover `Explored`, `Measured` and every measured reason; `end_to_end.rs`: the real-health item, polarized and unappealed, explored on the fixtures is measured as a pass — a gate false negative, rate 1/1 — with the pool and the author's standing unchanged | D35; paper §7.2, "Exploration restores properness" | `AT-PRO-07` (an explored item never enters the pool; the draw is reproducible from the beacon and cannot be chosen) and `AT-REP-06` (on synthetic data the weighted score's expectation equals the full-information score, and truthful reporting stays optimal) pass | L |
@@ -498,6 +439,12 @@ other documents and commit messages refer to these ids and block names.
 |---|---|---|---|---|
 | T71 | **The bridge score's sides are the camps, on the rating scale, with coverage. Done (2026-09-26),** after D42, found by T24's first pass (`docs/13`): the 2-means iteration from the extremes of `f_u` made far-out reviewers a side of their own (sides of 2 and 5 of 800 reviewers, scores from −0.28 to 1.31; in a bootstrap subsample a side of 1 of 200, which dropped an item's robust score from 0.91 to 0.56 while its full fit passed), and a partisan item no minority reviewer had rated passed at 0.972 on an extrapolated side of 1.445. `bridging::two_means` is now the exact 1-D 2-means cut — the sorted positions' cut with the largest between-side sum of squares, never inside a run of equal values, each side at least `side_floor(n)` = 5% of the reviewers rounded up (`MIN_SIDE_PER_MILLE = 50`), side sums taken from each end so a sign flip mirrors them bit for bit; `side_balanced` clips each prediction to [0, 1]; `bridging::coverage` counts, per item, the ratings of its less-rated side (axis reviewers with a positive weight) and travels in `BridgeScores::coverage`; `gate::bridging_gate(score, gap, coverage, τ, ε, appeal_gap)` returns `SupplementaryReview` below `MIN_COVERAGE = 1` whatever the score, and `supplementary_review` cannot pass an item still below it. `sim/` computes the same split and clipping; the Level A oracle moved only in the side means of the three polarized items (≤ 0.0046) and the golden bits in their side scores and four robust scores, plus the new coverage rows; no fixture verdict changed. *Evidence:* `side_split.rs` (AT-BR-11) — two camps with two or five reviewers at four times the camp distance split into the camps (100/2 before); each side holds the floor on 256 random position sets with outliers (20/1 before); the split does not depend on the axis' origin or scale and a sign flip swaps it; clipped predictions keep the score in [0, 1] (1.2 and −0.3 before). `side_coverage.rs` (AT-BR-12) — an item only the camp of 120 rated at about 0.97 goes to supplementary review (it passed at 0.875), the fixture's items keep their verdicts, and the re-decision passes it only once the other side rates it high. `side_evidence.rs` — T24's three failing replicates re-run from their seeds: the partisan item goes to review, the n = 800 scores stay in [0.51, 0.87] with sides of 633/167 and 630/170 against camps of 640/160, the robust score at 60 boosters is 0.887 against a full 0.903 and the curve is monotone. The two bridging studies of `docs/13` are re-run on this commit | D42; `docs/02` §A.3; BRIDGE-010, AT-BR-11/12 | `AT-BR-11` and `AT-BR-12` pass; T24's failing replicates pass | M |
 | T24 | **The detectors and gates characterized. Done (2026-09-28).** `docs/13` specifies ten studies of the production estimators and gates; `crates/characterization` ran them — 54,412 seeded runs, the full grid, on the owner's machine (AMD Ryzen 7 5800X, about 30 hours, 2026-09-26 to 2026-09-28) — and summarized them with 95% intervals and the threshold tables. The first pass (`--replicates 20`, 5,132 runs) found T71; the DIF and DTF records reproduce bit for bit across it, and the two bridging studies were re-run on the fixed engine. On 2PL populations the target model selects no mixture and flags no clean item over 5,400 null batches; it never finds a single leaning item, and finds two of eight at δ = 0.9 in 92.8% / 98.8% of cases at N = 3,000 / 6,000, at δ = 0.7 in 11.2% / 56.2%. With guessing in the population it flags 12–17% of the clean items (D25). The fitted DTF bound is biased upward and decides noisily within about 0.05 of `DTF_MAX`. No partisan item passed the bridging gate, 0 of 72,000, and a consensus item 0.05 above `τ` passes in 97.6–100% of cases with 800 reviewers; carrying the majority's partisan item takes 60 of the 80 opposing reviewers (75%) | SC-2/3/5/7, AT-DIF-01..09, AT-BR-02, STAT-001, DIF-008, DIF-011, BRIDGE-002/003/005; `docs/13` §7, `verification/reports/t24/` | `docs/13` §6: the full grid run and summarized, its results stated in `docs/13` §7 inside their regime, the tables committed, `docs/08` §12 and §15 restated | L |
+
+### Phase 1.6 · The answer review (D49–D52)
+
+| Task | What it means (plain) | Decision / refs | Done when | Size |
+|---|---|---|---|---|
+| T87 | **The answer review, offline. Done (2026-10-21), in the D49–D52 offline perimeter only; Astra's final review approved the path and its correction ([record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)).** The path creation → deposit and quota → draw → answers → closure → outcome → the author's reputation → next epoch → usable questions, as D49–D52 specify: a structured question with its key, no source; 12 distinct reviewers drawn at random from the pool, an explicit unavailability below it; commit-reveal of an alternative, "none" or "don't know", the key not shown before the commitment; an explicit closure, then no answer enters; the outcome in integers over the usable answers; the outcome and the author's observation recorded together, once, counted from the next epoch; quotas fixed once per epoch; logical epochs closed explicitly; the parameters explicit in the configuration and the results, provisional (`14`). No previous filter, reviewer weight or reviewer reputation in the path. *Built:* `scoring::reputation::author_score_weighted` (`3d88b9b`); `protocol::{answer, answer_rule}` (`9427158`); `protocol::answer_author` (`6908992`); `protocol::{answer_path, answer_events, answer_node}` and `randomness::ANSWER_DRAW` (`f230edf`); the technical choices in `05` §The answer review. *Evidence (executed):* `crates/protocol/tests/answer_review.rs`, `crates/scoring/tests/author_weighted.rs` and the modules' unit tests, AT-ANS-01–14 (`08` §12); for the shared code `inv10_beacon_seed.rs`, `draw_order.rs`, `node_replay.rs`, `level_c.rs`; fmt, clippy on the workspace with and without `calibration`, the comment budget. Not run: the full suites, fits, benchmarks, campaigns, fuzzing. *Corrected after Astra's review of `1f0f21d`:* the global duplicate check revealed another author's key; deposits are deduplicated per author (`822fa22`, AT-ANS-14 failing before, passing after), and the draw's reliance on a beacon value the caller does not select is stated (`05`) | `01` D47–D52; `02` §C.1; `05`; `08` ANSWER-001; `14` | the path implemented and integrated, replayable from its log (done); targeted tests of the thresholds' boundaries for `V` 9–12, the quorum, abstentions and absences, closure, duplicates, atomicity, single application, reproducibility, the fractional contribution, the epoch's passage and the quotas' consumption (done); the docs in step (done); Astra's review (done: design review, code, diffs and tests read; no Rust run by Astra; not SC-8) | M |
 
 ### Phase 2.1 · Fix what exists
 

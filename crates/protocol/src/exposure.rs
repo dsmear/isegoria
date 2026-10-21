@@ -18,6 +18,7 @@ pub enum RetirementReason {
 /// Validity flags an item carries from periodic pool re-validation (`docs/05` [8]).
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ItemHealth {
+    /// DIF detected; `false` is none detected or no determinate reading (`docs/15` A4 (b)).
     pub emerging_dif: bool,
     /// The source check established the key: DIF moves it to the contested pool (D38).
     pub source_verified: bool,
@@ -27,6 +28,7 @@ pub struct ItemHealth {
 
 /// Whether an item should leave the bank, and why. Validity triggers are checked before
 /// exposure; the first that applies wins. DIF on a sourced fact is no retirement (D38).
+/// `None` decides no retirement; it certifies no absence of DIF.
 pub fn should_retire(
     exposure: usize,
     limit: usize,

@@ -4,12 +4,28 @@ Each decision states: what was chosen, why, and which alternatives were rejected
 The decisions here are the **recorded design choices**; amendments explicitly
 supersede earlier choices. Implementation does not establish every claim in a
 decision's rationale. The open Phase 1 review findings are tracked in
-[`15-phase1-review.md`](15-phase1-review.md); this documentation pass does not amend
-those decisions or choose new thresholds.
+[`15-phase1-review.md`](15-phase1-review.md). New decisions and amendments are stated
+explicitly; D44 records the owner's foundational direction of 2026-10-18 without choosing
+new numerical thresholds; D45 the owner's decision of 2026-10-20 that Isegoria assumes an
+open environment, and D46 the assessment's priorities in it; D47 the owner's decision of
+2026-10-21 that reviewers answer the item and their reliability is evaluated over time; D48 the
+owner's decisions for its first implementation: reviewers drawn from the pool with equal weights,
+the consensus of their answers as the review's operational criterion, the evaluation of their
+reliability deferred; D49–D52 the owner's approved contract for the *answer review*, the offline
+path that implements them: a drawn group of 12, a quorum of 9 usable answers, three quarters to
+accept or discard, the author's reputation and quotas, and its perimeter; D53 the owner's
+confirmation, for its first offline version, of three implementation choices D49–D52 left open.
 
 ---
 
 ## D1 — Quality is not decided by majority
+
+> **Rectified by D48 (owner, 2026-10-21).** In the first implementation of D47's mechanism the
+> consensus of the drawn reviewers' answers, each with equal weight, is the review's operational
+> criterion; the absolute ban below no longer binds it. Consensus is not a guarantee of truth, and
+> the draw does not remove the concern below (D48, *Accepted risks*). D49 sets its quorum and
+> thresholds for the answer review. The choice below describes the existing mechanism, which the
+> code still implements.
 
 **Choice.** Accepting a question goes through two filters: bridging (opinion) +
 empirical validation (evidence). Never a majority vote count.
@@ -24,6 +40,10 @@ upvotes (concentrates power faster than plain voting).
 ---
 
 ## D2 — Bridging instead of vote averaging
+
+> **D47 (owner, 2026-10-21).** The rating this fit reads is today the reviewer's revealed
+> forecast. Reviewers now answer the item; whether and how bridging reads their answers is
+> open (D47). The code still implements the choice below.
 
 **Choice.** The aggregation of peer review is a matrix factorization with asymmetric
 regularization (`02`, Level A), in the style of Community Notes. Score = the item
@@ -41,6 +61,11 @@ brigading in this context).
 
 ## D3 — Final truth comes from data, not from judgments
 
+*Interpretation clarified by D44:* answer data supplies evidence about item functioning,
+not an automatic determination of political truth, relevance or the intended competence.
+*Under D45* those answers are produced in an open environment; the resistance claimed below
+is one of D45's recorded tensions.
+
 **Choice.** The final verdict on a question is given by psychometric statistics (IRT)
 and bias analysis (DIF) on real answer data, not by peer review.
 
@@ -52,6 +77,9 @@ does worse than guessing.
 ---
 
 ## D4 — DIF on latent axes, not on declared attributes
+
+*Interpretation clarified by D44:* latent DIF is a model-based signal, not by itself a
+causal finding of unfairness or an identification of political groups.
 
 **Choice.** Bias analysis uses the latent position `f_u` estimated by bridging, or a
 latent-class IRT mixture. No demographic attribute is collected.
@@ -68,6 +96,10 @@ education). Dropped for incompatibility with anonymity.
 
 ## D5 — Reputation: two separate scores, never combined
 
+> **D48 (owner, 2026-10-21).** In the first implementation of D47's mechanism every reviewer
+> weighs the same and ordinary reviews do not update `E`; the evaluation of reviewers is deferred.
+> The separation below stands, and the author score is unchanged.
+
 **Choice.** Author score `C` and evaluator score `E` live on different, unlinkable
 pseudonyms. `E` weights the review vote; `C` governs only the rate limit on
 proposals. No combined weight.
@@ -82,6 +114,15 @@ Dropped.
 ---
 
 ## D6 — Evaluator score with its own scoring rule, not a Schelling point
+
+> **Modified by D47 (owner, 2026-10-21).** Reviewers answer the item instead of declaring a
+> probability that it passes validation; how their reliability is evaluated is still to be
+> defined. The exclusion of a Schelling point stands. The code still implements the choice
+> below.
+
+> **D48 (owner, 2026-10-21).** For the first implementation the evaluation of the reviewers is
+> deferred and ordinary reviews do not update their reputation; agreement with the majority is
+> not rewarded.
 
 **Choice.** The evaluator declares a probability that the question passes validation,
 and is scored with a proper scoring rule normalized on the crowd baseline (Brier
@@ -137,6 +178,9 @@ actor in the threat model.
 ---
 
 ## D10 — Spam control: lottery + rate-limiting nullifier, not a low quota
+
+> **D49–D52 (owner, 2026-10-21).** The answer review's path has no admission lottery: each
+> deposit within D51's quota is drawn a group. The choice below describes the existing mechanism.
 
 **Choice.** Anyone can propose; each epoch a randomly drawn subset enters the
 pipeline. The per-person technical limit is enforced by a rate-limiting nullifier.
@@ -224,7 +268,7 @@ and is faithful to the separation-of-powers logic that underpins the whole desig
 
 ## D16 — Consortium selection: no purely technical solution
 
-> **Amended by D44 (2026-10-07):** what a fork takes is the public history and the state
+> **Amended by D54 (2026-10-07):** what a fork takes is the public history and the state
 > tree, and the circle's data only through a member that joins it; the votes are not needed
 > to continue.
 
@@ -244,7 +288,7 @@ instead of permanent.
 
 ## D17 — Who may re-check the computation: consortium now, cryptographic proofs later
 
-> **Enforced on the replicated set by D44 (2026-10-07)**, to be built (`10` T77, T85, T86).
+> **Enforced on the replicated set by D54 (2026-10-07)**, to be built (`10` T77, T85, T86).
 
 **Choice.** Verifying the scores requires the votes, and votes are **never published
 in the clear** (that would enable statistical de-anonymization). Therefore:
@@ -335,6 +379,10 @@ Resolves Q-3 / G-02.
 ---
 
 ## D23 — Evaluator score baseline: the crowd's prediction, not the outcome base rate
+
+> **Modified by D47 (owner, 2026-10-21).** The crowd's forecast is the baseline of the
+> previous evaluator score; the reliability measure D47 asks for is still to be defined. The
+> code is unchanged.
 
 > **Refined by D33** (2026-09-24): the crowd baseline excludes the reviewer being scored, and
 > the score is a difference of Brier scores instead of the ratio-form BSS.
@@ -440,18 +488,40 @@ evidence-based outcome. Resolves Q-7 / G-15 (supplementary-review part).
 
 ## D27 — Appeal cost is a pseudo-observation inside the author score
 
-> **Implemented as decided (2026-09-25, T61):** `protocol::appeal::AuthorHistory` holds
-> the author's quality observations; `file_appeal` refuses an author whose `C_a` is below
-> the stake floor — the prior mean `α₀ / (α₀ + β₀)`, 0.4 with the default prior — and
-> otherwise escrows a zero-quality observation at age 0, so `C_a` falls at once;
-> `orchestrator::settle_appeal` replaces it with the item's measured quality when the
-> item reaches the pool and leaves it standing on a pilot rejection; any other state, a
-> pilot still pending included, settles nothing (`15` A11 (f)). `run_item` derives
-> the appeal's two checks (window, `C_a ≥ floor`) from `ItemVerdicts` instead of taking
-> the caller's word. The ledger form (`gate::settle_appeal`: `+ gain` / `− stake`) is
-> retired: **there is no additive gain** — promotion replaces the pseudo-observation with
-> a real, good observation, and that is the author's reward for being right against the
-> opinion filter (`05` [5b]).
+> **D50 (owner, 2026-10-21).** The answer review has no appeal and no escrow; its author
+> reputation adapts §C.1's inputs (D50). This decision describes the existing path.
+
+> **Implemented as decided (2026-09-25, T61):** `file_appeal` refuses an author whose `C_a`
+> is below the stake floor — the prior mean `α₀ / (α₀ + β₀)`, 0.4 with the default prior —
+> and otherwise escrows a zero-quality observation, so `C_a` falls at once; the ledger
+> form (`gate::settle_appeal`: `+ gain` / `− stake`) is retired: **there is no additive
+> gain** — promotion replaces the pseudo-observation with the item's observation, and
+> that is the author's reward for being right against the opinion filter (`05` [5b]).
+>
+> **Amended by the owner (2026-10-16; `15` C5–C6: C5 closed on this offline candidate;
+> C6 closed on its 2026-10-17 amendment, `825cabc`):** the observation is the pilot's procedural outcome, 1 in the active or contested pool,
+> 0 in `Rejected(Screen)` or `Rejected(Dif)`, one per item. It is not a continuous
+> "measured quality", and no posterior reading is adopted. `AuthorHistory` keys outcomes
+> and escrows by item. C6's adopted amendment below sets an outcome's age. An open escrow counts
+> at weight 1, and an epoch's filings are checked in item-CID order (`02` §C.1).
+> `orchestrator::settle_appeal` derives the outcome from the terminal state instead of
+> taking a quality; a pending pilot settles nothing (`15` A11 (f)). The node records the
+> author a deposit proves and the conclusion a step reaches, and checks the records against
+> them (`authorship::author_records`). After Astra's reviews of `5b1ff4c` and `322dd52`,
+> filing and starting are one operation of the node: the filing record escrows the zero and
+> moves the item to the pilot in the same results event, or neither happens. Its window
+> reading is checked, and coverage is read before the filing only; a separate `Appeal` step
+> is refused. `run_item` still takes `author_reputation` from its caller.
+>
+> **C6 amendment adopted (owner, 2026-10-17):** candidate B, nominal 28 days per closing,
+> long memory H = 45 applied closings, provisional and uncalibrated. Both age ends come from
+> applying-cut context; results data epochs set neither. A closing counts at its end,
+> empty or not; skipped identifiers do not age. One accepted filing batch per recording
+> epoch, without a completeness guarantee. Offline configuration is immutable and pinned;
+> no calendar enforcement, parameter-update governance or driver option is implemented.
+> C6 closed on the offline candidate, design review approved on `825cabc`; no real cadence,
+> calibration, driver, custom ledger configuration, request completeness, window
+> authentication, T77 or production is certified (`15`, `14`).
 
 **Choice.** The cost of a (failed) appeal is modelled as a negative pseudo-observation
 inside the author's reputation score, escrowed when the appeal is filed and replaced
@@ -567,6 +637,31 @@ decoys; on the same test the intercept moves from +0.09 to +0.32.
 
 ## D33 — Evaluator score: leave-one-out difference score, odds-scale weights with shrinkage
 
+> **Modified by D47 (owner, 2026-10-21).** No longer the intended evaluator mechanism:
+> reviewers answer the item, and the evaluation of their reliability over time, with a possible
+> reputational weight, is still to be defined. The amendments below and the closures of A1 and
+> A12 keep their perimeters; the code still implements this choice.
+
+> **Guarantee amendment (owner, 2026-10-12).** Phase 1 now requires exact expected
+> cumulative-weight incentives in the complete offline, invariant-information domain of
+> [`16` §7.2](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
+> The owner explicitly withdraws using that guarantee as a general proof against betrayal.
+> The bounded affine candidate there has an accepted conditional proof and an exact offline
+> reference (`sim/a12_offline.py`). The explicit frozen-weight Rust integration package is
+> accepted on 2026-10-13 using the owner's executable checks and Astra's source review
+> (`16` §7.2); there is no operational adoption.
+> D33/D34/D36 below still describe the current Rust implementation and
+> its acquired tests; benchmark/cap behavior and diagnostic-only CUSUM are candidate choices,
+> not silent code changes. The composed closure review closes A12 conditionally under the amended claim (`16` §7.3); Phase 1 remains open.
+
+> **Numerical qualification approved by the owner (2026-10-12).** The exact rational A12
+> theorem is retained. For a single final conversion to binary64, the consumed coefficient
+> has error at most `2⁻⁵³`; the expected deviation advantage over `M` prefixed opportunities
+> is bounded by `M·2⁻⁵²`, not asserted to be exactly zero. `16` §7.2 specifies the sum and
+> exclusions. This explicitly amends the numerical AT-REP-01 claim. The owner's Rust
+> compilation, five composed tests and formatting checks now satisfy the integration gate;
+> Astra read the reports and did not rerun Rust (`16` §7.2).
+
 > **Implemented (2026-09-25, T50):** `reputation::{loo_baseline, loo_scores, mean_score,
 > odds_weight, EvaluatorParams}` (`γ = 35`, `k₀ = 100`, provisional); `honeypot::reviewer_skills`
 > returns the mean leave-one-out difference score on the golden items; the review weight is
@@ -602,8 +697,9 @@ the reviewer being scored.
   best report is `logit p* = logit q + 2 logit b`, so a dissenter is paid to move toward
   the crowd. Example: a reviewer believes 0.30 and the crowd says 0.65. Reporting 0.60
   earns +0.01 in expectation, reporting the truth earns −0.35.
-- *The difference score is strictly proper* and gives exactly 0 to a reviewer who copies
-  the crowd (Prop. 14).
+- *The difference score is strictly proper* under a joint law of baseline and outcome that
+  the report leaves unchanged (`16` C6, sufficient), not under the fallback with no other weight
+  (`15` A10), and gives exactly 0 to a reviewer who copies the crowd (Prop. 14).
 - *The cap needs an unbounded scale.* It never binds on `E_u ∈ (0,1)` (Prop. 15), and
   relative weights `E_u / median(E)` stay bounded too. Odds weights are unbounded, so the
   cap works.
@@ -616,6 +712,11 @@ the reviewer being scored.
 ---
 
 ## D34 — Reputation dynamics: long-window mean plus a change detector
+
+> **Suspended by D47 (owner, 2026-10-21)** as a specification of the new mechanism: the
+> detector reads forecast scores. Whether a change detector applies to the reliability still
+> to be defined belongs to its reputation update. The implementation below stays current
+> behaviour.
 
 > **Implemented (2026-09-25, T51):** `reputation::{Cusum, CusumParams}` (`k = 0.03`,
 > `h = 1.5`, provisional) and `probation::SkillTrack` — the running mean of the per-item
@@ -655,6 +756,27 @@ reacts slowly to a long con.
 
 ## D35 — Scored outcomes: live items with randomized exploration; golden items at 5%
 
+> **Modified by D47 (owner, 2026-10-21).** These outcomes scored a forecast of the pilot;
+> reviewers now answer the item. Exploration, O1 and O2 are suspended; the role of golden
+> items under D47 is open. The implemented observation path below stays current behaviour.
+
+**O1 amendment (owner's explicit decision, 2026-10-11; approved by Astra on `e735a8e`).** For A1's
+correction the forecast target is `q_c = P(Y = A | Y ≠ I, F_u)`, defined only where
+`c = P(Y ≠ I | F_u) > 0`. At `c = 0` the score is flat and `q_c` stays undefined, with no
+conventional value. The decided specification concerns the expected score under the declared
+hypotheses, for completed reports and defined baselines; it guarantees no reputational incentive.
+O2 subsequently chosen, O3 acquired; A12 was then open (`17` §§14.14–14.15) and is now closed conditionally (`16` §7.3). The O1 decision,
+motivation, limits and affected promises are recorded once in
+[`17` §14.12](../archive/phase1-forecast-pilot/docs/17-a1-pilot-batch-design.md#1412-o1-target-amendment-owners-decision-2026-10-11).
+The original observation path and its implementation below remain current behavior; they have
+not been adapted to the new target or design.
+
+**O2 decision (owner, after `af42035`).** A is the design of A1's conditional correction:
+each reviewed item prescribed to the pilot in its prefixed group, `π=1`, no observation draw
+in the score. Sustainability is a premise to evaluate; no operational commitment, sample
+choice or T1 adoption. Decision, conditions and Astra’s conditional A1 closure on `1bd865c`:
+[`17` §14.15](../archive/phase1-forecast-pilot/docs/17-a1-pilot-batch-design.md#1415-o2-decision-and-proposed-conditional-a1-closure).
+
 > **Implemented (2026-09-25, T52):** `protocol::exploration` — the beacon's draw
 > (`explore_from_beacon`, `EXPLORATION_RATE = 0.05`, keyed on the admitted slot) sends a
 > gate rejection through `lifecycle::Event::Explore` to `Explored`, the two pilot batches
@@ -672,16 +794,19 @@ reacts slowly to a long con.
 > is measured as a pass — a gate false negative — and the pool is unchanged. Grind-free
 > since T37; `ε` provisional (T25).
 
-**Choice.** Evaluators are scored on three kinds of item:
+**Original choice (2026-09-25; implemented observation path).** Evaluators are scored on
+three kinds of item:
+
 1. golden items, still 5% of the review queue;
 2. every live item they reviewed that reaches Level B, once its outcome is known;
 3. a random 5% of the items the gate rejects, drawn from the public beacon (D41) and
    sent to the pilot for measurement only.
 
 The outcomes of the items in (3) are weighted by `1/0.05 = 20` (inverse probability), so
-the expected score equals the score with every outcome observed. An explored item does
-not enter the pool because of its pilot result. Entry still requires passing the gate or
-a successful appeal (D8).
+the original IPW argument intends to match the full-observation expected score. This identity
+requires the conditional selection hypotheses in `17` §14.12; O1 establishes none of them.
+An explored item does not enter the pool because of its pilot result. Entry still requires
+passing the gate or a successful appeal (D8).
 
 **Why.** Differences in skill between evaluators are small compared with the noise of a
 single item (about 0.01–0.02 against about 0.1). Around 100 scored items per reviewer
@@ -694,8 +819,9 @@ design scale:
 | Live outcomes + exploration | ≈ 3.5 | ≈ 2.5 years | ≈ 10 months |
 
 Scoring only the items the gate lets through would break properness, because the
-forecast then influences whether its own outcome is observed. Randomized exploration
-restores properness (Chen, Kash, Ruberry & Shnayder, 2014). Exploration also measures,
+forecast then influences whether its own outcome is observed. Randomized exploration can
+correct selection under the required information and IPW hypotheses; it establishes no
+properness of the current sequence (`15` A1; `17` §14.12). Exploration also measures,
 for the first time on real data, how many good items the gate rejects. It costs about 5%
 of pilot capacity.
 
@@ -708,6 +834,11 @@ of pilot capacity.
 ---
 
 ## D36 — Probation: 30 scored outcomes, then shrinkage
+
+> **Suspended by D47 (owner, 2026-10-21)** as a specification of the new mechanism: probation
+> counts scored forecasts. Whether a probation or a shrinkage applies to the reliability still
+> to be defined belongs to its reputation update. The implementation below stays current
+> behaviour.
 
 > **Implemented (2026-09-25, T50):** `probation::N_PROBATION = 30`; after it the odds weight
 > of D33 is shrunk by `k_u/(k_u + 100)`.
@@ -1044,7 +1175,623 @@ read skewed (`docs/02` §B.1) — the floor of D25 keeps the metric.
 
 ---
 
-## D44 — Who reads the replicated set: three tiers, commitments in public, blind relays, a state tree keyed by nym
+## D44 — Foundational principles for relevance, fairness and empirical progress
+
+**Owner direction, 2026-10-18.** These principles guide the interpretation of D3/D4,
+the evidence filter and A2. They describe the intended responsibilities and the way
+progress is assessed; they do not certify their operational realization.
+
+**Context and relevance belong to the review process.** Proponents and reviewers
+must share the purpose of the test: what knowledge it seeks to measure and what is
+out of scope. A well-formed medical item can be irrelevant to a test of political
+institutions. Relevance is assessed by people through the review process, with
+bridging rather than a simple majority deciding the review gate. The numerical
+engine need not interpret the item's political meaning or receive a semantic topic
+label to compute its scores. Source-based admissibility and verifiability remain
+separate requirements (D38; `02` §B.5).
+
+**Content-independent computation is not content-free governance.** No political,
+demographic or affiliation label on people is added. This is distinct from item
+metadata: the existing blueprint can enforce quotas on opaque domain identifiers,
+without understanding them. D44 neither requires a new automatic taxonomy nor
+removes the existing blueprint. Defining domains, assigning items correctly and
+judging coverage remain governance/review responsibilities, not properties proved
+by the quota code. Relevance of each item does not by itself establish coverage of
+the whole subject; that assessment needs a view of the collection, not just isolated
+reviews. No new interface, disclosure rule or production workflow is adopted here.
+
+**Fairness is not equality of raw scores.** Greater knowledge of the competence the
+test is intended to measure should be allowed to yield better results. A 99% versus
+5% correct-answer rate is not by itself evidence of a defect. A residual difference
+at equal *estimated* ability is evidence about the model's description of responses,
+not a causal diagnosis: it may reflect nuisance wording, pertinent specialist
+knowledge, omitted dimensions or estimation error. Latent components are not
+identified political groups. Anchors and successful fits do not settle the meaning
+or adequacy of the competence being measured.
+
+**True contested facts remain eligible for their existing path.** Statistical
+polarization alone does not make a sourced, relevant fact false or inadmissible.
+D38's source check and contested pool remain. Whether a given difference in knowledge
+should contribute to the score or be compensated in the complete test is a
+substantive choice about its purpose. This clarification does not silently repeal
+D38's balancing objective or change A2's target: its reconciliation with pertinent
+knowledge remains an explicit A2 decision. No new exclusion, compensation or
+automatic admission rule is introduced.
+
+**Measure, constrain and certify are distinct.** A measured difference is not an
+upper confidence bound; satisfying the fitted contested-item cost is not a certified
+whole-test limit. Missing evidence is neither balance established nor imbalance
+established. Empirical rates are reported for their declared populations, scenarios
+and uncertainty; a theorem remains conditional on its stated hypotheses.
+
+**Progress is empirical and iterative, not a promise of perfection.** The owner
+accepts useful partial performance while the mechanism is tested and refined. The
+reference to "75%" expresses that direction, not a selected accuracy, coverage,
+power, tolerated harm or error probability. Before execution, a test names its
+candidate, target, cases, denominators, metrics and resource bound. Report detection
+and false alarms, correct and incorrect certification where relevant, inconclusive
+outcomes and cost separately; no single success percentage conceals the trade-offs.
+Data used to choose or tune a candidate are distinguished from confirmation data.
+Changing the model or criterion after inspecting results starts a new declared
+evaluation; it does not retroactively turn the earlier result into confirmation.
+
+**Scope and next work.** A2 remains open under its kept whole-test requirement.
+No numerical tolerance, risk level, sample size, model assumption or certification
+claim is selected here. The bounded testing direction and remaining decisions are
+recorded in [`19` §13.10](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18);
+no existing closure is reopened and no production readiness is implied.
+
+---
+
+## D45 — An open environment: performance with outside resources, not unaided knowledge
+
+**Owner decision, 2026-10-20.** Isegoria is designed for an open, unsupervised
+environment. It does not presume that reviewers or respondents are isolated from the
+Internet, documentation, search engines or AI tools.
+
+**The score's interpretation follows these conditions.** A correct answer, by itself, does
+not show knowledge held without assistance, autonomous understanding or personal
+execution. The operational reference is the performance obtained in the declared open
+environment. Reading that performance as competence, and using it to attribute weight or
+authority, each need a separate justification, not yet established.
+
+**Not a licence.** The decision approves no behaviour automatically. Collaboration, full
+delegation, automation, impersonation and strategic coordination remain questions to
+distinguish and govern; no rule for them is adopted here.
+
+**Reviewers.** Consulting and comparing sources is compatible with checking an item's
+correctness, relevance and ambiguity. Agreement between assessments does not show that
+the checks were independent, above all when they share sources or tools.
+
+**Respondents.** Searching and using resources are part of the real conditions to account
+for. The system cannot infer from correctness alone how an answer was produced. Nominally
+open access does not mean equal availability of time, tools, language or source quality.
+No claim is made that harder questions, timers or other devices solve these problems
+automatically.
+
+**Models and evidence.** Open operating conditions are distinct from the models'
+hypotheses: by themselves they neither show nor refute local independence, a latent
+structure or other premises, whose adequacy remains to be checked. Tests already run keep
+their results and declared scope. They are not validation of online search, AI use,
+delegation or coordination where these were not represented; the synthetic studies of
+`19` §§13.11–13.31 generate responses from the model and represent none of them.
+
+**A2.** The working target stays the total-score difference between real groups of the
+reference population at equal competence, under the contract's explicit hypotheses
+([`19` §13.33](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md#1333-conditional-reference-target-and-majorant-obligation-a-specification-not-adopted)).
+What "competence" means there, and the role of outside resources, must be defined
+consistently with this decision. Not adopted here: a mathematical definition of ability, a
+measure `μ`, a solution to D38, a presence threshold, a tolerance or risk level, an
+admission or weighting policy.
+
+**Tensions with existing contracts, recorded, not resolved.**
+- D3 and `00`'s Level B: answer data are called very hard to attack, since that requires
+  corrupting the sample. Answers produced with outside resources, delegation or
+  coordination are not identity-level corruption; how they bear on that claim is open.
+- `02` §C.3: peer prediction rewards agreement between reviewers, which shared sources or
+  tools can produce without independent checks; whether its incentive argument holds under
+  these conditions is open.
+- D39: correlated residuals can also come from honest reviewers sharing sources or tools,
+  which the dataset behind its thresholds (`02`, anti-collusion) does not represent.
+- D33–D35: the evaluator weight is attributed from forecasting performance in this
+  environment, justified so far by the incentive analysis (A1), not by a reading as
+  competence; whether weight as authority needs more is open under this decision.
+- D4 and `02` §B.3: latent classes, and differences at equal `θ`, can reflect unequal use or
+  availability of outside resources; whether such a difference is functioning to constrain,
+  competence, or neither belongs to the definition above.
+
+**Scope.** Documentation of a foundational decision only. No rule, threshold, policy,
+measure or model assumption is adopted; no review finding is closed; the certifier and new
+experiments stay suspended; A2 stays open and blocking; D38 stays apart.
+
+**Review (Astra, `be4fda8`).** From the diff, no test or fit: the foundational setting and the
+distinction between operating conditions, model hypotheses and acquired results accepted. A
+rectification asked in the links — knowledge, observed performance and the latent `θ` are not
+to be identified implicitly — made after it in the README, `00`, `02`, `05`, `06` and the
+glossary: answers are produced in the open environment; `θ` stays the declared model's latent
+parameter, whose meaning relative to competence and to outside resources, and that reading's
+adequacy, remain to be established; a correct answer alone does not show unaided knowledge.
+
+---
+
+## D46 — Assessment priorities: correct answers, and claims weighed against their evidence
+
+**Owner decision, 2026-10-20.** Within D45's open environment, two priority objectives of the
+assessment, kept conceptually distinct:
+
+- **A. Factually correct answers, even with assistance.** Correctness refers to a question
+  precise enough, with its time reference and the pertinent conditions.
+- **B. Telling reliable from misleading information,** by weighing the relation between a
+  specific claim and the evidence that supports it. Reliability does not reduce to a source's
+  reputation, its leaning or agreement with the conclusion: a generally reliable source can be
+  wrong, and a partisan source can report a fact correctly.
+
+**Not adopted.** Subscores, weights, thresholds, answer formats, rubrics or an aggregate index.
+Correctness obtained with assistance certifies no autonomous understanding, personal execution
+or ability without tools. The open questions of D45 — collaboration, delegation, automation,
+impersonation, coordination — are not settled by this decision.
+
+**Illustration, not a rule.** A headline claims school spending doubled; the document it cites
+shows that one extraordinary fund doubled. Establishing the fact: that fund doubled (A).
+Weighing the conclusion: the document does not show that total school spending doubled (B). The
+example is no item ready for the pool, adopted rubric or validated instrument, and creates no
+obligation to collect browsing histories, AI conversations or personal attributes.
+
+**Relation to existing roles and to A2.** The priorities concern what respondents are assessed
+on. They are distinct from the reviewers' forecast of an item's pilot outcome (`02` §C.2, A1's
+target), which they neither replace nor reopen; A1's and other conditional closures stand.
+A2's working target is unchanged
+([`19` §13.33](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md#1333-conditional-reference-target-and-majorant-obligation-a-specification-not-adopted)):
+the priorities orient the future definition of the pertinent competence, but establish no
+mathematical definition of `θ`, measure `μ`, treatment of differences in access to resources,
+semantics for D38, tolerance, risk or closure criterion, nor a justification for attributing
+weight or authority. Tests already run keep their scope and validate neither these objectives
+nor assisted behaviours they did not represent.
+
+**Tensions with existing contracts, recorded, not resolved.**
+- `02` §B.5 admits verifiable procedural and institutional facts and, for a flagged item,
+  requires the key to be a declared, deterministic function of cited data, rejecting a key
+  that rests on interpretation. Whether and how B's judgments of a claim against its evidence
+  fit that taxonomy and step 4 is open.
+- `02` §§B.1–B.3 read one latent trait per batch, and A2's target sums a form's items
+  (`19` §11.1). A form holding items of both priorities would be read on one trait and one
+  total, while this decision keeps them distinct and adopts no aggregate; whether batches,
+  forms, scores or targets are kept per priority is open.
+- `02` §B.2 drops items too easy to be informative or that separate nobody; items most
+  respondents answer correctly with assistance may fall there, while A values such answers.
+  How the evidence filter's informativeness relates to A is open.
+
+**Scope.** Documentation of the owner's decision only, as D45: no rule, threshold, policy,
+format or model assumption adopted; no review finding closed; the certifier and new
+experiments stay suspended; A2 stays open and blocking; D38 stays apart.
+
+---
+
+## D47 — Reviewers answer the item; their reliability is evaluated over time
+
+> **Modified by D48 (owner, 2026-10-21)** for the first implementation: reviewers drawn from the
+> pool carry equal weights, ordinary reviews do not update their reputation, and the evaluation of
+> their reliability is deferred; the consensus of their answers is the review's operational
+> criterion, which rectifies the binding of invariant #2 and D1 stated below; a reviewer may answer
+> that no alternative is correct; a question is never corrected retroactively, nor its key
+> replaced automatically. The text below is D47 as decided; D48 lists what it modifies. D49–D52
+> then approved the contract of the answer review, its first implementation.
+
+**Owner decision, 2026-10-21.** The direction of Phase 1's mechanism, decided before it is
+implemented:
+
+- The author writes a question in its context and states the correct answer.
+- Reviewers answer the question. Forecasting whether the item passes the pilot is no longer
+  their main expected contribution.
+- Reviewers may consult any resource. The system does not detect, infer or assess the use of
+  outside tools.
+- Searching for sources and weighing them is the people's task. Reviewers are not required to
+  state or record the sources they consult, and their contract introduces no automatic verifier
+  of those sources.
+- The mathematical mechanism processes the answers and evaluates the reviewers' reliability over
+  time, with a possible reputational weight.
+
+**Sources: what is decided and what is open.** Decided: reviewers do not state or record the
+sources they consult, and the system does not detect, infer or assess their use of outside
+tools. Open, and not decided by D47: whether the author keeps attaching a mandatory primary
+source at deposit, and whether the contested-fact path keeps its source check (`02` §B.5, D38,
+`10` T68). Both stay as they are until the owner decides: the deposit refuses a draft without
+a source (`protocol::deposit`), and the check's verdict enters the lifecycle as an input,
+`source_verified`, its computation in code being T68.
+
+**Still to define, not settled here.** The aggregation formula, the reputation update, the
+treatment of a contested key, the thresholds, the outcomes and the new mechanism's guarantees.
+A balanced split between correct and wrong answers is a possible signal to study; it is neither
+a validated criterion of ambiguity nor an automatic rule of rejection. Agreement with the
+author's key or with the majority of reviewers is not demonstrated reliability. No formula or
+policy is adopted to fill these gaps. The invariants still bind the choice: quality is not
+decided by majority (#2, D1), and a Schelling point that rewards agreement with the majority is
+excluded (D6, [`CLAUDE.md`](CLAUDE.md)).
+
+**Objectives and mechanisms.** D45's open environment and D46's two priorities remain the
+references: they state conditions and objectives of the assessment. D47 states the direction of
+a mechanism: which data each role supplies and what the mathematics must evaluate. It does not
+make the reviewers' answers a measure of D46's priorities, does not show unaided knowledge
+(D45), and adopts no subscore, rubric or aggregate. D46 keeps its priorities distinct from the
+reviewers' forecast; D47 is what sets that forecast aside as the reviewers' main contribution.
+
+**Earlier commitments it modifies.**
+- D6: the reviewer's input, a probability that the item passes validation scored by a proper
+  rule, is replaced as the intended contribution by an answer to the item. The exclusion of a
+  Schelling point stays.
+- D23, D33, D35: the evaluator score as a forecast's difference score against the crowd, its
+  odds weights and its scored outcomes (pilot outcomes, exploration, golden items) are no
+  longer the intended evaluator mechanism. What replaces them is still to be defined.
+- `05` [4]: the reviewer's declaration of a probability becomes an answer to the item. Random
+  assignment, blindness and commit-reveal are not changed by this decision.
+
+**Earlier commitments it suspends.** No further work under the previous design; its code, tests
+and records are kept, and its closures keep their perimeters.
+- A1's forecast target (O1) and observation design (O2, every reviewed item prescribed to the
+  pilot), with their operational premises (sustainability, T1). A1 stays closed conditionally
+  on `1bd865c` for its expected-score guarantee only.
+- A12's affine weight candidate and its parameter procedures (`η`, `k₀`, probation, cap,
+  diagnostic CUSUM). A12 stays closed conditionally on `15b846c` within its offline scope.
+- A10's residual: what an absent forecast baseline does in a future consumer.
+- D34's change detector and D36's probation as specifications: they act on forecast scores.
+  Whether a detector, a probation or a shrinkage applies to the new reliability belongs to the
+  reputation update still to define.
+- D35's exploration and its rate; B-b's scorer and its snapshot; the band items' forecast
+  baselines; the S2 synthetic check.
+- The calibration of the forecast path's parameters in T25's step 4: `γ`, `k₀`, the odds cap
+  `w_max`, the CUSUM's `k` and `h`, `N_PROBATION`, the exploration rate.
+- A2's work, already suspended, as stated below.
+
+**Left open.**
+- The points still to define, above.
+- Level A. Today the reviewer's revealed probability is both the bridging rating `r_uj` and the
+  forecast the evaluator score reads. Whether bridging (D2, D32, D42) reads the answers, another
+  review signal or nothing, and what follows for the band (D26) and the appeal (D8, D27), is
+  not decided. Invariant #2's exclusion of a majority count stays; its two filters, like D1's,
+  describe the existing mechanism and are not imposed on the new one automatically.
+- Level B. The relation between the reviewers' answers and the pilot, IRT, DIF, contested facts
+  and re-validation (D3, D11, D37, D38, D43) is not decided. Their contracts and code stand as
+  specified.
+- Golden items (D21, `05`): whether and how they serve the reviewers' reliability.
+- The author's mandatory source at deposit and the contested-fact path's source check, as
+  stated under *Sources* above.
+- Peer prediction and the Bayesian Truth Serum (`02` §C.3), with D45's tension on shared sources.
+- D39's coordination detector infers no tool use, yet shared tools can produce its signal (D45);
+  under D47 its flags are not evidence of tool use, and how the two coexist is open.
+- D45's other questions (collaboration, delegation, automation, impersonation, coordination) and
+  the tensions D45 and D46 record: none is resolved here.
+- Invariant #4 and D5 stand: `C` and `E` stay on unlinkable pseudonyms. What `E` measures under
+  D47 is part of the reliability still to define.
+
+**A2.** A2's requirement, a whole-test DTF bound for the previous design's contested pool and its
+active items (`15` A2), is not resolved, withdrawn or narrowed by D47 or by the archiving of its
+dossier and studies. Its certifier and experiments stay suspended; its results keep their
+domains. Whether the new design needs a whole-test guarantee, and which, is among the guarantees
+still to decide. A2 stays open, and Phase 1 cannot be declared complete before the owner decides.
+
+**Closures.** A1, A12, A10, A3–A9, A11, C5, C6, D3 and the Variant 1 fit states remain closed
+within their recorded perimeters, conditionally where so recorded. A1 and A12 concern the
+forecast score and its weights; they certify nothing of the new mechanism.
+
+**Current code.** Nothing implements D47. Reviewers commit and reveal a probability
+(`protocol::review::{commit, reveal}`, `lifecycle::Event::Reveal`). It is the bridging rating
+and the forecast that `scoring::reputation` and `protocol::{honeypot, exploration, probation,
+panel_scores, cohort_scores, affine_weights}` score and weigh. These keep their tests and their
+documented behaviour until the implementation that follows adapts, replaces or retires them.
+
+**Material.** The inventory of what D47 affects — kept, to adapt, archived, still needed as a
+dependency — is [`21`](21-d47-inventory.md). The previous design's dossiers, A12's and A2's tools
+and A2's results are in [`archive/phase1-forecast-pilot/`](../archive/phase1-forecast-pilot/README.md),
+with its index and path map.
+
+**Scope.** Decision record only. No formula, threshold, policy, format or rubric is adopted; no
+code behaviour changes; no review finding is closed; Phase 1 stays open. The implementation of
+the new mechanism is a later assignment.
+
+**Rectified after Astra's review of `47a1698`.** The decision on sources is scoped to what
+reviewers consult, apart from the author's deposit source and the contested-fact source check,
+which stay open; invariants #2 and #8 in `CLAUDE.md` separate the retained principle from the
+existing mechanism's contracts; the README's account of the engine and of its scoring rule is
+limited to what is implemented and verified. No decision content was added.
+
+---
+
+## D48 — First implementation: drawn reviewers, equal weights, consensus on the answers
+
+> **Settled by D49–D52 (owner, 2026-10-21)** for the answer review: the group's size, the quorum
+> and absences, the thresholds and outcomes, "don't know" and the source at deposit (D49); the
+> author's reputation (D50) and quotas (D51); the previous filters' role, A2's disposition and the
+> parameters' status (D52). The text below is D48 as decided, its list of points still to decide
+> included.
+
+**Owner decisions, recorded 2026-10-21, after D47.** They settle part of D47's mechanism for its
+first implementation. D47 stays the record of the direction; the points below modify it where
+stated.
+
+1. **Draw.** Reviewers are drawn by lot from the reviewer pool. No new selection by specialist
+   competence is introduced. That the pool suits the item's context is a premise, not a property
+   the draw demonstrates.
+2. **Equal weights.** Every reviewer carries the same weight. Ordinary reviews do not update the
+   reviewers' reputation; the evaluation of their reliability is deferred. Agreement with the
+   majority is not rewarded.
+3. **Consensus as the operational criterion.** The consensus of the reviewers' answers is the
+   review's operational criterion. This explicitly rectifies the earlier absolute ban on deciding
+   quality by voting (D1; invariant #2 in [`CLAUDE.md`](CLAUDE.md) as worded until D47). It does
+   not make consensus a guarantee of truth: a consensus shows neither that the key, or the answer
+   the reviewers agree on, is correct, nor that the reviewers are reliable.
+4. **"None of the alternatives is correct."** A reviewer may answer that none of the alternatives
+   is correct. That answer stays distinct from choosing an alternative other than the one the
+   author states as correct.
+5. **No retroactive correction.** A question is not corrected after the fact: to correct it, its
+   author submits a new question. No automatic replacement of the correct answer is introduced,
+   by the reviewers' consensus or otherwise.
+6. **Outside resources.** The Internet, documents and AI are freely usable. The tools used are not
+   detected, and the sources reviewers consult are not recorded (as in D47).
+
+**Accepted risks.** The owner accepts the risks this choice leaves, and the draw eliminates none
+of them:
+- *shared errors:* reviewers who rely on the same wrong source, document or tool can agree on the
+  same wrong answer, and the consensus follows them;
+- *different competences, equal weights:* a reviewer who knows the subject counts as much as one
+  who does not;
+- *superficial reviews:* an answer given without checking counts as much as a checked one;
+- *coordination:* reviewers who agree among themselves outside the system can carry the
+  consensus.
+
+D1's concern is not removed either: a draw does not stop a group that is numerous in the pool, or
+coordinated, from carrying the consensus. A mechanism that evaluates the reviewers may become
+necessary; it would need a credible reference to evaluate them against, and a distinct decision.
+
+**Author reputation.** The author's reputation stays separate from the reviewers' (invariant #4,
+D5). Rewards for acceptance and penalties for contestation or rejection have been discussed; their
+formula, size and conditions are not defined, including what counts as a contestation (the
+implemented author score counts an item in D38's contested pool as a pass, D27). This direction is
+not an executable rule: the author score as implemented (`02` §C.1, D27, `15` C5–C6) is unchanged.
+
+**What it modifies in D47.**
+- *Reliability over time.* D47's mathematics was to evaluate the reviewers' reliability over time,
+  with a possible reputational weight. For the first implementation that evaluation is deferred,
+  and no reputational weight applies (point 2).
+- *The points D47 left to define.* The aggregation is the consensus of equally weighted answers
+  (point 3), with its thresholds still to define. The reviewers' reputation update: none from
+  ordinary reviews. The contested key: no retroactive correction or automatic replacement (point
+  5), and "none is correct" stays distinct from another alternative (point 4); what happens to the
+  item is among the outcomes still to define. The guarantees: consensus guarantees no truth.
+- *Invariant #2 and D1.* D47 kept their exclusion of a majority count as binding the new
+  mechanism; point 3 rectifies that. The exclusion of a Schelling point (D6) stands: no reviewer is
+  rewarded for agreeing with the majority (point 2).
+- *Golden items.* D47 left open whether they serve the reviewers' reliability; that question is
+  deferred with the evaluation.
+- *`E`.* D47 left what `E` measures to the reliability still to define. In the first
+  implementation ordinary reviews do not update it and it weights no answer; `C` and `E` stay on
+  unlinkable pseudonyms.
+
+Unchanged from D47: the author states the key; reviewers answer the item, with any resource;
+forecasting the pilot outcome is no longer their main contribution; agreement with the key or with
+the majority is not demonstrated reliability; a balanced split of correct and wrong answers is a
+signal to study, not a rule; random assignment, blindness and commit-reveal stay; D45 and D46 stay
+the references for conditions and objectives.
+
+**Other earlier commitments it modifies.**
+- D1 and invariant #2: rectified by point 3 for the new mechanism's review. Their two filters stay
+  the description of the existing mechanism.
+- D5 and invariant #4: `E` weights the review in the existing mechanism; in the first
+  implementation every reviewer weighs the same. The separation stands.
+- D33–D36, already set aside by D47 as the intended evaluator mechanism: equal weights and the
+  absence of a reputation update leave their odds weights, cap, probation and change detector no
+  role in the first implementation.
+
+**Still to decide before implementing.**
+- The size of the drawn group, the quorum, and what absences do.
+- The thresholds and the outcomes, among them what happens to an item whose consensus differs from
+  the key or answers that no alternative is correct.
+- Whether reviewers may answer "don't know", and how such an answer counts.
+- The author's reputation: formula, size and conditions (above).
+- The author's mandatory source at deposit and the contested-fact path's source check (D47,
+  *Sources*).
+- The role of the previous filters: Level A (bridging, the draw stratified on its axis, the band,
+  the appeal), Level B (the pilot, IRT, DIF, contested facts, re-validation), D39's coordination
+  detector and D40's panel constraint.
+- A2's disposition for the new design, and Phase 1's completion criteria.
+
+A later evaluation of the reviewers, if it becomes necessary, is a distinct decision with its
+credible reference.
+
+**Closures and A2.** As in D47: A1, A12, A10, A3–A9, A11, C5, C6, D3 and the Variant 1 fit states
+keep their perimeters, conditionally where so recorded, and certify nothing of this mechanism. A2
+stays open, and Phase 1 cannot be declared complete before the owner decides.
+
+**Current code.** Nothing implements D47 or D48. Reviewers commit and reveal a probability, which
+is both the bridging rating and the forecast the evaluator path scores and weighs (`02`
+§§C.2–C.4); the draw is stratified on the bridging axis and constrained by D40; the draft holds the
+item's bytes and its mandatory source, with no structured field for the key. These keep their
+tests and documented behaviour until the implementation adapts them ([`21`](21-d47-inventory.md)
+§2).
+
+**Scope.** Decision record only. No group size, quorum, threshold, outcome, formula or reputation
+rule is adopted; no code, test or archive changes; no review finding is closed; Phase 1 stays
+open. The implementation is a later assignment.
+
+---
+
+## D49 — The answer review: drawn group, answers, closure and outcome
+
+> **D53 (owner, 2026-10-21)** later confirmed, for the first offline version, three choices of the
+> implementation that this decision left open: joining the pool is availability, the draw follows
+> the deposit epoch's closure, and a question whose pool holds fewer than 12 stays unavailable for
+> good. They are D53's, not this decision's.
+
+**Owner decision, approved contract, recorded 2026-10-21.** It settles, for the first
+implementation of D47's mechanism as D48 modified it, the review points D48 left to decide. The
+offline path that implements D49–D52 is called the *answer review* below; D50 and D51 give its
+author reputation and quotas, D52 its perimeter and parameters.
+
+**The question and the review.**
+- The author supplies the question, its context, its alternatives and the alternative stated as
+  correct (the key).
+- No source is required of the author, and the answer review has no automatic source check.
+- The Internet, documents and AI are freely usable. The tools used are not detected, and the
+  reviewers' sources are not collected (D47, D48 point 6).
+- 12 distinct reviewers are drawn at random from the available pool, with no new competence
+  filter (D48 point 1).
+- Every reviewer weighs the same, and no reviewer's reputation is updated (D48 point 2).
+- A reviewer answers by choosing an alternative, "none of the alternatives is correct" or "don't
+  know".
+- The key is not shown to the reviewers before their commitment. The separation from the other
+  reviewers' answers and the commit-reveal stay.
+- The question is immutable: a correction needs a new question. The key is never replaced
+  automatically (D48 point 5).
+
+**Collection and closure.**
+- At least 9 usable answers are needed. Usable answers are the alternatives chosen and "none".
+- "Don't know" is an abstention, distinct from an absence (a drawn reviewer who gives no answer).
+  Both are excluded from the denominator and from the quorum.
+- No reputational penalty falls on a reviewer for an abstention or an absence.
+- No reviewer is replaced in the same round.
+- The round closes by an explicit event of the offline path; it does not close automatically at
+  the ninth answer.
+- After the closure no answer enters the round.
+- No real deadline, early closure or automatic retry is introduced.
+- If 12 distinct reviewers cannot be drawn, the group is not silently reduced: the draw returns
+  an explicit condition of unavailability.
+
+**Outcome.** Let `V` be the usable answers and `C` those that coincide with the key:
+- `V < 9`: insufficient participation;
+- `V ≥ 9` and `4C ≥ 3V`: accepted;
+- `V ≥ 9` and `4(V − C) ≥ 3V`: discarded;
+- otherwise: divided answers.
+
+"None" counts among the answers that do not coincide. A discard does not need the dissenting
+reviewers to choose the same alternative. The full distribution, the abstentions and the
+absences are kept.
+
+Only accepted questions enter the answer review's usable set. Divided answers are not a
+demonstrated ambiguity. Insufficient participation is not a discard. No policy of new rounds is
+added: it is outside this first implementation.
+
+**What it settles of D48's open points, for the answer review.** The group's size, the quorum
+and what absences do; the thresholds and the outcomes, a consensus on another alternative or on
+"none" included (a discard when at least three quarters of the usable answers dissent, divided
+answers otherwise); "don't know"; the author's source at deposit (none required, no check).
+`10` T58's no-show rule, decided for the previous design's panels, is not carried over: no
+replacement, no loss of weight, no suspension from the draw.
+
+---
+
+## D50 — The author's reputation in the answer review
+
+**Owner decision, approved contract, recorded 2026-10-21.** The answer review keeps the
+structure of the regularized index and of the aging defined in `02` §C.1, with its inputs
+adapted explicitly:
+- accepted: a success, value 1, observation weight 1;
+- discarded: a failure, value 0, weight 1;
+- divided answers: a failure, value 0, weight 1/4;
+- insufficient participation: no observation.
+
+The observation's weight multiplies its time contribution in both the numerator and the
+denominator: with `ω_j` the observation weight and `w_j` the time weight of `02` §C.1,
+
+```
+          α₀ + Σ_j ω_j w_j q_j
+C_a  =  ─────────────────────────
+        α₀ + β₀ + Σ_j ω_j w_j
+```
+
+No fixed subtraction from the score replaces this rule. The initial prior stays
+`α₀ / (α₀ + β₀) = 2 / (2 + 3) = 0.40`, and the time contract in force stays (`02` §C.1, D27's C6
+amendment: ages in applied closings, `H = 45`).
+
+The outcome and its reputational contribution are recorded together, atomically and once per
+question. The outcomes recorded in an epoch enter the ordinary computation from the next epoch.
+A new, corrected question does not erase the earlier outcome.
+
+C5 and C6 stay closed within their scope; their closures are not extended automatically to these
+inputs. The existing path's author score (`02` §C.1, D27, `15` C5–C6) is unchanged, and the
+answer review has no appeal and no escrow. This gives the answer review the formula, size and
+conditions D48 left undefined for the author's reputation.
+
+---
+
+## D51 — The author's quotas in the answer review
+
+**Owner decision, approved contract, recorded 2026-10-21.** An author's quota is fixed once per
+epoch from the reputation D50 defines:
+- `0 ≤ C < 0.30`: 1 question;
+- `0.30 ≤ C < 0.70`: 2 questions;
+- `0.70 ≤ C ≤ 1`: 3 questions.
+
+A new author starts with 2 questions per epoch.
+- An accepted deposit consumes a slot; an invalid request does not.
+- A duplicate request creates no other question and does not consume a second slot.
+- No slot is refunded on the review's outcome.
+- Unused slots do not accumulate.
+- A new, corrected question consumes a new slot.
+- The quota does not change during the epoch.
+
+In the answer review this rule replaces the earlier linear link between reputation and quota
+(`02` §C.1, `q_a = q_min + (q_max − q_min) · C_a`). Epochs are logical, closed explicitly
+offline.
+
+---
+
+## D52 — The answer review's perimeter, guarantees and parameters; A2's disposition
+
+**Owner decision, approved contract, recorded 2026-10-21.**
+
+**Perimeter.** The answer review uses consensus as its operational criterion (D48 point 3, D49).
+Bridging, the pilot, IRT, DIF and the source check are not conditions of acceptance in it. The
+coordination detector (D39) does not modify the draw, the weights or the outcome automatically.
+The previous material and components are kept, and their contracts and guarantees are not
+transferred automatically to the new path. No new campaign is run.
+
+**A2.** The old problem stays unresolved within its scope (`15` A2): a whole-test DTF bound for
+the previous design's contested pool and its active items. Its whole-test guarantee is not
+required to complete the answer review. A2 is not declared mathematically resolved, and no
+fairness guarantee of the whole quiz is introduced.
+
+**D45 and D46** stay conditions and objectives: that questions are accepted does not show that a
+quiz measures those capabilities adequately.
+
+**Parameters.** The group size 12, the quorum 9, the 75% threshold, the weight 1/4 and the quota
+bands are provisional initial parameters, not calibrated. They stay explicit in the configuration
+and in the reproducible results (`14`).
+
+**Phase 1.** It is not declared complete before Astra's final review of the implemented path.
+
+**Scope of D49–D52.** They specify the answer review and nothing else: the existing mechanism,
+its code and its closures keep their perimeters (D47, D48). The implementation follows as `10`
+T87.
+
+---
+
+## D53 — The answer review offline: the pool, the draw after the closure, a final unavailability
+
+**Owner decision, 2026-10-21, limited to the first offline version of the answer review.** It
+confirms three choices the implementation made where D49–D52 are silent (`10` T87, `05` §The
+answer review). They are recorded here, as of this date; they are not attributed to D49–D52.
+
+1. **The pool.** Joining the reviewer pool is availability in the trial. No exit from the pool and
+   no availability per epoch are managed.
+2. **The draw's timing.** A question's group is drawn after the closure of its deposit epoch.
+3. **A final unavailability.** If the pool fixed at that closure holds fewer than 12 reviewers, the
+   question stays unavailable for good: its slot stays spent, it gives no reputational
+   observation, and nothing tries again. Reviewers who join later do not recover it, and the same
+   author's identical deposit is still a duplicate.
+
+**Scope.** The first offline version only; another version needs its own decision. D49–D52's
+contract, the parameters (provisional, uncalibrated) and the earlier closures are unchanged. The
+draw's reliance on a beacon value that its caller does not select stays an assumption of the
+offline path (`05` §The answer review), not something D53 settles.
+
+---
+
+## D54 — Who reads the replicated set: three tiers, commitments in public, blind relays, a state tree keyed by nym
+
+**Identifier reconciliation (2026-10-21).** This is the unchanged network decision
+originally recorded as D44 on `feat/phase2-runtime` in `ede4656`. The merge assigns D54
+because master independently used D44 for the foundational principles. The decision's
+date, content and implementation status are unchanged; old branch references to D44
+mean this entry.
 
 > **Decided (2026-10-07)** by the owner. Answers `docs/08` §17 Q-19 and settles the mechanism
 > G-21 left open; built by `docs/10` T77 (the tiers and the transport), T85 (blind relays)

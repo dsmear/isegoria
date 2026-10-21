@@ -196,7 +196,7 @@ pub fn dif(d: &DifDesign, seed: u64) -> DifOutcome {
 }
 
 /// The design's two classes on the fit's grid: class 0 is `z = −1`, class 1 is `z = +1`.
-fn true_curves(d: &DifDesign, batch: &DifBatch) -> Option<ClassCurves> {
+pub fn true_curves(d: &DifDesign, batch: &DifBatch) -> Option<ClassCurves> {
     let classes = [-1.0, 1.0];
     let per_class = |base: &[f64], step: f64| -> Vec<Vec<f64>> {
         classes

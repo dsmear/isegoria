@@ -1,15 +1,14 @@
 # Simulations
 
-Research prototypes, fixture generators and differential oracles. Their role is
-specific to each script: they are **not a complete executable specification of the
-current engine**. The current mechanism is in [`docs/02`](../docs/02-scoring-engine.md);
-open correctness questions are in [`docs/15`](../docs/15-phase1-review.md).
+Historical research prototypes, fixture generators and scoped differential oracles
+for the earlier forecast-and-pilot mechanism. They do not specify or validate the
+current [answer review](../docs/05-question-lifecycle.md#the-answer-review-01-d49d52).
 
-The bridging prototype includes D32/D42, but the BSS evaluator score and proxy-ability
-DIF paths remain historical. Rust retains those functions for scoped regression and
-oracle comparisons; the production path uses the difference score and
-`scoring::latent::latent_dif` with formats and the protocol's admission checks.
-Reproducing an old fixture does not validate the newer model.
+Some scripts still serve retained Rust code; retired BSS and proxy-DIF paths remain
+historical. Reproducing their fixtures validates only the numerical contracts named
+by the corresponding tests. Current engine contracts are in
+[02](../docs/02-scoring-engine.md), evidence and finding states in
+[15](../docs/15-phase1-review.md), and archived paths are listed below.
 
 ## Requirements
 
@@ -102,15 +101,50 @@ patterns of eight 2PL items at a smooth and at a rough histogram. numpy only; de
 python latent_shape_dimension.py
 ```
 
-### `dtf_composition.py`
+### `d3_selection_counts.py`
 
-A2's calculations (`docs/19`): the DTF figures of the dossier by continuous quadrature beside
-the 41-node grid `scoring::dtf` uses, and the three-class example where a group's gap exceeds
-the per-pair maximum, in exact rationals. numpy and scipy; deterministic.
+D3's exact counts (`docs/15`, D3 section): the subsets `ContestedPool::draw` evaluates per fit,
+`S(M, n) = Σ_{r ≤ min(M, n)} C(M, r)`, and their member terms, for the pools of the tests and the
+fit sizes the documents motivate; it first checks a transcription of the enumeration loop against
+the formula. Standard library only, under a second. The isolated timing is the Rust example
+`crates/protocol/examples/d3_draw_cost.rs`. From the repository root:
 
 ```
-python dtf_composition.py
+python3 sim/d3_selection_counts.py
+cargo build --release -p protocol --example d3_draw_cost
+target/release/examples/d3_draw_cost 16 8 2
 ```
+
+### `d3_domain_limits.py`
+
+D3's resource domain (`docs/15`, D3 section): the limits `protocol::contested` enforces
+(`DRAW_LIMITS`, `POOL_LIMITS`), the byte model behind them — allocations as the draw makes them,
+capacities, a reallocation's old copy, the stack, glibc's chunk overhead, every subset kept — its
+bound with every limit reached at once, the pool's estimate, and which documented configurations
+and measured shapes are admitted or refused, with the limit that refuses them. Standard library
+only, under a second. The measurements are the Rust example
+`crates/protocol/examples/d3_domain_cost.rs`, whose counting allocator reports the bytes a draw
+requests; the regression record of the draw's outcomes is rewritten by `D3_RECORD`:
+
+```
+python3 sim/d3_domain_limits.py
+cargo build --release -p protocol --example d3_domain_cost
+/usr/bin/time -f "%e s %M KB" target/release/examples/d3_domain_cost kept
+D3_RECORD=$PWD/crates/protocol/tests/fixtures/d3_draws.txt cargo test -p protocol --test d3_draw_regression
+```
+
+The shapes are `kept`, `entries`, `terms`, `terms-all`, `cells-one`, `cells-many`, `scans`,
+`combined`, `combined-all`, `pool` and `input`.
+
+## Archived scripts (D47)
+
+The A12 offline reference (`a12_offline.py`, `a12_weight_counterexample.py`,
+`export_a12_affine.py`, their tests and `fixtures/a12_*.json`) and A2's tools
+(`dtf_composition.py`, `a2_information_check.py`, `a2_probe.py`, `a2_tradeoff.py`, `a2_size.py`,
+their tests and reference data) moved on 2026-10-21 to
+[`archive/phase1-forecast-pilot/sim/`](../archive/phase1-forecast-pilot/sim/README.md), with their
+documentation, under [`docs/01` D47](../docs/01-decisions.md). They belong to the previous Phase 1
+design; the path map is in the [archive's index](../archive/phase1-forecast-pilot/README.md).
 
 ## What these prototypes demonstrate
 

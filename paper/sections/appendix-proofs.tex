@@ -2,32 +2,38 @@
 
 \subsection{\texorpdfstring{\Cref{prop:leak}}{The majoritarian-leak proposition} step by step}
 
-Under (T1)--(T2), camp $s$ satisfies $\mu+\iota_j+\varphi_sf_j=m_{sj}$. Subtracting the equation of
-camp $A$ from that of camp $B$ gives $(\varphi_B-\varphi_A)f_j=m_{Bj}-m_{Aj}$, that is,
-$2hf_j=2\Delta_j$, so $f_j=\Delta_j/h$. Averaging the two equations gives
-$\mu+\iota_j+cf_j=\mbar_j$, so $\iota_j=\mbar_j-\mu-(c/h)\Delta_j$. This is part (i).
+Under (T1), subtracting the fitted camp equations gives
+$(\varphi_B-\varphi_A)f_j=2d_j$, hence $f_j=d_j/h$. Averaging gives
+$\mu+\iota_j+cf_j=q_j$, hence $\iota_j=q_j-\mu-t d_j$ with $t=c/h$.
+The raw camp means differ by the explicitly defined residuals; exact raw reproduction is
+incompatible with a nondegenerate stationary point in the complete, uniformly weighted case.
 
-For (ii), the reviewer positions sum to
-$\sum_uf_u=n_A(c-h)+n_B(c+h)=nc+h(n_B-n_A)=nh(t+\kappa)$. The left side of
-\eqref{eq:gauge-rev} is
-$\lambda_b\sum_jf_j\iota_j=\frac{\lambda_b}{h}\sum_j\Delta_j(\mbar_j-\mu-t\Delta_j)
-=\frac{\lambda_b}{h}(S_{\Delta m}-tS)$. Equating the two and multiplying by $h$ gives
-$\lambda_b(S_{\Delta m}-tS)=\lambda_fnh^2(t+\kappa)$, which is linear in $t$ and solves to (ii).
+The reviewer positions sum to $\sum_uf_u=nh(t+\kappa)$. Therefore
+\eqref{eq:gauge-rev} reads
+$\lambda_b(C-tS)=\lambda_fnh^2(t+\kappa)$, with
+$S=\sum_jd_j^2$ and $C=\sum_jd_j(q_j-\mu)$. This solves to
+$t=(\lambda_b C-\lambda_fnh^2\kappa)/(\lambda_bS+\lambda_fnh^2)$.
+Substitution into the item intercept gives \eqref{eq:leak}. Substituting
+$q_j=\mbar_j-\bar e_j$ and $d_j=\Delta_j-e_{\Delta j}$ then gives the exact difference
+$-\bar e_j-\ell\kappa e_{\Delta j}-(\lambda_bC/D)d_j$ used in \eqref{eq:leak-error}.
 
-For (iii), with $S_{\Delta m}=0$ we get $t=-\kappa\lambda_fnh^2/(\lambda_bS+\lambda_fnh^2)=-\kappa/(1+\rho)$.
-Then $\mu+\iota_j=\mbar_j+\frac{\kappa}{1+\rho}\Delta_j=(1-\ell)\mbar_j+\ell(\mbar_j+\kappa\Delta_j)$,
-and $\mbar_j+\kappa\Delta_j=\pi_Am_{Aj}+\pi_Bm_{Bj}$ because $\pi_A+\pi_B=1$.
+When $C=0$, $t=-\ell\kappa\in[-\kappa,0]$. Equation~\eqref{eq:scale} gives
+$nh^2(1+t^2+2\kappa t)=S/h^2$ and hence
+$\rho=(\lambda_b/\lambda_f)\sqrt{1+t^2+2\kappa t}\sqrt{S/n}$.
+The square-root factor lies in $[\sqrt{1-\kappa^2},1]$. This is a fixed-point
+characterization on the fitted quantities. Replacing that factor by 1 incurs at most its
+stated multiplicative range (0.98--1 at $\kappa=0.2$); replacing fitted $S$ by raw squared
+leans additionally requires control of the residuals. Neither the residual bound nor the
+hypotheses (T1), $C=0$ were checked for the historical full-model table.
 
-For (iv), \eqref{eq:scale} with $f_u\in\{c-h,c+h\}$ gives
-$\sum_uf_u^2=n(c^2+h^2+2\kappa ch)=nh^2(1+t^2+2\kappa t)$ and $\sum_jf_j^2=S/h^2$, hence
-$h^4=S/\bigl(n(1+t^2+2\kappa t)\bigr)$. The function $g(t)=1+t^2+2\kappa t$ is convex with its
-minimum $1-\kappa^2$ at $t=-\kappa$ and $g(0)=1$, so $g\in[1-\kappa^2,1]$ on $[-\kappa,0]$, which
-contains $t$ by (iii). Substituting
-$h^2=\sqrt{S/(ng(t))}$ into $\rho=\lambda_bS/(\lambda_fnh^2)$ gives
-$\rho=(\lambda_b/\lambda_f)\sqrt{g(t)}\sqrt{S/n}$, so $\gamma=\sqrt{g(t)}\in[\sqrt{1-\kappa^2},1]$.
-Since $t$ depends on $\rho$, this is a fixed-point characterization. The bounds on $\gamma$ make the
-explicit approximation $\rho\approx(\lambda_b/\lambda_f)\sqrt{S/n}$ accurate to a factor
-$\sqrt{1-\kappa^2}$, which is $0.98$ for $\kappa=0.2$.
+For the stationary witness in the main proof, let $\alpha=\lambda_b/4$ and
+$F=\sum_j f_j^2=\sum_u f_u^2=13h^2/4$. Its residual is $e_{uj}=\alpha f_uf_j$.
+The global gradient vanishes because $\sum_jf_j=0$; every reviewer-intercept gradient
+vanishes for the same reason. For an item,
+$\sum_u e_{uj}=\alpha h f_j=\lambda_b\iota_j$ and
+$\sum_u e_{uj}f_u=\alpha Ff_j=\lambda_f f_j$.
+For a reviewer, $\sum_j e_{uj}f_j=\alpha Ff_u=\lambda_f f_u$.
+These are all coordinate stationarity equations of \eqref{eq:loss}, including the data term.
 
 \subsection{Information computations for \texorpdfstring{\cref{tab:information}}{the information table}}
 

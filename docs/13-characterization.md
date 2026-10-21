@@ -51,14 +51,19 @@ with intervals. It sets no threshold: T25 reads the tables of §7 and sets them.
 metric, T25 sets the value. AT-DIF-06 (a separated item) and AT-DIF-08 (oscillating
 purification, Variant 1, calibration-only) are constructed cases, deterministic tests
 rather than studies. The Level C parameters — the CUSUM `k`/`h`, the weight cap, `γ`,
-`N_PROBATION`, the exploration rate — get their calibration procedures in T25. Real
+`N_PROBATION`, the exploration rate — were to get their calibration procedures in T25; they
+belong to the previous design's forecast path, and D47 suspends their calibration (`14`). Real
 response data exist only in pilots (T27): everything here is inside the simulated regime,
 and §7's statements say so.
 
 ## 2. The harness
 
 `crates/characterization` is a workspace member but not part of a node: it depends on
-`scoring` and `protocol` and nothing depends on it. One binary:
+`scoring` and `protocol` and nothing depends on it. Its default binary runs the studies; a second,
+`a2-probe`, is the A2 probe of [`19` §13.11](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md#1311-first-bounded-probe-declaration-and-harness-not-run), apart from them.
+Under D47 A2's dossier, oracle and results are archived (`archive/phase1-forecast-pilot/`); the
+binary stays here because its provenance guard reads `crates/` ([`21`](21-d47-inventory.md) §4).
+The studies run as follows:
 
 ```sh
 cargo run --release -p characterization -- plan                 # studies, cells, runs

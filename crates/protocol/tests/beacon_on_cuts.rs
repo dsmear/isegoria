@@ -300,3 +300,35 @@ fn at_pro_15_no_beacon_excludes_no_one() {
     assert!(net.ledger.beacon(0).unwrap().value().is_none());
     assert!(net.cut_by(1, false, &[0, 2]).is_ok());
 }
+
+// AT-PRO-15/C6: view signatures and withholder exclusions preserve the author clock atomically.
+#[test]
+fn view_changes_and_withholders_preserve_the_author_clock() {
+    let mut net = Net::new();
+    net.round_with(&[0, 1]);
+    assert_eq!(net.ledger.state().results().closing_count(), 1);
+    assert!(net.ledger.state().results().author_point().is_none());
+    let cut = Cut::next(&net.replica, net.ledger.last(), 1, true);
+    let cp = cut.checkpoint_in(3, NET, consortium().member_set_hash());
+    let sign = |by: &[usize]| -> Vec<_> { by.iter().map(|&i| (i, members()[i].sign(&cp))).collect() };
+    let before = net.ledger.last().cloned();
+    assert_eq!(
+        net.ledger.apply_in_view(&net.replica, &cut, 3, &sign(&[0, 2])),
+        Err(LedgerError::Unsigned)
+    );
+    assert_eq!(net.ledger.last(), before.as_ref());
+    assert_eq!(net.ledger.state().results().closing_count(), 1);
+    assert!(net.ledger.state().results().author_point().is_none());
+    net.ledger
+        .apply_in_view(&net.replica, &cut, 3, &sign(&[0, 1]))
+        .unwrap();
+    assert_eq!(net.ledger.state().results().closing_count(), 2);
+    assert!(net.ledger.state().results().author_point().is_none());
+    assert!(net
+        .ledger
+        .apply_in_view(&net.replica, &cut, 3, &sign(&[0, 1]))
+        .is_err());
+    assert_eq!(net.ledger.state().results().closing_count(), 2);
+    assert!(net.cut_by(2, false, &[0, 2]).is_ok());
+    assert_eq!(net.ledger.state().results().closing_count(), 2);
+}

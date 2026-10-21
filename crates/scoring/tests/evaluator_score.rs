@@ -1,6 +1,6 @@
-//! The evaluator score after D33: the leave-one-out difference score is strictly proper
-//! (AT-REP-05), a crowd copier scores exactly 0 (AT-REP-02), the odds-scale weight lets
-//! the `3 × median` cap bind (AT-REP-04); the ratio-form skill score is not (Prop. 12).
+//! The evaluator score after D33: the difference score is strictly proper against a fixed baseline
+//! and outcome law (AT-REP-05; not its fallback, A10), a crowd copier scores exactly 0
+//! (AT-REP-02), the odds weight lets the `3 × median` cap bind (AT-REP-04); the ratio is not.
 
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
@@ -72,8 +72,7 @@ fn the_retired_skill_score_paid_the_dissenter_to_move_toward_the_crowd() {
     assert!(truthful > expected_difference_score(&[0.60], &[q], &[b]));
 }
 
-/// The leave-one-out baseline weighs the other reviewers, falling back to 0 when none
-/// carry weight.
+/// The leave-one-out baseline weighs the other reviewers; with none weighted, every score is 0.
 #[test]
 fn the_baseline_is_the_weighted_mean_of_the_others() {
     let preds = vec![vec![0.9, 0.2], vec![0.3, 0.8], vec![0.5, 0.5]];
@@ -85,6 +84,24 @@ fn the_baseline_is_the_weighted_mean_of_the_others() {
     let weightless = loo_scores(&preds, &[1.0, 0.0, 0.0], &[1.0, 0.0]);
     assert_eq!(weightless[0], vec![0.0, 0.0]);
     assert!(weightless[1][0] != 0.0);
+}
+
+/// A10: with no other weight the baseline is the report itself, so every report scores 0.
+#[test]
+fn a10_the_fallback_baseline_is_the_report_and_every_report_scores_zero() {
+    for i in 0..=20 {
+        let p = f64::from(i) / 20.0;
+        for weights in [vec![1.0], vec![1.0, 0.0, 0.0], vec![0.0, 0.0]] {
+            let mut preds = vec![vec![0.3, 0.6]; weights.len()];
+            preds[0] = vec![p, 1.0 - p];
+            assert_eq!(loo_baseline(&preds, &weights)[0], preds[0]);
+            for outcomes in [[1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [0.0, 0.0]] {
+                assert_eq!(loo_scores(&preds, &weights, &outcomes)[0], vec![0.0, 0.0]);
+            }
+        }
+        let truthful = expected_difference_score(&[0.7], &[0.7], &[0.7]);
+        assert_eq!(expected_difference_score(&[p], &[0.7], &[p]), truthful);
+    }
 }
 
 /// AT-REP-04: on the odds scale, an outlier's weight is capped at `3 × median` of the crowd.

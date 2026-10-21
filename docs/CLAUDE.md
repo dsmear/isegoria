@@ -1,34 +1,44 @@
 # Instructions for Claude Code
 
-This repository contains the specification of a distributed network for producing
-and validating quiz questions. You are here to **implement it**. Read
-`00-overview.md` first, then `02-scoring-engine.md` (the central piece), then the
-rest as needed.
+These instructions apply to repository work, regardless of the agent used. Read
+`00-overview.md`, then `05-question-lifecycle.md`'s answer-review contract. Phase 1 is
+closed within its offline perimeter. This branch develops the Phase 2 runtime under
+the owner's assignments; no production readiness is implied.
 
 ## Invariants never to violate
 
 These constraints are non-negotiable: breaking one destroys the property that makes
 the system useful. Before every implementation choice, check you are not violating
-them.
+them. Only a recorded owner decision changes them: `01` D48 rectified #2. Invariants 2 and 8
+also name contracts of the existing mechanism; those bind the existing code in its scope, and
+D52 states they are not conditions of the answer review (below).
 
 1. **Anonymity is the base.** No personal, demographic, or affiliation data ever
    enters the system. Nodes are pseudonymous IDs and nothing else. Do not add
    "optional" fields that collect people's attributes, not even to improve DIF: the
    bias analysis runs on latent axes, not on declared labels (see `02`, §DIF).
 
-2. **Quality is not decided by voting.** Never implement a simple-majority
-   aggregation to accept or reject a question. Acceptance goes through bridging
-   (opinion filter) + empirical validation (evidence filter). If you find yourself
-   writing `if positive_votes > negative_votes`, you have drifted from the design.
+2. **Consensus is an operational criterion, never a guarantee of truth.** Until D47 this
+   invariant banned deciding quality by voting in any mechanism; `01` D48 rectifies that ban.
+   In the answer review, the first implementation of D47's mechanism, the consensus of the
+   drawn reviewers' answers, each with equal weight, is the review's operational criterion,
+   with the quorum, thresholds and outcomes of `01` D49; do not change them in code. Never
+   present a consensus as showing that the key or an answer is true, or that the reviewers are
+   reliable, and never reward agreement with the majority (`01` D6, D48). *Existing
+   mechanism:* acceptance goes through bridging (opinion filter) + empirical validation
+   (evidence filter), with no vote count; keep that contract in the existing code. Neither
+   filter is a condition of acceptance in the answer review (`01` D52).
 
 3. **No money as stake.** No token, no economic stake, no monetary bond to propose
    or vote. The cost of proposing is reputation and rate limits. A money-based
    mechanism reintroduces wealth-based access, which is exactly the problem to avoid.
 
 4. **Two separate scores, never combined.** The author score (`C`) and the evaluator
-   score (`E`) live on **different, unlinkable pseudonyms** of the same person. `E`
-   weights the review vote; `C` governs the rate limit on proposals. Do not merge
-   them into a single weight and do not have them share the same ID.
+   score (`E`) live on **different, unlinkable pseudonyms** of the same person. `C`
+   governs the rate limit on proposals; only the legacy path uses `E` as a review weight. Do not merge
+   them into a single weight and do not have them share the same ID. In the answer review
+   every reviewer weighs the same and ordinary reviews do not update `E` (`01` D48, D49);
+   `C` follows D50 and governs D51's quotas there; the separation stands.
 
 5. **One role, one deterministic pseudonym, not rotatable.** Role pseudonyms derive
    deterministically from the credential (`H(secret, context)`). A person can derive
@@ -48,25 +58,25 @@ them.
    `scoring::fmath` — timestamps in the computation). Reproducibility is the defense
    that unmasks a dishonest signer.
 
-8. **Empirical validation happens in batches, never on a single question.** The
-   protocol validates groups of questions with shared anchors. Historical simulations
-   show weak detection of an isolated biased item; they do not prove universal
-   non-identifiability (`15-phase1-review.md`, A8). Always validate groups of questions.
+8. **The existing evidence filter validates in batches, never a single question.**
+   Level B, as implemented, validates groups of questions with shared anchors; keep it
+   so. Historical simulations show weak detection of an isolated biased item; they do
+   not prove universal non-identifiability (`15-phase1-review.md`, A8). The answer review
+   uses no empirical validation as a condition of acceptance (`01` D52): this contract is
+   not imposed on it.
 
 ## Current priorities
 
-The six crates exist. Follow `10-roadmap.md`: **mathematics**, then **P2P network**,
-then **the rest**. By the owner's decision of 2026-10-07, Phase 2 proceeds in parallel with
-Phase 1's review, on its own branch, in the order of `10` §2.3; it changes Phase 1's
-interfaces (the event codec, the results event, the cuts and ledger) only together with
-their users. Task status belongs in `10`; calibration procedures belong in
-`14-parameter-register.md`; measurement provenance belongs in `13-characterization.md`.
+Phase 2 follows `10` §2.3, with T79 last. Shared event formats, results, cuts and ledger
+must change together with their users. The node process is not an integration of the
+answer-review path: do not restore legacy pilot gates or add automatic rounds to that
+path through a network merge. D54 is the network decision previously called D44 here.
 
-For Phase 1 corrections, read `15-phase1-review.md` before implementing. It records
-the A–E review's open guarantees, code-contract findings and completion criteria.
-Verify each finding; do not silently change the specification to approve a code defect.
-T81 remains complete for the ten files listed in its run 22. Pre-D43 DIF measurements
-remain historical evidence, not current-model validation.
+Use `phase1-handoff.md` to resume. Task status belongs in `10-roadmap.md`, review
+findings and evidence in `15-phase1-review.md`, parameter procedures in
+`14-parameter-register.md`, and measurement provenance in `13-characterization.md`.
+Do not reopen or extend a closure without a concrete finding. Historical measurements
+retain their model and version scope.
 
 Inside a phase, fix defects before adding features. A code-defect correction starts
 with a test that fails on the current code. Documentation-only changes are checked
@@ -75,42 +85,36 @@ Long characterization runs belong on the owner's machine and require explicit
 authorization; use targeted tests and the smoke grid during development. The design
 and implementation handoff is in `15-phase1-review.md`.
 
-## Original build order (done)
+## Phase 1 direction: D47, D48 and the answer review (D49–D52, 2026-10-21)
 
-The order the reference implementation was built in — each phase verifiable before the
-next:
+The current contract is D49–D53 in `01-decisions.md`, specified once in
+`05-question-lifecycle.md` (The answer review), with the author index in `02` §C.1.
+T87 and Phase 1 are closed only in the offline path's perimeter (`15`, closure record).
 
-1. **`scoring/`** — the deterministic engine. Input: a ratings file (node ×
-   question) and an answers file (respondent × question). Output: bridging scores,
-   IRT parameters, DIF verdicts, reputations. It must run offline, with no network
-   or identity. The simulations in `sim/` supplied the original fixtures and scoped
-   differential oracles. Their retired BSS and proxy-DIF paths are historical;
-   current behavior is specified in `02` and checked by the corresponding Rust tests.
-2. **Tests against the corner cases** documented in `06` and in `sim/`: coordinated
-   cartel, elite consensus, true-but-divisive question, survival rate. These are the
-   engine's acceptance tests.
-3. **`identity/`** — enrollment adapters, threshold credential, role nullifiers.
-   See `03`.
-4. **`network/`** — signed append-only logs, gossip, DHT, erasure coding, anchoring.
-   See `04`.
-5. **`protocol/`** — lifecycle orchestration: random reviewer assignment,
-   commit-reveal, bridging gate, two-stage pilot, appeal channel, honeypot. See `05`.
+- Preserve the approved contract. Do not add reviewer weights or reputation updates,
+  selection by competence, replacements, automatic closures, deadlines, retries, key
+  correction, source requirements or earlier filters without an owner decision.
+- Reviewers may use any resource; do not detect, infer or assess external-tool use,
+  or collect their sources. The author is not required to supply a source either.
+- Never turn consensus into a claim of truth or reviewer reliability. Divided answers
+  are not proved ambiguity; insufficient participation is not rejection. The author's
+  index records review outcomes, not measured factual quality or competence.
+- Deposits are deduplicated per authenticated author, not globally (AT-ANS-14).
+  The key remains in clear in state and log; the caller is trusted not to select a
+  beacon for a desired panel. Do not claim stronger confidentiality or randomness.
+- Parameters are provisional and uncalibrated; the decoder has not been fuzzed.
+  No truth, whole-quiz fairness or D46 assessment objective is certified. A2 remains
+  unresolved in its own scope and is not required for this path (D52).
+- The legacy code keeps its contracts. Its proofs, tests and closures do not certify
+  the answer review. `21-d47-inventory.md` records retained dependencies; the archive
+  is historical, not an active specification or work plan.
 
-## Suggested stack (not binding)
+## Implementation guidance
 
-- **Scoring engine**: Rust is implemented; Python with NumPy/SciPy supplies research
-  prototypes and scoped numerical oracles. Keep their contracts explicit.
-- **Identity cryptography**: prefer mature, audited libraries — Semaphore for
-  nullifiers, BBS+ schemes for credentials, a threshold OPRF for anchoring. Rolling
-  our own is permitted when it genuinely serves the design — no suitable library
-  exists, or we need a variant a library does not provide (e.g. a threshold scheme
-  built from a vetted single-party one). When we do, keep it small, build it on
-  audited primitives (not from first principles), pin it down with known-answer and
-  property tests, and mark it clearly as bespoke. The bar is high, not absolute.
-- **P2P layer**: consider libp2p (gossipsub + Kademlia DHT). CRDTs with Automerge or
-  Yjs where converging state is needed.
-- **Anchoring**: OpenTimestamps or equivalent to publish the Merkle root on a public
-  chain.
+Rust is the reference implementation; Python prototypes and numerical oracles have
+their own scoped contracts. Prefer mature audited cryptographic primitives. Bespoke
+composition requires a stated need, small scope, known-answer/property tests and an
+explicit label as bespoke. See `ARCHITECTURE.md` for the code map and test strategy.
 
 ## What NOT to do
 
@@ -120,11 +124,16 @@ next:
 - Do not put voting patterns or questions under review on a public register in the
   clear: they are a vector for statistical deanonymization.
 - Do not implement a Kleros-style Schelling point (rewarding those who vote with the
-  majority). It is the opposite of what is needed: see the evaluator score in `02`.
+  majority). It is the opposite of what is needed: see `01` D6 and D48.
 - Do not treat an LLM's output as a source of truth in the scoring engine. The
   engine is deterministic and mathematical.
 
 ## Code style and docs
+
+- **Less is more.** Keep one authoritative description per subject and link to it.
+  Remove obsolete explanations and duplicated status summaries instead of appending
+  another qualification. Preserve unique decision records, proofs and measurements
+  with their historical scope. Write repository documentation in English.
 
 - **Comments are budgeted, and the budget is enforced.** The design docs are the source of
   truth for the logic (`ARCHITECTURE.md` principle #4); code comments never restate them.

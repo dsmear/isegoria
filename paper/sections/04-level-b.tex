@@ -54,16 +54,17 @@ defers the choice to a planned false-positive study. Batches must hold at least 
 3{,}000 respondents. Mixture likelihood ratios are not $\chi^2$-distributed under the
 null~\cite{self1987,mclachlan2000}, so the BIC comparison is a heuristic, not a calibrated test.
 
-\subsection{Identification: why a single biased item is invisible}
+\subsection{A single class-dependent item: marginal signal and limited power}
 
-The repository simulation found that one distorted item in a batch of eight is invisible and
-two are detected. The following two propositions explain this.
+The repository simulation failed to detect one distorted item in a batch of eight and detected
+two in its tested regime. This is a finite-sample result, not a general non-identifiability
+theorem. The following propositions separate the marginal signal from inter-item dependence.
 
 \begin{proposition}[One class-dependent item]\label{prop:single}\proved{}
 Let $\theta$ be observed without error and $Z$ independent of $\theta$, and suppose only item
 $j$'s response function depends on $Z$. Then the likelihood factorizes as
 $\prod_{k\neq j}P_k(x_k\mid\theta)\cdot\bigl[\sum_g\pi_gP_{jg}(x_j\mid\theta)\bigr]$, so the
-class parameters are identified only through the marginal response curve
+observable class-dependent information is confined to the marginal response curve
 $m_j(\theta)=\sum_g\pi_g\,\sig(a_{jg}(\theta-b_{jg}))$. For a symmetric two-class shift
 ($\pi=\tfrac12$, $b_{j\pm}=b_j\pm\delta$, common $a$), with $x=a(\theta-b_j)$,
 \begin{equation}\label{eq:single-expansion}
@@ -79,10 +80,17 @@ $\sig''(x)=-\sig'(x)\tanh(x/2)$ and $\sig((1+\eta)x)=\sig(x)+\eta x\sig'(x)+O(\e
 $\eta=-\tfrac14(a\delta)^2$.
 \end{proof}
 
-In words, a single class-dependent item looks, to second order, like a 2PL item with a lower
-discrimination. The residual $\tfrac{x}{2}-\tanh\tfrac{x}{2}=x^3/24+O(x^5)$ vanishes to third
-order where the item is most informative. The same flattening is produced by error in
-$\theta$, so the two are confounded in practice.
+Near the item's centre, a single class-dependent item is approximately a 2PL with a lower
+discrimination: the residual $\tfrac{x}{2}-\tanh\tfrac{x}{2}=x^3/24+O(x^5)$ is small there.
+At fixed nonzero $x$, however, this residual is still of second order in $\delta$; the
+mixture curve is not generally a 2PL. For an exact witness, take $a=1$, $b=0$ and
+$\delta=\ln2$. At $\theta=0,\ln2,\ln4$ its probabilities are $1/2,13/20,7/9$.
+A 2PL matching the first value has zero logit intercept, so its odds at $\ln4$ must be the
+square of its odds at $\ln2$. Here $7/2-(13/7)^2=5/98\ne0$. Thus a single item can be
+distinguished from every 2PL null on these ability points. This witness proves neither
+identifiability of the mixture's class parameters nor power of the production detector.
+Without restrictions on the marginal null curve, factorization alone supplies no such
+distinction. Error in measured $\theta$ can also flatten the curve, adding a practical confound.
 
 \begin{proposition}[Pairs of class-dependent items]\label{prop:pair}\proved{}
 Under conditional independence given $(\theta,Z)$,
@@ -90,8 +98,9 @@ Under conditional independence given $(\theta,Z)$,
   \Cov(X_j,X_k\mid\theta)=\sum_g\pi_g\,\bigl(P_{jg}(\theta)-m_j(\theta)\bigr)\bigl(P_{kg}(\theta)-m_k(\theta)\bigr),
 \end{equation}
 which for two classes equals $\pi(1-\pi)\,\Delta_j(\theta)\Delta_k(\theta)$ with
-$\Delta_j=P_{j2}-P_{j1}$. Any one-class model implies $\Cov(X_j,X_k\mid\theta)=0$. Hence two items
-whose class-dependence overlaps in $\theta$ leave a signature that no one-class model absorbs.
+$\Delta_j=P_{j2}-P_{j1}$. Any one-class model implies $\Cov(X_j,X_k\mid\theta)=0$. Hence, for two classes with $0<\pi<1$, two items whose class-dependence overlaps in
+$\theta$ leave a nonzero conditional-covariance signature that no conditionally independent
+one-class model absorbs. This is not a generic parameter-identifiability result.
 \end{proposition}
 \begin{proof}
 $\E[X_jX_k\mid\theta]=\sum_g\pi_gP_{jg}P_{kg}$ and $\E[X_j\mid\theta]=m_j$. Expanding the
@@ -135,11 +144,13 @@ null batches and detects nothing in 8 batches with one biased item ($N\in\{3000,
 flags exactly the biased items in all 8 batches with two, with no false flag.
 \end{finding}
 
-\Cref{prop:single,prop:pair} turn \cref{req:batch} from an empirical rule into a structural one.
-The latent classes are identified by \emph{covariation between items} given ability, so they need
-at least two items that share a distortion. A campaign to tilt the bank leaves this signature. An
-isolated distortion does not, and neither does a single biased item repeated across batches that
-never contain another item biased the same way.
+\Cref{prop:pair} supplies a dependence signature when at least two items share an overlapping
+two-class distortion. A single class-dependent item has no such inter-item signature, including
+when it is repeated in batches without another affected item; it can still have the marginal
+signal of \cref{prop:single}. Neither proposition proves generic identifiability of the
+mixture parameters or a minimum number of biased items for detection. \Cref{req:batch} remains
+a batching rule motivated by the tested detector's limited power, with numerical provenance in
+\cref{tab:information,find:information}, rather than a structural impossibility theorem.
 
 \subsection{A confound: error in the ability proxy}\label{sec:proxy}
 
@@ -196,8 +207,9 @@ exact & 2 & 47.8 & 170.2 & 324.1 & 419.1\\
 \end{table}
 
 \Cref{tab:proxy} shows the effect in a re-implementation of the repository simulation's model.
-With exact $\theta$ the likelihood ratio stays flat when there is nothing to find, and also when
-there is one biased item, as \cref{prop:single} predicts. With the proxy it grows linearly in
+With exact $\theta$ the observed likelihood ratio stays roughly flat over these sample sizes
+when there is nothing to find, and also with one biased item. The latter is the limited-power
+regime measured here, not a flatness theorem from \cref{prop:single}. With the proxy it grows linearly in
 $N$ even with zero biased items, and it exceeds the penalty from $N=3000$ on. The mean
 estimated gap of clean items is then $0.71$--$0.86$.
 
@@ -231,7 +243,7 @@ reaches $0.94$--$0.99$ against a threshold of $1.0$. The provisional threshold i
 calibrated, implicitly, to one anchor configuration. With the same 30 anchors and one biased
 item at $N=6000$, the detector flags the biased item in 2 of 4 batches (gaps $1.15$ and $1.03$).
 It does so because the item rides on the artefactual class, not because its own shift is
-identified; with exact $\theta$ it is never detected.
+identified; with exact $\theta$ it was never detected in these tested batches.
 \end{finding}
 
 Three remedies are available \openq.
@@ -277,5 +289,6 @@ only when the division lies in \emph{opinions about the item}, and not when it l
 dimension as a nuisance. That is a normative choice, and we argue it should be made explicitly
 \designchoice. The same mechanism detects distortions on axes nobody chose to look for. In the
 repository simulation, an item neutral on the political axis shows DIF of $0.66$ on education.
-Latent classes can surface such an axis, but only when a batch contains at least two items
-distorted along it.
+Shared distortions across items can provide the dependence signature used to surface such an
+axis. The tested detector's failures on a single affected item limit that evidence; they do not
+establish a universal requirement of two affected items.

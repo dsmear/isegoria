@@ -1,89 +1,49 @@
-# A distributed network for producing and validating quiz questions
+# Documentation
 
-A network whose nodes — pseudonymous people — **propose** questions, **judge**
-other people's questions, and **answer** quizzes to trial them. It exists to
-produce banks of questions (true/false or multiple-choice items) in settings where
-**no authority is credibly impartial**: control over the questions is distributed
-across all nodes instead of belonging to an institution.
+Start with the [overview](00-overview.md). The active Phase 1 contract is
+[05 — The answer review](05-question-lifecycle.md#the-answer-review-01-d49d52), based on
+D49–D53. Its [closure record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)
+limits completion to the offline path. Older mechanisms remain documented for their code
+and evidence; they are not additional acceptance gates for this path.
 
-Reference use case: civic questions for a possible weighted vote, where you do not
-want the government to control the questions. Less contested, more immediate use
-cases: professional certifications independent of training bodies, collaborative
-fact-checking, licensing exams removed from the profession that has a stake in them.
+## Current contract and work
 
-## The idea in one line
-
-The quality of a question is **not decided by voting** (whoever holds the majority
-would control the questions). It is decided by two filters in a row:
-
-1. **Opinion filter** — aggregated peer review *across the bridge* (bridging): what
-   matters is where the approval comes from, not how much of it there is. A question
-   approved only by the largest camp is discarded.
-2. **Evidence filter** — the question is field-trialled on a sample of respondents;
-   psychometric statistics (IRT) and bias analysis (DIF) give the final verdict.
-   Here nobody's opinion is needed.
-
-The anonymity of the nodes is the non-negotiable base. The uniqueness of a person is
-guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
-**cryptographically severed** from what the node does.
-
-## Document structure
-
-| File | Contents |
+| Document | Responsibility |
 |---|---|
-| [`CLAUDE.md`](CLAUDE.md) | Instructions for implementing with Claude Code: work order, invariants not to violate, stack |
-| [`00-overview.md`](00-overview.md) | Two-level conceptual architecture, lifecycle of a question |
-| [`01-decisions.md`](01-decisions.md) | Every decision taken and every alternative rejected, with rationale (ADR) |
-| [`02-scoring-engine.md`](02-scoring-engine.md) | **The mathematical core**: bridging, IRT, DIF, reputation, anti-collusion |
-| [`03-identity-enrollment.md`](03-identity-enrollment.md) | Anonymous multi-source enrollment, threshold credentials, role pseudonyms |
-| [`04-storage-network.md`](04-storage-network.md) | P2P layer, consortium, erasure coding, anchoring, node types |
-| [`05-question-lifecycle.md`](05-question-lifecycle.md) | Step-by-step protocol, appeal to evidence, lottery, honeypot, cold start |
-| [`06-threat-model.md`](06-threat-model.md) | Attack surface and countermeasures; what the system does NOT solve |
-| [`07-verification-and-assurance.md`](07-verification-and-assurance.md) | Verification, assurance and falsification methodology |
-| [`08-formal-specification.md`](08-formal-specification.md) | Independent audit: what is implemented, tested and still open |
-| [`10-roadmap.md`](10-roadmap.md) | **Development plan by priority** — mathematics, then P2P network, then the rest (task ids `T#`) |
-| [`11-mutation-testing.md`](11-mutation-testing.md) | Mutation-testing report: how much the tests verify, and every accepted survivor |
-| [`12-panic-audit.md`](12-panic-audit.md) | Panic audit and fuzzing report: every `unwrap`/`expect`/`assert` classified, every crash on hostile input fixed |
-| [`13-characterization.md`](13-characterization.md) | T24 and T25's supplement: the simulation studies that characterize the detectors and gates, the harness that runs them, and their results |
-| [`14-parameter-register.md`](14-parameter-register.md) | Every threshold's reason, calibration procedure, sensitivity, failure and location (`07` §13) |
-| [`15-phase1-review.md`](15-phase1-review.md) | Current review findings, evidence limits and correction handoff; distinguishes implemented behavior from unresolved guarantees |
-| [`16-a1-incentive-design.md`](16-a1-incentive-design.md) | A1 dossier, for design review: the exploration draw's information sequence, the adaptive counterexample, the corrected IPW theorem and the candidate fixes |
-| [`17-a1-pilot-batch-design.md`](17-a1-pilot-batch-design.md) | A1 pilot batches and missing outcomes, approved on `37addca` as a conditional analysis (no batching policy approved): what a verdict depends on, the batch contract C3 needs, four alternatives and their costs, missing outcomes |
-| [`18-a3-latent-shape-design.md`](18-a3-latent-shape-design.md) | A3 diagnosis and its correction P1 (closed on `16e862c`): the latent ability histogram's parametrization, the moment penalty, the dimension and the BIC count |
-| [`19-a2-dtf-composition-design.md`](19-a2-dtf-composition-design.md) | A2 diagnosis (approved on `0519626`) and its rectification R1 (approved on `d13bf09`; A2 open): what the contested pool's admission cost computes, a sufficient proposition for a test-level bound and its hypotheses, counterexamples, directions |
-| [`20-s2-synthetic-check.md`](20-s2-synthetic-check.md) | S2's synthetic-event technical check, a proposal awaiting review: what it would execute and what its fixtures supply, the fixtures with their expected results and failure criteria, the conclusions it does not support; nothing implemented or run |
-| [`99-glossary.md`](99-glossary.md) | Every concept explained from scratch, from the problem to the formula |
-| [`sim/`](../sim/) | Historical research prototypes and scoped fixture/differential oracles; see its README for current vs retired paths |
-| [`paper/`](../paper/) | Working paper: formal statement and analysis of the scoring mechanism, with proofs, reproducible experiments and open problems |
+| [00 — Overview](00-overview.md) | Plain-language explanation and principles |
+| [01 — Decisions](01-decisions.md) | Owner decisions and their chronology; D45–D53 govern the current direction |
+| [05 — Lifecycle](05-question-lifecycle.md) | Answer-review contract first, separate forecast-and-pilot contract afterwards |
+| [02 — Scoring](02-scoring-engine.md) | Author-index mathematics (§C.1); retained earlier engine and its scoped guarantees |
+| [06 — Threat model](06-threat-model.md) | Current protections, assumptions and accepted risks |
+| [14 — Parameters](14-parameter-register.md) | Provisional values, calibration status and procedures by mechanism |
+| [15 — Review](15-phase1-review.md) | Findings, evidence and closure scopes |
+| [10 — Roadmap](10-roadmap.md) | Task status; completion is qualified by perimeter |
+| [Handoff](phase1-handoff.md) | Resume work without duplicating the specification |
+| [Agent instructions](CLAUDE.md) | Invariants and working rules |
+| [Glossary](99-glossary.md) | Terms used by current and earlier mechanisms |
 
-## Development priorities
+## Components and assurance
 
-The reference implementation exists (see Status below); what remains is ordered in
-[`10-roadmap.md`](10-roadmap.md) in three phases:
+| Document | Responsibility |
+|---|---|
+| [Architecture](../ARCHITECTURE.md) | Design-to-code map and test strategy |
+| [03 — Identity](03-identity-enrollment.md) | Enrollment and pseudonym requirements, assumptions and gaps |
+| [04 — Storage and network](04-storage-network.md) | Separate network design; outside the offline closure |
+| [07 — Assurance](07-verification-and-assurance.md) | Verification methodology |
+| [08 — Audit](08-formal-specification.md) | Dated audit and remediation records, including the added answer-review matrix |
+| [11 — Mutation testing](11-mutation-testing.md) | Scoped test-quality evidence |
+| [12 — Panic audit](12-panic-audit.md) | Scoped panic and fuzzing evidence; not a fuzzing claim for the new decoder |
 
-1. **Mathematics** — the mechanism is implemented, with corrections and calibration
-   still open. Read [`15`](15-phase1-review.md) for the A–E review findings, [`10`](10-roadmap.md)
-   for T25/T82/T83 and completed tasks, and [`14`](14-parameter-register.md) for parameter
-   procedures. D32–D41 are implemented; they are not an unstarted feature list.
-2. **P2P network** (`04`) — persistence, transport and replication, a grind-free
-   randomness beacon, live anchoring: a single-organization testnet.
-3. **The rest** — the protocol boundary (`05`), distributed identity and the external
-   cryptographic review (`03`), statistical privacy (`06`), and the real-world pilots
-   that fix the empirical parameters.
+## Earlier design and research
 
-The original build order (offline engine first, then identity, network, protocol) is
-done as a reference implementation; the closed pilot and the opening to independent
-operators come after the three phases.
+- [13 — Characterization](13-characterization.md): study inputs, versions and measurements.
+- [18 — A3](18-a3-latent-shape-design.md): the closed latent-histogram correction.
+- [21 — D47 inventory](21-d47-inventory.md): retained material, dependencies and archive map.
+- [Archive](../archive/phase1-forecast-pilot/README.md): retired dossiers, tools and results;
+  documents 16, 17, 19 and 20 in this directory are redirects.
+- [Simulations](../sim/README.md): historical prototypes and scoped numerical oracles.
+- [Paper](../paper/README.md): analysis of the earlier forecast-and-pilot design,
+  with distinct PDF and source versions; not a validation of the answer review.
 
-## Status
-
-A reference implementation exists as a Cargo workspace (`crates/{scoring,identity,
-network,protocol,p2p,characterization}`); see the top-level `README.md` and `ARCHITECTURE.md` for the
-current state, and `docs/08-formal-specification.md` for an independent audit of what
-is implemented, tested, and still open. Read its dated audit and remediation log with
-[`15`](15-phase1-review.md). Current Rust golden outputs pin bits; Python oracles
-check the particular numerical contracts their tests name, within tolerance.
-
-## License
-
-EUPL-1.2 (see `LICENSE`).
+Historical results retain their hypotheses and scope. They are not measurements of the
+new mechanism, and their open findings are not closed by T87.

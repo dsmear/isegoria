@@ -1,0 +1,27 @@
+t = 0.641178985817746 (3fe48489cadf0783), recomputed from the calibration's records; threshold.tsv ca93135a951f9f6af67f1e5b5fb73cf95d217f92f2defbe61baf83094101e7b9
+plan: bound to t; configuration the calibration's but for caps; six designs at 6,000; 400 tasks, records matching key, phase, N and seed
+  C0 flagged_over_evaluable: [0.016, 0.113]
+  C0 flagged_over_planned: [0.016, 0.113]
+  C0 not_evaluable_over_planned: [0.000, 0.036]
+C0: {'evaluable': 100, 'flagged': 5, 'not_flagged': 95, 'zeros': 29, 'not_evaluable': {}}; equal to the reading: True; values equal to the reading's: True; equal to t: 0
+  not evaluable: {}
+  C1 flagged_over_evaluable: [0.011, 0.100]
+  C1 flagged_over_planned: [0.011, 0.099]
+  C1 not_evaluable_over_planned: [0.000, 0.054]
+C1: {'evaluable': 99, 'flagged': 4, 'not_flagged': 95, 'zeros': 29, 'not_evaluable': {'baseline not converged': 1}}; equal to the reading: True; values equal to the reading's: True; equal to t: 0
+  not evaluable: {'baseline not converged': ['r61 max_iters']}
+  C3 flagged_over_evaluable: [0.360, 0.563]
+  C3 flagged_over_planned: [0.360, 0.563]
+  C3 not_evaluable_over_planned: [0.000, 0.036]
+C3: {'evaluable': 100, 'flagged': 46, 'not_flagged': 54, 'zeros': 18, 'not_evaluable': {}}; equal to the reading: True; values equal to the reading's: True; equal to t: 0
+  not evaluable: {}
+  C5 flagged_over_evaluable: [0.029, 0.140]
+  C5 flagged_over_planned: [0.029, 0.139]
+  C5 not_evaluable_over_planned: [0.000, 0.054]
+C5: {'evaluable': 99, 'flagged': 7, 'not_flagged': 92, 'zeros': 30, 'not_evaluable': {'baseline not converged': 1}}; equal to the reading: True; values equal to the reading's: True; equal to t: 0
+  not evaluable: {'baseline not converged': ['r77 max_iters']}
+C3 against C0: 0.7705 over 100 × 100 pairs; equal to the reading: True
+C3 against C1: 0.7925252525252525 over 100 × 99 pairs; equal to the reading: True
+C5 against C0: 0.5070707070707071 over 99 × 100 pairs; equal to the reading: True
+C5 against C1: 0.5308641975308642 over 99 × 99 pairs; equal to the reading: True
+largest |interval − SciPy|: 1.4e-16

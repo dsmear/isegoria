@@ -16,6 +16,12 @@ impl Beacon {
         outcome.value().map(|value| Beacon { value })
     }
 
+    /// An epoch's beacon value recorded by the answer review's offline epoch closure, whose
+    /// formation is outside the offline path (`docs/05` §The answer review).
+    pub(crate) fn from_value(value: [u8; 32]) -> Self {
+        Beacon { value }
+    }
+
     /// `H(beacon ‖ purpose ‖ index)` as a `u64`. `index` is an epoch or admitted-slot index,
     /// never draft bytes (AT-BR-05).
     pub fn seed(&self, purpose: &[u8], index: u64) -> u64 {
@@ -38,3 +44,4 @@ pub const EXPLORATION: &[u8] = b"exploration";
 pub const CONTESTED: &[u8] = b"contested";
 pub const HONEYPOT: &[u8] = b"honeypot";
 pub const SORTITION: &[u8] = b"sortition";
+pub const ANSWER_DRAW: &[u8] = b"answer-draw";

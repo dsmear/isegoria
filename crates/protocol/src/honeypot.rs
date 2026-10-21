@@ -40,8 +40,8 @@ pub fn inject<T: Clone>(queue: &[T], golden: &[T], rate: f64, seed: u64) -> Vec<
 }
 
 /// Skill `S_u` of each panel reviewer on the golden items (`docs/01` D33, T50): the mean
-/// leave-one-out difference score against the known outcomes. Strictly proper; a reviewer
-/// who copies the others scores exactly 0; random or block voting scores below zero.
+/// leave-one-out difference score against the known outcomes, 0 for a reviewer who copies the
+/// others and for every report when no other carries weight (`docs/15` A10).
 pub fn reviewer_skills(
     predictions: &[Vec<f64>],
     weights: &[f64],

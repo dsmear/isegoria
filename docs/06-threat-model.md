@@ -1,112 +1,99 @@
 # Threat model
 
+This page describes the **offline answer review (D49–D53)**. Its contract is in
+[05](05-question-lifecycle.md#the-answer-review-01-d49d52); the owner's accepted risks
+are in [01, D48](01-decisions.md). Earlier filters and network mechanisms are separate.
+
 ## Attack surface and countermeasures
 
-| Attack | Primary countermeasure | Ref. |
-|---|---|---|
-| Sybil | Enrollment layer: externally-certified uniqueness | `03` P1 |
-| Whitewashing (abandon a compromised ID) | Non-rotatable ID + deterministic pseudonyms + zero-weight probation | `03` P2, M3 |
-| Statistical deanonymization of the proposer | Text normalization, temporal mixing, domain quotas | `03` |
-| Joining the proposals register with the votes register | Unlinkable role pseudonyms | `03` M3 |
-| Brigading specific items | Random reviewer assignment; item not searchable before the verdict — the drafts and the panels stay in the members' circle (`01` D44, built by `10` T77) | `05` [4], `04` |
-| Herding / information cascades | Commit-reveal, blind judgments, no visibility of others' votes | `05` [4] |
-| Majority capture | Bridging: the majority alone is not enough, cross-cutting approval is needed (on master the score still keeps part of the camp-size effect; corrected by the side-balanced score, D32/T49) | `02` A |
-| Coordinated cartel | Detection on the correlation of model residuals over long histories — a jittered cartel is flagged, like-minded honest reviewers are not (D39, T56); a detected cluster is never seated twice on a panel (D40, T57); the √k discount stays in the engine for analysis | `02` anti-collusion, `05` [4] |
-| Long-con (reputation accumulated and spent) | the CUSUM change detector on the per-item scores sends the reviewer back to probation (D34, T51); `w_max` cap on the odds scale (D33, T50); continuous honeypots | `02` C.4, `05` |
-| Biased item passing peer review | Field-data DIF (does not depend on opinions) | `02` B.3 |
-| Biased item passed off as a contested fact | The source check: the key must follow, by a declared rule, from a primary source cited at deposit — an interpretive key is rejected on DIF as before; and a contested fact reaches a test only in a selection whose admission cost is within the tolerance: the sum of each fit's estimated DTF over its own distribution and counted classes (D38). Cancellation can occur within a fit; this cost does not certify the whole test's DTF (`15` A2) | `02` §B.5, §B.7 |
-| Profiling a respondent's camp from the contested facts they miss, joined across batches | **Open** (`10` T69): the respondent pseudonym is the same on every batch, and contested facts are administered continuously since D38; a batch-scoped nullifier, sheets never kept with the id, or a per-epoch rate limit are the options, none chosen | `08` §8.2 PRIV-P8, `10` T69 |
-| Grinding the public randomness (the lottery, panels, exploration, honeypot placement, sortition) | Every draw seeds from the epoch's commit-reveal beacon among consortium members, committed before the deposit window closes and revealed after, so no deposit, log order or checkpoint head moves it; the lottery reads the deposits as a set. A member that withholds its reveal is excluded from the epoch's signing set and recorded; the last revealer can still choose between two values, publicly, until the threshold signature (T19) | `04` §The epoch's beacon, `01` D41 |
-| Vote-buying | Random assignment + no verifiable receipt: the reveals stay in the members' circle, never on a register anyone reads (`01` D44, built by `10` T77) | `05` [4], `04` |
-| Linking a person's roles by network address | Blind relays: a relay sees where an event comes from and not what it says, a member what it says and not where it comes from; relays and members are run by different operators (`01` D44, `10` T85) | `04` |
-| Author drawn onto their own item's panel | Accepted residual risk: the author's judge pseudonym is unlinkable by design, so it cannot be excluded; random assignment makes it one vote in 7–11, bridging needs agreement across camps, and honeypots measure reviewers | `05` [4], `08` §9.1 |
-| Item leakage (exposure) | Broad pool, rotation, parametric items, retirement on detection | `05` [9] |
-| Meta-level capture (parameters, honeypots, consortium) | Stratified sortition, supermajority + delay, freedom to fork | `05`, `04` |
-| Score falsification by a signer | Deterministic reproducible computation: anyone redoes the math and unmasks it | `04` |
-| Betrayal by the whole consortium | Freedom to fork: the network abandons it with the public history and the state tree, each nym re-entering by opening its own leaf — a nym's position is fixed by its credential, so a bad record cannot be left behind (`01` D44, `10` T86) | `04` |
-| Rewriting the past | Hourly anchoring to a public chain | `04` |
-| Collusion of the issuing committee | Threshold t-of-n issuance with heterogeneous issuers | `03` M2 |
+| Risk | Protection or limit in the answer review |
+|---|---|
+| Invalid or repeated actions | Credential proofs, role pseudonyms and state-transition checks; per-author duplicate detection and proposal quotas. These do not establish that enrollment issued only one credential per real person. |
+| Copying revealed answers during commitment | Commit-reveal separates the phases. It does not prevent private communication, shared sources or coordination outside the program. |
+| Learning the key | The reviewer view omits the key and content id; deposits do not consult another author's duplicates. The offline state and log still contain the key in clear. No confidentiality is promised to their readers. |
+| Choosing a favourable panel | Pool and beacon are fixed at the deposit epoch's closure; the draw is reproducible from them and the question number. The caller can try beacon values: honest supply of the random input is an assumption, not an enforced property. |
+| Majority capture, shared errors, superficial reviews, coordinated reviewers | Accepted risks. Equal-weight consensus can accept a wrong key or reject a correct one. Bridging, DIF and coordination detection do not change this path's outcome. |
+| Unequal expertise or an unsuitable pool | Accepted risk. Selection is random, not by competence; suitability to the context must come from the people maintaining the pool. |
+| Reviewer reputation accumulated to gain influence | Ordinary reviews neither update reviewer reputation nor increase weight. This removes that weight-accumulation channel, not the possibility of coordinated participation. |
+| Author reviewing their own question | Separate role pseudonyms do not identify the same person across roles, so the draw does not exclude that person. Equal votes and random assignment do not eliminate this risk. |
+| Wrong or unclear key | Reviewers can choose another alternative or "none is correct". The tally determines the outcome; divided answers do not prove ambiguity. No automatic correction or source check is performed. |
+| Abstention or absence to block a round | No replacement or penalty. Insufficient participation produces no author observation. New rounds are outside the contract. |
+| Too few reviewers | A pool too small at the fixed closure leaves the question permanently unavailable, with its slot consumed and no author observation (D53). |
+| Statistical identification or identity-layer failure | Role pseudonyms alone do not prevent identification through text, topic or behaviour. Requirements and residual gaps are in [03](03-identity-enrollment.md); the offline path does not certify end-to-end anonymity. |
+| Biased coverage of the final quiz | Not addressed by item consensus. Quiz composition, exposure and retirement are outside this closure; A2 remains unresolved in its separate scope. |
 
----
+Internet, documents and AI are part of the operating conditions. The system does not
+detect, infer or assess their use, and reviewers do not record consulted sources.
+Agreement does not establish independent checking. D45 leaves broader policies about
+delegation, automation and impersonation unsettled; D48 accepts coordination as a risk
+of this first mechanism.
 
 ## Corner cases verified in testing
 
-Results of the simulations in `sim/`. These are the engine's **acceptance tests**: the
-implementation must reproduce them.
+Answer-review checks and their execution/review provenance are recorded in
+[15](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21).
+The key-disclosure regression is AT-ANS-14. These checks establish the recorded contract
+properties, not error rates in a real reviewer population. Parameters remain provisional
+and uncalibrated; the decoder has not been fuzzed.
 
 ### Cost of bipartisan corruption
 
-A 60/40 unbalanced network. A cartel pushing a partisan item:
-
-- with majority voting: ~40 nodes from its own camp are enough → PASSES
-- with bridging: 40 nodes from its own camp barely move the score (0.52 → 0.54); the
-  item passes only once about **60 of the 80 of the opposing camp (75%)** approve it —
-  55–60 in 90% of 200 drawn orders (T24, `13` §7.4)
-
-Bridging drastically raises the cost of capture.
+The bridging simulations belong to the earlier mechanism. Their assumptions and measured
+rates are in [13 §7.4](13-characterization.md); they provide no protection to this path.
 
 ### The biased item that passes review
 
-A question with strong DIF (β₂ = 0.72 in the data: item 04 of the reference fixture)
-**passes peer review** — side-balanced score `S_j = 0.84` against `τ = 0.80`, both
-sides approving it — and is stopped only by Level B. This is the scenario the evidence
-filter exists for: human review does not see the bias, the data does.
+The earlier prototype's peer-review/DIF example is documented in [sim](../sim/README.md).
+There is no DIF gate in the answer review.
 
 ### Latent axis recovery
 
-Bridging reconstructs the ideological axis with correlation 0.99 against the true one,
-with nobody declaring anything. Latent-class DIF reconstructs a hidden axis (education)
-with correlation 0.5–0.8 without observing it, provided ≥2 distorted items are in the
-batch.
-
----
+Historical recovery experiments are documented in [sim](../sim/README.md) and
+[13](13-characterization.md). They do not establish political-group identification or
+reviewer competence in the current open environment.
 
 ## What the system does NOT solve (structural limits, not bugs)
 
-These must be made explicit: they are properties of the design, not implementation
-defects.
-
 ### L1 — The true-but-divisive false negative
 
-Bridging does not tell a true, polarizing fact from one-sided propaganda: they produce
-the same voting pattern, and **no threshold saves it**. This is the most serious
-limitation. Partial mitigation: the appeal-to-evidence channel (`05` [5b]); when the
-division lies in knowledge of a sourced fact rather than in opinions about the item,
-Level B shows DIF too, and the contested-facts pool keeps such a fact in the bank, drawn
-only in sets within the admission cost (`05` [7b], `01` D38). The whole-test DTF
-guarantee remains open (`15` A2).
+A correct key can fail consensus. The earlier appeal and contested-fact mechanisms are
+specified in [02](02-scoring-engine.md) and [05](05-question-lifecycle.md); neither applies here.
 
 ### L2 — Bias of the pool, not of the single item
 
-You can build a test in which every item passes DIF but the choice of topics is skewed
-(only parliamentary procedure, never labor law). Mitigation: a blueprint of fixed
-quotas per domain, by sortition (`05` [8]).
+Acceptable individual questions do not establish representative subject coverage (D44).
+The usable set is not yet a composed quiz.
 
 ### L3 — The elite-consensus blind spot
 
-An item can pass bridging and political DIF yet be distorted on a socio-economic axis.
-Mitigation: multi-axis DIF, which must be actively sought.
+Shared knowledge and blind spots can produce a confident but unsuitable consensus.
+Random selection within a pool does not correct how that pool was formed (D48).
 
 ### L4 — "Competence" is still a construct chosen by someone
 
-Psychometrics verifies that the test coherently measures *one* thing, not that that
-thing is the right thing to measure.
+Correctness in an open environment does not establish unaided knowledge or autonomous
+understanding. D46's assessment objectives remain unvalidated by this path.
 
 ### L5 — The consortium's initial selection has no technical solution
 
-It is a human decision about whom to trust. Made bearable — not fatal — by
-reproducibility of the computation and freedom to fork (`04`).
+Network governance belongs to [04](04-storage-network.md), outside this offline closure.
+The offline caller's trust assumptions are stated above.
 
 ### L6 — The political constraint of weighted voting
 
-In the electoral use case, weighting the vote by competence (epistocracy) is
-contested: Brennan defends it (*Against Democracy*), Estlund criticizes it with the
-demographic objection — even a perfectly neutral test weights participation on a
-variable correlated with education, income, and native language. It is also in tension
-with universal suffrage. This is not a judgment on the project but a design constraint:
-if the goal is electoral, the main obstacle will not be technical.
+Using performance to assign political weight or authority needs a separate justification
+(D45). Nothing in this closure establishes one.
 
-The same infrastructure has less contested and more immediately achievable
-applications (independent certifications, fact-checking, licensing exams), useful also
-as a testbed, with the same underlying problem — no authority is credibly impartial —
-but without the constitutional friction.
+## Phase 2 network boundary
+
+The node process handles replication, cuts and the beacon, not the answer-review
+lifecycle. It currently serves its replicated set to any connected peer. D54 defines
+public, circle and self tiers, blind relays and a state tree for forks, but T77, T85
+and T86 remain unimplemented. Until then, run nodes only among machines their operator
+controls. Draft and panel privacy, unlinkability by network address and the private
+fork path are design obligations, not protections already provided by the runtime.
+
+The decision, including trust in consortium members and the risk of a relay/member
+coalition, is in [01, D54](01-decisions.md). Network contracts, writer recovery and
+view/withholder rules are in [04](04-storage-network.md); task and verification states
+are in [10](10-roadmap.md) and [08](08-formal-specification.md).

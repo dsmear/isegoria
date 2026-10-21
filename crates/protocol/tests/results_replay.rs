@@ -3,7 +3,8 @@
 
 use identity::nym::Nym;
 use network::cid::{cid, Cid};
-use protocol::appeal::{AppealOutcome, AuthorHistory};
+use protocol::author_time::CutContext;
+use protocol::contested::PoolLimit;
 use protocol::events::NodeEvent;
 use protocol::node::{Node, NodeError, Outcome, Rejection};
 use protocol::probation::SkillTrack;
@@ -12,7 +13,7 @@ use protocol::results::{
     ResultRecord, ResultsRejected,
 };
 use scoring::latent::Ability;
-use scoring::reputation::{AuthorPrior, CusumParams};
+use scoring::reputation::CusumParams;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -55,7 +56,24 @@ fn fit(members: Vec<(Cid, u64)>) -> ResultRecord {
     }
 }
 
-/// Every kind of record, in an order where each is valid.
+/// A well-formed contested fit of `classes` equal classes, `items` items and `nodes` ability
+/// points: its curves would hold `items · classes² · nodes` values.
+fn wide_fit(classes: usize, items: usize, nodes: usize, members: Vec<(Cid, u64)>) -> ResultRecord {
+    ResultRecord::ContestedFit {
+        pi: vec![1.0; classes],
+        eta: vec![0.0; classes],
+        a: vec![vec![1.0; items]; classes],
+        b: vec![vec![0.0; items]; classes],
+        c: vec![0.0; items],
+        ability: Ability {
+            nodes: (0..nodes).map(|q| q as f64 / nodes as f64).collect(),
+            weights: vec![1.0; nodes],
+        },
+        members,
+    }
+}
+
+/// Every kind of record but the author's, which need the node's deposits (`author_records.rs`).
 fn every_record() -> Vec<ResultRecord> {
     let (x, y) = (cid(b"fact x"), cid(b"fact y"));
     vec![
@@ -71,18 +89,6 @@ fn every_record() -> Vec<ResultRecord> {
         },
         ResultRecord::ReviewerUnobserved { reviewer: nym(1) },
         ResultRecord::ReviewerUnobserved { reviewer: nym(2) },
-        ResultRecord::AuthorQuality {
-            author: nym(7),
-            quality: 0.9,
-            age_months: 2.0,
-        },
-        ResultRecord::AppealFiled { author: nym(7) },
-        ResultRecord::AppealSettled {
-            author: nym(7),
-            escrow: 1,
-            promoted: Some(0.8),
-        },
-        ResultRecord::AppealFiled { author: nym(7) },
         ResultRecord::Exposure {
             item: cid(b"item"),
             times: 3,
@@ -114,7 +120,7 @@ fn results(epoch: u64, records: Vec<ResultRecord>) -> NodeEvent {
 #[test]
 fn at_pro_12_epoch_results_replay_to_the_state_they_produced() {
     let dir = scratch("replay");
-    let mut node = Node::open(&dir, issuer()).unwrap();
+    let mut node = open_fixture(&dir, issuer()).unwrap();
     assert_eq!(node.submit(results(1, every_record())), Ok(Outcome::Moved));
     node.submit(results(
         2,
@@ -124,7 +130,7 @@ fn at_pro_12_epoch_results_replay_to_the_state_they_produced() {
         }],
     ))
     .unwrap();
-    let reopened = Node::open(&dir, issuer()).unwrap();
+    let reopened = open_fixture(&dir, issuer()).unwrap();
     assert_eq!(reopened.state(), node.state());
     let r = reopened.state().results();
 
@@ -136,15 +142,6 @@ fn at_pro_12_epoch_results_replay_to_the_state_they_produced() {
     assert_eq!(r.track(&nym(1)), Some(&track));
     assert_eq!(r.track(&nym(2)).map(|t| t.reviewed()), Some(1));
     assert!(r.track(&nym(3)).is_none());
-
-    let prior = AuthorPrior::default();
-    let mut author = AuthorHistory::new();
-    author.record(0.9, 2.0);
-    let escrow = author.file_appeal(&prior).unwrap();
-    author.settle(escrow, AppealOutcome::Promoted { quality: 0.8 });
-    author.file_appeal(&prior).unwrap();
-    assert_eq!(r.author(&nym(7)), Some(&author));
-    assert_eq!(r.open_escrows(&nym(7)), vec![2]);
 
     assert_eq!(r.exposure(&cid(b"item")), 5);
     let (residuals, index) = r.residuals();
@@ -164,23 +161,14 @@ fn at_pro_12_epoch_results_replay_to_the_state_they_produced() {
 #[test]
 fn at_pro_12_results_are_applied_whole_or_not_at_all() {
     let dir = scratch("refused");
-    let mut node = Node::open(&dir, issuer()).unwrap();
+    let mut node = open_fixture(&dir, issuer()).unwrap();
     node.submit(results(1, every_record())).unwrap();
-    let before = Node::open(&dir, issuer()).unwrap();
-    let low = ResultRecord::AuthorQuality {
-        author: nym(9),
-        quality: 0.0,
-        age_months: 0.0,
-    };
+    let before = open_fixture(&dir, issuer()).unwrap();
+    let unobserved = ResultRecord::ReviewerUnobserved { reviewer: nym(9) };
     let score = |score, inclusion| ResultRecord::ReviewerScore {
         reviewer: nym(1),
         score,
         inclusion,
-    };
-    let settle = |escrow| ResultRecord::AppealSettled {
-        author: nym(7),
-        escrow,
-        promoted: None,
     };
     let cases: Vec<(u64, Vec<ResultRecord>, ResultsRejected)> = vec![
         (1, vec![], ResultsRejected::EpochRecorded),
@@ -201,26 +189,8 @@ fn at_pro_12_results_are_applied_whole_or_not_at_all() {
         ),
         (
             2,
-            vec![low.clone(), score(f64::NAN, 1.0)],
+            vec![unobserved, score(f64::NAN, 1.0)],
             ResultsRejected::NotFinite { record: 1 },
-        ),
-        (
-            2,
-            vec![ResultRecord::AuthorQuality {
-                author: nym(9),
-                quality: f64::INFINITY,
-                age_months: 0.0,
-            }],
-            ResultsRejected::NotFinite { record: 0 },
-        ),
-        (
-            2,
-            vec![ResultRecord::AuthorQuality {
-                author: nym(9),
-                quality: 0.5,
-                age_months: f64::NAN,
-            }],
-            ResultsRejected::NotFinite { record: 0 },
         ),
         (
             2,
@@ -230,35 +200,6 @@ fn at_pro_12_results_are_applied_whole_or_not_at_all() {
                 residual: f64::NAN,
             }],
             ResultsRejected::NotFinite { record: 0 },
-        ),
-        (
-            2,
-            vec![ResultRecord::AppealSettled {
-                author: nym(7),
-                escrow: 2,
-                promoted: Some(f64::NAN),
-            }],
-            ResultsRejected::NotFinite { record: 0 },
-        ),
-        (
-            2,
-            vec![low.clone(), ResultRecord::AppealFiled { author: nym(9) }],
-            ResultsRejected::AppealNotCovered { record: 1 },
-        ),
-        (
-            2,
-            vec![settle(0)],
-            ResultsRejected::NoOpenEscrow { record: 0 },
-        ),
-        (
-            2,
-            vec![settle(1)],
-            ResultsRejected::NoOpenEscrow { record: 0 },
-        ),
-        (
-            2,
-            vec![settle(2), settle(2)],
-            ResultsRejected::NoOpenEscrow { record: 1 },
         ),
         (
             2,
@@ -312,6 +253,48 @@ fn at_pro_12_results_are_applied_whole_or_not_at_all() {
             vec![fit(vec![(cid(b"z"), 2)])],
             ResultsRejected::BadMembers { record: 0 },
         ),
+        (
+            2,
+            vec![fit(vec![(cid(b"z"), 0), (cid(b"y"), 1), (cid(b"x"), 0)])],
+            ResultsRejected::BadMembers { record: 0 },
+        ),
+        (
+            2,
+            vec![ResultRecord::ContestedFit {
+                pi: vec![0.6, 0.0],
+                eta: vec![0.0, 0.5],
+                a: vec![vec![1.0], vec![1.0]],
+                b: vec![vec![0.0], vec![0.5]],
+                c: vec![0.0],
+                ability: ability(),
+                members: vec![],
+            }],
+            ResultsRejected::BadClasses { record: 0 },
+        ),
+        (
+            2,
+            vec![wide_fit(17, 1, 3, vec![(cid(b"wide"), 0)])],
+            ResultsRejected::ContestedOutOfDomain {
+                record: 0,
+                limit: PoolLimit::Classes,
+            },
+        ),
+        (
+            2,
+            vec![wide_fit(16, 4096, 256, vec![(cid(b"wide"), 0)])],
+            ResultsRejected::ContestedOutOfDomain {
+                record: 0,
+                limit: PoolLimit::Bytes,
+            },
+        ),
+        (
+            2,
+            vec![wide_fit(16, 4096, 256, vec![])],
+            ResultsRejected::ContestedOutOfDomain {
+                record: 0,
+                limit: PoolLimit::Bytes,
+            },
+        ),
     ];
     for (epoch, records, why) in cases {
         let mut all = vec![ResultRecord::Exposure {
@@ -326,18 +309,19 @@ fn at_pro_12_results_are_applied_whole_or_not_at_all() {
             ResultsRejected::NotFinite { record } => {
                 ResultsRejected::NotFinite { record: record + 1 }
             }
-            ResultsRejected::AppealNotCovered { record } => {
-                ResultsRejected::AppealNotCovered { record: record + 1 }
-            }
-            ResultsRejected::NoOpenEscrow { record } => {
-                ResultsRejected::NoOpenEscrow { record: record + 1 }
-            }
             ResultsRejected::BadClasses { record } => {
                 ResultsRejected::BadClasses { record: record + 1 }
             }
             ResultsRejected::BadMembers { record } => {
                 ResultsRejected::BadMembers { record: record + 1 }
             }
+            ResultsRejected::ContestedOutOfDomain { record, limit } => {
+                ResultsRejected::ContestedOutOfDomain {
+                    record: record + 1,
+                    limit,
+                }
+            }
+            other => unreachable!("the author's refusals are in author_inputs.rs: {other:?}"),
         };
         all.extend(records);
         assert_eq!(
@@ -384,14 +368,14 @@ fn at_pro_12_the_inputs_root_binds_the_results_to_their_inputs() {
     );
 
     let dir = scratch("root");
-    let mut node = Node::open(&dir, issuer()).unwrap();
+    let mut node = open_fixture(&dir, issuer()).unwrap();
     node.submit(NodeEvent::Results(EpochResults {
         epoch: 5,
         inputs_root: root,
         records: vec![],
     }))
     .unwrap();
-    let recorded = Node::open(&dir, issuer())
+    let recorded = open_fixture(&dir, issuer())
         .unwrap()
         .state()
         .results()
@@ -421,28 +405,58 @@ fn at_pro_12_results_round_trip_and_bad_bytes_are_refused() {
         assert!(NodeEvent::decode(&bytes[..cut]).is_none(), "cut at {cut}");
     }
     let header = 2 + 8 + 32 + 8;
-    let numbers = [1u8, 1, 2, 2, 3, 4, 5, 4, 6, 7, 7, 8, 9];
-    for (record, number) in every_record().into_iter().zip(numbers) {
+    let (author, item) = (nym(7), cid(b"item"));
+    let authors = vec![
+        ResultRecord::AuthorOutcome {
+            author,
+            item,
+            passed: true,
+        },
+        ResultRecord::AppealStarted {
+            author,
+            item,
+            within_window: true,
+        },
+        ResultRecord::AppealSettled {
+            author,
+            item,
+            passed: false,
+        },
+    ];
+    let numbers = [1u8, 1, 2, 2, 6, 7, 7, 8, 9, 10, 13, 12];
+    let records = every_record().into_iter().chain(authors.clone());
+    for (record, number) in records.zip(numbers) {
         let one = results(3, vec![record]).encode();
         assert_eq!(one[header], number);
-        for bad in [0u8, 10] {
+        let decoded = NodeEvent::decode(&one).expect("one record decodes");
+        assert_eq!(decoded.encode(), one);
+        // 3 to 5 and 11 are retired author records (`docs/15` C5–C6).
+        for bad in [0u8, 3, 4, 5, 11, 14] {
             let mut unknown = one.clone();
             unknown[header] = bad;
             assert!(NodeEvent::decode(&unknown).is_none());
         }
     }
-    let settle = results(
-        3,
-        vec![ResultRecord::AppealSettled {
-            author: nym(7),
-            escrow: 1,
-            promoted: None,
-        }],
-    )
-    .encode();
-    let failed = NodeEvent::decode(&settle).expect("a failed appeal decodes");
-    assert_eq!(failed.encode(), settle);
-    let mut bad_flag = settle.clone();
-    *bad_flag.last_mut().unwrap() = 2;
-    assert!(NodeEvent::decode(&bad_flag).is_none());
+    for flagged in &authors {
+        let one = results(3, vec![flagged.clone()]).encode();
+        let mut bad_flag = one.clone();
+        *bad_flag.last_mut().unwrap() = 2;
+        assert!(NodeEvent::decode(&bad_flag).is_none());
+    }
+}
+
+// Fixtures declare one nonclosing cut, resumed unchanged on every restart.
+fn open_fixture(
+    dir: &std::path::Path,
+    issuer: identity::credential::IssuerPublic,
+) -> Result<Node, NodeError> {
+    let mut node = protocol::node::Node::open(dir, issuer)?;
+    if node.state().results().author_point().is_none() {
+        node.begin_cut(CutContext {
+            number: 0,
+            epoch: 0,
+            closes: false,
+        })?;
+    }
+    Ok(node)
 }

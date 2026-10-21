@@ -5,18 +5,22 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 publish = false
+default-run = "characterization"
 description = "The characterization harness (T24, and T25's supplement): seeded, resumable, parallel simulation studies of the production detectors and gates. Not part of a node. See docs/13."
 
 [dependencies]
 scoring = { path = "../scoring" }
 protocol = { path = "../protocol" }
 identity = { path = "../identity" }
+network = { path = "../network" }
 rand = "0.8"
 rand_chacha = "0.3"
 # The generators' transcendental functions, as the engine's (`scoring::fmath`): the same
 # datasets on every platform, so any run reproduces from its seed anywhere (docs/13 §2).
 libm = "0.2"
 sha2 = "0.10"
+# The supervisor's parent-death signal and directory lock (docs/19 §13.11).
+libc = "0.2"
 
 [features]
 # The slower checks, as in the other crates: CI runs them in its calibration pass.

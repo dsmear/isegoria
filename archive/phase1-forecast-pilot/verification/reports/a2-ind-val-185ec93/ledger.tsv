@@ -1,0 +1,802 @@
+ledger	a2-probe/v2
+start	ind-val-C0-0	137419
+start	ind-val-C1-0	137420
+start	ind-val-C3-0	137421
+start	ind-val-C5-0	137422
+start	ind-val-C0-1	137423
+start	ind-val-C1-1	137424
+start	ind-val-C3-1	137425
+start	ind-val-C5-1	137426
+end	ind-val-C5-1	read	14570	14669	self
+start	ind-val-C0-2	137516
+end	ind-val-C3-0	read	16500	16529	self
+start	ind-val-C1-2	137517
+end	ind-val-C0-1	read	16620	16643	self
+start	ind-val-C3-2	137518
+end	ind-val-C5-0	read	19320	19376	self
+start	ind-val-C5-2	137520
+end	ind-val-C1-1	read	19490	19590	self
+start	ind-val-C0-3	137521
+end	ind-val-C1-0	read	24780	24859	self
+start	ind-val-C1-3	137550
+end	ind-val-C3-1	read	25250	25349	self
+start	ind-val-C3-3	137551
+end	ind-val-C0-0	read	25860	25909	self
+start	ind-val-C5-3	137552
+end	ind-val-C1-2	read	16680	16704	self
+start	ind-val-C0-4	137580
+end	ind-val-C5-2	read	15850	15884	self
+start	ind-val-C1-4	137581
+end	ind-val-C0-3	read	18190	18294	self
+start	ind-val-C3-4	137586
+end	ind-val-C0-2	read	23880	23931	self
+start	ind-val-C5-4	137587
+end	ind-val-C3-2	read	22910	23011	self
+start	ind-val-C0-5	137588
+end	ind-val-C1-3	read	18080	18149	self
+start	ind-val-C1-5	137616
+end	ind-val-C3-3	read	19310	19354	self
+start	ind-val-C3-5	137617
+end	ind-val-C5-3	read	20460	20559	self
+start	ind-val-C5-5	137618
+end	ind-val-C0-4	read	14550	14635	self
+start	ind-val-C0-6	137619
+end	ind-val-C1-5	read	12400	12428	self
+start	ind-val-C1-6	137647
+end	ind-val-C1-4	read	26780	26809	self
+start	ind-val-C3-6	137679
+end	ind-val-C3-4	read	24540	24599	self
+start	ind-val-C5-6	137680
+end	ind-val-C0-5	read	24830	24876	self
+start	ind-val-C0-7	137681
+end	ind-val-C5-5	read	18590	18602	self
+start	ind-val-C1-7	137683
+end	ind-val-C3-5	read	20710	20760	self
+start	ind-val-C3-7	137684
+end	ind-val-C5-4	read	26950	26982	self
+start	ind-val-C5-7	137685
+end	ind-val-C1-6	read	15210	15305	self
+start	ind-val-C0-8	137721
+end	ind-val-C0-6	read	26210	26303	self
+start	ind-val-C1-8	137722
+end	ind-val-C0-7	read	16460	16490	self
+start	ind-val-C3-8	137751
+end	ind-val-C5-6	read	20410	20454	self
+start	ind-val-C5-8	137753
+end	ind-val-C3-7	read	21110	21209	self
+start	ind-val-C0-9	137754
+end	ind-val-C1-7	read	22130	22164	self
+start	ind-val-C1-9	137755
+end	ind-val-C0-8	read	18960	19007	self
+start	ind-val-C3-9	137756
+end	ind-val-C3-6	read	29910	29918	self
+start	ind-val-C5-9	137784
+end	ind-val-C5-7	read	27540	27618	self
+start	ind-val-C0-10	137785
+end	ind-val-C0-9	read	16690	16772	self
+start	ind-val-C1-10	137822
+end	ind-val-C1-8	read	32180	32235	self
+start	ind-val-C3-10	137823
+end	ind-val-C5-8	read	23710	23776	self
+start	ind-val-C5-10	137824
+end	ind-val-C3-8	read	29450	29548	self
+start	ind-val-C0-11	137828
+end	ind-val-C1-9	read	24780	24877	self
+end	ind-val-C3-9	read	22340	22361	self
+start	ind-val-C1-11	137854
+start	ind-val-C3-11	137855
+end	ind-val-C5-9	read	20280	20351	self
+start	ind-val-C5-11	137856
+end	ind-val-C1-10	read	12410	12493	self
+start	ind-val-C0-12	137857
+end	ind-val-C5-11	read	11670	11677	self
+start	ind-val-C1-12	137890
+end	ind-val-C0-10	read	31430	31445	self
+start	ind-val-C3-12	137891
+end	ind-val-C3-10	read	18810	18868	self
+start	ind-val-C5-12	137893
+end	ind-val-C5-10	read	18590	18667	self
+start	ind-val-C0-13	137894
+end	ind-val-C0-11	read	15540	15648	self
+start	ind-val-C1-13	137895
+end	ind-val-C0-12	read	13140	13173	self
+start	ind-val-C3-13	137907
+end	ind-val-C3-11	read	22260	22283	self
+start	ind-val-C5-13	137935
+end	ind-val-C1-11	read	23730	23819	self
+start	ind-val-C0-14	137936
+end	ind-val-C0-13	read	12790	12854	self
+start	ind-val-C1-14	137938
+end	ind-val-C3-12	read	13760	13823	self
+start	ind-val-C3-14	137939
+end	ind-val-C1-13	read	24230	24326	self
+start	ind-val-C5-14	137971
+end	ind-val-C0-14	read	14660	14738	self
+start	ind-val-C0-15	137972
+end	ind-val-C5-13	read	16370	16385	self
+start	ind-val-C1-15	137973
+end	ind-val-C1-12	read	27520	27585	self
+start	ind-val-C3-15	137999
+end	ind-val-C5-12	read	27210	27265	self
+start	ind-val-C5-15	138000
+end	ind-val-C1-14	read	17420	17518	self
+start	ind-val-C0-16	138001
+end	ind-val-C3-13	read	27310	27358	self
+start	ind-val-C1-16	138002
+end	ind-val-C3-14	read	21160	21263	self
+start	ind-val-C3-16	138010
+end	ind-val-C3-15	read	21110	21208	self
+start	ind-val-C5-16	138103
+end	ind-val-C0-16	read	18830	18870	self
+start	ind-val-C0-17	138105
+end	ind-val-C0-15	read	24660	24720	self
+start	ind-val-C1-17	138106
+end	ind-val-C5-14	read	27320	27375	self
+start	ind-val-C3-17	138107
+end	ind-val-C1-15	read	28950	28975	self
+start	ind-val-C5-17	138109
+end	ind-val-C1-16	read	23450	23469	self
+start	ind-val-C0-18	138110
+end	ind-val-C3-16	read	22610	22667	self
+start	ind-val-C1-18	138139
+end	ind-val-C5-15	read	32180	32219	self
+start	ind-val-C3-18	138140
+end	ind-val-C1-17	read	12660	12699	self
+start	ind-val-C5-18	138143
+end	ind-val-C5-16	read	17760	17799	self
+start	ind-val-C0-19	138155
+end	ind-val-C3-17	read	13460	13527	self
+start	ind-val-C1-19	138181
+end	ind-val-C0-17	read	17610	17629	self
+start	ind-val-C3-19	138182
+end	ind-val-C0-18	read	12640	12722	self
+start	ind-val-C5-19	138196
+end	ind-val-C5-17	read	21530	21615	self
+start	ind-val-C0-20	138237
+end	ind-val-C1-18	read	19440	19472	self
+start	ind-val-C1-20	138238
+end	ind-val-C0-19	read	12240	12291	self
+start	ind-val-C3-20	138239
+end	ind-val-C5-18	read	21150	21181	self
+start	ind-val-C5-20	138241
+end	ind-val-C1-19	read	18170	18238	self
+start	ind-val-C0-21	138242
+end	ind-val-C3-19	read	18010	18038	self
+start	ind-val-C1-21	138243
+end	ind-val-C3-18	read	26080	26101	self
+start	ind-val-C3-21	138246
+end	ind-val-C5-19	read	18410	18458	self
+start	ind-val-C5-21	138247
+end	ind-val-C1-20	read	17880	17927	self
+start	ind-val-C0-22	138283
+end	ind-val-C3-20	read	21410	21438	self
+start	ind-val-C1-22	138311
+end	ind-val-C0-20	read	23700	23726	self
+start	ind-val-C3-22	138312
+end	ind-val-C1-21	read	17210	17297	self
+start	ind-val-C5-22	138313
+end	ind-val-C5-21	read	16580	16670	self
+start	ind-val-C0-23	138314
+end	ind-val-C5-20	read	21200	21310	self
+start	ind-val-C1-23	138317
+end	ind-val-C0-21	read	22230	22315	self
+start	ind-val-C3-23	138343
+end	ind-val-C3-21	read	22330	22390	self
+start	ind-val-C5-23	138344
+end	ind-val-C0-22	read	21410	21462	self
+start	ind-val-C0-24	138350
+end	ind-val-C1-22	read	23970	24072	self
+start	ind-val-C1-24	138385
+end	ind-val-C5-22	read	21550	21638	self
+start	ind-val-C3-24	138386
+end	ind-val-C3-23	read	22490	22593	self
+end	ind-val-C5-23	read	21280	21383	self
+start	ind-val-C5-24	138415
+start	ind-val-C0-25	138416
+end	ind-val-C1-23	read	25950	25972	self
+end	ind-val-C0-24	read	15150	15274	self
+start	ind-val-C1-25	138418
+start	ind-val-C3-25	138419
+end	ind-val-C0-23	read	29520	29551	self
+start	ind-val-C5-25	138420
+end	ind-val-C3-22	read	33770	33841	self
+start	ind-val-C0-26	138421
+end	ind-val-C1-24	read	18090	18132	self
+start	ind-val-C1-26	138450
+end	ind-val-C3-24	read	19180	19236	self
+start	ind-val-C3-26	138459
+end	ind-val-C0-25	read	15280	15305	self
+start	ind-val-C5-26	138465
+end	ind-val-C5-24	read	21380	21459	self
+start	ind-val-C0-27	138494
+end	ind-val-C3-25	read	21250	21338	self
+start	ind-val-C1-27	138495
+end	ind-val-C1-25	read	23500	23577	self
+end	ind-val-C5-25	read	22710	22762	self
+start	ind-val-C3-27	138504
+start	ind-val-C5-27	138505
+end	ind-val-C0-26	read	21630	21655	self
+start	ind-val-C0-28	138506
+end	ind-val-C1-26	read	19980	20043	self
+start	ind-val-C1-28	138535
+end	ind-val-C3-26	read	21650	21750	self
+start	ind-val-C3-28	138536
+end	ind-val-C5-26	read	22880	22954	self
+start	ind-val-C5-28	138566
+end	ind-val-C1-28	read	7930	7978	self
+start	ind-val-C0-29	138568
+end	ind-val-C0-27	read	21770	21867	self
+start	ind-val-C1-29	138570
+end	ind-val-C3-27	read	18730	18820	self
+start	ind-val-C3-29	138575
+end	ind-val-C1-27	read	23780	23799	self
+start	ind-val-C5-29	138581
+end	ind-val-C0-28	read	21390	21456	self
+start	ind-val-C0-30	138619
+end	ind-val-C5-27	read	23620	23708	self
+start	ind-val-C1-30	138620
+end	ind-val-C5-28	read	15300	15314	self
+start	ind-val-C3-30	138629
+end	ind-val-C1-29	read	13630	13683	self
+start	ind-val-C5-30	138633
+end	ind-val-C3-28	read	24020	24115	self
+start	ind-val-C0-31	138660
+end	ind-val-C0-29	read	24570	24601	self
+start	ind-val-C1-31	138663
+end	ind-val-C0-30	read	17510	17598	self
+start	ind-val-C3-31	138664
+end	ind-val-C5-29	read	21840	21865	self
+start	ind-val-C5-31	138692
+end	ind-val-C3-30	read	18340	18401	self
+start	ind-val-C0-32	138693
+end	ind-val-C3-29	read	28010	28062	self
+start	ind-val-C1-32	138694
+end	ind-val-C1-30	read	24930	25000	self
+start	ind-val-C3-32	138695
+end	ind-val-C0-31	read	17550	17622	self
+start	ind-val-C5-32	138726
+end	ind-val-C3-31	read	17130	17196	self
+start	ind-val-C0-33	138728
+end	ind-val-C5-30	read	26740	26833	self
+start	ind-val-C1-33	138739
+end	ind-val-C1-31	read	19950	19981	self
+start	ind-val-C3-33	138740
+end	ind-val-C0-32	read	17090	17121	self
+start	ind-val-C5-33	138768
+end	ind-val-C5-32	read	14340	14354	self
+start	ind-val-C0-34	138770
+end	ind-val-C5-31	read	23060	23111	self
+start	ind-val-C1-34	138771
+end	ind-val-C1-32	read	19920	19974	self
+start	ind-val-C3-34	138772
+end	ind-val-C5-33	read	13670	13733	self
+start	ind-val-C5-34	138800
+end	ind-val-C3-32	read	29670	29738	self
+start	ind-val-C0-35	138801
+end	ind-val-C0-34	read	14130	14159	self
+start	ind-val-C1-35	138804
+end	ind-val-C0-33	read	23890	23914	self
+start	ind-val-C3-35	138807
+end	ind-val-C1-34	read	14850	14887	self
+start	ind-val-C5-35	138808
+end	ind-val-C3-33	read	25710	25821	self
+end	ind-val-C3-34	read	18010	18018	self
+start	ind-val-C0-36	138835
+start	ind-val-C1-36	138836
+end	ind-val-C1-33	read	31110	31209	self
+start	ind-val-C3-36	138846
+end	ind-val-C5-34	read	22910	22961	self
+start	ind-val-C5-36	138876
+end	ind-val-C0-35	read	26300	26375	self
+start	ind-val-C0-37	138908
+end	ind-val-C3-36	read	15450	15516	self
+start	ind-val-C1-37	138909
+end	ind-val-C5-35	read	24250	24342	self
+start	ind-val-C3-37	138910
+end	ind-val-C3-35	read	27430	27504	self
+end	ind-val-C1-36	read	23200	23240	self
+start	ind-val-C5-37	138911
+start	ind-val-C0-38	138912
+end	ind-val-C1-35	read	28850	28874	self
+start	ind-val-C1-38	138914
+end	ind-val-C0-36	read	25690	25702	self
+start	ind-val-C3-38	138915
+end	ind-val-C0-38	read	13550	13609	self
+start	ind-val-C5-38	138952
+end	ind-val-C3-38	read	15280	15385	self
+start	ind-val-C0-39	138980
+end	ind-val-C0-37	read	21590	21674	self
+start	ind-val-C1-39	138981
+end	ind-val-C5-36	read	28800	28852	self
+start	ind-val-C3-39	139027
+end	ind-val-C1-37	read	25890	25916	self
+start	ind-val-C5-39	139034
+end	ind-val-C3-37	read	26110	26217	self
+start	ind-val-C0-40	139035
+end	ind-val-C5-37	read	28660	28716	self
+start	ind-val-C1-40	139061
+end	ind-val-C1-38	read	27990	28008	self
+start	ind-val-C3-40	139062
+end	ind-val-C3-40	read	12250	12255	self
+start	ind-val-C5-40	139100
+end	ind-val-C5-38	read	28130	28216	self
+start	ind-val-C0-41	139101
+end	ind-val-C1-39	read	26370	26383	self
+start	ind-val-C1-41	139129
+end	ind-val-C3-39	read	24060	24074	self
+start	ind-val-C3-41	139130
+end	ind-val-C0-39	read	32530	32586	self
+start	ind-val-C5-41	139132
+end	ind-val-C5-39	read	27880	27918	self
+start	ind-val-C0-42	139133
+end	ind-val-C1-40	read	22830	22873	self
+start	ind-val-C1-42	139134
+end	ind-val-C3-41	read	10840	10927	self
+start	ind-val-C3-42	139162
+end	ind-val-C0-40	read	33710	33790	self
+start	ind-val-C5-42	139164
+end	ind-val-C0-41	read	19420	19459	self
+start	ind-val-C0-43	139165
+end	ind-val-C1-41	read	19430	19459	self
+start	ind-val-C1-43	139169
+end	ind-val-C5-40	read	22900	22946	self
+start	ind-val-C3-43	139170
+end	ind-val-C5-41	read	24180	24266	self
+start	ind-val-C5-43	139253
+end	ind-val-C0-42	read	27800	27881	self
+start	ind-val-C0-44	139273
+end	ind-val-C1-42	read	27950	27981	self
+start	ind-val-C1-44	139274
+end	ind-val-C3-42	read	29760	29788	self
+start	ind-val-C3-44	139302
+end	ind-val-C5-42	read	28510	28584	self
+start	ind-val-C5-44	139303
+end	ind-val-C3-43	read	24090	24125	self
+start	ind-val-C0-45	139304
+end	ind-val-C1-43	read	25630	25672	self
+start	ind-val-C1-45	139305
+end	ind-val-C0-43	read	30010	30038	self
+start	ind-val-C3-45	139307
+end	ind-val-C1-44	read	13730	13782	self
+start	ind-val-C5-45	139311
+end	ind-val-C5-43	read	19510	19579	self
+start	ind-val-C0-46	139312
+end	ind-val-C0-44	read	15890	15964	self
+start	ind-val-C1-46	139337
+end	ind-val-C5-44	read	13800	13907	self
+start	ind-val-C3-46	139347
+end	ind-val-C0-45	read	12340	12401	self
+start	ind-val-C5-46	139348
+end	ind-val-C3-44	read	19530	19603	self
+end	ind-val-C1-46	read	10800	10816	self
+start	ind-val-C0-47	139390
+start	ind-val-C1-47	139391
+end	ind-val-C3-45	read	16110	16132	self
+start	ind-val-C3-47	139403
+end	ind-val-C1-45	read	19500	19595	self
+start	ind-val-C5-47	139405
+end	ind-val-C0-46	read	22900	22961	self
+start	ind-val-C0-48	139433
+end	ind-val-C5-45	read	24020	24114	self
+start	ind-val-C1-48	139434
+end	ind-val-C3-47	read	10890	10922	self
+start	ind-val-C3-48	139435
+end	ind-val-C5-47	read	17130	17147	self
+start	ind-val-C5-48	139463
+end	ind-val-C1-47	read	21510	21538	self
+start	ind-val-C0-49	139464
+end	ind-val-C5-46	read	26160	26222	self
+start	ind-val-C1-49	139465
+end	ind-val-C0-47	read	21960	21987	self
+start	ind-val-C3-49	139466
+end	ind-val-C3-46	read	29190	29300	self
+start	ind-val-C5-49	139467
+end	ind-val-C1-48	read	18760	18819	self
+start	ind-val-C0-50	139503
+end	ind-val-C3-48	read	19590	19615	self
+start	ind-val-C1-50	139505
+end	ind-val-C0-48	read	20810	20893	self
+start	ind-val-C3-50	139506
+end	ind-val-C0-49	read	14070	14084	self
+start	ind-val-C5-50	139507
+end	ind-val-C3-49	read	18730	18787	self
+start	ind-val-C0-51	139535
+end	ind-val-C5-48	read	25890	25905	self
+start	ind-val-C1-51	139538
+end	ind-val-C0-50	read	19590	19598	self
+start	ind-val-C3-51	139567
+end	ind-val-C5-49	read	26690	26768	self
+start	ind-val-C5-51	139568
+end	ind-val-C1-49	read	30680	30757	self
+start	ind-val-C0-52	139569
+end	ind-val-C5-50	read	20590	20610	self
+start	ind-val-C1-52	139578
+end	ind-val-C3-50	read	27770	27788	self
+start	ind-val-C3-52	139607
+end	ind-val-C5-51	read	12200	12228	self
+start	ind-val-C5-52	139611
+end	ind-val-C1-50	read	34830	34882	self
+start	ind-val-C0-53	139614
+end	ind-val-C0-51	read	27500	27512	self
+start	ind-val-C1-53	139615
+end	ind-val-C1-52	read	13950	14059	self
+start	ind-val-C3-53	139641
+end	ind-val-C1-51	read	24290	24323	self
+start	ind-val-C5-53	139643
+end	ind-val-C0-52	read	19920	19956	self
+start	ind-val-C0-54	139644
+end	ind-val-C3-51	read	22640	22741	self
+start	ind-val-C1-54	139645
+end	ind-val-C3-52	read	21160	21261	self
+start	ind-val-C3-54	139672
+end	ind-val-C0-54	read	11490	11600	self
+start	ind-val-C5-54	139673
+end	ind-val-C0-53	read	17040	17144	self
+start	ind-val-C0-55	139682
+end	ind-val-C5-52	read	22380	22415	self
+start	ind-val-C1-55	139683
+end	ind-val-C3-53	read	18960	19052	self
+start	ind-val-C3-55	139686
+end	ind-val-C0-55	read	9310	9392	self
+start	ind-val-C5-55	139713
+end	ind-val-C1-53	read	27900	27962	self
+start	ind-val-C0-56	139715
+end	ind-val-C1-54	read	23550	23571	self
+start	ind-val-C1-56	139716
+end	ind-val-C3-54	read	18340	18450	self
+start	ind-val-C3-56	139744
+end	ind-val-C5-53	read	29660	29693	self
+start	ind-val-C5-56	139745
+end	ind-val-C1-55	read	16920	17020	self
+start	ind-val-C0-57	139749
+end	ind-val-C5-54	read	18500	18599	self
+start	ind-val-C1-57	139750
+end	ind-val-C5-55	read	10990	11088	self
+start	ind-val-C3-57	139751
+end	ind-val-C3-55	read	16590	16659	self
+start	ind-val-C5-57	139753
+end	ind-val-C1-57	read	11530	11601	self
+start	ind-val-C0-58	139803
+end	ind-val-C5-56	read	14950	14985	self
+start	ind-val-C1-58	139805
+end	ind-val-C0-56	read	20060	20103	self
+start	ind-val-C3-58	139806
+end	ind-val-C1-56	read	20160	20196	self
+start	ind-val-C5-58	139807
+end	ind-val-C0-57	read	19070	19143	self
+start	ind-val-C0-59	139835
+end	ind-val-C3-56	read	27030	27048	self
+start	ind-val-C1-59	139837
+end	ind-val-C3-57	read	26010	26079	self
+start	ind-val-C3-59	139865
+end	ind-val-C5-57	read	25380	25476	self
+start	ind-val-C5-59	139866
+end	ind-val-C1-58	read	16330	16409	self
+start	ind-val-C0-60	139867
+end	ind-val-C0-59	read	11060	11147	self
+start	ind-val-C1-60	139868
+end	ind-val-C3-58	read	18270	18349	self
+start	ind-val-C3-60	139869
+end	ind-val-C0-58	read	21070	21125	self
+start	ind-val-C5-60	139870
+end	ind-val-C5-58	read	24770	24800	self
+start	ind-val-C0-61	139911
+end	ind-val-C5-59	read	15430	15490	self
+start	ind-val-C1-61	139919
+end	ind-val-C5-60	read	12570	12610	self
+start	ind-val-C3-61	139925
+end	ind-val-C0-61	read	7510	7590	self
+start	ind-val-C5-61	139926
+end	ind-val-C3-59	read	19910	20011	self
+start	ind-val-C0-62	139952
+end	ind-val-C3-60	read	17290	17327	self
+start	ind-val-C1-62	139953
+end	ind-val-C1-59	read	27150	27213	self
+start	ind-val-C3-62	139955
+end	ind-val-C1-60	read	23150	23225	self
+start	ind-val-C5-62	139957
+end	ind-val-C0-60	read	24240	24278	self
+start	ind-val-C0-63	139958
+end	ind-val-C1-62	read	6550	6605	self
+start	ind-val-C1-63	139961
+end	ind-val-C3-61	read	16910	16945	self
+start	ind-val-C3-63	139988
+end	ind-val-C5-61	read	19460	19548	self
+start	ind-val-C5-63	139993
+end	ind-val-C0-62	read	17930	17941	self
+start	ind-val-C0-64	139994
+end	ind-val-C1-61	read	25530	25562	self
+start	ind-val-C1-64	140021
+end	ind-val-C3-62	read	23690	23756	self
+start	ind-val-C3-64	140032
+end	ind-val-C5-62	read	24610	24660	self
+start	ind-val-C5-64	140058
+end	ind-val-C1-63	read	22010	22126	self
+start	ind-val-C0-65	140059
+end	ind-val-C5-63	read	16910	16980	self
+start	ind-val-C1-65	140061
+end	ind-val-C0-63	read	33330	33437	self
+end	ind-val-C3-63	read	25280	25382	self
+start	ind-val-C3-65	140064
+start	ind-val-C5-65	140065
+end	ind-val-C0-64	read	25200	25263	self
+start	ind-val-C0-66	140092
+end	ind-val-C5-64	read	15570	15675	self
+start	ind-val-C1-66	140093
+end	ind-val-C1-64	read	26730	26793	self
+start	ind-val-C3-66	140096
+end	ind-val-C3-64	read	24540	24584	self
+start	ind-val-C5-66	140122
+end	ind-val-C1-65	read	20200	20225	self
+start	ind-val-C0-67	140131
+end	ind-val-C3-65	read	21530	21625	self
+start	ind-val-C1-67	140160
+end	ind-val-C5-65	read	22300	22347	self
+start	ind-val-C3-67	140162
+end	ind-val-C1-66	read	20070	20114	self
+start	ind-val-C5-67	140163
+end	ind-val-C0-65	read	35810	35816	self
+start	ind-val-C0-68	140164
+end	ind-val-C0-66	read	24840	24898	self
+start	ind-val-C1-68	140169
+end	ind-val-C3-66	read	26550	26581	self
+start	ind-val-C3-68	140200
+end	ind-val-C1-67	read	15300	15381	self
+start	ind-val-C5-68	140202
+end	ind-val-C0-67	read	24830	24873	self
+start	ind-val-C0-69	140230
+end	ind-val-C5-66	read	30270	30346	self
+start	ind-val-C1-69	140232
+end	ind-val-C3-67	read	22260	22360	self
+start	ind-val-C3-69	140240
+end	ind-val-C3-68	read	9450	9543	self
+start	ind-val-C5-69	140241
+end	ind-val-C5-67	read	20220	20276	self
+start	ind-val-C0-70	140242
+end	ind-val-C0-68	read	28240	28317	self
+start	ind-val-C1-70	140272
+end	ind-val-C1-68	read	27780	27815	self
+start	ind-val-C3-70	140273
+end	ind-val-C0-69	read	22660	22746	self
+start	ind-val-C5-70	140301
+end	ind-val-C1-69	read	22100	22141	self
+start	ind-val-C0-71	140302
+end	ind-val-C5-69	read	20400	20510	self
+start	ind-val-C1-71	140303
+end	ind-val-C3-69	read	22560	22567	self
+start	ind-val-C3-71	140304
+end	ind-val-C5-68	read	33330	33411	self
+start	ind-val-C5-71	140307
+end	ind-val-C0-70	read	28400	28491	self
+start	ind-val-C0-72	140340
+end	ind-val-C1-71	read	12790	12830	self
+start	ind-val-C1-72	140377
+end	ind-val-C3-70	read	23920	23973	self
+start	ind-val-C3-72	140428
+end	ind-val-C1-70	read	26280	26332	self
+start	ind-val-C5-72	140429
+end	ind-val-C3-71	read	15910	15984	self
+start	ind-val-C0-73	140431
+end	ind-val-C5-70	read	20650	20701	self
+start	ind-val-C1-73	140432
+end	ind-val-C0-71	read	25320	25421	self
+start	ind-val-C3-73	140437
+end	ind-val-C0-72	read	16040	16111	self
+start	ind-val-C5-73	140463
+end	ind-val-C5-71	read	24640	24694	self
+start	ind-val-C0-74	140464
+end	ind-val-C0-73	read	16620	16671	self
+start	ind-val-C1-74	140470
+end	ind-val-C3-72	read	19510	19549	self
+start	ind-val-C3-74	140471
+end	ind-val-C5-72	read	23640	23674	self
+end	ind-val-C1-73	read	20320	20430	self
+start	ind-val-C5-74	140506
+start	ind-val-C0-75	140507
+end	ind-val-C1-72	read	27050	27070	self
+start	ind-val-C1-75	140508
+end	ind-val-C3-74	read	13000	13023	self
+start	ind-val-C3-75	140562
+end	ind-val-C3-73	read	26450	26501	self
+start	ind-val-C5-75	140563
+end	ind-val-C0-74	read	22020	22058	self
+start	ind-val-C0-76	140564
+end	ind-val-C1-75	read	18330	18352	self
+start	ind-val-C1-76	140593
+end	ind-val-C5-74	read	20920	21018	self
+start	ind-val-C3-76	140594
+end	ind-val-C5-73	read	35030	35109	self
+start	ind-val-C5-76	140595
+end	ind-val-C1-74	read	27830	27855	self
+start	ind-val-C0-77	140598
+end	ind-val-C3-75	read	14650	14711	self
+start	ind-val-C1-77	140599
+end	ind-val-C5-75	read	12400	12502	self
+start	ind-val-C3-77	140601
+end	ind-val-C0-75	read	26710	26757	self
+start	ind-val-C5-77	140627
+end	ind-val-C0-76	read	20840	20860	self
+start	ind-val-C0-78	140639
+end	ind-val-C1-77	read	14240	14336	self
+start	ind-val-C1-78	140665
+end	ind-val-C1-76	read	18470	18575	self
+start	ind-val-C3-78	140666
+end	ind-val-C5-76	read	20920	20952	self
+start	ind-val-C5-78	140669
+end	ind-val-C3-76	read	23420	23511	self
+start	ind-val-C0-79	140673
+end	ind-val-C5-77	read	23410	23506	self
+start	ind-val-C1-79	140699
+end	ind-val-C1-78	read	14960	15047	self
+start	ind-val-C3-79	140702
+end	ind-val-C3-77	read	28540	28591	self
+start	ind-val-C5-79	140705
+end	ind-val-C0-78	read	22510	22542	self
+start	ind-val-C0-80	140706
+end	ind-val-C0-77	read	34520	34613	self
+start	ind-val-C1-80	140733
+end	ind-val-C5-78	read	16330	16401	self
+start	ind-val-C3-80	140734
+end	ind-val-C3-78	read	21840	21872	self
+start	ind-val-C5-80	140742
+end	ind-val-C3-79	read	10590	10669	self
+start	ind-val-C0-81	140745
+end	ind-val-C5-80	read	9650	9668	self
+start	ind-val-C1-81	140772
+end	ind-val-C1-79	read	19820	19871	self
+start	ind-val-C3-81	140774
+end	ind-val-C0-79	read	27080	27149	self
+start	ind-val-C5-81	140775
+end	ind-val-C3-80	read	16900	16994	self
+start	ind-val-C0-82	140792
+end	ind-val-C5-79	read	23560	23613	self
+start	ind-val-C1-82	140818
+end	ind-val-C0-80	read	21970	22007	self
+start	ind-val-C3-82	140819
+end	ind-val-C0-81	read	15040	15106	self
+start	ind-val-C5-82	140820
+end	ind-val-C1-80	read	24250	24341	self
+start	ind-val-C0-83	140821
+end	ind-val-C3-82	read	15720	15818	self
+start	ind-val-C1-83	140871
+end	ind-val-C5-81	read	22940	23039	self
+start	ind-val-C3-83	140872
+end	ind-val-C1-81	read	27180	27221	self
+start	ind-val-C5-83	140898
+end	ind-val-C5-82	read	19670	19774	self
+start	ind-val-C0-84	140900
+end	ind-val-C3-81	read	31070	31161	self
+start	ind-val-C1-84	140901
+end	ind-val-C0-82	read	29340	29435	self
+start	ind-val-C3-84	140905
+end	ind-val-C1-82	read	28810	28832	self
+start	ind-val-C5-84	140906
+end	ind-val-C5-83	read	13140	13155	self
+start	ind-val-C0-85	140947
+end	ind-val-C0-83	read	29100	29209	self
+start	ind-val-C1-85	140949
+end	ind-val-C3-83	read	18620	18650	self
+start	ind-val-C3-85	140953
+end	ind-val-C1-83	read	22400	22506	self
+start	ind-val-C5-85	140954
+end	ind-val-C0-84	read	20510	20558	self
+start	ind-val-C0-86	140989
+end	ind-val-C5-84	read	18080	18099	self
+start	ind-val-C1-86	140993
+end	ind-val-C3-85	read	10680	10721	self
+start	ind-val-C3-86	140994
+end	ind-val-C1-84	read	24150	24213	self
+start	ind-val-C5-86	140995
+end	ind-val-C0-85	read	21510	21554	self
+start	ind-val-C0-87	141022
+end	ind-val-C3-84	read	26120	26246	self
+start	ind-val-C1-87	141023
+end	ind-val-C1-85	read	28130	28198	self
+start	ind-val-C3-87	141052
+end	ind-val-C0-86	read	22470	22526	self
+start	ind-val-C5-87	141053
+end	ind-val-C5-85	read	26220	26290	self
+start	ind-val-C0-88	141054
+end	ind-val-C1-86	read	19330	19437	self
+start	ind-val-C1-88	141057
+end	ind-val-C5-86	read	19530	19622	self
+start	ind-val-C3-88	141058
+end	ind-val-C0-87	read	17550	17614	self
+start	ind-val-C5-88	141091
+end	ind-val-C3-86	read	28610	28631	self
+start	ind-val-C0-89	141093
+end	ind-val-C3-87	read	15890	15915	self
+start	ind-val-C1-89	141098
+end	ind-val-C1-87	read	25840	25904	self
+start	ind-val-C3-89	141125
+end	ind-val-C0-88	read	15870	15915	self
+start	ind-val-C5-89	141126
+end	ind-val-C1-88	read	16130	16217	self
+start	ind-val-C0-90	141127
+end	ind-val-C5-88	read	11300	11373	self
+start	ind-val-C1-90	141128
+end	ind-val-C5-87	read	25910	25953	self
+start	ind-val-C3-90	141157
+end	ind-val-C3-88	read	26600	26708	self
+start	ind-val-C5-90	141161
+end	ind-val-C3-89	read	18960	19003	self
+start	ind-val-C0-91	141164
+end	ind-val-C0-89	read	26610	26708	self
+start	ind-val-C1-91	141198
+end	ind-val-C0-90	read	22890	22919	self
+start	ind-val-C3-91	141211
+end	ind-val-C5-89	read	26430	26482	self
+start	ind-val-C5-91	141215
+end	ind-val-C1-90	read	26760	26859	self
+start	ind-val-C0-92	141242
+end	ind-val-C3-90	read	20760	20834	self
+start	ind-val-C1-92	141243
+end	ind-val-C1-89	read	33460	33532	self
+start	ind-val-C3-92	141244
+end	ind-val-C1-92	read	9900	9969	self
+start	ind-val-C5-92	141272
+end	ind-val-C5-90	read	29630	29718	self
+start	ind-val-C0-93	141274
+end	ind-val-C1-91	read	25240	25276	self
+start	ind-val-C1-93	141277
+end	ind-val-C0-91	read	29700	29742	self
+start	ind-val-C3-93	141278
+end	ind-val-C3-92	read	22050	22091	self
+start	ind-val-C5-93	141311
+end	ind-val-C5-91	read	28870	28916	self
+start	ind-val-C0-94	141327
+end	ind-val-C0-92	read	28470	28515	self
+start	ind-val-C1-94	141336
+end	ind-val-C5-92	read	18400	18426	self
+start	ind-val-C3-94	141337
+end	ind-val-C3-93	read	13860	13960	self
+start	ind-val-C5-94	141410
+end	ind-val-C3-91	read	38900	38979	self
+start	ind-val-C0-95	141411
+end	ind-val-C0-94	read	7740	7835	self
+start	ind-val-C1-95	141412
+end	ind-val-C1-93	read	18240	18276	self
+start	ind-val-C3-95	141418
+end	ind-val-C0-93	read	25290	25352	self
+start	ind-val-C5-95	141421
+end	ind-val-C5-93	read	21170	21187	self
+start	ind-val-C0-96	141451
+end	ind-val-C1-95	read	16020	16043	self
+start	ind-val-C1-96	141480
+end	ind-val-C1-94	read	25350	25403	self
+start	ind-val-C3-96	141488
+end	ind-val-C5-95	read	15380	15441	self
+start	ind-val-C5-96	141489
+end	ind-val-C3-94	read	27780	27838	self
+end	ind-val-C0-95	read	23020	23088	self
+start	ind-val-C0-97	141492
+start	ind-val-C1-97	141493
+end	ind-val-C3-95	read	24240	24266	self
+start	ind-val-C3-97	141495
+end	ind-val-C5-94	read	28380	28481	self
+start	ind-val-C5-97	141522
+end	ind-val-C3-96	read	11640	11666	self
+start	ind-val-C0-98	141523
+end	ind-val-C0-96	read	24400	24492	self
+start	ind-val-C1-98	141527
+end	ind-val-C3-97	read	12740	12831	self
+start	ind-val-C3-98	141555
+end	ind-val-C5-96	read	17780	17840	self
+end	ind-val-C0-97	read	15520	15607	self
+start	ind-val-C5-98	141556
+start	ind-val-C0-99	141557
+end	ind-val-C1-96	read	26530	26558	self
+start	ind-val-C1-99	141560
+end	ind-val-C5-97	read	20430	20519	self
+start	ind-val-C3-99	141593
+end	ind-val-C1-97	read	24820	24910	self
+start	ind-val-C5-99	141594
+end	ind-val-C0-98	read	20590	20643	self
+end	ind-val-C1-98	read	18950	19031	self
+end	ind-val-C5-99	read	10280	10381	self
+end	ind-val-C3-98	read	24170	24256	self
+end	ind-val-C5-98	read	24940	25049	self
+end	ind-val-C1-99	read	21030	21122	self
+end	ind-val-C0-99	read	27760	27786	self
+end	ind-val-C3-99	read	24690	24729	self
+session	1083409	3980	55236	145	-	head=185ec935b6eb08ff3a79b2a50a4c70d7aa1c210e exe=61f048fb919038f890789bb15ee274368bc8d086538c05eeec48390b66248e7d

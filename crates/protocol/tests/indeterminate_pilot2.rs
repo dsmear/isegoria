@@ -4,11 +4,14 @@
 use identity::nym::Nym;
 use network::cid::cid;
 use protocol::appeal::AuthorHistory;
+use protocol::author_time::{AuthorConfig, AuthorPoint};
 use protocol::exploration::{outcome_of, record_outcome, FalseNegatives, Scored, EXPLORATION_RATE};
 use protocol::exposure::RetirementReason;
 use protocol::gate::GateOutcome;
 use protocol::lifecycle::{deposit, step, Event, Invalid, RejectReason, State, K_MIN};
-use protocol::orchestrator::{review_round, run_item, settle_appeal, ItemVerdicts, Judgment};
+use protocol::orchestrator::{
+    review_round, run_item, settle_appeal, ItemVerdicts, Judgment, Unsettled,
+};
 use protocol::pilot::Screening;
 use protocol::probation::SkillTrack;
 use protocol::revalidation::{target_rechecks, Recheck};
@@ -271,12 +274,12 @@ fn screen(screen: Screening) -> Event {
     }
 }
 
-/// A11 (f): only a concluded pilot settles; the escrow handed back settles once it concludes.
+/// A11 (f): only a concluded pilot settles; the escrow stays open until it concludes.
 #[test]
 fn an_appeal_settles_only_on_its_pilot_s_conclusion() {
     let pending = [screen(Screening::Indeterminate), screen(Screening::Pass)];
     let stage2 = |last| [batch(Recheck::Indeterminate, true), last];
-    let walks: [(Vec<Event>, State, [f64; 2]); 4] = [
+    let walks: [(Vec<Event>, State, bool); 4] = [
         (
             [
                 pending.to_vec(),
@@ -284,12 +287,12 @@ fn an_appeal_settles_only_on_its_pilot_s_conclusion() {
             ]
             .concat(),
             State::ActivePool,
-            [0.9, 0.85],
+            true,
         ),
         (
             [pending.to_vec(), stage2(batch(Recheck::Dif, true)).to_vec()].concat(),
             State::Contested,
-            [0.9, 0.85],
+            true,
         ),
         (
             [
@@ -298,30 +301,82 @@ fn an_appeal_settles_only_on_its_pilot_s_conclusion() {
             ]
             .concat(),
             State::Rejected(RejectReason::Dif),
-            [0.9, 0.0],
+            false,
         ),
         (
             vec![screen(Screening::Indeterminate), screen(Screening::Fail)],
             State::Rejected(RejectReason::Screen),
-            [0.9, 0.0],
+            false,
         ),
     ];
-    for (events, concluded, qualities) in walks {
+    let (item, scale) = (
+        cid(b"appealed"),
+        AuthorConfig::new(45).expect("fixture H45"),
+    );
+    for (events, concluded, passed) in walks {
         let mut author = AuthorHistory::new();
-        author.record(0.9, 6.0);
-        let mut escrow = author.file_appeal(&AuthorPrior::default()).unwrap();
+        author
+            .file_appeal(item, point(1), scale, &AuthorPrior::default())
+            .unwrap();
         let filed = author.clone();
         for state in not_settling() {
-            escrow = settle_appeal(&mut author, escrow, &state, 0.85).unwrap_err();
+            let pending = settle_appeal(&mut author, item, &state, point(2));
+            assert_eq!(pending, Err(Unsettled::Pending), "{state:?}");
         }
         let mut state = State::Pilot1 { appealed: true };
         for event in events {
-            escrow = settle_appeal(&mut author, escrow, &state, 0.85).unwrap_err();
+            let pending = settle_appeal(&mut author, item, &state, point(2));
+            assert_eq!(pending, Err(Unsettled::Pending), "{state:?}");
             assert_eq!(author, filed, "{state:?}");
             state = step(state, event).unwrap();
         }
         assert_eq!(state, concluded);
-        settle_appeal(&mut author, escrow, &state, 0.85).unwrap();
-        assert_eq!(author.qualities(), qualities);
+        settle_appeal(&mut author, item, &state, point(2)).unwrap();
+        assert_eq!(author.outcome(&item), Some((passed, point(2))));
+    }
+}
+
+fn point(epoch: u64) -> AuthorPoint {
+    AuthorPoint {
+        epoch,
+        closings: epoch,
+    }
+}
+
+/// `dif_batch` on unconverged logistic fits: Undetermined, read Indeterminate, keeps Pilot2 (`15`).
+#[cfg(feature = "calibration")]
+#[test]
+fn an_unconverged_logistic_stage_2_keeps_pilot2_through_dif_batch() {
+    use protocol::admission::NullifierSet;
+    use protocol::pilot::{dif_batch, DifVerdict, N2_MIN};
+    let mut respondents = NullifierSet::new();
+    for i in 0..N2_MIN {
+        let mut id = [0u8; 32];
+        id[..8].copy_from_slice(&(i as u64).to_le_bytes());
+        respondents.spend(Nym(id)).unwrap();
+    }
+    let theta: Vec<f64> = (0..N2_MIN).map(|i| (i as f64 - 750.0) * 1e100).collect();
+    let group: Vec<f64> = (0..N2_MIN).map(|i| (i % 2) as f64 * 2.0 - 1.0).collect();
+    let items: Vec<Vec<f64>> = (0..K_MIN)
+        .map(|j| {
+            (0..N2_MIN)
+                .map(|i| ((i + j) % 3 == 0) as u8 as f64)
+                .collect()
+        })
+        .collect();
+    let verdicts = dif_batch(&respondents, &theta, &group, &items).unwrap();
+    assert_eq!(verdicts, vec![DifVerdict::Undetermined; K_MIN]);
+    for verdict in verdicts {
+        let dif = match verdict {
+            DifVerdict::Pass => Recheck::NoDif,
+            DifVerdict::Reject => Recheck::Dif,
+            DifVerdict::Undetermined => Recheck::Indeterminate,
+        };
+        for appealed in [false, true] {
+            assert_eq!(
+                step(State::Pilot2 { appealed }, batch(dif, false)),
+                Ok(State::Pilot2 { appealed })
+            );
+        }
     }
 }
