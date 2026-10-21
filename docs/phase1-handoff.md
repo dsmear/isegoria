@@ -10,6 +10,19 @@ Its histories, runs and evidence stay there.
 
 ## 1. Where things stand (2026-10-21)
 
+**Phase 1 is closed in the answer review's perimeter only.** After Astra's final review, T87 is
+complete and Phase 1 is complete **exclusively within the perimeter of the offline path of [`01`
+D49–D52](01-decisions.md)**: deposit and quotas, the draw, commit-reveal, the closure, the outcome,
+the author's reputation from the next epoch, and the set of usable questions
+([record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)). D53 records
+the owner's confirmation of three of its choices for the first offline version. Still explicit: the
+parameters are provisional and uncalibrated; the new events' decoder was not fuzzed; the consensus's
+risks are accepted and the reviewers' evaluation deferred (D48); no truth, fairness of the whole
+quiz or D46 objective is certified; A2 is unresolved within its scope and not required for this path
+(D52); quiz composition, exposure, retirement, the network and production are outside the closure.
+The previous mechanism's findings keep their states and evidence; none is closed or extended by this
+one.
+
 **Owner decision — [`01` D47](01-decisions.md).** The author writes the question in its context and
 states the correct answer; reviewers answer it, free to consult any resource; they do not state or
 record the sources they consult, and the system does not detect, infer or assess their use of
@@ -64,24 +77,30 @@ decisions §4 listed are taken for the offline path of the first implementation:
   and the source check are not conditions of acceptance; the coordination detector changes
   nothing automatically. A2 stays unresolved in its scope, and its whole-test guarantee is not
   required for the answer review; no fairness of the whole quiz is guaranteed. The parameters are
-  provisional and uncalibrated. Phase 1 is not complete before Astra's final review.
+  provisional and uncalibrated. Phase 1 is not complete before Astra's final review (done: above).
+- *D53, the first offline version.* Joining the pool is availability; the draw follows the deposit
+  epoch's closure; with fewer than 12 in the pool fixed then, the question stays unavailable for
+  good (slot spent, no observation, no new attempt, not recovered later; the same author's
+  identical deposit still a duplicate).
 
 Agreement with the key or the majority is not demonstrated reliability; divided answers are not
 demonstrated ambiguity. The exclusion of a Schelling point (D6) stands.
 
-**What the code does.** The answer review is implemented offline as `10` T87, beside the
-existing path, which it does not change: `scoring::reputation::author_score_weighted` (`3d88b9b`),
+**What the code does.** The answer review is implemented offline as `10` T87, beside the existing
+path, which it does not change: `scoring::reputation::author_score_weighted` (`3d88b9b`),
 `protocol::{answer, answer_rule}` (`9427158`), `protocol::answer_author` (`6908992`),
-`protocol::{answer_path, answer_events, answer_node}` (`f230edf`); its technical choices are in
-`05` §The answer review. *Verified (executed, E):* AT-ANS-01–13 in `tests/answer_review.rs`,
+`protocol::{answer_path, answer_events, answer_node}` (`f230edf`); its technical choices are in `05`
+§The answer review. *Verified (executed, E):* AT-ANS-01–14 in `tests/answer_review.rs`,
 `scoring/tests/author_weighted.rs` and the modules' unit tests; the existing tests of the shared
 code (`inv10_beacon_seed`, `draw_order`, `node_replay`, `level_c`); fmt, workspace clippy with and
 without `calibration`, the comment budget. *Not run:* the full suites (they start fits), fits,
-benchmarks, campaigns, fuzzing. *Reviewed:* Astra's review of `1f0f21d` found that the global
-duplicate check revealed another author's key; `822fa22` deduplicates per author (AT-ANS-14,
-failing on `1f0f21d`, passing after), and the draw's limit is stated (`05`, *Pool and draw*). The
-correction awaits review; T87 is not closed. A reviewer of the
-existing path commits and reveals a probability that the item passes the pilot; it is the
+benchmarks, campaigns, fuzzing. *Reviewed (L/D, Astra; no Rust run by Astra, not SC-8):* the review
+of `1f0f21d` found that the global duplicate check revealed another author's key; `822fa22`
+deduplicates per authenticated author (AT-ANS-14 at an exhausted quota and with a slot free, failing
+on `1f0f21d`, passing after; idempotence kept), and `4a5fb8e` documents it and the draw's limit;
+Astra approved both in its final review
+([record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)). A reviewer of
+the existing path commits and reveals a probability that the item passes the pilot; it is the
 bridging rating and the forecast that `scoring::reputation`, `protocol::{honeypot, exploration,
 probation, panel_scores, cohort_scores, affine_weights}` score and weigh (`02` §§C.2–C.4).
 [`21`](21-d47-inventory.md) §2 lists that code.
@@ -93,8 +112,9 @@ and the nine A2 reports to
 `76f12f5` adds the archive's index and path map, the inventory `21`, the redirect pages and the link
 targets; `990fe9d` and `72237c5` realign the specification and the registers; `47a1698` the front
 pages, the index, this note and the agent instructions; `17524b0` and `0b4f4ff` rectify them after
-Astra's reviews. D48 (`9afdb09`) and D49–D52 (`45e2b5b`) are recorded on top of them, and T87
-implements the answer review after them. No result was regenerated; no fit, benchmark or
+Astra's reviews. D48 (`9afdb09`) and D49–D52 (`45e2b5b`) are recorded on top of them; T87
+implements the answer review (`3d88b9b`–`1f0f21d`, corrected in `822fa22` and `4a5fb8e`); D53 and
+the closure are recorded after Astra's final review. No result was regenerated; no fit, benchmark or
 campaign was run.
 
 **Residual separations** (`21` §4): the A2 harness stays in `crates/characterization` because
@@ -103,9 +123,10 @@ campaign was run.
 `crates/protocol/tests/fixtures/`; the S2 and A1 test code, which exercises current code; the
 paper, whose `scripts/common.py` feeds CI's differential oracles.
 
-**Phase 1 is not complete.** A2 is open and not resolved by the archiving or by D52, which only
-makes its whole-test guarantee unnecessary for the answer review
-([`15`](15-phase1-review.md#a2-current-state-design-decision-deferred), D47 and D52 entries).
+**Outside the closed perimeter.** A2 is open and not resolved by the archiving or by D52, which
+only makes its whole-test guarantee unnecessary for the answer review
+([`15`](15-phase1-review.md#a2-current-state-design-decision-deferred), D47 and D52 entries); the
+previous design's milestones and criteria (`10` §1.5) are not met.
 
 ## 2. Roles and working agreement
 
@@ -140,7 +161,7 @@ group, quorum and absences (D49; `10` T58's no-show rule is not carried over); t
 outcomes (D49); "don't know" (D49, an abstention); the author's reputation (D50) and quotas
 (D51); the source at deposit (D49: none, no check); the previous filters (D52: not conditions of
 acceptance); A2 (D52: not required for the answer review, still unresolved) and Phase 1's
-completion (D52: not before Astra's final review).
+completion (D52: not before Astra's final review; closed after it in this perimeter only).
 
 Not settled by the contract, and not to be settled in code with a policy of one's own:
 - a policy of new rounds, or what follows a round with insufficient participation or divided
@@ -150,20 +171,21 @@ Not settled by the contract, and not to be settled in code with a policy of one'
 - a later evaluation of the reviewers (D48), and any calibration of the provisional parameters
   (D52, `14`).
 
-Choices T87 made where the contract is silent, to confirm or correct in review (`05` §The
-answer review, *Implementation*):
+Choices T87 made where the contract is silent (`05` §The answer review, *Implementation*). The
+owner confirmed the first three for the first offline version (D53); the rest were part of the
+path Astra reviewed, implementation choices rather than owner decisions:
 - *A pool too small is final for that question.* The draw reads the pool as it was when the
   deposit's epoch closed and that epoch's beacon value: it is reproducible from these fixed
   inputs, which nothing changes after the closure. That does not stop the caller from choosing
   the beacon value by trying several; the offline path assumes the program driving it supplies
   the random input correctly, without selecting it for a desired group. With fewer than 12 the
   round is `Unavailable` for good — no redraw (D49 excludes retries), the author's slot spent (no
-  refund, D51) and no observation. Whether such a question deserves another treatment is a
-  product choice.
+  refund, D51) and no observation; reviewers who join later do not recover it, and the same
+  author's identical deposit is still a duplicate (D53).
 - *A question is drawn only after its deposit epoch closes*, since the beacon value is recorded at
-  the closure: a round runs at the earliest in the epoch after the deposit.
+  the closure: a round runs at the earliest in the epoch after the deposit (D53).
 - *The pool* is the set of reviewers who joined under their `Judge` pseudonym; nobody leaves it,
-  and nothing records availability per epoch. "Available" reads as "joined by the closure".
+  and nothing records availability per epoch: joining is availability (D53).
 - *Well-formedness:* non-empty context and text, 2–256 alternatives, none empty, no two equal, the
   key one of them. A duplicate is the same author's repeat of the same content id, key included:
   no new question, no second slot. A question that changes only its key is a new question, and
@@ -180,10 +202,11 @@ answer review, *Implementation*):
 
 ## 5. Open work
 
-- **T87, the answer review offline** (`10`): implemented with its targeted tests (above); Astra's
-  review of the commits from `45e2b5b` to the branch's tip, the correction `822fa22` included,
-  and of the choices above, is next.
-  Phase 1 is not declared complete before it (D52).
+- **The answer review, closed in its perimeter** (`10` T87, done): what stays outside it — a
+  calibration of the provisional parameters; fuzzing of the events' decoder; a later evaluation of
+  the reviewers (D48); new rounds; what the usable set feeds (quiz composition, exposure,
+  retirement); the key's confidentiality and the beacon's formation on a network; production —
+  each needs its own assignment, and the owner's decision where it is a product choice.
 - **A2 (high), open:** unresolved within its scope; not required for the answer review (D52).
   Certifier, other obligations and experiments suspended.
 - **Suspended with the previous design:** A1's O1/O2 premises and T1, A12's candidate and
@@ -191,13 +214,16 @@ answer review, *Implementation*):
 - **Unchanged:** `08` PRIV-004.1 (an inclusion proof's confidentiality, remediation open); B1–B3;
   sample floors, burden and runtime budgets (B4–B5, C3, D2, D4); T83's operating point (B7, D1,
   D6, E); A4 (d); DIF-007's metric deviation, AT-DIF-08's adversarial batch, the optimizer's
-  status on the inputs already reported; C2, C4; T25's Level A and B steps; T82's re-run.
+  status on the inputs already reported; C2, C4; T25's Level A and B steps; T82's re-run; T26 and
+  T27, the external gates.
 - **Phase 2** runs on its own branch (`feat/phase2-runtime`) and is not touched here.
 
 ## 6. Essential reading to resume
 
-`CLAUDE.md` and `docs/CLAUDE.md`; `docs/01` D44–D52; `docs/21`; `docs/15` (How to read, the D47
-disposition, A2's current state); `docs/02` (its Reading status, Levels A and B, §C.1, and
-§§C.2–C.4 as the previous design's code); `docs/05`; `docs/10` Priorities; the archive's index
-for the previous design's material. Code: `crates/protocol/src/{review,lifecycle,orchestrator,
-probation,honeypot,exploration,results}.rs`, `crates/scoring/src/{reputation,bridging}.rs`.
+`CLAUDE.md` and `docs/CLAUDE.md`; `docs/01` D44–D53; `docs/21`; `docs/15` (How to read, the D47
+disposition, the answer review's closure record, A2's current state); `docs/02` (its Reading status,
+Levels A and B, §C.1, and §§C.2–C.4 as the previous design's code); `docs/05`; `docs/10` Priorities;
+the archive's index for the previous design's material. Code: `crates/protocol/src/answer*.rs` and
+`crates/protocol/tests/answer_review.rs` (the answer review); `crates/protocol/src/{review,
+lifecycle,orchestrator,probation,honeypot,exploration,results}.rs`,
+`crates/scoring/src/{reputation,bridging}.rs`.

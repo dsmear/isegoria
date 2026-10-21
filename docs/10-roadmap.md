@@ -4,9 +4,21 @@
 |---|---|
 | **Purpose** | The ordered plan of work: what is left to fix or build, in priority order, and what each step must show to count as done. |
 | **Derived from** | `docs/08` §14 (gaps), §12 (adversarial tests AT-*), §16 (acceptance gate); `docs/01` D17–D42; the working paper in `paper/`; three reviews — the `docs/08` audit, the second review (2026-09-23), the third review (2026-09-24, `docs/08` §0-quinquies). |
-| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)), and Phase 1's remaining work was re-planned on 2026-09-28 from T24's results (T25 in four steps, T81). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). On 2026-10-21 the owner's D47 changed Phase 1's direction before its implementation ([Priorities](#priorities)). |
+| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)), and Phase 1's remaining work was re-planned on 2026-09-28 from T24's results (T25 in four steps, T81). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). On 2026-10-21 the owner's D47 changed Phase 1's direction before its implementation, and Phase 1 was then closed in the perimeter of the offline answer review only (D49–D53, T87; [Priorities](#priorities)). |
 
 ## Priorities
+
+**Phase 1 closed in the answer review's perimeter only (2026-10-21).** After Astra's final review,
+T87 is complete and Phase 1 is complete **exclusively within the perimeter of the offline path of
+[`01` D49–D52](01-decisions.md)**: deposit and quotas, the draw, commit-reveal, the closure, the
+outcome, the author's reputation from the next epoch, and the set of usable questions
+([record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)). The owner
+confirmed three of its choices for the first offline version (D53). Still explicit: the parameters
+are provisional and uncalibrated; the new decoder was not fuzzed; the consensus's risks are accepted
+and the reviewers' evaluation deferred; no truth, fairness of the whole quiz or D46 objective is
+certified; A2 is unresolved within its scope and not required for this path; quiz composition,
+exposure, retirement, the network and production are outside the closure. The previous mechanism's
+tasks and findings below keep their status: none is closed by this.
 
 **D47 — Phase 1's direction changed before its implementation (owner, 2026-10-21).** The
 author states the key, reviewers answer the item with any resource, and the mathematics is to
@@ -21,7 +33,8 @@ whose relation to the answers D47 leaves open). A2 stays open,
 not resolved by the archiving of its dossier and studies. The previous design's dossiers,
 A12's and A2's tools and A2's results are in `archive/phase1-forecast-pilot/`; paths such as
 `sim/a12_offline.py` or `verification/reports/a2-…` named in the records below are there now
-(its path map). Phase 1 is not complete.
+(its path map). Phase 1 was not complete then; it is now closed in the answer review's perimeter
+only (above).
 
 **D48 — the first implementation's choices (owner, 2026-10-21).** Reviewers drawn by lot from the
 pool with no new selection by competence; equal weights; no reputation update from ordinary
@@ -42,7 +55,8 @@ abstention, explicit closure; the author's reputation with adapted inputs and qu
 A2's whole-test guarantee not required for it, A2 unresolved; parameters provisional and
 uncalibrated. Its implementation is **T87** ([1.6](#16--the-answer-review-d49d52)). T58's no-show
 rule is not carried over (D49); T68's structured draft and source check stay with the existing
-path. Phase 1 is not complete before Astra's final review of the implemented path.
+path. Phase 1 was not to be declared complete before Astra's final review of the implemented
+path; that review is done, and the closure is in the answer review's perimeter only (above).
 
 **C6 closed (2026-10-17).** The owner adopted B, a nominal cadence of 28 days and H = 45
 closings. The offline implementation, including declared context and configuration replay
@@ -169,7 +183,9 @@ reference implementation / testnet.
   replication of the signed set over libp2p (T18) and the protocol state from
   consortium-signed cuts, with the beacon run between nodes (T74). Details and
   evidence: [Completed work](#completed-work).
-- **Open:** the specification and implementation of D47's mechanism (above); the thresholds (T25), in four steps from T24's results (`docs/13` §7.5) — the
+- **Done in its perimeter only:** the answer review offline (D49–D53, T87; Phase 1 closed in that
+  perimeter, 2026-10-21, [Priorities](#priorities)).
+- **Open:** the previous mechanism's remaining work below; the thresholds (T25), in four steps from T24's results (`docs/13` §7.5) — the
   guessing correction (D25) in the latent re-check (step 1, done 2026-09-28), then in the
   pilot screen (step 2, done 2026-09-30), a supplement of the DIF studies on the corrected
   model (done on 2026-09-30, `docs/13` §8.7, the screen's study included), then the
@@ -341,13 +357,15 @@ regenerated on purpose; every threshold is either characterized (T24, T25) or ma
 provisional with the pilot that will set it; the mechanism's decision logic is
 mutation-tested (T81).
 
-**Completion qualification after D47.** The milestones below were defined for the previous
-design. Phase 1's completion now also requires D47's mechanism, in the first implementation D48
-settles, to be specified, implemented and reviewed with its guarantees; meeting the milestones
-below does not complete it. Phase 1's completion criteria are themselves among the decisions D48
-leaves to the owner. D52 (2026-10-21): A2's whole-test guarantee is not required to complete the
-answer review (T87), A2 stays unresolved within its scope, and Phase 1 is not declared complete
-before Astra's final review of the implemented path.
+**Completion qualification after D47.** *Met in the answer review's perimeter only (2026-10-21,
+[record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)); the milestones
+below, for the previous design, are not.* The milestones below were defined for the previous design.
+Phase 1's completion now also requires D47's mechanism, in the first implementation D48 settles, to
+be specified, implemented and reviewed with its guarantees; meeting the milestones below does not
+complete it. Phase 1's completion criteria are themselves among the decisions D48 leaves to the
+owner. D52 (2026-10-21): A2's whole-test guarantee is not required to complete the answer review
+(T87), A2 stays unresolved within its scope, and Phase 1 is not declared complete before Astra's
+final review of the implemented path.
 
 **Completion qualification.** The label also requires resolving the critical/high
 findings in `15`, or explicitly narrowing the claimed domain with a justified decision.
@@ -360,9 +378,8 @@ validation remains T27. No documentation-only change closes a code or proof find
 The first implementation of D47's mechanism as D48 modified it, on the contract the owner
 approved (`01` D49–D52). An offline path beside the existing one, which it does not change.
 
-| ID | Task | References | Done when | Size |
-|---|---|---|---|---|
-| T87 | **The answer review, offline. Implemented (2026-10-21), Astra's review pending.** The path creation → deposit and quota → draw → answers → closure → outcome → the author's reputation → next epoch → usable questions, as D49–D52 specify: a structured question with its key, no source; 12 distinct reviewers drawn at random from the pool, an explicit unavailability below it; commit-reveal of an alternative, "none" or "don't know", the key not shown before the commitment; an explicit closure, then no answer enters; the outcome in integers over the usable answers; the outcome and the author's observation recorded together, once, counted from the next epoch; quotas fixed once per epoch; logical epochs closed explicitly; the parameters explicit in the configuration and the results, provisional (`14`). No previous filter, reviewer weight or reviewer reputation in the path. *Built:* `scoring::reputation::author_score_weighted` (`3d88b9b`); `protocol::{answer, answer_rule}` (`9427158`); `protocol::answer_author` (`6908992`); `protocol::{answer_path, answer_events, answer_node}` and `randomness::ANSWER_DRAW` (`f230edf`); the technical choices in `05` §The answer review. *Evidence (executed):* `crates/protocol/tests/answer_review.rs`, `crates/scoring/tests/author_weighted.rs` and the modules' unit tests, AT-ANS-01–14 (`08` §12); for the shared code `inv10_beacon_seed.rs`, `draw_order.rs`, `node_replay.rs`, `level_c.rs`; fmt, clippy on the workspace with and without `calibration`, the comment budget. Not run: the full suites, fits, benchmarks, campaigns, fuzzing. *Corrected after Astra's review of `1f0f21d`:* the global duplicate check revealed another author's key; deposits are deduplicated per author (`822fa22`, AT-ANS-14 failing before, passing after), and the draw's reliance on a beacon value the caller does not select is stated (`05`) | `01` D47–D52; `02` §C.1; `05`; `08` ANSWER-001; `14` | the path implemented and integrated, replayable from its log (done); targeted tests of the thresholds' boundaries for `V` 9–12, the quorum, abstentions and absences, closure, duplicates, atomicity, single application, reproducibility, the fractional contribution, the epoch's passage and the quotas' consumption (done); the docs in step (done); Astra's review | M |
+**Done (2026-10-21), in this perimeter only:** T87 is in [Completed
+work](#phase-16--the-answer-review-d49d52).
 
 ---
 
@@ -578,6 +595,12 @@ other documents and commit messages refer to these ids and block names.
 |---|---|---|---|---|
 | T71 | **The bridge score's sides are the camps, on the rating scale, with coverage. Done (2026-09-26),** after D42, found by T24's first pass (`docs/13`): the 2-means iteration from the extremes of `f_u` made far-out reviewers a side of their own (sides of 2 and 5 of 800 reviewers, scores from −0.28 to 1.31; in a bootstrap subsample a side of 1 of 200, which dropped an item's robust score from 0.91 to 0.56 while its full fit passed), and a partisan item no minority reviewer had rated passed at 0.972 on an extrapolated side of 1.445. `bridging::two_means` is now the exact 1-D 2-means cut — the sorted positions' cut with the largest between-side sum of squares, never inside a run of equal values, each side at least `side_floor(n)` = 5% of the reviewers rounded up (`MIN_SIDE_PER_MILLE = 50`), side sums taken from each end so a sign flip mirrors them bit for bit; `side_balanced` clips each prediction to [0, 1]; `bridging::coverage` counts, per item, the ratings of its less-rated side (axis reviewers with a positive weight) and travels in `BridgeScores::coverage`; `gate::bridging_gate(score, gap, coverage, τ, ε, appeal_gap)` returns `SupplementaryReview` below `MIN_COVERAGE = 1` whatever the score, and `supplementary_review` cannot pass an item still below it. `sim/` computes the same split and clipping; the Level A oracle moved only in the side means of the three polarized items (≤ 0.0046) and the golden bits in their side scores and four robust scores, plus the new coverage rows; no fixture verdict changed. *Evidence:* `side_split.rs` (AT-BR-11) — two camps with two or five reviewers at four times the camp distance split into the camps (100/2 before); each side holds the floor on 256 random position sets with outliers (20/1 before); the split does not depend on the axis' origin or scale and a sign flip swaps it; clipped predictions keep the score in [0, 1] (1.2 and −0.3 before). `side_coverage.rs` (AT-BR-12) — an item only the camp of 120 rated at about 0.97 goes to supplementary review (it passed at 0.875), the fixture's items keep their verdicts, and the re-decision passes it only once the other side rates it high. `side_evidence.rs` — T24's three failing replicates re-run from their seeds: the partisan item goes to review, the n = 800 scores stay in [0.51, 0.87] with sides of 633/167 and 630/170 against camps of 640/160, the robust score at 60 boosters is 0.887 against a full 0.903 and the curve is monotone. The two bridging studies of `docs/13` are re-run on this commit | D42; `docs/02` §A.3; BRIDGE-010, AT-BR-11/12 | `AT-BR-11` and `AT-BR-12` pass; T24's failing replicates pass | M |
 | T24 | **The detectors and gates characterized. Done (2026-09-28).** `docs/13` specifies ten studies of the production estimators and gates; `crates/characterization` ran them — 54,412 seeded runs, the full grid, on the owner's machine (AMD Ryzen 7 5800X, about 30 hours, 2026-09-26 to 2026-09-28) — and summarized them with 95% intervals and the threshold tables. The first pass (`--replicates 20`, 5,132 runs) found T71; the DIF and DTF records reproduce bit for bit across it, and the two bridging studies were re-run on the fixed engine. On 2PL populations the target model selects no mixture and flags no clean item over 5,400 null batches; it never finds a single leaning item, and finds two of eight at δ = 0.9 in 92.8% / 98.8% of cases at N = 3,000 / 6,000, at δ = 0.7 in 11.2% / 56.2%. With guessing in the population it flags 12–17% of the clean items (D25). The fitted DTF bound is biased upward and decides noisily within about 0.05 of `DTF_MAX`. No partisan item passed the bridging gate, 0 of 72,000, and a consensus item 0.05 above `τ` passes in 97.6–100% of cases with 800 reviewers; carrying the majority's partisan item takes 60 of the 80 opposing reviewers (75%) | SC-2/3/5/7, AT-DIF-01..09, AT-BR-02, STAT-001, DIF-008, DIF-011, BRIDGE-002/003/005; `docs/13` §7, `verification/reports/t24/` | `docs/13` §6: the full grid run and summarized, its results stated in `docs/13` §7 inside their regime, the tables committed, `docs/08` §12 and §15 restated | L |
+
+### Phase 1.6 · The answer review (D49–D52)
+
+| Task | What it means (plain) | Decision / refs | Done when | Size |
+|---|---|---|---|---|
+| T87 | **The answer review, offline. Done (2026-10-21), in the D49–D52 offline perimeter only; Astra's final review approved the path and its correction ([record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)).** The path creation → deposit and quota → draw → answers → closure → outcome → the author's reputation → next epoch → usable questions, as D49–D52 specify: a structured question with its key, no source; 12 distinct reviewers drawn at random from the pool, an explicit unavailability below it; commit-reveal of an alternative, "none" or "don't know", the key not shown before the commitment; an explicit closure, then no answer enters; the outcome in integers over the usable answers; the outcome and the author's observation recorded together, once, counted from the next epoch; quotas fixed once per epoch; logical epochs closed explicitly; the parameters explicit in the configuration and the results, provisional (`14`). No previous filter, reviewer weight or reviewer reputation in the path. *Built:* `scoring::reputation::author_score_weighted` (`3d88b9b`); `protocol::{answer, answer_rule}` (`9427158`); `protocol::answer_author` (`6908992`); `protocol::{answer_path, answer_events, answer_node}` and `randomness::ANSWER_DRAW` (`f230edf`); the technical choices in `05` §The answer review. *Evidence (executed):* `crates/protocol/tests/answer_review.rs`, `crates/scoring/tests/author_weighted.rs` and the modules' unit tests, AT-ANS-01–14 (`08` §12); for the shared code `inv10_beacon_seed.rs`, `draw_order.rs`, `node_replay.rs`, `level_c.rs`; fmt, clippy on the workspace with and without `calibration`, the comment budget. Not run: the full suites, fits, benchmarks, campaigns, fuzzing. *Corrected after Astra's review of `1f0f21d`:* the global duplicate check revealed another author's key; deposits are deduplicated per author (`822fa22`, AT-ANS-14 failing before, passing after), and the draw's reliance on a beacon value the caller does not select is stated (`05`) | `01` D47–D52; `02` §C.1; `05`; `08` ANSWER-001; `14` | the path implemented and integrated, replayable from its log (done); targeted tests of the thresholds' boundaries for `V` 9–12, the quorum, abstentions and absences, closure, duplicates, atomicity, single application, reproducibility, the fractional contribution, the epoch's passage and the quotas' consumption (done); the docs in step (done); Astra's review (done: design review, code, diffs and tests read; no Rust run by Astra; not SC-8) | M |
 
 ### Phase 2.1 · Fix what exists
 

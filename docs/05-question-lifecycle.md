@@ -105,9 +105,10 @@ Consensus is the operational criterion, not a guarantee of truth: an accepted ke
 a discarded one right (D48's accepted risks: shared errors, different competences under equal
 weights, superficial reviews, coordination).
 
-**Implementation (`10` T87, offline; Astra's review pending).** `protocol::answer_path::AnswerPath`
-is the path's state, a function of its accepted events (`protocol::answer_events::AnswerEvent`)
-applied in order, each checked whole before it applies; `protocol::answer_node::AnswerNode` pins the
+**Implementation (`10` T87, offline; done 2026-10-21 after Astra's final review, which closes T87
+and Phase 1 in this path's perimeter only: `15`).** `protocol::answer_path::AnswerPath` is the
+path's state, a function of its accepted events (`protocol::answer_events::AnswerEvent`) applied in
+order, each checked whole before it applies; `protocol::answer_node::AnswerNode` pins the
 configuration (`AnswerConfig`: the rule, the weight 1/4, the bands, `H`) in its log's first record,
 writes each accepted event and replays the log on open. The outcome rule and the distribution are
 `protocol::answer_rule`, the question and answers `protocol::answer`, the author's record and quotas
@@ -139,7 +140,11 @@ contract leaves to the implementation:
   not repeated. The code makes the draw reproducible from these inputs and lets nothing change
   them after the closure; it does not ensure that the caller did not choose the beacon value by
   trying several. **Assumption of the offline path:** the program that drives it supplies the
-  random input correctly, without selecting it for a desired group.
+  random input correctly, without selecting it for a desired group. The owner confirmed for the
+  first offline version (`01` D53) that joining the pool is availability, with no exit or
+  availability per epoch; that the draw follows the deposit epoch's closure; and that an
+  unavailable question stays so for good — its slot spent, no observation, no new attempt, not
+  recovered by reviewers who join later, the same author's identical deposit still a duplicate.
 - *Commit-reveal.* Drawn reviewers commit `H(answer, nonce, reviewer, question)` with a proof bound
   to the commitment; an explicit end of commits opens the reveals, so no answer is visible before
   every commitment is in. A reviewer who commits and does not reveal is an absence. The closure

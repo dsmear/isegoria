@@ -29,11 +29,15 @@ lines. Code symbols identify the implementation to re-check on a newer branch.
   their reliability deferred), the consensus of their answers as the review's operational
   criterion, not a guarantee of truth. It rectifies invariant #2's absolute ban on deciding by
   votes; its effect on this register is [below](#d47-disposition-2026-10-21).
-- [`01` D49–D52](01-decisions.md) (owner, 2026-10-21): the approved contract of the *answer
-  review*, the offline path of the first implementation — a drawn group of 12, a quorum of 9
-  usable answers, three quarters to accept or discard, the author's reputation inputs and quotas,
-  its perimeter, A2's disposition and provisional parameters. Its effect on this register is
-  [below](#d47-disposition-2026-10-21); its implementation is `10` T87.
+- [`01` D49–D52](01-decisions.md) (owner, 2026-10-21): the approved contract of the *answer review*,
+  the offline path of the first implementation — a drawn group of 12, a quorum of 9 usable answers,
+  three quarters to accept or discard, the author's reputation inputs and quotas, its perimeter,
+  A2's disposition and provisional parameters. Its effect on this register is
+  [below](#d47-disposition-2026-10-21); its implementation is `10` T87. [D53](01-decisions.md)
+  (owner, 2026-10-21) confirms three of the implementation's choices for the first offline version.
+  After Astra's final review, T87 and Phase 1 are closed **in that path's perimeter only**
+  ([record](#answer-review-t87-final-review-and-closure-2026-10-21)); no finding of the previous
+  mechanism is closed by it.
 - [`01` D45](01-decisions.md) (owner, 2026-10-20): Isegoria assumes an open environment;
   answers are produced under those conditions, `θ` stays the declared model's parameter, and a
   correct answer alone does not show unaided knowledge. [D46](01-decisions.md) records the
@@ -115,22 +119,44 @@ quorum, thresholds and outcomes, are among the decisions D48 leaves to the owner
 ([handoff](phase1-handoff.md) §4); findings about the consensus review will be recorded here once
 it is specified.
 
-**D49–D52 (owner, 2026-10-21).** The answer review's approved contract changes no record above
-and reopens or extends no closure. C5 and C6 stay closed within their scope and are not extended
-to D50's inputs; A1, A12 and A10 certify nothing of the answer review. Bridging, the pilot, IRT,
-DIF and the source check are not conditions of acceptance in it, so the findings on those
-components keep their scope in the existing path, open or closed as recorded, and transfer no
-guarantee to the new one (D52). A2's disposition is
-[in its section](#a2-current-state-design-decision-deferred), D52 entry. Phase 1 is not declared
-complete before Astra's final review of the implemented path (D52); findings about the answer
-review will be recorded here. Its offline implementation is `10` T87 (`08` ANSWER-001, tested,
-under review). **Astra's review of `1f0f21d`:** the deposit's duplicate check was global and keyed
-by content with the key, read before the quota, so another participant could learn an author's
-key from `Duplicate` against `OverQuota` (or acceptance); corrected in `822fa22` by deduplicating
-per proven author (AT-ANS-14, failing on `1f0f21d`, passing after), with no confidentiality claim
-toward readers of the state or log. The draw is reproducible from fixed inputs but relies on the
-caller not selecting the beacon value, an assumption of the offline path. The correction awaits
-review; T87 and Phase 1 are not closed.
+**D49–D52 (owner, 2026-10-21).** The answer review's approved contract changes no record above and
+reopens or extends no closure. C5 and C6 stay closed within their scope and are not extended to
+D50's inputs; A1, A12 and A10 certify nothing of the answer review. Bridging, the pilot, IRT, DIF
+and the source check are not conditions of acceptance in it, so the findings on those components
+keep their scope in the existing path, open or closed as recorded, and transfer no guarantee to the
+new one (D52). A2's disposition is [in its section](#a2-current-state-design-decision-deferred), D52
+entry. Phase 1 is not declared complete before Astra's final review of the implemented path (D52);
+findings about the answer review will be recorded here. Its offline implementation is `10` T87 (`08`
+ANSWER-001, tested and design-reviewed). **Astra's review of `1f0f21d`:** the deposit's duplicate
+check was global and keyed by content with the key, read before the quota, so another participant
+could learn an author's key from `Duplicate` against `OverQuota` (or acceptance); corrected in
+`822fa22` by deduplicating per proven author (AT-ANS-14, failing on `1f0f21d`, passing after), with
+no confidentiality claim toward readers of the state or log. The draw is reproducible from fixed
+inputs but relies on the caller not selecting the beacon value, an assumption of the offline path.
+Astra approved the correction and the documentation that followed it; T87 and Phase 1 are closed in
+the answer review's perimeter only
+([record](#answer-review-t87-final-review-and-closure-2026-10-21)).
+
+### Answer review (T87): final review and closure (2026-10-21)
+
+**Phase 1 is complete exclusively within the perimeter of the offline answer-review path of
+[`01` D49–D52](01-decisions.md):** deposit and quotas, the draw, commit-reveal, the closure, the
+outcome, the author's reputation from the next epoch, and the set of usable questions. `10` T87
+is complete in the same perimeter. Recorded on the owner's instruction after Astra's final review;
+nothing outside the perimeter is closed or certified by this record.
+
+| | |
+|---|---|
+| **Scope reviewed** | The path the six commits introduced up to `1f0f21d` — `45e2b5b` (D49–D52), `3d88b9b`, `9427158`, `6908992`, `f230edf`, `1f0f21d` — then the correction `822fa22` and its documentation `4a5fb8e`. |
+| **Finding** | Disclosure of the key through global deduplication, found in the review of `1f0f21d`: `answer_path::deposit` read one global map from the content id, key included, before the quota, so another participant who knew only the reviewer's view could exhaust their own quota and submit copies changing only the key; the original key answered `Duplicate`, the others `OverQuota` (with a slot free: refused against accepted), revealing the key with no deposit accepted. |
+| **Correction (approved)** | `822fa22`: deduplication per authenticated author, read after the author's proof; the regressions AT-ANS-14 at an exhausted quota and with a slot free (failing on `1f0f21d`, passing after); the idempotence of an author's repeated request kept, also at an exhausted quota (AT-ANS-04), and a changed key a new question with a new slot. `4a5fb8e`: the documentation of the correction and of the draw's limit. Both approved by Astra. |
+| **The draw** | Its limit correctly declared: reproducible from the pool and the beacon value fixed at the deposit epoch's closure, which nothing changes afterwards; the random input is supplied by the caller, assumed not to select it to obtain a desired group (`05` §The answer review). |
+| **Confidentiality** | None promised toward whoever reads the state or the log, which hold the key in clear; the per-author duplicates remove an oracle, nothing more. |
+| **Owner's confirmations** | [`01` D53](01-decisions.md), for the first offline version: joining the pool is availability; the draw follows the deposit epoch's closure; with fewer than 12 in the pool fixed then, the question stays unavailable for good — slot spent, no observation, no new attempt, not recovered by later reviewers, the same author's identical deposit still a duplicate. |
+| **Evidence** | L/D: Astra read the code, the diffs and the tests; it ran no Rust. E: Claude ran the checks reported in `10` T87 — the path's integration tests (16 after the correction), the modules' unit tests, `author_weighted`, the existing tests of the shared code (`node_replay`, `inv10_beacon_seed`, `draw_order`, `level_c`), each intermediate code commit in a scratch worktree, `cargo fmt`, workspace clippy with and without `calibration`, the comment budget, links and `git diff --check`. Not run: the full suites, fits, benchmarks, campaigns, fuzzing. This is the project's design review; it is not SC-8's external psychometric review (`08` §16) or T26, and not T23. |
+| **Stays explicit** | The parameters (12, 9, 3/4, 1/4, the quota bands) are provisional and uncalibrated (`14`, D52). The new events' decoder was not fuzzed. The consensus's risks are accepted and the reviewers' evaluation is deferred (D48). No truth of a key or answer, no fairness of the whole quiz and no attainment of D46's assessment objectives is certified (D48, D52). A2 stays unresolved within its scope and is not required for this path (D52). Quiz composition, exposure, retirement, the network and production are outside this closure. |
+| **Completion criteria** | The closure narrows Phase 1's claimed domain to this path, as `10` §1.5's completion qualification allows. It does not meet item 6 of the working agreement below for anything else: `08` §16.1's critical claims of the previous mechanism, T26's review of a final candidate and T27 stay as recorded, and no provisional parameter has a calibration procedure. |
+| **The previous mechanism** | Its findings keep their states and evidence: A1, A12 and A10 closed conditionally or within their perimeters; A2 open; A3–A9, A11, C5, C6, D3 and the Variant 1 fit states closed within theirs; the others as their entries record. None is closed, reopened or extended by this record, and none of their guarantees transfers to the answer review. |
 
 ### A1 current closure criterion after O1–O3
 
@@ -245,9 +271,10 @@ direction of 2026-10-18
   (`19` §13.33), the other obligations' development and new experiments staying suspended.
   D38's treatment of pertinent factual-knowledge differences remains to be reconciled explicitly;
   no compensation or admission policy changes through this documentation.
-- **Blocking:** A2 remains blocking under the current criteria (its row; `10` §1.5's completion
-  qualification), so Phase 1 remains incomplete. Other Phase 1 requirements may advance where they
-  do not depend on A2's solution.
+- **Blocking:** A2 remains blocking under the previous design's criteria (its row; `10` §1.5's
+  completion qualification), which are not met. It does not block the answer review's perimeter
+  (D52 entry below), in which Phase 1 is closed (2026-10-21,
+  [record](#answer-review-t87-final-review-and-closure-2026-10-21)).
 - **D47 (owner, 2026-10-21) — the disposition of the old requirement.** A2's requirement, a
   whole-test DTF bound for the previous design's contested pool and active items, is **not
   resolved**: neither D47 nor the archiving of `19`, the A2 tools and the nine A2 reports
@@ -260,15 +287,16 @@ direction of 2026-10-18
   complete. The A2 harness stays in `crates/characterization` as a residual separation
   ([`21`](21-d47-inventory.md) §4).
 - **D52 (owner, 2026-10-21) — the disposition for the answer review.** The old problem stays
-  **unresolved within its scope**: the whole-test DTF bound for the previous design's contested
-  pool and active items is neither realized nor withdrawn, and A2 is not declared mathematically
+  **unresolved within its scope**: the whole-test DTF bound for the previous design's contested pool
+  and active items is neither realized nor withdrawn, and A2 is not declared mathematically
   resolved; its demonstrated results keep their domains, and the certifier, the other obligations
   and new experiments stay suspended. Its whole-test guarantee is **not required to complete the
   answer review**, which uses no DIF, DTF or contested pool as a condition of acceptance. No
-  fairness guarantee of the whole quiz is introduced, and accepting questions does not show that
-  a quiz measures D45's and D46's capabilities adequately. The **Blocking** bullet above keeps its
-  scope, the previous design's criteria; whether Phase 1 is complete is decided at Astra's final
-  review of the implemented path (D52).
+  fairness guarantee of the whole quiz is introduced, and accepting questions does not show that a
+  quiz measures D45's and D46's capabilities adequately. The **Blocking** bullet above keeps its
+  scope, the previous design's criteria. After Astra's final review, Phase 1 is closed in the answer
+  review's perimeter only ([record](#answer-review-t87-final-review-and-closure-2026-10-21)); A2
+  stays open within its scope.
 
 ### A8–A9 bounded rectification
 
@@ -831,6 +859,9 @@ For that history with the escrow, `C_a` crosses `2/5` at `45 log₂ 15 ≈ 175.8
 6. A Phase 1 completion claim requires proportionate evidence for every critical
    claim (`08` §16.1), plus the stated procedures for provisional parameters.
    T26 must review the final candidate; T27 remains the empirical pilot dependency.
+   The answer review's bounded closure (2026-10-21) narrows the claimed domain to that path; it
+   meets this item for nothing else
+   ([record](#answer-review-t87-final-review-and-closure-2026-10-21)).
 
 **First correction handoff:** verify A1–A3's guarantee premises and A4–A7's code paths.
 A5, the local input-contract defect, was the first bounded implementation

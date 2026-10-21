@@ -8,7 +8,8 @@ every citizen to speak in the assembly.
 
 > **Status:** a research reference implementation. The Rust engine has deterministic
 > golden-output checks; Python comparisons are scoped numerical oracles, not bitwise
-> equality with every current component. Phase 1 is still open: see the
+> equality with every current component. Phase 1 is closed only in the perimeter of the offline
+> answer review (below); the previous mechanism's findings keep their states: see the
 > [review and correction register](docs/15-phase1-review.md), the
 > [roadmap](docs/10-roadmap.md), and the [parameter register](docs/14-parameter-register.md).
 > Implemented mechanisms and passing tests do not establish every claimed guarantee.
@@ -19,11 +20,19 @@ every citizen to speak in the assembly.
 > ([D48](docs/01-decisions.md)), reviewers drawn at random count equally, the consensus of their
 > answers is the review's operational criterion — not a guarantee of truth — and evaluating their
 > reliability is deferred. The owner then approved its contract, the *answer review*
-> ([D49–D52](docs/01-decisions.md)): 12 reviewers drawn at random, at least 9 usable answers,
-> three quarters to accept or to discard, provisional numbers. It is implemented as an offline
-> path beside the existing code (`protocol::answer*`), its review pending; in the existing path
-> reviewers still forecast whether a question passes its trial. The previous design's dossiers
-> and studies are in [`archive/phase1-forecast-pilot/`](archive/phase1-forecast-pilot/README.md).
+> ([D49–D52](docs/01-decisions.md)): 12 reviewers drawn at random, at least 9 usable answers, three
+> quarters to accept or to discard, provisional numbers. It is implemented as an offline path beside
+> the existing code (`protocol::answer*`). After Astra's final review, T87 and Phase 1 are **closed
+> in that path's perimeter only**
+> ([record](docs/15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)):
+> deposit and quotas, the draw, commit-reveal, the closure, the outcome, the author's reputation
+> from the next epoch and the set of usable questions. Its parameters are provisional and
+> uncalibrated, its decoder was not fuzzed, the consensus's risks are accepted and the reviewers'
+> evaluation deferred, and it certifies neither truth, nor the fairness of a whole quiz, nor the
+> assessment's objectives; A2 stays unresolved in its own scope, and quiz composition, exposure,
+> retirement, the network and production are outside it. In the existing path reviewers still
+> forecast whether a question passes its trial. The previous design's dossiers and studies are in
+> [`archive/phase1-forecast-pilot/`](archive/phase1-forecast-pilot/README.md).
 
 ---
 
@@ -385,12 +394,12 @@ need `numpy`/`scipy` (see `sim/`).
 | Identity, network, protocol | Working scaffolds; deterministic mechanisms + single-server & threshold OPRF label + single & threshold BBS+ credential + ZK nullifier + OpenTimestamps anchoring proofs real, remaining heavy crypto/transport behind traits |
 | Transport and external backends | libp2p replication and consortium-signed cuts implemented (T18/T74); committee DKG/transport and live anchoring remain roadmap work |
 | Meta-level governance (stratified sortition) | Future work |
-| Reviewers answer the question (`docs/01` D47, 2026-10-21); first implementation (D48): reviewers drawn from the pool, equal weights, the consensus of the answers as the operational criterion, the evaluation of reviewers deferred; the answer review's contract (D49–D52) | Contract approved, parameters provisional; implemented offline with targeted tests (`docs/10` T87), Astra's review pending; A2 unresolved in its scope, not required for the answer review |
+| Reviewers answer the question (`docs/01` D47, 2026-10-21); first implementation (D48): reviewers drawn from the pool, equal weights, the consensus of the answers as the operational criterion, the evaluation of reviewers deferred; the answer review's contract (D49–D52) | Implemented offline with targeted tests (`docs/10` T87); after Astra's final review, T87 and Phase 1 closed in that path's perimeter only ([`docs/15`](docs/15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)); D53 confirms three of its choices; parameters provisional and uncalibrated, decoder not fuzzed; no truth, whole-quiz fairness or D46 objective certified; A2 unresolved in its scope, not required for the answer review; quiz composition, exposure, retirement, network and production outside |
 
 **What comes next**, in order (task status lives in the [roadmap](docs/10-roadmap.md)):
 
-1. **Mathematics** — have the answer review, implemented offline (D49–D52, `docs/10` T87),
-   reviewed; keep the findings in
+1. **Mathematics** — the answer review is closed in its perimeter (D49–D53, `docs/10` T87); what
+   stays outside it is listed in the [handoff](docs/phase1-handoff.md) §5; keep the findings in
    [`docs/15`](docs/15-phase1-review.md) within their scopes (A2 stays open); complete T25's
    measurements and parameter procedures where D47 leaves them in place. T81 is complete for its ten named files.
    T24 and the guessing supplement are historical campaigns; their DIF/DTF/floor

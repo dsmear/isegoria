@@ -42,17 +42,19 @@ Four rules shape every crate:
    `scripts/comment_budget.py` enforces the budget (`docs/CLAUDE.md`, "Code style and
    docs") in CI and after every edit made through Claude Code.
 
-**Phase 1 direction (`docs/01` D47–D52, 2026-10-21).** Reviewers are to answer the item, whose
-key the author states. For the first implementation D48 draws them from the reviewer pool with equal
+**Phase 1 direction (`docs/01` D47–D52, 2026-10-21).** Reviewers are to answer the item, whose key
+the author states. For the first implementation D48 draws them from the reviewer pool with equal
 weights, makes the consensus of their answers the review's operational criterion, and defers the
-evaluation of their reliability; D49–D52 approve the contract of that path, the *answer review*:
-12 drawn, a quorum of 9 usable answers, three quarters to accept or discard, the author's
-reputation and quotas, no previous filter as a condition of acceptance. It is implemented offline
-in `protocol::answer*` beside the existing path (`docs/10` T87), its review by Astra pending. The
-existing reviewer path in `protocol` and Level C's evaluator score in
-`scoring` implement the previous design, in which a reviewer reveals a probability that the item
-passes the pilot. [`docs/21`](docs/21-d47-inventory.md) lists the modules to adapt and the residual
-separations; the previous design's dossiers, A12's and A2's scripts and A2's results are in
+evaluation of their reliability; D49–D52 approve the contract of that path, the *answer review*: 12
+drawn, a quorum of 9 usable answers, three quarters to accept or discard, the author's reputation
+and quotas, no previous filter as a condition of acceptance. It is implemented offline in
+`protocol::answer*` beside the existing path (`docs/10` T87); after Astra's final review, T87 and
+Phase 1 are closed in that path's perimeter only
+([`docs/15`](docs/15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)). The
+existing reviewer path in `protocol` and Level C's evaluator score in `scoring` implement the
+previous design, in which a reviewer reveals a probability that the item passes the pilot.
+[`docs/21`](docs/21-d47-inventory.md) lists the modules to adapt and the residual separations; the
+previous design's dossiers, A12's and A2's scripts and A2's results are in
 [`archive/phase1-forecast-pilot/`](archive/phase1-forecast-pilot/README.md), which holds no crate.
 
 ## Workspace and dependency graph
@@ -410,7 +412,9 @@ to make the pipeline testable end-to-end.
 D47's mechanism — reviewers' answers, in D48's first implementation drawn reviewers with equal
 weights and the consensus of their answers as the operational criterion — has its contract
 approved (`docs/01` D49–D52) and is implemented offline as the answer review (`docs/10` T87),
-its review pending. What the contract leaves open is in `docs/phase1-handoff.md` §4.
+closed in that perimeter only after Astra's final review. What stays outside it — calibration,
+fuzzing of its decoder, the reviewers' evaluation, quiz composition, exposure, retirement, the
+network, production — is in `docs/phase1-handoff.md` §§4–5.
 
 [`docs/10`](docs/10-roadmap.md) is the task-status source. Start Phase 1 corrections
 from [`docs/15`](docs/15-phase1-review.md); complete parameter procedures in

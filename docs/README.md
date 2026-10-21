@@ -24,23 +24,28 @@ would control the questions). It is decided by two filters in a row (the existin
    psychometric statistics (IRT) and bias analysis (DIF) give the final verdict.
    Here nobody's opinion is needed.
 
-**Phase 1 direction ([`01` D47](01-decisions.md), 2026-10-21).** In review, the author states
-the key and reviewers answer the question, free to consult any resource. For the first
-implementation [D48](01-decisions.md) decides: reviewers drawn by lot from the reviewer pool,
-with equal weights; ordinary reviews do not update their reputation, and the evaluation of their
-reliability over time that D47 asked for is deferred; the consensus of their answers is the
-review's operational criterion, which rectifies the principle above without making consensus a
-guarantee of truth; a reviewer may answer that no alternative is correct; a question is never
-corrected retroactively, nor its key replaced automatically. D48 records the risks it accepts
-(shared errors, different competences under equal weights, superficial reviews, coordination).
-[D49–D52](01-decisions.md) then approved the contract of that path, the *answer review*: 12
-reviewers drawn, an alternative, "none" or "don't know" as answers, a quorum of 9 usable answers,
-three quarters of them to accept or to discard, divided answers otherwise; the author's
-reputation with adapted inputs and quotas of 1, 2 or 3 questions per epoch; the two filters are
-not conditions of acceptance there; A2's whole-test guarantee is not required for it, and A2 is
-not resolved; the parameters are provisional. It is implemented offline (`10` T87), its review
-pending; the existing code implements the previous design, in which reviewers forecast whether
-the item passes the pilot.
+**Phase 1 direction ([`01` D47](01-decisions.md), 2026-10-21).** In review, the author states the
+key and reviewers answer the question, free to consult any resource. For the first implementation
+[D48](01-decisions.md) decides: reviewers drawn by lot from the reviewer pool, with equal weights;
+ordinary reviews do not update their reputation, and the evaluation of their reliability over time
+that D47 asked for is deferred; the consensus of their answers is the review's operational
+criterion, which rectifies the principle above without making consensus a guarantee of truth; a
+reviewer may answer that no alternative is correct; a question is never corrected retroactively, nor
+its key replaced automatically. D48 records the risks it accepts (shared errors, different
+competences under equal weights, superficial reviews, coordination). [D49–D52](01-decisions.md) then
+approved the contract of that path, the *answer review*: 12 reviewers drawn, an alternative, "none"
+or "don't know" as answers, a quorum of 9 usable answers, three quarters of them to accept or to
+discard, divided answers otherwise; the author's reputation with adapted inputs and quotas of 1, 2
+or 3 questions per epoch; the two filters are not conditions of acceptance there; A2's whole-test
+guarantee is not required for it, and A2 is not resolved; the parameters are provisional. It is
+implemented offline (`10` T87); after Astra's final review, T87 and Phase 1 are closed **in that
+path's perimeter only**
+([record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)), and D53
+confirms three of its choices. Its parameters stay provisional and uncalibrated, its decoder was not
+fuzzed, the reviewers' evaluation is deferred, and it certifies no truth, fairness of the whole quiz
+or D46 objective; quiz composition, exposure, retirement, the network and production are outside the
+closure. The existing code implements the previous design, in which reviewers forecast whether the
+item passes the pilot.
 
 The anonymity of the nodes is the non-negotiable base. The uniqueness of a person is
 guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
@@ -81,7 +86,8 @@ The reference implementation exists (see Status below); what remains is ordered 
 
 1. **Mathematics** — D47 changed Phase 1's direction before its implementation, D48 settled
    part of its first implementation and D49–D52 approved its contract, the answer review,
-   implemented offline (`10` T87): the next work is its review. The previous
+   implemented offline (`10` T87) and closed, with Phase 1, in that perimeter only; what stays
+   outside it is in the [handoff](phase1-handoff.md) §5. The previous
    design is implemented and its work suspended; read [`15`](15-phase1-review.md) for the A–E
    review findings and D47's disposition (A2 open), [`10`](10-roadmap.md) for task status and
    [`14`](14-parameter-register.md) for parameter procedures. D32–D41 are implemented; they are

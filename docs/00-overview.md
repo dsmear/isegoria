@@ -106,21 +106,25 @@ shared errors, different competences under equal weights, superficial reviews, c
 author's reputation stays separate; D48 left its rewards and penalties undefined, and D50 defines
 them for the answer review (below). D48 changes no code.
 
-**The answer review (2026-10-21, [`01` D49–D52](01-decisions.md)).** The owner approved the
-contract of that first implementation, an offline path beside the existing one. The author
-supplies the question, its context, its alternatives and the key, with no source. 12 distinct
-reviewers are drawn at random from the pool; each answers with an alternative, "none of the
-alternatives is correct" or "don't know", by commit-reveal, without seeing the key before the
-commitment. With `V` the usable answers (alternatives and "none") and `C` those that coincide
-with the key, a round closed explicitly ends in insufficient participation when `V < 9`, accepted
-when `4C ≥ 3V`, discarded when `4(V − C) ≥ 3V`, and in divided answers otherwise; abstentions
-and absences count in neither `V` nor the quorum, and only accepted questions are usable (D49).
-The author's reputation keeps §C.1's index and aging, an accepted question a success, a discarded
-one a failure, divided answers a failure at weight 1/4 (D50); it sets a quota of 1, 2 or 3
-questions per epoch, 2 for a new author (D51). Bridging, the pilot, IRT, DIF and the source check
-are not conditions of acceptance in it; A2's whole-test guarantee is not required for it and A2
-stays unresolved; no fairness of the whole quiz is guaranteed; the parameters are provisional
-and uncalibrated (D52). It is implemented offline (`10` T87), its review pending.
+**The answer review (2026-10-21, [`01` D49–D52](01-decisions.md)).** The owner approved the contract
+of that first implementation, an offline path beside the existing one. The author supplies the
+question, its context, its alternatives and the key, with no source. 12 distinct reviewers are drawn
+at random from the pool; each answers with an alternative, "none of the alternatives is correct" or
+"don't know", by commit-reveal, without seeing the key before the commitment. With `V` the usable
+answers (alternatives and "none") and `C` those that coincide with the key, a round closed
+explicitly ends in insufficient participation when `V < 9`, accepted when `4C ≥ 3V`, discarded when
+`4(V − C) ≥ 3V`, and in divided answers otherwise; abstentions and absences count in neither `V` nor
+the quorum, and only accepted questions are usable (D49). The author's reputation keeps §C.1's index
+and aging, an accepted question a success, a discarded one a failure, divided answers a failure at
+weight 1/4 (D50); it sets a quota of 1, 2 or 3 questions per epoch, 2 for a new author (D51).
+Bridging, the pilot, IRT, DIF and the source check are not conditions of acceptance in it; A2's
+whole-test guarantee is not required for it and A2 stays unresolved; no fairness of the whole quiz
+is guaranteed; the parameters are provisional and uncalibrated (D52). It is implemented offline
+(`10` T87); D53 confirms three of its choices for the first offline version. After Astra's final
+review, T87 and Phase 1 are closed in this path's perimeter only
+([record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)): its decoder
+was not fuzzed; no truth, fairness of the whole quiz or D46 objective is certified; quiz
+composition, exposure, retirement, the network and production are outside the closure.
 
 A2's whole-test guarantee remains open: D47 and the archiving of its dossier neither resolve nor
 withdraw it. Its bounded studies, run under

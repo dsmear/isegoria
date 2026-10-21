@@ -13,7 +13,8 @@ owner's decisions for its first implementation: reviewers drawn from the pool wi
 the consensus of their answers as the review's operational criterion, the evaluation of their
 reliability deferred; D49–D52 the owner's approved contract for the *answer review*, the offline
 path that implements them: a drawn group of 12, a quorum of 9 usable answers, three quarters to
-accept or discard, the author's reputation and quotas, and its perimeter.
+accept or discard, the author's reputation and quotas, and its perimeter; D53 the owner's
+confirmation, for its first offline version, of three implementation choices D49–D52 left open.
 
 ---
 
@@ -1609,6 +1610,11 @@ open. The implementation is a later assignment.
 
 ## D49 — The answer review: drawn group, answers, closure and outcome
 
+> **D53 (owner, 2026-10-21)** later confirmed, for the first offline version, three choices of the
+> implementation that this decision left open: joining the pool is availability, the draw follows
+> the deposit epoch's closure, and a question whose pool holds fewer than 12 stays unavailable for
+> good. They are D53's, not this decision's.
+
 **Owner decision, approved contract, recorded 2026-10-21.** It settles, for the first
 implementation of D47's mechanism as D48 modified it, the review points D48 left to decide. The
 offline path that implements D49–D52 is called the *answer review* below; D50 and D51 give its
@@ -1749,3 +1755,24 @@ and in the reproducible results (`14`).
 **Scope of D49–D52.** They specify the answer review and nothing else: the existing mechanism,
 its code and its closures keep their perimeters (D47, D48). The implementation follows as `10`
 T87.
+
+---
+
+## D53 — The answer review offline: the pool, the draw after the closure, a final unavailability
+
+**Owner decision, 2026-10-21, limited to the first offline version of the answer review.** It
+confirms three choices the implementation made where D49–D52 are silent (`10` T87, `05` §The
+answer review). They are recorded here, as of this date; they are not attributed to D49–D52.
+
+1. **The pool.** Joining the reviewer pool is availability in the trial. No exit from the pool and
+   no availability per epoch are managed.
+2. **The draw's timing.** A question's group is drawn after the closure of its deposit epoch.
+3. **A final unavailability.** If the pool fixed at that closure holds fewer than 12 reviewers, the
+   question stays unavailable for good: its slot stays spent, it gives no reputational
+   observation, and nothing tries again. Reviewers who join later do not recover it, and the same
+   author's identical deposit is still a duplicate.
+
+**Scope.** The first offline version only; another version needs its own decision. D49–D52's
+contract, the parameters (provisional, uncalibrated) and the earlier closures are unchanged. The
+draw's reliance on a beacon value that its caller does not select stays an assumption of the
+offline path (`05` §The answer review), not something D53 settles.

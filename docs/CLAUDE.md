@@ -111,8 +111,11 @@ whole-test guarantee is not required for it, and A2 is not resolved (D52).
 - Keep three things apart: the approved contract (D49–D52), what is implemented (`10` T87:
   `protocol::answer*`, `scoring::reputation::author_score_weighted`, specified in `05` §The
   answer review), and what has been verified (the targeted tests in `tests/answer_review.rs` and
-  the modules' unit tests; Astra's review pending). The existing code still implements the
-  previous design; the answer review adds a path beside it and changes none of it.
+  the modules' unit tests; Astra's final review, which closed T87 and Phase 1 in this path's
+  perimeter only, `15`). D53 confirms three of its choices for the first offline version: joining
+  the pool is availability, the draw follows the deposit epoch's closure, an unavailable question
+  stays so for good. The existing code still implements the previous design; the answer review
+  adds a path beside it and changes none of it.
 - The parameters 12, 9, 3/4, 1/4 and the quota bands are provisional and uncalibrated (D52,
   `14`): keep them explicit in the configuration and in the results; do not tune them.
 - Do not add what the contract excludes: reviewer weights, a reputation update or penalty for
@@ -142,7 +145,11 @@ whole-test guarantee is not required for it, and A2 is not resolved (D52).
   specification. Its closures keep their perimeters; A2 is not resolved by its archiving.
   Code comments citing `docs/16`, `docs/17`, `docs/19` or `docs/20` resolve through redirect
   pages; the archive's index has the path map. The working handoff is `phase1-handoff.md`.
-- Phase 1 is not complete before Astra's final review of the implemented path (D52).
+- Phase 1 is closed in the answer review's perimeter only (2026-10-21, `15`): deposit and quotas,
+  the draw, commit-reveal, the closure, the outcome, the author's reputation from the next epoch,
+  and the usable set. Do not describe it as complete beyond that perimeter, as calibrated, fuzzed,
+  or certifying truth, the whole quiz's fairness or D46's objectives; do not treat the previous
+  mechanism's findings as closed by it, or extend earlier closures.
 
 ## Original build order (done)
 
