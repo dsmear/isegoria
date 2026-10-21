@@ -80,6 +80,14 @@ evaluation; the committed value is an answer, which may be that no alternative i
 happens to Level A's input, the gate and the draw follows the previous filters' role, still to
 decide. The code and its tests are unchanged.
 
+**D49–D52 (owner, 2026-10-21)** approve the contract of the *answer review*, implemented as `10`
+T87 beside the code above rather than by changing it: a uniform draw of 12 from the pool, an
+answer committed and revealed, an outcome by consensus, the author's reputation with D50's
+inputs and D51's quotas. In that path bridging, the gate, the pilot, IRT, DIF, the source check,
+the forecast weights, probation, golden items and exploration have no role (D48, D52); the code in
+this section keeps its tests and behaviour for the existing path, and its adaptation or
+retirement there is not decided.
+
 **Specification sections** describing the previous design as current behaviour, to be replaced
 when D47's mechanism is specified: `02` §§C.2–C.4, `05` [4], §Golden items and §Cold start, `14`
 Level C, `08`'s AT-REP rows, `99` Part 4.
@@ -123,11 +131,9 @@ split a mixed document. These are **residual separations**: the separation is no
 
 ## 5. Not settled here
 
-D47's open points stay open, except what D48 settles for the first implementation (equal
-weights, no reputation update from ordinary reviews, consensus as the operational criterion,
-"none is correct", no retroactive correction or automatic key replacement): the group's size,
-quorum and absences; thresholds and outcomes; a possible "don't know"; the author's reputation;
-Level A's and Level B's relation to the answers; the author's source at deposit and §B.5's check
-(the reviewers' sources are decided: not stated or recorded); A2's disposition for the new design
-and Phase 1's completion criteria. This inventory says where the material is, not what the new
-mechanism will be.
+D48 settled part of D47's open points for the first implementation, and D49–D52 the rest for the
+answer review: the group, quorum and absences, thresholds and outcomes, "don't know", the source
+at deposit (D49), the author's reputation (D50) and quotas (D51), the previous filters' role, A2
+and Phase 1's completion (D52). What D49–D52 leave open is in the handoff (`phase1-handoff.md`
+§4). This inventory says where the material is; whether the existing path's code is later
+adapted or retired is not decided here.

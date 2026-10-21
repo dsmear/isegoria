@@ -17,16 +17,19 @@ competence and to the use of outside resources, and whether that reading is adeq
 be established; a correct answer alone does not show unaided knowledge. The assessment's
 priorities are in `01` D46.
 
-**Phase 1 direction (`01` D47 and D48, owner, 2026-10-21).** The author states the key and reviewers
+**Phase 1 direction (`01` D47–D52, owner, 2026-10-21).** The author states the key and reviewers
 answer the item. D47 asked the mathematics to evaluate the reviewers' reliability over time, with a
 possible reputational weight; for the first implementation D48 defers that evaluation. Reviewers
 drawn from the pool carry equal weights, ordinary reviews do not update their reputation, and the
 consensus of their answers is the review's operational criterion, not a guarantee of truth. A
 reviewer may answer that no alternative is correct; an item is never corrected retroactively, nor
-its key replaced automatically. This document does not yet specify that mechanism: the group's size,
-quorum and absences, the thresholds and outcomes, a possible "don't know" and the guarantees are
-still to define, and agreement with the key or with the majority is not demonstrated reliability.
-What follows describes the code as it is. In it a reviewer reveals a probability that the item
+its key replaced automatically. D49–D52 approve the contract of that first implementation, the
+*answer review*: its outcome rule is a count of equally weighted answers in integers (D49, `05`
+§The answer review), not a fit of this engine; its author index is §C.1's with D50's inputs, and
+its quotas D51's (§C.1, *The answer review*). Bridging, the pilot, IRT, DIF and the source check
+are not conditions of acceptance in it (D52). Agreement with the key or with the majority is not
+demonstrated reliability. What follows describes the existing code, which the answer review
+does not change. In it a reviewer reveals a probability that the item
 passes the pilot; that value is Level A's rating `r_uj` and the forecast scored in §§C.2–C.4, the
 previous design's evaluator path, which stays implemented until the new mechanism replaces it. Level
 B's contracts and the author score (§C.1) are unchanged; whether and how Levels A and B read the
@@ -764,8 +767,9 @@ for A1 is stated in §C.2; this implemented mapping is not a definition of its r
 Two **separate** scores, on unlinkable pseudonyms (see `01` D5). Never combined. D47 and D48 keep
 the separation; §§C.2–C.4 describe the previous design's evaluator score, still implemented. In
 D48's first implementation every reviewer weighs the same and ordinary reviews do not update `E`;
-the evaluation of reviewers is deferred. The author-score rewards and penalties discussed under
-D48 have no formula, size or conditions; §C.1 describes the implemented score, unchanged.
+the evaluation of reviewers is deferred. In the answer review the author's index adapts §C.1's
+inputs (D50) and sets D51's quotas (§C.1, *The answer review*); the existing path's author score
+below is unchanged.
 
 ### C.1 Author score `C_a`
 
@@ -857,6 +861,28 @@ q_a = q_min + (q_max − q_min) · C_a
 `reputation::proposal_rate` computes it; only tests call it, and a deposit event carries its
 quota as written: the snapshot above is computed, its conversion to a quota is not (`15`
 C5–C6).
+
+**The answer review (`01` D50, D51; owner, 2026-10-21).** The same regularized index and aging,
+with each observation's weight `ω_j` multiplying its time weight in both sums:
+
+```
+          α₀ + Σ_j ω_j w_j q_j
+C_a  =  ─────────────────────────       w_j as above; α₀ = 2, β₀ = 3, H = 45
+        α₀ + β₀ + Σ_j ω_j w_j
+```
+
+- *Inputs.* A round accepted: `q_j = 1`, `ω_j = 1`. Discarded: `q_j = 0`, `ω_j = 1`. Divided
+  answers: `q_j = 0`, `ω_j = 1/4`. Insufficient participation: no observation. No fixed
+  subtraction replaces the rule; there is no appeal and no escrow.
+- *Recording.* The outcome and its observation are recorded together, atomically and once per
+  question, at the round's closure; an observation recorded in epoch `E_j` counts from `E_j + 1`,
+  aged as above. A new, corrected question adds its own observation and erases none.
+- *Quota (D51).* Fixed once per epoch `e` from `C_a` at `e`: 1 question when `C_a < 0.30`, 2
+  when `0.30 ≤ C_a < 0.70`, 3 when `C_a ≥ 0.70`, in binary64; a new author 2. A deposit consumes
+  a slot; an invalid or duplicate request does not; no refund, no accumulation, no change within
+  the epoch. This replaces, in the answer review, the linear `q_a` below.
+- *Scope.* C5 and C6 stay closed within their scope (the existing path) and are not extended to
+  these inputs (`15`). The parameters are provisional and uncalibrated (`14`, D52).
 
 **Appeal stake (`01` D27, `05` [5b]).** An appeal is a pseudo-observation *inside* this
 average, not a deduction from it: filing escrows `q = 0` at weight 1 for the appealed item;

@@ -11,7 +11,9 @@ open environment, and D46 the assessment's priorities in it; D47 the owner's dec
 2026-10-21 that reviewers answer the item and their reliability is evaluated over time; D48 the
 owner's decisions for its first implementation: reviewers drawn from the pool with equal weights,
 the consensus of their answers as the review's operational criterion, the evaluation of their
-reliability deferred.
+reliability deferred; D49–D52 the owner's approved contract for the *answer review*, the offline
+path that implements them: a drawn group of 12, a quorum of 9 usable answers, three quarters to
+accept or discard, the author's reputation and quotas, and its perimeter.
 
 ---
 
@@ -20,8 +22,9 @@ reliability deferred.
 > **Rectified by D48 (owner, 2026-10-21).** In the first implementation of D47's mechanism the
 > consensus of the drawn reviewers' answers, each with equal weight, is the review's operational
 > criterion; the absolute ban below no longer binds it. Consensus is not a guarantee of truth, and
-> the draw does not remove the concern below (D48, *Accepted risks*). The choice below describes
-> the existing mechanism, which the code still implements.
+> the draw does not remove the concern below (D48, *Accepted risks*). D49 sets its quorum and
+> thresholds for the answer review. The choice below describes the existing mechanism, which the
+> code still implements.
 
 **Choice.** Accepting a question goes through two filters: bridging (opinion) +
 empirical validation (evidence). Never a majority vote count.
@@ -174,6 +177,9 @@ actor in the threat model.
 ---
 
 ## D10 — Spam control: lottery + rate-limiting nullifier, not a low quota
+
+> **D49–D52 (owner, 2026-10-21).** The answer review's path has no admission lottery: each
+> deposit within D51's quota is drawn a group. The choice below describes the existing mechanism.
 
 **Choice.** Anyone can propose; each epoch a randomly drawn subset enters the
 pipeline. The per-person technical limit is enforced by a rate-limiting nullifier.
@@ -474,6 +480,9 @@ evidence-based outcome. Resolves Q-7 / G-15 (supplementary-review part).
 ---
 
 ## D27 — Appeal cost is a pseudo-observation inside the author score
+
+> **D50 (owner, 2026-10-21).** The answer review has no appeal and no escrow; its author
+> reputation adapts §C.1's inputs (D50). This decision describes the existing path.
 
 > **Implemented as decided (2026-09-25, T61):** `file_appeal` refuses an author whose `C_a`
 > is below the stake floor — the prior mean `α₀ / (α₀ + β₀)`, 0.4 with the default prior —
@@ -1358,7 +1367,8 @@ experiments stay suspended; A2 stays open and blocking; D38 stays apart.
 > their reliability is deferred; the consensus of their answers is the review's operational
 > criterion, which rectifies the binding of invariant #2 and D1 stated below; a reviewer may answer
 > that no alternative is correct; a question is never corrected retroactively, nor its key
-> replaced automatically. The text below is D47 as decided; D48 lists what it modifies.
+> replaced automatically. The text below is D47 as decided; D48 lists what it modifies. D49–D52
+> then approved the contract of the answer review, its first implementation.
 
 **Owner decision, 2026-10-21.** The direction of Phase 1's mechanism, decided before it is
 implemented:
@@ -1481,6 +1491,12 @@ limited to what is implemented and verified. No decision content was added.
 
 ## D48 — First implementation: drawn reviewers, equal weights, consensus on the answers
 
+> **Settled by D49–D52 (owner, 2026-10-21)** for the answer review: the group's size, the quorum
+> and absences, the thresholds and outcomes, "don't know" and the source at deposit (D49); the
+> author's reputation (D50) and quotas (D51); the previous filters' role, A2's disposition and the
+> parameters' status (D52). The text below is D48 as decided, its list of points still to decide
+> included.
+
 **Owner decisions, recorded 2026-10-21, after D47.** They settle part of D47's mechanism for its
 first implementation. D47 stays the record of the direction; the points below modify it where
 stated.
@@ -1588,3 +1604,148 @@ tests and documented behaviour until the implementation adapts them ([`21`](21-d
 **Scope.** Decision record only. No group size, quorum, threshold, outcome, formula or reputation
 rule is adopted; no code, test or archive changes; no review finding is closed; Phase 1 stays
 open. The implementation is a later assignment.
+
+---
+
+## D49 — The answer review: drawn group, answers, closure and outcome
+
+**Owner decision, approved contract, recorded 2026-10-21.** It settles, for the first
+implementation of D47's mechanism as D48 modified it, the review points D48 left to decide. The
+offline path that implements D49–D52 is called the *answer review* below; D50 and D51 give its
+author reputation and quotas, D52 its perimeter and parameters.
+
+**The question and the review.**
+- The author supplies the question, its context, its alternatives and the alternative stated as
+  correct (the key).
+- No source is required of the author, and the answer review has no automatic source check.
+- The Internet, documents and AI are freely usable. The tools used are not detected, and the
+  reviewers' sources are not collected (D47, D48 point 6).
+- 12 distinct reviewers are drawn at random from the available pool, with no new competence
+  filter (D48 point 1).
+- Every reviewer weighs the same, and no reviewer's reputation is updated (D48 point 2).
+- A reviewer answers by choosing an alternative, "none of the alternatives is correct" or "don't
+  know".
+- The key is not shown to the reviewers before their commitment. The separation from the other
+  reviewers' answers and the commit-reveal stay.
+- The question is immutable: a correction needs a new question. The key is never replaced
+  automatically (D48 point 5).
+
+**Collection and closure.**
+- At least 9 usable answers are needed. Usable answers are the alternatives chosen and "none".
+- "Don't know" is an abstention, distinct from an absence (a drawn reviewer who gives no answer).
+  Both are excluded from the denominator and from the quorum.
+- No reputational penalty falls on a reviewer for an abstention or an absence.
+- No reviewer is replaced in the same round.
+- The round closes by an explicit event of the offline path; it does not close automatically at
+  the ninth answer.
+- After the closure no answer enters the round.
+- No real deadline, early closure or automatic retry is introduced.
+- If 12 distinct reviewers cannot be drawn, the group is not silently reduced: the draw returns
+  an explicit condition of unavailability.
+
+**Outcome.** Let `V` be the usable answers and `C` those that coincide with the key:
+- `V < 9`: insufficient participation;
+- `V ≥ 9` and `4C ≥ 3V`: accepted;
+- `V ≥ 9` and `4(V − C) ≥ 3V`: discarded;
+- otherwise: divided answers.
+
+"None" counts among the answers that do not coincide. A discard does not need the dissenting
+reviewers to choose the same alternative. The full distribution, the abstentions and the
+absences are kept.
+
+Only accepted questions enter the answer review's usable set. Divided answers are not a
+demonstrated ambiguity. Insufficient participation is not a discard. No policy of new rounds is
+added: it is outside this first implementation.
+
+**What it settles of D48's open points, for the answer review.** The group's size, the quorum
+and what absences do; the thresholds and the outcomes, a consensus on another alternative or on
+"none" included (a discard when at least three quarters of the usable answers dissent, divided
+answers otherwise); "don't know"; the author's source at deposit (none required, no check).
+`10` T58's no-show rule, decided for the previous design's panels, is not carried over: no
+replacement, no loss of weight, no suspension from the draw.
+
+---
+
+## D50 — The author's reputation in the answer review
+
+**Owner decision, approved contract, recorded 2026-10-21.** The answer review keeps the
+structure of the regularized index and of the aging defined in `02` §C.1, with its inputs
+adapted explicitly:
+- accepted: a success, value 1, observation weight 1;
+- discarded: a failure, value 0, weight 1;
+- divided answers: a failure, value 0, weight 1/4;
+- insufficient participation: no observation.
+
+The observation's weight multiplies its time contribution in both the numerator and the
+denominator: with `ω_j` the observation weight and `w_j` the time weight of `02` §C.1,
+
+```
+          α₀ + Σ_j ω_j w_j q_j
+C_a  =  ─────────────────────────
+        α₀ + β₀ + Σ_j ω_j w_j
+```
+
+No fixed subtraction from the score replaces this rule. The initial prior stays
+`α₀ / (α₀ + β₀) = 2 / (2 + 3) = 0.40`, and the time contract in force stays (`02` §C.1, D27's C6
+amendment: ages in applied closings, `H = 45`).
+
+The outcome and its reputational contribution are recorded together, atomically and once per
+question. The outcomes recorded in an epoch enter the ordinary computation from the next epoch.
+A new, corrected question does not erase the earlier outcome.
+
+C5 and C6 stay closed within their scope; their closures are not extended automatically to these
+inputs. The existing path's author score (`02` §C.1, D27, `15` C5–C6) is unchanged, and the
+answer review has no appeal and no escrow. This gives the answer review the formula, size and
+conditions D48 left undefined for the author's reputation.
+
+---
+
+## D51 — The author's quotas in the answer review
+
+**Owner decision, approved contract, recorded 2026-10-21.** An author's quota is fixed once per
+epoch from the reputation D50 defines:
+- `0 ≤ C < 0.30`: 1 question;
+- `0.30 ≤ C < 0.70`: 2 questions;
+- `0.70 ≤ C ≤ 1`: 3 questions.
+
+A new author starts with 2 questions per epoch.
+- An accepted deposit consumes a slot; an invalid request does not.
+- A duplicate request creates no other question and does not consume a second slot.
+- No slot is refunded on the review's outcome.
+- Unused slots do not accumulate.
+- A new, corrected question consumes a new slot.
+- The quota does not change during the epoch.
+
+In the answer review this rule replaces the earlier linear link between reputation and quota
+(`02` §C.1, `q_a = q_min + (q_max − q_min) · C_a`). Epochs are logical, closed explicitly
+offline.
+
+---
+
+## D52 — The answer review's perimeter, guarantees and parameters; A2's disposition
+
+**Owner decision, approved contract, recorded 2026-10-21.**
+
+**Perimeter.** The answer review uses consensus as its operational criterion (D48 point 3, D49).
+Bridging, the pilot, IRT, DIF and the source check are not conditions of acceptance in it. The
+coordination detector (D39) does not modify the draw, the weights or the outcome automatically.
+The previous material and components are kept, and their contracts and guarantees are not
+transferred automatically to the new path. No new campaign is run.
+
+**A2.** The old problem stays unresolved within its scope (`15` A2): a whole-test DTF bound for
+the previous design's contested pool and its active items. Its whole-test guarantee is not
+required to complete the answer review. A2 is not declared mathematically resolved, and no
+fairness guarantee of the whole quiz is introduced.
+
+**D45 and D46** stay conditions and objectives: that questions are accepted does not show that a
+quiz measures those capabilities adequately.
+
+**Parameters.** The group size 12, the quorum 9, the 75% threshold, the weight 1/4 and the quota
+bands are provisional initial parameters, not calibrated. They stay explicit in the configuration
+and in the reproducible results (`14`).
+
+**Phase 1.** It is not declared complete before Astra's final review of the implemented path.
+
+**Scope of D49–D52.** They specify the answer review and nothing else: the existing mechanism,
+its code and its closures keep their perimeters (D47, D48). The implementation follows as `10`
+T87.

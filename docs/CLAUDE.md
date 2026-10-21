@@ -10,8 +10,8 @@ rest as needed.
 These constraints are non-negotiable: breaking one destroys the property that makes
 the system useful. Before every implementation choice, check you are not violating
 them. Only a recorded owner decision changes them: `01` D48 rectified #2. Invariants 2 and 8
-also name contracts of the existing mechanism; those bind the existing code in its scope, while
-their role in the new mechanism is open (below).
+also name contracts of the existing mechanism; those bind the existing code in its scope, and
+D52 states they are not conditions of the answer review (below).
 
 1. **Anonymity is the base.** No personal, demographic, or affiliation data ever
    enters the system. Nodes are pseudonymous IDs and nothing else. Do not add
@@ -20,13 +20,14 @@ their role in the new mechanism is open (below).
 
 2. **Consensus is an operational criterion, never a guarantee of truth.** Until D47 this
    invariant banned deciding quality by voting in any mechanism; `01` D48 rectifies that ban.
-   In the first implementation of D47's mechanism the consensus of the drawn reviewers'
-   answers, each with equal weight, is the review's operational criterion. Its thresholds,
-   quorum and outcomes are not specified: do not choose them. Never present a consensus as
-   showing that the key or an answer is true, or that the reviewers are reliable, and never
-   reward agreement with the majority (`01` D6, D48). *Existing mechanism:* acceptance goes
-   through bridging (opinion filter) + empirical validation (evidence filter), with no vote
-   count; keep that contract in the existing code. Its role in the new mechanism is open.
+   In the answer review, the first implementation of D47's mechanism, the consensus of the
+   drawn reviewers' answers, each with equal weight, is the review's operational criterion,
+   with the quorum, thresholds and outcomes of `01` D49; do not change them in code. Never
+   present a consensus as showing that the key or an answer is true, or that the reviewers are
+   reliable, and never reward agreement with the majority (`01` D6, D48). *Existing
+   mechanism:* acceptance goes through bridging (opinion filter) + empirical validation
+   (evidence filter), with no vote count; keep that contract in the existing code. Neither
+   filter is a condition of acceptance in the answer review (`01` D52).
 
 3. **No money as stake.** No token, no economic stake, no monetary bond to propose
    or vote. The cost of proposing is reputation and rate limits. A money-based
@@ -35,9 +36,9 @@ their role in the new mechanism is open (below).
 4. **Two separate scores, never combined.** The author score (`C`) and the evaluator
    score (`E`) live on **different, unlinkable pseudonyms** of the same person. `E`
    weights the review vote; `C` governs the rate limit on proposals. Do not merge
-   them into a single weight and do not have them share the same ID. In the first
-   implementation of D47's mechanism every reviewer weighs the same and ordinary reviews
-   do not update `E` (`01` D48); the separation stands.
+   them into a single weight and do not have them share the same ID. In the answer review
+   every reviewer weighs the same and ordinary reviews do not update `E` (`01` D48, D49);
+   `C` follows D50 and governs D51's quotas there; the separation stands.
 
 5. **One role, one deterministic pseudonym, not rotatable.** Role pseudonyms derive
    deterministically from the credential (`H(secret, context)`). A person can derive
@@ -60,9 +61,9 @@ their role in the new mechanism is open (below).
 8. **The existing evidence filter validates in batches, never a single question.**
    Level B, as implemented, validates groups of questions with shared anchors; keep it
    so. Historical simulations show weak detection of an isolated biased item; they do
-   not prove universal non-identifiability (`15-phase1-review.md`, A8). Whether D47's
-   mechanism uses empirical validation, and in what form, is open: this contract is
-   not imposed on it automatically.
+   not prove universal non-identifiability (`15-phase1-review.md`, A8). The answer review
+   uses no empirical validation as a condition of acceptance (`01` D52): this contract is
+   not imposed on it.
 
 ## Current priorities
 
@@ -83,7 +84,7 @@ Long characterization runs belong on the owner's machine and require explicit
 authorization; use targeted tests and the smoke grid during development. The design
 and implementation handoff is in `15-phase1-review.md`.
 
-## Phase 1 direction: D47 and D48 (2026-10-21)
+## Phase 1 direction: D47, D48 and the answer review (D49–D52, 2026-10-21)
 
 The owner changed Phase 1's direction before its implementation (`01-decisions.md` D47): the
 author states the key, reviewers answer the item with any resource, and forecasting the pilot
@@ -96,37 +97,46 @@ none of the alternatives is correct, which stays distinct from choosing another 
 question is never corrected retroactively (its author submits a new one), and its key is never
 replaced automatically. D45 and D46 stay the references for conditions and objectives.
 
-- Keep three things apart: the approved direction (D47 as modified by D48), the contract that is
-  still incomplete, and what the code does (the previous design).
-- **Not specified:** the size of the drawn group, the quorum and absences; thresholds and
-  outcomes; a possible "don't know"; the author's reputation; the source at deposit; the role of
-  the previous filters; A2 and Phase 1's completion criteria (`phase1-handoff.md` §4). Do not
-  implement them, or fill the gaps with a formula or policy of your own, before the owner and
-  the design review specify them.
-- Do not add reviewer weights, a reputation update from ordinary reviews, a selection by
-  competence or an automatic correction of the key: D48 excludes them from the first
-  implementation. A later evaluation of reviewers needs a credible reference and a distinct
-  decision.
+D49–D52 are the owner's approved contract for the *answer review*, the offline path that
+implements D48: 12 distinct reviewers drawn at random from the pool; an answer is an
+alternative, "none is correct" or "don't know"; at least 9 usable answers (alternatives and
+"none"), abstentions and absences outside the count; an explicit closure; accepted when
+`4C ≥ 3V`, discarded when `4(V − C) ≥ 3V`, divided answers otherwise; only accepted questions
+usable (D49). The author's reputation keeps `02` §C.1's index and aging with adapted inputs —
+accepted 1 at weight 1, discarded 0 at weight 1, divided 0 at weight 1/4, insufficient
+participation nothing (D50) — and sets a quota of 1, 2 or 3 questions per epoch (D51). Bridging,
+the pilot, IRT, DIF and the source check are not conditions of acceptance there; A2's
+whole-test guarantee is not required for it, and A2 is not resolved (D52).
+
+- Keep three things apart: the approved contract (D49–D52), what is implemented (`10` T87), and
+  what has been verified (tests run, and Astra's review). The existing code still implements the
+  previous design; the answer review adds a path beside it and changes none of it.
+- The parameters 12, 9, 3/4, 1/4 and the quota bands are provisional and uncalibrated (D52,
+  `14`): keep them explicit in the configuration and in the results; do not tune them.
+- Do not add what the contract excludes: reviewer weights, a reputation update or penalty for
+  reviewers (an abstention or absence included), a selection by competence, a replacement in the
+  round, an automatic closure, deadline or retry, a new round, an automatic correction of the
+  key, a source requirement or check, or any previous filter as a condition of acceptance. Where
+  the contract is silent on a product choice, stop and report it instead of choosing a policy.
 - Consensus is not truth, and agreement with the author's key or with the majority is not
-  reliability. The exclusion of a Schelling point below stays. D48 records the risks it accepts
-  (shared errors, different competences under equal weights, superficial reviews, coordination);
-  the draw eliminates none of them, so do not describe the design as removing them. Bridging,
-  empirical validation and batches are contracts of the existing code (#2, #8), and their role
-  in the new mechanism is open.
-- The author's reputation stays separate (#4). Rewards for acceptance and penalties for
-  contestation or rejection were discussed without formula, size or conditions: do not turn them
-  into rules; the implemented author score stays as it is.
-- Decided: reviewers may use the Internet, documents and AI; they do not state or record the
-  sources they consult, and the system does not detect, infer or assess their use of outside
-  tools. Still open, and not to be settled in code: whether the author keeps attaching a
-  mandatory source at deposit, and whether the contested-fact path keeps its source check
-  (`02` §B.5); leave both as they are.
-- The code still implements the previous design. `21-d47-inventory.md` lists what the
-  implementation must adapt (§2) and the residual separations that stay in place (§4).
+  reliability; divided answers are not demonstrated ambiguity, and insufficient participation
+  is not a discard. The exclusion of a Schelling point below stays. D48 records the risks it
+  accepts (shared errors, different competences under equal weights, superficial reviews,
+  coordination); the draw eliminates none of them, so do not describe the design as removing
+  them. Accepted questions establish no fairness of the whole quiz (D52).
+- The author's reputation stays separate (#4). The existing path's author score and its C5–C6
+  closures are unchanged and are not extended to D50's inputs.
+- Reviewers may use the Internet, documents and AI; they do not state or record the sources they
+  consult, and the system does not detect, infer or assess their use of outside tools. The
+  answer review asks the author for no source; the existing deposit's mandatory source and the
+  contested-fact path's source check (`02` §B.5) stay as they are in the existing path.
+- `21-d47-inventory.md` lists what the previous design's code is and what stays in place (§2,
+  §4).
 - `archive/phase1-forecast-pilot/` is historical: do not extend it or cite it as the active
   specification. Its closures keep their perimeters; A2 is not resolved by its archiving.
   Code comments citing `docs/16`, `docs/17`, `docs/19` or `docs/20` resolve through redirect
   pages; the archive's index has the path map. The working handoff is `phase1-handoff.md`.
+- Phase 1 is not complete before Astra's final review of the implemented path (D52).
 
 ## Original build order (done)
 

@@ -42,11 +42,13 @@ Four rules shape every crate:
    `scripts/comment_budget.py` enforces the budget (`docs/CLAUDE.md`, "Code style and
    docs") in CI and after every edit made through Claude Code.
 
-**Phase 1 direction (`docs/01` D47 and D48, 2026-10-21).** Reviewers are to answer the item, whose
+**Phase 1 direction (`docs/01` D47–D52, 2026-10-21).** Reviewers are to answer the item, whose
 key the author states. For the first implementation D48 draws them from the reviewer pool with equal
 weights, makes the consensus of their answers the review's operational criterion, and defers the
-evaluation of their reliability; group size, quorum, thresholds and outcomes are still to decide.
-Nothing below implements that yet: the reviewer path in `protocol` and Level C's evaluator score in
+evaluation of their reliability; D49–D52 approve the contract of that path, the *answer review*:
+12 drawn, a quorum of 9 usable answers, three quarters to accept or discard, the author's
+reputation and quotas, no previous filter as a condition of acceptance. It is being implemented
+offline (`docs/10` T87). The reviewer path in `protocol` and Level C's evaluator score in
 `scoring` implement the previous design, in which a reviewer reveals a probability that the item
 passes the pilot. [`docs/21`](docs/21-d47-inventory.md) lists the modules to adapt and the residual
 separations; the previous design's dossiers, A12's and A2's scripts and A2's results are in
@@ -272,7 +274,7 @@ The invariants from [`docs/CLAUDE.md`](docs/CLAUDE.md):
 | # | Invariant | Where |
 |---|---|---|
 | 1 | Anonymity is the base; no demographic attributes in the deployment path | Anonymous DIF uses `scoring::latent`; observed-group routines are calibration-only (`docs/02` §B.3) |
-| 2 | Consensus is an operational criterion, never a guarantee of truth (rectified by `docs/01` D48; until D47, quality never decided by majority vote) | Existing mechanism: `scoring::bridging` + `scoring::latent`; `protocol::gate` has no vote count. D48's consensus is not implemented |
+| 2 | Consensus is an operational criterion, never a guarantee of truth (rectified by `docs/01` D48; until D47, quality never decided by majority vote) | Existing mechanism: `scoring::bridging` + `scoring::latent`; `protocol::gate` has no vote count. The answer review's consensus (D49) is being implemented (T87) |
 | 3 | No money as stake | Bond is reputation (`protocol::deposit`, `scoring::reputation`) |
 | 4 | Two reputation scores, never combined | `scoring::reputation` (`author_score` vs `loo_scores`/`odds_weight`, the previous design's evaluator score; under D48 the first implementation weighs reviewers equally and defers their evaluation); separate role nyms in `identity::nym` |
 | 5 | One role, one deterministic non-rotatable pseudonym | `identity::nym::derive_nym` |
@@ -399,10 +401,9 @@ to make the pipeline testable end-to-end.
 ## Future work
 
 D47's mechanism — reviewers' answers, in D48's first implementation drawn reviewers with equal
-weights and the consensus of their answers as the operational criterion — is to be specified,
-then implemented; the group's size, quorum and absences, thresholds and outcomes, a possible
-"don't know", the author's reputation, the source at deposit, the previous filters' role and A2
-are still to decide (`docs/phase1-handoff.md` §4), and no plug point exists for it yet.
+weights and the consensus of their answers as the operational criterion — has its contract
+approved (`docs/01` D49–D52) and is being implemented offline as the answer review (`docs/10`
+T87). What the contract leaves open is in `docs/phase1-handoff.md` §4.
 
 [`docs/10`](docs/10-roadmap.md) is the task-status source. Start Phase 1 corrections
 from [`docs/15`](docs/15-phase1-review.md); complete parameter procedures in

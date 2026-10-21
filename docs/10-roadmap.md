@@ -34,6 +34,16 @@ filters' role, A2 and Phase 1's completion criteria ([handoff](phase1-handoff.md
 no-show rule, decided for the previous design's panels, belongs to the absences question; T68 to
 the source question.
 
+**D49–D52 — the answer review's contract (owner, 2026-10-21).** The owner approved the contract
+of the first implementation's offline path ([`01` D49–D52](01-decisions.md)): a drawn group of
+12, a quorum of 9 usable answers, three quarters to accept or discard, "don't know" as an
+abstention, explicit closure; the author's reputation with adapted inputs and quotas of 1, 2 or
+3 per epoch; bridging, the pilot, IRT, DIF and the source check not conditions of acceptance;
+A2's whole-test guarantee not required for it, A2 unresolved; parameters provisional and
+uncalibrated. Its implementation is **T87** ([1.6](#16--the-answer-review-d49d52)). T58's no-show
+rule is not carried over (D49); T68's structured draft and source check stay with the existing
+path. Phase 1 is not complete before Astra's final review of the implemented path.
+
 **C6 closed (2026-10-17).** The owner adopted B, a nominal cadence of 28 days and H = 45
 closings. The offline implementation, including declared context and configuration replay
 and the B-b snapshot's transition alignment, was prepared statically by Sol and corrected
@@ -335,13 +345,24 @@ mutation-tested (T81).
 design. Phase 1's completion now also requires D47's mechanism, in the first implementation D48
 settles, to be specified, implemented and reviewed with its guarantees; meeting the milestones
 below does not complete it. Phase 1's completion criteria are themselves among the decisions D48
-leaves to the owner.
+leaves to the owner. D52 (2026-10-21): A2's whole-test guarantee is not required to complete the
+answer review (T87), A2 stays unresolved within its scope, and Phase 1 is not declared complete
+before Astra's final review of the implemented path.
 
 **Completion qualification.** The label also requires resolving the critical/high
 findings in `15`, or explicitly narrowing the claimed domain with a justified decision.
 T81 covers the ten files named in its task row, not every statistical claim or composed
 path. Provisional parameters with defined pilots remain permitted; actual field
 validation remains T27. No documentation-only change closes a code or proof finding.
+
+### 1.6 · The answer review (D49–D52)
+
+The first implementation of D47's mechanism as D48 modified it, on the contract the owner
+approved (`01` D49–D52). An offline path beside the existing one, which it does not change.
+
+| ID | Task | References | Done when | Size |
+|---|---|---|---|---|
+| T87 | **The answer review, offline.** The path creation → deposit and quota → draw → answers → closure → outcome → the author's reputation → next epoch → usable questions, as D49–D52 specify: a structured question with its key, no source; 12 distinct reviewers drawn at random from the pool, an explicit unavailability below it; commit-reveal of an alternative, "none" or "don't know", the key not shown before the commitment; an explicit closure, then no answer enters; the outcome in integers over the usable answers; the outcome and the author's observation recorded together, once, counted from the next epoch; quotas fixed once per epoch; logical epochs closed explicitly; the parameters explicit in the configuration and the results, provisional (`14`). No previous filter, reviewer weight or reviewer reputation in the path | `01` D47–D52; `02` §C.1; `05`; `14` | the path implemented and integrated, replayable from its log; targeted tests of the thresholds' boundaries for `V` 9–12, the quorum, abstentions and absences, closure, duplicates, atomicity, single application, reproducibility, the fractional contribution, the epoch's passage and the quotas' consumption; the docs in step; Astra's review | M |
 
 ---
 

@@ -28,6 +28,11 @@ lines. Code symbols identify the implementation to re-check on a newer branch.
   their reliability deferred), the consensus of their answers as the review's operational
   criterion, not a guarantee of truth. It rectifies invariant #2's absolute ban on deciding by
   votes; its effect on this register is [below](#d47-disposition-2026-10-21).
+- [`01` D49–D52](01-decisions.md) (owner, 2026-10-21): the approved contract of the *answer
+  review*, the offline path of the first implementation — a drawn group of 12, a quorum of 9
+  usable answers, three quarters to accept or discard, the author's reputation inputs and quotas,
+  its perimeter, A2's disposition and provisional parameters. Its effect on this register is
+  [below](#d47-disposition-2026-10-21); its implementation is `10` T87.
 - [`01` D45](01-decisions.md) (owner, 2026-10-20): Isegoria assumes an open environment;
   answers are produced under those conditions, `θ` stays the declared model's parameter, and a
   correct answer alone does not show unaided knowledge. [D46](01-decisions.md) records the
@@ -108,6 +113,16 @@ the consensus review either. A2 stays open. Phase 1's completion criteria, like 
 quorum, thresholds and outcomes, are among the decisions D48 leaves to the owner
 ([handoff](phase1-handoff.md) §4); findings about the consensus review will be recorded here once
 it is specified.
+
+**D49–D52 (owner, 2026-10-21).** The answer review's approved contract changes no record above
+and reopens or extends no closure. C5 and C6 stay closed within their scope and are not extended
+to D50's inputs; A1, A12 and A10 certify nothing of the answer review. Bridging, the pilot, IRT,
+DIF and the source check are not conditions of acceptance in it, so the findings on those
+components keep their scope in the existing path, open or closed as recorded, and transfer no
+guarantee to the new one (D52). A2's disposition is
+[in its section](#a2-current-state-design-decision-deferred), D52 entry. Phase 1 is not declared
+complete before Astra's final review of the implemented path (D52); findings about the answer
+review will be recorded here.
 
 ### A1 current closure criterion after O1–O3
 
@@ -236,6 +251,16 @@ direction of 2026-10-18
   decides, A2 stays open and Phase 1 cannot be declared
   complete. The A2 harness stays in `crates/characterization` as a residual separation
   ([`21`](21-d47-inventory.md) §4).
+- **D52 (owner, 2026-10-21) — the disposition for the answer review.** The old problem stays
+  **unresolved within its scope**: the whole-test DTF bound for the previous design's contested
+  pool and active items is neither realized nor withdrawn, and A2 is not declared mathematically
+  resolved; its demonstrated results keep their domains, and the certifier, the other obligations
+  and new experiments stay suspended. Its whole-test guarantee is **not required to complete the
+  answer review**, which uses no DIF, DTF or contested pool as a condition of acceptance. No
+  fairness guarantee of the whole quiz is introduced, and accepting questions does not show that
+  a quiz measures D45's and D46's capabilities adequately. The **Blocking** bullet above keeps its
+  scope, the previous design's criteria; whether Phase 1 is complete is decided at Astra's final
+  review of the implemented path (D52).
 
 ### A8–A9 bounded rectification
 

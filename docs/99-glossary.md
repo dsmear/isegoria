@@ -358,7 +358,7 @@ does not yield that formula (`15` C5).
 
 # Part 4 — Incentives: how honesty is rewarded
 
-## Reviewers' answers and their consensus (`01` D47, D48)
+## Reviewers' answers and their consensus (`01` D47–D52)
 
 **Problem.** A question comes with the answer its author calls correct: the *key*. Does the key
 hold, and how should the reviewers' answers settle it? Counting how many reviewers agree is the
@@ -382,11 +382,15 @@ possibly giving reputational weight on that basis. D48 defers it: ordinary revie
 reviewer's reputation, and a later evaluation would need a credible reference — something to
 measure reviewers against — and a distinct decision.
 
-**What is not decided.** How many reviewers are drawn, the quorum and what absences do; how much
-agreement a review needs and what happens to the item otherwise; whether "don't know" is an
-answer; how the author's reputation responds. An item on which correct and wrong answers split
-evenly is a signal to study, not a proven sign of ambiguity or a reason to reject it. Agreeing
-with the key, or with the majority, is not by itself evidence of reliability.
+**The answer review (D49–D52).** The owner then fixed the numbers, provisionally: 12 reviewers
+are drawn; each answers with an alternative, "none is correct" or "don't know"; a round needs at
+least 9 *usable* answers (an alternative or "none"), "don't know" and silence counting in
+neither; with `V` usable answers and `C` matching the key, the question is *accepted* when
+`4C ≥ 3V`, *discarded* when `4(V − C) ≥ 3V`, and has *divided answers* otherwise. Divided
+answers are not a proof of ambiguity, and too few answers are not a discard. The author's
+reputation counts an accepted question as a success, a discarded one as a failure and divided
+answers as a quarter of a failure, and sets how many questions the author may submit per epoch.
+Agreeing with the key, or with the majority, is still not by itself evidence of reliability.
 
 **Before D47.** A reviewer declared a probability that the item passes the pilot, scored against
 the other reviewers' forecasts with a rule that is proper under stated conditions (the two

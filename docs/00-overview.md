@@ -104,9 +104,23 @@ alternative. A question is not corrected retroactively: its author submits a new
 is never replaced automatically. The Internet, documents and AI are freely usable. Accepted risks:
 shared errors, different competences under equal weights, superficial reviews, coordination. The
 author's reputation stays separate; rewards and penalties for it were discussed, not defined.
-Still to decide: the group's size, quorum and absences, thresholds and outcomes, a possible
-"don't know", the author's reputation, the source at deposit, the role of the previous filters,
-A2 and Phase 1's completion criteria. D48 changes no code.
+D48 changes no code.
+
+**The answer review (2026-10-21, [`01` D49–D52](01-decisions.md)).** The owner approved the
+contract of that first implementation, an offline path beside the existing one. The author
+supplies the question, its context, its alternatives and the key, with no source. 12 distinct
+reviewers are drawn at random from the pool; each answers with an alternative, "none of the
+alternatives is correct" or "don't know", by commit-reveal, without seeing the key before the
+commitment. With `V` the usable answers (alternatives and "none") and `C` those that coincide
+with the key, a round closed explicitly ends in insufficient participation when `V < 9`, accepted
+when `4C ≥ 3V`, discarded when `4(V − C) ≥ 3V`, and in divided answers otherwise; abstentions
+and absences count in neither `V` nor the quorum, and only accepted questions are usable (D49).
+The author's reputation keeps §C.1's index and aging, an accepted question a success, a discarded
+one a failure, divided answers a failure at weight 1/4 (D50); it sets a quota of 1, 2 or 3
+questions per epoch, 2 for a new author (D51). Bridging, the pilot, IRT, DIF and the source check
+are not conditions of acceptance in it; A2's whole-test guarantee is not required for it and A2
+stays unresolved; no fairness of the whole quiz is guaranteed; the parameters are provisional
+and uncalibrated (D52). Its implementation is `10` T87.
 
 A2's whole-test guarantee remains open: D47 and the archiving of its dossier neither resolve nor
 withdraw it. Its bounded studies, run under
@@ -161,9 +175,10 @@ the same person.
 
 Under D47 the author states the key at [1] and reviewers answer the item at [3]; under D48 their
 consensus is the review's operational criterion, a reviewer may answer that no alternative is
-correct, and an item is never corrected after the fact. Whether and how [4]–[6] read the answers,
-and whether [1] and [6]'s contested-fact branch keep the author's source and its check, is still
-to define (`05`).
+correct, and an item is never corrected after the fact. In the answer review (D49–D52) the
+author attaches no source at [1], there is no admission lottery at [3], and [4]–[8] are not
+conditions of acceptance: the drawn reviewers' consensus decides, and an accepted question enters
+the answer review's usable set (`05`). The diagram is the existing path.
 
 Sample floors and capacity are specified in `02` §B.6. They are not universal power
 guarantees; the current model still needs post-D43 characterization. Open guarantee

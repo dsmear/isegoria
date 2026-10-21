@@ -42,17 +42,40 @@ author's reputation** stays separate: rewards for acceptance and penalties for c
 rejection were discussed, but formula, size and conditions are not defined, and nothing of it is
 an executable rule; the implemented author score is unchanged.
 
-**Still incomplete:** the contract cannot be implemented until the decisions in §4 are taken by
-the owner and reviewed by Astra. Agreement with the key or the majority is not demonstrated
-reliability, and a balanced split of correct and wrong answers is a signal to study, not a rule.
-The exclusion of a Schelling point (D6) stands. Do not fill the gaps with a formula or a policy
-of your own.
+**The answer review's contract — [`01` D49–D52](01-decisions.md), approved by the owner.** The
+decisions §4 listed are taken for the offline path of the first implementation:
+- *D49, the review.* The author supplies question, context, alternatives and key, with no source
+  and no source check. 12 distinct reviewers are drawn at random from the pool, with equal
+  weights and no reputation update. A reviewer answers an alternative, "none is correct" or "don't
+  know"; the key is not shown before the commitment, and commit-reveal stays. At least 9 usable
+  answers (alternatives and "none"); abstentions and absences are outside the denominator and the
+  quorum, with no penalty and no replacement. The round closes by an explicit event; no deadline,
+  early closure or retry. A pool too small for 12 gives an explicit unavailability. Outcome, with
+  `V` usable and `C` coinciding with the key: `V < 9` insufficient participation; `4C ≥ 3V`
+  accepted; `4(V − C) ≥ 3V` discarded; divided answers otherwise. Only accepted questions are
+  usable; no new rounds.
+- *D50, the author's reputation.* §C.1's index and aging with adapted inputs: accepted 1 at
+  weight 1, discarded 0 at weight 1, divided 0 at weight 1/4, insufficient participation no
+  observation; the weight multiplies the time weight in both sums; prior 0.40, `H = 45`. Outcome
+  and contribution recorded together, once per question; counted from the next epoch.
+- *D51, the quotas.* Fixed once per epoch: 1 below 0.30, 2 below 0.70, 3 from 0.70; a new author
+  2. A deposit consumes a slot; an invalid or duplicate request does not; no refund, no
+  accumulation, no change within the epoch. Logical epochs closed explicitly.
+- *D52, the perimeter.* Consensus is the operational criterion; bridging, the pilot, IRT, DIF
+  and the source check are not conditions of acceptance; the coordination detector changes
+  nothing automatically. A2 stays unresolved in its scope, and its whole-test guarantee is not
+  required for the answer review; no fairness of the whole quiz is guaranteed. The parameters are
+  provisional and uncalibrated. Phase 1 is not complete before Astra's final review.
 
-**What the code does.** Nothing implements D47 or D48. A reviewer commits and reveals a probability
-that the item passes the pilot; it is the bridging rating and the forecast that
-`scoring::reputation`, `protocol::{honeypot, exploration, probation, panel_scores, cohort_scores,
-affine_weights}` score and weigh (`02` §§C.2–C.4, the previous design). [`21`](21-d47-inventory.md)
-§2 lists what the implementation will have to adapt.
+Agreement with the key or the majority is not demonstrated reliability; divided answers are not
+demonstrated ambiguity. The exclusion of a Schelling point (D6) stands.
+
+**What the code does.** The answer review is being implemented as `10` T87; the existing code,
+which implements the previous design, is unchanged. A reviewer of the existing path commits and
+reveals a probability that the item passes the pilot; it is the bridging rating and the forecast
+that `scoring::reputation`, `protocol::{honeypot, exploration, probation, panel_scores,
+cohort_scores, affine_weights}` score and weigh (`02` §§C.2–C.4). [`21`](21-d47-inventory.md) §2
+lists that code.
 
 **The reorganization (on `docs/phase1-review-alignment`):** `9cbb446` records D47; `c158670` moves
 the previous design's dossiers (`16`, `17`, `19`, `20`, the previous handoff), A12's and A2's tools
@@ -61,8 +84,8 @@ and the nine A2 reports to
 `76f12f5` adds the archive's index and path map, the inventory `21`, the redirect pages and the link
 targets; `990fe9d` and `72237c5` realign the specification and the registers; `47a1698` the front
 pages, the index, this note and the agent instructions; `17524b0` and `0b4f4ff` rectify them after
-Astra's reviews. D48 is recorded on top of them, documentation only. No result was regenerated; no
-fit, benchmark or campaign was run.
+Astra's reviews. D48 (`9afdb09`) and D49–D52 are recorded on top of them. No result was
+regenerated; no fit, benchmark or campaign was run.
 
 **Residual separations** (`21` §4): the A2 harness stays in `crates/characterization` because
 `a2-probe run` guards its provenance on `crates/`; `scoring::latent::latent_dif_candidates`;
@@ -70,8 +93,9 @@ fit, benchmark or campaign was run.
 `crates/protocol/tests/fixtures/`; the S2 and A1 test code, which exercises current code; the
 paper, whose `scripts/common.py` feeds CI's differential oracles.
 
-**Phase 1 is not complete.** A2 is open and not resolved by the archiving
-([`15`](15-phase1-review.md#a2-current-state-design-decision-deferred), D47 entry).
+**Phase 1 is not complete.** A2 is open and not resolved by the archiving or by D52, which only
+makes its whole-test guarantee unnecessary for the answer review
+([`15`](15-phase1-review.md#a2-current-state-design-decision-deferred), D47 and D52 entries).
 
 ## 2. Roles and working agreement
 
@@ -99,38 +123,30 @@ states (`18e1b5f`, `6274270`); A1 conditionally on `1bd865c`, A12 conditionally 
 A1, A12 and A10 concern the previous design's forecast score and certify nothing of D47's
 mechanism; A10's residual is suspended (`15`, D47 disposition).
 
-## 4. Decisions still needed to implement
+## 4. Decisions taken, and what the contract leaves open
 
-From [`01` D48](01-decisions.md); none is to be settled in code or by a default of one's own.
+D48's list of decisions still needed is settled for the answer review by D49–D52 (§1): the drawn
+group, quorum and absences (D49; `10` T58's no-show rule is not carried over); thresholds and
+outcomes (D49); "don't know" (D49, an abstention); the author's reputation (D50) and quotas
+(D51); the source at deposit (D49: none, no check); the previous filters (D52: not conditions of
+acceptance); A2 (D52: not required for the answer review, still unresolved) and Phase 1's
+completion (D52: not before Astra's final review).
 
-1. **The drawn group:** its size, the quorum, and what absences (a drawn reviewer who does not
-   answer) do. `10` T58 decided, for the previous design's panels and not implemented, a
-   replacement from the same stratum, a floor of seven reveals, and a no-show losing vote weight
-   and being suspended from the draw; with D48's equal weights and no reputation update from
-   ordinary reviews, whether any of it carries over is part of this decision.
-2. **Thresholds and outcomes:** the consensus a review needs, and what happens to the item in
-   each case, among them a consensus on an alternative other than the author's and a consensus
-   that no alternative is correct.
-3. **"Don't know":** whether reviewers may give it, and how it counts.
-4. **The author's reputation:** whether and how acceptance, contestation or rejection move it —
-   formula, size, conditions, and what counts as a contestation. The implemented author score
-   counts an item in D38's contested pool as a pass (D27).
-5. **The source at deposit:** whether the author keeps attaching a mandatory primary source, and
-   whether the contested-fact path keeps its source check (`02` §B.5, D38, `10` T68).
-6. **The previous filters:** whether and how Level A (bridging, the draw stratified on its axis,
-   the band, the appeal), Level B (the pilot, IRT, DIF, contested facts, re-validation), D39's
-   coordination detector and D40's panel constraint keep a role.
-7. **A2 and Phase 1's completion criteria:** whether the new design needs a whole-test guarantee
-   and which, and what completes Phase 1 once the mechanism is implemented (`10` §1.5's
-   qualification, `15`).
+Not settled by the contract, and not to be settled in code with a policy of one's own:
+- a policy of new rounds, or what follows a round with insufficient participation or divided
+  answers beyond its record (D49 excludes new rounds from this implementation);
+- what the usable set feeds (quiz assembly, exposure, retirement, re-validation) — the contract
+  stops at the set;
+- a later evaluation of the reviewers (D48), and any calibration of the provisional parameters
+  (D52, `14`).
 
 ## 5. Open work
 
-- **The new mechanism:** the decisions in §4, then its specification and implementation as a
-  separate assignment, adapting `21` §2. New task ids come with the specification (`10`
-  Priorities).
-- **A2 (high), open:** the old requirement's disposition and the guarantees still to decide for
-  the new design (`15`, A2's D47 entry). Certifier, other obligations and experiments suspended.
+- **T87, the answer review offline** (`10`): the path creation → deposit and quota → draw →
+  answers → closure → outcome → reputation → next epoch → usable questions, with its targeted
+  tests; then Astra's review.
+- **A2 (high), open:** unresolved within its scope; not required for the answer review (D52).
+  Certifier, other obligations and experiments suspended.
 - **Suspended with the previous design:** A1's O1/O2 premises and T1, A12's candidate and
   procedures, A10's residual, exploration, B-b, S2, the forecast path's Level C calibration.
 - **Unchanged:** `08` PRIV-004.1 (an inclusion proof's confidentiality, remediation open); B1–B3;
@@ -141,7 +157,7 @@ From [`01` D48](01-decisions.md); none is to be settled in code or by a default 
 
 ## 6. Essential reading to resume
 
-`CLAUDE.md` and `docs/CLAUDE.md`; `docs/01` D44–D48; `docs/21`; `docs/15` (How to read, the D47
+`CLAUDE.md` and `docs/CLAUDE.md`; `docs/01` D44–D52; `docs/21`; `docs/15` (How to read, the D47
 disposition, A2's current state); `docs/02` (its Reading status, Levels A and B, §C.1, and
 §§C.2–C.4 as the previous design's code); `docs/05`; `docs/10` Priorities; the archive's index
 for the previous design's material. Code: `crates/protocol/src/{review,lifecycle,orchestrator,

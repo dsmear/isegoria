@@ -18,9 +18,11 @@ every citizen to speak in the assembly.
 > the question, whose key the author states. For the first implementation
 > ([D48](docs/01-decisions.md)), reviewers drawn at random count equally, the consensus of their
 > answers is the review's operational criterion — not a guarantee of truth — and evaluating their
-> reliability is deferred. That mechanism is not yet fully specified or implemented; the code
-> still has reviewers forecast whether a question passes its trial. The previous design's
-> dossiers and studies are in
+> reliability is deferred. The owner then approved its contract, the *answer review*
+> ([D49–D52](docs/01-decisions.md)): 12 reviewers drawn at random, at least 9 usable answers,
+> three quarters to accept or to discard, provisional numbers. It is being implemented as an
+> offline path beside the existing code, in which reviewers still forecast whether a question
+> passes its trial. The previous design's dossiers and studies are in
 > [`archive/phase1-forecast-pilot/`](archive/phase1-forecast-pilot/README.md).
 
 ---
@@ -65,8 +67,11 @@ Isegoria decides a question is good using **two checks in a row**, not a vote.
 > design, the review step is settled by the consensus of randomly drawn reviewers' answers, each
 > counting the same. The owner chose this knowingly, against "not a vote", and recorded its risks:
 > shared mistakes, unequal expertise counted equally, careless reviews, coordination. A consensus
-> is not proof that an answer is true. How many reviewers, how much agreement and what happens
-> next are not decided yet, and the code still runs the two checks below.
+> is not proof that an answer is true. The numbers are now set, provisionally
+> ([D49](docs/01-decisions.md)): 12 reviewers drawn, at least 9 usable answers, and a question is
+> accepted when three quarters of them give the author's answer, discarded when three quarters
+> do not, and left with divided answers otherwise. The existing code still runs the two checks
+> below.
 
 **Check 1 — "Do people across the divide agree it's good?"**
 A question doesn't pass just because *a lot* of people like it. It passes only if
@@ -157,8 +162,9 @@ Each person can do three things, each under a **separate, unlinkable pseudonym**
 - **Propose** — write a new question.
 - **Judge** — peer-review other people's questions (this is the "voting" of the
   original idea). Since D47 a reviewer answers the question, as a respondent would; in the
-  first version every reviewer counts the same and is not scored on those answers (D48). The
-  code still asks for a forecast.
+  first version every reviewer counts the same and is not scored on those answers (D48); the
+  answer may be an option, "none is correct" or "don't know" (D49). The existing code still asks
+  for a forecast.
 - **Answer** — act as a test subject so new questions can be trialled against real
   data.
 
@@ -186,9 +192,10 @@ flowchart TD
 - **Under D47** the author states the key at step 1 and reviewers answer the question at step 4,
   free to look things up, AI included; reviewers do not state or record the sources they used.
   **Under D48** a reviewer may answer that none of the options is correct, and a question is never
-  corrected afterwards: its author submits a new one. Whether the author keeps attaching a
-  mandatory source at step 1, and whether and how steps 5–7 read the answers, are still to be
-  decided.
+  corrected afterwards: its author submits a new one. **In the answer review (D49–D52)** the
+  author attaches no source, a round closes when the operator closes it, and the trial steps
+  5–7 are not conditions of acceptance: the reviewers' consensus decides. The diagram above is
+  the existing path.
 - The **appeal** branch is the key correction: a *true but politically divisive*
   fact produces the same voting pattern as one-sided propaganda, so bridging would
   wrongly kill it. The appeal lets the author send it straight to the data-based
@@ -206,9 +213,10 @@ evaluator score was to measure, over time, how reliable a reviewer's answers are
 version D48 defers that: every reviewer weighs the same, ordinary reviews do not change the score,
 and a later evaluation of reviewers would need a credible reference and its own decision.
 Agreeing with the author or with the majority is not, by itself, reliability, and rewarding
-agreement with the majority stays excluded. The author score stays separate: rewards for accepted
-questions and penalties for contested or rejected ones have been discussed, with no formula, size
-or conditions decided, and the implemented author score is unchanged. *Where
+agreement with the majority stays excluded. The author score stays separate. In the answer review
+(D50–D51) an accepted question counts as a success, a discarded one as a failure, divided answers
+as a quarter of a failure, and too few answers as nothing; the score sets how many questions an
+author may submit per epoch: 1, 2 or 3, and 2 for a new author. *Where
 the code stands:* it implements the previous design, in which reviewers forecast whether a
 question passes its trial and are scored by the difference between the other reviewers' Brier
 error and their own — exactly zero for a reviewer who reports the others' mean — with 5% of the
@@ -377,13 +385,12 @@ need `numpy`/`scipy` (see `sim/`).
 | Identity, network, protocol | Working scaffolds; deterministic mechanisms + single-server & threshold OPRF label + single & threshold BBS+ credential + ZK nullifier + OpenTimestamps anchoring proofs real, remaining heavy crypto/transport behind traits |
 | Transport and external backends | libp2p replication and consortium-signed cuts implemented (T18/T74); committee DKG/transport and live anchoring remain roadmap work |
 | Meta-level governance (stratified sortition) | Future work |
-| Reviewers answer the question (`docs/01` D47, 2026-10-21); first implementation (D48): reviewers drawn from the pool, equal weights, the consensus of the answers as the operational criterion, the evaluation of reviewers deferred | Decided as a direction; the group's size, quorum and absences, thresholds and outcomes, a possible "don't know", the author's reputation, the source at deposit, the previous filters' role and A2 still to decide; not implemented |
+| Reviewers answer the question (`docs/01` D47, 2026-10-21); first implementation (D48): reviewers drawn from the pool, equal weights, the consensus of the answers as the operational criterion, the evaluation of reviewers deferred; the answer review's contract (D49–D52) | Contract approved, parameters provisional; being implemented offline (`docs/10` T87); A2 unresolved in its scope, not required for the answer review |
 
 **What comes next**, in order (task status lives in the [roadmap](docs/10-roadmap.md)):
 
-1. **Mathematics** — take the decisions D48 leaves open, specify the mechanism of D47 and D48,
-   then implement it, adapting what
-   [`docs/21`](docs/21-d47-inventory.md) lists; keep the findings in
+1. **Mathematics** — implement the answer review offline (D49–D52, `docs/10` T87) and have it
+   reviewed; keep the findings in
    [`docs/15`](docs/15-phase1-review.md) within their scopes (A2 stays open); complete T25's
    measurements and parameter procedures where D47 leaves them in place. T81 is complete for its ten named files.
    T24 and the guessing supplement are historical campaigns; their DIF/DTF/floor

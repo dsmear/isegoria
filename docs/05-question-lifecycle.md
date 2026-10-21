@@ -44,15 +44,66 @@ update their reputation, and the evaluation of their reliability is deferred; th
 their answers is the review's operational criterion, not a guarantee of truth; a reviewer may
 answer that none of the alternatives is correct, distinct from choosing another alternative; a
 question is never corrected retroactively — its author submits a new one — and its key is never
-replaced automatically. Still to define: the group's size, the quorum and absences, the
-thresholds and outcomes, a possible "don't know", and whether and how [5]–[7] read the answers.
-A separate question, also open: whether the author keeps attaching a mandatory source at [1] and
-[7b] keeps its source check; both stay as below until the owner decides. **The code implements
-the previous design:** a reviewer commits and reveals a probability that the item passes
-validation, which is the bridging rating at [5] and the forecast scored against pilot outcomes,
-golden items and explored rejections; the draft carries the key inside the item's bytes, with no
-structured field. Nothing below is changed by D47 or D48 until the new mechanism is specified and
-implemented.
+replaced automatically. **D49–D52** approve its contract, the answer review, specified
+[below](#the-answer-review-01-d49d52) as a path of its own. **The steps [1]–[9] that follow are
+the existing path**, which implements the previous design: a reviewer commits and reveals a
+probability that the item passes validation, which is the bridging rating at [5] and the forecast
+scored against pilot outcomes, golden items and explored rejections; the draft carries the key
+inside the item's bytes, with no structured field, and a mandatory source; [7b] keeps its source
+check. The answer review changes none of it.
+
+## The answer review (`01` D49–D52)
+
+The offline path of the first implementation, on the owner's approved contract. It is separate
+from the steps [1]–[9] below and reuses none of their filters as a condition of acceptance:
+bridging, the band, the appeal, the pilot, IRT, DIF, contested facts, the source check and the
+admission lottery have no role in it, and the coordination detector changes nothing in it
+automatically (D52). Its parameters — the group of 12, the quorum of 9, the threshold of three
+quarters, the weight 1/4 and the quota bands — are provisional and uncalibrated (`14`).
+
+1. **Creation.** The author supplies the question, its context, its alternatives and the
+   alternative stated as correct (the key). No source is asked for, and nothing checks one. The
+   question is immutable: a correction is a new question, and the key is never replaced.
+2. **Deposit and quota.** An accepted deposit consumes one of the author's slots for the epoch:
+   1, 2 or 3 from the author's reputation, 2 for a new author, fixed once per epoch (D51, `02`
+   §C.1). An invalid request consumes none; a duplicate creates no other question and consumes
+   no second slot; no slot is refunded, carried over or changed within the epoch.
+3. **Draw.** 12 distinct reviewers are drawn at random from the available pool, with no
+   competence filter and equal weights. If 12 distinct reviewers cannot be drawn, the draw returns
+   an explicit unavailability; the group is never silently reduced.
+4. **Answers.** Each drawn reviewer commits, then reveals, one of: an alternative, "none of the
+   alternatives is correct", "don't know". The key is not shown before the commitment, and no
+   reviewer sees another's answer before committing. Reviewers may use any resource; their
+   sources are not collected and their tools not detected. No reviewer is replaced, and none is
+   penalized for an abstention or an absence; ordinary reviews update no reviewer reputation.
+5. **Closure.** An explicit event closes the round; it never closes by itself at the ninth
+   answer, and there is no real deadline, early closure or automatic retry. After the closure no
+   answer enters the round.
+6. **Outcome.** `V` is the number of usable answers (alternatives and "none"), `C` the number
+   that coincide with the key; "don't know" (an abstention) and a drawn reviewer with no answer
+   (an absence) count in neither:
+   - `V < 9`: insufficient participation — not a discard;
+   - `V ≥ 9` and `4C ≥ 3V`: accepted;
+   - `V ≥ 9` and `4(V − C) ≥ 3V`: discarded — "none" counts against the key, and the dissenters
+     need not agree on an alternative;
+   - otherwise: divided answers — not a demonstrated ambiguity.
+
+   The full distribution — each alternative's count, "none", the abstentions and the absences —
+   is kept with the outcome. There is no new round.
+7. **Reputation.** The outcome and the author's observation are recorded together, atomically and
+   once per question: accepted 1 at weight 1, discarded 0 at weight 1, divided 0 at weight 1/4,
+   insufficient participation no observation (D50, `02` §C.1). An observation counts from the
+   next epoch; a corrected question adds its own and erases none.
+8. **Epochs.** Epochs are logical and close by an explicit offline event; the next epoch's
+   quotas read the observations recorded before it.
+9. **Usable questions.** Only accepted questions enter the answer review's usable set. That set
+   says nothing of the whole quiz: no fairness of the quiz is guaranteed, A2's whole-test
+   guarantee is not required here and A2 stays unresolved, and accepted questions do not show
+   that a quiz measures D45's and D46's capabilities (D52).
+
+Consensus is the operational criterion, not a guarantee of truth: an accepted key may be wrong,
+a discarded one right (D48's accepted risks: shared errors, different competences under equal
+weights, superficial reviews, coordination). The implementation is `10` T87.
 
 ---
 
@@ -111,7 +162,8 @@ bridging and for the evaluator score `S_u` (`02` §C.2). Reviewers work in an op
 and the system does not detect, infer or assess their use of outside tools (D47). The author's
 source at [1] is a separate, open question. Under D48 the drawn reviewers' answers carry equal
 weights, a reviewer may answer that no alternative is correct, and their consensus is the review's
-operational criterion; the weights, probation and stratified draw described above are the code's.
+operational criterion, specified for the answer review [above](#the-answer-review-01-d49d52); the
+weights, probation and stratified draw described above are the existing path's.
 A panel's agreement, with the key or among its members, does not show that the key is true, that
 its checks were independent or that its reviewers are reliable (D48's accepted risks: shared
 errors, different competences under equal weights, superficial reviews, coordination).

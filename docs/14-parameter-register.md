@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | The five items `docs/07` §13 asks of every threshold in `docs/02`'s parameter table — why it exists, how it is calibrated, how much the mechanism depends on it, what breaks if it moves, where its value is fixed — so that no threshold is an accidental constant (SC-1, `docs/08` §16.1). |
 | **Derived from** | `docs/02` (the parameter table, §A.1–§A.3), `docs/13` §7.4 and §8.7.4 (the measurements), `docs/01` (the decisions), `docs/05` [4]–[5b], `docs/10` T25 step 4. |
-| **Status** | Level A written (2026-10-01). Level B waits on the supplement's DIF studies run again on the corrected model (`docs/13` §8.8). Level C's restricted A12 offline candidate has procedures below (2026-10-12), without a calibrated operating point; the remaining Level C entries and operational values remain pending. Under D47 (2026-10-21) the forecast path's Level C entries and the A12 procedures are suspended (Level C below). Under D48 the new review's group size, quorum and consensus thresholds are not decided; `k` below is the bridging panel's size, and whether it carries over is part of that decision. No entry is written for them before the owner decides. |
+| **Status** | Level A written (2026-10-01). Level B waits on the supplement's DIF studies run again on the corrected model (`docs/13` §8.8). Level C's restricted A12 offline candidate has procedures below (2026-10-12), without a calibrated operating point; the remaining Level C entries and operational values remain pending. Under D47 (2026-10-21) the forecast path's Level C entries and the A12 procedures are suspended (Level C below). The answer review's parameters (D49–D52, 2026-10-21) are approved as provisional and uncalibrated: the group of 12, the quorum of 9, the threshold of three quarters, the weight 1/4 of divided answers and the quota bands ([The answer review](#the-answer-review--provisional-uncalibrated)); no calibration procedure or operating point is decided for them. `k` below is the bridging panel's size, which the answer review does not use. |
 
 ## How to read an entry
 
@@ -185,6 +185,64 @@ The register records provisional values; it does not close those findings.
 - **Location.** No constant: the protocol takes the panel its caller draws (`k` in
   `review::assign_reviewers` and `assign_diverse`); `docs/02`'s table, `docs/05` [4].
 
+## The answer review — provisional, uncalibrated
+
+The owner approved these values with the answer review's contract (`01` D49–D52, 2026-10-21) as
+provisional initial parameters, not calibrated. No calibration procedure, operating point or
+study is decided for them, and no campaign is run; their sensitivity is not measured. A value
+changes only through a decision record, and the configuration pinned in a log does not change
+under it (`01` D52).
+
+### The drawn group — 12 distinct reviewers
+
+- **Reason.** The number of reviewers drawn at random from the pool for one question's round
+  (D49). Fewer than 12 in the pool is an explicit unavailability, not a smaller group.
+- **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
+- **If it moves.** Larger: more usable answers per round and fewer rounds below the quorum, at
+  more reviewers' time; smaller: fewer answers decide, and a pool reaches it sooner.
+- **Location.** `01` D49, D52; code with `10` T87.
+
+### The quorum — 9 usable answers
+
+- **Reason.** The fewest usable answers (alternatives chosen and "none") for an outcome; below
+  it the round ends in insufficient participation, which is not a discard and gives the author
+  no observation (D49, D50). Abstentions ("don't know") and absences do not count toward it.
+- **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
+- **If it moves.** Up: more rounds end in insufficient participation; down: fewer answers
+  decide an outcome.
+- **Location.** `01` D49, D52; code with `10` T87.
+
+### The threshold — three quarters (`4C ≥ 3V`, `4(V − C) ≥ 3V`)
+
+- **Reason.** The share of usable answers that accepts (coinciding with the key) or discards
+  (not coinciding, "none" included) a question; between the two, divided answers (D49). The
+  comparisons are exact in integers.
+- **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
+- **If it moves.** Up: fewer acceptances and discards, more divided answers; down toward one
+  half: more questions decided by a narrower majority. At one half or below, acceptance and
+  discard could both hold, so the rule needs a threshold above one half.
+- **Location.** `01` D49, D52; code with `10` T87.
+
+### The weight of divided answers — 1/4
+
+- **Reason.** The observation weight of a divided round in the author's index, a failure of
+  value 0 (D50); accepted and discarded rounds weigh 1.
+- **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
+- **If it moves.** Toward 1, divided answers cost the author as much as a discard; toward 0,
+  nothing.
+- **Location.** `01` D50, D52; code with `10` T87.
+
+### The quota bands — 1, 2 or 3 questions per epoch at 0.30 and 0.70; a new author 2
+
+- **Reason.** An author's quota, fixed once per epoch from D50's reputation: 1 below 0.30, 2
+  from 0.30 below 0.70, 3 from 0.70; a new author 2 (D51). The comparisons are in binary64
+  against the decimal values.
+- **Calibration.** Not calibrated; none decided. **Sensitivity.** Not measured.
+- **If it moves.** The bands decide how many questions an author deposits in an epoch; with the
+  prior at 0.40 an author needs failures to fall to 1 and a sustained record of acceptances to
+  reach 3.
+- **Location.** `01` D51, D52; code with `10` T87. The prior `(2, 3)` and `H` are §C.1's, below.
+
 ## Level B — the empirical validation
 
 To be written by step 4 once the supplement's DIF studies have run on the corrected model
@@ -202,7 +260,9 @@ previous design's forecast path — `γ`, the odds model's `k₀`, the CUSUM's `
 `N_PROBATION`, the honeypot and exploration rates, and A12's `η`, `k₀`, probation and cap below —
 are suspended: no procedure or value is to be written for them until the new mechanism says
 whether they survive. The coordination parameters (`α`, `min_shared`, `ρ_min`, `p_max`) and the
-author's `H` are not affected.
+author's `H` are not affected. The answer review (D49–D52) uses none of the forecast path's
+parameters; its author index keeps the prior `(2, 3)` and `H` with D50's inputs, and its own
+parameters are [above](#the-answer-review--provisional-uncalibrated).
 
 Remaining legacy/operational entries to be written by step 4, with procedures and values
 provisional until the pilots (T27): `γ` and the old odds model's `k₀`, its punitive

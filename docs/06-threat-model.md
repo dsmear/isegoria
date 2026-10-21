@@ -26,9 +26,10 @@
 | Rewriting the past | Hourly anchoring to a public chain | `04` |
 | Collusion of the issuing committee | Threshold t-of-n issuance with heterogeneous issuers | `03` M2 |
 | Answers or reviews produced through delegation, automation, impersonation or strategic coordination outside the system | **Open** (`01` D45): an open environment is assumed, outside resources — the Internet, documents, AI — are part of the conditions, and these behaviours remain to be distinguished and governed; no rule adopted. The system does not detect, infer or assess the use of outside tools (D47, D48) | `01` D45, D47, D48 |
-| A wrong, ambiguous or contestable key stated by the author | **Partly decided** (`01` D48): a reviewer may answer that no alternative is correct, distinct from choosing another alternative; a question is never corrected retroactively and its key never replaced automatically — to correct it, the author submits a new question. What happens to the item, the thresholds and the outcomes are still to define; a balanced split of correct and wrong answers is a signal to study, not a validated criterion or a rejection rule | `01` D47, D48 |
+| A wrong, ambiguous or contestable key stated by the author | **Decided for the answer review** (`01` D48, D49): a reviewer may answer that no alternative is correct, distinct from choosing another alternative; a question is never corrected retroactively and its key never replaced automatically — to correct it, the author submits a new question. A round is discarded when at least three quarters of its usable answers dissent from the key, "none" included and whatever alternatives they choose; divided answers otherwise, which are not demonstrated ambiguity; the author's reputation records the outcome (D50). A wrong key accepted by a consensus is an accepted risk (D48) | `01` D47–D50 |
 | Reviewers' answers aligned on the author's key or on the majority without independent checks (copying, shared sources or tools, superficial reviews, coordination) | **Accepted risk** (`01` D48): in the first implementation the consensus of equally weighted answers is the review's operational criterion, not a guarantee of truth; shared errors, superficial reviews and coordination are accepted, and the draw eliminates none of them. Agreement is not demonstrated reliability, and none is rewarded (no Schelling point, D6). Commit-reveal and random assignment still apply. A later evaluation of reviewers would need a credible reference and a distinct decision | `01` D47, D48, D45 |
-| Reviewers of different competence counted alike, or a pool unsuited to the item's context | **Accepted risk** (`01` D48): reviewers are drawn from the pool with no selection by specialist competence and carry equal weights; that the pool suits the context is a premise, not a property the draw demonstrates | `01` D48 |
+| Reviewers of different competence counted alike, or a pool unsuited to the item's context | **Accepted risk** (`01` D48, D49): 12 reviewers are drawn from the pool with no selection by specialist competence and carry equal weights; that the pool suits the context is a premise, not a property the draw demonstrates | `01` D48, D49 |
+| Reviewers who abstain or stay absent to block a round | **Not addressed** (`01` D49), a consequence of the contract recorded here: abstentions and absences count in neither the usable answers nor the quorum, and carry no penalty; a round with fewer than 9 usable answers ends in insufficient participation, which is not a discard and gives the author no observation (D50). No replacement, new round or penalty is introduced | `01` D49, D50 |
 
 ---
 
@@ -46,9 +47,11 @@ A 60/40 unbalanced network. A cartel pushing a partisan item:
   item passes only once about **60 of the 80 of the opposing camp (75%)** approve it —
   55–60 in 90% of 200 drawn orders (T24, `13` §7.4)
 
-Bridging drastically raises the cost of capture. This is the existing mechanism; under `01`
-D48 the new review's criterion is the consensus of equally weighted answers, and whether it keeps
-bridging, and this protection, depends on the previous filters' role, still to decide.
+Bridging drastically raises the cost of capture. This is the existing mechanism. In the answer
+review (`01` D49–D52) the criterion is the consensus of equally weighted answers, three quarters
+of at least 9 usable answers from 12 drawn reviewers, and bridging is not a condition of
+acceptance: this protection does not apply there, and a group numerous in the pool, or
+coordinated, can carry its consensus (D48's accepted risks).
 
 ### The biased item that passes review
 

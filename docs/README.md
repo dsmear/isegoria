@@ -33,10 +33,14 @@ review's operational criterion, which rectifies the principle above without maki
 guarantee of truth; a reviewer may answer that no alternative is correct; a question is never
 corrected retroactively, nor its key replaced automatically. D48 records the risks it accepts
 (shared errors, different competences under equal weights, superficial reviews, coordination).
-Still to decide: the group's size, quorum and absences, thresholds and outcomes, a possible
-"don't know", the author's reputation, the source at deposit, the role of the two filters, A2
-and Phase 1's completion criteria ([handoff](phase1-handoff.md) §4). The code still implements
-the previous design, in which reviewers forecast whether the item passes the pilot.
+[D49–D52](01-decisions.md) then approved the contract of that path, the *answer review*: 12
+reviewers drawn, an alternative, "none" or "don't know" as answers, a quorum of 9 usable answers,
+three quarters of them to accept or to discard, divided answers otherwise; the author's
+reputation with adapted inputs and quotas of 1, 2 or 3 questions per epoch; the two filters are
+not conditions of acceptance there; A2's whole-test guarantee is not required for it, and A2 is
+not resolved; the parameters are provisional. It is being implemented offline (`10` T87); the
+existing code implements the previous design, in which reviewers forecast whether the item
+passes the pilot.
 
 The anonymity of the nodes is the non-negotiable base. The uniqueness of a person is
 guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
@@ -75,10 +79,9 @@ guaranteed by an external enrollment layer (national eID / CIE / SPID / others),
 The reference implementation exists (see Status below); what remains is ordered in
 [`10-roadmap.md`](10-roadmap.md) in three phases:
 
-1. **Mathematics** — D47 changed Phase 1's direction before its implementation, and D48 settled
-   part of its first implementation: the next work is to take the decisions D48 leaves open,
-   specify the mechanism by which reviewers answer the item, then implement it
-   ([`21`](21-d47-inventory.md) lists what to adapt). The previous
+1. **Mathematics** — D47 changed Phase 1's direction before its implementation, D48 settled
+   part of its first implementation and D49–D52 approved its contract, the answer review: the
+   next work is to implement it offline (`10` T87) and have it reviewed. The previous
    design is implemented and its work suspended; read [`15`](15-phase1-review.md) for the A–E
    review findings and D47's disposition (A2 open), [`10`](10-roadmap.md) for task status and
    [`14`](14-parameter-register.md) for parameter procedures. D32–D41 are implemented; they are
