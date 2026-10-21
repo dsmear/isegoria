@@ -23,6 +23,12 @@ SC-6's local difference-score result does not establish protocol-level propernes
 with a draw known before the report. This documentation pass records those limits;
 it is not a new implementation fix or a replacement for T26.
 
+**D47 (owner, 2026-10-21).** Reviewers answer the item; their reliability over time is to be
+evaluated by a mechanism not yet specified ([`01` D47](01-decisions.md)). The REPUTATION and
+AT-REP entries below, A1 and A12 concern the previous design's forecast score, which the code
+still implements; they neither specify nor test the new mechanism. Their dossiers are archived
+([`21`](21-d47-inventory.md)); this audit's historical entries are unchanged.
+
 **A12/AT-REP-01 amendment (owner, 2026-10-12).** The current Phase 1 claim is the exact
 complete-offline, invariant-information cumulative-weight guarantee in
 [`16` §7.2](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).

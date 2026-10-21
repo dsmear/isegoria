@@ -17,6 +17,18 @@ competence and to the use of outside resources, and whether that reading is adeq
 be established; a correct answer alone does not show unaided knowledge. The assessment's
 priorities are in `01` D46.
 
+**Phase 1 direction (`01` D47, owner, 2026-10-21).** The author states the key and reviewers
+answer the item; the mathematics is to evaluate the reviewers' reliability over time, with a
+possible reputational weight. This document does not yet specify that mechanism: its aggregation,
+reputation update, treatment of a contested key, thresholds, outcomes and guarantees are still to
+define, and agreement with the key or with the majority is not demonstrated reliability. What
+follows describes the code as it is. In it a reviewer reveals a probability that the item passes
+the pilot; that value is Level A's rating `r_uj` and the forecast scored in §§C.2–C.4, the
+previous design's evaluator path, which stays implemented until the new mechanism replaces it.
+Level B's contracts and the author score (§C.1) are unchanged; how Level A and Level B relate to
+the answers is open. The previous design's dossiers are archived
+(`archive/phase1-forecast-pilot/`, [`21`](21-d47-inventory.md)).
+
 > **Revisions from the working paper (decided 2026-09-24).** The working paper
 > (`paper/`, version 0.2) found properties of this specification that `docs/01` D32–D41
 > correct; the tasks are `docs/10` Phase 1.1 (T49–T57), the first phase of the roadmap.
@@ -36,7 +48,8 @@ priorities are in `01` D46.
 ### A.1 Model
 
 Matrix factorization with asymmetric regularization. Let `r_uj ∈ [0,1]` be node `u`'s
-judgment of question `j`:
+judgment of question `j` — in the code, the probability the reviewer reveals (`05` [4]); what
+the fit reads under D47 is open:
 
 ```
 r̂_uj = μ + b_u + b_j + ⟨f_u , f_j⟩          f ∈ ℝ^d,  d = 1 or 2
@@ -626,7 +639,8 @@ The implementation draws contested facts using the per-fit DTF cost below and a
 provisional tolerance. The intended guarantee is to control the whole test's
 differential functioning. That guarantee is **open**, for the cross-fit and
 active-item reasons below (`15` A2); selection by the implemented cost alone does
-not establish it.
+not establish it. D47 neither resolves nor withdraws it: A2's dossier and studies are archived,
+and whether the new design needs a whole-test guarantee, and which, is still to decide.
 
 **DTF within one fit.** Let `F` be a target-model fit (§B.3) in which the items of a set
 `S` were trial items, with counted classes `g` (share ≥ 5%, as for `DIF_j`), shares
@@ -740,7 +754,9 @@ for A1 is stated in §C.2; this implemented mapping is not a definition of its r
 
 ## Level C — Node reputation
 
-Two **separate** scores, on unlinkable pseudonyms (see `01` D5). Never combined.
+Two **separate** scores, on unlinkable pseudonyms (see `01` D5). Never combined. D47 keeps
+the separation; §§C.2–C.4 describe the previous design's evaluator score, still implemented, and
+what `E` measures under D47 is still to define.
 
 ### C.1 Author score `C_a`
 
@@ -846,6 +862,12 @@ rounds `C_a` up to 0.4 exactly and covers the stake (`15` C5–C6). There is no 
 good observation itself (`protocol::appeal`, T61). Floor provisional (T25).
 
 ### C.2 Evaluator score `S_u` and review weight `w_u`
+
+> **Previous design, still implemented (`01` D47, 2026-10-21).** This section scores a forecast
+> of the pilot outcome. Under D47 reviewers answer the item, and the evaluation of their
+> reliability is still to define; A1's and A12's conditional closures below keep their
+> perimeters and certify nothing of the new mechanism. O1, O2, exploration, B-b and A12's
+> candidate are suspended; their dossiers `16` and `17` are archived.
 
 > **Revised by D33 and D35 (T50 and T52, done).** The ratio-form Brier skill score of the
 > first design is not a proper scoring rule (paper Prop. 12): it paid a dissenter to move
@@ -999,6 +1021,9 @@ the same story (the expert beats the crowd, the followers do not) and stays prop
 
 ### C.3 Judgments without verifiable truth
 
+> **D47.** Whether peer prediction or the Bayesian Truth Serum has a role in evaluating the
+> reviewers' answers is open; neither is implemented beyond `reputation::dasgupta_ghosh`.
+
 For dimensions that never receive an empirical verdict (formal clarity, source
 quality, tone), there is no `o_j`. A **peer-prediction** mechanism with correlated
 agreement (Dasgupta–Ghosh), incentive-compatible without ground truth. For reviewer
@@ -1021,6 +1046,10 @@ answer is rewarded — more frequent than the group predicted. It extracts infor
 from the informed minority.
 
 ### C.4 Temporal dynamics and cap
+
+> **Previous design, still implemented (`01` D47).** The detector, probation and cap below act
+> on forecast scores; whether they apply to the reliability D47 asks for belongs to its
+> reputation update, still to define.
 
 The following is the implemented D34/D36 behavior. The A12 affine candidate's
 diagnostic-only detector and bounded/slack cap are specified separately in `16` §7.2;
@@ -1121,7 +1150,8 @@ detector no longer confuses with a cartel.
 
 Each threshold's reason, calibration procedure, sensitivity, what breaks if it moves and its
 location are in `docs/14` (SC-1): Level A's are written, Level B's and C's come with T25's
-step 4.
+step 4. `w_max`, `η` and the exploration rate `ε` belong to the previous design's evaluator path:
+their calibration is suspended under D47.
 
 | Parameter | Value | Notes |
 |---|---|---|

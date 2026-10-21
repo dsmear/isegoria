@@ -33,6 +33,19 @@ it neutralizes).
  [9] Retirement     exposure, drift, obsolescence, emerging DIF
 ```
 
+**Phase 1 direction (`01` D47, owner, 2026-10-21).** At [1] the author writes the question in
+its context and states the correct answer. At [4] reviewers answer the question; they may
+consult any resource; the system does not detect, infer or assess the use of outside tools,
+and does not require the sources consulted to be stated or recorded. The mathematics is to
+evaluate the reviewers' reliability over time, with a possible reputational weight. Still to
+define: the aggregation, the reputation update, the treatment of a contested key, thresholds and
+outcomes, and how [5]–[7] read the answers; the deposit's mandatory source and [7b]'s source check
+are open questions. **The code implements the previous design:** a reviewer commits and reveals
+a probability that the item passes validation, which is the bridging rating at [5] and the
+forecast scored against pilot outcomes, golden items and explored rejections; the draft carries
+the key inside the item's bytes, with no structured field. Nothing below is changed by D47 until
+the new mechanism is specified and implemented.
+
 ---
 
 ## [2] Deposit and [3] admission by lottery
@@ -83,10 +96,13 @@ reveal) draws nothing; its deposits wait for the next epoch.
 - Vote-buying neutralized: you do not know in advance what you will judge, and there
   is no verifiable receipt.
 
-The reviewer **declares a probability** that the item passes validation (not a
-yes/no): input for the evaluator score `S_u` (`02` C.2). Reviewers work in an open
-environment (`01` D45): consulting and comparing sources fits the review, and a panel's
-agreement does not show that its checks were independent.
+**Under D47 the reviewer answers the item.** The code still has the reviewer **declare a
+probability** that the item passes validation (not a yes/no): the previous design's input for
+bridging and for the evaluator score `S_u` (`02` §C.2). Reviewers work in an open environment
+(`01` D45) and may consult any resource; the system does not detect, infer or assess the use
+of outside tools, and does not record the sources consulted (D47). A panel's agreement, with the
+key or among its members, does not show that its checks were independent or that its reviewers
+are reliable.
 
 ---
 
@@ -205,9 +221,10 @@ measured on the new fit — which gives contested facts from different batches o
 classes, where they can balance each other; one whose source no longer passes the check
 (the act was amended) retires, as does one made obsolete (the act was repealed, [9]).
 
-**Scores.** A contested fact is admitted to the bank: the reviewers who judged it are
-scored as for an item that reaches the pool (`o_j = 1`, `01` D35), and an appeal that
-ends in the contested pool is promoted ([5b], `01` D27).
+**Scores.** A contested fact is admitted to the bank: in the implemented forecast path the
+reviewers who judged it are scored as for an item that reaches the pool (`o_j = 1`, `01` D35;
+previous design, D47), and an appeal that ends in the contested pool is promoted ([5b], `01`
+D27).
 
 ---
 
@@ -236,6 +253,10 @@ An item used a lot gets memorized and circulates: it loses value. Countermeasure
 
 ## Golden items (honeypot)
 
+> **D47 (2026-10-21).** Golden items and exploration scored the previous design's forecast.
+> Exploration is suspended; whether and how golden items serve the reviewers' reliability under
+> D47 is open. The implemented paths below stay current behaviour.
+
 > **Extended by D35 (T52, done).** Golden items stay at 5%, but alone they are too few to
 > learn an evaluator's skill (about one every two epochs per reviewer). Evaluators are
 > also scored on every reviewed item that reaches Level B and on a random 5% of gate
@@ -263,7 +284,8 @@ defense against meta-level capture: they must not be choosable by anyone.
   outcomes, and never again after a change-detector alarm (`01` D34).
 - No differential weight before 30 scored outcomes per node (the probation period,
   `03` P2; `01` D36, T50 — was 200), then the shrinkage of the odds weight toward 1 as
-  evidence accumulates (`02` §C.2).
+  evidence accumulates (`02` §C.2). These count forecast scores: implemented, suspended as a
+  specification by D47, whose reputation update is still to define.
 - Start from a **low-political-temperature domain** (e.g. verifiable administrative
   procedures) to calibrate `τ`, `λ`, `k`, `ε` on real data before tackling hot
   questions.

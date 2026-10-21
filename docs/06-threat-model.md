@@ -12,7 +12,7 @@
 | Herding / information cascades | Commit-reveal, blind judgments, no visibility of others' votes | `05` [4] |
 | Majority capture | Bridging: the majority alone is not enough, cross-cutting approval is needed (on master the score still keeps part of the camp-size effect; corrected by the side-balanced score, D32/T49) | `02` A |
 | Coordinated cartel | Detection on the correlation of model residuals over long histories — a jittered cartel is flagged, like-minded honest reviewers are not (D39, T56); a detected cluster is never seated twice on a panel (D40, T57); the √k discount stays in the engine for analysis | `02` anti-collusion, `05` [4] |
-| Long-con (reputation accumulated and spent) | the CUSUM change detector on the per-item scores sends the reviewer back to probation (D34, T51); `w_max` cap on the odds scale (D33, T50); continuous honeypots | `02` C.4, `05` |
+| Long-con (reputation accumulated and spent) | Implemented on the previous design's forecast scores: the CUSUM change detector on the per-item scores sends the reviewer back to probation (D34, T51); `w_max` cap on the odds scale (D33, T50); continuous honeypots. Under D47 the reliability and its reputation update are still to define, so this protection is not yet specified for the new mechanism | `02` C.4, `05`, `01` D47 |
 | Biased item passing peer review | Field-data DIF (does not depend on opinions) | `02` B.3 |
 | Biased item passed off as a contested fact | The source check: the key must follow, by a declared rule, from a primary source cited at deposit — an interpretive key is rejected on DIF as before; and a contested fact reaches a test only in a selection whose admission cost is within the tolerance: the sum of each fit's estimated DTF over its own distribution and counted classes (D38). Cancellation can occur within a fit; this cost does not certify the whole test's DTF (`15` A2) | `02` §B.5, §B.7 |
 | Profiling a respondent's camp from the contested facts they miss, joined across batches | **Open** (`10` T69): the respondent pseudonym is the same on every batch, and contested facts are administered continuously since D38; a batch-scoped nullifier, sheets never kept with the id, or a per-epoch rate limit are the options, none chosen | `08` §8.2 PRIV-P8, `10` T69 |
@@ -25,7 +25,9 @@
 | Betrayal by the whole consortium | Freedom to fork: the network abandons it with all the data | `04` |
 | Rewriting the past | Hourly anchoring to a public chain | `04` |
 | Collusion of the issuing committee | Threshold t-of-n issuance with heterogeneous issuers | `03` M2 |
-| Answers or reviews produced through delegation, automation, impersonation or strategic coordination outside the system | **Open** (`01` D45): an open environment is assumed, outside resources are part of the conditions, and these behaviours remain to be distinguished and governed; no rule adopted | `01` D45 |
+| Answers or reviews produced through delegation, automation, impersonation or strategic coordination outside the system | **Open** (`01` D45): an open environment is assumed, outside resources are part of the conditions, and these behaviours remain to be distinguished and governed; no rule adopted. The system does not detect, infer or assess the use of outside tools (D47) | `01` D45, D47 |
+| A wrong, ambiguous or contestable key stated by the author | **Open** (`01` D47): the treatment of a contested key is still to define; a balanced split of correct and wrong answers is a signal to study, not a validated criterion or a rejection rule | `01` D47 |
+| Reviewers' answers aligned on the author's key or on the majority without independent checks (copying, shared sources or tools, coordination) | **Open** (`01` D47): agreement is not demonstrated reliability; the aggregation and the reliability evaluation are still to define, bound by invariant #2 and the exclusion of a Schelling point (D6). Commit-reveal and random assignment still apply | `01` D47, D45 |
 
 ---
 

@@ -358,6 +358,27 @@ does not yield that formula (`15` C5).
 
 # Part 4 — Incentives: how honesty is rewarded
 
+## Reviewers' answers and reliability (`01` D47)
+
+**Problem.** A question comes with the answer its author calls correct: the *key*. Does the key
+hold, and which reviewers can be trusted to check it? Counting how many reviewers agree with the
+key would hand the decision to whoever has the most reviewers, the capture the system exists to
+prevent (`01` D1).
+
+**What is decided.** Reviewers answer the question, free to look things up; the system does not
+detect or assess the tools they use, and nobody has to list the sources consulted. The
+mathematics is to process the answers and judge, over time, how reliable each reviewer is,
+possibly giving reputational weight on that basis.
+
+**What is not.** How the answers are combined, how reliability is updated, what happens when the
+answers dispute the key, and every threshold. An item on which correct and wrong answers split
+evenly is a signal to study, not a proven sign of ambiguity or a reason to reject it. Agreeing
+with the key, or with the majority, is not by itself evidence of reliability.
+
+**Before D47.** A reviewer declared a probability that the item passes the pilot, scored with a
+proper scoring rule against the crowd (the two entries below). The code still works that way
+until the new mechanism is specified and implemented.
+
 ## Proper scoring rule
 
 **Problem.** You ask someone: "what probability do you give this event?". If you reward
@@ -379,7 +400,8 @@ With the log score, declaring 99% and being wrong costs enormously. It is why it
 when overconfidence is the vice to discourage.
 
 **One more condition.** A proper rule stays proper only if the forecast cannot decide
-whether its own outcome is observed. Isegoria's gate does exactly that — a rejected
+whether its own outcome is observed. In the previous design, still in the code, Isegoria's gate
+does exactly that — a rejected
 item never reaches the pilot that would reveal its outcome — so a random 5% of the
 rejections is piloted for measurement only and each observed score is weighted by the
 inverse of its probability of being observed (`01` D35): the expected score is then the
@@ -391,8 +413,8 @@ one with every outcome observed, and honesty is again the convenient choice.
 get rejected, someone who always says "it will be rejected" gets an excellent score
 without knowing anything.
 
-**Solution.** You score against a reference — here, the average prediction of the
-*other* reviewers of the item (`01` D33):
+**Solution.** You score against a reference — in the previous design, still in the code, the
+average prediction of the *other* reviewers of the item (`01` D33):
 
 ```
 S = (crowd error − your error)        per scored item, Brier errors
@@ -432,7 +454,9 @@ score = agreement on an item you both judged
 The second term estimates *baseline* agreement, the one you would get by chance or from
 shared bias. Subtracting it leaves only informative agreement — the one arising from
 having actually observed the same object. Technical result: telling the truth is the
-highest-paying equilibrium among symmetric strategies.
+highest-paying equilibrium among symmetric strategies. Whether it has a role in judging the
+reviewers' answers under `01` D47 is open; shared sources or tools can produce agreement too
+(D45).
 
 ## Bayesian Truth Serum (Prelec, 2004)
 

@@ -254,6 +254,10 @@ Then measure false-positive and false-negative rates.
 
 Generate colluding groups of different sizes and coordination strengths. Measure effective influence against independent participants.
 
+### Reviewers' reliability (`01` D47)
+
+The mechanism that evaluates reviewers' answers over time is not yet specified. Before any claim about it is accepted, state the experiments that could refute it, among them: reviewers who copy the author's key or the majority; an author's wrong key with correct reviewers; answers correlated by shared sources or tools; a reviewer whose accuracy changes over time; an item that splits correct and wrong answers evenly. Agreement with the key or the majority is not evidence of reliability. The previous design's forecast-score tests and the A1/A12 closures do not test this mechanism.
+
 ---
 
 ## 8. Known-answer tests

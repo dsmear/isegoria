@@ -29,6 +29,11 @@ The design rests on three pillars, in order of importance:
 | Attackable? | Yes, with coalitions | Very hard: requires corrupting the sample |
 | Role | Upstream filter | Final verdict |
 
+Under [`01` D47](01-decisions.md) a reviewer's contribution is an answer to the item, and the
+mathematics is to evaluate the reviewers' reliability over time. How the answers enter the
+opinion filter, and how they relate to Level B, is still to define; the code still reads a
+forecast of the pilot outcome as the reviewer's rating.
+
 The system's center of gravity is Level B: peer review decides *which questions are
 worth field-testing*, subject to the appeal path. The empirical decision uses statistics
 computed on answer data, subject to the declared model and source/admissibility rules;
@@ -67,9 +72,23 @@ precise enough, and (B) telling reliable from misleading information by how a sp
 relates to its evidence. The two stay distinct; no subscore, weight, threshold, format, rubric
 or aggregate is adopted, and assisted correctness certifies no unaided understanding.
 
-A2's whole-test guarantee remains open. The next bounded evaluation work is described
-in [`19` §13.10](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18);
-no real-world performance level has been established by this decision.
+**Phase 1 direction (2026-10-21, [`01` D47](01-decisions.md)).** The author writes the question
+in its context and states the correct answer; reviewers answer it, free to consult any resource,
+and the system does not detect, infer or assess the use of outside tools or require the sources
+consulted to be recorded. The mathematical mechanism is to process the answers and evaluate the
+reviewers' reliability over time, with a possible reputational weight. Forecasting whether an
+item passes the pilot is no longer the reviewers' main contribution. Still to define: the
+aggregation, the reputation update, the treatment of a contested key, thresholds, outcomes and
+guarantees; a balanced split of correct and wrong answers is a signal to study, not a rule, and
+agreement with the key or the majority is not demonstrated reliability. D45 and D46 remain the
+references for conditions and objectives. The code still implements the previous design, whose
+dossiers are archived ([`21`](21-d47-inventory.md)); D47 changes no code.
+
+A2's whole-test guarantee remains open: D47 and the archiving of its dossier neither resolve nor
+withdraw it. Its bounded studies, run under
+[`19` §13.10](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18),
+keep their domains; whether the new design needs a whole-test guarantee, and which, is still to
+decide. No real-world performance level has been established.
 
 ## The three actions of a node
 
@@ -77,7 +96,8 @@ Every node (person) can take three distinct actions, each under a **separate
 pseudonym not linkable to the others**:
 
 - **Propose** — write a new question.
-- **Judge** — evaluate other people's questions during review.
+- **Judge** — evaluate other people's questions during review; under D47, by answering them
+  (the code still collects a forecast of the pilot outcome).
 - **Answer** — act as a sample for the trial: answer quizzes in which the new
   question is mixed with already-validated ones, without the answer counting toward
   one's own score.
@@ -113,6 +133,9 @@ the same person.
       ↓
  [8] Retirement     for exposure, drift, obsolescence, or emerging DIF
 ```
+
+Under D47 the author states the key at [1] and reviewers answer the item at [3]; how [4]–[6]
+read the answers, and whether [1] keeps its mandatory source, is still to define (`05`).
 
 Sample floors and capacity are specified in `02` §B.6. They are not universal power
 guarantees; the current model still needs post-D43 characterization. Open guarantee
