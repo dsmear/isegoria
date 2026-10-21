@@ -77,7 +77,10 @@ existing path, which it does not change: `scoring::reputation::author_score_weig
 `scoring/tests/author_weighted.rs` and the modules' unit tests; the existing tests of the shared
 code (`inv10_beacon_seed`, `draw_order`, `node_replay`, `level_c`); fmt, workspace clippy with and
 without `calibration`, the comment budget. *Not run:* the full suites (they start fits), fits,
-benchmarks, campaigns, fuzzing. *Not reviewed:* Astra's review is pending. A reviewer of the
+benchmarks, campaigns, fuzzing. *Reviewed:* Astra's review of `1f0f21d` found that the global
+duplicate check revealed another author's key; `822fa22` deduplicates per author (AT-ANS-14,
+failing on `1f0f21d`, passing after), and the draw's limit is stated (`05`, *Pool and draw*). The
+correction awaits review; T87 is not closed. A reviewer of the
 existing path commits and reveals a probability that the item passes the pilot; it is the
 bridging rating and the forecast that `scoring::reputation`, `protocol::{honeypot, exploration,
 probation, panel_scores, cohort_scores, affine_weights}` score and weigh (`02` §§C.2–C.4).
@@ -150,29 +153,36 @@ Not settled by the contract, and not to be settled in code with a policy of one'
 Choices T87 made where the contract is silent, to confirm or correct in review (`05` §The
 answer review, *Implementation*):
 - *A pool too small is final for that question.* The draw reads the pool as it was when the
-  deposit's epoch closed and that epoch's beacon value, so that nobody can steer it by joining or
-  by timing; with fewer than 12 the round is `Unavailable` for good — no redraw (D49 excludes
-  retries), the author's slot spent (no refund, D51) and no observation. Whether such a question
-  deserves another treatment is a product choice.
+  deposit's epoch closed and that epoch's beacon value: it is reproducible from these fixed
+  inputs, which nothing changes after the closure. That does not stop the caller from choosing
+  the beacon value by trying several; the offline path assumes the program driving it supplies
+  the random input correctly, without selecting it for a desired group. With fewer than 12 the
+  round is `Unavailable` for good — no redraw (D49 excludes retries), the author's slot spent (no
+  refund, D51) and no observation. Whether such a question deserves another treatment is a
+  product choice.
 - *A question is drawn only after its deposit epoch closes*, since the beacon value is recorded at
   the closure: a round runs at the earliest in the epoch after the deposit.
 - *The pool* is the set of reviewers who joined under their `Judge` pseudonym; nobody leaves it,
   and nothing records availability per epoch. "Available" reads as "joined by the closure".
 - *Well-formedness:* non-empty context and text, 2–256 alternatives, none empty, no two equal, the
-  key one of them. A duplicate is the same content id, key included: a question that changes only
-  its key is a new question.
+  key one of them. A duplicate is the same author's repeat of the same content id, key included:
+  no new question, no second slot. A question that changes only its key is a new question, and
+  two authors' identical questions are two questions: idempotence, not a plagiarism check.
 - *Commit-reveal* has an explicit end of commits before the reveals and the closure; a reviewer who
   commits and does not reveal is an absence.
 - *The usable set* takes an accepted question at its closure; a new author is one with no
   observation counting in the epoch; epochs are numbered from 0, one closing each.
-- *Not addressed offline:* the key is in clear in the log, so its confidentiality from reviewers
-  in a distributed log is not addressed; the beacon value is the caller's input, its formation
-  outside the offline path; the deposit's admission lottery (D10) is not part of the path.
+- *Not addressed offline:* the key is in clear in the state and the log, so whoever reads them
+  reads it, and its confidentiality in a distributed log is not addressed; the per-author
+  duplicates remove an oracle, they add no confidentiality. The beacon value is the caller's
+  input, assumed supplied without selection; its formation is outside the offline path. The
+  deposit's admission lottery (D10) is not part of the path.
 
 ## 5. Open work
 
 - **T87, the answer review offline** (`10`): implemented with its targeted tests (above); Astra's
-  review of the commits from `45e2b5b` to the branch's tip, and of the choices above, is next.
+  review of the commits from `45e2b5b` to the branch's tip, the correction `822fa22` included,
+  and of the choices above, is next.
   Phase 1 is not declared complete before it (D52).
 - **A2 (high), open:** unresolved within its scope; not required for the answer review (D52).
   Certifier, other obligations and experiments suspended.

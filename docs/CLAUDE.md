@@ -120,6 +120,10 @@ whole-test guarantee is not required for it, and A2 is not resolved (D52).
   round, an automatic closure, deadline or retry, a new round, an automatic correction of the
   key, a source requirement or check, or any previous filter as a condition of acceptance. Where
   the contract is silent on a product choice, stop and report it instead of choosing a policy.
+- No answer to a request may depend on another participant's hidden data: deposits are
+  deduplicated per author, never globally, since a global check revealed keys (`05`, AT-ANS-14).
+  The offline state and log hold keys in clear, and the draw assumes its caller does not select
+  the beacon value: do not claim confidentiality or grind-resistance the offline path lacks.
 - Consensus is not truth, and agreement with the author's key or with the majority is not
   reliability; divided answers are not demonstrated ambiguity, and insufficient participation
   is not a discard. The exclusion of a Schelling point below stays. D48 records the risks it

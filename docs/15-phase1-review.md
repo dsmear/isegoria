@@ -124,7 +124,13 @@ guarantee to the new one (D52). A2's disposition is
 [in its section](#a2-current-state-design-decision-deferred), D52 entry. Phase 1 is not declared
 complete before Astra's final review of the implemented path (D52); findings about the answer
 review will be recorded here. Its offline implementation is `10` T87 (`08` ANSWER-001, tested,
-not reviewed).
+under review). **Astra's review of `1f0f21d`:** the deposit's duplicate check was global and keyed
+by content with the key, read before the quota, so another participant could learn an author's
+key from `Duplicate` against `OverQuota` (or acceptance); corrected in `822fa22` by deduplicating
+per proven author (AT-ANS-14, failing on `1f0f21d`, passing after), with no confidentiality claim
+toward readers of the state or log. The draw is reproducible from fixed inputs but relies on the
+caller not selecting the beacon value, an assumption of the offline path. The correction awaits
+review; T87 and Phase 1 are not closed.
 
 ### A1 current closure criterion after O1–O3
 

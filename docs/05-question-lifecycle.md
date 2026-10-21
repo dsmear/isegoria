@@ -115,21 +115,31 @@ writes each accepted event and replays the log on open. The outcome rule and the
 contract leaves to the implementation:
 - *Question.* Well formed when its context and text are not empty, it has 2 to 256 alternatives,
   none empty and no two equal, and its key names one of them; otherwise the deposit is an invalid
-  request. Its content id covers context, text, alternatives and key: a duplicate is a deposit of
-  the same content id, and a question that differs in its key alone is a new one.
+  request. Its content id covers context, text, alternatives and key.
+- *Duplicates.* A duplicate is the same author's repeated deposit of the same content id: no new
+  question, no second slot, also at an exhausted quota. It is read per author, the author being
+  the one the valid proof establishes, so no answer to a deposit depends on another author's
+  question or its key (AT-ANS-14): two authors depositing the same content make two questions,
+  and a question that differs in its key alone is a new one. This is the idempotence of an
+  author's requests, not a global plagiarism check. (A global check, keyed by content and read
+  before the quota, revealed another author's key; Astra found it, corrected in `822fa22`.)
 - *Identities.* An author deposits under the `Propose` pseudonym its proof establishes, bound to
   the content id and the epoch (`deposit::deposit_context`); a reviewer joins the pool and commits
   under its `Judge` pseudonym, each proof bound to its action (INV-9).
 - *What reviewers see.* A question is known to its reviewers by its number and its view
   (`Question::view`): context, text and alternatives, no key, and no content id, from which the
-  key could be recovered. The offline log holds the key in clear.
+  key could be recovered. The offline state and log hold the key in clear: neither the view nor
+  the per-author duplicates give any confidentiality toward whoever can read them.
 - *Pool and draw.* The pool is append-only. The open epoch's explicit closure records the epoch's
   beacon value, an input the offline path takes from its caller, and how many reviewers have
   joined. A question is drawn after its deposit epoch closes, from those reviewers, seeded from
   that epoch's beacon value and the question's number (`randomness::ANSWER_DRAW`): 12 distinct,
   uniformly (`lottery::admit`), in canonical order, whatever the order they joined in. With fewer
   than 12 the round is `Unavailable` and has no group; since its inputs are fixed, the draw is
-  not repeated.
+  not repeated. The code makes the draw reproducible from these inputs and lets nothing change
+  them after the closure; it does not ensure that the caller did not choose the beacon value by
+  trying several. **Assumption of the offline path:** the program that drives it supplies the
+  random input correctly, without selecting it for a desired group.
 - *Commit-reveal.* Drawn reviewers commit `H(answer, nonce, reviewer, question)` with a proof bound
   to the commitment; an explicit end of commits opens the reveals, so no answer is visible before
   every commitment is in. A reviewer who commits and does not reveal is an absence. The closure
