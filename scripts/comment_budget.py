@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Comment budget (`docs/CLAUDE.md`, "Code style and docs"): `comment_budget.py [PATH...]` checks
-files or directories (default: crates, sim, scripts); `--hook` is the Claude Code PostToolUse
-entry point and reads the tool call on stdin. Exit 0 within budget, 1 otherwise (2 as a hook)."""
+files or directories (default: `DEFAULT_PATHS`); `--hook` is the Claude Code PostToolUse entry
+point and reads the tool call on stdin. Exit 0 within budget, 1 otherwise (2 as a hook)."""
 import ast
 import io
 import json
@@ -16,7 +16,7 @@ INLINE_MAX = 2  # consecutive `//` or `#` lines
 LINE_MAX = 100  # characters in a comment line, rustfmt's max_width
 SHARE_MAX = 0.10  # comment lines over all lines, for files with more than SHARE_FLOOR comment lines
 SHARE_FLOOR = 20
-DEFAULT_PATHS = ("crates", "sim", "scripts")
+DEFAULT_PATHS = ("crates", "sim", "scripts", "archive/phase1-forecast-pilot/sim")
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -98,7 +98,8 @@ def main(argv):
             rel = path.relative_to(ROOT)
         except ValueError:
             return 0
-        if rel.parts[0] not in DEFAULT_PATHS or path.suffix not in (".rs", ".py") or not path.exists():
+        checked = any(rel.parts[: len(Path(d).parts)] == Path(d).parts for d in DEFAULT_PATHS)
+        if not checked or path.suffix not in (".rs", ".py") or not path.exists():
             return 0
         problems = check(rel if Path.cwd() == ROOT else path)
         if problems:
