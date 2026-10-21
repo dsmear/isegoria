@@ -445,14 +445,31 @@ fn the_confirmation_s_replicates_follow_the_cost_rule_alone() {
     assert!(confirm_replicates(&stopped, cap).is_err());
 }
 
-/// The binary exits 3 after a stop and 1 when the stop refuses the next session; smoke children,
-/// refused at the gate, never fit.
+/// The binary exits 3 after a stop and 1 when the stop refuses the next session; a stand-in `git`
+/// reports a clean candidate, and smoke children, refused at the gate, never fit.
 #[test]
 fn the_binary_exits_non_zero_after_a_stop() {
+    use std::os::unix::fs::PermissionsExt;
     let _serial = serial();
     let out = scratch("binary");
+    let bin = scratch("binary-git");
+    fs::create_dir_all(&bin).unwrap();
+    let git = bin.join("git");
+    fs::write(
+        &git,
+        "#!/bin/sh\n[ \"$1\" = -C ] && shift 2\n\
+         case \"$1\" in rev-parse) echo 0 ;; diff|status) ;; *) exit 1 ;; esac\n",
+    )
+    .unwrap();
+    fs::set_permissions(&git, fs::Permissions::from_mode(0o755)).unwrap();
+    let path = format!(
+        "{}:{}",
+        bin.display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
     let probe = |extra: &[&str]| {
         Command::new(env!("CARGO_BIN_EXE_a2-probe"))
+            .env("PATH", &path)
             .args(["run", "--phase", "smoke", "--jobs", "2", "--out"])
             .arg(&out)
             .args(extra)
