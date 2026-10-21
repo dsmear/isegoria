@@ -67,10 +67,12 @@ D52 states they are not conditions of the answer review (below).
 
 ## Current priorities
 
-Phase 2 follows `10` §2.3, with T79 last. Shared event formats, results, cuts and ledger
-must change together with their users. The node process is not an integration of the
-answer-review path: do not restore legacy pilot gates or add automatic rounds to that
-path through a network merge. D54 is the network decision previously called D44 here.
+Phase 2 targets an independently operated experimental P2P testnet (D55).
+Follow `10` §2: specify T79 and T88 first; T79's implementation remains the final
+runtime integration, followed by the independent-operator trial. Single-operator
+runs do not close the phase. Shared event formats, results, cuts and ledger must
+change together with their users. Do not restore legacy pilot gates or add automatic
+rounds through the integration. D54 is the network decision previously called D44 here.
 
 Use `phase1-handoff.md` to resume. Task status belongs in `10-roadmap.md`, review
 findings and evidence in `15-phase1-review.md`, parameter procedures in
@@ -118,9 +120,9 @@ explicit label as bespoke. See `ARCHITECTURE.md` for the code map and test strat
 
 ## What NOT to do
 
-- Do not introduce a permissionless blockchain with global consensus. Heavy
-  consensus is not needed (writes almost never conflict) and reintroduces cost,
-  latency, and public data. See `01` and `04`.
+- Do not introduce a permissionless blockchain or economic stake. The existing
+  consortium agrees on event order through signed cuts; P2P replication alone does
+  not resolve conflicting actions. See `01` and `04`.
 - Do not put voting patterns or questions under review on a public register in the
   clear: they are a vector for statistical deanonymization.
 - Do not implement a Kleros-style Schelling point (rewarding those who vote with the

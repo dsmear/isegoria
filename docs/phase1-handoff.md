@@ -48,7 +48,10 @@ or retries as if they were missing parts of the approved contract.
 
 Outside the closure: calibration, decoder fuzzing, any later reviewer evaluation or new
 round policy, quiz composition, exposure and retirement. Each requires its own assignment;
-product changes require an owner decision. Network and production are outside this work.
+product changes require an owner decision. The separate Phase 2 assignment now targets
+an independently operated experimental P2P testnet (D55); its scope and gates are in
+[10 §2](10-roadmap.md#phase-2--p2p-network). It does not reopen this offline closure
+or authorize production.
 
 The previous design's suspended work and remaining findings are recorded in
 [15](15-phase1-review.md), [10](10-roadmap.md) and the

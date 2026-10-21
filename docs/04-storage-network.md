@@ -1,14 +1,25 @@
 # Storage and network
 
-The property we need is not "distributed" in the abstract, it is: **nobody can delete
-or rewrite questions and votes, and nobody can falsify the scores without it being
-visible**. This is what makes the network independent of a government. The question is
-which architecture achieves it at the lowest cost.
+The network must preserve a verifiable history and make conflicting signed histories
+detectable. Availability also requires surviving copies; checking a result requires its
+inputs. Neither signatures nor public anchoring alone guarantee either property.
 
 **Final choice.** A P2P network of signed logs (gossip + DHT + append-only + CRDT),
 with a consortium of a few dozen heterogeneous signers as the backbone, erasure coding
 for durability, anchoring to a public chain for long-term immutability. **No global
 permissionless consensus.**
+
+**Phase 2 target (D55).** A small experimental P2P testnet with independent operators,
+each administering its nodes and holding its own keys. Single-operator processes are
+an intermediate check. The signing set stays defined by the network configuration;
+P2P does not mean anyone may sign the state. `10` §2 owns the work order and completion
+gates. `05` §Distributed integration lists the unresolved answer-review interface.
+
+**Trust boundary.** The current cut protocol's agreement argument assumes members
+follow its rules, with majority quorums for view changes; it is not a Byzantine-fault
+tolerance proof. Independent operators do not remove that assumption. T88 must pin
+the trial's membership, quorum, fault model and recovery procedures. Preserve the
+documented beacon bias and recovery/liveness limits in the trial's claims.
 
 ---
 
@@ -20,10 +31,9 @@ permissionless consensus.**
   chain would be a gift to anyone wanting to deanonymize.
 - **Computation too heavy.** Factorization and IRT do not run on-chain; you would end
   up keeping the data on the chain and doing the math elsewhere.
-- **Consensus is almost unnecessary.** Writes almost never conflict: two different
-  proposals get added, two votes get summed. The only delicate case, double-voting, is
-  solved with the nullifier (`03`), not with consensus. Removing global consensus
-  removes the bulk of the cost and slowness.
+- **Ordering stays with the consortium.** Replication can merge a set of signed entries,
+  but conflicting quota uses and state transitions still need a shared order.
+  Consortium-signed cuts supply it; nullifiers alone do not.
 
 Anti-censorship comes from the **diversity of operators** and from the
 **reproducibility of the computation**, not from permissionless consensus.
@@ -32,8 +42,8 @@ Anti-censorship comes from the **diversity of operators** and from the
 
 ## The four P2P structures (non-blockchain)
 
-They combine, they do not exclude each other. They cleanly separate *transporting
-data* from *agreeing on an order* (consensus, the expensive part we avoid here).
+They separate transporting and retaining data from the consortium's agreement on
+event order (§Cuts).
 
 | Structure | Purpose |
 |---|---|
@@ -96,9 +106,10 @@ has a problem visible to everyone.
 - a per-category cap against buying seats
 
 The **two ultimate defenses** matter more than any entry rule:
-1. **Reproducibility of the computation** — a signer signs the result of a public
-   deterministic computation; if it cheats, anyone redoes the math and unmasks it. It
-   need not be chosen well to be caught.
+1. **Reproducibility of the computation** — members holding the private inputs can
+   recompute and check results. Outside D54's circle, a reader verifies signatures
+   and commitments; a root alone does not prove that the computation was correct.
+   Public proofs of computation remain future work.
 2. **Freedom to fork** — if the consortium betrays, the public history lives on every node
    and the code is open: the community takes it, abandons that consortium, and restarts
    with a different set of signers. The votes and the drafts under review stay with the
@@ -111,9 +122,9 @@ voting.
 
 ### The epoch's beacon (D41)
 
-Every draw of an epoch — the admission lottery, reviewer assignment and the band's extra
-round, exploration, contested facts, honeypot placement, sortition — reads one public
-random value, the epoch's **beacon**. It must be fixed only after the candidates are, and
+The network supplies one public random value per epoch, its **beacon**.
+The retained legacy draws use it; the answer-review draw must be bound to it by T79.
+It must be fixed only after the candidates are, and
 nobody may be able to choose it. A value computed from the log, as the checkpoint head was
 (`01` D29), fails the second condition: whoever orders or includes the last deposits
 computes the head of every variant and keeps the one they like. The beacon is therefore
@@ -158,10 +169,11 @@ keys the checkpoints' member-set hash commits to) and threshold `t`:
    set for the epoch: the checkpoints that publish the epoch's draws and results count no
    signature of it. No money is at stake (invariant 3): the penalty is the exclusion and
    the record.
-7. **Fewer than `t` reveals.** No beacon for `e`: the epoch draws nothing, and its deposits
+7. **Fewer than `t` reveals.** No beacon for `e`. The legacy draw policy makes deposits
    and pending draws wait for epoch `e + 1`, whose round starts from new secrets (a retry
-   of `e` would reuse the secrets already revealed and give the withholders a second
-   look). The withholders are recorded as in 6. Requiring `t` reveals is what makes the
+   of `e` would reuse already revealed secrets). T79 must specify the answer-review
+   behavior; the offline contract has no missing-beacon event or automatic retry.
+   The withholders are recorded as in 6. Requiring `t` reveals is what makes the
    value unpredictable under the consortium's own assumption: with fewer than `t` colluding
    members, any `t` reveals hold an honest secret.
 
@@ -232,6 +244,11 @@ restart.
 In code: `network::store` (`10` T13).
 
 ### Events and replay
+
+The event catalogue below is the retained legacy `NodeEvent` path. The offline
+answer review has its own `AnswerEvent` and durable framing (`05`); T79 must specify
+their distributed integration. This catalogue is not an instruction to restore
+legacy filters, results or lifecycle steps to the answer review.
 
 Every change to a node's state is an **event**: an object in `objects`, named by one log
 entry. The node's state is what replaying its log produces, event by event, from nothing —
@@ -603,9 +620,10 @@ so the members left can always sign. The rounds are counted by one rule for the 
 for the members collecting cuts (`network::rounds`).
 
 Finding an object of the public tier by its CID without a full replica, the DHT, is `10`
-T75; the circle's objects are never offered through it (§Who reads). Nothing runs an
-epoch's work between nodes yet — the draws, the reviews, the engine, and the lifecycle steps
-and results they produce, which the members log (`10` T79). In code: `network::replica`,
+T75; the circle's objects are never offered through it (§Who reads). The node process
+does not run
+the answer review between nodes (`10` T79); its integration questions are in
+`05` §Distributed integration. In code: `network::replica`,
 `network::cut`, `protocol::ledger`, the `p2p` crate.
 
 ### A node process
@@ -681,13 +699,11 @@ authentication only (`network::erasure`, T16); placement, audit and repair are T
 
 ## Long-term immutability: anchoring to a public chain
 
-Nothing runs on a blockchain, but every so often (an hour, a day) a single fingerprint
-summarizing the whole network state is published on Bitcoin/Ethereum. It costs a few
-cents each time. The gain: to rewrite the network's history an attacker would have to
-rewrite *also* the most expensive public chain in the world. It turns "nobody can
-falsify the past" from a consortium promise into a fact anchored to a chain the
-consortium does not control. Technique: OpenTimestamps or equivalent. **It is the
-addition with the best value/slowness ratio.**
+The planned anchoring publishes a fingerprint of a checkpoint through OpenTimestamps.
+A verified proof ties that fingerprint to the external chain's history, allowing a
+reader with the proof and matching data to check the commitment. It does not establish
+the correctness of the committed results, ensure data availability, or prevent the
+consortium from stopping. The schedule and live submission are still T17.
 
 In code, the OpenTimestamps proof format and its verification (`network::anchoring`);
 submitting to a calendar, reading Bitcoin headers and anchoring the checkpoint head on a

@@ -1877,3 +1877,30 @@ mean this entry.
   operators other than the members.
 - How long the members keep the raw votes after an epoch's results are signed is not decided:
   it waits on which past inputs the engine reads again.
+
+## D55 — Phase 2 ends with an independently operated P2P testnet
+
+**Decided (2026-10-21)** by the owner after the Phase 2 review. A single operator's
+testnet is an intermediate check, not the phase's completion criterion.
+
+**Target.** A small experimental network runs the D49–D53 answer review across
+independently administered nodes. Each operator keeps its own keys; distributing
+processes while one administrator holds all keys does not establish independence.
+P2P communication and independent control are distinct requirements. The consortium
+remains a defined signing set; this decision introduces neither permissionless
+signing nor an economic stake.
+
+**Planning consequences.** `10` §2 defines three gates: controlled processes, separate
+machines/networks, then independent operators. Specify T79 against the answer review
+before implementing its dependencies; keep its implementation as the final runtime
+integration. Bring T19's distributed committee setup and transport into Phase 2,
+and track the operator configuration, key procedures and trial in T88. Real-world
+enrollment, the full identity-key lifecycle and external cryptographic review remain
+later work. Local test credentials do not establish real-person uniqueness.
+
+**Limits.** Independence is not Byzantine tolerance, guaranteed anonymity or production
+readiness. State and test the actual consensus, beacon and recovery assumptions.
+D54's access tiers remain required. The offline Phase 1 closure stays unchanged:
+distributed closure authority/timing and missing-beacon behavior must be specified
+before implementation; this decision does not select deadlines, retries, replacement
+reviewers or legacy acceptance gates.

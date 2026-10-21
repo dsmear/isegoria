@@ -110,6 +110,32 @@ contract leaves to the implementation:
   observation with its weight; the configuration is in the log. Accepted questions are usable
   from their closure.
 
+## Distributed integration — specification pending (T79)
+
+The Phase 2 target is D55; its work and acceptance gates are in `10` §2.
+`AnswerNode` is offline, while the existing distributed ledger decodes the legacy
+`NodeEvent`. Their formats and state machines are not interchangeable.
+
+Before implementation, specify:
+
+- the versioned event/configuration contract and its binding to the signed history;
+  who may publish each action or closure, and what members check before co-signing;
+- the pool and deposit snapshot at the closing cut, with the beacon available only
+  after the following cut; how these map to offline `CloseEpoch`, which takes both
+  together, and how author age and next-epoch quotas remain consistent;
+- the behavior when no beacon forms, and closure authority and timing for commits and
+  reveals. D53's permanently unavailable draw is not a failed beacon. Do not silently
+  import the legacy retry rule or introduce automatic deadlines or review rounds;
+- private participant requests and responses through T85, including the assigned
+  question view, acknowledgements and own results. Preserve the view's omission of
+  the key and key-derived CID; reconcile D54's public outcome identifiers with this
+  requirement before publishing answer-review objects;
+- each answer-review object's D54 tier, deterministic validation/replay, and recovery
+  after duplicate or delayed delivery.
+
+These are unresolved integration choices, not new offline behavior. Any change to the
+D49–D53 product contract needs a recorded owner decision.
+
 ---
 
 ## Previous forecast-and-pilot path

@@ -40,11 +40,16 @@ This branch also contains the node process (`isegoria-node`), writer recovery, v
 changes and exclusion of beacon withholders (T78, T80, T76). The process drives cuts
 and the beacon; it does not yet run the answer-review lifecycle between nodes (T79).
 See [storage and runtime](docs/04-storage-network.md) and the
-[Phase 2 roadmap](docs/10-roadmap.md#23--build-the-runtime).
+[Phase 2 roadmap](docs/10-roadmap.md#phase-2--p2p-network).
 
 Replication still serves its whole set to connected peers. D54's access tiers, blind
 relays and state tree are decided but not implemented (T77, T85, T86): run nodes only
-among machines you control. No production readiness is claimed.
+among machines you control.
+
+The target is a small experimental P2P testnet with independent operators, each
+holding its own keys (D55). Single-operator runs are intermediate checks; distributed
+committee setup and the operating contract remain to be built (T19, T88).
+No production readiness is claimed.
 
 ## Try it
 
