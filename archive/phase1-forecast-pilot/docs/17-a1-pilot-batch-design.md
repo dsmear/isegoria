@@ -3098,12 +3098,12 @@ That contract is approved on `a14364c`; no producer, verifier, runtime or A1 clo
 only; contract approved on `a14364c`, no implemented verifier**. §9.2's logical obligations,
 O1 (§14.12), the scorer and snapshot remain acquired. This section is the single specification
 of the proposed records, numerical replay, judgments and future adapter. Read at this baseline:
-[`pilot.rs`](../crates/protocol/src/pilot.rs),
-[`revalidation.rs`](../crates/protocol/src/revalidation.rs),
-[`latent.rs`](../crates/scoring/src/latent.rs),
-[`admission.rs`](../crates/protocol/src/admission.rs),
-[`nullifier.rs`](../crates/identity/src/nullifier.rs),
-[`cohort_snapshot.rs`](../crates/protocol/src/cohort_snapshot.rs) and the corresponding pilot
+[`pilot.rs`](../../../crates/protocol/src/pilot.rs),
+[`revalidation.rs`](../../../crates/protocol/src/revalidation.rs),
+[`latent.rs`](../../../crates/scoring/src/latent.rs),
+[`admission.rs`](../../../crates/protocol/src/admission.rs),
+[`nullifier.rs`](../../../crates/identity/src/nullifier.rs),
+[`cohort_snapshot.rs`](../../../crates/protocol/src/cohort_snapshot.rs) and the corresponding pilot
 tests; no calculation, Rust execution or PDF build supplies evidence for this proposal.
 It verifies a pinned experimental procedure on recorded inputs, not pool admission, a source's
 truth, sampling representativeness or H-b/H-c/H-e. No A/C/T1, T58, O2/O3 or production value is

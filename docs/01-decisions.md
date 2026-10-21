@@ -611,7 +611,7 @@ decoys; on the same test the intercept moves from +0.09 to +0.32.
 
 > **Guarantee amendment (owner, 2026-10-12).** Phase 1 now requires exact expected
 > cumulative-weight incentives in the complete offline, invariant-information domain of
-> [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
+> [`16` §7.2](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
 > The owner explicitly withdraws using that guarantee as a general proof against betrayal.
 > The bounded affine candidate there has an accepted conditional proof and an exact offline
 > reference (`sim/a12_offline.py`). The explicit frozen-weight Rust integration package is
@@ -734,7 +734,7 @@ conventional value. The decided specification concerns the expected score under 
 hypotheses, for completed reports and defined baselines; it guarantees no reputational incentive.
 O2 subsequently chosen, O3 acquired; A12 was then open (`17` §§14.14–14.15) and is now closed conditionally (`16` §7.3). The O1 decision,
 motivation, limits and affected promises are recorded once in
-[`17` §14.12](17-a1-pilot-batch-design.md#1412-o1-target-amendment-owners-decision-2026-10-11).
+[`17` §14.12](../archive/phase1-forecast-pilot/docs/17-a1-pilot-batch-design.md#1412-o1-target-amendment-owners-decision-2026-10-11).
 The original observation path and its implementation below remain current behavior; they have
 not been adapted to the new target or design.
 
@@ -742,7 +742,7 @@ not been adapted to the new target or design.
 each reviewed item prescribed to the pilot in its prefixed group, `π=1`, no observation draw
 in the score. Sustainability is a premise to evaluate; no operational commitment, sample
 choice or T1 adoption. Decision, conditions and Astra’s conditional A1 closure on `1bd865c`:
-[`17` §14.15](17-a1-pilot-batch-design.md#1415-o2-decision-and-proposed-conditional-a1-closure).
+[`17` §14.15](../archive/phase1-forecast-pilot/docs/17-a1-pilot-batch-design.md#1415-o2-decision-and-proposed-conditional-a1-closure).
 
 > **Implemented (2026-09-25, T52):** `protocol::exploration` — the beacon's draw
 > (`explore_from_beacon`, `EXPLORATION_RATE = 0.05`, keyed on the admitted slot) sends a
@@ -1205,7 +1205,7 @@ evaluation; it does not retroactively turn the earlier result into confirmation.
 **Scope and next work.** A2 remains open under its kept whole-test requirement.
 No numerical tolerance, risk level, sample size, model assumption or certification
 claim is selected here. The bounded testing direction and remaining decisions are
-recorded in [`19` §13.10](19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18);
+recorded in [`19` §13.10](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18);
 no existing closure is reopened and no production readiness is implied.
 
 ---
@@ -1245,7 +1245,7 @@ delegation or coordination where these were not represented; the synthetic studi
 
 **A2.** The working target stays the total-score difference between real groups of the
 reference population at equal competence, under the contract's explicit hypotheses
-([`19` §13.33](19-a2-dtf-composition-design.md#1333-conditional-reference-target-and-majorant-obligation-a-specification-not-adopted)).
+([`19` §13.33](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md#1333-conditional-reference-target-and-majorant-obligation-a-specification-not-adopted)).
 What "competence" means there, and the role of outside resources, must be defined
 consistently with this decision. Not adopted here: a mathematical definition of ability, a
 measure `μ`, a solution to D38, a presence threshold, a tolerance or risk level, an
@@ -1308,7 +1308,7 @@ obligation to collect browsing histories, AI conversations or personal attribute
 on. They are distinct from the reviewers' forecast of an item's pilot outcome (`02` §C.2, A1's
 target), which they neither replace nor reopen; A1's and other conditional closures stand.
 A2's working target is unchanged
-([`19` §13.33](19-a2-dtf-composition-design.md#1333-conditional-reference-target-and-majorant-obligation-a-specification-not-adopted)):
+([`19` §13.33](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md#1333-conditional-reference-target-and-majorant-obligation-a-specification-not-adopted)):
 the priorities orient the future definition of the pertinent competence, but establish no
 mathematical definition of `θ`, measure `μ`, treatment of differences in access to resources,
 semantics for D38, tolerance, risk or closure criterion, nor a justification for attributing
@@ -1429,6 +1429,11 @@ forecast score and its weights; they certify nothing of the new mechanism.
 and the forecast that `scoring::reputation` and `protocol::{honeypot, exploration, probation,
 panel_scores, cohort_scores, affine_weights}` score and weigh. These keep their tests and their
 documented behaviour until the implementation that follows adapts, replaces or retires them.
+
+**Material.** The inventory of what D47 affects — kept, to adapt, archived, still needed as a
+dependency — is [`21`](21-d47-inventory.md). The previous design's dossiers, A12's and A2's tools
+and A2's results are in [`archive/phase1-forecast-pilot/`](../archive/phase1-forecast-pilot/README.md),
+with its index and path map.
 
 **Scope.** Decision record only. No formula, threshold, policy, format or rubric is adopted; no
 code behaviour changes; no review finding is closed; Phase 1 stays open. The implementation of

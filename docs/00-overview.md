@@ -68,7 +68,7 @@ relates to its evidence. The two stay distinct; no subscore, weight, threshold, 
 or aggregate is adopted, and assisted correctness certifies no unaided understanding.
 
 A2's whole-test guarantee remains open. The next bounded evaluation work is described
-in [`19` §13.10](19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18);
+in [`19` §13.10](../archive/phase1-forecast-pilot/docs/19-a2-dtf-composition-design.md#1310-owner-direction-foundations-and-iterative-testing-2026-10-18);
 no real-world performance level has been established by this decision.
 
 ## The three actions of a node

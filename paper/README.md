@@ -61,7 +61,7 @@ an explicit **O1 target amendment (owner's decision, 2026-10-11; approved on `e7
 `prop:ipw` states the conditional mean for `q_c`, defined only where `c > 0`; at `c = 0` it
 is undefined and the score is flat. The binary analysis is labelled historical / conclusive.
 Motivation, limits and the affected promises are recorded once in
-[`docs/17`](../docs/17-a1-pilot-batch-design.md) §14.12.
+[`docs/17`](../archive/phase1-forecast-pilot/docs/17-a1-pilot-batch-design.md) §14.12.
 No data, figure, PDF, code or expected value is regenerated. Current formulas,
 tasks and evidence live in `docs/02`, `docs/10`, `docs/13` and `docs/14`.
 

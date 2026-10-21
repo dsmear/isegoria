@@ -28,10 +28,10 @@ does not introduce new task IDs or choose T83's operating point.
 **A12 completion domain (owner, 2026-10-12).** The exact complete-offline,
 invariant-information guarantee is decided; the affine candidate and accepted conditional
 proof are specified in
-[`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
+[`16` §7.2](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
 The coherent offline reference and frozen-weight integration package have now met their
 scoped acceptance gates (`16` §7.2); `14` records provisional-parameter procedures.
-A12 is closed conditionally by the composed review of `15b846c` ([`16` §7.3](16-a1-incentive-design.md#73-a12-closure-review--2026-10-13)); diagnostic CUSUM is unimplemented and
+A12 is closed conditionally by the composed review of `15b846c` ([`16` §7.3](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md#73-a12-closure-review--2026-10-13)); diagnostic CUSUM is unimplemented and
 final-model characterization remains a separate Phase 1 gate. This introduces no new requirement to
 prove general H-c, complete a distributed runtime or repeat campaigns.
 AT-REP-01's blanket betrayal claim is explicitly withdrawn as a Phase 1 claim (`08`),

@@ -861,18 +861,18 @@ For `c = 0` the expected score is flat and `q_c` is undefined; no target value i
 B-b's terminal contribution is the difference below on `A` (`o = 1`) or `R` (`o = 0`),
 and zero on a positively evidenced terminal `I`. The approved scorer's other cases remain
 in force (`17` §§8.2, 14.9); the decision's motivation, domain and limits are in
-[`17` §14.12](17-a1-pilot-batch-design.md#1412-o1-target-amendment-owners-decision-2026-10-11).
+[`17` §14.12](../archive/phase1-forecast-pilot/docs/17-a1-pilot-batch-design.md#1412-o1-target-amendment-owners-decision-2026-10-11).
 
 **Decided observation design (O2, after `af42035`).** A prescribes every reviewed item to
 the pilot in its prefixed group, `π=1`, with no observation draw in the score, for A1's
 conditional correction. Resource sustainability is not established, no operational start or
 T1 adopted; conditions and Astra’s conditional A1 closure on `1bd865c` only in
-[`17` §14.15](17-a1-pilot-batch-design.md#1415-o2-decision-and-proposed-conditional-a1-closure).
+[`17` §14.15](../archive/phase1-forecast-pilot/docs/17-a1-pilot-batch-design.md#1415-o2-decision-and-proposed-conditional-a1-closure).
 
 **Decided A12 domain; affine candidate specified (owner, 2026-10-12).** Phase 1's exact
 cumulative-effective-weight guarantee is restricted to complete offline inputs and invariant
 information, with the assumptions explicitly accepted in
-[`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
+[`16` §7.2](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
 That section owns the fixed-benchmark affine formula, prefixed counts/calendar, diagnostic
 CUSUM, conditional proof and refusal of incomplete prefixes. `sim/a12_offline.py` implements
 an exact-rational offline reference. The frozen-weight Rust integration package is accepted

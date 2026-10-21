@@ -25,7 +25,7 @@ it is not a new implementation fix or a replacement for T26.
 
 **A12/AT-REP-01 amendment (owner, 2026-10-12).** The current Phase 1 claim is the exact
 complete-offline, invariant-information cumulative-weight guarantee in
-[`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
+[`16` §7.2](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
 Its affine candidate has an accepted conditional proof and an exact-rational offline reference
 path (`sim/a12_offline.py`). Its explicit frozen-weight Rust integration package is accepted
 on 2026-10-13 on the owner's executable checks and Astra's source review (`16` §7.2),

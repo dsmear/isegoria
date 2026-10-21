@@ -129,7 +129,7 @@ fn every_case_of_a_replicate_shares_its_seed_and_phases_do_not() {
     assert_ne!(probe_seed(Phase::Confirm, 0), probe_seed(Phase::Confirm, 1));
 }
 
-/// The harness's Simpson DTF meets `sim/a2_probe_reference.json`'s method-B values.
+/// The Simpson DTF meets the method-B values of the archive's `sim/a2_probe_reference.json`.
 #[test]
 fn the_generating_dtf_meets_the_oracle_s_reference_values() {
     let all: Vec<usize> = (0..8).collect();

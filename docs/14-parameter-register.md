@@ -229,7 +229,7 @@ CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the honeypot and exploration rates,
 
 ### A12 offline affine candidate — procedure contract, 2026-10-12
 
-These entries apply only to [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
+These entries apply only to [`16` §7.2](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
 They do not calibrate or replace the current Rust odds/reset path. Example values and
 exact test fixtures are not operating choices. The current candidate fixes probation at
 30 terminal A/R/I assignments and the cap multiplier at 3; `η` and `k₀` must be explicit

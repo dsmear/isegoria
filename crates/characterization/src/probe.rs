@@ -365,7 +365,8 @@ fn normal_expectation(mean: f64, f: impl Fn(f64) -> f64) -> f64 {
 }
 
 /// The generating law's unsigned DTF of `set` between `z = +1` and `z = −1`, over the population
-/// mixture, by Simpson's rule (method A of `docs/19` §13.11; `sim/a2_probe.py` checks it).
+/// mixture, by Simpson's rule (method A of `docs/19` §13.11); the archived
+/// `archive/phase1-forecast-pilot/sim/a2_probe.py` checks it.
 pub fn generating_dtf(items: &Items, set: &[usize]) -> f64 {
     let abs_gap = |t: f64| items.gap(set, t).abs();
     (1.0 - items.pi) * normal_expectation(0.0, abs_gap)

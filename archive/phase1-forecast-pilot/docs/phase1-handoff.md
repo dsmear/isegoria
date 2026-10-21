@@ -2,7 +2,7 @@
 
 **Working note, not normative.** It hands work over between Claude Code sessions and is meant to
 be enough to resume in a new chat. The specification is in `docs/01`–`docs/14`; the review
-register is [`15-phase1-review.md`](15-phase1-review.md). Where this note and those disagree,
+register is [`15-phase1-review.md`](../../../docs/15-phase1-review.md). Where this note and those disagree,
 they win.
 
 ## 1. Where things stand

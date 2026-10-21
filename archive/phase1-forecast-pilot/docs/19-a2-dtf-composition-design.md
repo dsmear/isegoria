@@ -2491,7 +2491,7 @@ experiments stay suspended, and §13.7's stop rule holds.*
 
 **Owner direction.** Record the discussed principles as foundational before the next
 test work, then proceed iteratively: test, inspect the evidence and refine the candidate.
-The canonical principles are [`01` D44](01-decisions.md). The owner does not expect
+The canonical principles are [`01` D44](../../../docs/01-decisions.md). The owner does not expect
 perfect performance and used "75%" to express willingness to accept partial progress.
 That phrase selects no metric, denominator, error budget or acceptance threshold.
 

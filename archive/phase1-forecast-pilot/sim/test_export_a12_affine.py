@@ -20,7 +20,7 @@ from test_a12_offline import experiment, set_outcome, set_report
 
 HERE = Path(__file__).resolve().parent
 FIXTURE = HERE / "fixtures" / "a12_affine_nyms.json"
-GOLDEN = HERE.parent / "crates" / "protocol" / "tests" / "fixtures" / "a12_affine"
+GOLDEN = HERE.parents[2] / "crates" / "protocol" / "tests" / "fixtures" / "a12_affine"
 
 
 def table(result, epoch, nym):
