@@ -27,7 +27,8 @@ it is not a new implementation fix or a replacement for T26.
 evaluated by a mechanism not yet specified ([`01` D47](01-decisions.md)). The REPUTATION and
 AT-REP entries below, A1 and A12 concern the previous design's forecast score, which the code
 still implements; they neither specify nor test the new mechanism. Their dossiers are archived
-([`21`](21-d47-inventory.md)); this audit's historical entries are unchanged.
+([`21`](21-d47-inventory.md)), and `sim/a12_*` named below is now under
+`archive/phase1-forecast-pilot/`; this audit's historical entries are unchanged.
 
 **A12/AT-REP-01 amendment (owner, 2026-10-12).** The current Phase 1 claim is the exact
 complete-offline, invariant-information cumulative-weight guarantee in

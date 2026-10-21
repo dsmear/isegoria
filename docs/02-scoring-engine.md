@@ -867,7 +867,8 @@ good observation itself (`protocol::appeal`, T61). Floor provisional (T25).
 > of the pilot outcome. Under D47 reviewers answer the item, and the evaluation of their
 > reliability is still to define; A1's and A12's conditional closures below keep their
 > perimeters and certify nothing of the new mechanism. O1, O2, exploration, B-b and A12's
-> candidate are suspended; their dossiers `16` and `17` are archived.
+> candidate are suspended; their dossiers `16` and `17` and the `sim/a12_*` tools named below are
+> archived (`archive/phase1-forecast-pilot/`).
 
 > **Revised by D33 and D35 (T50 and T52, done).** The ratio-form Brier skill score of the
 > first design is not a proper scoring rule (paper Prop. 12): it paid a dissenter to move

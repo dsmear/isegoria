@@ -4,9 +4,24 @@
 |---|---|
 | **Purpose** | The ordered plan of work: what is left to fix or build, in priority order, and what each step must show to count as done. |
 | **Derived from** | `docs/08` §14 (gaps), §12 (adversarial tests AT-*), §16 (acceptance gate); `docs/01` D17–D42; the working paper in `paper/`; three reviews — the `docs/08` audit, the second review (2026-09-23), the third review (2026-09-24, `docs/08` §0-quinquies). |
-| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)), and Phase 1's remaining work was re-planned on 2026-09-28 from T24's results (T25 in four steps, T81). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). |
+| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)), and Phase 1's remaining work was re-planned on 2026-09-28 from T24's results (T25 in four steps, T81). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). On 2026-10-21 the owner's D47 changed Phase 1's direction before its implementation ([Priorities](#priorities)). |
 
 ## Priorities
+
+**D47 — Phase 1's direction changed before its implementation (owner, 2026-10-21).** The
+author states the key, reviewers answer the item with any resource, and the mathematics is to
+evaluate the reviewers' reliability over time ([`01` D47](01-decisions.md)). Phase 1's next work
+is therefore to specify that mechanism — aggregation, reputation update, treatment of a
+contested key, thresholds, outcomes and guarantees — and then implement it, adapting the code
+[`21`](21-d47-inventory.md) §2 lists; task ids for it will be assigned with its specification.
+Suspended with the previous design: A1's O1/O2 premises and T1, A12's candidate and its
+procedures, A10's residual, exploration, B-b, S2, and the calibration of the forecast path's
+parameters in T25's step 4. Other tasks keep their status (Level A's and Level B's among them,
+whose relation to the answers D47 leaves open). A2 stays open,
+not resolved by the archiving of its dossier and studies. The previous design's dossiers,
+A12's and A2's tools and A2's results are in `archive/phase1-forecast-pilot/`; paths such as
+`sim/a12_offline.py` or `verification/reports/a2-…` named in the records below are there now
+(its path map). Phase 1 is not complete.
 
 **C6 closed (2026-10-17).** The owner adopted B, a nominal cadence of 28 days and H = 45
 closings. The offline implementation, including declared context and configuration replay
@@ -133,7 +148,7 @@ reference implementation / testnet.
   replication of the signed set over libp2p (T18) and the protocol state from
   consortium-signed cuts, with the beacon run between nodes (T74). Details and
   evidence: [Completed work](#completed-work).
-- **Open:** the thresholds (T25), in four steps from T24's results (`docs/13` §7.5) — the
+- **Open:** the specification and implementation of D47's mechanism (above); the thresholds (T25), in four steps from T24's results (`docs/13` §7.5) — the
   guessing correction (D25) in the latent re-check (step 1, done 2026-09-28), then in the
   pilot screen (step 2, done 2026-09-30), a supplement of the DIF studies on the corrected
   model (done on 2026-09-30, `docs/13` §8.7, the screen's study included), then the
@@ -199,6 +214,9 @@ DTF and histogram findings (`15` A1–A3) cannot be closed by selecting threshol
 Resolve changes that affect the candidate model before its final measurements;
 choose the error/resource criteria of T83 before final threshold selection. No new
 full characterization run is implied by this documentation update.
+
+Under D47 the A12 candidate's procedures and the forecast path's Level C calibration are
+suspended (`14` Level C); the rest of this section stands.
 
 For the A12 candidate, `14` records procedures for `η`, `k₀`, probation and any future
 diagnostic CUSUM on the new score/model (`16` §§7.2–7.3). `0 < η ≤ 0.8`, `k₀ ≥ 0` is the
@@ -301,6 +319,10 @@ instead of panicking on malformed input; `sim/`, the fixtures and the golden out
 regenerated on purpose; every threshold is either characterized (T24, T25) or marked
 provisional with the pilot that will set it; the mechanism's decision logic is
 mutation-tested (T81).
+
+**Completion qualification after D47.** The milestones below were defined for the previous
+design. Phase 1's completion now also requires D47's mechanism to be specified, implemented and
+reviewed with its guarantees; meeting the milestones below does not complete it.
 
 **Completion qualification.** The label also requires resolving the critical/high
 findings in `15`, or explicitly narrowing the claimed domain with a justified decision.
@@ -451,7 +473,8 @@ Not a phase; done alongside every task.
 - **Phase 3.** T66 is the minimal form of T46's `Panel`. T58 builds on T33/T43 and
   draws replacements from the beacon (T37, done). T20 supersedes T11. T37's
   threshold-signature variant needs T19. T68 computes the source check T55 takes as an
-  input. T69 waits on an owner decision: one of its options changes the scope of the
+  input; whether that check stays, and whether the deposit keeps its mandatory source, is open
+  under D47, whose contract introduces no automatic verifier. T69 waits on an owner decision: one of its options changes the scope of the
   respondent pseudonym (invariant #5).
 - **External.** Nothing in Phases 1–2 needs the external gates.
 

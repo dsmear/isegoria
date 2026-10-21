@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | The five items `docs/07` §13 asks of every threshold in `docs/02`'s parameter table — why it exists, how it is calibrated, how much the mechanism depends on it, what breaks if it moves, where its value is fixed — so that no threshold is an accidental constant (SC-1, `docs/08` §16.1). |
 | **Derived from** | `docs/02` (the parameter table, §A.1–§A.3), `docs/13` §7.4 and §8.7.4 (the measurements), `docs/01` (the decisions), `docs/05` [4]–[5b], `docs/10` T25 step 4. |
-| **Status** | Level A written (2026-10-01). Level B waits on the supplement's DIF studies run again on the corrected model (`docs/13` §8.8). Level C's restricted A12 offline candidate has procedures below (2026-10-12), without a calibrated operating point; the remaining Level C entries and operational values remain pending. |
+| **Status** | Level A written (2026-10-01). Level B waits on the supplement's DIF studies run again on the corrected model (`docs/13` §8.8). Level C's restricted A12 offline candidate has procedures below (2026-10-12), without a calibrated operating point; the remaining Level C entries and operational values remain pending. Under D47 (2026-10-21) the forecast path's Level C entries and the A12 procedures are suspended (Level C below). |
 
 ## How to read an entry
 
@@ -194,6 +194,14 @@ floor prior's weight, `KR20_MIN` or a minimum number of anchors, `N_LATENT_MIN`,
 
 ## Level C — reputation and coordination
 
+**D47 (owner, 2026-10-21).** Reviewers answer the item; the reliability measure and its
+reputation update are still to define ([`01` D47](01-decisions.md)). The parameters of the
+previous design's forecast path — `γ`, the odds model's `k₀`, the CUSUM's `k` and `h`, `w_max`,
+`N_PROBATION`, the honeypot and exploration rates, and A12's `η`, `k₀`, probation and cap below —
+are suspended: no procedure or value is to be written for them until the new mechanism says
+whether they survive. The coordination parameters (`α`, `min_shared`, `ρ_min`, `p_max`) and the
+author's `H` are not affected.
+
 Remaining legacy/operational entries to be written by step 4, with procedures and values
 provisional until the pilots (T27): `γ` and the old odds model's `k₀`, its punitive
 CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the honeypot and exploration rates, `α`,
@@ -228,6 +236,9 @@ CUSUM's `k` and `h`, `w_max`, `N_PROBATION`, the honeypot and exploration rates,
   protocol's conversion from identifier differences to months are retired.
 
 ### A12 offline affine candidate — procedure contract, 2026-10-12
+
+> **Suspended under D47 (2026-10-21).** Kept as the record of the procedures A12's closure
+> relied on; it calibrates nothing for D47's mechanism. Its dossier `16` is archived.
 
 These entries apply only to [`16` §7.2](../archive/phase1-forecast-pilot/docs/16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
 They do not calibrate or replace the current Rust odds/reset path. Example values and

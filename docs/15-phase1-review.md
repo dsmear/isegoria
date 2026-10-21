@@ -15,6 +15,14 @@ lines. Code symbols identify the implementation to re-check on a newer branch.
 
 ## How to read the documentation
 
+- [`01` D47](01-decisions.md) (owner, 2026-10-21): the author states the key, reviewers answer
+  the item with any resource, and the mathematics is to evaluate the reviewers' reliability over
+  time; the mechanism is still to specify. Its disposition of this register's findings is
+  [below](#d47-disposition-2026-10-21). The previous design's dossiers (`16`, `17`, `19`, `20`),
+  A12's and A2's tools and A2's results are archived in `archive/phase1-forecast-pilot/`; paths
+  such as `sim/a12_offline.py`, `sim/dtf_composition.py` or `verification/reports/a2-…` named in
+  the records below are there now ([path map](../archive/phase1-forecast-pilot/README.md#path-map),
+  inventory in [`21`](21-d47-inventory.md)). The records themselves are unchanged.
 - [`01` D45](01-decisions.md) (owner, 2026-10-20): Isegoria assumes an open environment;
   answers are produced under those conditions, `θ` stays the declared model's parameter, and a
   correct answer alone does not show unaided knowledge. [D46](01-decisions.md) records the
@@ -68,6 +76,26 @@ A2's current state is [below](#a2-current-state-design-decision-deferred).
 
 Paths beginning `scoring/` or `protocol/` in the table are relative to `crates/`;
 numbered document shorthand is relative to `docs/`. Paper paths are repository-relative.
+
+### D47 disposition (2026-10-21)
+
+The owner's [`01` D47](01-decisions.md) sets aside the reviewers' forecast of the pilot outcome
+as their main contribution. Its effect on this register, finding by finding; no record below is
+rewritten and no finding is closed by it.
+
+- **A1, A12, A10.** They concern the previous design's forecast score, its incentives and its
+  weights. A1's conditional closure on `1bd865c`, A12's on `15b846c` and A10's on `115f538` keep
+  their perimeters; none certifies D47's mechanism. A1's operational premises (O2's
+  sustainability, T1), A12's candidate and procedures and A10's residual (the absent baseline in
+  a future consumer) are suspended with that design.
+- **A2.** Not resolved, withdrawn or narrowed: its disposition is in
+  [its section](#a2-current-state-design-decision-deferred), D47 entry.
+- **A3–A9, A11, C5, C6, D3, the Variant 1 fit states.** Closed within their perimeters; D47
+  concerns none of them. C5 and C6 are the author's score; A3–A9, A11 and the fit states are
+  Level A's and B's code, whose relation to the answers D47 leaves open.
+- **B1–B7, C1–C4, C7, C8, D1, D2, D4–D6, E.** Unchanged.
+- **New findings.** The new mechanism's guarantees are still to define; findings about it will
+  be recorded here once it is specified. Phase 1 is not complete.
 
 ### A1 current closure criterion after O1–O3
 
@@ -185,6 +213,17 @@ direction of 2026-10-18
 - **Blocking:** A2 remains blocking under the current criteria (its row; `10` §1.5's completion
   qualification), so Phase 1 remains incomplete. Other Phase 1 requirements may advance where they
   do not depend on A2's solution.
+- **D47 (owner, 2026-10-21) — the disposition of the old requirement.** A2's requirement, a
+  whole-test DTF bound for the previous design's contested pool and active items, is **not
+  resolved**: neither D47 nor the archiving of `19`, the A2 tools and the nine A2 reports
+  withdraws or narrows it. Its demonstrated results keep their domains; the certifier, the other
+  obligations and new experiments stay suspended. The guarantees still to decide for the new
+  design include whether it needs a whole-test guarantee at all, and which: its target (the
+  working target decided on 2026-10-20 stays recorded; whether it applies to the new design is
+  part of that decision), its measure, D38's semantics, tolerance and risk. Until the owner
+  decides, A2 stays open and Phase 1 cannot be declared
+  complete. The A2 harness stays in `crates/characterization` as a residual separation
+  ([`21`](21-d47-inventory.md) §4).
 
 ### A8–A9 bounded rectification
 
@@ -374,6 +413,9 @@ remains incomplete. No Phase 2 or T26 substitution is proposed.
 | **Left open** | A reviewer past the floor but in probation sits on the axis at weight 0 and enters the side averages without its rating counting: A7's participation semantics, unchanged here. An extra round drawn only from zero-weight reviewers adds no weighted evidence, so the re-decision rests on the first panel's ratings alone against the plain `τ`, the effect PROTO-008 described; `review::assign_extra_from_beacon` does not consider weight. Whether the extra draw should account for weight is a distinct design question. Both remain open after A5's closure. |
 
 ### A10 absent-baseline record
+
+> **D47 (2026-10-21).** The residual below concerns the previous design's forecast baseline; it
+> is suspended with that design ([D47 disposition](#d47-disposition-2026-10-21)).
 
 | | |
 |---|---|
@@ -719,6 +761,7 @@ For that history with the escrow, `C_a` crosses `2/5` at `45 log₂ 15 ≈ 175.8
 | **C5–C6** | Describes the author formula and actual time-decay convention accurately. | It does not choose a new model, continuous quality definition or decay policy. |
 | **C7** | Names the current and retired entry points in the architecture and handoff. | Stale Rust doc comments in `revalidation.rs:22–25` and `pilot.rs:356–358` remain for the code pass; no `.rs` files are changed here. |
 | **C8** | States T81's ten-file scope explicitly. | T81 stays complete in that scope; it is not a proof of every composed guarantee. |
+| **D47** (2026-10-21) | Records D47's disposition of the findings, archives the previous design's dossiers, A12's and A2's tools and A2's results with a path map, and inventories the affected material (`21`). | It closes no finding, does not resolve A2 and specifies no new mechanism. |
 
 ## Working agreement for implementation and design review
 
