@@ -7,7 +7,8 @@ decision's rationale. The open Phase 1 review findings are tracked in
 [`15-phase1-review.md`](15-phase1-review.md). New decisions and amendments are stated
 explicitly; D44 records the owner's foundational direction of 2026-10-18 without choosing
 new numerical thresholds; D45 the owner's decision of 2026-10-20 that Isegoria assumes an
-open environment, and D46 the assessment's priorities in it.
+open environment, and D46 the assessment's priorities in it; D47 the owner's decision of
+2026-10-21 that reviewers answer the item and their reliability is evaluated over time.
 
 ---
 
@@ -26,6 +27,10 @@ upvotes (concentrates power faster than plain voting).
 ---
 
 ## D2 — Bridging instead of vote averaging
+
+> **D47 (owner, 2026-10-21).** The rating this fit reads is today the reviewer's revealed
+> forecast. Reviewers now answer the item; whether and how bridging reads their answers is
+> open (D47). The code still implements the choice below.
 
 **Choice.** The aggregation of peer review is a matrix factorization with asymmetric
 regularization (`02`, Level A), in the style of Community Notes. Score = the item
@@ -92,6 +97,11 @@ Dropped.
 ---
 
 ## D6 — Evaluator score with its own scoring rule, not a Schelling point
+
+> **Modified by D47 (owner, 2026-10-21).** Reviewers answer the item instead of declaring a
+> probability that it passes validation; how their reliability is evaluated is still to be
+> defined. The exclusion of a Schelling point stands. The code still implements the choice
+> below.
 
 **Choice.** The evaluator declares a probability that the question passes validation,
 and is scored with a proper scoring rule normalized on the crowd baseline (Brier
@@ -339,6 +349,10 @@ Resolves Q-3 / G-02.
 ---
 
 ## D23 — Evaluator score baseline: the crowd's prediction, not the outcome base rate
+
+> **Modified by D47 (owner, 2026-10-21).** The crowd's forecast is the baseline of the
+> previous evaluator score; the reliability measure D47 asks for is still to be defined. The
+> code is unchanged.
 
 > **Refined by D33** (2026-09-24): the crowd baseline excludes the reviewer being scored, and
 > the score is a difference of Brier scores instead of the ratio-form BSS.
@@ -590,6 +604,11 @@ decoys; on the same test the intercept moves from +0.09 to +0.32.
 
 ## D33 — Evaluator score: leave-one-out difference score, odds-scale weights with shrinkage
 
+> **Modified by D47 (owner, 2026-10-21).** No longer the intended evaluator mechanism:
+> reviewers answer the item, and the evaluation of their reliability over time, with a possible
+> reputational weight, is still to be defined. The amendments below and the closures of A1 and
+> A12 keep their perimeters; the code still implements this choice.
+
 > **Guarantee amendment (owner, 2026-10-12).** Phase 1 now requires exact expected
 > cumulative-weight incentives in the complete offline, invariant-information domain of
 > [`16` §7.2](16-a1-incentive-design.md#72-a12-restricted-affine-guarantee--owners-decision-2026-10-12).
@@ -661,6 +680,11 @@ the reviewer being scored.
 
 ## D34 — Reputation dynamics: long-window mean plus a change detector
 
+> **Suspended by D47 (owner, 2026-10-21)** as a specification of the new mechanism: the
+> detector reads forecast scores. Whether a change detector applies to the reliability still
+> to be defined belongs to its reputation update. The implementation below stays current
+> behaviour.
+
 > **Implemented (2026-09-25, T51):** `reputation::{Cusum, CusumParams}` (`k = 0.03`,
 > `h = 1.5`, provisional) and `probation::SkillTrack` — the running mean of the per-item
 > scores is the weight's `S_u`, the CUSUM reads each score against that mean once the
@@ -698,6 +722,10 @@ reacts slowly to a long con.
 ---
 
 ## D35 — Scored outcomes: live items with randomized exploration; golden items at 5%
+
+> **Modified by D47 (owner, 2026-10-21).** These outcomes scored a forecast of the pilot;
+> reviewers now answer the item. Exploration, O1 and O2 are suspended; the role of golden
+> items under D47 is open. The implemented observation path below stays current behaviour.
 
 **O1 amendment (owner's explicit decision, 2026-10-11; approved by Astra on `e735a8e`).** For A1's
 correction the forecast target is `q_c = P(Y = A | Y ≠ I, F_u)`, defined only where
@@ -773,6 +801,11 @@ of pilot capacity.
 ---
 
 ## D36 — Probation: 30 scored outcomes, then shrinkage
+
+> **Suspended by D47 (owner, 2026-10-21)** as a specification of the new mechanism: probation
+> counts scored forecasts. Whether a probation or a shrinkage applies to the reliability still
+> to be defined belongs to its reputation update. The implementation below stays current
+> behaviour.
 
 > **Implemented (2026-09-25, T50):** `probation::N_PROBATION = 30`; after it the odds weight
 > of D33 is shrunk by `k_u/(k_u + 100)`.
@@ -1298,3 +1331,105 @@ nor assisted behaviours they did not represent.
 **Scope.** Documentation of the owner's decision only, as D45: no rule, threshold, policy,
 format or model assumption adopted; no review finding closed; the certifier and new
 experiments stay suspended; A2 stays open and blocking; D38 stays apart.
+
+---
+
+## D47 — Reviewers answer the item; their reliability is evaluated over time
+
+**Owner decision, 2026-10-21.** The direction of Phase 1's mechanism, decided before it is
+implemented:
+
+- The author writes a question in its context and states the correct answer.
+- Reviewers answer the question. Forecasting whether the item passes the pilot is no longer
+  their main expected contribution.
+- Reviewers may consult any resource. The system does not detect, infer or assess the use of
+  outside tools.
+- Searching for sources and weighing them is the people's task. The new contract does not
+  require the sources consulted to be specified or recorded, and introduces no automatic
+  verifier.
+- The mathematical mechanism processes the answers and evaluates the reviewers' reliability over
+  time, with a possible reputational weight.
+
+**Still to define, not settled here.** The aggregation formula, the reputation update, the
+treatment of a contested key, the thresholds, the outcomes and the new mechanism's guarantees.
+A balanced split between correct and wrong answers is a possible signal to study; it is neither
+a validated criterion of ambiguity nor an automatic rule of rejection. Agreement with the
+author's key or with the majority of reviewers is not demonstrated reliability. No formula or
+policy is adopted to fill these gaps. The invariants still bind the choice: quality is not
+decided by majority (#2, D1), and a Schelling point that rewards agreement with the majority is
+excluded (D6, [`CLAUDE.md`](CLAUDE.md)).
+
+**Objectives and mechanisms.** D45's open environment and D46's two priorities remain the
+references: they state conditions and objectives of the assessment. D47 states the direction of
+a mechanism: which data each role supplies and what the mathematics must evaluate. It does not
+make the reviewers' answers a measure of D46's priorities, does not show unaided knowledge
+(D45), and adopts no subscore, rubric or aggregate. D46 keeps its priorities distinct from the
+reviewers' forecast; D47 is what sets that forecast aside as the reviewers' main contribution.
+
+**Earlier commitments it modifies.**
+- D6: the reviewer's input, a probability that the item passes validation scored by a proper
+  rule, is replaced as the intended contribution by an answer to the item. The exclusion of a
+  Schelling point stays.
+- D23, D33, D35: the evaluator score as a forecast's difference score against the crowd, its
+  odds weights and its scored outcomes (pilot outcomes, exploration, golden items) are no
+  longer the intended evaluator mechanism. What replaces them is still to be defined.
+- `05` [4]: the reviewer's declaration of a probability becomes an answer to the item. Random
+  assignment, blindness and commit-reveal are not changed by this decision.
+
+**Earlier commitments it suspends.** No further work under the previous design; its code, tests
+and records are kept, and its closures keep their perimeters.
+- A1's forecast target (O1) and observation design (O2, every reviewed item prescribed to the
+  pilot), with their operational premises (sustainability, T1). A1 stays closed conditionally
+  on `1bd865c` for its expected-score guarantee only.
+- A12's affine weight candidate and its parameter procedures (`η`, `k₀`, probation, cap,
+  diagnostic CUSUM). A12 stays closed conditionally on `15b846c` within its offline scope.
+- A10's residual: what an absent forecast baseline does in a future consumer.
+- D34's change detector and D36's probation as specifications: they act on forecast scores.
+  Whether a detector, a probation or a shrinkage applies to the new reliability belongs to the
+  reputation update still to define.
+- D35's exploration and its rate; B-b's scorer and its snapshot; the band items' forecast
+  baselines; the S2 synthetic check.
+- The calibration of the forecast path's parameters in T25's step 4: `γ`, `k₀`, the odds cap
+  `w_max`, the CUSUM's `k` and `h`, `N_PROBATION`, the exploration rate.
+- A2's work, already suspended, as stated below.
+
+**Left open.**
+- The points still to define, above.
+- Level A. Today the reviewer's revealed probability is both the bridging rating `r_uj` and the
+  forecast the evaluator score reads. Whether bridging (D2, D32, D42) reads the answers, another
+  review signal or nothing, and what follows for the band (D26) and the appeal (D8, D27), is
+  not decided. Invariant #2 stays.
+- Level B. The relation between the reviewers' answers and the pilot, IRT, DIF, contested facts
+  and re-validation (D3, D11, D37, D38, D43) is not decided. Their contracts and code stand as
+  specified.
+- Golden items (D21, `05`): whether and how they serve the reviewers' reliability.
+- The deposit's mandatory primary source and §B.5's source check (D38). The new contract
+  requires no source to be specified or recorded and adds no automatic verifier; whether the
+  deposit and the contested-fact path keep theirs is open.
+- Peer prediction and the Bayesian Truth Serum (`02` §C.3), with D45's tension on shared sources.
+- D39's coordination detector infers no tool use, yet shared tools can produce its signal (D45);
+  under D47 its flags are not evidence of tool use, and how the two coexist is open.
+- D45's other questions (collaboration, delegation, automation, impersonation, coordination) and
+  the tensions D45 and D46 record: none is resolved here.
+- Invariant #4 and D5 stand: `C` and `E` stay on unlinkable pseudonyms. What `E` measures under
+  D47 is part of the reliability still to define.
+
+**A2.** A2's requirement, a whole-test DTF bound for the previous design's contested pool and its
+active items (`15` A2), is not resolved, withdrawn or narrowed by D47 or by the archiving of its
+dossier and studies. Its certifier and experiments stay suspended; its results keep their
+domains. Whether the new design needs a whole-test guarantee, and which, is among the guarantees
+still to decide. A2 stays open, and Phase 1 cannot be declared complete before the owner decides.
+
+**Closures.** A1, A12, A10, A3–A9, A11, C5, C6, D3 and the Variant 1 fit states remain closed
+within their recorded perimeters, conditionally where so recorded. A1 and A12 concern the
+forecast score and its weights; they certify nothing of the new mechanism.
+
+**Current code.** Nothing implements D47. Reviewers commit and reveal a probability
+(`protocol::review::{commit, reveal}`, `lifecycle::Event::Reveal`). It is the bridging rating
+and the forecast that `scoring::reputation` and `protocol::{honeypot, exploration, probation,
+panel_scores, cohort_scores, affine_weights}` score and weigh. These keep their tests and their
+documented behaviour until the implementation that follows adapts, replaces or retires them.
+
+**Scope.** Decision record only. No formula, threshold, policy, format or rubric is adopted; no
+code behaviour changes; no review finding is closed; Phase 1 stays open. The implementation of
+the new mechanism is a later assignment.
