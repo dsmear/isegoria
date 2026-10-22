@@ -310,10 +310,12 @@ fn view_changes_and_withholders_preserve_the_author_clock() {
     assert!(net.ledger.state().results().author_point().is_none());
     let cut = Cut::next(&net.replica, net.ledger.last(), 1, true);
     let cp = cut.checkpoint_in(3, NET, consortium().member_set_hash());
-    let sign = |by: &[usize]| -> Vec<_> { by.iter().map(|&i| (i, members()[i].sign(&cp))).collect() };
+    let sign =
+        |by: &[usize]| -> Vec<_> { by.iter().map(|&i| (i, members()[i].sign(&cp))).collect() };
     let before = net.ledger.last().cloned();
     assert_eq!(
-        net.ledger.apply_in_view(&net.replica, &cut, 3, &sign(&[0, 2])),
+        net.ledger
+            .apply_in_view(&net.replica, &cut, 3, &sign(&[0, 2])),
         Err(LedgerError::Unsigned)
     );
     assert_eq!(net.ledger.last(), before.as_ref());

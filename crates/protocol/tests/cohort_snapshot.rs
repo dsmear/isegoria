@@ -1184,8 +1184,10 @@ fn a_cut_with_no_new_event_closes_the_cohorts() {
         let cp = cut.checkpoint(NET, consortium().member_set_hash());
         MemberObject::CutSignature {
             cut,
+            view: 0,
             member: 0,
             signature: members()[0].sign(&cp),
+            named: Vec::new(),
         }
         .encode()
     };
