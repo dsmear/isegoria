@@ -429,7 +429,9 @@ AT-NET-22); the transport uses none of them yet.
   writer. A writer's member and tier come from this configuration, never from a peer.
 - `Tiers::bind` signs, with a member's consortium key, a transport key bound to the network
   id, the member-set hash and the member's index; `Tiers::access` grants the circle only to
-  the transport key presented with a binding that verifies.
+  the transport key presented with a binding that verifies, and only under the set that
+  verified it: an `Access` carries that set's digest (network id, member set, threshold,
+  circle keys), and any other set reads it as public (`Tiers::member`).
 - `Tiers::serve` answers Summary, Have and Entries with readable entries only: a reader
   without circle access gets no circle identifier or object, whatever its Summary or Want
   names. The cuts it collects still mark the circle feeds (length and head).
@@ -442,7 +444,9 @@ AT-NET-22); the transport uses none of them yet.
   exists, or what its events do: the cut's signers attest those (`Observed::attested`).
   It applies the public entries in the members' order and counts beacon messages only on
   their member's public feed, so it reaches the members' beacon values and exclusions; it
-  computes no protocol state. Members keep the full check (`added`).
+  computes no protocol state. An observer is made for one set: other tiers, or a replica
+  whose writer set is not theirs, are refused before anything changes. Members keep the
+  full check (`added`).
 
 The transport is unchanged: a node answers the Summary and Want of any peer that connects
 and pulls from it on connect, and a node started without a writer key replicates the whole

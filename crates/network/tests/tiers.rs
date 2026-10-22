@@ -241,7 +241,7 @@ fn member_follow(replica: &Replica, tiers: &Tiers) -> (Vec<Cut>, Rounds) {
 
 /// The public reader's path: cuts collected from the public tier and applied until one waits.
 fn observer_follow(replica: &Replica, tiers: &Tiers) -> (Observer, Vec<(Cut, Observed)>) {
-    let mut observer = Observer::new();
+    let mut observer = Observer::new(tiers);
     let mut seen = Vec::new();
     loop {
         let number = observer.last().map_or(0, |l| l.number + 1);
@@ -338,7 +338,7 @@ fn at_net_22_a_bound_reader_converges_on_both_tiers() {
     let (net, _) = history();
     let t = tiers();
     let access = t.access(&TRANSPORT, Some(&t.bind(&members()[2], 2, TRANSPORT)));
-    assert_eq!(access.member(), Some(2));
+    assert_eq!(t.member(access), Some(2));
     assert_eq!(
         t.serve(&net.replica, access).summary(),
         net.replica.summary()
@@ -422,7 +422,7 @@ fn at_net_22_a_binding_grants_the_circle_only_as_signed() {
     let t = tiers();
     let ms = members();
     let good = t.bind(&ms[1], 1, TRANSPORT);
-    assert_eq!(t.access(&TRANSPORT, Some(&good)).member(), Some(1));
+    assert_eq!(t.member(t.access(&TRANSPORT, Some(&good))), Some(1));
     assert_eq!(t.access(&TRANSPORT, None), Access::PUBLIC);
     assert_eq!(t.access(&[78; 32], Some(&good)), Access::PUBLIC);
     let pair: Vec<VerifyingKey> = member_keys()[..2].to_vec();
@@ -453,7 +453,7 @@ fn at_net_22_a_binding_grants_the_circle_only_as_signed() {
     }
     for b in &bad {
         assert_eq!(t.access(&TRANSPORT, Some(b)), Access::PUBLIC, "{b:?}");
-        assert_eq!(t.access(&b.transport, Some(b)).member(), None, "{b:?}");
+        assert_eq!(t.member(t.access(&b.transport, Some(b))), None, "{b:?}");
     }
 }
 
@@ -663,7 +663,7 @@ fn at_net_22_the_observer_checks_the_signatures() {
     let (net, cuts) = history();
     let t = tiers();
     let reader = public_reader(&net, &t);
-    let mut observer = Observer::new();
+    let mut observer = Observer::new(&t);
     for (k, cut) in cuts[..2].iter().enumerate() {
         let Collected::Ready(_, view, sigs) = collect(&reader, t.consortium(), NET, k as u64)
         else {
@@ -692,4 +692,139 @@ fn at_net_22_the_observer_checks_the_signatures() {
         .apply_in_view(&reader, &t, &cuts[2], view, &only(&[0, 1]))
         .is_ok());
     assert_eq!(observer.last(), Some(&cuts[2]));
+}
+
+/// A tiered set on `net` and a replica holding one entry on each of its six feeds.
+fn context(net: [u8; 32], member_seeds: [u8; 3], circle_seeds: [u8; 3]) -> (Tiers, Replica) {
+    let keys = member_seeds
+        .map(|s| Member::from_seed([s; 32]).public())
+        .to_vec();
+    let circle = circle_seeds.map(|s| FeedWriter::from_seed(net, [s; 32]).public());
+    let tiers = Tiers::new(net, Consortium::new(keys, 2), &circle).expect("a valid tiered set");
+    let mut replica = Replica::new(tiers.writers().clone());
+    for s in member_seeds.iter().chain(&circle_seeds) {
+        let object = format!("entry-{s}").into_bytes();
+        let entry = TransparencyLog::new().append(cid(&object)).clone();
+        let signed = FeedWriter::from_seed(net, [*s; 32]).sign(&entry);
+        replica.insert(signed, object).expect("a writer of the set");
+    }
+    (tiers, replica)
+}
+
+/// Circle records, identifiers and objects `tiers` serves from `replica` to `access`.
+fn circle_reads(tiers: &Tiers, replica: &Replica, access: Access) -> usize {
+    let circle = |w: &[u8; 32]| tiers.tier(w) == Some(Tier::Circle);
+    let served = tiers.serve(replica, access);
+    let ids: Vec<EntryId> = replica.ids().filter(|id| circle(&id.writer)).collect();
+    let records = served
+        .summary()
+        .0
+        .iter()
+        .filter(|w| circle(&w.writer))
+        .count();
+    let offered = served.have_for(&Summary::default());
+    records
+        + offered.iter().filter(|id| circle(&id.writer)).count()
+        + served.entries_for(&ids, MAX_RESPONSE).len()
+}
+
+/// AT-NET-22: an access verified under one tiered set reads no circle entry under another (R1).
+#[test]
+fn at_net_22_an_access_reads_the_circle_only_where_verified() {
+    let (a, replica_a) = context(NET, MEMBER_SEEDS, CIRCLE_SEEDS);
+    let access = a.access(&TRANSPORT, Some(&a.bind(&members()[0], 0, TRANSPORT)));
+    assert_eq!(
+        (a.member(access), circle_reads(&a, &replica_a, access)),
+        (Some(0), 9)
+    );
+    let (again, replica_again) = context(NET, MEMBER_SEEDS, CIRCLE_SEEDS);
+    assert_eq!(
+        again.member(access),
+        Some(0),
+        "the same configuration, built again"
+    );
+    assert_eq!(circle_reads(&again, &replica_again, access), 9);
+    assert_eq!(circle_reads(&a, &replica_a, Access::PUBLIC), 0);
+    let others = [
+        ("another network", [23; 32], MEMBER_SEEDS, CIRCLE_SEEDS),
+        ("another consortium", NET, [33, 34, 35], CIRCLE_SEEDS),
+        ("other circle keys", NET, MEMBER_SEEDS, [43, 44, 45]),
+    ];
+    for (name, net, member_seeds, circle_seeds) in others {
+        let (t, replica) = context(net, member_seeds, circle_seeds);
+        assert_eq!(t.member(access), None, "{name}");
+        assert_eq!(circle_reads(&t, &replica, access), 0, "{name}");
+        let public = replica
+            .ids()
+            .filter(|id| t.tier(&id.writer) == Some(Tier::Public));
+        let served = t.serve(&replica, access).have_for(&Summary::default());
+        assert_eq!(
+            served,
+            public.collect::<Vec<_>>(),
+            "{name}: the public tier stays readable"
+        );
+        let own = t.bind(&Member::from_seed([member_seeds[0]; 32]), 0, TRANSPORT);
+        let own = t.access(&TRANSPORT, Some(&own));
+        assert_eq!(
+            circle_reads(&t, &replica, own),
+            9,
+            "{name}: its own binding"
+        );
+    }
+}
+
+/// AT-NET-22: an observer refuses tiers or a replica other than those it follows (R2).
+#[test]
+fn at_net_22_an_observer_keeps_its_configuration() {
+    let (net, cuts) = history();
+    let t = tiers();
+    let reader = public_reader(&net, &t);
+    let msh = consortium().member_set_hash();
+    let sigs = |k: usize, network: [u8; 32]| -> Vec<(usize, Signature)> {
+        let checkpoint = cuts[k].checkpoint(network, msh);
+        (0..3)
+            .map(|m| (m, members()[m].sign(&checkpoint)))
+            .collect()
+    };
+    let other_net = Tiers::new([23; 32], consortium(), &circle_keys()).unwrap();
+    let other_circle = [43, 44, 45].map(|s| FeedWriter::from_seed(NET, [s; 32]).public());
+    let other_conf = Tiers::new(NET, consortium(), &other_circle).unwrap();
+    let mut observer = Observer::new(&t);
+    observer
+        .apply_in_view(&reader, &t, &cuts[0], 0, &sigs(0, NET))
+        .unwrap();
+    let (_, foreign) = context([23; 32], MEMBER_SEEDS, CIRCLE_SEEDS);
+    assert!(foreign.writers() == other_net.writers() && !foreign.is_empty());
+    for (name, other) in [
+        ("another network", &other_net),
+        ("another configuration", &other_conf),
+    ] {
+        for replica in [&reader, &foreign] {
+            let refused =
+                observer.apply_in_view(replica, other, &cuts[1], 0, &sigs(1, other.network_id()));
+            assert_eq!(refused, Err(ObserveError::Context), "{name}");
+            assert_eq!(observer.last(), Some(&cuts[0]), "{name}");
+            assert_eq!(observer.beacon(0), None, "{name}");
+        }
+        let mut fresh = Observer::new(other);
+        assert_eq!(
+            fresh.apply_in_view(&reader, other, &cuts[0], 0, &sigs(0, other.network_id())),
+            Err(ObserveError::Replica),
+            "{name}: its own observer, given this network's replica"
+        );
+    }
+    for other in [&other_net, &other_conf] {
+        let empty = Replica::new(other.writers().clone());
+        for replica in [&empty, &foreign] {
+            let refused = observer.apply_in_view(replica, &t, &cuts[1], 0, &sigs(1, NET));
+            assert_eq!(refused, Err(ObserveError::Replica));
+            assert_eq!(observer.last(), Some(&cuts[0]));
+        }
+    }
+    observer
+        .apply_in_view(&reader, &t, &cuts[1], 0, &sigs(1, NET))
+        .unwrap();
+    let (_, rounds) = member_follow(&net.replica, &t);
+    assert!(rounds.outcome(0).is_some());
+    assert_eq!(observer.beacon(0), rounds.outcome(0));
 }

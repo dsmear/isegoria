@@ -74,7 +74,7 @@ moved there, for 51. Sites are named by function; line numbers drift.
 | `log::TransparencyLog::append` | `last().unwrap()` | internal: an entry was just pushed | kept |
 | `codec::Reader::fixed` (T73) | `try_into().expect` | internal: `take(N)` returned exactly `N` bytes | kept |
 | `replica::Replica::entries_for` (T18) | index `self.entries[id]` | internal: `id` was kept only if `contains(id)` | kept |
-| `rounds::Rounds::count`, `Rounds::finish` (T74, moved by T76) | `replay(..).expect` on the counted commits, `.expect` on finishing the round | internal: only commits and reveals the round accepted are kept, so replaying them in the same order succeeds; a round with commits closes and finishes, with no reveal too | kept |
+| `rounds::Rounds::count`, `Rounds::finish` (T74, moved by T76) | `replay(..).expect` on the counted commits, `.expect` on finishing the round | internal: only commits and reveals the round accepted are kept, so replaying them in the same order succeeds; a round with commits closes and finishes, with no reveal too. It needs the same consortium and network id at every call: the ledger holds its own, `observer::Observer` refuses other tiers before counting (`ObserveError::Context`, T77), `p2p::member::Collector` relies on its caller | kept |
 | `p2p::Handle::ask` (T18) | 2 × `.expect` on the command channel and its answer | internal: the node's task runs while its handle lives (dropping the handle aborts it) and answers every command | kept |
 | `store::DurableLog::open` (T13) | 3 × `try_into().expect` on a record's fields | internal: slices of fixed width inside a `chunks_exact(104)` record; the file's bytes decide only whether the record chains | kept |
 

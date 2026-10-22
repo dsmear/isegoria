@@ -13,17 +13,27 @@ pub enum ObserveError {
     Cut(CutError),
     /// Fewer than the threshold of member signatures, a withholder's not counted (rule 6).
     Unsigned,
+    /// Tiers other than the configuration the observer follows.
+    Context,
+    /// A replica whose writer set is not the tiers'.
+    Replica,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Observer {
+    context: [u8; 32],
     last: Option<Cut>,
     rounds: Rounds,
 }
 
 impl Observer {
-    pub fn new() -> Self {
-        Self::default()
+    /// An observer of the network and configuration `tiers` describe, and of no other.
+    pub fn new(tiers: &Tiers) -> Self {
+        Observer {
+            context: tiers.context(),
+            last: None,
+            rounds: Rounds::new(),
+        }
     }
 
     /// Applies the next cut, signed by `sigs` in `view`, once `replica` holds every public
@@ -36,6 +46,12 @@ impl Observer {
         view: u64,
         sigs: &[(usize, Signature)],
     ) -> Result<Observed, ObserveError> {
+        if tiers.context() != self.context {
+            return Err(ObserveError::Context);
+        }
+        if replica.writers() != tiers.writers() {
+            return Err(ObserveError::Replica);
+        }
         let (consortium, net) = (tiers.consortium(), tiers.network_id());
         let checkpoint = cut.checkpoint_in(view, net, consortium.member_set_hash());
         let excluded = self.rounds.excluded(cut);

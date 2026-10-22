@@ -132,7 +132,7 @@ impl FeedWriter {
 }
 
 /// The keys allowed to write on one network.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WriterSet {
     network_id: [u8; 32],
     keys: BTreeMap<[u8; 32], VerifyingKey>,

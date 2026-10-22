@@ -23,19 +23,18 @@ pub enum TierError {
     Repeated { key: [u8; 32] },
 }
 
-/// What a peer reads: the circle only through [`Tiers::access`].
+/// What a peer reads: the circle only as [`Tiers::access`] verified it, under that same set.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Access {
     member: Option<usize>,
+    context: [u8; 32],
 }
 
 impl Access {
-    pub const PUBLIC: Access = Access { member: None };
-
-    /// The member whose verified binding granted the circle.
-    pub fn member(self) -> Option<usize> {
-        self.member
-    }
+    pub const PUBLIC: Access = Access {
+        member: None,
+        context: [0; 32],
+    };
 }
 
 /// Member `member`'s signature binding the transport key `transport`.
@@ -53,6 +52,7 @@ pub struct Tiers {
     consortium: Consortium,
     writers: WriterSet,
     places: BTreeMap<[u8; 32], (usize, Tier)>,
+    context: [u8; 32],
 }
 
 impl Tiers {
@@ -77,12 +77,24 @@ impl Tiers {
             }
         }
         let keys: Vec<VerifyingKey> = consortium.keys().iter().chain(circle).copied().collect();
+        let threshold = (consortium.threshold() as u64).to_le_bytes();
+        let mut fields: Vec<&[u8]> = vec![&network_id, &threshold];
+        let member_set = consortium.member_set_hash();
+        fields.push(&member_set);
+        let circle: Vec<[u8; 32]> = circle.iter().map(|k| k.to_bytes()).collect();
+        fields.extend(circle.iter().map(|k| k.as_slice()));
         Ok(Tiers {
             writers: WriterSet::new(network_id, &keys),
+            context: tagged("isegoria/tiers/context/v1", &fields),
             network_id,
             consortium,
             places,
         })
+    }
+
+    /// The digest of the whole configuration: an [`Access`] and an observer hold to it.
+    pub(crate) fn context(&self) -> [u8; 32] {
+        self.context
     }
 
     pub fn network_id(&self) -> [u8; 32] {
@@ -138,16 +150,22 @@ impl Tiers {
                     .get(b.member)
                     .is_some_and(|k| k.verify_strict(&message, &b.signature).is_ok())
         });
-        Access {
-            member: verified.map(|b| b.member),
-        }
+        verified.map_or(Access::PUBLIC, |b| Access {
+            member: Some(b.member),
+            context: self.context,
+        })
+    }
+
+    /// The member whose binding `access` verified, if this tiered set verified it.
+    pub fn member(&self, access: Access) -> Option<usize> {
+        access.member.filter(|_| access.context == self.context)
     }
 
     /// Whether `access` reads `writer`: public always, circle with a binding, unknown never.
     pub fn readable(&self, writer: &[u8; 32], access: Access) -> bool {
         match self.tier(writer) {
             Some(Tier::Public) => true,
-            Some(Tier::Circle) => access.member.is_some(),
+            Some(Tier::Circle) => self.member(access).is_some(),
             None => false,
         }
     }
