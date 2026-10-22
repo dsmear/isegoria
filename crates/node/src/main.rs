@@ -1,5 +1,6 @@
 //! `isegoria-node <config.toml>`: runs a node until SIGTERM or Ctrl-C (`docs/04` §A node
-//! process). Exit 2 for a configuration that does not start, 1 for a node that does not.
+//! process); `--announce <config.toml>` prints a member's signed key configuration. Exit 2 for
+//! a configuration that does not hold, 1 for a node that does not start.
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -20,9 +21,25 @@ async fn stopped() {
 }
 
 fn main() -> ExitCode {
-    let Some(path) = std::env::args_os().nth(1).map(PathBuf::from) else {
-        eprintln!("usage: isegoria-node <config.toml>");
-        return ExitCode::from(2);
+    let args: Vec<PathBuf> = std::env::args_os().skip(1).map(PathBuf::from).collect();
+    let path = match args.as_slice() {
+        [flag, path] if flag.as_os_str() == "--announce" => {
+            return match node::Config::load(path).and_then(|c| node::announcement(&c)) {
+                Ok(hex) => {
+                    println!("{hex}");
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("configuration: {e:?}");
+                    ExitCode::from(2)
+                }
+            };
+        }
+        [path] => path.clone(),
+        _ => {
+            eprintln!("usage: isegoria-node <config.toml> | --announce <config.toml>");
+            return ExitCode::from(2);
+        }
     };
     let plan = match node::Config::load(&path).and_then(node::plan) {
         Ok(plan) => plan,

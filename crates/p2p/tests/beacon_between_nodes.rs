@@ -70,6 +70,8 @@ fn config_waiting(i: usize, role: bool, patience: u32, view_patience: u32) -> Co
         consortium: (!role).then(consortium),
         circle: None,
         tiers: None,
+        relay: None,
+        gateway: None,
     }
 }
 

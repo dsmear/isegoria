@@ -158,6 +158,36 @@ impl Tiers {
         )
     }
 
+    /// Member `member`'s writer key on `tier`.
+    pub fn key(&self, member: usize, tier: Tier) -> Option<[u8; 32]> {
+        let mut found = self.places.iter().filter(|(_, p)| **p == (member, tier));
+        found.next().map(|(key, _)| *key)
+    }
+
+    fn key_message(&self, index: usize, config: &[u8]) -> [u8; 32] {
+        tagged(
+            "isegoria/ohttp/key/v1",
+            &[
+                &self.network_id,
+                &self.consortium.member_set_hash(),
+                &(index as u64).to_le_bytes(),
+                config,
+            ],
+        )
+    }
+
+    /// Member `index`'s signature over its OHTTP key configuration (`docs/04` §Blind relays).
+    pub fn sign_key(&self, member: &Member, index: usize, config: &[u8]) -> Signature {
+        member.key.sign(&self.key_message(index, config))
+    }
+
+    /// Whether `signature` is member `index`'s over `config`, on this network and member set.
+    pub fn key_signed(&self, index: usize, config: &[u8], signature: &Signature) -> bool {
+        let message = self.key_message(index, config);
+        let key = self.consortium.keys().get(index);
+        key.is_some_and(|k| k.verify_strict(&message, signature).is_ok())
+    }
+
     /// Member `index`'s binding of `transport`, signed with `member`'s key.
     pub fn bind(&self, member: &Member, index: usize, transport: [u8; 32]) -> TransportBinding {
         TransportBinding {

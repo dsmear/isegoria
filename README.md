@@ -43,9 +43,9 @@ See [storage and runtime](docs/04-storage-network.md) and the
 [Phase 2 roadmap](docs/10-roadmap.md#phase-2--p2p-network).
 
 A network configured with D54's tiers serves outsiders the public tier only (T77, tested
-on loopback); one without tiers still serves its whole set to connected peers. Blind relays
-and the state tree are not implemented (T85, T86): run untiered networks only among
-machines you control.
+on loopback); one without tiers still serves its whole set to connected peers. The blind
+relay channel is built but admits no event until T79 (T85's first increment); the state
+tree is not implemented (T86). Run untiered networks only among machines you control.
 
 The target is a small experimental P2P testnet with independent operators, each
 holding its own keys (D55). Single-operator runs are intermediate checks; distributed

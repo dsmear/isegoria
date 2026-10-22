@@ -258,13 +258,17 @@ announcement and forwarded gossip carries only what that peer reads (T77); witho
 the sync answers any peer with the whole set. A member's duties are the cuts and the
 beacon, not an epoch's work (T79). The cuts are extended from the last one
 (`member::Collector`, fixed to one context; `member::PublicCollector` for a node without
-the circle), and `Handle::status` reports them with the finished rounds (T78).
+the circle), and `Handle::status` reports them with the finished rounds (T78). `blind`:
+`KeyAnnouncement`, `GatewayKey`, `Gateway`, `seal`, `Sealed::open`, `submit` — a person's event
+sealed with Oblivious HTTP (`ohttp`, `bhttp`) to a member's signed key, forwarded by a relay
+over libp2p and logged on the member's circle feed if its embedding admits it (T85).
 
 ## `node` — the node process
 
 `isegoria-node <config.toml>` (`docs/04` §A node process, T78): `Config` (TOML), `plan` (the
 checked configuration: keys, consortium, a tiered network's circle keys and the member's
-circle key, transport key kept in the data directory),
+circle key, a relay's routes or a member's gateway, transport key kept in the data directory),
+`announcement` (`isegoria-node --announce`: a member's signed key configuration),
 `run` (listen, dial, write the status until stopped), `render` and `parse` (the status
 file). Depends on `p2p` and `network`; the protocol state is not computed here yet (T79).
 
@@ -414,6 +418,7 @@ cargo clippy --workspace --all-targets
 | Gossip transport, replication of the signed set | **Real** — libp2p gossipsub + request-response, a grow-only set with equivocation evidence (T18) | — |
 | Protocol state from the replicated set, merge rules; cuts and beacon between nodes | **Real** — signed cuts fix the order, the first of conflicting events wins; members propose in turn, co-sign, commit and reveal on their feeds (T74); a silent proposer replaced by a change of view, single-decree Paxos over the cuts (T76, step 1); an epoch's withholders excluded from its next cuts (T76, step 2) | — |
 | DHT | Documented, not implemented (T75) | libp2p Kademlia |
+| Blind relays | **Channel real, loopback-tested** — signed key configurations, relay and gateway over libp2p with Oblivious HTTP, receipts of the circle entry, duplicates answered once (T85, first increment) | admission and private reads with T79; no event admitted by a node process yet |
 | Who may read the replicated set | **Real for tiered networks, loopback-tested** — the binding on each connection, every message filtered by verified access, a member's two feeds, a public reader on an `Observer` (T77, reviewed on loopback evidence; no multi-operator run); **none without tiers** — a node serves its whole set to any peer, against D17 | D54: three tiers, two feeds per member, the circle served only to member-bound transport keys (T77); blind relays (T85); a state tree keyed by nym (T86) |
 | A node process | **Real** — `isegoria-node` from a TOML configuration, its files resumed on restart, its status on a period (T78) | an epoch's work (T79) |
 | Answer review between nodes | **None** — `AnswerPath`/`AnswerNode` are offline; the ledger still decodes legacy `NodeEvent` (T79) | the distributed answer-review contract, then its implementation (`docs/05`) |

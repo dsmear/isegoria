@@ -233,3 +233,102 @@ fn at_net_23_a_tiered_configuration() {
         Err(ConfigError::CircleKey)
     );
 }
+
+/// Members 0 and 1's signed key configurations, from HPKE seeds 21 and 22, in hex.
+fn hpke_line() -> String {
+    let members: Vec<_> = [1, 2].map(|s| Member::from_seed([s; 32]).public()).to_vec();
+    let circle = [11, 12].map(|s| Member::from_seed([s; 32]).public());
+    let consortium = network::consortium::Consortium::new(members, 2);
+    let tiers = network::tier::Tiers::new([7; 32], consortium, &circle).unwrap();
+    let signed: Vec<String> = [0usize, 1]
+        .map(|i| {
+            let member = Member::from_seed([i as u8 + 1; 32]);
+            let key = p2p::blind::GatewayKey::new(&tiers, &member, i, &[21 + i as u8; 32]);
+            format!("\"{}\"", hex(&key.unwrap().announcement().encode()))
+        })
+        .to_vec();
+    format!("hpke = [{}]\n", signed.join(", "))
+}
+
+/// AT-NET-24: a tiered member plans a gateway that admits nothing, a relay its routes; a
+/// configuration that does not hold refuses to start.
+#[test]
+fn at_net_24_relays_and_gateways_in_the_configuration() {
+    let dir = scratch("hpke-keys");
+    let (circle, own, other) = (dir.join("circle"), dir.join("hpke"), dir.join("other"));
+    std::fs::write(&circle, hex(&[11; 32])).unwrap();
+    std::fs::write(&own, hex(&[21; 32])).unwrap();
+    std::fs::write(&other, hex(&[29; 32])).unwrap();
+    let hpke = hpke_line();
+    let gatewayed = |key: &std::path::Path| {
+        let key = key.to_path_buf();
+        let (circle, hpke) = (circle.clone(), hpke.clone());
+        move |t: String| {
+            tiered(&circle)(t)
+                .replace("threshold = 2\n", &format!("threshold = 2\n{hpke}"))
+                .replace(
+                    "\n\n[consortium]",
+                    &format!(
+                        "\nhpke_key_file = \"{}\"\nrelays = [\"{}\"]\n\n[consortium]",
+                        key.display(),
+                        hex(&[5; 32])
+                    ),
+                )
+        }
+    };
+    let config = load("gateway", gatewayed(&own)).unwrap();
+    let signed = node::announcement(&config).unwrap();
+    assert!(hpke.contains(&signed));
+    let member = plan(config).unwrap();
+    let gateway = member.p2p.gateway.as_ref().expect("a gateway");
+    assert_eq!(gateway.relays, vec![[5; 32]]);
+    assert!(!(gateway.admit)(b"anything at all"));
+    assert!(member.p2p.relay.is_none());
+    let relay = |t: String| {
+        let t = tiered(&circle)(t).replace("threshold = 2\n", &format!("threshold = 2\n{hpke}"));
+        let t = t.split("\n\n[member]").next().unwrap().to_string() + "\n";
+        let t: Vec<&str> = t
+            .lines()
+            .filter(|l| !l.starts_with("key_file") && !l.starts_with("circle_key_file"))
+            .collect();
+        format!("relay = true\n{}", t.join("\n"))
+    };
+    let routed = plan(load("relay", relay).unwrap()).unwrap();
+    assert_eq!(routed.p2p.relay.map(|r| r.len()), Some(2));
+    assert!(routed.p2p.gateway.is_none());
+    let refused =
+        |name: &str, f: &dyn Fn(String) -> String| planned(name, |t| f(gatewayed(&own)(t)));
+    let hpke_field = Err(ConfigError::Relays("consortium.hpke"));
+    assert_eq!(planned("other-hpke", gatewayed(&other)), hpke_field);
+    let first = hpke.split('"').nth(1).unwrap().to_string();
+    let mut flipped = first.clone().into_bytes();
+    flipped[40] = if flipped[40] == b'0' { b'1' } else { b'0' };
+    let flipped = String::from_utf8(flipped).unwrap();
+    assert_eq!(
+        refused("tampered", &|t| t.replace(&first, &flipped)),
+        hpke_field
+    );
+    let second = hpke.split('"').nth(3).unwrap().to_string();
+    let swapped = |t: String| {
+        t.replace(&first, "FIRST")
+            .replace(&second, &first)
+            .replace("FIRST", &second)
+    };
+    assert_eq!(refused("swapped", &swapped), hpke_field);
+    assert_eq!(
+        refused("member-relay", &|t| format!("relay = true\n{t}")),
+        Err(ConfigError::Relays("relay"))
+    );
+    assert_eq!(
+        refused("no-gateway-relays", &|t| t
+            .lines()
+            .filter(|l| !l.starts_with("hpke_key_file"))
+            .collect::<Vec<_>>()
+            .join("\n")),
+        Err(ConfigError::Relays("relays"))
+    );
+    assert_eq!(
+        planned("untiered-relay", |t| format!("relay = true\n{t}")),
+        Err(ConfigError::Relays("consortium.circle"))
+    );
+}

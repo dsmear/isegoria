@@ -596,11 +596,12 @@ accepted signed entry's 168-byte encoding. An entry is written after its object 
 the node's memory changes; opening re-inserts every stored entry, checked again against the
 writer set, so a restarted node holds the set it had.
 
-### Blind relays (T85) — proposed contract
+### Blind relays (T85)
 
-**Status (2026-10-22): proposed; not approved, not implemented.** *Decided* restates D54;
-each **T85-Pn** awaits the owner. Which messages a person sends — the events, the read
-requests, their replies — is `05` T79-P2 and T79-P7, also proposed; this is their channel.
+**Status (2026-10-22).** The first increment, the transport channel, is built on T85-P1–P5
+at the owner's instruction, P5 as stated below (§As built). Which messages a person sends —
+the events, the read requests, their replies — stays `05` T79-P2 and T79-P7, proposed; T85
+as a whole stays open with them.
 
 *Decided (D54, `10` T85).* A person sends each event sealed to one member's key through a
 relay, as Oblivious HTTP (RFC 9458) over HPKE (RFC 9180): the relay sees where a message
@@ -631,67 +632,92 @@ growth. Batching (`10` T28) and PRIV-003 would blur it; neither is built.
 - **T85-P1 — the carrier.** RFC 9458's encapsulated request and response, byte for byte,
   on two libp2p request-response protocols, `/isegoria/ohttp/relay/1` (person → relay) and
   `/isegoria/ohttp/gateway/1` (relay → member), so an HTTP carrier could replace them with
-  the cryptography unchanged. Inside, a Binary HTTP request (RFC 9292)
-  `POST /isegoria/v1/<network id in hex>/event` whose body is the event, and a Binary HTTP
-  response: RFC 9458's labels, no bespoke HPKE composition. A person uses a new libp2p key
-  for each request, so its transport key links nothing; its address still can.
-- **T85-P2 — the library.** None found is audited and pure Rust (checked 2026-10-22 on
-  crates.io, the repositories and OSV): `ohttp` 0.8.0 (RFC 9458; RFC 9292 with `bhttp`; MIT
-  or Apache-2.0) runs on the `hpke` crate by default or on Mozilla's NSS; `hpke` 0.14.1 (RFC
-  9180, its test vectors) states that nobody has performed a paid audit of it and has no OSV
-  advisory; `hpke-rs` had five 2026 advisories (RUSTSEC-2026-0069 to 0072, a nonce reuse
-  among them; fixed in 0.6.0). Recommended: `ohttp` and `bhttp` on `hpke`, pinned, with RFC
-  9458 Appendix A as a known-answer test; NSS, deployed and reviewed, if its build is
-  acceptable.
-- **T85-P3 — the members' keys.** An HPKE key pair per member (X25519, HKDF-SHA256,
-  AES-128-GCM), configured separately: the private key in `hpke_key_file`, the key
-  configurations (RFC 9458 §3, distinct key ids) in member order in `consortium.hpke`, or in
-  T88-P1's genesis if adopted. Each is signed by its member's consortium key over
-  `H("isegoria/ohttp/key/v1" ‖ network id ‖ member-set hash ‖ index ‖ key configuration)`,
-  and a person uses only one that verifies, so a relay offering its own key reads nothing.
-  No derivation (T88-P2's is not adopted) and no rotation in the trial.
+  the cryptography unchanged. Inside, a Binary HTTP request (RFC 9292, known length)
+  `POST isegoria:///isegoria/v1/<network id in hex>/event` whose body is the event, and a
+  Binary HTTP response: RFC 9458's labels, no bespoke HPKE composition. A person uses a new
+  libp2p key for each request, so its transport key links nothing; its address still can.
+- **T85-P2 — the dependencies.** `ohttp` 0.8.0 and `bhttp` 0.8.0, pinned with `=`, from
+  github.com/martinthomson/ohttp (Martin Thomson co-authored RFC 9458), MIT or Apache-2.0,
+  Rust 1.86;
+  `ohttp`'s `rust-hpke` backend, the `hpke` crate 0.14.1 (github.com/rozbb/rust-hpke),
+  whose README states that nobody has performed a paid audit of it. OSV listed no advisory
+  for `ohttp`, `bhttp` or `hpke` on 2026-10-22. Three of their dependencies are held at
+  their newest Rust 1.86 releases in `Cargo.lock`: `aes` 0.9.2, `sha2` 0.11.0, `ctutils`
+  0.4.2. RFC 9458 Appendix A is the known-answer test (§As built).
+- **T85-P3 — the members' keys.** An HPKE key pair per member — X25519, HKDF-SHA256,
+  AES-128-GCM, key id the member's index — from 32 bytes kept in `hpke_key_file`, which
+  HPKE's own `DeriveKeyPair` (RFC 9180 §7.1.3) turns into the pair; no other derivation
+  (T88-P2's is not adopted) and no rotation in the trial. Each key configuration (RFC 9458
+  §3) is signed by its member's consortium key over
+  `H("isegoria/ohttp/key/v1" ‖ network id ‖ member-set hash ‖ index ‖ key configuration)`.
+  A client checks a configuration against the consortium of the network configuration it
+  already holds; wherever the configuration came from, a relay is never its authority, nor
+  the consortium's. A relay offering its own key therefore reads nothing.
 - **T85-P4 — the relays.** The configuration lists the relays' transport keys (`relays`).
   A gateway answers only a peer whose Noise-authenticated key is listed, before
   decapsulating: a member never receives a request from the person's own address. A relay
   is outside the circle (T77 serves it the public tier), holds no writer key in a tiered
   network, and every replica refuses an entry it signs. Refusing the untiered
   configurations, where relays still write, once this path works is a separate decision.
-- **T85-P5 — messages.** An encapsulated request is at most 1 MiB and a reply 64 KiB,
-  refused by relay and gateway before decapsulation. In the clear, the gateway refuses an
-  unlisted peer, an unknown key id, a request that does not decapsulate or exceeds the
-  limit, logging nothing. Inside the sealed reply: the entry `(writer, seq)`; or refusals
-  for another network's path, for bytes the admission check refuses (at most `MAX_OBJECT`,
-  decoding as a person's event — a predicate `node` supplies, so `p2p` keeps no protocol
-  state; which events is T79-P2), and "retry later" while the member's circle feed is not
-  caught up. OHTTP does not stop a replay (RFC 9458 §6.5): a member that already logged the
-  same bytes answers with that entry; through two members an event makes two entries, the
-  ledger counting the first; a retry is the same request again.
+- **T85-P5 — messages.**
+  - *Limits.* An encapsulated request at most 1 MiB and a reply 64 KiB: a longer one is
+    refused as it is read, before more is held, by relay, gateway and client alike.
+  - *Refusals in the clear* (the relay's or the gateway's, forwarded unchanged): a peer that
+    is not a listed relay, a key id no member's or not the gateway's, a request that does
+    not decapsulate, no connection to the member. Nothing is logged.
+  - *Sealed answers*: 200 with a receipt; 421 a path naming another network; 400 not this
+    request; 403 bytes the admission check refuses; 503 "retry later" while the member's
+    circle feed is not caught up; 500 a write that failed. Admission is a predicate the
+    embedding supplies — `p2p` keeps no protocol state, and which events it admits is T79.
+  - *The receipt* names the circle entry `(writer, seq, hash)` that logged the bytes. It
+    attests that registration only: not that the protocol applied or accepted the event,
+    which cuts and the ledger decide later (a duplicate refused, the first wins).
+  - *Duplicates.* OHTTP does not stop a replay (RFC 9458 §6.5). A gateway answers bytes it
+    already logged on its circle feed with that entry's receipt and logs nothing: whether the
+    requests come together (its node takes them one at a time), after a restart (its circle
+    feed is on disk) or in a new encapsulation of the same bytes (they have one content id).
+    "The same answer" is the same result, sealed in the current request's context, never a
+    stored ciphertext. Through two members one event makes two entries, the ledger counting
+    the first.
 
-**T79-P7 reconciled.** OHTTP seals each reply to its request's HPKE context, which is the
-fresh response key T79-P7 proposes: a read request's proof would bind the request's
-encapsulated key (`enc`), so a member re-sending it under another encapsulation is refused.
-This amends a proposal and is decided with it.
+**T79-P7.** Whether a read request's proof binds the request's encapsulation (`enc`) is left
+to T79-P7; this channel does not change OHTTP to provide it.
 
-**First increment.** After T85-P1–P5 and before any T79 choice, carrying opaque event bytes:
-in `p2p`, the relay (forwarding, limits, listed peers), the member gateway (decapsulation,
-the network path, the embedding's admission predicate, the circle feed, the reply) and a
-person's client; in `node`, `consortium.hpke`, `hpke_key_file` and `relays`. Read requests
-and the answer review's events stay with T79. Accepted over loopback, the relay instrumented:
+**First increment: acceptance.** Over loopback, with synthetic events and an instrumented
+relay: the RFC 9458 vector; the whole path to the circle feed; nothing of the event, the
+path or the receipt in what the relay receives or sends; the gateway answering only listed
+relays; any byte changed in a request or a reply refused; another member's key, another
+network's path and a configuration signed for another network or by another key refused;
+the limits; duplicates concurrent, re-encapsulated and after a restart; "retry later"
+before the circle feed caught up; a relay that cannot write; and replies swapped between two
+requests, which each client refuses.
 
-1. *Confidentiality.* No byte of the event, its nym proof or the reply's plaintext is in
-   what the relay receives or sends; the event is on the member's circle feed.
-2. *Addresses.* The gateway receives the request from the relay's key only; another peer
-   is refused before decapsulation; the person's transport key never reaches a member.
-3. *Alterations.* A request with any byte changed is refused and nothing logged; a reply
-   with any byte changed is refused by the person.
-4. *Recipient and network.* A request to member 1's key sent to member 0, a path naming
-   another network, a key configuration signed for another network or by another key:
-   refused, nothing logged.
-5. *A relay cannot write.* It does not start as a writer, its signed entries are refused by
-   every replica, and it obtains no circle entry.
-6. *Duplicates.* The same request twice gives one entry and the same reply; a member not
-   caught up answers "retry later" and logs nothing.
-7. *Known answer.* RFC 9458 Appendix A's example decapsulates to its plaintext.
+**As built (2026-10-22, first increment).** `p2p::blind` holds the channel: `KeyAnnouncement`
+(a member's signed key configuration, `verify` under the client's tiers), `GatewayKey`,
+`Gateway` with the embedding's `Admission`, `Carried` and `Refusal`, `Answer`, `seal` and
+`Sealed::open`, and `submit`, a person's request from a new transport key. A tiered relay
+(`Config::relay`) forwards a request unchanged, by its key id, to the peer whose binding
+verified as that member's (§Transport); a member's gateway (`Config::gateway`) checks, in
+order, the listed relay, the key id, the decapsulation, the path, admission and its circle
+feed's catch-up, finds bytes already logged by their content id on its circle log, and
+otherwise publishes them there. The codec refuses a request or reply beyond its limit as it
+reads it, and an empty reply is a failed exchange. In `node`: `consortium.hpke`,
+`hpke_key_file`, `relays`, `relay`, and `isegoria-node --announce <config>` printing a member's
+signed key configuration. **What a node process can do:** forward as a relay, and terminate
+the channel as a member, answering every event "not admitted" and logging nothing — no
+admission rule exists before T79, and the legacy events are not admitted in its place.
+Persons have no client program: `seal` and `submit` are a library.
+
+The known-answer test reproduces Appendix A through the `hpke` crate `ohttp` runs on (the
+open, the exported secret, the key, the nonce and the reply) and through `ohttp` and `bhttp`
+decoding its key configuration, request header and length and Binary HTTP messages;
+`ohttp`'s own reply derivation is checked by round trip only. Appendix A's illustrative
+`Content-Length` values (78, 38) differ from its hex (80 and 35 bytes), the second reported
+as erratum 7781; `bhttp` writes the empty sections RFC 9292 lets the example's reply omit.
+Tests: `p2p/tests/blind_relays.rs` and `node/tests/config.rs` (AT-NET-24); before the node
+handled the two roles, the seven path tests failed. Not built: read requests and private
+replies (T79-P7), the answer review's events (T79), any limit on a relay's volume, fuzzing of
+the new decoders, and a run across machines; untiered networks keep relays as writers.
 
 ### Cuts: the protocol state from the replicated set
 
@@ -814,6 +840,9 @@ is stopped, and resumes from its files when started again. Its configuration is 
 | `key_file` | optional: a file holding the writer's 32-byte seed (hex); a member's key is its writer key |
 | `consortium.circle` | optional: the members' circle keys in member order — a tiered network, whose `writers` must be exactly the members' and circle keys |
 | `circle_key_file` | a member of a tiered network: its circle seed (hex), whose key must be its own in `consortium.circle` |
+| `consortium.hpke` | optional, tiered: the members' signed key configurations in member order, in hex (§Blind relays; `--announce` prints a member's) |
+| `hpke_key_file`, `relays` | a tiered member's gateway: its HPKE seed (hex), whose configuration must be its own in `consortium.hpke`, and the relays' transport keys it answers |
+| `relay` | `true` for a tiered non-member that forwards persons' requests; needs every member's configuration |
 | `member` | optional: `index`, `every_ms`, `cuts_per_epoch`, `patience`, `view_patience` |
 | `sync_every_ms`, `status_every_ms` | the periodic pull, and how often the status is written |
 

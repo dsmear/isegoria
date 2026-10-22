@@ -108,6 +108,8 @@ fn member_config_every(i: usize, root: &std::path::Path, stored: bool, every: Du
         }),
         consortium: None,
         tiers: Some(tiers()),
+        relay: None,
+        gateway: None,
     }
 }
 
@@ -121,6 +123,8 @@ fn reader_config() -> Config {
         member: None,
         consortium: None,
         tiers: Some(tiers()),
+        relay: None,
+        gateway: None,
     }
 }
 

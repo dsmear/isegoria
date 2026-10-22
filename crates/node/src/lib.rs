@@ -7,6 +7,7 @@ use libp2p::Multiaddr;
 use network::consortium::{Consortium, Member};
 use network::replica::{FeedWriter, WriterSet};
 use network::tier::{TierError, Tiers};
+use p2p::blind::{Gateway, GatewayKey, KeyAnnouncement};
 use p2p::member::MemberRole;
 use p2p::{Config as P2p, Handle, Own, StartError, Status};
 use serde::Deserialize;
@@ -30,6 +31,14 @@ pub struct Config {
     pub key_file: Option<PathBuf>,
     /// A tiered member's circle seed in hex (`docs/04` §A node process).
     pub circle_key_file: Option<PathBuf>,
+    /// A tiered member's HPKE seed in hex: its gateway (`docs/04` §Blind relays).
+    pub hpke_key_file: Option<PathBuf>,
+    /// The relays' transport keys a tiered member's gateway answers.
+    #[serde(default)]
+    pub relays: Vec<String>,
+    /// Whether this tiered non-member forwards persons' requests as a relay.
+    #[serde(default)]
+    pub relay: bool,
     pub member: Option<MemberConfig>,
     #[serde(default = "default_sync")]
     pub sync_every_ms: u64,
@@ -45,6 +54,9 @@ pub struct ConsortiumConfig {
     /// The members' circle keys in member order: a tiered network when not empty.
     #[serde(default)]
     pub circle: Vec<String>,
+    /// The members' signed OHTTP key configurations in member order, in hex.
+    #[serde(default)]
+    pub hpke: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -83,6 +95,8 @@ pub enum ConfigError {
     Writers,
     /// A tiered member without its circle key, or a circle key file elsewhere or of another key.
     CircleKey,
+    /// A relay or gateway setting that does not hold: the field.
+    Relays(&'static str),
 }
 
 impl Config {
@@ -191,18 +205,8 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
     let seed = seed_of(&config.key_file, "key_file")?;
     let circle_seed = seed_of(&config.circle_key_file, "circle_key_file")?;
     let circle = keys(&config.consortium.circle, "consortium.circle")?;
-    let tiers = match circle.is_empty() {
-        true => None,
-        false => {
-            let consortium = Consortium::new(members.clone(), t);
-            let tiers = Tiers::new(network_id, consortium, &circle).map_err(ConfigError::Tiers)?;
-            if WriterSet::new(network_id, &writers) != *tiers.writers() {
-                return Err(ConfigError::Writers);
-            }
-            Some(tiers)
-        }
-    };
-    let member = match (config.member, seed) {
+    let tiers = tiers_of(&config)?;
+    let member = match (config.member.as_ref(), seed) {
         (None, _) => None,
         (Some(_), None) => return Err(ConfigError::MemberWithoutKey),
         (Some(m), Some(seed)) => Some(MemberRole {
@@ -231,6 +235,7 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
         _ if circle_seed.is_some() => return Err(ConfigError::CircleKey),
         _ => None,
     };
+    let (relay, gateway) = blind_plan(&config, tiers.as_ref(), member.as_ref())?;
     std::fs::create_dir_all(&config.data_dir).map_err(|e| ConfigError::Read(e.kind()))?;
     let transport = transport_key(&config.data_dir.join("transport.key"))?;
     let p2p = P2p {
@@ -245,6 +250,8 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
         consortium: (member.is_none() && tiers.is_none()).then(|| Consortium::new(members, t)),
         member,
         tiers,
+        relay,
+        gateway,
     };
     Ok(Plan {
         transport,
@@ -254,6 +261,132 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
         status: config.data_dir.join("status"),
         status_every: Duration::from_millis(config.status_every_ms),
     })
+}
+
+/// The tiered set a configuration declares, if any: its circle keys and `writers` checked.
+fn tiers_of(config: &Config) -> Result<Option<Tiers>, ConfigError> {
+    let circle = keys(&config.consortium.circle, "consortium.circle")?;
+    if circle.is_empty() {
+        return Ok(None);
+    }
+    let network_id = unhex(&config.network_id, "network_id")?;
+    let members = keys(&config.consortium.members, "consortium.members")?;
+    let t = config.consortium.threshold;
+    if !(1..=members.len()).contains(&t) {
+        return Err(ConfigError::Threshold);
+    }
+    let tiers =
+        Tiers::new(network_id, Consortium::new(members, t), &circle).map_err(ConfigError::Tiers)?;
+    let writers = keys(&config.writers, "writers")?;
+    if WriterSet::new(network_id, &writers) != *tiers.writers() {
+        return Err(ConfigError::Writers);
+    }
+    Ok(Some(tiers))
+}
+
+fn bytes_of(text: &str) -> Option<Vec<u8>> {
+    let text = text.trim();
+    if text.len() % 2 != 0 || !text.is_ascii() {
+        return None;
+    }
+    (0..text.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&text[i..i + 2], 16).ok())
+        .collect()
+}
+
+/// The members' key configurations, each verified as its position's member's.
+fn announcements(tiers: &Tiers, list: &[String]) -> Result<Vec<KeyAnnouncement>, ConfigError> {
+    list.iter()
+        .enumerate()
+        .map(|(i, text)| {
+            let a = bytes_of(text).and_then(|b| KeyAnnouncement::decode(&b));
+            a.filter(|a| a.member == i && a.verify(tiers))
+                .ok_or(ConfigError::Relays("consortium.hpke"))
+        })
+        .collect()
+}
+
+/// A member's gateway key from its `hpke_key_file`.
+fn gateway_key(tiers: &Tiers, role: &MemberRole, path: &Path) -> Result<GatewayKey, ConfigError> {
+    let text = std::fs::read_to_string(path).map_err(|e| ConfigError::Read(e.kind()))?;
+    let ikm = unhex(&text, "hpke_key_file")?;
+    GatewayKey::new(tiers, &role.member, role.index, &ikm)
+        .ok_or(ConfigError::Relays("hpke_key_file"))
+}
+
+/// The relay's routes and the member's gateway a configuration asks for; the gateway admits
+/// nothing, since no admission rule exists before `docs/10` T79.
+fn blind_plan(
+    config: &Config,
+    tiers: Option<&Tiers>,
+    member: Option<&MemberRole>,
+) -> Result<(Option<Vec<KeyAnnouncement>>, Option<Gateway>), ConfigError> {
+    let asked = config.relay
+        || config.hpke_key_file.is_some()
+        || !config.relays.is_empty()
+        || !config.consortium.hpke.is_empty();
+    let Some(tiers) = tiers.filter(|_| asked) else {
+        return match asked {
+            true => Err(ConfigError::Relays("consortium.circle")),
+            false => Ok((None, None)),
+        };
+    };
+    let routes = announcements(tiers, &config.consortium.hpke)?;
+    let relay = match config.relay {
+        true if member.is_none() && routes.len() == tiers.consortium().keys().len() => {
+            Some(routes.clone())
+        }
+        true => return Err(ConfigError::Relays("relay")),
+        false => None,
+    };
+    let gateway = match (&config.hpke_key_file, member) {
+        (None, _) if !config.relays.is_empty() => return Err(ConfigError::Relays("relays")),
+        (None, _) => None,
+        (Some(_), None) => return Err(ConfigError::Relays("hpke_key_file")),
+        (Some(path), Some(role)) => {
+            let key = gateway_key(tiers, role, path)?;
+            if routes.get(role.index) != Some(key.announcement()) {
+                return Err(ConfigError::Relays("consortium.hpke"));
+            }
+            let relays = config
+                .relays
+                .iter()
+                .map(|k| unhex(k, "relays"))
+                .collect::<Result<Vec<_>, _>>()?;
+            let admit: p2p::blind::Admission = Box::new(|_| false);
+            Some(Gateway { key, relays, admit })
+        }
+    };
+    Ok((relay, gateway))
+}
+
+/// A member's signed OHTTP key configuration in hex, for the shared `consortium.hpke`.
+pub fn announcement(config: &Config) -> Result<String, ConfigError> {
+    let tiers = tiers_of(config)?.ok_or(ConfigError::Relays("consortium.circle"))?;
+    let (Some(m), Some(path)) = (&config.member, &config.key_file) else {
+        return Err(ConfigError::MemberWithoutKey);
+    };
+    let text = std::fs::read_to_string(path).map_err(|e| ConfigError::Read(e.kind()))?;
+    let role = MemberRole {
+        member: Member::from_seed(unhex(&text, "key_file")?),
+        index: m.index,
+        consortium: Consortium::new(
+            tiers.consortium().keys().to_vec(),
+            tiers.consortium().threshold(),
+        ),
+        every: Duration::from_millis(m.every_ms),
+        cuts_per_epoch: m.cuts_per_epoch,
+        patience: m.patience,
+        view_patience: m.view_patience,
+    };
+    let path = config
+        .hpke_key_file
+        .as_ref()
+        .ok_or(ConfigError::Relays("hpke_key_file"))?;
+    Ok(hex(&gateway_key(&tiers, &role, path)?
+        .announcement()
+        .encode()))
 }
 
 /// The status file's text: one line per fact, cuts and rounds in order.

@@ -1,12 +1,13 @@
 //! libp2p transport for replication (`docs/04` §Replication between nodes, `docs/08`
 //! NET-010): gossipsub announces new entries, request-response pulls what a node lacks.
 
+pub mod blind;
 pub mod member;
 pub mod tiered;
 
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, StreamExt};
 use libp2p::gossipsub::{self, IdentTopic, MessageAcceptance, MessageAuthenticity, ValidationMode};
-use libp2p::request_response::{self, OutboundRequestId, ProtocolSupport};
+use libp2p::request_response::{self, OutboundRequestId, ProtocolSupport, ResponseChannel};
 use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
 use libp2p::{identity, noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm};
 use member::{Collector, MemberRole, Progress};
@@ -50,7 +51,10 @@ pub async fn read_limited<T: AsyncRead + Unpin + Send>(
     Ok(bytes)
 }
 
-async fn write_all<T: AsyncWrite + Unpin + Send>(io: &mut T, bytes: Vec<u8>) -> io::Result<()> {
+pub(crate) async fn write_all<T: AsyncWrite + Unpin + Send>(
+    io: &mut T,
+    bytes: Vec<u8>,
+) -> io::Result<()> {
     io.write_all(&bytes).await?;
     io.close().await
 }
@@ -105,6 +109,8 @@ struct Behaviour {
     gossip: gossipsub::Behaviour,
     sync: request_response::Behaviour<SyncCodec>,
     bind: request_response::Behaviour<SyncCodec>,
+    relay: request_response::Behaviour<blind::Limited>,
+    gateway: request_response::Behaviour<blind::Limited>,
 }
 
 /// A writer node's own feed: its key and the directory of its durable log (`docs/04` §A
@@ -129,6 +135,10 @@ pub struct Config {
     pub consortium: Option<Consortium>,
     /// A tiered network (`docs/04` §Transport): `writers` and the consortium must be its own.
     pub tiers: Option<Tiers>,
+    /// A tiered relay's routes (`docs/04` §Blind relays): the members' key configurations.
+    pub relay: Option<Vec<blind::KeyAnnouncement>>,
+    /// A tiered member's gateway (`docs/04` §Blind relays).
+    pub gateway: Option<blind::Gateway>,
 }
 
 /// What a node reports of itself (`docs/04` §A node process).
@@ -166,6 +176,9 @@ pub enum StartError {
     Tiers,
     /// A circle feed outside a tiered member, a tiered member without one, or another key's.
     NotTheCircle,
+    /// A relay or gateway outside a tiered network, a member as relay, a gateway of another
+    /// member, or key configurations that do not verify (`docs/04` §Blind relays).
+    Relays,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -242,6 +255,9 @@ struct Node {
     collector: Collector,
     tiered: Option<Tiered>,
     pending: HashMap<OutboundRequestId, Sent>,
+    routes: Option<Vec<blind::KeyAnnouncement>>,
+    gateway: Option<blind::Gateway>,
+    relaying: HashMap<OutboundRequestId, ResponseChannel<Vec<u8>>>,
 }
 
 /// The gossip topic of a network's announcements.
@@ -375,7 +391,15 @@ fn build_swarm(key: identity::Keypair) -> Result<Swarm<Behaviour>, String> {
                 request_response::Behaviour::new(protocol(SYNC_PROTOCOL), Default::default());
             let bind =
                 request_response::Behaviour::new(protocol(BIND_PROTOCOL), Default::default());
-            Ok(Behaviour { gossip, sync, bind })
+            let relay = blind::behaviour(blind::RELAY_PROTOCOL);
+            let gateway = blind::behaviour(blind::GATEWAY_PROTOCOL);
+            Ok(Behaviour {
+                gossip,
+                sync,
+                bind,
+                relay,
+                gateway,
+            })
         })
         .map_err(|e| e.to_string())?
         .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(3600)))
@@ -418,6 +442,37 @@ fn tiered_start(
     Ok(Tiered::new(tiers, binding))
 }
 
+/// A relay's routes and a gateway's key verify under the node's tiers; a relay is no member,
+/// a gateway is its member's.
+fn blind_start(
+    tiered: Option<&Tiered>,
+    config: &Config,
+    routes: Option<&[blind::KeyAnnouncement]>,
+    gateway: Option<&blind::Gateway>,
+) -> Result<(), StartError> {
+    if routes.is_none() && gateway.is_none() {
+        return Ok(());
+    }
+    let tiers = &tiered.ok_or(StartError::Relays)?.tiers;
+    if let Some(routes) = routes {
+        let mut members: Vec<usize> = routes.iter().map(|a| a.member).collect();
+        members.sort_unstable();
+        members.dedup();
+        let valid = routes.iter().all(|a| a.verify(tiers)) && members.len() == routes.len();
+        if config.member.is_some() || !valid {
+            return Err(StartError::Relays);
+        }
+    }
+    if let Some(g) = gateway {
+        let key = g.key.announcement();
+        let index = config.member.as_ref().map(|m| m.index);
+        if index != Some(key.member) || !key.verify(tiers) {
+            return Err(StartError::Relays);
+        }
+    }
+    Ok(())
+}
+
 impl Handle {
     /// Starts a node on the current tokio runtime; a writer's own feed is replayed first.
     pub fn spawn(key: identity::Keypair, mut config: Config) -> Result<Handle, StartError> {
@@ -426,6 +481,13 @@ impl Handle {
             None if config.circle.is_some() => return Err(StartError::NotTheCircle),
             None => None,
         };
+        let (routes, gateway) = (config.relay.take(), config.gateway.take());
+        blind_start(
+            tiered.as_ref(),
+            &config,
+            routes.as_deref(),
+            gateway.as_ref(),
+        )?;
         let mut replica = match config.store {
             Some(dir) => Store::Disk(
                 DurableReplica::open(&dir, config.writers.clone()).map_err(StartError::Replica)?,
@@ -485,6 +547,9 @@ impl Handle {
             collector,
             tiered,
             pending: HashMap::new(),
+            routes,
+            gateway,
+            relaying: HashMap::new(),
         };
         tokio::spawn(node.run(rx, config.sync_every));
         Ok(Handle {
@@ -777,6 +842,32 @@ impl Node {
                 message,
                 ..
             })) => self.bind_message(peer, message),
+            SwarmEvent::Behaviour(BehaviourEvent::Relay(request_response::Event::Message {
+                message:
+                    request_response::Message::Request {
+                        request, channel, ..
+                    },
+                ..
+            })) => self.relay_request(&request, channel),
+            SwarmEvent::Behaviour(BehaviourEvent::Gateway(request_response::Event::Message {
+                peer,
+                message,
+                ..
+            })) => match message {
+                request_response::Message::Request {
+                    request, channel, ..
+                } => self.gateway_request(peer, &request, channel),
+                request_response::Message::Response {
+                    request_id,
+                    response,
+                } => self.relayed(request_id, response),
+            },
+            SwarmEvent::Behaviour(BehaviourEvent::Gateway(
+                request_response::Event::OutboundFailure { request_id, .. },
+            )) => {
+                let refused = blind::Carried::Refused(blind::Refusal::Unreachable);
+                self.relayed(request_id, refused.encode());
+            }
             SwarmEvent::Behaviour(BehaviourEvent::Gossip(gossipsub::Event::Message {
                 propagation_source,
                 message_id,
@@ -849,6 +940,103 @@ impl Node {
                 t.granted(peer, granted);
                 self.pull(peer);
             }
+        }
+    }
+
+    /// A relay forwards a request unchanged to the member its key id names, if connected.
+    fn relay_request(&mut self, request: &[u8], channel: ResponseChannel<Vec<u8>>) {
+        let Some(routes) = self.routes.as_ref() else {
+            return;
+        };
+        let named = request.first();
+        let route = routes.iter().find(|a| a.config.first() == named);
+        let peer = route.and_then(|a| self.tiered.as_ref()?.peer_of(a.member));
+        let refusal = match (route, peer) {
+            (Some(_), Some(peer)) => {
+                let gateway = &mut self.swarm.behaviour_mut().gateway;
+                let id = gateway.send_request(&peer, request.to_vec());
+                self.relaying.insert(id, channel);
+                return;
+            }
+            (None, _) => blind::Refusal::UnknownKey,
+            (Some(_), None) => blind::Refusal::Unreachable,
+        };
+        let refused = blind::Carried::Refused(refusal).encode();
+        let _ = self
+            .swarm
+            .behaviour_mut()
+            .relay
+            .send_response(channel, refused);
+    }
+
+    /// A relay returns the gateway's answer unchanged.
+    fn relayed(&mut self, id: OutboundRequestId, response: Vec<u8>) {
+        if let Some(channel) = self.relaying.remove(&id) {
+            let _ = self
+                .swarm
+                .behaviour_mut()
+                .relay
+                .send_response(channel, response);
+        }
+    }
+
+    /// A gateway answers a listed relay's request with its answer sealed in that request's
+    /// context, or a refusal in the clear before anything is decapsulated or logged.
+    fn gateway_request(&mut self, peer: PeerId, request: &[u8], channel: ResponseChannel<Vec<u8>>) {
+        let Some(g) = self.gateway.as_ref() else {
+            return;
+        };
+        let listed = tiered::transport_key(&peer).is_some_and(|k| g.relays.contains(&k));
+        let opened = match listed {
+            true => blind::open_request(&g.key, request),
+            false => Err(blind::Refusal::NotARelay),
+        };
+        let carried = match opened {
+            Err(refusal) => blind::Carried::Refused(refusal),
+            Ok((inner, response)) => {
+                let answer = self.answer(&inner);
+                match answer.to_http().and_then(|b| response.encapsulate(&b).ok()) {
+                    Some(sealed) => blind::Carried::Sealed(sealed),
+                    None => blind::Carried::Refused(blind::Refusal::Undecryptable),
+                }
+            }
+        };
+        let _ = self
+            .swarm
+            .behaviour_mut()
+            .gateway
+            .send_response(channel, carried.encode());
+    }
+
+    /// What a gateway does with an opened request: bytes already on its circle feed answered
+    /// with their entry, other admitted bytes logged there once the feed caught up.
+    fn answer(&mut self, inner: &[u8]) -> blind::Answer {
+        let event = match blind::read_request(inner, &self.network_id) {
+            Ok(event) => event,
+            Err(answer) => return answer,
+        };
+        if !self.gateway.as_ref().is_some_and(|g| (g.admit)(&event)) {
+            return blind::Answer::NotAdmitted;
+        }
+        if !self.circle_caught_up {
+            return blind::Answer::RetryLater;
+        }
+        let Some(w) = self.circle.as_mut() else {
+            return blind::Answer::Failed;
+        };
+        if w.catch_up(self.store.replica()).is_err() {
+            return blind::Answer::Failed;
+        }
+        let payload = network::cid::cid(&event);
+        let writer = w.writer.public().to_bytes();
+        if let Some(e) = w.log.log().entries().iter().find(|e| e.payload == payload) {
+            let (seq, hash) = (e.seq, e.hash);
+            return blind::Answer::Logged(EntryId { writer, seq, hash });
+        }
+        match self.publish(Feed::Circle, event) {
+            Ok(signed) => blind::Answer::Logged(signed.id()),
+            Err(PublishError::NotCaughtUp) => blind::Answer::RetryLater,
+            Err(_) => blind::Answer::Failed,
         }
     }
 

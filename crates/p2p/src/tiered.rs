@@ -189,6 +189,13 @@ impl Tiered {
         self.tiers.tier(&id.writer) == Some(Tier::Public)
     }
 
+    /// A connected peer whose binding verified as member `member`'s.
+    pub(crate) fn peer_of(&self, member: usize) -> Option<PeerId> {
+        let mut bound = self.accesses.iter();
+        let found = bound.find(|(_, a)| self.tiers.member(**a) == Some(member));
+        found.map(|(peer, _)| *peer)
+    }
+
     /// Whether `peer`'s binding verified.
     pub(crate) fn is_bound(&self, peer: &PeerId) -> bool {
         self.accesses.contains_key(peer)
