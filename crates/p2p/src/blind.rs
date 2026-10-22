@@ -22,7 +22,8 @@ pub const GATEWAY_PROTOCOL: &str = "/isegoria/ohttp/gateway/1";
 /// The longest encapsulated request, and the longest encapsulated reply.
 pub const MAX_REQUEST: usize = 1 << 20;
 pub const MAX_REPLY: usize = 64 << 10;
-const FRAME: usize = 16;
+/// The `Carried` envelope around a sealed reply: version, kind and the field's length.
+const ENVELOPE: usize = 10;
 const CONFIG_LEN: usize = 41;
 const SUITE: [u8; 6] = [0, 4, 0, 1, 0, 1];
 
@@ -319,6 +320,7 @@ impl Sealed {
     pub fn open(self, carried: &Carried) -> Result<Answer, ClientError> {
         let sealed = match carried {
             Carried::Refused(r) => return Err(ClientError::Refused(*r)),
+            Carried::Sealed(bytes) if bytes.len() > MAX_REPLY => return Err(ClientError::TooLarge),
             Carried::Sealed(bytes) => bytes,
         };
         let plain = self
@@ -354,7 +356,7 @@ impl request_response::Codec for Limited {
     where
         T: futures::AsyncRead + Unpin + Send,
     {
-        let reply = read_limited(io, (MAX_REPLY + FRAME) as u64).await?;
+        let reply = read_limited(io, (MAX_REPLY + ENVELOPE) as u64).await?;
         match reply.is_empty() {
             true => Err(io::Error::new(
                 io::ErrorKind::UnexpectedEof,

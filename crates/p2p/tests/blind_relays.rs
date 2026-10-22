@@ -12,11 +12,11 @@ use libp2p::{noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol};
 use network::cid::cid;
 use network::consortium::{Consortium, Member};
 use network::log::TransparencyLog;
-use network::replica::{FeedWriter, Refused, Replica};
+use network::replica::{EntryId, FeedWriter, Refused, Replica};
 use network::tier::{Tier, Tiers};
 use p2p::blind::{
     seal, submit, Answer, Carried, ClientError, Gateway, GatewayKey, KeyAnnouncement, Refusal,
-    GATEWAY_PROTOCOL, MAX_REQUEST, RELAY_PROTOCOL,
+    GATEWAY_PROTOCOL, MAX_REPLY, MAX_REQUEST, RELAY_PROTOCOL,
 };
 use p2p::member::MemberRole;
 use p2p::{read_limited, Config, Handle, Own, StartError};
@@ -467,16 +467,36 @@ async fn at_net_24_wrong_network_recipient_and_size_are_refused() {
     assert_eq!(circle_len(&n.members[0], 0).await, 0);
 }
 
-/// AT-NET-24: a relay holds no writer key: it cannot start as one, and its entries are refused.
+/// AT-NET-24: a relay holds no feed: one given a member's key or its own refuses to start,
+/// opening no file, and every replica refuses an entry its key signs.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_24_a_relay_cannot_write() {
     let relay_writer = FeedWriter::from_seed(NET, [RELAY_SEED; 32]);
-    let own = Own {
-        writer: FeedWriter::from_seed(NET, [RELAY_SEED; 32]),
-        dir: scratch("relay-own"),
+    for seed in [MEMBER_SEEDS[0], RELAY_SEED] {
+        let dir = scratch("relay-own");
+        let own = Own {
+            writer: FeedWriter::from_seed(NET, [seed; 32]),
+            dir: dir.clone(),
+        };
+        let refused = Handle::spawn(transport(RELAY_SEED), relay_config(Some(own)));
+        assert!(
+            matches!(refused.err(), Some(StartError::Relays)),
+            "seed {seed}"
+        );
+        assert!(!dir.exists(), "seed {seed}: no file opened");
+    }
+    let circle = Own {
+        writer: FeedWriter::from_seed(NET, [CIRCLE_SEEDS[0]; 32]),
+        dir: scratch("relay-circle"),
     };
-    let refused = Handle::spawn(transport(RELAY_SEED), relay_config(Some(own)));
-    assert!(matches!(refused.err(), Some(StartError::NotAWriter)));
+    let dir = circle.dir.clone();
+    let config = Config {
+        circle: Some(circle),
+        ..relay_config(None)
+    };
+    assert!(Handle::spawn(transport(RELAY_SEED), config).is_err());
+    assert!(!dir.exists());
+    assert!(Handle::spawn(transport(RELAY_SEED), relay_config(None)).is_ok());
     let object = b"a relay's entry".to_vec();
     let entry = TransparencyLog::new().append(cid(&object)).clone();
     let mut replica = Replica::new(tiers().writers().clone());
@@ -550,6 +570,8 @@ enum Tamper {
     Reply(usize),
     /// Holds the first reply until the second, then answers each request with the other's.
     Swap,
+    /// Answers each request itself with a sealed reply of this many zero bytes.
+    Answer(usize),
 }
 
 /// A relay of the test's own, listed by member 0's gateway: it forwards every request to
@@ -642,6 +664,11 @@ impl Spy {
                             message: request_response::Message::Request { request, channel, .. }, ..
                         })) => {
                             kept.lock().unwrap().push(request.clone());
+                            if let Tamper::Answer(len) = tamper {
+                                let reply = Carried::Sealed(vec![0; len]).encode();
+                                let _ = swarm.behaviour_mut().relay.send_response(channel, reply);
+                                continue;
+                            }
                             match member {
                                 Some(m) => { let id = send(&mut swarm, m, request); waiting.insert(id, Some(channel)); }
                                 None => queued.push((request, channel)),
@@ -794,4 +821,278 @@ proptest::proptest! {
             proptest::prop_assert_eq!(a.encode(), bytes);
         }
     }
+}
+
+#[derive(NetworkBehaviour)]
+struct Gatewaying {
+    bind: request_response::Behaviour<Bytes>,
+    gateway: request_response::Behaviour<Bytes>,
+}
+
+/// A gateway of the test's own, bound as member 0 to the relay it dials, answering every
+/// request with a sealed reply of `len` zero bytes; it stops when dropped.
+struct FakeGateway(tokio::task::JoinHandle<()>);
+
+impl Drop for FakeGateway {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
+
+impl FakeGateway {
+    fn start(len: usize, relay: Multiaddr) -> FakeGateway {
+        let key = Keypair::generate_ed25519();
+        let mine = key.public().try_into_ed25519().unwrap().to_bytes();
+        let binding = Some(tiers().bind(&members()[0], 0, mine));
+        let protocol = |name| [(StreamProtocol::new(name), ProtocolSupport::Full)];
+        let mut swarm = libp2p::SwarmBuilder::with_existing_identity(key)
+            .with_tokio()
+            .with_tcp(
+                tcp::Config::default(),
+                noise::Config::new,
+                yamux::Config::default,
+            )
+            .unwrap()
+            .with_behaviour(|_| Gatewaying {
+                bind: request_response::Behaviour::new(
+                    protocol(p2p::BIND_PROTOCOL),
+                    Default::default(),
+                ),
+                gateway: request_response::Behaviour::new(
+                    protocol(GATEWAY_PROTOCOL),
+                    Default::default(),
+                ),
+            })
+            .unwrap()
+            .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(60)))
+            .build();
+        swarm.dial(relay).unwrap();
+        FakeGateway(tokio::spawn(async move {
+            loop {
+                match swarm.select_next_some().await {
+                    SwarmEvent::ConnectionEstablished { peer_id, .. } => {
+                        let hello = p2p::tiered::Bind::Hello(binding).encode();
+                        swarm.behaviour_mut().bind.send_request(&peer_id, hello);
+                    }
+                    SwarmEvent::Behaviour(GatewayingEvent::Bind(
+                        request_response::Event::Message {
+                            message: request_response::Message::Request { channel, .. },
+                            ..
+                        },
+                    )) => {
+                        let reply = p2p::tiered::Bind::Reply {
+                            granted: false,
+                            binding,
+                        }
+                        .encode();
+                        let _ = swarm.behaviour_mut().bind.send_response(channel, reply);
+                    }
+                    SwarmEvent::Behaviour(GatewayingEvent::Gateway(
+                        request_response::Event::Message {
+                            message: request_response::Message::Request { channel, .. },
+                            ..
+                        },
+                    )) => {
+                        let reply = Carried::Sealed(vec![0; len]).encode();
+                        let _ = swarm.behaviour_mut().gateway.send_response(channel, reply);
+                    }
+                    _ => {}
+                }
+            }
+        }))
+    }
+}
+
+/// AT-NET-24: the reply limit counts the encapsulation, MAX_REPLY bytes, not its envelope.
+#[test]
+fn at_net_24_the_reply_limit_counts_the_encapsulation() {
+    assert_eq!(
+        Carried::Sealed(vec![0; MAX_REPLY]).encode().len(),
+        MAX_REPLY + 10
+    );
+    let fresh = || seal(&tiers(), &announcements()[0], b"synthetic-event-limit").unwrap();
+    assert_eq!(
+        fresh().open(&Carried::Sealed(vec![0; MAX_REPLY + 1])),
+        Err(ClientError::TooLarge)
+    );
+    assert_eq!(
+        fresh().open(&Carried::Sealed(vec![0; MAX_REPLY])),
+        Err(ClientError::Open)
+    );
+}
+
+/// AT-NET-24: a reply over MAX_REPLY bytes is refused by the relay and by the client.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_24_oversized_replies_are_refused() {
+    let (relay, relay_addr) = start(transport(RELAY_SEED), relay_config(None)).await;
+    let request = || {
+        seal(&tiers(), &announcements()[0], b"synthetic-event-big")
+            .unwrap()
+            .request
+    };
+    for (len, passes) in [
+        (MAX_REPLY, true),
+        (MAX_REPLY + 1, false),
+        (MAX_REPLY + 6, false),
+    ] {
+        let fake = FakeGateway::start(len, relay_addr.clone());
+        until("the fake gateway is bound", || async {
+            relay.status().await.bound == 1
+        })
+        .await;
+        let expected = match passes {
+            true => Carried::Sealed(vec![0; len]),
+            false => Carried::Refused(Refusal::Unreachable),
+        };
+        assert_eq!(
+            submit(relay_addr.clone(), request()).await,
+            Ok(expected),
+            "relay, {len}"
+        );
+        drop(fake);
+        until("the fake gateway leaves", || async {
+            relay.status().await.bound == 0
+        })
+        .await;
+    }
+    for (len, passes) in [
+        (MAX_REPLY, true),
+        (MAX_REPLY + 1, false),
+        (MAX_REPLY + 6, false),
+    ] {
+        let spy = Spy::start(transport(SPY_SEED), relay_addr.clone(), Tamper::Answer(len)).await;
+        let got = submit(spy.addr.clone(), request()).await;
+        match passes {
+            true => assert_eq!(got, Ok(Carried::Sealed(vec![0; len])), "client, {len}"),
+            false => assert!(
+                matches!(got, Err(ClientError::Transport(_))),
+                "client, {len}: {got:?}"
+            ),
+        }
+    }
+}
+
+type ReferenceKem = hpke::kem::X25519HkdfSha256;
+type ReferenceAead = hpke::aead::AesGcm128;
+type ReferenceKdf = hpke::kdf::HkdfSha256;
+const HEADER: [u8; 7] = [0, 0, 0x20, 0, 1, 0, 1];
+
+/// RFC 9458 §4.3's HPKE info for a request with `header`.
+fn request_info(header: &[u8]) -> Vec<u8> {
+    [&b"message/bhttp request"[..], &[0], header].concat()
+}
+
+/// RFC 9458 §4.4's reply key and nonce from the exported secret, `enc` and the reply's nonce.
+fn reply_keys(secret: &[u8], enc: &[u8], nonce: &[u8]) -> (aes_gcm::Aes128Gcm, [u8; 12]) {
+    let salt = [enc, nonce].concat();
+    let (_, kdf) = hkdf::Hkdf::<sha2::Sha256>::extract(Some(&salt), secret);
+    let (mut key, mut iv) = ([0u8; 16], [0u8; 12]);
+    kdf.expand(b"key", &mut key).unwrap();
+    kdf.expand(b"nonce", &mut iv).unwrap();
+    (aes_gcm::Aes128Gcm::new_from_slice(&key).unwrap(), iv)
+}
+
+fn nonce12(iv: &[u8; 12]) -> aes_gcm::Nonce<aes_gcm::aead::consts::U12> {
+    aes_gcm::Nonce::<aes_gcm::aead::consts::U12>::try_from(&iv[..]).unwrap()
+}
+
+fn event_request(event: &[u8]) -> Vec<u8> {
+    let path = p2p::blind::event_path(&NET);
+    let mut m = Http::request(b"POST".to_vec(), b"isegoria".to_vec(), Vec::new(), path);
+    m.write_content(event);
+    let mut out = Vec::new();
+    m.write_bhttp(Mode::KnownLength, &mut out).unwrap();
+    out
+}
+
+fn receipt_of(plain: &[u8]) -> EntryId {
+    let m = Http::read_bhttp(&mut std::io::Cursor::new(plain)).unwrap();
+    assert_eq!(m.control().status().map(|s| s.code()), Some(200));
+    let b = m.content();
+    EntryId {
+        writer: b[..32].try_into().unwrap(),
+        seq: u64::from_le_bytes(b[32..40].try_into().unwrap()),
+        hash: b[40..72].try_into().unwrap(),
+    }
+}
+
+/// AT-NET-24: what `seal` sends opens with the reference HPKE path, and `open` reads a reply
+/// the reference path seals: the client's OHTTP against RFC 9458 §4.3–4.4.
+#[test]
+fn at_net_24_the_client_matches_the_reference_hpke() {
+    use hpke::{Deserializable, Kem as _, Serializable};
+    let (sk, pk) = ReferenceKem::derive_keypair(&[HPKE_SEEDS[0]; 32]);
+    let key = announcements()[0].clone();
+    assert_eq!(pk.to_bytes().to_vec(), key.config[3..35].to_vec());
+    let event = b"synthetic-event-reference".to_vec();
+    let sealed = seal(&tiers(), &key, &event).unwrap();
+    let request = sealed.request.clone();
+    let (header, enc, ct) = (&request[..7], &request[7..39], &request[39..]);
+    assert_eq!(header, HEADER);
+    let encapped = <ReferenceKem as hpke::Kem>::EncappedKey::from_bytes(enc).unwrap();
+    let mut receiver = hpke::setup_receiver::<ReferenceAead, ReferenceKdf, ReferenceKem>(
+        &hpke::OpModeR::Base,
+        &sk,
+        &encapped,
+        &request_info(header),
+    )
+    .unwrap();
+    assert_eq!(receiver.open(ct, &[]).unwrap(), event_request(&event));
+    let mut secret = [0u8; 16];
+    receiver
+        .export(b"message/bhttp response", &mut secret)
+        .unwrap();
+    let nonce = [7u8; 16];
+    let (aead, iv) = reply_keys(&secret, enc, &nonce);
+    let receipt = EntryId {
+        writer: circle_key(0),
+        seq: 5,
+        hash: [9; 32],
+    };
+    let mut answer = Http::response(bhttp::StatusCode::OK);
+    answer.write_content([&receipt.writer[..], &5u64.to_le_bytes(), &[9; 32]].concat());
+    let mut plain = Vec::new();
+    answer.write_bhttp(Mode::KnownLength, &mut plain).unwrap();
+    let reply = [
+        &nonce[..],
+        &aead.encrypt(&nonce12(&iv), &plain[..]).unwrap(),
+    ]
+    .concat();
+    assert_eq!(
+        sealed.open(&Carried::Sealed(reply)),
+        Ok(Answer::Logged(receipt))
+    );
+}
+
+/// AT-NET-24: the gateway opens a request the reference HPKE path seals, and seals its answer
+/// so the reference path opens it: the server's OHTTP against RFC 9458 §4.3–4.4.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_24_the_gateway_matches_the_reference_hpke() {
+    use hpke::{Kem as _, Serializable};
+    let n = net(&scratch("reference"), 2).await;
+    let relay = Spy::start(transport(SPY_SEED), n.member0.clone(), Tamper::None).await;
+    let (_, pk) = ReferenceKem::derive_keypair(&[HPKE_SEEDS[0]; 32]);
+    let (encapped, mut sender) = hpke::setup_sender::<ReferenceAead, ReferenceKdf, ReferenceKem>(
+        &hpke::OpModeS::Base,
+        &pk,
+        &request_info(&HEADER),
+    )
+    .unwrap();
+    let event = b"synthetic-event-from-the-reference".to_vec();
+    let ct = sender.seal(&event_request(&event), &[]).unwrap();
+    let enc = encapped.to_bytes().to_vec();
+    let request = [&HEADER[..], &enc, &ct].concat();
+    let Carried::Sealed(reply) = relay.direct(request).await else {
+        panic!("a sealed reply")
+    };
+    let mut secret = [0u8; 16];
+    sender
+        .export(b"message/bhttp response", &mut secret)
+        .unwrap();
+    let (aead, iv) = reply_keys(&secret, &enc, &reply[..16]);
+    let plain = aead.decrypt(&nonce12(&iv), &reply[16..]).unwrap();
+    let id = receipt_of(&plain);
+    assert_eq!(id.writer, circle_key(0));
+    let held = n.members[0].replica().await;
+    assert_eq!(held.get(&id).map(|(_, o)| o.to_vec()), Some(event));
 }

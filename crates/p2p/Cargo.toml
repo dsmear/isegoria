@@ -24,8 +24,8 @@ proptest = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
 protocol = { path = "../protocol" }
 identity = { path = "../identity" }
-# RFC 9458 Appendix A checked through the HPKE library ohttp runs on (tests/blind_relays.rs).
-hpke = { version = "=0.14.1", default-features = false, features = ["alloc", "x25519", "aes"] }
+# The reference HPKE path, tests only: RFC 9458 Appendix A and the channel's OHTTP checked against it.
+hpke = { version = "=0.14.1", default-features = false, features = ["alloc", "getrandom", "x25519", "aes"] }
 hkdf = "=0.13.0"
 sha2 = "=0.11.0"
 aes-gcm = "=0.11.1"

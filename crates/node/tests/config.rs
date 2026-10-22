@@ -293,6 +293,28 @@ fn at_net_24_relays_and_gateways_in_the_configuration() {
             .collect();
         format!("relay = true\n{}", t.join("\n"))
     };
+    let keyed = |t: String| {
+        let t = relay(t);
+        let key = t
+            .lines()
+            .find(|l| l.starts_with("relay = "))
+            .map(|_| ())
+            .is_some();
+        assert!(key);
+        t.replacen(
+            "relay = true\n",
+            &format!(
+                "relay = true\nkey_file = \"{}\"\n",
+                dir.join("member-key").display()
+            ),
+            1,
+        )
+    };
+    std::fs::write(dir.join("member-key"), hex(&[1; 32])).unwrap();
+    assert_eq!(
+        planned("relay-with-a-feed", keyed),
+        Err(ConfigError::Relays("relay"))
+    );
     let routed = plan(load("relay", relay).unwrap()).unwrap();
     assert_eq!(routed.p2p.relay.map(|r| r.len()), Some(2));
     assert!(routed.p2p.gateway.is_none());

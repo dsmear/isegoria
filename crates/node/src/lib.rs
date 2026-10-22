@@ -334,7 +334,10 @@ fn blind_plan(
     };
     let routes = announcements(tiers, &config.consortium.hpke)?;
     let relay = match config.relay {
-        true if member.is_none() && routes.len() == tiers.consortium().keys().len() => {
+        true if member.is_none()
+            && config.key_file.is_none()
+            && routes.len() == tiers.consortium().keys().len() =>
+        {
             Some(routes.clone())
         }
         true => return Err(ConfigError::Relays("relay")),

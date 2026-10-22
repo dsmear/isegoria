@@ -656,12 +656,16 @@ growth. Batching (`10` T28) and PRIV-003 would blur it; neither is built.
 - **T85-P4 — the relays.** The configuration lists the relays' transport keys (`relays`).
   A gateway answers only a peer whose Noise-authenticated key is listed, before
   decapsulating: a member never receives a request from the person's own address. A relay
-  is outside the circle (T77 serves it the public tier), holds no writer key in a tiered
-  network, and every replica refuses an entry it signs. Refusing the untiered
+  is outside the circle (T77 serves it the public tier) and holds no feed: a relay node
+  with a member role, its own feed or a circle feed — under a member's key or any other —
+  is refused before any file is opened, and every replica refuses an entry its key signs. Refusing the untiered
   configurations, where relays still write, once this path works is a separate decision.
 - **T85-P5 — messages.**
-  - *Limits.* An encapsulated request at most 1 MiB and a reply 64 KiB: a longer one is
-    refused as it is read, before more is held, by relay, gateway and client alike.
+  - *Limits.* An encapsulated request at most 1 MiB and a reply 64 KiB, counting the
+    encapsulation alone: a reply's `Carried` envelope adds 10 bytes (version, kind, the
+    field's length), read with it. A longer one is refused as it is read, before more is
+    held, by relay, gateway and client alike; the client refuses an oversized sealed reply
+    however it received it.
   - *Refusals in the clear* (the relay's or the gateway's, forwarded unchanged): a peer that
     is not a listed relay, a key id no member's or not the gateway's, a request that does
     not decapsulate, no connection to the member. Nothing is logged.
@@ -708,10 +712,13 @@ the channel as a member, answering every event "not admitted" and logging nothin
 admission rule exists before T79, and the legacy events are not admitted in its place.
 Persons have no client program: `seal` and `submit` are a library.
 
-The known-answer test reproduces Appendix A through the `hpke` crate `ohttp` runs on (the
-open, the exported secret, the key, the nonce and the reply) and through `ohttp` and `bhttp`
-decoding its key configuration, request header and length and Binary HTTP messages;
-`ohttp`'s own reply derivation is checked by round trip only. Appendix A's illustrative
+Three tests check the OHTTP the channel uses against a reference HPKE path, the `hpke`
+crate driven directly and only in tests (RFC 9458 §4.3–4.4): Appendix A exactly, through
+that path (the open, the exported secret, the key, the nonce and the reply) and through
+`ohttp` and `bhttp` decoding its key configuration, request header, length and Binary HTTP
+messages; the client, the reference path opening what `seal` sends and `Sealed::open`
+reading a reply the reference path seals; the gateway, opening a request the reference path
+seals and sealing its answer so the reference path opens it. Appendix A's illustrative
 `Content-Length` values (78, 38) differ from its hex (80 and 35 bytes), the second reported
 as erratum 7781; `bhttp` writes the empty sections RFC 9292 lets the example's reply omit.
 Tests: `p2p/tests/blind_relays.rs` and `node/tests/config.rs` (AT-NET-24); before the node

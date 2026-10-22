@@ -176,8 +176,8 @@ pub enum StartError {
     Tiers,
     /// A circle feed outside a tiered member, a tiered member without one, or another key's.
     NotTheCircle,
-    /// A relay or gateway outside a tiered network, a member as relay, a gateway of another
-    /// member, or key configurations that do not verify (`docs/04` §Blind relays).
+    /// A relay or gateway outside a tiered network, a relay with a member role or a feed, a
+    /// gateway of another member, or key configurations that do not verify (`docs/04`).
     Relays,
 }
 
@@ -442,8 +442,8 @@ fn tiered_start(
     Ok(Tiered::new(tiers, binding))
 }
 
-/// A relay's routes and a gateway's key verify under the node's tiers; a relay is no member,
-/// a gateway is its member's.
+/// A relay's routes and a gateway's key verify under the node's tiers; a relay is no member
+/// and writes no feed, a gateway is its member's. Checked before any feed's file is opened.
 fn blind_start(
     tiered: Option<&Tiered>,
     config: &Config,
@@ -459,7 +459,8 @@ fn blind_start(
         members.sort_unstable();
         members.dedup();
         let valid = routes.iter().all(|a| a.verify(tiers)) && members.len() == routes.len();
-        if config.member.is_some() || !valid {
+        let feeds = config.member.is_some() || config.own.is_some() || config.circle.is_some();
+        if feeds || !valid {
             return Err(StartError::Relays);
         }
     }
