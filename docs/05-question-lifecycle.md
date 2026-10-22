@@ -208,7 +208,8 @@ operators' side — keys, genesis, quorum, faults, recovery — is `04` §Operat
 
 **Private requests and responses (T85).**
 - **T79-P7.** A person sends an event, or a read request, sealed to one member's HPKE key
-  through a blind relay. A read request carries a proof under its role whose context binds the
+  through a blind relay (the channel: `04` §Blind relays, which would bind the proof to the
+  request's encapsulation rather than to a separate response key). A read request carries a proof under its role whose context binds the
   network, the request's kind and a fresh response key; the member answers from its state,
   logs nothing, and seals the reply to that key, so a replay is answered only to the sender.
   Replies: to an event, the circle entry `(writer, seq)` that logged it, then whether a cut
