@@ -421,14 +421,37 @@ and a new nym proves its position empty: a fork that keeps no member restarts fr
 anchored state root, and a nym cannot leave a bad record behind by claiming to be new (`00`
 invariant 5, `10` T86).
 
-**Who reads, as built.** Nothing restricts it yet. A node answers the Summary and Want of
-any peer that connects and pulls from it on connect, and a node started without a writer
-key replicates the whole set; the transport authenticates a peer's libp2p key, which is
-bound to no writer key. So any peer reads, in the clear, what the set holds: the drafts
-under review, the panels before their verdict, every reveal with its judge's nym and
-rating, the batches of each respondent id, and the results' records per nym — against §Why
-not a permissionless blockchain, `08` PRIV-P5 and PRIV-P6, and `01` D17. Until T77, a
-network runs only among machines its operator controls.
+**Who reads, as built.** The primitives of T77's first step are in `network` (2026-10-22,
+AT-NET-22); the transport uses none of them yet.
+
+- `tier::Tiers` checks the tiered writer set: member `i`'s consortium key writes its public
+  feed and a distinct circle key its circle feed, one each, no key twice and no other
+  writer. A writer's member and tier come from this configuration, never from a peer.
+- `Tiers::bind` signs, with a member's consortium key, a transport key bound to the network
+  id, the member-set hash and the member's index; `Tiers::access` grants the circle only to
+  the transport key presented with a binding that verifies.
+- `Tiers::serve` answers Summary, Have and Entries with readable entries only: a reader
+  without circle access gets no circle identifier or object, whatever its Summary or Want
+  names. The cuts it collects still mark the circle feeds (length and head).
+- `cut::observed` and `observer::Observer` let such a reader follow the cuts. It checks
+  each cut's signatures (rule 6's withholders not counted), number, epoch and every public
+  chain, which it must hold: a missing public entry stops it, as it stops a member. Of a
+  circle mark it checks what it sees: a known member's circle key, never dropped or
+  shortened, the same head at an equal length. It neither holds nor fetches circle
+  entries, so it cannot check that a longer circle mark extends the last, that its chain
+  exists, or what its events do: the cut's signers attest those (`Observed::attested`).
+  It applies the public entries in the members' order and counts beacon messages only on
+  their member's public feed, so it reaches the members' beacon values and exclusions; it
+  computes no protocol state. Members keep the full check (`added`).
+
+The transport is unchanged: a node answers the Summary and Want of any peer that connects
+and pulls from it on connect, and a node started without a writer key replicates the whole
+set; the transport authenticates a peer's libp2p key, which is bound to no writer key. So
+any peer reads, in the clear, what the set holds: the drafts under review, the panels
+before their verdict, every reveal with its judge's nym and rating, the batches of each
+respondent id, and the results' records per nym — against §Why not a permissionless
+blockchain, `08` PRIV-P5 and PRIV-P6, and `01` D17. Until T77's second step puts the
+primitives in `p2p` and `node`, a network runs only among machines its operator controls.
 
 **A signed entry** is a writer's log entry (`seq`, `prev`, `payload`, recomputed `hash`,
 exactly as the log chains it) and the writer's signature over
@@ -673,8 +696,11 @@ The answer review's side is `05` §Distributed integration (T79-P1–P7).
   Operators generate their keys locally and exchange public keys only; each checks its own
   keys and the id. Every entry and cut signature covers the id, so a member's first entry is
   its acceptance, and cut 0 needs `t` of them. No change in band: a new key, member,
-  threshold or parameter is a new genesis — a new network, carrying no state, which may name
-  the old one's last cut digest. Carrying author records over would need its own decision.
+  threshold or parameter is a new genesis — a new network, which may name the old one's last
+  cut digest. In the trial it starts without the old state; that is an operating choice, not
+  D54's fork, which keeps the state through a member that joins it or, with none, from the
+  last anchored state root as each nym opens its leaf (T86). Carrying author records over
+  otherwise would need its own decision.
 - **T88-P2 — keys, feeds, transport.** *Approved (D54):* two feeds per member, each under its
   own writer key; circle entries served only to transport keys a member key binds; relays
   out of the writer set (T85). Proposed: the public feed's key is the consortium key, so
@@ -685,23 +711,35 @@ The answer review's side is `05` §Distributed integration (T79-P1–P7).
   by the consortium key's signature over
   `H("isegoria/transport/bind/v1" ‖ network id ‖ member-set hash ‖ index ‖ transport key)`
   and presented when a connection opens; no revocation within a network. An unbound peer —
-  relay, light node, any reader — gets the public tier and the cut marks only. A node without
-  circle access checks a cut's circle marks by its signatures alone and applies the public
-  entries it adds, in their order within the cut.
+  relay, light node, any reader — gets the public tier and the cut marks only, and follows
+  the cuts as §Who reads describes. *Built (T77 step 1):* the tiered writer set, the
+  binding's signature and check, the filtered answers and that reader, from keys the
+  configuration supplies; not the derivation, the exchange on connect or the transport.
 - **T88-P3 — quorum and faults.** `2t > n`, so views change (T76); recommended `n = 4`,
   `t = 3`: one member may stop, while cuts, the beacon value and closures each need three.
-  Assumed: members follow the rules; fewer than `t` collude; crashes, restarts, delay, loss,
-  duplication and partitions. Not tolerated: arbitrary signers — two cuts signed in one view
-  are evidence, and two cuts collected for one number stop every node (NET-006). Progress
-  needs `t` members up, connected and not excluded (rule 6). It stops at a consortium
-  conflict or below `t` live members; a member whose feed equivocates is lost until a new
-  genesis.
+  Each property has its own assumption:
+  - *Agreement on the cuts* assumes every member follows the rules, faults being crashes,
+    restarts, delay, loss, duplication and partitions. It does not follow from fewer than `t`
+    colluding: `2t − n` members signing two cuts in one view (two, for `n = 4`, `t = 3`),
+    with the others split, complete both. Two cuts collected for one number are evidence
+    and stop every node (NET-006); they are detected, not prevented.
+  - *The beacon's unpredictability* assumes fewer than `t` colluding members (§The epoch's
+    beacon). It gives no agreement, and leaves the withholding bias and stall.
+  - *Authorization* — a cut, or a closure under T79-P5 — needs `t` signatures or requests,
+    so fewer than `t` colluding members cannot produce one on their own.
+
+  Progress needs `t` members up, connected and not excluded (rule 6). It stops at a
+  consortium conflict or below `t` live members; a member whose feed equivocates is lost
+  until a new genesis.
 - **T88-P4 — a stale peer.** *Built (T80):* a writer catches up with the first peer that
   answers. Proposed: after a start, a member writes nothing until sync rounds with the nodes
   of `n − t + 1` other members have ended with none offering an entry of its keys it lacks.
   A cut that marked its entries had `t` signers holding them, at least `t − 1` of them others,
-  so any `n − t + 1` others include one. An entry no cut marked, held only by nodes not reached,
-  remains a risk; its equivocation is evidence and stops the feed. A node that writes nothing
+  so any `n − t + 1` others include one. This assumes members keep the history they signed
+  for: a member whose replica was lost, set aside or restored from an older copy may no
+  longer hold those entries, and reaching it then proves nothing. An entry no cut marked,
+  held only by nodes not reached, remains a risk; its equivocation is evidence and stops the
+  feed. A node that writes nothing
   can only lag behind a stale peer: the cuts it applies are signed.
 
 Node admission (none: any peer reads the public tier), the trial's written procedures and

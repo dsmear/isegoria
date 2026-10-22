@@ -11,9 +11,11 @@ pub mod cut;
 pub mod erasure;
 pub mod log;
 pub mod merkle;
+pub mod observer;
 pub mod replica;
 pub mod rounds;
 pub mod store;
+pub mod tier;
 
 mod hash;
 

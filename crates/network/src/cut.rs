@@ -6,6 +6,7 @@ use crate::codec::{Reader, Writer};
 use crate::consortium::{Checkpoint, Consortium, Member};
 use crate::hash::tagged;
 use crate::replica::{EntryId, Replica};
+use crate::tier::{Tier, Tiers};
 use ed25519_dalek::Signature;
 use std::collections::BTreeMap;
 
@@ -41,6 +42,8 @@ pub enum CutError {
     Missing { writer: [u8; 32] },
     /// An epoch before the last cut's, or not after an epoch the last cut closed.
     Epoch,
+    /// A mark of a writer outside the tiered writer set.
+    Unknown { writer: [u8; 32] },
 }
 
 impl Cut {
@@ -185,6 +188,56 @@ impl Cut {
 
 /// The entries `next` adds after `prev` (`None` before cut 0), in the order they apply.
 pub fn added(replica: &Replica, prev: Option<&Cut>, next: &Cut) -> Result<Vec<EntryId>, CutError> {
+    succeeds(prev, next)?;
+    let segments = next
+        .marks
+        .iter()
+        .map(|m| segment(replica, prev, m))
+        .collect::<Result<Vec<_>, _>>()?;
+    kept(prev, next)?;
+    Ok(interleave(segments))
+}
+
+/// What a reader without circle access takes from a cut (`docs/04` §Who reads).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Observed {
+    /// The public entries the cut adds, in the order they apply.
+    pub public: Vec<EntryId>,
+    /// The circle marks, whose chains the cut's signers vouch for and this reader cannot check.
+    pub attested: Vec<Mark>,
+}
+
+/// As [`added`] for a reader without circle access: public chains checked whole; circle marks
+/// kept, never shortened, and unchanged at an equal length.
+pub fn observed(
+    replica: &Replica,
+    tiers: &Tiers,
+    prev: Option<&Cut>,
+    next: &Cut,
+) -> Result<Observed, CutError> {
+    succeeds(prev, next)?;
+    let (mut segments, mut attested) = (Vec::new(), Vec::new());
+    for m in &next.marks {
+        match tiers.tier(&m.writer) {
+            None => return Err(CutError::Unknown { writer: m.writer }),
+            Some(Tier::Public) => segments.push(segment(replica, prev, m)?),
+            Some(Tier::Circle) => {
+                let old = prev.and_then(|p| p.marks.iter().find(|o| o.writer == m.writer));
+                if old.is_some_and(|o| m.len < o.len || (m.len == o.len && m.head != o.head)) {
+                    return Err(CutError::Retracts { writer: m.writer });
+                }
+                attested.push(*m);
+            }
+        }
+    }
+    kept(prev, next)?;
+    Ok(Observed {
+        public: interleave(segments),
+        attested,
+    })
+}
+
+fn succeeds(prev: Option<&Cut>, next: &Cut) -> Result<(), CutError> {
     if !next.is_well_formed() {
         return Err(CutError::Malformed);
     }
@@ -195,33 +248,42 @@ pub fn added(replica: &Replica, prev: Option<&Cut>, next: &Cut) -> Result<Vec<En
     if prev.is_some_and(|p| next.epoch < p.epoch || (p.closes && next.epoch == p.epoch)) {
         return Err(CutError::Epoch);
     }
-    let mut segments = Vec::new();
-    for m in &next.marks {
-        let chain = replica
-            .chain(&m.writer, m.len, m.head)
-            .ok_or(CutError::Missing { writer: m.writer })?;
-        let from = prev
-            .and_then(|p| p.marks.iter().find(|o| o.writer == m.writer))
-            .map_or(Ok(0), |o| {
-                let through = o
-                    .len
-                    .checked_sub(1)
-                    .and_then(|i| usize::try_from(i).ok())
-                    .and_then(|i| chain.get(i))
-                    .is_some_and(|e| e.entry.hash == o.head);
-                if through {
-                    Ok(o.len)
-                } else {
-                    Err(CutError::Retracts { writer: m.writer })
-                }
-            })?;
-        let rank = tagged(
-            "isegoria/cut/order/v1",
-            &[&prev.map_or([0; 32], Cut::digest), &m.writer],
-        );
-        let ids: Vec<EntryId> = chain.iter().skip(from as usize).map(|e| e.id()).collect();
-        segments.push((rank, ids));
-    }
+    Ok(())
+}
+
+/// The entries `m` adds to `prev`'s mark of its writer, with the writer's rank in the cut.
+fn segment(
+    replica: &Replica,
+    prev: Option<&Cut>,
+    m: &Mark,
+) -> Result<([u8; 32], Vec<EntryId>), CutError> {
+    let chain = replica
+        .chain(&m.writer, m.len, m.head)
+        .ok_or(CutError::Missing { writer: m.writer })?;
+    let from = prev
+        .and_then(|p| p.marks.iter().find(|o| o.writer == m.writer))
+        .map_or(Ok(0), |o| {
+            let through = o
+                .len
+                .checked_sub(1)
+                .and_then(|i| usize::try_from(i).ok())
+                .and_then(|i| chain.get(i))
+                .is_some_and(|e| e.entry.hash == o.head);
+            if through {
+                Ok(o.len)
+            } else {
+                Err(CutError::Retracts { writer: m.writer })
+            }
+        })?;
+    let rank = tagged(
+        "isegoria/cut/order/v1",
+        &[&prev.map_or([0; 32], Cut::digest), &m.writer],
+    );
+    let ids: Vec<EntryId> = chain.iter().skip(from as usize).map(|e| e.id()).collect();
+    Ok((rank, ids))
+}
+
+fn kept(prev: Option<&Cut>, next: &Cut) -> Result<(), CutError> {
     if let Some(p) = prev {
         if let Some(gone) = p
             .marks
@@ -233,15 +295,20 @@ pub fn added(replica: &Replica, prev: Option<&Cut>, next: &Cut) -> Result<Vec<En
             });
         }
     }
+    Ok(())
+}
+
+/// One entry per writer in rank order, round after round.
+fn interleave(mut segments: Vec<([u8; 32], Vec<EntryId>)>) -> Vec<EntryId> {
     segments.sort();
     let rounds = segments.iter().map(|(_, ids)| ids.len()).max().unwrap_or(0);
-    Ok((0..rounds)
+    (0..rounds)
         .flat_map(|i| {
             segments
                 .iter()
                 .filter_map(move |(_, ids)| ids.get(i).copied())
         })
-        .collect())
+        .collect()
 }
 
 const MEMBER_TAG: u8 = 0xC0;
