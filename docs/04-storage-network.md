@@ -550,8 +550,11 @@ A member of a tiered network keeps **two feeds**, each with its own files and ca
 (`own/` the public feed under its consortium key, `circle/` the circle feed under its
 circle key). Rule 2 holds for the public feed after a sync round with any peer; for the
 circle feed only after one asked of a member whose binding verified and which granted this
-node the circle before the request. A peer that serves the public tier alone proves
-nothing about the circle feed, which writes nothing until then.
+node the circle before the request, and answered while that same grant holds. A grant is
+withdrawn by a hello or reply whose binding does not verify, by a reply refusing the circle
+and by the last connection closing; one given again after is a new grant, and the answer to
+a request asked under the old one proves nothing. A peer that serves the public tier alone
+proves nothing about the circle feed, which writes nothing until then.
 
 **Transport.** libp2p 0.56 over TCP, with Noise and Yamux: gossipsub (signed, strict
 validation) carries the announcements, at most 512 identifiers per message, on the topic
@@ -571,8 +574,9 @@ does not decode is dropped.
   answer one with whether they granted the circle and their own binding. A binding is
   checked against the ed25519 key the peer's id inlines, which Noise authenticated, never
   against a key a message names; before it verifies, and for another transport key,
-  network or member set, the peer reads the public tier only. The grant ends when the last
-  connection to that peer closes, and is checked again on the next.
+  network or member set, the peer reads the public tier only. The access ends when the last
+  connection to that peer closes, and is checked again on the next; for the grant a member
+  gives this node, see §A writer's own feed.
 - **Every message.** A Summary, Have, Want or Entries sent to a peer names only writers
   its access reads, whatever it asks (`Tiers::serve`); from a peer, a node takes only
   entries of writers that peer may read.

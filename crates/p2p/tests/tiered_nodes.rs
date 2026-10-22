@@ -7,9 +7,11 @@ use libp2p::identity::Keypair;
 use libp2p::request_response::{self, ProtocolSupport};
 use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
 use libp2p::{noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol};
+use network::cid::cid;
 use network::consortium::{Consortium, Member};
 use network::cut::MemberObject;
-use network::replica::{EntryId, FeedWriter, Message, Replica, Summary};
+use network::log::TransparencyLog;
+use network::replica::{EntryId, FeedWriter, Message, Replica, SignedEntry, Summary};
 use network::tier::{Tier, Tiers, TransportBinding};
 use p2p::member::MemberRole;
 use p2p::tiered::Bind;
@@ -17,7 +19,7 @@ use p2p::{
     read_limited, topic, Config, Handle, Own, PublishError, Status, BIND_PROTOCOL, MESSAGE_LIMIT,
     SYNC_PROTOCOL,
 };
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -74,10 +76,18 @@ fn transport_bytes(key: &Keypair) -> [u8; 32] {
 
 /// Member `i` keeping both feeds under `root`, its replica on disk there if `stored`.
 fn member_config(i: usize, root: &std::path::Path, stored: bool) -> Config {
+    Config {
+        sync_every: Duration::from_millis(300),
+        ..member_config_every(i, root, stored, Duration::from_secs(3600))
+    }
+}
+
+/// As [`member_config`], pulling every `every`.
+fn member_config_every(i: usize, root: &std::path::Path, stored: bool, every: Duration) -> Config {
     let seed = [MEMBER_SEEDS[i]; 32];
     Config {
         writers: tiers().writers().clone(),
-        sync_every: Duration::from_millis(300),
+        sync_every: every,
         own: Some(Own {
             writer: FeedWriter::from_seed(NET, seed),
             dir: root.join("own"),
@@ -252,6 +262,16 @@ struct Heard {
     gossip: usize,
     replies: Vec<Bind>,
     entries: Vec<EntryId>,
+    held: usize,
+}
+
+/// How a spy answers: holding Summaries, granting a hello, what it offers and serves.
+#[derive(Default)]
+struct Script {
+    hold: bool,
+    granting: bool,
+    offer: Vec<EntryId>,
+    serve: Vec<(SignedEntry, Vec<u8>)>,
 }
 
 enum Order {
@@ -259,6 +279,8 @@ enum Order {
     Sync(PeerId, Vec<u8>),
     Bind(PeerId, Vec<u8>),
     Gossip(Vec<u8>),
+    /// Answers the first `n` held Summaries with these bytes.
+    Release(usize, Vec<u8>),
 }
 
 /// A raw libp2p peer outside the circle: it answers the node's requests with nothing, asks
@@ -267,6 +289,7 @@ struct Spy {
     orders: mpsc::UnboundedSender<Order>,
     heard: Arc<Mutex<Heard>>,
     peers: Arc<Mutex<HashSet<PeerId>>>,
+    script: Arc<Mutex<Script>>,
 }
 
 impl Spy {
@@ -312,8 +335,10 @@ impl Spy {
         let (orders, mut rx) = mpsc::unbounded_channel();
         let heard = Arc::new(Mutex::new(Heard::default()));
         let peers = Arc::new(Mutex::new(HashSet::new()));
-        let (h, p) = (heard.clone(), peers.clone());
+        let script = Arc::new(Mutex::new(Script::default()));
+        let (h, p, sc) = (heard.clone(), peers.clone(), script.clone());
         tokio::spawn(async move {
+            let mut held = VecDeque::new();
             loop {
                 tokio::select! {
                     order = rx.recv() => match order {
@@ -325,8 +350,16 @@ impl Spy {
                             let t = IdentTopic::new(topic(&NET));
                             let _ = swarm.behaviour_mut().gossip.publish(t, b);
                         }
+                        Some(Order::Release(n, b)) => {
+                            for channel in held.drain(..n.min(held.len())) {
+                                let _ = swarm.behaviour_mut().sync.send_response(channel, b.clone());
+                            }
+                        }
                     },
-                    event = swarm.select_next_some() => spy_event(&mut swarm, event, &h, &p, binding),
+                    event = swarm.select_next_some() => {
+                        let at: Shared = (&h, &p, &sc);
+                        spy_event(&mut swarm, event, at, &mut held, binding)
+                    }
                 }
             }
         });
@@ -334,6 +367,7 @@ impl Spy {
             orders,
             heard,
             peers,
+            script,
         }
     }
 
@@ -351,14 +385,21 @@ impl Spy {
     }
 }
 
+type Shared<'a> = (
+    &'a Mutex<Heard>,
+    &'a Mutex<HashSet<PeerId>>,
+    &'a Mutex<Script>,
+);
+
 fn spy_event(
     swarm: &mut libp2p::Swarm<Spying>,
     event: SwarmEvent<SpyingEvent>,
-    heard: &Mutex<Heard>,
-    peers: &Mutex<HashSet<PeerId>>,
+    (heard, peers, script): Shared,
+    held: &mut VecDeque<request_response::ResponseChannel<Vec<u8>>>,
     binding: Option<TransportBinding>,
 ) {
     let mut heard = heard.lock().unwrap();
+    let script = script.lock().unwrap();
     match event {
         SwarmEvent::ConnectionEstablished { peer_id, .. } => {
             peers.lock().unwrap().insert(peer_id);
@@ -371,7 +412,21 @@ fn spy_event(
                 request, channel, ..
             } => {
                 let reply = match Message::decode(&request) {
-                    Some(Message::Want(_)) => Message::Entries(Vec::new()),
+                    Some(Message::Summary(_)) if script.hold => {
+                        heard.held += 1;
+                        heard.sent.push(request);
+                        held.push_back(channel);
+                        return;
+                    }
+                    Some(Message::Summary(_)) => Message::Have(script.offer.clone()),
+                    Some(Message::Want(ids)) => Message::Entries(
+                        script
+                            .serve
+                            .iter()
+                            .filter(|(e, _)| ids.contains(&e.id()))
+                            .cloned()
+                            .collect(),
+                    ),
                     _ => Message::Have(Vec::new()),
                 };
                 heard.sent.push(request);
@@ -396,7 +451,7 @@ fn spy_event(
             } => {
                 heard.sent.push(request);
                 let reply = Bind::Reply {
-                    granted: false,
+                    granted: script.granting,
                     binding,
                 }
                 .encode();
@@ -751,4 +806,123 @@ async fn at_net_23_circle_gossip_is_not_forwarded() {
         assert!(!heard.sent.contains(&claim));
     }
     let _ = peer;
+}
+
+/// Member 0's circle feed, three entries signed out of band: what a fresh member 0 recovers.
+fn circle_history() -> Vec<(SignedEntry, Vec<u8>)> {
+    let writer = FeedWriter::from_seed(NET, [CIRCLE_SEEDS[0]; 32]);
+    let mut log = TransparencyLog::new();
+    (0..3)
+        .map(|k| {
+            let object = format!("circle-history-{k}").into_bytes();
+            (writer.sign(&log.append(cid(&object)).clone()), object)
+        })
+        .collect()
+}
+
+/// A fresh member 0 that pulls only when a connection or a reply asks it to, and a spy bound
+/// as member 1's second transport, granting it and holding every Summary it sends.
+async fn recovering(name: &str) -> (Handle, Multiaddr, Spy, PeerId) {
+    let config = member_config_every(0, &scratch(name), false, Duration::from_secs(3600));
+    let (node, addr) = start(transport(0), config).await;
+    let key = Keypair::generate_ed25519();
+    let binding = tiers().bind(&member_keys()[1], 1, transport_bytes(&key));
+    let spy = Spy::start(key, Some(binding));
+    {
+        let mut script = spy.script.lock().unwrap();
+        let history = circle_history();
+        script.offer = history.iter().map(|(e, _)| e.id()).collect();
+        script.serve = history;
+        script.hold = true;
+        script.granting = true;
+    }
+    let peer = spy.connect(addr.clone()).await;
+    held(&spy, 2).await;
+    (node, addr, spy, peer)
+}
+
+async fn held(spy: &Spy, n: usize) {
+    until("the pulls are held", || async {
+        spy.heard.lock().unwrap().held >= n
+    })
+    .await;
+}
+
+/// The spy's hello to the node, once the node has answered it.
+async fn hello(spy: &Spy, peer: PeerId, binding: Option<TransportBinding>) {
+    let before = spy.heard.lock().unwrap().replies.len();
+    spy.order(Order::Bind(peer, Bind::Hello(binding).encode()));
+    until("the node answers the hello", || async {
+        spy.heard.lock().unwrap().replies.len() > before
+    })
+    .await;
+}
+
+async fn not_recovered(node: &Handle) {
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    assert!(!status(node).await.circle_caught_up);
+    assert_eq!(
+        node.publish_circle(b"too-early".to_vec()).await,
+        Err(PublishError::NotCaughtUp)
+    );
+}
+
+/// A new grant and a real recovery: the circle feed continues at `seq` 3 without a fork.
+async fn recover(node: &Handle, spy: &Spy, addr: &Multiaddr) {
+    {
+        let mut script = spy.script.lock().unwrap();
+        script.hold = false;
+        script.granting = true;
+    }
+    spy.order(Order::Dial(addr.clone()));
+    until("the circle feed recovers", || async {
+        status(node).await.circle_caught_up
+    })
+    .await;
+    let next = node.publish_circle(b"circle-next".to_vec()).await.unwrap();
+    assert_eq!(next.entry.seq, 3);
+    let r = node.replica().await;
+    let circle0 = FeedWriter::from_seed(NET, [CIRCLE_SEEDS[0]; 32])
+        .public()
+        .to_bytes();
+    assert_eq!(r.feed(&circle0).len(), 4);
+    assert!(r.equivocations().iter().all(|e| e.a.writer != circle0));
+}
+
+/// AT-NET-23: an answer arriving after its grant was withdrawn recovers no circle feed.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_23_a_withdrawn_grant_recovers_nothing() {
+    let (node, addr, spy, peer) = recovering("withdrawn").await;
+    hello(&spy, peer, None).await;
+    let offer = spy.script.lock().unwrap().offer.clone();
+    spy.order(Order::Release(usize::MAX, Message::Have(offer).encode()));
+    not_recovered(&node).await;
+    recover(&node, &spy, &addr).await;
+}
+
+/// AT-NET-23: an answer to a pull of a grant since lost and given again recovers nothing.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_23_an_earlier_grant_recovers_nothing() {
+    let (node, addr, spy, peer) = recovering("earlier").await;
+    hello(&spy, peer, None).await;
+    spy.order(Order::Dial(addr.clone()));
+    held(&spy, 4).await;
+    spy.order(Order::Release(2, Message::Have(Vec::new()).encode()));
+    not_recovered(&node).await;
+    recover(&node, &spy, &addr).await;
+}
+
+/// AT-NET-23: a reply refusing the circle ends the grant given before it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_23_a_refusal_ends_the_grant() {
+    let (node, addr, spy, _) = recovering("refused").await;
+    spy.script.lock().unwrap().granting = false;
+    spy.order(Order::Dial(addr.clone()));
+    held(&spy, 4).await;
+    spy.order(Order::Release(
+        usize::MAX,
+        Message::Have(Vec::new()).encode(),
+    ));
+    not_recovered(&node).await;
+    recover(&node, &spy, &addr).await;
 }

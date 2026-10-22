@@ -217,10 +217,11 @@ enum Feed {
     Circle,
 }
 
-/// What an outbound sync request was, so its response is read for what it is.
+/// What an outbound sync request was, so its response is read for what it is; a pull keeps
+/// the grant it was asked under.
 #[derive(Clone, Copy)]
 enum Sent {
-    Pull { circle: bool },
+    Pull { grant: Option<u64> },
     Want,
     Announce,
 }
@@ -651,9 +652,9 @@ impl Node {
     }
 
     fn pull(&mut self, peer: PeerId) {
-        let circle = self.tiered.as_ref().is_some_and(|t| t.circle_pull(&peer));
+        let grant = self.tiered.as_ref().and_then(|t| t.grant(&peer));
         let summary = Message::Summary(self.summary_for(&peer));
-        self.send(&peer, summary, Sent::Pull { circle });
+        self.send(&peer, summary, Sent::Pull { grant });
     }
 
     /// Public identifiers on gossip; in a tiered network, circle ones to each bound peer.
@@ -839,11 +840,13 @@ impl Node {
                     .send_response(channel, reply);
             }
             request_response::Message::Response { response, .. } => {
-                if let Some(Bind::Reply { granted, binding }) = Bind::decode(&response) {
-                    if t.verify(&peer, binding.as_ref()) && granted {
-                        t.granted(peer);
+                let granted = match Bind::decode(&response) {
+                    Some(Bind::Reply { granted, binding }) => {
+                        t.verify(&peer, binding.as_ref()) && granted
                     }
-                }
+                    _ => t.verify(&peer, None),
+                };
+                t.granted(peer, granted);
                 self.pull(peer);
             }
         }
@@ -925,7 +928,9 @@ impl Node {
                 request_id,
                 response,
             } => match (Message::decode(&response), self.pending.remove(&request_id)) {
-                (Some(Message::Have(ids)), Some(Sent::Pull { circle })) => {
+                (Some(Message::Have(ids)), Some(Sent::Pull { grant })) => {
+                    let held = |t: &Tiered| grant.is_some_and(|g| t.holds(&peer, g));
+                    let circle = self.tiered.as_ref().is_some_and(held);
                     let want: Vec<EntryId> = self
                         .store
                         .replica()

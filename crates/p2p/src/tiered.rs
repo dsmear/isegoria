@@ -6,7 +6,8 @@ use libp2p::{identity, PeerId};
 use network::codec::{Reader, Writer};
 use network::replica::{EntryId, Replica, SignedEntry, Summary, MAX_RESPONSE};
 use network::tier::{Access, Tier, Tiers, TransportBinding};
-use std::collections::{HashMap, HashSet};
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 
 const BINDING_LEN: usize = 105;
 
@@ -94,13 +95,15 @@ pub fn transport_key(peer: &PeerId) -> Option<[u8; 32]> {
     Some(key.try_into_ed25519().ok()?.to_bytes())
 }
 
-/// A tiered node's view of its peers: whose binding verified, and who granted it the circle.
+/// A tiered node's view of its peers: whose binding verified, and who granted it the circle,
+/// each grant numbered so that one withdrawn and given again is a new one.
 pub(crate) struct Tiered {
     pub(crate) tiers: Tiers,
     pub(crate) binding: Option<TransportBinding>,
     pub(crate) public: PublicCollector,
     accesses: HashMap<PeerId, Access>,
-    granted_by: HashSet<PeerId>,
+    grants: HashMap<PeerId, u64>,
+    next_grant: u64,
 }
 
 impl Tiered {
@@ -110,7 +113,8 @@ impl Tiered {
             tiers,
             binding,
             accesses: HashMap::new(),
-            granted_by: HashSet::new(),
+            grants: HashMap::new(),
+            next_grant: 0,
         }
     }
 
@@ -126,27 +130,36 @@ impl Tiered {
         if member {
             self.accesses.insert(*peer, access);
         } else {
-            self.accesses.remove(peer);
-            self.granted_by.remove(peer);
+            self.forget(peer);
         }
         member
     }
 
-    /// Records that `peer`, a verified member, granted this node the circle.
-    pub(crate) fn granted(&mut self, peer: PeerId) {
-        if self.accesses.contains_key(&peer) {
-            self.granted_by.insert(peer);
+    /// Records `peer`'s reply: a grant if `granted` and its binding verified, kept under its
+    /// number while it lasts; any other reply withdraws the grant.
+    pub(crate) fn granted(&mut self, peer: PeerId, granted: bool) {
+        if !granted || !self.accesses.contains_key(&peer) {
+            self.grants.remove(&peer);
+        } else if let Entry::Vacant(new) = self.grants.entry(peer) {
+            self.next_grant += 1;
+            new.insert(self.next_grant);
         }
     }
 
     pub(crate) fn forget(&mut self, peer: &PeerId) {
         self.accesses.remove(peer);
-        self.granted_by.remove(peer);
+        self.grants.remove(peer);
     }
 
-    /// Whether a pull asked of `peer` now answers for the circle feed's catch-up.
-    pub(crate) fn circle_pull(&self, peer: &PeerId) -> bool {
-        self.granted_by.contains(peer) && self.accesses.contains_key(peer)
+    /// The grant a pull asked of `peer` now is made under, if any.
+    pub(crate) fn grant(&self, peer: &PeerId) -> Option<u64> {
+        let grant = self.grants.get(peer).copied();
+        grant.filter(|_| self.accesses.contains_key(peer))
+    }
+
+    /// Whether `grant` is still `peer`'s: not once withdrawn, even if granted again since.
+    pub(crate) fn holds(&self, peer: &PeerId, grant: u64) -> bool {
+        self.grant(peer) == Some(grant)
     }
 
     /// The summary to send `peer`, and the answers to its Summary and Want.
