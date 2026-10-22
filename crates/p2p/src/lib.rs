@@ -2,27 +2,33 @@
 //! NET-010): gossipsub announces new entries, request-response pulls what a node lacks.
 
 pub mod member;
+pub mod tiered;
 
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, StreamExt};
-use libp2p::gossipsub::{self, IdentTopic, MessageAuthenticity, ValidationMode};
-use libp2p::request_response::{self, ProtocolSupport};
+use libp2p::gossipsub::{self, IdentTopic, MessageAcceptance, MessageAuthenticity, ValidationMode};
+use libp2p::request_response::{self, OutboundRequestId, ProtocolSupport};
 use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
 use libp2p::{identity, noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm};
 use member::{Collector, MemberRole, Progress};
 use network::consortium::Consortium;
 use network::replica::{
     Accepted, DiskError, DurableReplica, EntryId, FeedError, FeedWriter, Message, Replica,
-    SignedEntry, WriterSet, MAX_RESPONSE,
+    SignedEntry, Summary, WriterSet, MAX_RESPONSE,
 };
 use network::store::{DurableLog, ObjectStore, StoreError};
+use network::tier::{Tier, Tiers};
+use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use tiered::{Bind, Tiered};
 use tokio::sync::{mpsc, oneshot};
 
 /// The most bytes a sync request or response may carry.
 pub const MESSAGE_LIMIT: u64 = 64 << 20;
-const PROTOCOL: StreamProtocol = StreamProtocol::new("/isegoria/sync/1");
+pub const SYNC_PROTOCOL: &str = "/isegoria/sync/1";
+/// A tiered network's binding exchange (`docs/04` §Transport).
+pub const BIND_PROTOCOL: &str = "/isegoria/bind/1";
 const ANNOUNCE_CHUNK: usize = 512;
 
 #[derive(Clone, Default)]
@@ -98,6 +104,7 @@ impl request_response::Codec for SyncCodec {
 struct Behaviour {
     gossip: gossipsub::Behaviour,
     sync: request_response::Behaviour<SyncCodec>,
+    bind: request_response::Behaviour<SyncCodec>,
 }
 
 /// A writer node's own feed: its key and the directory of its durable log (`docs/04` §A
@@ -112,19 +119,27 @@ pub struct Config {
     /// How often the node pulls from every connected peer.
     pub sync_every: Duration,
     pub own: Option<Own>,
+    /// A tiered member's circle feed, under its circle key (`docs/04` §A writer's own feed).
+    pub circle: Option<Own>,
     /// Where the replica is kept (`docs/04` §A replica on disk); in memory when `None`.
     pub store: Option<PathBuf>,
     /// A consortium member's duties; its writer key must be the member's.
     pub member: Option<MemberRole>,
     /// The consortium whose cuts a node that is no member collects for its status.
     pub consortium: Option<Consortium>,
+    /// A tiered network (`docs/04` §Transport): `writers` and the consortium must be its own.
+    pub tiers: Option<Tiers>,
 }
 
 /// What a node reports of itself (`docs/04` §A node process).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Status {
     pub caught_up: bool,
+    /// Whether a tiered member's circle feed caught up from a member that granted it.
+    pub circle_caught_up: bool,
     pub peers: usize,
+    /// Connected peers whose binding verified.
+    pub bound: usize,
     /// Pairs of entries one writer signed at one `seq`, in the replica.
     pub equivocations: usize,
     /// Whether the consortium signed two cuts for one number.
@@ -147,6 +162,10 @@ pub enum StartError {
     /// The own feed was refused by the writer set (the key is not a writer).
     Replica(DiskError),
     Transport(String),
+    /// Tiers whose writer set or consortium is not the one configured.
+    Tiers,
+    /// A circle feed outside a tiered member, a tiered member without one, or another key's.
+    NotTheCircle,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -163,7 +182,11 @@ pub enum PublishError {
 enum Command {
     Listen(Multiaddr, oneshot::Sender<Result<Multiaddr, String>>),
     Dial(Multiaddr, oneshot::Sender<Result<(), String>>),
-    Publish(Vec<u8>, oneshot::Sender<Result<SignedEntry, PublishError>>),
+    Publish(
+        Feed,
+        Vec<u8>,
+        oneshot::Sender<Result<SignedEntry, PublishError>>,
+    ),
     Insert(
         SignedEntry,
         Vec<u8>,
@@ -188,18 +211,36 @@ struct Writing {
     objects: ObjectStore,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Feed {
+    Public,
+    Circle,
+}
+
+/// What an outbound sync request was, so its response is read for what it is.
+#[derive(Clone, Copy)]
+enum Sent {
+    Pull { circle: bool },
+    Want,
+    Announce,
+}
+
 struct Node {
     swarm: Swarm<Behaviour>,
     store: Store,
     topic: IdentTopic,
     writing: Option<Writing>,
+    circle: Option<Writing>,
     listening: Vec<oneshot::Sender<Result<Multiaddr, String>>>,
     member: Option<MemberRole>,
     network_id: [u8; 32],
     progress: Progress,
     caught_up: bool,
+    circle_caught_up: bool,
     consortium: Option<Consortium>,
     collector: Collector,
+    tiered: Option<Tiered>,
+    pending: HashMap<OutboundRequestId, Sent>,
 }
 
 /// The gossip topic of a network's announcements.
@@ -314,6 +355,7 @@ fn build_swarm(key: identity::Keypair) -> Result<Swarm<Behaviour>, String> {
     let gossip_config = gossipsub::ConfigBuilder::default()
         .heartbeat_interval(Duration::from_millis(250))
         .validation_mode(ValidationMode::Strict)
+        .validate_messages()
         .build()
         .map_err(|e| e.to_string())?;
     Ok(libp2p::SwarmBuilder::with_existing_identity(key)
@@ -327,32 +369,82 @@ fn build_swarm(key: identity::Keypair) -> Result<Swarm<Behaviour>, String> {
         .with_behaviour(|key| {
             let gossip =
                 gossipsub::Behaviour::new(MessageAuthenticity::Signed(key.clone()), gossip_config)?;
-            let sync = request_response::Behaviour::new(
-                [(PROTOCOL, ProtocolSupport::Full)],
-                request_response::Config::default(),
-            );
-            Ok(Behaviour { gossip, sync })
+            let protocol = |name| [(StreamProtocol::new(name), ProtocolSupport::Full)];
+            let sync =
+                request_response::Behaviour::new(protocol(SYNC_PROTOCOL), Default::default());
+            let bind =
+                request_response::Behaviour::new(protocol(BIND_PROTOCOL), Default::default());
+            Ok(Behaviour { gossip, sync, bind })
         })
         .map_err(|e| e.to_string())?
         .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(3600)))
         .build())
 }
 
+/// A tiered node's start: its writer set and consortium those of `tiers`, a member's circle
+/// feed its own, and a member's binding of its transport key.
+fn tiered_start(
+    key: &identity::Keypair,
+    tiers: Tiers,
+    config: &Config,
+) -> Result<Tiered, StartError> {
+    let same = |c: &Consortium| {
+        c.member_set_hash() == tiers.consortium().member_set_hash()
+            && c.threshold() == tiers.consortium().threshold()
+    };
+    let member = config.member.as_ref();
+    if config.writers != *tiers.writers()
+        || member.is_some_and(|m| !same(&m.consortium))
+        || config.consortium.as_ref().is_some_and(|c| !same(c))
+    {
+        return Err(StartError::Tiers);
+    }
+    let circle = config
+        .circle
+        .as_ref()
+        .map(|own| own.writer.public().to_bytes());
+    if member.map(|m| (m.index, Tier::Circle)) != circle.and_then(|c| tiers.place(&c)) {
+        return Err(StartError::NotTheCircle);
+    }
+    let binding = match member {
+        Some(role) => {
+            let ed = key.public().try_into_ed25519();
+            let transport = ed.map_err(|e| StartError::Transport(e.to_string()))?;
+            Some(tiers.bind(&role.member, role.index, transport.to_bytes()))
+        }
+        None => None,
+    };
+    Ok(Tiered::new(tiers, binding))
+}
+
 impl Handle {
     /// Starts a node on the current tokio runtime; a writer's own feed is replayed first.
-    pub fn spawn(key: identity::Keypair, config: Config) -> Result<Handle, StartError> {
+    pub fn spawn(key: identity::Keypair, mut config: Config) -> Result<Handle, StartError> {
+        let tiered = match config.tiers.take() {
+            Some(tiers) => Some(tiered_start(&key, tiers, &config)?),
+            None if config.circle.is_some() => return Err(StartError::NotTheCircle),
+            None => None,
+        };
         let mut replica = match config.store {
             Some(dir) => Store::Disk(
                 DurableReplica::open(&dir, config.writers.clone()).map_err(StartError::Replica)?,
             ),
             None => Store::Memory(Replica::new(config.writers.clone())),
         };
-        let (writing, set_aside) = match config.own {
+        let (writing, mut set_aside) = match config.own {
             Some(own) => {
                 let (writing, aside) = open_own(own, &mut replica)?;
                 (Some(writing), aside)
             }
             None => (None, Vec::new()),
+        };
+        let circle = match config.circle {
+            Some(own) => {
+                let (circle, aside) = open_own(own, &mut replica)?;
+                set_aside.extend(aside);
+                Some(circle)
+            }
+            None => None,
         };
         if let Some(role) = &config.member {
             let key = role.member.public();
@@ -361,6 +453,12 @@ impl Handle {
                 return Err(StartError::NotTheMember);
             }
         }
+        let network_id = config.writers.network_id();
+        let consortium = config.member.as_ref().map(|m| &m.consortium);
+        let collector = consortium
+            .or(config.consortium.as_ref())
+            .map_or_else(Collector::default, |c| Collector::new(c, network_id));
+        let progress = consortium.map_or_else(Progress::default, |c| Progress::new(c, network_id));
         let mut swarm = build_swarm(key).map_err(StartError::Transport)?;
         let topic = IdentTopic::new(topic(&config.writers.network_id()));
         swarm
@@ -375,13 +473,17 @@ impl Handle {
             store: replica,
             topic,
             writing,
+            circle,
             listening: Vec::new(),
             member: config.member,
-            network_id: config.writers.network_id(),
-            progress: Progress::default(),
+            network_id,
+            progress,
             caught_up: false,
+            circle_caught_up: false,
             consortium: config.consortium,
-            collector: Collector::default(),
+            collector,
+            tiered,
+            pending: HashMap::new(),
         };
         tokio::spawn(node.run(rx, config.sync_every));
         Ok(Handle {
@@ -419,7 +521,14 @@ impl Handle {
 
     /// Stores `object`, appends it to the own log, signs the entry and announces it.
     pub async fn publish(&self, object: Vec<u8>) -> Result<SignedEntry, PublishError> {
-        self.ask(|tx| Command::Publish(object, tx)).await
+        self.ask(|tx| Command::Publish(Feed::Public, object, tx))
+            .await
+    }
+
+    /// As [`Self::publish`], on a tiered member's circle feed.
+    pub async fn publish_circle(&self, object: Vec<u8>) -> Result<SignedEntry, PublishError> {
+        self.ask(|tx| Command::Publish(Feed::Circle, object, tx))
+            .await
     }
 
     /// Inserts an entry received out of band, announcing it if new.
@@ -475,22 +584,37 @@ impl Node {
 
     fn status(&mut self) -> Status {
         let replica = self.store.replica();
-        let consortium = self.member.as_ref().map(|m| &m.consortium);
-        if let Some(c) = consortium.or(self.consortium.as_ref()) {
-            self.collector.update(replica, c, self.network_id);
-        }
-        Status {
-            caught_up: self.caught_up,
-            peers: self.swarm.connected_peers().count(),
-            equivocations: replica.equivocations().len(),
-            conflict: self.collector.conflict(),
-            cuts: self.collector.cuts().iter().map(|c| c.digest()).collect(),
-            beacons: self
-                .collector
-                .beacons()
+        let digests = |cuts: &[network::cut::Cut]| cuts.iter().map(|c| c.digest()).collect();
+        let rounds = |outcomes: Vec<&network::beacon::BeaconOutcome>| {
+            outcomes
                 .iter()
                 .map(|o| (o.value(), o.withheld().to_vec()))
-                .collect(),
+                .collect()
+        };
+        let (cuts, conflict, beacons) = match (&mut self.tiered, &self.member) {
+            (Some(t), None) => {
+                let _ = t.public.update(replica, &t.tiers);
+                let p = &t.public;
+                (digests(p.cuts()), p.conflict(), rounds(p.beacons()))
+            }
+            _ => {
+                let consortium = self.member.as_ref().map(|m| &m.consortium);
+                if let Some(c) = consortium.or(self.consortium.as_ref()) {
+                    let _ = self.collector.update(replica, c, self.network_id);
+                }
+                let c = &self.collector;
+                (digests(c.cuts()), c.conflict(), rounds(c.beacons()))
+            }
+        };
+        Status {
+            caught_up: self.caught_up,
+            circle_caught_up: self.circle_caught_up,
+            peers: self.swarm.connected_peers().count(),
+            bound: self.tiered.as_ref().map_or(0, |t| t.bound().len()),
+            equivocations: replica.equivocations().len(),
+            conflict,
+            cuts,
+            beacons,
         }
     }
 
@@ -500,20 +624,54 @@ impl Node {
         };
         let objects = role.duties(self.store.replica(), self.network_id, &mut self.progress);
         for object in objects {
-            let _ = self.publish(object.encode());
+            let _ = self.publish(Feed::Public, object.encode());
         }
     }
 
-    fn pull(&mut self, peer: PeerId) {
-        let summary = Message::Summary(self.store.replica().summary()).encode();
-        self.swarm.behaviour_mut().sync.send_request(&peer, summary);
+    /// Whether `peer` may read `writer`'s entries: every writer in a network without tiers.
+    fn reads(&self, peer: &PeerId, writer: &[u8; 32]) -> bool {
+        self.tiered.as_ref().is_none_or(|t| t.reads(peer, writer))
     }
 
+    fn summary_for(&self, peer: &PeerId) -> Summary {
+        let replica = self.store.replica();
+        match &self.tiered {
+            None => replica.summary(),
+            Some(t) => t.summary(replica, peer),
+        }
+    }
+
+    fn send(&mut self, peer: &PeerId, message: Message, sent: Sent) {
+        let id = self
+            .swarm
+            .behaviour_mut()
+            .sync
+            .send_request(peer, message.encode());
+        self.pending.insert(id, sent);
+    }
+
+    fn pull(&mut self, peer: PeerId) {
+        let circle = self.tiered.as_ref().is_some_and(|t| t.circle_pull(&peer));
+        let summary = Message::Summary(self.summary_for(&peer));
+        self.send(&peer, summary, Sent::Pull { circle });
+    }
+
+    /// Public identifiers on gossip; in a tiered network, circle ones to each bound peer.
     fn announce(&mut self, ids: &[EntryId]) {
-        for chunk in ids.chunks(ANNOUNCE_CHUNK) {
+        let (public, circle): (Vec<EntryId>, Vec<EntryId>) = match &self.tiered {
+            None => (ids.to_vec(), Vec::new()),
+            Some(t) => ids.iter().partition(|id| t.is_public(id)),
+        };
+        for chunk in public.chunks(ANNOUNCE_CHUNK) {
             let bytes = Message::Have(chunk.to_vec()).encode();
             let topic = self.topic.clone();
             let _ = self.swarm.behaviour_mut().gossip.publish(topic, bytes);
+        }
+        let bound = self.tiered.as_ref().map_or(Vec::new(), |t| t.bound());
+        for peer in bound {
+            for chunk in circle.chunks(ANNOUNCE_CHUNK) {
+                self.send(&peer, Message::Have(chunk.to_vec()), Sent::Announce);
+            }
         }
     }
 
@@ -526,9 +684,13 @@ impl Node {
         Ok(accepted)
     }
 
-    fn publish(&mut self, object: Vec<u8>) -> Result<SignedEntry, PublishError> {
-        let w = self.writing.as_mut().ok_or(PublishError::NotAWriter)?;
-        if !self.caught_up {
+    fn publish(&mut self, feed: Feed, object: Vec<u8>) -> Result<SignedEntry, PublishError> {
+        let (w, ready) = match feed {
+            Feed::Public => (self.writing.as_mut(), self.caught_up),
+            Feed::Circle => (self.circle.as_mut(), self.circle_caught_up),
+        };
+        let w = w.ok_or(PublishError::NotAWriter)?;
+        if !ready {
             return Err(PublishError::NotCaughtUp);
         }
         w.catch_up(self.store.replica())?;
@@ -552,8 +714,8 @@ impl Node {
             Command::Dial(addr, tx) => {
                 let _ = tx.send(self.swarm.dial(addr).map_err(|e| e.to_string()));
             }
-            Command::Publish(object, tx) => {
-                let _ = tx.send(self.publish(object));
+            Command::Publish(feed, object, tx) => {
+                let _ = tx.send(self.publish(feed, object));
             }
             Command::Insert(entry, object, tx) => {
                 let _ = tx.send(self.accept(entry, object));
@@ -580,18 +742,66 @@ impl Node {
                     let _ = tx.send(Ok(address.clone()));
                 }
             }
-            SwarmEvent::ConnectionEstablished { peer_id, .. } => self.pull(peer_id),
+            SwarmEvent::ConnectionEstablished { peer_id, .. } => {
+                if let Some(t) = &self.tiered {
+                    let hello = Bind::Hello(t.binding).encode();
+                    self.swarm
+                        .behaviour_mut()
+                        .bind
+                        .send_request(&peer_id, hello);
+                }
+                self.pull(peer_id);
+            }
+            SwarmEvent::ConnectionClosed {
+                peer_id,
+                num_established: 0,
+                ..
+            } => {
+                if let Some(t) = self.tiered.as_mut() {
+                    t.forget(&peer_id);
+                }
+            }
             SwarmEvent::Behaviour(BehaviourEvent::Sync(request_response::Event::Message {
                 peer,
                 message,
                 ..
             })) => self.sync_message(peer, message),
-            SwarmEvent::Behaviour(BehaviourEvent::Gossip(gossipsub::Event::Message {
-                propagation_source,
+            SwarmEvent::Behaviour(BehaviourEvent::Sync(
+                request_response::Event::OutboundFailure { request_id, .. },
+            )) => {
+                self.pending.remove(&request_id);
+            }
+            SwarmEvent::Behaviour(BehaviourEvent::Bind(request_response::Event::Message {
+                peer,
                 message,
                 ..
+            })) => self.bind_message(peer, message),
+            SwarmEvent::Behaviour(BehaviourEvent::Gossip(gossipsub::Event::Message {
+                propagation_source,
+                message_id,
+                message,
             })) => {
-                if let Some(Message::Have(ids)) = Message::decode(&message.data) {
+                let ids = match Message::decode(&message.data) {
+                    Some(Message::Have(ids)) => ids,
+                    _ => Vec::new(),
+                };
+                let public = self
+                    .tiered
+                    .as_ref()
+                    .is_none_or(|t| ids.iter().all(|id| t.is_public(id)));
+                let accept = public && !ids.is_empty();
+                let acceptance = if accept {
+                    MessageAcceptance::Accept
+                } else {
+                    MessageAcceptance::Reject
+                };
+                let gossip = &mut self.swarm.behaviour_mut().gossip;
+                gossip.report_message_validation_result(
+                    &message_id,
+                    &propagation_source,
+                    acceptance,
+                );
+                if accept {
                     let from = message
                         .source
                         .filter(|s| self.swarm.is_connected(s))
@@ -603,15 +813,77 @@ impl Node {
         }
     }
 
+    /// A tiered node checks each hello or reply's binding against the peer's authenticated
+    /// key; after a reply, it pulls again, now as that peer reads it.
+    fn bind_message(&mut self, peer: PeerId, message: request_response::Message<Vec<u8>, Vec<u8>>) {
+        let Some(t) = self.tiered.as_mut() else {
+            return;
+        };
+        match message {
+            request_response::Message::Request {
+                request, channel, ..
+            } => {
+                let granted = match Bind::decode(&request) {
+                    Some(Bind::Hello(binding)) => t.verify(&peer, binding.as_ref()),
+                    _ => t.verify(&peer, None),
+                };
+                let reply = Bind::Reply {
+                    granted,
+                    binding: t.binding,
+                }
+                .encode();
+                let _ = self
+                    .swarm
+                    .behaviour_mut()
+                    .bind
+                    .send_response(channel, reply);
+            }
+            request_response::Message::Response { response, .. } => {
+                if let Some(Bind::Reply { granted, binding }) = Bind::decode(&response) {
+                    if t.verify(&peer, binding.as_ref()) && granted {
+                        t.granted(peer);
+                    }
+                }
+                self.pull(peer);
+            }
+        }
+    }
+
+    /// Asks `peer` for what of `offered` this node lacks and `peer` may hear it ask for.
     fn want(&mut self, peer: PeerId, offered: &[EntryId]) {
-        let want = self.store.replica().want(offered);
+        let want: Vec<EntryId> = self
+            .store
+            .replica()
+            .want(offered)
+            .into_iter()
+            .filter(|id| self.reads(&peer, &id.writer))
+            .collect();
         self.ask_for(peer, want);
     }
 
     fn ask_for(&mut self, peer: PeerId, want: Vec<EntryId>) {
         if !want.is_empty() {
-            let bytes = Message::Want(want).encode();
-            self.swarm.behaviour_mut().sync.send_request(&peer, bytes);
+            self.send(&peer, Message::Want(want), Sent::Want);
+        }
+    }
+
+    /// Takes the catch-up a pull's answer proves: a feed whose key it offers nothing more of.
+    fn caught_up_by(&mut self, want: &[EntryId], circle: bool) {
+        let lacks = |w: &Option<Writing>| {
+            let key = w.as_ref().map(|w| w.writer.public().to_bytes());
+            want.iter().any(|id| Some(id.writer) == key)
+        };
+        if !self.caught_up && !lacks(&self.writing) {
+            self.caught_up = true;
+            if let Some(w) = self.writing.as_mut() {
+                let _ = w.catch_up(self.store.replica());
+            }
+        }
+        if circle && !self.circle_caught_up && !lacks(&self.circle) {
+            self.circle_caught_up = true;
+            if let Some(w) = self.circle.as_mut() {
+                let _ = w.catch_up(self.store.replica());
+            }
         }
     }
 
@@ -620,10 +892,26 @@ impl Node {
             request_response::Message::Request {
                 request, channel, ..
             } => {
-                let reply = match Message::decode(&request) {
-                    Some(Message::Summary(s)) => Message::Have(self.store.replica().have_for(&s)),
-                    Some(Message::Want(ids)) => {
-                        Message::Entries(self.store.replica().entries_for(&ids, MAX_RESPONSE))
+                let replica = self.store.replica();
+                let reply = match (Message::decode(&request), &self.tiered) {
+                    (Some(Message::Summary(s)), None) => Message::Have(replica.have_for(&s)),
+                    (Some(Message::Summary(s)), Some(t)) => {
+                        Message::Have(t.have_for(replica, &peer, &s))
+                    }
+                    (Some(Message::Want(ids)), None) => {
+                        Message::Entries(replica.entries_for(&ids, MAX_RESPONSE))
+                    }
+                    (Some(Message::Want(ids)), Some(t)) => {
+                        Message::Entries(t.entries_for(replica, &peer, &ids))
+                    }
+                    (Some(Message::Have(ids)), Some(t)) => {
+                        let bound = t.is_bound(&peer);
+                        let ack = Message::Have(Vec::new()).encode();
+                        let _ = self.swarm.behaviour_mut().sync.send_response(channel, ack);
+                        if bound {
+                            self.want(peer, &ids);
+                        }
+                        return;
                     }
                     _ => return,
                 };
@@ -633,38 +921,42 @@ impl Node {
                     .sync
                     .send_response(channel, reply.encode());
             }
-            request_response::Message::Response { response, .. } => {
-                match Message::decode(&response) {
-                    Some(Message::Have(ids)) => {
-                        let want = self.store.replica().want(&ids);
-                        let me = self.writing.as_ref().map(|w| w.writer.public().to_bytes());
-                        if !self.caught_up && !want.iter().any(|id| Some(id.writer) == me) {
-                            self.caught_up = true;
-                            if let Some(w) = self.writing.as_mut() {
-                                let _ = w.catch_up(self.store.replica());
-                            }
-                        }
-                        self.ask_for(peer, want);
-                    }
-                    Some(Message::Entries(list)) => {
-                        let mut new = Vec::new();
-                        for (entry, object) in list {
-                            let id = entry.id();
-                            if matches!(
-                                self.store.insert(entry, object),
-                                Ok(Accepted::New | Accepted::Equivocation)
-                            ) {
-                                new.push(id);
-                            }
-                        }
-                        if !new.is_empty() {
-                            self.announce(&new);
-                            self.pull(peer);
-                        }
-                    }
-                    _ => {}
+            request_response::Message::Response {
+                request_id,
+                response,
+            } => match (Message::decode(&response), self.pending.remove(&request_id)) {
+                (Some(Message::Have(ids)), Some(Sent::Pull { circle })) => {
+                    let want: Vec<EntryId> = self
+                        .store
+                        .replica()
+                        .want(&ids)
+                        .into_iter()
+                        .filter(|id| self.reads(&peer, &id.writer))
+                        .collect();
+                    self.caught_up_by(&want, circle);
+                    self.ask_for(peer, want);
                 }
-            }
+                (Some(Message::Entries(list)), Some(Sent::Want)) => {
+                    let mut new = Vec::new();
+                    for (entry, object) in list {
+                        let id = entry.id();
+                        if !self.reads(&peer, &id.writer) {
+                            continue;
+                        }
+                        if matches!(
+                            self.store.insert(entry, object),
+                            Ok(Accepted::New | Accepted::Equivocation)
+                        ) {
+                            new.push(id);
+                        }
+                    }
+                    if !new.is_empty() {
+                        self.announce(&new);
+                        self.pull(peer);
+                    }
+                }
+                _ => {}
+            },
         }
     }
 }

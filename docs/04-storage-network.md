@@ -421,8 +421,9 @@ and a new nym proves its position empty: a fork that keeps no member restarts fr
 anchored state root, and a nym cannot leave a bad record behind by claiming to be new (`00`
 invariant 5, `10` T86).
 
-**Who reads, as built.** The primitives of T77's first step are in `network` (2026-10-22,
-AT-NET-22); the transport uses none of them yet.
+**Who reads, as built.** A network configured with tiers enforces them in the transport
+(`10` T77, both steps, 2026-10-22; AT-NET-22, AT-NET-23, loopback only); a network without
+tiers does not (below). The primitives are in `network`:
 
 - `tier::Tiers` checks the tiered writer set: member `i`'s consortium key writes its public
   feed and a distinct circle key its circle feed, one each, no key twice and no other
@@ -448,14 +449,25 @@ AT-NET-22); the transport uses none of them yet.
   whose writer set is not theirs, are refused before anything changes. Members keep the
   full check (`added`).
 
-The transport is unchanged: a node answers the Summary and Want of any peer that connects
-and pulls from it on connect, and a node started without a writer key replicates the whole
-set; the transport authenticates a peer's libp2p key, which is bound to no writer key. So
-any peer reads, in the clear, what the set holds: the drafts under review, the panels
-before their verdict, every reveal with its judge's nym and rating, the batches of each
-respondent id, and the results' records per nym — against §Why not a permissionless
-blockchain, `08` PRIV-P5 and PRIV-P6, and `01` D17. Until T77's second step puts the
-primitives in `p2p` and `node`, a network runs only among machines its operator controls.
+In `p2p` and `node`, a tiered network applies them as §Transport (a network with tiers)
+and §A writer's own feed specify: the binding exchanged on each connection and checked
+against the peer's authenticated key, every sync message and every announcement limited to
+what the peer reads, gossip forwarded only when wholly public, and a member's circle feed
+caught up only from a member that granted it. A member collects the cuts with every chain
+checked (`p2p::member::Collector`); a node without the circle follows them through an
+`Observer` (`p2p::member::PublicCollector`), a later conflict still stopping it. Both
+collectors are fixed to one consortium and network. The tests read the bytes an outsider
+is sent, not what its client keeps: no circle identifier, entry, object or unmarked hash
+reaches it by connection, periodic or explicit sync, gossip, forwarding or reconnection.
+
+A network without tiers is unchanged: a node answers the Summary and Want of any peer that
+connects and pulls from it on connect, and a node started without a writer key replicates
+the whole set. So any peer reads, in the clear, what the set holds: the drafts under
+review, the panels before their verdict, every reveal with its judge's nym and rating, the
+batches of each respondent id, and the results' records per nym — against §Why not a
+permissionless blockchain, `08` PRIV-P5 and PRIV-P6, and `01` D17. Such a network — every
+configuration with relays as writers, until T85 — runs only among machines its operator
+controls. Neither kind is yet checked across machines or operators (`10` Milestone 2).
 
 **A signed entry** is a writer's log entry (`seq`, `prev`, `payload`, recomputed `hash`,
 exactly as the log chains it) and the writer's signature over
@@ -534,6 +546,13 @@ The writer catches up with the first peer that answers: a peer reached later tha
 longer feed finds the equivocation as evidence, it does not prevent it. A node whose writer
 key is not in the writer set does not start.
 
+A member of a tiered network keeps **two feeds**, each with its own files and catch-up
+(`own/` the public feed under its consortium key, `circle/` the circle feed under its
+circle key). Rule 2 holds for the public feed after a sync round with any peer; for the
+circle feed only after one asked of a member whose binding verified and which granted this
+node the circle before the request. A peer that serves the public tier alone proves
+nothing about the circle feed, which writes nothing until then.
+
 **Transport.** libp2p 0.56 over TCP, with Noise and Yamux: gossipsub (signed, strict
 validation) carries the announcements, at most 512 identifiers per message, on the topic
 `isegoria/<network id in hex>/entries`; request-response (`/isegoria/sync/1`, at most
@@ -541,6 +560,30 @@ validation) carries the announcements, at most 512 identifiers per message, on t
 connect, on a fixed period, and again after an Entries response that brought something new.
 A node's libp2p key is its transport identity, distinct from its writer key. A message that
 does not decode is dropped.
+
+**A network with tiers (`10` T77).** When the configuration holds a tiered writer set
+(`network::tier::Tiers`), the transport serves each peer only what its access reads:
+
+- **The binding.** A member node binds its libp2p ed25519 public key with its consortium
+  key (`Tiers::bind`, §Who reads). It travels as version 1, the member's index (8 bytes),
+  the transport key (32) and the signature (64), 105 bytes, one encoding. On each new
+  connection both sides send `/isegoria/bind/1` a hello holding their binding or none, and
+  answer one with whether they granted the circle and their own binding. A binding is
+  checked against the ed25519 key the peer's id inlines, which Noise authenticated, never
+  against a key a message names; before it verifies, and for another transport key,
+  network or member set, the peer reads the public tier only. The grant ends when the last
+  connection to that peer closes, and is checked again on the next.
+- **Every message.** A Summary, Have, Want or Entries sent to a peer names only writers
+  its access reads, whatever it asks (`Tiers::serve`); from a peer, a node takes only
+  entries of writers that peer may read.
+- **Announcements.** Gossip carries public identifiers only, and a node forwards a gossip
+  message only if every identifier in it is public (gossipsub validation), so an
+  intermediary outside the circle relays nothing of it. A new circle entry is announced to
+  each bound peer directly, as a Have request answered by an empty Have; the peer then asks
+  for what it lacks. A topic is not access control: nothing circle goes on gossip.
+
+A network without tiers keeps the transport above unchanged, and so the defect of §Who
+reads, as built.
 
 **A replica on disk.** A node given a directory keeps its replica in two content-addressed
 object files (§A node's own disk): `objects`, the entries' objects, and `entries`, each
@@ -667,17 +710,20 @@ is stopped, and resumes from its files when started again. Its configuration is 
 | `writers` | the writer set, one public key each (hex) |
 | `consortium.members`, `consortium.threshold` | the members' public keys in order, and `t` |
 | `key_file` | optional: a file holding the writer's 32-byte seed (hex); a member's key is its writer key |
+| `consortium.circle` | optional: the members' circle keys in member order — a tiered network, whose `writers` must be exactly the members' and circle keys |
+| `circle_key_file` | a member of a tiered network: its circle seed (hex), whose key must be its own in `consortium.circle` |
 | `member` | optional: `index`, `every_ms`, `cuts_per_epoch`, `patience`, `view_patience` |
 | `sync_every_ms`, `status_every_ms` | the periodic pull, and how often the status is written |
 
-Under `data_dir`: `own/`, the writer's feed (§A node's own disk); `replica/`, its replica on
-disk (§A replica on disk); `transport.key`, the seed of its libp2p key, made at the first
+Under `data_dir`: `own/`, the writer's feed (§A node's own disk), and `circle/`, a tiered
+member's circle feed; `replica/`, its replica on disk (§A replica on disk); `transport.key`, the seed of its libp2p key, made at the first
 start, so its peer id stays the same across restarts; and `status`, rewritten whole at each
-period (a file written beside it, then renamed): whether it is caught up, its peers, the
-equivocations its replica holds, whether the consortium equivocated, each collected cut's
+period (a file written beside it, then renamed): whether each feed is caught up, its
+peers and how many of them are bound members, the equivocations its replica holds, whether the consortium equivocated, each collected cut's
 digest from number 0, and each finished round's value and withholders. A configuration that
-does not hold — a bad key, a threshold outside `1..=n`, a member without a key — refuses to
-start. The node dials its peers at the start and again whenever it has none, so a node
+does not hold — a bad key, a threshold outside `1..=n`, a member without a key, circle keys
+that are not one distinct key per member, `writers` other than the tiered set's keys, a
+tiered member without its own circle key, a circle key file outside one — refuses to start. The node dials its peers at the start and again whenever it has none, so a node
 restarted later reaches the others, which dial no one.
 
 The collected cuts are kept, not collected again from number 0 at each look: a node extends
@@ -716,9 +762,9 @@ The answer review's side is `05` §Distributed integration (T79-P1–P7).
   `H("isegoria/transport/bind/v1" ‖ network id ‖ member-set hash ‖ index ‖ transport key)`
   and presented when a connection opens; no revocation within a network. An unbound peer —
   relay, light node, any reader — gets the public tier and the cut marks only, and follows
-  the cuts as §Who reads describes. *Built (T77 step 1):* the tiered writer set, the
-  binding's signature and check, the filtered answers and that reader, from keys the
-  configuration supplies; not the derivation, the exchange on connect or the transport.
+  the cuts as §Who reads describes. *Built (T77):* the tiered writer set, the binding,
+  its exchange on connect and the filtered transport, from keys configured separately
+  (`consortium.circle`, `circle_key_file`, `transport.key`); not the derivation.
 - **T88-P3 — quorum and faults.** `2t > n`, so views change (T76); recommended `n = 4`,
   `t = 3`: one member may stop, while cuts, the beacon value and closures each need three.
   Each property has its own assumption:

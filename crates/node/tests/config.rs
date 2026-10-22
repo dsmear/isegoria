@@ -102,7 +102,9 @@ fn at_net_21_the_peer_id_survives_a_restart() {
 fn at_net_21_the_status_file_has_one_text() {
     let status = Status {
         caught_up: true,
+        circle_caught_up: true,
         peers: 3,
+        bound: 2,
         equivocations: 1,
         conflict: false,
         cuts: vec![[1; 32], [2; 32]],
@@ -116,6 +118,7 @@ fn at_net_21_the_status_file_has_one_text() {
         text.replace("beacon 1", "beacon 0"),
         text.replace("[0,2]", "0,2"),
         text.replace("peers 3", "peers three"),
+        text.replace("bound 2", "bound -2"),
         text.clone() + "spare line\n",
     ] {
         assert_eq!(parse(&bad), None, "{bad}");
@@ -128,4 +131,105 @@ fn at_net_21_the_default_periods() {
     let planned = plan(load("defaults", |t| t).unwrap()).unwrap();
     assert_eq!(planned.p2p.sync_every, std::time::Duration::from_secs(1));
     assert_eq!(planned.status_every, std::time::Duration::from_secs(1));
+}
+
+/// The member configuration made tiered: circle keys of seeds 11 and 12, writers all four.
+fn tiered(circle_key: &std::path::Path) -> impl Fn(String) -> String + '_ {
+    move |t: String| {
+        let writers = format!(
+            "[\"{}\", \"{}\", \"{}\", \"{}\"]",
+            key(1),
+            key(2),
+            key(11),
+            key(12)
+        );
+        t.replace(
+            &format!("writers = [\"{}\"]", key(1)),
+            &format!("writers = {writers}"),
+        )
+        .replace(
+            "\n\n[consortium]",
+            &format!(
+                "\ncircle_key_file = \"{}\"\n\n[consortium]",
+                circle_key.display()
+            ),
+        )
+        .replace(
+            "threshold = 2\n",
+            &format!(
+                "threshold = 2\ncircle = [\"{}\", \"{}\"]\n",
+                key(11),
+                key(12)
+            ),
+        )
+    }
+}
+
+/// AT-NET-23: a tiered member plans both feeds; bad circle keys, writers or files refuse to start.
+#[test]
+fn at_net_23_a_tiered_configuration() {
+    let dir = scratch("circle-keys");
+    let (own, other) = (dir.join("own"), dir.join("other"));
+    std::fs::write(&own, hex(&[11; 32])).unwrap();
+    std::fs::write(&other, hex(&[12; 32])).unwrap();
+    let member = plan(load("tiered", tiered(&own)).unwrap()).unwrap();
+    assert!(member.p2p.tiers.is_some() && member.p2p.consortium.is_none());
+    let circle = member.p2p.circle.as_ref().expect("a circle feed");
+    assert!(circle.dir.ends_with("circle"));
+    assert_eq!(hex(&circle.writer.public().to_bytes()), key(11));
+    let reader = |t: String| {
+        let t = tiered(&own)(t);
+        let t = t.replace("\n\n[member]", "\n\n[unused]");
+        let t = t.split("\n\n[unused]").next().unwrap().to_string() + "\n";
+        t.lines()
+            .filter(|l| !l.starts_with("key_file") && !l.starts_with("circle_key_file"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let read = plan(load("tiered-reader", reader).unwrap()).unwrap();
+    assert!(read.p2p.tiers.is_some() && read.p2p.circle.is_none() && read.p2p.member.is_none());
+    let edit = |name: &str, f: &dyn Fn(String) -> String| planned(name, |t| f(tiered(&own)(t)));
+    assert_eq!(
+        edit("one-circle", &|t| t.replace(
+            &format!(", \"{}\"]\n\n[member]", key(12)),
+            "]\n\n[member]"
+        )),
+        Err(ConfigError::Tiers(network::tier::TierError::Count))
+    );
+    let repeated = network::tier::TierError::Repeated {
+        key: Member::from_seed([2; 32]).public().to_bytes(),
+    };
+    assert_eq!(
+        edit("member-key", &|t| t.replace(
+            &format!("\"{}\"]\n\n[member]", key(12)),
+            &format!("\"{}\"]\n\n[member]", key(2))
+        )),
+        Err(ConfigError::Tiers(repeated))
+    );
+    assert_eq!(
+        edit("writers", &|t| t.replace(
+            &format!(", \"{}\"]\nkey_file", key(12)),
+            "]\nkey_file"
+        )),
+        Err(ConfigError::Writers)
+    );
+    assert_eq!(
+        planned("other-circle", tiered(&other)),
+        Err(ConfigError::CircleKey)
+    );
+    assert_eq!(
+        edit("no-circle-file", &|t| t
+            .lines()
+            .filter(|l| !l.starts_with("circle_key_file"))
+            .collect::<Vec<_>>()
+            .join("\n")),
+        Err(ConfigError::CircleKey)
+    );
+    assert_eq!(
+        planned("untiered-circle", |t| t.replace(
+            "\n\n[consortium]",
+            &format!("\ncircle_key_file = \"{}\"\n\n[consortium]", own.display())
+        )),
+        Err(ConfigError::CircleKey)
+    );
 }

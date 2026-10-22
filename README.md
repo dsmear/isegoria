@@ -42,9 +42,10 @@ and the beacon; it does not yet run the answer-review lifecycle between nodes (T
 See [storage and runtime](docs/04-storage-network.md) and the
 [Phase 2 roadmap](docs/10-roadmap.md#phase-2--p2p-network).
 
-Replication still serves its whole set to connected peers. D54's access tiers, blind
-relays and state tree are decided but not implemented (T77, T85, T86): run nodes only
-among machines you control.
+A network configured with D54's tiers serves outsiders the public tier only (T77, tested
+on loopback); one without tiers still serves its whole set to connected peers. Blind relays
+and the state tree are not implemented (T85, T86): run untiered networks only among
+machines you control.
 
 The target is a small experimental P2P testnet with independent operators, each
 holding its own keys (D55). Single-operator runs are intermediate checks; distributed

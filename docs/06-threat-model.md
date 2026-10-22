@@ -87,10 +87,11 @@ Using performance to assign political weight or authority needs a separate justi
 ## Phase 2 network boundary
 
 The node process handles replication, cuts and the beacon, not the answer-review
-lifecycle. It currently serves its replicated set to any connected peer. D54 defines
-public, circle and self tiers, blind relays and a state tree for forks, but T77, T85
-and T86 remain unimplemented. Until then, run nodes only among machines their operator
-controls. Draft and panel privacy, unlinkability by network address and the private
+lifecycle. Configured with tiers, it serves a peer outside the circle the public tier
+only, its binding checked against the peer's authenticated transport key (T77, tested on
+loopback); without tiers it still serves its whole set to any connected peer. Blind relays
+and the state tree (T85, T86) remain unimplemented, and relays still write in a network
+without tiers: run such a network only among machines its operator controls. Draft and panel privacy, unlinkability by network address and the private
 fork path are design obligations, not protections already provided by the runtime.
 
 D55 targets independently operated experimental nodes; independent administration

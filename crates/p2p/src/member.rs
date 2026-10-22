@@ -9,8 +9,10 @@ use network::cut::{
     proposer_in, should_sign_in, sign_cut_in, signed_in, views_change, Collected, Cut,
     MemberObject,
 };
+use network::observer::{ObserveError, Observer};
 use network::replica::Replica;
 use network::rounds::Rounds;
+use network::tier::Tiers;
 use std::collections::BTreeSet;
 use std::time::Duration;
 
@@ -40,16 +42,50 @@ pub struct Progress {
     collector: Collector,
 }
 
+impl Progress {
+    /// A member's progress, its collector fixed to `consortium` on `network_id`.
+    pub fn new(consortium: &Consortium, network_id: [u8; 32]) -> Self {
+        Progress {
+            collector: Collector::new(consortium, network_id),
+            ..Progress::default()
+        }
+    }
+}
+
+/// The network id, member-set hash and threshold a collector counts its rounds under.
+type Context = ([u8; 32], [u8; 32], usize);
+
+fn context_of(consortium: &Consortium, network_id: [u8; 32]) -> Context {
+    (
+        network_id,
+        consortium.member_set_hash(),
+        consortium.threshold(),
+    )
+}
+
+/// A consortium or network other than the one a collector was fixed to.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OtherContext;
+
 /// The cuts collected so far and the beacon's rounds they ran, extended from the last cut
-/// rather than collected again from number 0 (`docs/04` §A node process).
+/// rather than collected again from number 0 (`docs/04` §A node process); fixed to one
+/// consortium and network, by [`Collector::new`] or at its first update.
 #[derive(Clone, Default)]
 pub struct Collector {
+    context: Option<Context>,
     cuts: Vec<Cut>,
     rounds: Rounds,
     conflict: bool,
 }
 
 impl Collector {
+    pub fn new(consortium: &Consortium, network_id: [u8; 32]) -> Self {
+        Collector {
+            context: Some(context_of(consortium, network_id)),
+            ..Collector::default()
+        }
+    }
+
     /// Extends the cuts from `replica`, a withholder's signature counted only where rule 6
     /// allows; two cuts collected for one number keep the cuts before it and stop there.
     pub fn update(
@@ -57,9 +93,16 @@ impl Collector {
         replica: &Replica,
         consortium: &Consortium,
         network_id: [u8; 32],
-    ) -> &[Cut] {
-        if !self.conflict && self.contested(replica, consortium, network_id) {
-            *self = Collector::default();
+    ) -> Result<&[Cut], OtherContext> {
+        let context = context_of(consortium, network_id);
+        if self.context.is_some_and(|c| c != context) {
+            return Err(OtherContext);
+        }
+        self.context = Some(context);
+        let rounds = &self.rounds;
+        let excluded = |c: &Cut| rounds.excluded(c);
+        if !self.conflict && contested(replica, consortium, network_id, &self.cuts, &excluded) {
+            *self = Collector::new(consortium, network_id);
         }
         while !self.conflict {
             let number = self.cuts.len() as u64;
@@ -92,28 +135,7 @@ impl Collector {
             self.rounds.finish(consortium, network_id, &cut, last);
             self.cuts.push(cut);
         }
-        &self.cuts
-    }
-
-    /// Whether a number already collected now has another cut signed by `t` members.
-    fn contested(&self, replica: &Replica, consortium: &Consortium, network_id: [u8; 32]) -> bool {
-        let mut numbers = BTreeSet::new();
-        for (_, o) in member_objects(replica, consortium) {
-            if let MemberObject::CutSignature { cut, .. } = o {
-                let held = usize::try_from(cut.number)
-                    .ok()
-                    .and_then(|n| self.cuts.get(n));
-                if held.is_some_and(|mine| *mine != cut) {
-                    numbers.insert(cut.number);
-                }
-            }
-        }
-        numbers.into_iter().any(|n| {
-            let ready = collect_with(replica, consortium, network_id, n, &|c| {
-                self.rounds.excluded(c)
-            });
-            matches!(ready, Collected::Conflict(..))
-        })
+        Ok(&self.cuts)
     }
 
     pub fn cuts(&self) -> &[Cut] {
@@ -131,11 +153,105 @@ impl Collector {
     }
 }
 
+/// Whether a number in `cuts` now has another cut signed by `t` members.
+fn contested(
+    replica: &Replica,
+    consortium: &Consortium,
+    network_id: [u8; 32],
+    cuts: &[Cut],
+    excluded: &dyn Fn(&Cut) -> Vec<usize>,
+) -> bool {
+    let mut numbers = BTreeSet::new();
+    for (_, o) in member_objects(replica, consortium) {
+        if let MemberObject::CutSignature { cut, .. } = o {
+            let held = usize::try_from(cut.number).ok().and_then(|n| cuts.get(n));
+            if held.is_some_and(|mine| *mine != cut) {
+                numbers.insert(cut.number);
+            }
+        }
+    }
+    numbers.into_iter().any(|n| {
+        let ready = collect_with(replica, consortium, network_id, n, excluded);
+        matches!(ready, Collected::Conflict(..))
+    })
+}
+
+/// The cuts a node without circle access follows (`docs/04` §Who reads), applied by an
+/// [`Observer`] fixed to one tiered set; a conflict found later keeps the cuts before it.
+#[derive(Clone)]
+pub struct PublicCollector {
+    observer: Observer,
+    cuts: Vec<Cut>,
+    conflict: bool,
+}
+
+impl PublicCollector {
+    pub fn new(tiers: &Tiers) -> Self {
+        PublicCollector {
+            observer: Observer::new(tiers),
+            cuts: Vec::new(),
+            conflict: false,
+        }
+    }
+
+    /// Extends the cuts from `replica`; other tiers, or a replica of another writer set, are
+    /// refused before anything changes.
+    pub fn update(&mut self, replica: &Replica, tiers: &Tiers) -> Result<&[Cut], ObserveError> {
+        if !self.observer.follows(tiers) {
+            return Err(ObserveError::Context);
+        }
+        if replica.writers() != tiers.writers() {
+            return Err(ObserveError::Replica);
+        }
+        let (c, net) = (tiers.consortium(), tiers.network_id());
+        let observer = &self.observer;
+        let excluded = |cut: &Cut| observer.excluded(cut);
+        if !self.conflict && contested(replica, c, net, &self.cuts, &excluded) {
+            *self = PublicCollector::new(tiers);
+        }
+        while !self.conflict {
+            let number = self.cuts.len() as u64;
+            let observer = &self.observer;
+            let ready = collect_with(replica, c, net, number, &|cut| observer.excluded(cut));
+            match ready {
+                Collected::Ready(cut, view, sigs) => {
+                    if self
+                        .observer
+                        .apply_in_view(replica, tiers, &cut, view, &sigs)
+                        .is_err()
+                    {
+                        break;
+                    }
+                    self.cuts.push(cut);
+                }
+                Collected::Conflict(..) => self.conflict = true,
+                Collected::Pending => break,
+            }
+        }
+        Ok(&self.cuts)
+    }
+
+    pub fn cuts(&self) -> &[Cut] {
+        &self.cuts
+    }
+
+    pub fn conflict(&self) -> bool {
+        self.conflict
+    }
+
+    pub fn beacons(&self) -> Vec<&BeaconOutcome> {
+        (0..).map_while(|e| self.observer.beacon(e)).collect()
+    }
+}
+
 /// The cuts collected from `replica`, from number 0, as far as each extends the last; a
 /// withholder's signature counted only where rule 6 allows, as the ledger counts it.
 pub fn collected(replica: &Replica, consortium: &Consortium, network_id: [u8; 32]) -> Vec<Cut> {
-    let mut collector = Collector::default();
-    collector.update(replica, consortium, network_id).to_vec()
+    let mut collector = Collector::new(consortium, network_id);
+    collector
+        .update(replica, consortium, network_id)
+        .map(<[Cut]>::to_vec)
+        .unwrap_or_default()
 }
 
 impl MemberRole {
@@ -155,7 +271,13 @@ impl MemberRole {
         progress: &mut Progress,
     ) -> Vec<MemberObject> {
         let c = &self.consortium;
-        let cuts = progress.collector.update(replica, c, network_id).to_vec();
+        let Ok(cuts) = progress
+            .collector
+            .update(replica, c, network_id)
+            .map(<[Cut]>::to_vec)
+        else {
+            return Vec::new();
+        };
         let last = cuts.last();
         let epoch = last.map_or(0, |l| l.epoch + u64::from(l.closes));
         let objects: Vec<(usize, MemberObject)> = member_objects(replica, c)

@@ -322,7 +322,10 @@ fn at_net_21_the_collector_matches_collecting_from_zero() {
     for epoch in [0, 0, 1] {
         let cut = Cut::next(&net.replica, last.as_ref(), epoch, false);
         net.sign(&cut, &[0, 1]);
-        let had = collector.update(&net.replica, &consortium(), NET).to_vec();
+        let had = collector
+            .update(&net.replica, &consortium(), NET)
+            .unwrap()
+            .to_vec();
         assert_eq!(had, collected(&net.replica, &consortium(), NET));
         last = Some(cut);
     }
@@ -330,7 +333,10 @@ fn at_net_21_the_collector_matches_collecting_from_zero() {
     net.commit(2, 9);
     let other = Cut::next(&net.replica, Some(&collector.cuts()[0]), 0, false);
     net.sign(&other, &[1, 2]);
-    let kept = collector.update(&net.replica, &consortium(), NET).to_vec();
+    let kept = collector
+        .update(&net.replica, &consortium(), NET)
+        .unwrap()
+        .to_vec();
     assert_eq!(kept, collected(&net.replica, &consortium(), NET));
     assert_eq!(kept.len(), 1);
     assert!(collector.conflict());

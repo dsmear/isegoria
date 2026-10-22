@@ -46,7 +46,7 @@ impl Observer {
         view: u64,
         sigs: &[(usize, Signature)],
     ) -> Result<Observed, ObserveError> {
-        if tiers.context() != self.context {
+        if !self.follows(tiers) {
             return Err(ObserveError::Context);
         }
         if replica.writers() != tiers.writers() {
@@ -72,6 +72,11 @@ impl Observer {
         self.rounds.finish(consortium, net, cut, last);
         self.last = Some(cut.clone());
         Ok(seen)
+    }
+
+    /// Whether `tiers` is the configuration this observer follows.
+    pub fn follows(&self, tiers: &Tiers) -> bool {
+        tiers.context() == self.context
     }
 
     /// The last cut applied.

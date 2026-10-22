@@ -6,6 +6,7 @@ use libp2p::identity::Keypair;
 use libp2p::Multiaddr;
 use network::consortium::{Consortium, Member};
 use network::replica::{FeedWriter, WriterSet};
+use network::tier::{TierError, Tiers};
 use p2p::member::MemberRole;
 use p2p::{Config as P2p, Handle, Own, StartError, Status};
 use serde::Deserialize;
@@ -27,6 +28,8 @@ pub struct Config {
     pub consortium: ConsortiumConfig,
     /// The writer's 32-byte seed in hex; a member's key is its writer key.
     pub key_file: Option<PathBuf>,
+    /// A tiered member's circle seed in hex (`docs/04` §A node process).
+    pub circle_key_file: Option<PathBuf>,
     pub member: Option<MemberConfig>,
     #[serde(default = "default_sync")]
     pub sync_every_ms: u64,
@@ -39,6 +42,9 @@ pub struct Config {
 pub struct ConsortiumConfig {
     pub members: Vec<String>,
     pub threshold: usize,
+    /// The members' circle keys in member order: a tiered network when not empty.
+    #[serde(default)]
+    pub circle: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -72,6 +78,11 @@ pub enum ConfigError {
     Threshold,
     Address(String),
     MemberWithoutKey,
+    Tiers(TierError),
+    /// `writers` is not exactly the tiered set's members' and circle keys.
+    Writers,
+    /// A tiered member without its circle key, or a circle key file elsewhere or of another key.
+    CircleKey,
 }
 
 impl Config {
@@ -170,12 +181,26 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
     if !(1..=members.len()).contains(&t) {
         return Err(ConfigError::Threshold);
     }
-    let seed = match &config.key_file {
+    let seed_of = |path: &Option<PathBuf>, field| match path {
         Some(path) => {
             let text = std::fs::read_to_string(path).map_err(|e| ConfigError::Read(e.kind()))?;
-            Some(unhex(&text, "key_file")?)
+            unhex(&text, field).map(Some)
         }
-        None => None,
+        None => Ok(None),
+    };
+    let seed = seed_of(&config.key_file, "key_file")?;
+    let circle_seed = seed_of(&config.circle_key_file, "circle_key_file")?;
+    let circle = keys(&config.consortium.circle, "consortium.circle")?;
+    let tiers = match circle.is_empty() {
+        true => None,
+        false => {
+            let consortium = Consortium::new(members.clone(), t);
+            let tiers = Tiers::new(network_id, consortium, &circle).map_err(ConfigError::Tiers)?;
+            if WriterSet::new(network_id, &writers) != *tiers.writers() {
+                return Err(ConfigError::Writers);
+            }
+            Some(tiers)
+        }
     };
     let member = match (config.member, seed) {
         (None, _) => None,
@@ -190,6 +215,22 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
             view_patience: m.view_patience,
         }),
     };
+    let own_circle = |index: usize| {
+        let seed = circle_seed.ok_or(ConfigError::CircleKey)?;
+        let writer = FeedWriter::from_seed(network_id, seed);
+        if circle.get(index) != Some(&writer.public()) {
+            return Err(ConfigError::CircleKey);
+        }
+        Ok(Own {
+            writer,
+            dir: config.data_dir.join("circle"),
+        })
+    };
+    let circle_own = match (&tiers, &member) {
+        (Some(_), Some(role)) => Some(own_circle(role.index)?),
+        _ if circle_seed.is_some() => return Err(ConfigError::CircleKey),
+        _ => None,
+    };
     std::fs::create_dir_all(&config.data_dir).map_err(|e| ConfigError::Read(e.kind()))?;
     let transport = transport_key(&config.data_dir.join("transport.key"))?;
     let p2p = P2p {
@@ -199,9 +240,11 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
             writer: FeedWriter::from_seed(network_id, seed),
             dir: config.data_dir.join("own"),
         }),
+        circle: circle_own,
         store: Some(config.data_dir.join("replica")),
-        consortium: member.is_none().then(|| Consortium::new(members, t)),
+        consortium: (member.is_none() && tiers.is_none()).then(|| Consortium::new(members, t)),
         member,
+        tiers,
     };
     Ok(Plan {
         transport,
@@ -216,8 +259,13 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
 /// The status file's text: one line per fact, cuts and rounds in order.
 pub fn render(status: &Status) -> String {
     let mut out = format!(
-        "caught_up {}\npeers {}\nequivocations {}\nconflict {}\n",
-        status.caught_up, status.peers, status.equivocations, status.conflict
+        "caught_up {}\ncircle_caught_up {}\npeers {}\nbound {}\nequivocations {}\nconflict {}\n",
+        status.caught_up,
+        status.circle_caught_up,
+        status.peers,
+        status.bound,
+        status.equivocations,
+        status.conflict
     );
     for (n, digest) in status.cuts.iter().enumerate() {
         out += &format!("cut {n} {}\n", hex(digest));
@@ -237,7 +285,9 @@ pub fn parse(text: &str) -> Option<Status> {
         let fields: Vec<&str> = line.split(' ').collect();
         match fields[..] {
             ["caught_up", v] => status.caught_up = v.parse().ok()?,
+            ["circle_caught_up", v] => status.circle_caught_up = v.parse().ok()?,
             ["peers", v] => status.peers = v.parse().ok()?,
+            ["bound", v] => status.bound = v.parse().ok()?,
             ["equivocations", v] => status.equivocations = v.parse().ok()?,
             ["conflict", v] => status.conflict = v.parse().ok()?,
             ["cut", n, d] => {

@@ -2,6 +2,7 @@
 //! writer's member and tier, the transport binding that grants the circle, and the pull
 //! sync's answers filtered by the reader's access.
 
+use crate::codec::{Reader, Writer};
 use crate::consortium::{Consortium, Member};
 use crate::hash::tagged;
 use crate::replica::{EntryId, Replica, SignedEntry, Summary, WriterSet};
@@ -43,6 +44,33 @@ pub struct TransportBinding {
     pub member: usize,
     pub transport: [u8; 32],
     pub signature: Signature,
+}
+
+impl TransportBinding {
+    /// The 105-byte encoding: version 1, the index, the transport key, the signature.
+    pub fn encode(&self) -> Vec<u8> {
+        Writer::new()
+            .u8(1)
+            .u64(self.member as u64)
+            .fixed(&self.transport)
+            .fixed(&self.signature.to_bytes())
+            .finish()
+    }
+
+    /// `None` unless `bytes` are exactly one encoding.
+    pub fn decode(bytes: &[u8]) -> Option<Self> {
+        let mut r = Reader::new(bytes);
+        if r.u8().ok()? != 1 {
+            return None;
+        }
+        let binding = TransportBinding {
+            member: usize::try_from(r.u64().ok()?).ok()?,
+            transport: r.fixed().ok()?,
+            signature: Signature::from_bytes(&r.fixed().ok()?),
+        };
+        r.finish().ok()?;
+        Some(binding)
+    }
 }
 
 /// Each member's two writers: its consortium key on its public feed, its circle key on its
