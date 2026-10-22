@@ -13,13 +13,13 @@ permissionless consensus.**
 each administering its nodes and holding its own keys. Single-operator processes are
 an intermediate check. The signing set stays defined by the network configuration;
 P2P does not mean anyone may sign the state. `10` §2 owns the work order and completion
-gates. `05` §Distributed integration lists the unresolved answer-review interface.
+gates. `05` §Distributed integration proposes the answer-review interface.
 
 **Trust boundary.** The current cut protocol's agreement argument assumes members
 follow its rules, with majority quorums for view changes; it is not a Byzantine-fault
-tolerance proof. Independent operators do not remove that assumption. T88 must pin
-the trial's membership, quorum, fault model and recovery procedures. Preserve the
-documented beacon bias and recovery/liveness limits in the trial's claims.
+tolerance proof. Independent operators do not remove that assumption. §Operating
+contract proposes the trial's membership, quorum, fault model and recovery (T88). Preserve
+the documented beacon bias and recovery/liveness limits in the trial's claims.
 
 ---
 
@@ -123,7 +123,7 @@ voting.
 ### The epoch's beacon (D41)
 
 The network supplies one public random value per epoch, its **beacon**.
-The retained legacy draws use it; the answer-review draw must be bound to it by T79.
+The retained legacy draws use it; `05` T79-P3 proposes the answer-review draw's binding.
 It must be fixed only after the candidates are, and
 nobody may be able to choose it. A value computed from the log, as the checkpoint head was
 (`01` D29), fails the second condition: whoever orders or includes the last deposits
@@ -171,8 +171,9 @@ keys the checkpoints' member-set hash commits to) and threshold `t`:
    the record.
 7. **Fewer than `t` reveals.** No beacon for `e`. The legacy draw policy makes deposits
    and pending draws wait for epoch `e + 1`, whose round starts from new secrets (a retry
-   of `e` would reuse already revealed secrets). T79 must specify the answer-review
-   behavior; the offline contract has no missing-beacon event or automatic retry.
+   of `e` would reuse already revealed secrets). For the answer review `05` T79-P4
+   proposes the same wait, explicitly; the offline contract has no missing-beacon event
+   or automatic retry.
    The withholders are recorded as in 6. Requiring `t` reveals is what makes the
    value unpredictable under the consortium's own assumption: with fewer than `t` colluding
    members, any `t` reveals hold an honest secret.
@@ -246,8 +247,8 @@ In code: `network::store` (`10` T13).
 ### Events and replay
 
 The event catalogue below is the retained legacy `NodeEvent` path. The offline
-answer review has its own `AnswerEvent` and durable framing (`05`); T79 must specify
-their distributed integration. This catalogue is not an instruction to restore
+answer review has its own `AnswerEvent` and durable framing (`05`); `05` §Distributed
+integration proposes their integration. This catalogue is not an instruction to restore
 legacy filters, results or lifecycle steps to the answer review.
 
 Every change to a node's state is an **event**: an object in `objects`, named by one log
@@ -622,7 +623,7 @@ for the members collecting cuts (`network::rounds`).
 Finding an object of the public tier by its CID without a full replica, the DHT, is `10`
 T75; the circle's objects are never offered through it (§Who reads). The node process
 does not run
-the answer review between nodes (`10` T79); its integration questions are in
+the answer review between nodes (`10` T79); its proposed contract is
 `05` §Distributed integration. In code: `network::replica`,
 `network::cut`, `protocol::ledger`, the `p2p` crate.
 
@@ -657,6 +658,54 @@ them from the last one, counting the beacon's rounds as it goes (`p2p::member::C
 A cut signed by `t` members for a number already collected, other than the one collected,
 is the consortium equivocating: the node keeps the cuts before that number and stops there,
 as collecting from 0 would.
+
+## Operating contract (T88) — proposed
+
+**Status (2026-10-22): proposed; not approved.** T88-P1–P4 await the owner's decision before
+the independent-operator trial; *approved* and *built* restate D54, D55 and the rules above.
+The answer review's side is `05` §Distributed integration (T79-P1–P7).
+
+- **T88-P1 — the genesis.** One canonical file every operator holds: version and family
+  (T79-P1), the members in order — each with its consortium, circle-feed and HPKE (T85)
+  public keys —, the threshold, the issuer's public key (test credentials until enrollment,
+  `10` T19, T22) and the family's configuration. The network id is
+  `H("isegoria/genesis/v1" ‖ genesis)`; a node whose configured id differs does not start.
+  Operators generate their keys locally and exchange public keys only; each checks its own
+  keys and the id. Every entry and cut signature covers the id, so a member's first entry is
+  its acceptance, and cut 0 needs `t` of them. No change in band: a new key, member,
+  threshold or parameter is a new genesis — a new network, carrying no state, which may name
+  the old one's last cut digest. Carrying author records over would need its own decision.
+- **T88-P2 — keys, feeds, transport.** *Approved (D54):* two feeds per member, each under its
+  own writer key; circle entries served only to transport keys a member key binds; relays
+  out of the writer set (T85). Proposed: the public feed's key is the consortium key, so
+  §Members' objects stays as built; the circle key is a second key; the writer set is
+  exactly the members' keys, two each, and an entry's tier is its writer key's. One secret per
+  member: its circle, HPKE and libp2p keys derive from the member's seed, domain-separated
+  (bespoke, with known-answer tests), so each member has exactly one transport key, bound
+  by the consortium key's signature over
+  `H("isegoria/transport/bind/v1" ‖ network id ‖ member-set hash ‖ index ‖ transport key)`
+  and presented when a connection opens; no revocation within a network. An unbound peer —
+  relay, light node, any reader — gets the public tier and the cut marks only. A node without
+  circle access checks a cut's circle marks by its signatures alone and applies the public
+  entries it adds, in their order within the cut.
+- **T88-P3 — quorum and faults.** `2t > n`, so views change (T76); recommended `n = 4`,
+  `t = 3`: one member may stop, while cuts, the beacon value and closures each need three.
+  Assumed: members follow the rules; fewer than `t` collude; crashes, restarts, delay, loss,
+  duplication and partitions. Not tolerated: arbitrary signers — two cuts signed in one view
+  are evidence, and two cuts collected for one number stop every node (NET-006). Progress
+  needs `t` members up, connected and not excluded (rule 6). It stops at a consortium
+  conflict or below `t` live members; a member whose feed equivocates is lost until a new
+  genesis.
+- **T88-P4 — a stale peer.** *Built (T80):* a writer catches up with the first peer that
+  answers. Proposed: after a start, a member writes nothing until sync rounds with the nodes
+  of `n − t + 1` other members have ended with none offering an entry of its keys it lacks.
+  A cut that marked its entries had `t` signers holding them, at least `t − 1` of them others,
+  so any `n − t + 1` others include one. An entry no cut marked, held only by nodes not reached,
+  remains a risk; its equivocation is evidence and stops the feed. A node that writes nothing
+  can only lag behind a stale peer: the cuts it applies are signed.
+
+Node admission (none: any peer reads the public tier), the trial's written procedures and
+Milestone 2's evidence stay in `10` T88.
 
 ---
 

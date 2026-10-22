@@ -98,14 +98,15 @@ does not make the present cut protocol Byzantine-tolerant. Its agreement argumen
 assumes members follow the rules, and view changes require majority quorums. The
 beacon retains withholding bias/stall risk; writer recovery relies on the first peer
 that answers, which can be stale. These limits must be specified and exercised in
-T88 before the independent-operator trial, not hidden by a single-operator demo.
+T88 before the independent-operator trial, not hidden by a single-operator demo;
+[04 §Operating contract](04-storage-network.md#operating-contract-t88--proposed) proposes them.
 
 A member sees the circle's plaintext. Public roots bind records but do not let an
 outsider recompute private results or guarantee their availability. Independent
 operators and blind relays do not eliminate member leaks or relay/member collusion.
 
 Decisions are in [01, D54–D55](01-decisions.md). Network contracts and residual limits
-are in [04](04-storage-network.md); integration questions in
-[05](05-question-lifecycle.md#distributed-integration--specification-pending-t79).
+are in [04](04-storage-network.md); the proposed integration contract in
+[05](05-question-lifecycle.md#distributed-integration-t79--proposed-contract).
 [10 §2](10-roadmap.md#phase-2--p2p-network) defines the planned trial; its evidence
 has not been established by the existing loopback tests.
