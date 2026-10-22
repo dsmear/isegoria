@@ -410,14 +410,10 @@ objects on another, each under its own key; a cut marks both. A node serves a ci
 entries only to a peer whose transport key a member's key has bound by signature, and
 anyone else learns of a circle feed its marks, never its entries (`10` T77).
 
-The **state tree** is a sparse Merkle tree with one leaf per nym, at a position fixed by
-the nym, holding a hiding commitment to its records. Its shape is public, in the
-erasure-coded archive (§Durability); every leaf is re-salted each epoch from a key the nym
-derives per role from its credential and hands the circle once, so the public tree does not
-show which nyms acted. A nym proves its records by the path to its leaf and their opening,
-and a new nym proves its position empty: a fork that keeps no member restarts from the last
-anchored state root, and a nym cannot leave a bad record behind by claiming to be new (`00`
-invariant 5, `10` T86).
+The **state tree** is a sparse Merkle tree with one leaf per nym, holding a hiding
+commitment to its records; its shape is public, and a nym cannot leave a bad record behind
+by claiming to be new (`00` invariant 5). Its proposed contract is §The state tree and the
+fork (`10` T86).
 
 **Who reads, as built.** A network configured with tiers enforces them in the transport
 (`10` T77, done for tiered networks after review, 2026-10-22; AT-NET-22, AT-NET-23,
@@ -599,7 +595,7 @@ writer set, so a restarted node holds the set it had.
 ### Blind relays (T85)
 
 **Status (2026-10-22).** The first increment, the transport channel, is built on T85-P1–P5
-at the owner's instruction, P5 as stated below (§As built). Which messages a person sends —
+at the owner's instruction, P5 as stated below, and reviewed (§As built). Which messages a person sends —
 the events, the read requests, their replies — stays `05` T79-P2 and T79-P7, proposed; T85
 as a whole stays open with them.
 
@@ -725,6 +721,106 @@ Tests: `p2p/tests/blind_relays.rs` and `node/tests/config.rs` (AT-NET-24); befor
 handled the two roles, the seven path tests failed. Not built: read requests and private
 replies (T79-P7), the answer review's events (T79), any limit on a relay's volume, fuzzing of
 the new decoders, and a run across machines; untiered networks keep relays as writers.
+
+### The state tree and the fork (T86) — proposed contract
+
+**Status (2026-10-22): proposed; not approved, not implemented.** *Decided* restates D54;
+*consequence* is what the code or D54 forces; each **T86-Pn** awaits the owner. Which records
+a nym's leaf holds in the answer review is T79's (`05` §Distributed integration).
+
+*Decided (D54, `10` T86).* A sparse Merkle tree with one leaf per nym at a position its nym
+fixes, holding a hiding commitment to its records (records and salt). Its shape — which
+positions hold a leaf, and the internal hashes — is public, in the archive (T84). Every leaf
+is re-salted each epoch from a key the nym derives per role from its credential and hands
+the circle once, so the public tree does not show which nyms acted and the nym can open its
+leaf at any epoch. Each epoch publishes the tree's root with the inputs' root. A nym proves
+its records by its path and their opening; a new nym proves its position empty. A fork with
+a member keeps the circle's data, negative records included; one with none restarts from the
+last anchored root, each nym opening its own leaf, and a nym with a record cannot enter as
+new (invariant 5).
+
+*Consequences.* The answer review's nym is `H(x·H_role)` (`identity::nullifier`): it depends
+on the holder's credential secret and the role only, not on the network, the committee or
+the cut. The existing Merkle tree (`network::merkle`, RFC 6962) proves inclusion in a list,
+not a position's absence. A leaf re-salted every epoch makes the whole shape change every
+epoch: the archive grows by the occupied leaves each epoch.
+
+- **T86-P1 — positions.** *The problem:* the same person active in two networks has the same
+  nym in both, so a position fixed by the nym alone links occupied positions across the two
+  public trees. *Proposal:* `H("isegoria/state/position/v1" ‖ lineage ‖ role ‖ nym)`, where the
+  lineage is the network id of the history's first genesis, which a fork inherits: positions
+  survive a fork and differ between unrelated networks. Each role's nym has its own leaf; a
+  person's three leaves are as unlinkable as its nyms.
+- **T86-P2 — records and commitment.** A leaf commits to
+  `C = H("isegoria/state/commit/v1" ‖ lineage ‖ epoch ‖ role ‖ salt ‖ records)` and the tree
+  holds `H("isegoria/state/leaf/v1" ‖ position ‖ C)`; internal nodes
+  `H("isegoria/state/node/v1" ‖ left ‖ right)` over 256-bit positions, an empty subtree a
+  fixed hash from `"isegoria/state/empty/v1"`. The records are version 1, the role, then a
+  payload in `network::codec`'s encoding (little-endian integers, length-prefixed fields,
+  floats as IEEE bits), so one state has one encoding (invariant 7). For the answer review
+  T79 fixes the payload — for `Propose`, the author's observations in question order and its
+  slots per epoch; for `Judge`, its pool entry; `Respond`, nothing.
+- **T86-P3 — salts.** The holder derives `k = H("isegoria/state/salt-key/v1" ‖ secret ‖ role)`
+  from its credential secret (bespoke, as the nym's own derivation) and the epoch's salt is
+  `H("isegoria/state/salt/v1" ‖ k ‖ lineage ‖ epoch)`. *The problem:* "hands the circle once"
+  has no moment: a reviewer that joins the pool without handing `k` has a leaf the members
+  cannot re-salt. *Proposal:* `k` travels sealed with the role's first event (T85; its
+  message is T79's), and a member does not log a first event without it.
+- **T86-P4 — roots.** After epoch `e`'s closing cut, every member computes the tree and signs
+  `H("isegoria/state/roots/v1" ‖ network id ‖ lineage ‖ member-set hash ‖ e ‖ cut number ‖
+  cut digest ‖ inputs root ‖ state root ‖ occupied leaves)` as a member object, collected at
+  `t` like a cut and anchored by T17. A member that computes another root does not sign. The
+  inputs root of the answer review is T79's.
+- **T86-P5 — proofs.** An inclusion proof is the position's 256 siblings, empty ones marked
+  by a bitmap; an opening adds the records and the salt, and verifying recomputes `C`, the
+  leaf and the root under the stated lineage, epoch and role. An absence proof is the same
+  path to the empty hash. The shape being public, anyone builds paths and absence proofs;
+  only who holds the records and the salt opens a leaf — the nym (its secret gives the salt,
+  its own records it keeps or obtains from a member through T79-P7) and the members.
+- **T86-P6 — what stays public.** Re-salting hides the records, their size, and which nyms
+  acted. It does not hide which positions are occupied, how many, or which appear in an
+  epoch: *e.g.* a new position in epoch 7 tells everyone that one nym of that role had its
+  first record then, and an author and a reviewer appearing together in a small epoch hint
+  at one person. Accepted as D54's residual; nothing here blurs it.
+- **T86-P7 — a fork.** *With a member:* it brings the events and the salt keys; the fork
+  replays them, must reproduce the last anchored root before signing its own, and continues.
+  *With none:* the fork takes the anchored root and that epoch's archived shape, rebuilds
+  the tree and checks the root. A nym re-enters by an opening against it, handing its `k`
+  again; a new nym proves its position empty. *The problem:* a nym with discarded questions
+  may never open. *Proposal:* an unopened leaf stays as it was, locked — it cannot act, has
+  no deadline and no default record, and may open later against the same anchored root; its
+  hash then no longer changes, so it is visibly unopened. A nym that lost its records cannot
+  open and stays locked: keeping them (D54's self tier) is its own part.
+- **T86-P8 — continuity.** A fork keeps nyms only if their secrets and role generators stay
+  the same: a new network id does not change them (T86-P1), but a new committee issuing
+  fresh credentials would — *e.g.* a person enrolling again under a new committee with a new
+  secret has new nyms, empty positions and no past. *Proposal:* a fork's configuration keeps
+  the issuer keys of the credentials it accepts, and a new committee imports the uniqueness
+  label registry and refuses an issued label (D30); a lost secret is a lost nym. The
+  committee's setup and migration are T19 and T22.
+
+**Dependencies.** T79: the payloads, the inputs root, the first event carrying `k`, the reads
+a nym asks for. T85: the sealed channel (built). T17: anchoring the signed roots. T84: the
+shape in the archive. T19, T22: committee continuity. Nothing above needs the legacy path.
+
+**First increment, implementable now.** In `network`, `state`: positions, salts from a given
+key, commitments, the sparse tree with roots, inclusion, absence and opening proofs, the
+root statement's encoding, and the shape's encoding with a rebuild from it, each with one
+encoding; in `identity`, the holder's salt key. Synthetic records, no collection of
+signatures and no T79 payload. Accepted when:
+
+1. a nym's records open against the root, and any byte changed in the records, the salt,
+   the path, the leaf or the root is refused;
+2. the same opening under another lineage, epoch, role or position is refused;
+3. an empty position proves its absence, and an occupied one cannot — a nym with a record
+   cannot present itself as new;
+4. the next epoch's salts change every re-salted leaf and the root with the records the same,
+   and a leaf left unsalted is visibly unchanged;
+5. a tree rebuilt from its shape has the stated root, a shape with one leaf changed,
+   missing or added does not, and openings of some nyms verify on the rebuilt tree while the
+   others stay occupied and unopened;
+6. the root statement's digest changes with each of its fields;
+7. proofs, shapes and statements decode only as their one encoding.
 
 ### Cuts: the protocol state from the replicated set
 
