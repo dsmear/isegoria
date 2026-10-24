@@ -1827,9 +1827,10 @@ mean this entry.
 - **The state tree, keyed by nym.** A sparse Merkle tree: each nym's leaf sits at a position
   fixed by its nym, and holds a hiding commitment to its records (the records and a salt).
   Its shape — which positions hold a leaf, and the internal hashes — is public, kept in the
-  erasure-coded archive (`10` T84). Every leaf is re-salted each epoch, from a key the nym
-  derives per role from its credential and hands the circle once, so the public tree does
-  not show which nyms acted and the nym can open its leaf at any epoch. A nym proves its
+  erasure-coded archive (`10` T84). Every live leaf is re-salted each epoch (D56 excepts
+  frozen leaves until reopening), from a key the nym derives per role from its credential
+  and hands the circle once, so the public tree does not show which live nyms acted and
+  the nym can open its leaf at any epoch. A nym proves its
   records by the path to its leaf and their opening; a new nym proves its position empty.
 - **A fork.** A fork that keeps a member keeps the circle's data, negative records included.
   A fork that keeps none restarts from the last anchored state root: a nym re-enters by
@@ -1904,3 +1905,25 @@ D54's access tiers remain required. The offline Phase 1 closure stays unchanged:
 distributed closure authority/timing and missing-beacon behavior must be specified
 before implementation; this decision does not select deadlines, retries, replacement
 reviewers or legacy acceptance gates.
+
+## D56 — State-tree commitments and continuity through forks
+
+**Decided (2026-10-24)** by the owner: approve T86-P1–P8 in
+`04` §The state tree and the fork, including its three operational compromises.
+That section owns the encoding and implementation contract.
+
+Positions stay fixed within a lineage; salts and commitments also bind the current
+network, separating sibling forks. The public sees occupancy, new positions and frozen
+leaves, not their role, nym or records unless it has additional knowledge (T86-P6).
+
+**Amends D54:** every live leaf is re-salted each epoch; a frozen leaf retains its
+commitment and origin until its authenticated holder reopens it. It remains occupied
+and locked, with no expiry or default record. Reopening is consumed immediately and
+cannot replace later records, including before the next epoch is published (T86-P7).
+Reconstruction checks both the state root and the shape digest of the trusted statement.
+
+**Continuity (D30):** issuer keys, the uniqueness function and its registries are distinct.
+Where continuity of de-duplication is missing, enrollment and issuance stop; existing
+nyms can continue under the authentication and reopening rules (T86-P8). The migration
+itself remains T19/T22. This approval does not approve T79 or T88, implement real-person
+uniqueness, or close T86 or Phase 2.

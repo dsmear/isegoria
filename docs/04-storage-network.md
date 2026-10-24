@@ -412,7 +412,7 @@ anyone else learns of a circle feed its marks, never its entries (`10` T77).
 
 The **state tree** is a sparse Merkle tree with one leaf per nym, holding a hiding
 commitment to its records; its shape is public, and a nym cannot leave a bad record behind
-by claiming to be new (`00` invariant 5). Its proposed contract is §The state tree and the
+by claiming to be new (`00` invariant 5). Its contract is §The state tree and the
 fork (`10` T86).
 
 **Who reads, as built.** A network configured with tiers enforces them in the transport
@@ -722,18 +722,19 @@ handled the two roles, the seven path tests failed. Not built: read requests and
 replies (T79-P7), the answer review's events (T79), any limit on a relay's volume, fuzzing of
 the new decoders, and a run across machines; untiered networks keep relays as writers.
 
-### The state tree and the fork (T86) — proposed contract
+### The state tree and the fork (T86)
 
-**Status (2026-10-22): proposed; not approved, not implemented.** *Decided* restates D54;
-*consequence* is what the code or D54 forces; each **T86-Pn** awaits the owner. Which records
-a nym's leaf holds in the answer review is T79's (`05` §Distributed integration).
+**Contract approved (2026-10-24, D56): T86-P1–P8.** The identifiers below are retained
+for review traceability. D56 accepts P6's public residual, P7's frozen-leaf exception to
+D54, and P8's pause of enrollment and issuance without continuity. Which records a nym's
+leaf holds in the answer review is T79's (`05` §Distributed integration).
 
 *Decided (D54, `10` T86).* A sparse Merkle tree with one leaf per nym at a position its nym
 fixes, holding a hiding commitment to its records (records and salt). Its shape — which
-positions hold a leaf, and the internal hashes — is public, in the archive (T84). Every leaf
-is re-salted each epoch from a key the nym derives per role from its credential and hands
-the circle once, so the public tree does not show which nyms acted and the nym can open its
-leaf at any epoch. Each epoch publishes the tree's root with the inputs' root. A nym proves
+positions hold a leaf, and the internal hashes — is public, in the archive (T84). Every live
+leaf is re-salted each epoch (D56 excepts frozen leaves until reopening) from a key the nym
+derives per role from its credential and hands the circle once, so the public tree does not
+show which live nyms acted and the nym can open its leaf at any epoch. Each epoch publishes the tree's root with the inputs' root. A nym proves
 its records by its path and their opening; a new nym proves its position empty. A fork with
 a member keeps the circle's data, negative records included; one with none restarts from the
 last anchored root, each nym opening its own leaf, and a nym with a record cannot enter as
@@ -742,18 +743,21 @@ new (invariant 5).
 *Consequences.* The answer review's nym is `H(x·H_role)` (`identity::nullifier`): it depends
 on the holder's credential secret and the role only, not on the network, the committee or
 the cut. The existing Merkle tree (`network::merkle`, RFC 6962) proves inclusion in a list,
-not a position's absence. A leaf re-salted every epoch makes the whole shape change every
-epoch: the archive grows by the occupied leaves each epoch.
+not a position's absence. Re-salting changes the live leaf hashes, not their occupied
+positions; publishing a full shape each epoch grows the archive by the occupied leaves.
 
 - **T86-P1 — positions.** *The problem:* the same person active in two networks has the same
   nym in both, so a position fixed by the nym alone links occupied positions across the two
-  public trees. *Proposal:* `H("isegoria/state/position/v1" ‖ lineage ‖ role ‖ nym)`, where the
+  public trees. *Choice:* `H("isegoria/state/position/v1" ‖ lineage ‖ role ‖ nym)`, where the
   lineage is the network id of the history's first genesis, which every fork, and every fork
   of a fork, inherits: a nym keeps its position through forks, and unrelated networks place
   it elsewhere. Each role's nym has its own leaf, as unlinkable as the nyms.
 - **T86-P2 — commitment and tree.** Every hash is `network`'s tagged SHA-256 (the domain and
-  each field length-prefixed). A leaf commits to `C = H("isegoria/state/commit/v1" ‖ lineage
-  ‖ network id ‖ epoch ‖ role ‖ salt ‖ records)` and the tree holds
+  each field length-prefixed); roles in hashes use the UTF-8 tags `propose`, `judge`,
+  `respond`. Wire versions and role tags are bytes (roles 0, 1, 2 respectively), counters
+  and lengths are little-endian `u64`, and hashes are fixed 32-byte fields. A leaf commits
+  to `C = H("isegoria/state/commit/v1" ‖ lineage ‖ network id ‖ epoch ‖ role ‖ salt ‖ records)`
+  and the tree holds
   `H("isegoria/state/leaf/v1" ‖ position ‖ C)`. *Records* are version 1, the role, then the
   payload as a field; the payload stays opaque here and is T79's (for the answer review, the
   author's observations and slots, or a reviewer's pool entry). *The tree:* a position is 256
@@ -763,14 +767,15 @@ epoch: the archive grows by the occupied leaves each epoch.
   `Eₕ₊₁ = H("isegoria/state/node/v1" ‖ Eₕ ‖ Eₕ)` an empty subtree of height `h + 1`, a node
   `H("isegoria/state/node/v1" ‖ left ‖ right)`, and the root has height 256.
 - **T86-P3 — salts.** The holder derives `k = H("isegoria/state/salt-key/v1" ‖ secret ‖ role)`
-  from its credential secret (bespoke, as the nym's own derivation), and a salt is
+  from the canonical compressed bytes of its credential secret scalar (bespoke, as the nym's
+  own derivation), and a salt is
   `H("isegoria/state/salt/v1" ‖ k ‖ lineage ‖ network id ‖ epoch)`. The network id in salt
   and commitment separates forks, while the lineage keeps the position. *E.g.* two forks of
   one parent, both at epoch 12, the same nym with the same `k` and the same records: without
   the network id their leaves would be equal — showing the records match across the forks
   and letting an opening made in one serve in the other; with it they differ, at the same
   position. *The problem:* "hands the circle once" has no moment: a reviewer that joins the
-  pool without handing `k` has a leaf the members cannot re-salt. *Proposal:* `k` travels
+  pool without handing `k` has a leaf the members cannot re-salt. *Choice:* `k` travels
   sealed with the role's first event (T85; its message is T79's), and a member does not log
   a first event without it.
 - **T86-P4 — roots and the shape.** The shape lists the occupied leaves by strictly
@@ -796,27 +801,31 @@ epoch: the archive grows by the occupied leaves each epoch.
   verifier derives that position from the nym a valid nullifier proof has just
   authenticated. An opening shows that its presenter knows the leaf's contents, not that it
   is that leaf's nym: re-entry needs both, with the position derived by the verifier.
-- **T86-P6 — what would stay public (a proposed residual, not accepted).** Re-salting hides
+- **T86-P6 — what stays public (accepted residual).** Re-salting hides
   the records, their size and which live nyms acted. A position hashes the lineage, the role
   and the nym, so it shows the public neither the role nor the nym: the shape shows
   occupancy only. A member, who holds the circle's nyms, computes their positions and reads
   both, as does whoever learns a nym. Occupancy still tells which positions are occupied,
   how many, and which appear or freeze in an epoch. *E.g.* one new position in a quiet epoch
   tells everyone that one nym had its first record then; two new together hint at one
-  person's two roles. Nothing proposed here blurs it; whether to accept it is the owner's.
+  person's two roles. D56 accepts this residual; the tree does not blur it.
 - **T86-P7 — a fork, frozen leaves and their reopening.** A leaf's *context* is the lineage,
   the network id and epoch it was committed under, and its role. *With a member:* it brings
   the events and the salt keys; the fork replays them, reproduces the parent's last anchored
   root before signing its own, and re-salts every live leaf under its own network id. *With
   none:* the fork takes the last anchored statement, rebuilds the tree from that epoch's
-  archived shape and checks the root; lacking the keys, it freezes every live leaf, its
+  archived shape and checks both the state root and shape digest against that trusted
+  statement; lacking the keys, it freezes every live leaf, its
   origin the parent's network id and that epoch. A *frozen* leaf keeps its hash and origin
   and is locked: its nym cannot act; there is no deadline and no default record. *The
   exception:* D54 re-salts every leaf each epoch; a frozen leaf is not, and stays visibly
   static. *Reopening:* the nym authenticates (T86-P5) and opens the frozen leaf under its
-  origin's context; the fork adopts those records as the nym's current state, receives `k`
-  again (T86-P3), and from its next epoch the leaf is live and re-salted. Only the frozen
-  leaf's own opening counts: an earlier epoch's opening does not fold to it, and once the
+  origin's context, using the current tree's public path (an old path may be stale after
+  another leaf changes); the fork adopts those records as the nym's current state, receives `k`
+  again (T86-P3). Reopening immediately makes the working leaf live and re-commits its
+  records under the fork's context; it cannot be consumed a second time before publication.
+  The next published epoch re-salts it with the other live leaves. Intermediate working
+  shapes are not epoch publications. Only the frozen leaf's own opening counts: an earlier epoch's opening does not fold to it, and once the
   leaf is live an opening under the origin is refused, so an old opening never replaces
   later records. *Fork of a fork:* the origin travels with the leaf. One still frozen when
   its fork forks again keeps its first origin and reopens under it, with a member or not;
@@ -836,7 +845,7 @@ epoch: the archive grows by the occupied leaves each epoch.
   could obtain a second credential: a fresh nym at an empty position, which no absence proof
   catches (invariant 5). D30 then requires the same function (shares refreshed, not
   re-keyed) or a migration that keeps de-duplication; with no committee left, existing
-  credentials still verify, but nothing de-duplicates. *Proposal:* where that continuity is
+  credentials still verify, but nothing de-duplicates. *Choice:* where that continuity is
   missing, enrollment and issuance stop; existing nyms go on; a lost secret is a lost nym.
   Specifying the migration is T19 and T22's.
 
@@ -845,12 +854,19 @@ a nym asks for. T85: the sealed channel (its first increment, built). T17: ancho
 signed statements. T84: the shapes in the archive. T19, T22: the issuing committee's
 continuity. Nothing here needs the legacy path.
 
-**First increment, implementable now.** In `network`, `state`: positions, salts from a given
+**First increment (2026-10-24).** In `network`, `state`: positions, salts from a given
 key, commitments, the sparse tree with its empty hashes, the shape with live and frozen
 leaves, inclusion, absence and opening proofs, the root statement, a rebuild from a shape,
 and the reopening of a frozen leaf, each with one encoding; in `identity`, the holder's salt
 key. The re-entry check takes an authenticated nym and derives its position. Opaque
-synthetic payloads; no signatures collected, no T79. Accepted when:
+synthetic payloads; no signatures collected, no T79. `CallerAuthenticatedNym` is an explicit
+caller boundary: its constructor does not verify a credential. The embedding must first
+verify the action's nullifier proof against an accepted issuer; it must also authenticate
+the anchored `RootStatement`. `Shape::check` checks both commitments, not signatures or
+anchor provenance. The in-memory `State` provides the working tree, not persistence or
+an epoch publication service. Canonical codecs have property tests, not a fuzz campaign.
+The bespoke SHA-256 composition has independent known-answer vectors, not a cryptographic
+audit. Acceptance cases (`network/tests/state.rs`, `identity/tests/state_salt.rs`):
 
 1. a nym's records open against the root, and any byte changed in the records, the salt, the
    path, the leaf or the root is refused;
@@ -863,11 +879,11 @@ synthetic payloads; no signatures collected, no T79. Accepted when:
 5. the next epoch changes every live leaf and the root with the records the same; a frozen
    leaf keeps its hash;
 6. a frozen leaf reopens under its origin and becomes live; an earlier epoch's opening, or
-   the origin's opening again once live, is refused and the later records stay; in a fork of
-   a fork, a leaf frozen at the first fork reopens under its first origin, one frozen at the
+   the origin's opening again after reopening (also before the next epoch), is refused and the
+   later records stay; in a fork of a fork, a leaf frozen at the first fork reopens under its first origin, one frozen at the
    second under the second;
-7. a tree rebuilt from its shape has the stated root; an entry changed, missing or added
-   changes the shape digest, and a changed position or leaf hash the root too; a shape with
+7. a tree rebuilt from its shape matches both the trusted state root and shape digest; an
+   entry changed, missing or added changes the shape digest, and a changed position or leaf hash the root too; a shape with
    a repeated or out-of-order entry does not decode; after a rebuild some nyms reopen while
    the rest stay frozen;
 8. the empty hashes, the bit order and the bitmap agree with the definitions above on a small

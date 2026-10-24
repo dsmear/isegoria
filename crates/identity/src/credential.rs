@@ -67,6 +67,11 @@ impl Credential {
         derive_nym(&self.secret, role)
     }
 
+    /// Holder-derived per-role key for state re-salting (`docs/04` T86-P3).
+    pub fn state_salt_key(&self, role: Role) -> [u8; 32] {
+        state_salt_key(&self.secret_scalar(), role)
+    }
+
     fn secret_scalar(&self) -> Fr {
         Fr::from_le_bytes_mod_order(&self.secret)
     }
@@ -111,6 +116,17 @@ impl Credential {
             },
         )
     }
+}
+
+fn state_salt_key(secret: &Fr, role: Role) -> [u8; 32] {
+    let mut bytes = Vec::new();
+    secret
+        .serialize_compressed(&mut bytes)
+        .expect("serializing the holder scalar into memory cannot fail");
+    crate::hash::tagged(
+        "isegoria/state/salt-key/v1",
+        &[&bytes, role.tag().as_bytes()],
+    )
 }
 
 /// Bases of the Pedersen commitment `C`, in the same order as its witnesses
@@ -197,6 +213,11 @@ impl fmt::Debug for AnonymousCredential {
 }
 
 impl AnonymousCredential {
+    /// Holder-derived per-role key for state re-salting (`docs/04` T86-P3).
+    pub fn state_salt_key(&self, role: Role) -> [u8; 32] {
+        state_salt_key(&self.secret, role)
+    }
+
     pub(crate) fn signature(&self) -> &SignatureG1<E> {
         &self.signature
     }

@@ -1689,7 +1689,15 @@ Completion is **not** "all TODOs removed". Isegoria MAY claim completeness only 
 - DS-6 Transport/CRDT: convergence invariant stated (§10.3) before implementation begins — stated and tested for the replicated set (T18, AT-NET-13/14) and for the protocol state (T74, AT-PRO-13).
 - DS-7 Liveness: the cuts go on while a member, the proposer included, is silent (`docs/10` T76; met for `2t > n` by step 1, AT-NET-19).
 - DS-8 A writer never equivocates across a restart, its files lost or damaged included (G-23, `docs/10` T80; met for the peers it reaches, AT-NET-18).
-- DS-9 A fork cannot whitewash: a nym's position in the state tree is fixed by its credential and public, so a nym with a record cannot prove itself new (D54, `docs/10` T86).
+- DS-9 A fork cannot whitewash: a position is fixed by lineage, role and authenticated nym;
+  an occupied position cannot prove absence (D54/D56, `04` §The state tree and the fork).
+  T86's first increment tests commitments, context separation, authenticated-position
+  checks, live re-salting, frozen-leaf reopening and fork-of-fork origins, both shape/root
+  commitments, known-answer hashes and canonical codecs (`AT-T86-1`–`9`,
+  `network/tests/state.rs`, `identity/tests/state_salt.rs`). The caller still supplies
+  authenticated nyms and trusted anchored statements. Runtime integration and uniqueness
+  continuity remain open; these primitive tests do not establish end-to-end whitewashing
+  resistance.
 
 ### 16.6 Implementation quality
 - IQ-1 `lbfgs` and `fit_logistic` return status; separation detected.

@@ -116,7 +116,7 @@ The state authenticates but does not issue (`docs/03`).
 | `ratelimit` | §Cost of proposing | `rln_token`, `within_quota`, `SlotLedger` |
 | `enrollment` | §M1 | `IdentityDocument` (+ `Cie`, `Spid`), `UniquenessOracle` (`VoprfOracle` real + `ReferenceOracle` test-only), `EnrollmentRegistry` |
 | `oprf` | §M1 | `ThresholdOprfOracle` (Shamir + DLEQ), `KeyShare`, `PublicShare`, `PartialEval`, `DleqProof` |
-| `credential` | §M2 | `Credential`, `Issuer`, `ThresholdIssuer`, `IssuerPublic`, `IssuanceRequest`, `AnonymousCredential` |
+| `credential` | §M2; `04` §The state tree and the fork | `Credential`, `Issuer`, `ThresholdIssuer`, `IssuerPublic`, `IssuanceRequest`, `AnonymousCredential`; holder `state_salt_key` from the canonical credential scalar and role (T86) |
 | `hash` (private) | — | domain-separated SHA-256 |
 
 **Real:** role pseudonyms (deterministic → not rotatable → no whitewashing; distinct
@@ -155,6 +155,7 @@ Integrity without permissionless consensus (`docs/04`).
 |---|---|---|
 | `cid` | §Content-addressed storage | `Cid`, `cid` |
 | `merkle` | §Merkle tree | `leaf_hash`, `merkle_root`, `merkle_proof`, `verify_proof` |
+| `state` | §The state tree and the fork | `State`, `Shape`, `RootStatement`, `Path`, `Opening` — sparse commitments, inclusion/absence, reconstruction and one-time frozen-leaf reopening (T86 first increment); `CallerAuthenticatedNym` explicitly relies on caller authentication; synthetic payloads, no runtime or anchoring integration |
 | `log` | §Signed append-only logs | `TransparencyLog` (hash-chained; `verify` detects tampering; `checkpoint` + `verify_extends` prove consistency/truncation against a signed prior head, T14) |
 | `consortium` | §The consortium as backbone | `Member` (ed25519), `Checkpoint` (net-id + member-set bound, T15), `Consortium::new` (`1 ≤ t ≤ n` distinct keys, T63), `Consortium::verify` (t-of-n over its own member set, T63), `verify_excluding` (the beacon's withholders, T37), `CheckpointClient` (monotonic-height, equivocation, T15) |
 | `beacon` | §The epoch's beacon (D41) | `BeaconRound` (`open`, `commit`, `close_commits`, `close_deposits`, `reveal`, `finish`), `Member::beacon_commit`, `BeaconCommit`, `BeaconReveal`, `BeaconOutcome` (`value`, `revealed`, `withheld`, `record`), `RoundError` — commit-reveal among the members, in process (T37) |

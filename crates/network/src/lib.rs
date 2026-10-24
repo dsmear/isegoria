@@ -14,6 +14,7 @@ pub mod merkle;
 pub mod observer;
 pub mod replica;
 pub mod rounds;
+pub mod state;
 pub mod store;
 pub mod tier;
 
