@@ -10,7 +10,7 @@ description = "libp2p transport for replication: gossipsub announcements, reques
 # require a newer rustc: idna_adapter 1.1.0, multibase 0.9.1 (docs/04 §Replication).
 [dependencies]
 network = { path = "../network" }
-libp2p = { version = "0.56", default-features = false, features = ["tokio", "tcp", "noise", "yamux", "gossipsub", "request-response", "macros", "ed25519"] }
+libp2p = { version = "0.56", default-features = false, features = ["tokio", "tcp", "noise", "yamux", "gossipsub", "request-response", "macros", "ed25519", "kad"] }
 tokio = { version = "1", features = ["rt", "macros", "time", "sync"] }
 futures = "0.3"
 async-trait = "0.1"

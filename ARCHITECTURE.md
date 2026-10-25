@@ -178,10 +178,13 @@ and checks a Bitcoin attestation against a block Merkle root. **Still modeled** 
 anchoring: the live network parts — POSTing to a calendar server and reading block
 roots from a Bitcoin node/SPV; here an injected block source stands in and
 `OtsAnchor::upgrade` models the calendar's confirm-and-upgrade with one hashing step.
-**Replication** of the signed set is real (`replica`, over libp2p in `p2p`, T18). **Not
-yet implemented:** the protocol state as a function of the replicated set and its merge
-rules is `protocol::ledger` over signed cuts, and the members' cuts and beacon run between
-nodes (T74); a silent proposer is replaced by a change of view (T76, step 1); the DHT is T75.
+**Replication** of the signed set is real (`replica`, over libp2p in `p2p`, T18).
+The protocol state is `protocol::ledger` over signed cuts; members' cuts and the beacon
+run between nodes (T74), with silent proposers replaced by a view change (T76).
+`p2p::discovery::fetch` finds public objects through Kademlia without replicating feeds
+(T75): it verifies the public writer, network-bound signature and content hash, not cut
+inclusion or freshness. Tiered nodes serve and advertise public entries only; the client
+is a library API. See `docs/04` §Public object discovery for the wire contract and limits.
 
 ## `protocol` — lifecycle orchestration
 
@@ -418,7 +421,7 @@ cargo clippy --workspace --all-targets
 | Public-chain anchoring | **Real** (OpenTimestamps proof format + verification) | Live calendar POST + Bitcoin node/SPV block source |
 | Gossip transport, replication of the signed set | **Real** — libp2p gossipsub + request-response, a grow-only set with equivocation evidence (T18) | — |
 | Protocol state from the replicated set, merge rules; cuts and beacon between nodes | **Real** — signed cuts fix the order, the first of conflicting events wins; members propose in turn, co-sign, commit and reveal on their feeds (T74); a silent proposer replaced by a change of view, single-decree Paxos over the cuts (T76, step 1); an epoch's withholders excluded from its next cuts (T76, step 2) | — |
-| DHT | Documented, not implemented (T75) | libp2p Kademlia |
+| DHT | Tiered public-object lookup over libp2p Kademlia, tested on loopback (T75); library client | Independent-operator reachability, client CLI and archive placement/repair (T84) |
 | Blind relays | **Channel real, loopback-tested, reviewed** — signed key configurations, relay and gateway over libp2p with Oblivious HTTP, receipts of the circle entry, duplicates answered once (T85, first increment) | admission and private reads with T79; no event admitted by a node process yet |
 | Who may read the replicated set | **Real for tiered networks, loopback-tested** — the binding on each connection, every message filtered by verified access, a member's two feeds, a public reader on an `Observer` (T77, reviewed on loopback evidence; no multi-operator run); **none without tiers** — a node serves its whole set to any peer, against D17 | D54: three tiers, two feeds per member, the circle served only to member-bound transport keys (T77); blind relays (T85); a state tree keyed by nym (T86) |
 | A node process | **Real** — `isegoria-node` from a TOML configuration, its files resumed on restart, its status on a period (T78) | an epoch's work (T79) |

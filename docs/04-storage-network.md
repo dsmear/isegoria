@@ -47,19 +47,68 @@ event order (§Cuts).
 
 | Structure | Purpose |
 |---|---|
-| **Gossip / epidemic** | propagate questions and votes: each node repeats to its neighbors until everyone knows |
-| **DHT** (distributed hash table) | find content: given the hash, which node has the object (like BitTorrent) |
+| **Gossip / epidemic** | propagate public entry identifiers; circle announcements go directly to authorized peers |
+| **DHT** (distributed hash table) | find public content: given its CID, which node can serve the object |
 | **Signed append-only logs** | immutability: an add-only register, each row containing the previous one's fingerprint; altering one breaks the chain visibly |
 | **CRDT** | converge copies edited in parallel, with no arbiter (collaborative editors) |
 
-How they fit together: questions and votes are objects identified by their hash. The
-DHT is the hash→node registry. Gossip is the courier. The signed log is what makes it
-all immutable — it is the "transparency log", which lives distributed on every node,
-not on a server.
+Public objects are identified by their content hash. The DHT maps a CID to possible
+providers; the client checks the returned object and its signed entry. Circle objects
+travel only through authorized replication. Signed logs authenticate entries and their
+chains; the consortium's signed cuts, not the DHT, establish their agreed order.
 
 Real projects already doing this: the Bluesky protocol (per-user signed logs +
 rebuildable indexes), Secure Scuttlebutt (a signed-log, gossip social network that
 works offline), Automerge/Yjs (mature CRDTs). None is a blockchain.
+
+### Public object discovery (T75)
+
+A light client knows a network's trusted tier configuration, a CID and at least one
+bootstrap address. `p2p::discovery::fetch` uses a separate Kademlia/object-request swarm,
+without sync, gossip or a full replica. A tiered node advertises public objects from its
+verified replica, including restored and newly synchronized entries. Nodes without tiers
+do not offer this service. Discovery can open connections beyond the bootstrap peers;
+T77's binding and replication checks apply to those connections too. Only public entries
+authorize an object response: knowing a
+circle CID, even as a member, does not make it readable through this endpoint. Bytes
+also recorded on a public feed are public through that entry.
+
+The per-network protocols are `/isegoria/<network-id-hex>/kad/1` and
+`/isegoria/<network-id-hex>/object/1`. A request is version 1 followed by the 32-byte CID.
+A missing response is `[1, 0]`; a present one is `[1, 1]`, the 168-byte signed entry and
+the object bytes. Reads enforce 33 bytes for requests and `MAX_OBJECT + 170` for responses,
+where `MAX_OBJECT` is 16 MiB. The client requires a configured public writer, a signature
+bound to its network, the requested CID in the entry and matching object bytes. This
+proves content and writer provenance, not feed continuity, inclusion in a cut, freshness
+or validity under the application protocol.
+
+Provider records are routing hints, never authority. An invalid or unreachable provider
+is skipped while other discovered providers remain. The client tries at most 32 distinct
+providers, with one object request active at a time, 3-second Kademlia/request timeouts
+and a caller-supplied deadline for the entire operation. Exhaustion or timeout is not a
+proof that the object does not exist. Honest nodes originate only public provider records;
+a malicious DHT participant can inject arbitrary CID strings as hints. The lookup reveals
+the queried CID and transport metadata to contacted peers; it does not use T85's OHTTP.
+
+The local provider catalogue grows with the verified public replica. Its announcement
+queue deduplicates CIDs and limits application-started concurrent queries to 16. Remote
+provider records use a separate bounded store (1,024 keys, up to 20 providers per key),
+and arbitrary DHT value records are refused. Kademlia packets are limited to 64 KiB;
+object requests have at most eight concurrent streams. These bounds are not a Sybil or
+traffic-volume defense. Listening addresses are advertised directly; NAT traversal and
+independent-operator reachability are outside this increment.
+
+**Implemented and tested on loopback (2026-10-25, AT-NET-25).** A client retrieves a public object from a previously unknown
+provider through a bootstrap that holds no object; circle CIDs are neither advertised nor
+served, including a direct request that already knows the CID. Bad hashes, signatures,
+private writers and another network are refused. Invalid, stale and silent providers
+exercise fallback and the whole-lookup deadline. Restored and synchronized public entries
+become discoverable. Codec boundaries, maximum-sized objects and separate local/remote
+provider-store limits are tested. The client is a library API; no user-facing CLI, archive
+placement/repair (T84) or multi-machine validation is supplied here. No fuzzing or
+mutation campaign has been run on the new codecs. Enabling libp2p's `kad` feature adds
+`libp2p-kad` 0.48.0, `uint` 0.10.2 and `crunchy` 0.2.4 to `Cargo.lock`; existing
+dependency versions are unchanged.
 
 ---
 
@@ -991,8 +1040,8 @@ withholders recorded all the same (rule 7). A round with a value had `t` members
 so the members left can always sign. The rounds are counted by one rule for the ledger and
 for the members collecting cuts (`network::rounds`).
 
-Finding an object of the public tier by its CID without a full replica, the DHT, is `10`
-T75; the circle's objects are never offered through it (§Who reads). The node process
+Public CID lookup without a full replica is specified in §Public object discovery (T75);
+circle objects are never offered through it (§Who reads). The node process
 does not run
 the answer review between nodes (`10` T79); its proposed contract is
 `05` §Distributed integration. In code: `network::replica`,

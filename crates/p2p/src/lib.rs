@@ -2,13 +2,14 @@
 //! NET-010): gossipsub announces new entries, request-response pulls what a node lacks.
 
 pub mod blind;
+pub mod discovery;
 pub mod member;
 pub mod tiered;
 
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, StreamExt};
 use libp2p::gossipsub::{self, IdentTopic, MessageAcceptance, MessageAuthenticity, ValidationMode};
 use libp2p::request_response::{self, OutboundRequestId, ProtocolSupport, ResponseChannel};
-use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
+use libp2p::swarm::{behaviour::toggle::Toggle, NetworkBehaviour, SwarmEvent};
 use libp2p::{identity, noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm};
 use member::{Collector, MemberRole, Progress};
 use network::consortium::Consortium;
@@ -106,6 +107,8 @@ impl request_response::Codec for SyncCodec {
 
 #[derive(NetworkBehaviour)]
 struct Behaviour {
+    kad: Toggle<libp2p::kad::Behaviour<discovery::ProviderStore>>,
+    object: Toggle<request_response::Behaviour<discovery::ObjectCodec>>,
     gossip: gossipsub::Behaviour,
     sync: request_response::Behaviour<SyncCodec>,
     bind: request_response::Behaviour<SyncCodec>,
@@ -240,6 +243,7 @@ enum Sent {
 }
 
 struct Node {
+    advertisements: discovery::Announcements,
     swarm: Swarm<Behaviour>,
     store: Store,
     topic: IdentTopic,
@@ -368,7 +372,10 @@ impl Writing {
     }
 }
 
-fn build_swarm(key: identity::Keypair) -> Result<Swarm<Behaviour>, String> {
+fn build_swarm(
+    key: identity::Keypair,
+    network: Option<[u8; 32]>,
+) -> Result<Swarm<Behaviour>, String> {
     let gossip_config = gossipsub::ConfigBuilder::default()
         .heartbeat_interval(Duration::from_millis(250))
         .validation_mode(ValidationMode::Strict)
@@ -394,6 +401,10 @@ fn build_swarm(key: identity::Keypair) -> Result<Swarm<Behaviour>, String> {
             let relay = blind::behaviour(blind::RELAY_PROTOCOL);
             let gateway = blind::behaviour(blind::GATEWAY_PROTOCOL);
             Ok(Behaviour {
+                kad: network
+                    .map(|n| discovery::kad_behaviour(key.public().to_peer_id(), &n, true))
+                    .into(),
+                object: network.map(|n| discovery::object_behaviour(&n)).into(),
                 gossip,
                 sync,
                 bind,
@@ -523,7 +534,8 @@ impl Handle {
             .or(config.consortium.as_ref())
             .map_or_else(Collector::default, |c| Collector::new(c, network_id));
         let progress = consortium.map_or_else(Progress::default, |c| Progress::new(c, network_id));
-        let mut swarm = build_swarm(key).map_err(StartError::Transport)?;
+        let discovery_network = tiered.as_ref().map(|t| t.tiers.network_id());
+        let mut swarm = build_swarm(key, discovery_network).map_err(StartError::Transport)?;
         let topic = IdentTopic::new(topic(&config.writers.network_id()));
         swarm
             .behaviour_mut()
@@ -532,7 +544,8 @@ impl Handle {
             .map_err(|e| StartError::Transport(e.to_string()))?;
         let peer_id = *swarm.local_peer_id();
         let (commands, rx) = mpsc::unbounded_channel();
-        let node = Node {
+        let mut node = Node {
+            advertisements: discovery::Announcements::default(),
             swarm,
             store: replica,
             topic,
@@ -552,6 +565,14 @@ impl Handle {
             gateway,
             relaying: HashMap::new(),
         };
+        if let Some(t) = &node.tiered {
+            for id in node.store.replica().ids().filter(|id| t.is_public(id)) {
+                if let Some((entry, _)) = node.store.replica().get(&id) {
+                    node.advertisements.add(entry.entry.payload);
+                }
+            }
+        }
+        node.advertise();
         tokio::spawn(node.run(rx, config.sync_every));
         Ok(Handle {
             peer_id,
@@ -723,8 +744,22 @@ impl Node {
         self.send(&peer, summary, Sent::Pull { grant });
     }
 
+    fn advertise(&mut self) {
+        if let Some(kad) = self.swarm.behaviour_mut().kad.as_mut() {
+            self.advertisements.pump(kad);
+        }
+    }
+
     /// Public identifiers on gossip; in a tiered network, circle ones to each bound peer.
     fn announce(&mut self, ids: &[EntryId]) {
+        if let Some(t) = &self.tiered {
+            for id in ids.iter().filter(|id| t.is_public(id)) {
+                if let Some((entry, _)) = self.store.replica().get(id) {
+                    self.advertisements.add(entry.entry.payload);
+                }
+            }
+            self.advertise();
+        }
         let (public, circle): (Vec<EntryId>, Vec<EntryId>) = match &self.tiered {
             None => (ids.to_vec(), Vec::new()),
             Some(t) => ids.iter().partition(|id| t.is_public(id)),
@@ -805,11 +840,23 @@ impl Node {
     fn event(&mut self, event: SwarmEvent<BehaviourEvent>) {
         match event {
             SwarmEvent::NewListenAddr { address, .. } => {
+                if self.tiered.is_some() {
+                    self.swarm.add_external_address(address.clone());
+                }
                 for tx in self.listening.drain(..) {
                     let _ = tx.send(Ok(address.clone()));
                 }
             }
-            SwarmEvent::ConnectionEstablished { peer_id, .. } => {
+            SwarmEvent::ConnectionEstablished {
+                peer_id, endpoint, ..
+            } => {
+                if let Some(kad) = self.swarm.behaviour_mut().kad.as_mut() {
+                    if let libp2p::core::ConnectedPoint::Dialer { address, .. } = endpoint {
+                        kad.add_address(&peer_id, address);
+                    }
+                }
+                self.advertisements.refresh();
+                self.advertise();
                 if let Some(t) = &self.tiered {
                     let hello = Bind::Hello(t.binding).encode();
                     self.swarm
@@ -826,6 +873,28 @@ impl Node {
             } => {
                 if let Some(t) = self.tiered.as_mut() {
                     t.forget(&peer_id);
+                }
+            }
+            SwarmEvent::Behaviour(BehaviourEvent::Kad(
+                libp2p::kad::Event::OutboundQueryProgressed { id, step, .. },
+            )) => {
+                if step.last {
+                    self.advertisements.completed(id);
+                    self.advertise();
+                }
+            }
+            SwarmEvent::Behaviour(BehaviourEvent::Object(request_response::Event::Message {
+                message:
+                    request_response::Message::Request {
+                        request, channel, ..
+                    },
+                ..
+            })) => {
+                if let Some(t) = &self.tiered {
+                    let response = discovery::serve(&t.tiers, self.store.replica(), &request);
+                    if let Some(object) = self.swarm.behaviour_mut().object.as_mut() {
+                        let _ = object.send_response(channel, response);
+                    }
                 }
             }
             SwarmEvent::Behaviour(BehaviourEvent::Sync(request_response::Event::Message {

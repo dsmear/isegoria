@@ -724,7 +724,7 @@ async fn at_net_23_the_circle_feed_recovers_only_from_a_member() {
     let (m1, a1) = start(transport(1), member_config(1, &root.join("1"), false)).await;
     let (m2, _) = start(transport(2), member_config(2, &root.join("2"), false)).await;
     m2.dial(a1.clone()).await.unwrap();
-    let (reader, ra) = start(transport(3), reader_config()).await;
+    let (reader, _) = start(transport(3), reader_config()).await;
     reader.dial(a1.clone()).await.unwrap();
     {
         let (m0, _) = start(transport(0), member_config(0, &root.join("0"), false)).await;
@@ -747,12 +747,20 @@ async fn at_net_23_the_circle_feed_recovers_only_from_a_member() {
         status(&m1).await.peers == 2
     })
     .await;
-    let (m0, _) = start(
+    let public = reader.replica().await;
+    assert!(public.ids().all(|id| !is_circle(&id.writer)));
+    let isolated = Spy::start(Keypair::generate_ed25519(), None);
+    {
+        let mut script = isolated.script.lock().unwrap();
+        script.offer = public.ids().collect();
+        script.serve = public.entries_for(&script.offer, usize::MAX);
+    }
+    let (m0, lost_addr) = start(
         transport(0),
         member_config(0, &scratch("recover-lost"), false),
     )
     .await;
-    m0.dial(ra).await.unwrap();
+    isolated.connect(lost_addr).await;
     until("the public feed catches up", || async {
         status(&m0).await.caught_up
     })
@@ -760,6 +768,7 @@ async fn at_net_23_the_circle_feed_recovers_only_from_a_member() {
     tokio::time::sleep(Duration::from_secs(2)).await;
     let s = status(&m0).await;
     assert!(!s.circle_caught_up);
+    assert_eq!(s.peers, 1);
     assert_eq!(s.bound, 0);
     assert_eq!(
         m0.publish_circle(b"too-early".to_vec()).await,
