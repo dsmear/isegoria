@@ -1,87 +1,83 @@
 # Isegoria
 
-**A project for building a shared collection of quiz questions through peer review.**
+**Building a shared collection of quiz questions, with rules people can check.**
 
-Imagine a quiz about how public institutions work. Someone must write its questions
-and say which answers are correct. How can other people check those choices, and
-how can the review process itself be checked?
+## Why this project exists
 
-Isegoria explores a process with explicit rules and results that can be recomputed
-from the recorded inputs. Its longer-term goal is a distributed network, with
-participation under pseudonyms and no money staked to propose or review questions.
-Today, its completed core is an offline prototype for reviewing questions.
+Imagine a quiz about how your country's institutions work. Someone has to choose
+the topics, write the questions and decide which answers count as correct.
+Those choices matter: a quiz can inform people, but it can also favour one
+viewpoint or repeat a widely believed mistake.
 
-## In plain words
+Giving one authority control over the questions concentrates that power.
+Letting the largest crowd decide everything can reproduce the same problem.
+Isegoria explores how people could propose and review questions together, with
+clear rules, protection for their identities and no money required to take part.
 
-1. **Someone proposes a question.** The author supplies the context, answer options
-   and the option they consider correct. This proposed answer is called the *key*.
-2. **Other people answer it.** The program randomly draws reviewers from a registered
-   pool. Their question view omits the key. They can consult the Internet, documents
-   or AI, choose an option, say "none is correct", or answer "don't know".
-3. **The program counts their answers.** Every reviewer has equal weight. Under the
-   current rule, enough agreement with the key accepts the question; enough
-   disagreement discards it. Divided answers and too few answers are recorded as
-   separate outcomes. Only accepted questions enter the usable collection.
+The longer-term aim is a network run by different operators. Today, the working
+core is a prototype that reviews questions on a single computer. It makes the
+review process explicit and checkable; it does not make a majority infallible.
 
-For example, with all 12 reviewers giving usable answers, 9 matching the key are
-enough to accept the question. If only 8 match, the result is divided. "Don't know"
-and missing answers do not count as usable answers. These numbers are provisional;
-the [review rules](docs/05-question-lifecycle.md#the-answer-review-01-d49d52) define
-the thresholds when fewer people answer.
+## How it works, in plain words
 
-The recorded outcomes also affect how many questions an author may propose in
-future rounds. They do not give that person more weight as a reviewer, and reviewers
-gain no reputation for agreeing with the majority.
+1. **Someone writes a question.** They provide its context, possible answers and
+   the answer they believe is correct.
+2. **Other people answer it.** Reviewers are drawn at random from the registered
+   participants. They are shown the question and options without the author's
+   proposed answer. They may consult books, the Internet or AI, choose an answer,
+   say "none of these is correct", or say "I don't know".
+3. **The program applies the review rule.** Each reviewer counts equally. Enough
+   agreement with the author's answer accepts the question; enough disagreement
+   discards it. Divided answers and insufficient participation are separate
+   outcomes. Only accepted questions enter the usable collection.
 
-**People assess the question; the software enforces the procedure.** It does not
-look up facts or decide which sources to trust. Reviewers can share the same mistake,
-so acceptance is not proof that an answer is true. Nor does a collection of accepted
-questions, by itself, make a fair quiz or establish what its respondents know.
+For example, suppose 12 reviewers answer a question about a town's institutions.
+If 9 choose the author's answer, the question is accepted. If 8 do, the result is
+divided. If 9 disagree with the author, it is discarded, even if they choose
+different alternatives. These examples assume everyone gives an answer other
+than "I don't know"; abstentions and missing answers are not counted. The
+numbers are provisional, and the detailed rules cover smaller response counts.
 
-## Current status
+A correction must be submitted as a new question. The program does not rewrite
+an answer to match the most popular alternative.
 
-**Phase 1 is complete only for this offline answer-review path (T87, D49–D53).**
-The [closure record](docs/15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)
-defines its evidence and limits. Parameters are provisional and uncalibrated; the new
-decoder has not been fuzzed. Consensus certifies neither truth nor the fairness of a
-quiz, and does not demonstrate respondents' knowledge or ability to assess evidence.
-Quiz composition, exposure, retirement, distributed operation and production are
-outside this closure.
+## What matters in the design
 
-## Documentation
+- **Participation without a financial stake.** There is no token or money to put
+  at risk. An author's past review outcomes affect how many questions they can
+  propose later, not how much their answers count as a reviewer. Reviewers earn
+  no reputation for agreeing with the majority.
+- **Privacy without disposable identities.** The aim is to let a person participate
+  under separate aliases for different roles, while preventing them from creating
+  extra identities to gain influence or erase their history. The complete network
+  still needs integration and testing before this is a real-world guarantee.
+- **Rules that can be checked.** Given the recorded inputs, the calculation can be
+  repeated to check the outcome. That checks whether the procedure was followed;
+  judging the facts remains people's responsibility.
 
-- [Overview](docs/00-overview.md): the current product, responsibilities and principles.
-- [Answer-review specification](docs/05-question-lifecycle.md#the-answer-review-01-d49d52):
-  the full lifecycle and implementation contract.
-- [Documentation index](docs/README.md): specifications, decisions and evidence registers.
-- [Architecture](ARCHITECTURE.md): the design-to-code map, including retained older modules.
-- [Handoff](docs/phase1-handoff.md): where to resume work.
+Agreement can still be wrong: reviewers may rely on the same mistaken source or
+coordinate their answers. The software does not check facts or judge sources.
+A collection can also be unbalanced even if its individual questions are accepted:
+a civic quiz containing only tax questions would leave much of civic life out.
 
-The earlier forecast-and-pilot mechanism remains in the repository as a separate path.
-Its filters and guarantees do not transfer to the answer review. The
-[historical paper](paper/README.md) analyses that earlier design; its PDF and amended
-sources are different snapshots. Retired dossiers, tools and results are indexed in the
-[archive](archive/phase1-forecast-pilot/README.md).
+## Where things stand
 
-## Code architecture
+- **Implemented:** the offline question-review process, including recording
+  outcomes and updating authors' proposal limits. This first stage has been
+  implemented and checked; its numerical settings remain experimental.
+- **In development:** connecting that process across computers, towards a small
+  experimental network run by independent operators. Network components exist,
+  but the complete review process does not yet run between those computers.
+- **Not yet available:** a public quiz service, automatic assembly of balanced
+  quizzes, or a validated measure of what respondents know. This is a research
+  prototype, not a system ready for everyday use.
 
-The Cargo workspace contains `scoring`, `identity`, `network`, `protocol`, `p2p` and
-`characterization`. The answer review is implemented by `protocol::answer*` and
-`scoring::reputation::author_score_weighted`. See [Architecture](ARCHITECTURE.md) for
-module contracts and dependencies.
+## Learn more
 
-## Try it
-
-From the repository root, run the focused offline integration tests:
-
-```sh
-cargo test -p protocol --test answer_review
-```
-
-This exercises a library path, not a user interface or a deployed service. Broader
-tests and characterization procedures are documented in
-[Architecture](ARCHITECTURE.md#testing-strategy) and the
-[verification methodology](docs/07-verification-and-assurance.md); full suites can run fits.
+- [Current rules and limits](docs/00-overview.md).
+- [Development progress and next steps](https://github.com/dsmear/isegoria/blob/feat/phase2-runtime/docs/10-roadmap.md).
+- [Technical documentation and research history](docs/README.md).
+- [Code structure and testing](ARCHITECTURE.md).
 
 ## License
 
