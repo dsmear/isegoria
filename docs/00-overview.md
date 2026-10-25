@@ -62,8 +62,34 @@ for agreeing with the key or the majority; their future evaluation remains defer
 These are the current principles after the owner's revisions in
 [D44–D53](01-decisions.md). D48 changed the original ban on deciding by votes;
 D52 excludes bridging and empirical validation from this path's acceptance conditions.
-They are deliberate changes to the earlier design, not promises that those filters will
-be added later.
+These choices govern the current path; the future direction is described below.
+
+## Future direction
+
+The owner reaffirmed on 2026-10-25 that future versions should seek to apply two
+principles from the earlier design:
+
+- **Agreement across different perspectives (bridging).** Investigate how to recognize
+  support that crosses differences in viewpoint and reduce the dominance of the largest
+  group. For example, agreement among people who often disagree may be more informative
+  than agreement within a single bloc. It still does not establish factual truth.
+- **Empirical validation (psychometrics).** Study actual responses to understand what
+  questions and whole quizzes measure, how consistently they do so, and where they may
+  introduce distortions. For example, a question everyone answers correctly offers
+  little information about differences in performance; a set of individually acceptable
+  questions can still give an unbalanced picture of a subject.
+
+These are long-term research and design goals. The retained code, studies and open
+findings are starting points for evaluating and adapting methods to the current design.
+Their earlier results do not establish that they work with the new review process.
+
+Any proposal must account for the open use of Internet, documents and AI, preserve
+anonymity without collecting personal or demographic profiles, and distinguish observed
+performance from unaided knowledge. Adoption requires a defined role in the process,
+appropriate evidence and calibration, and an explicit decision on any changed rules.
+
+This direction leaves the current answer-review contract and its closure unchanged.
+It approves no particular algorithm, integration schedule or additional acceptance gate.
 
 ## Completion and retained work
 
