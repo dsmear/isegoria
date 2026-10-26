@@ -349,3 +349,15 @@ remain unavailable to reporting/assignment policies during the compared horizon 
 no effect on scores, counts, weights, eligibility, resources or opportunities. Detector
 state resets, if specified, must not reset reputation. Until this contract and its evidence
 exist, diagnostic behavior is unimplemented; prior detector rates do not characterize it.
+
+## Archive layout
+
+T84 takes explicit `(k, m)` inputs: positive data and parity counts, with `k+m ≤ 256`,
+subject to the byte limits in [04](04-storage-network.md#public-archive-segments-t84-first-increment).
+There is no deployment default. Small test layouts establish reconstruction behavior,
+not a calibrated operating point. Before deployment, record the expected failure domains,
+maximum simultaneous holder loss, storage overhead and repair-bandwidth objectives;
+select a layout against those objectives and validate it under the actual placement and
+outage model. Do not convert the `m`-loss reconstruction bound into an independence-based
+availability probability without stating and testing that model. This entry authorizes
+no statistical campaign.

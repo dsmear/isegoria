@@ -3,6 +3,7 @@
 //! DHT and live OpenTimestamps anchoring are plug points (the transport is the `p2p` crate).
 
 pub mod anchoring;
+pub mod archive;
 pub mod beacon;
 pub mod cid;
 pub mod codec;

@@ -168,6 +168,7 @@ Integrity without permissionless consensus (`docs/04`).
 | `cut` | §Cuts | `Cut` (`of`, `next`, `digest`, `checkpoint`, `checkpoint_in`, `encode`, `decode`), `Mark`, `added`, `observed` and `Observed` (a reader without circle access: public chains checked, circle marks attested, T77), `CutError`, `MemberObject` (view changes included), `collect`, `Collected`, `proposer`, `proposer_in`, `sign_cut`, `sign_cut_in`, `should_sign`, `should_sign_in`, `counts_own`, `promise`, `signed_in`, `changed_view`, `forced`, `MissingViewChange`, `proposal`, `views_change`, `member_objects` — the consortium-signed marks that fix which entries count and their order; the members' objects that sign them and run the beacon (T74) |
 | `anchoring` | §Anchoring | `Anchor` trait, `OtsAnchor`, `Receipt`, `AnchorState` |
 | `erasure` | §Durability | `encode`, `reconstruct`, `reconstruct_verified` (real Reed–Solomon; per-shard manifest, corrupt-shard authentication before decode, T16) |
+| `archive` | §Public archive segments | Canonical public cut segments and state shapes; signed shard manifests; context-checked audit, reconstruction, repair bytes and deterministic distinct-holder placement (T84, library only) |
 
 **Real:** content addressing, Merkle trees, the hash-chained append-only log,
 ed25519 consortium checkpoints, the commit-reveal beacon round (in process), erasure
@@ -428,7 +429,7 @@ cargo clippy --workspace --all-targets
 | Answer review between nodes | **None** — `AnswerPath`/`AnswerNode` are offline; the ledger still decodes legacy `NodeEvent` (T79) | the distributed answer-review contract, then its implementation (`docs/05`) |
 | Independent operator setup and trial | **Not established** — current process tests run under one operator; threshold committee messages and setup are local | distributed committee setup (T19), operator contract and trial (T88), Phase 2 gates (`docs/10`, D55) |
 | A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80) | first-peer recovery can miss a longer feed elsewhere; T88 must specify and test the operating procedure |
-| Erasure-coded distribution of the public history | **None** — `network::erasure` codes and authenticates shards only | placement, audit and repair per cut segment (T84) |
+| Erasure-coded distribution of the public history | Library primitives — `network::archive` authenticates public segments and manifests, computes placement and repairs supplied shards | Live transfer, durable holders, periodic audit and repair delivery (T84) |
 
 Reference implementations are clearly marked and provide **no** security; they exist
 to make the pipeline testable end-to-end.

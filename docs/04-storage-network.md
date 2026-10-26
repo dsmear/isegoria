@@ -1152,22 +1152,12 @@ Milestone 2's evidence stay in `10` T88.
 
 ## Durability: erasure coding
 
-The intuition "more reliable = more copies = more expensive" is wrong. With erasure
-coding each datum is split into fragments scattered across many nodes, and only a
-fraction is needed to reconstruct it. At equal storage it beats replication. With 30%
-churn (a node unreachable 30% of the time):
-
-| Method | Storage | Availability |
-|---|---|---|
-| replication ×3 | 3× | 0.973 |
-| replication ×5 | 5× | 0.998 |
-| erasure (10,20) | 2× | 0.983 |
-| erasure (10,30) | 3× | ~1.000 |
-
-`erasure (10,30)` uses 3× and is safer than 12 full copies. And durability no longer
-lives only on the signers but on **all** nodes, even the light ones that come and go.
-Slower to write (encoding + distribution) and read (fragment gathering), but
-**simultaneously more distributed and more reliable**.
+Erasure coding splits bytes into `k` data shards and `m` parity shards. Any `k`
+authentic shards reconstruct the original bytes, so at most `m` unavailable or corrupt
+shards can be tolerated. Storage is approximately `(k+m)/k` times the original, plus
+padding and metadata. This is a reconstruction bound, not an availability probability:
+correlated outages, withholding and placement determine whether enough shards can be
+obtained. No churn model or comparison with a fixed number of full copies is established.
 
 **What is coded (`01` D54).** The **public archive**: the cuts and their signatures, the
 beacon's records, the anchors, each epoch's roots, the state tree's shape and the released
@@ -1182,8 +1172,100 @@ the cut adds and their objects, one segment — not per object. A segment's shar
 holder checks its shard against something the members signed. Each shard's holder follows
 from the segment, the shard's index and the set of storage nodes, so any node computes who
 should hold it; holders are audited on a period, and a segment with too few shards left is
-rebuilt and its missing shards placed again. In code today: the coding and the shard
-authentication only (`network::erasure`, T16); placement, audit and repair are T84.
+rebuilt and its missing shards placed again, while at least `k` authentic shards remain
+obtainable. The first library increment is specified below; live distribution remains open.
+
+### Public archive segments (T84, first increment)
+
+`network::archive` supplies library primitives; it performs no network I/O or periodic
+work. A caller provides a trusted `Context`: tiers, lineage, the previous cut (or none
+at genesis), the exact target cut and view, and the excluded members established by the
+verified beacon history. The module does not choose a fork, establish freshness, replay
+beacon rounds or verify an external anchor. T79's application rules remain outside it.
+
+**Segment.** One segment contains the two cut boundaries, the target's signatures in
+member-index order, exactly the public entries added between them with their objects,
+and, for a closing cut, a public state snapshot. Entries are ordered by `EntryId`
+(writer, sequence, hash), not by application execution order. From the previous marks,
+the verifier checks each public writer's sequence, previous hash, network-bound signature,
+object CID and final target head; no full replica is needed. Unknown writers, removed
+marks and invalid cut succession or epoch progression are rejected. Circle marks must
+not decrease and must retain their head at equal length. Their extension remains attested
+by the signers, as for the public observer; no circle entries or objects enter the segment.
+A threshold of distinct, non-excluded members must authenticate the cut at its exact view.
+
+A closing cut has exactly one snapshot: a `state::RootStatement` and a `state::Shape`.
+The statement must match network, lineage, member set, epoch, cut number and cut digest;
+the reconstructed shape must match both its state root and shape digest. Non-closing
+cuts carry no snapshot. The shape preserves live and frozen leaves and their origins,
+without records, openings or salt keys. The input root and application-state correctness
+are attested by the manifest signers, not recomputed here. Segment verification checks
+snapshot consistency; authentication of its bytes comes from the signed manifest, not
+from the cut certificate alone. This adds no T79 record format.
+
+**Manifest and trust.** A manifest commits to network, lineage, member-set hash, previous
+cut digest (or none), target number and digest, view, segment CID, original byte length,
+`k` data shards, `m` parity shards, and all ordered shard hashes. Its digest uses the tag
+`isegoria/archive/manifest/v1` over its canonical encoding. The existing consortium
+checkpoint binds that digest as its head and the target cut number as its height, under
+the network and member-set hash. This is a small bespoke composition of the existing
+checkpoint and erasure primitives, not a new cryptographic algorithm. Archive signature
+checks use Ed25519 `verify_strict` over the existing checkpoint message. A `SignedManifest`
+needs a threshold of distinct, non-excluded valid signatures before producing an opaque
+`VerifiedManifest`. Audit, recovery and placement recheck it against the supplied context;
+a value verified in another context is not an authorization token here.
+
+**Recovery and repair.** Audit labels each index missing, corrupt or valid by its exact
+expected length and signed shard hash. Recovery discards corrupt shards and requires at
+least `k` authentic ones. After Reed–Solomon reconstruction, it re-encodes the bytes and
+checks every manifest hash, including missing parity shards, to reject inconsistent
+codewords and noncanonical padding. It then checks the segment CID and the entire segment
+contract above. A signed manifest alone cannot bypass cut or public-delta validation.
+Repair returns the exact original bytes for missing or corrupt indices. It does not
+send them to a holder. With fewer than `k` authentic shards, recovery fails explicitly;
+repair must be attempted while enough shards are still obtainable.
+
+**Placement.** The caller supplies distinct 32-byte storage identifiers, at least `k+m`.
+For each index in ascending order, choose the unused identifier minimizing the pair
+`(H("isegoria/archive/place/v1", manifest_digest, index_le64, identifier), identifier)`.
+The result is independent of roster order and gives each shard a different holder. The
+roster is external to the manifest, so a changed roster can repair the same archive.
+This function supplies neither admission nor independent operators: one actor can control
+many identifiers. Discovery, roster agreement, admission, eviction and scheduling remain
+runtime integration work; there is no claim of Sybil-resistant placement.
+
+**Encoding and limits.** Version 1 uses `network::codec`: little-endian `u64` integers,
+fixed-width hashes, length-prefixed byte fields and strict 0/1 option tags. Counts,
+ordering, field widths and complete consumption are checked; duplicate indices or entries
+and trailing bytes are rejected. Decoding establishes canonical structure, not trust.
+The segment, manifest and signed envelope have separate version bytes. Their field order is:
+
+- Segment: network, lineage, member set; optional previous cut field; target cut field;
+  view; signature count and `(member index, 64-byte signature)` pairs; entry count and
+  `(168-byte signed entry, object field)` pairs; optional `(root-statement field, shape field)`.
+- Manifest: network, lineage, member set; optional previous cut digest; target number,
+  target digest, view, segment CID, original length, `k`, `m`, hash count and shard hashes.
+- Signed manifest: manifest field, signature count and ordered index/signature pairs.
+
+The segment is at most 32 MiB, the manifest and its signed envelope at most 64 KiB.
+Both shard counts are positive and their sum is at most 256. A shard is at most the
+replica object limit (16 MiB); total encoded shard bytes are at most 64 MiB. Checked
+arithmetic and structural size preflight precede serialization, copying or erasure
+allocation. The 64 MiB bound is on encoded shards, not the process's total working memory.
+A whole cut exceeding the segment bound is rejected, never truncated or silently split;
+runtime cut sizing remains an integration requirement. Layout is explicit input, with no
+deployment default; selection belongs in [14](14-parameter-register.md#archive-layout).
+
+**Acceptance and remaining work.** AT-NET-26 covers public-only extraction, authenticated
+recovery without a full replica, context and cut rejection, state shapes, shard loss and
+corruption, exact repairs, deterministic distinct placement, canonical codecs and resource
+bounds. Tests include manifests signed over inconsistent codewords and over semantically
+invalid segments. These are in-process checks, not holder-outage or multi-machine trials.
+T84 remains open for durable holder storage, manifest-authenticated shard transfer,
+discovery, periodic audits and repair delivery. T75 fetches objects with a public writer's
+signed entry: raw archive shards have no such entry and need their own authenticated
+transfer path. No new decoder fuzzing, availability model or T79/T88 approval is implied.
+
 
 ---
 
