@@ -1,6 +1,7 @@
 //! libp2p transport for replication (`docs/04` §Replication between nodes, `docs/08`
 //! NET-010): gossipsub announces new entries, request-response pulls what a node lacks.
 
+pub mod archive;
 pub mod blind;
 pub mod discovery;
 pub mod member;
@@ -107,6 +108,7 @@ impl request_response::Codec for SyncCodec {
 
 #[derive(NetworkBehaviour)]
 struct Behaviour {
+    archive: Toggle<request_response::Behaviour<archive::ShardCodec>>,
     kad: Toggle<libp2p::kad::Behaviour<discovery::ProviderStore>>,
     object: Toggle<request_response::Behaviour<discovery::ObjectCodec>>,
     gossip: gossipsub::Behaviour,
@@ -165,6 +167,7 @@ pub struct Status {
 
 #[derive(Debug)]
 pub enum StartError {
+    Archive(archive::InstallError),
     Store(StoreError),
     /// The own key is not in the writer set.
     NotAWriter,
@@ -196,6 +199,10 @@ pub enum PublishError {
 }
 
 enum Command {
+    InstallArchive(
+        archive::Prepared,
+        oneshot::Sender<Result<(), archive::InstallError>>,
+    ),
     Listen(Multiaddr, oneshot::Sender<Result<Multiaddr, String>>),
     Dial(Multiaddr, oneshot::Sender<Result<(), String>>),
     Publish(
@@ -243,6 +250,7 @@ enum Sent {
 }
 
 struct Node {
+    archive: Option<archive::Store>,
     advertisements: discovery::Announcements,
     swarm: Swarm<Behaviour>,
     store: Store,
@@ -401,6 +409,7 @@ fn build_swarm(
             let relay = blind::behaviour(blind::RELAY_PROTOCOL);
             let gateway = blind::behaviour(blind::GATEWAY_PROTOCOL);
             Ok(Behaviour {
+                archive: network.map(|n| archive::behaviour(&n)).into(),
                 kad: network
                     .map(|n| discovery::kad_behaviour(key.public().to_peer_id(), &n, true))
                     .into(),
@@ -500,6 +509,16 @@ impl Handle {
             routes.as_deref(),
             gateway.as_ref(),
         )?;
+        let archive = tiered
+            .as_ref()
+            .map(|t| {
+                archive::Store::open(
+                    &t.tiers,
+                    config.store.as_ref().map(|dir| dir.join("archive")),
+                )
+            })
+            .transpose()
+            .map_err(StartError::Archive)?;
         let mut replica = match config.store {
             Some(dir) => Store::Disk(
                 DurableReplica::open(&dir, config.writers.clone()).map_err(StartError::Replica)?,
@@ -545,6 +564,7 @@ impl Handle {
         let peer_id = *swarm.local_peer_id();
         let (commands, rx) = mpsc::unbounded_channel();
         let mut node = Node {
+            archive,
             advertisements: discovery::Announcements::default(),
             swarm,
             store: replica,
@@ -622,6 +642,18 @@ impl Handle {
     /// Inserts an entry received out of band, announcing it if new.
     pub async fn insert(&self, entry: SignedEntry, object: Vec<u8>) -> Result<Accepted, DiskError> {
         self.ask(|tx| Command::Insert(entry, object, tx)).await
+    }
+
+    /// Validates a public segment and atomically replaces its selected local shards.
+    pub async fn install_archive(
+        &self,
+        ctx: &network::archive::Context<'_>,
+        signed: &network::archive::SignedManifest,
+        segment: &network::archive::Segment,
+        indices: &[usize],
+    ) -> Result<(), archive::InstallError> {
+        let prepared = archive::Prepared::new(ctx, signed, segment, indices)?;
+        self.ask(|tx| Command::InstallArchive(prepared, tx)).await
     }
 
     /// A copy of the node's replica.
@@ -807,6 +839,13 @@ impl Node {
 
     fn command(&mut self, command: Command) {
         match command {
+            Command::InstallArchive(prepared, tx) => {
+                let result = match (&mut self.archive, &self.tiered) {
+                    (Some(store), Some(t)) => store.install(&t.tiers, prepared),
+                    _ => Err(archive::InstallError::Configuration),
+                };
+                let _ = tx.send(result);
+            }
             Command::Listen(addr, tx) => match self.swarm.listen_on(addr) {
                 Ok(_) => self.listening.push(tx),
                 Err(e) => {
@@ -881,6 +920,20 @@ impl Node {
                 if step.last {
                     self.advertisements.completed(id);
                     self.advertise();
+                }
+            }
+            SwarmEvent::Behaviour(BehaviourEvent::Archive(request_response::Event::Message {
+                message:
+                    request_response::Message::Request {
+                        request, channel, ..
+                    },
+                ..
+            })) => {
+                if let (Some(store), Some(t)) = (&self.archive, &self.tiered) {
+                    let response = store.serve(&t.tiers, &request);
+                    if let Some(archive) = self.swarm.behaviour_mut().archive.as_mut() {
+                        let _ = archive.send_response(channel, response);
+                    }
                 }
             }
             SwarmEvent::Behaviour(BehaviourEvent::Object(request_response::Event::Message {

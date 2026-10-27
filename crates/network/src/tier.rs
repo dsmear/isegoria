@@ -121,7 +121,7 @@ impl Tiers {
     }
 
     /// The digest of the whole configuration: an [`Access`] and an observer hold to it.
-    pub(crate) fn context(&self) -> [u8; 32] {
+    pub fn context(&self) -> [u8; 32] {
         self.context
     }
 

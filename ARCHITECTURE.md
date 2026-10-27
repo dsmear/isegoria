@@ -186,6 +186,10 @@ run between nodes (T74), with silent proposers replaced by a view change (T76).
 (T75): it verifies the public writer, network-bound signature and content hash, not cut
 inclusion or freshness. Tiered nodes serve and advertise public entries only; the client
 is a library API. See `docs/04` §Public object discovery for the wire contract and limits.
+`p2p::archive` serves locally admitted, persistent shard sets through the same tiered node;
+its client verifies a signed manifest and reconstructs from explicitly addressed holders.
+No archive DHT integration, automatic producer, periodic audit or repair delivery is supplied
+(`docs/04` §Archive holders and transfer, T84).
 
 ## `protocol` — lifecycle orchestration
 
@@ -429,7 +433,7 @@ cargo clippy --workspace --all-targets
 | Answer review between nodes | **None** — `AnswerPath`/`AnswerNode` are offline; the ledger still decodes legacy `NodeEvent` (T79) | the distributed answer-review contract, then its implementation (`docs/05`) |
 | Independent operator setup and trial | **Not established** — current process tests run under one operator; threshold committee messages and setup are local | distributed committee setup (T19), operator contract and trial (T88), Phase 2 gates (`docs/10`, D55) |
 | A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80) | first-peer recovery can miss a longer feed elsewhere; T88 must specify and test the operating procedure |
-| Erasure-coded distribution of the public history | Library primitives — `network::archive` authenticates public segments and manifests, computes placement and repairs supplied shards | Live transfer, durable holders, periodic audit and repair delivery (T84) |
+| Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from an explicit holder list, tested on loopback | Archive discovery, automatic manifest creation, placement integration, periodic audits and remote repair delivery (T84) |
 
 Reference implementations are clearly marked and provide **no** security; they exist
 to make the pipeline testable end-to-end.

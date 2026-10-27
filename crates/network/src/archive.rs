@@ -73,7 +73,8 @@ fn signatures_ordered(signatures: &[(usize, Signature)]) -> bool {
 }
 
 fn signatures_verify(
-    ctx: &Context<'_>,
+    tiers: &Tiers,
+    excluded: &[usize],
     cp: &Checkpoint,
     signatures: &[(usize, Signature)],
 ) -> bool {
@@ -92,16 +93,15 @@ fn signatures_verify(
     signatures
         .iter()
         .filter(|(index, signature)| {
-            !ctx.excluded.contains(index)
-                && ctx
-                    .tiers
+            !excluded.contains(index)
+                && tiers
                     .consortium()
                     .keys()
                     .get(*index)
                     .is_some_and(|key| key.verify_strict(&message, signature).is_ok())
         })
         .count()
-        >= ctx.tiers.consortium().threshold()
+        >= tiers.consortium().threshold()
 }
 
 fn check_context(ctx: &Context<'_>) -> Result<()> {
@@ -275,7 +275,7 @@ impl Segment {
         let cp = self
             .target
             .checkpoint_in(self.view, self.network_id, self.member_set_hash);
-        if !signatures_verify(ctx, &cp, &self.signatures) {
+        if !signatures_verify(ctx.tiers, ctx.excluded, &cp, &self.signatures) {
             return Err(Error::Signatures);
         }
         if !self.entries.windows(2).all(|p| p[0].0.id() < p[1].0.id()) {
@@ -673,10 +673,30 @@ pub struct SignedManifest {
 }
 
 impl SignedManifest {
+    /// Checks canonical bounds and the network's certificate without beacon exclusions.
+    /// Does not authenticate lineage, cut context, freshness, or segment semantics.
+    pub fn verify_certificate(&self, tiers: &Tiers) -> Result<()> {
+        self.encode()?;
+        if self.manifest.network_id != tiers.network_id()
+            || self.manifest.member_set_hash != tiers.consortium().member_set_hash()
+        {
+            return Err(Error::Context);
+        }
+        if !signatures_verify(tiers, &[], &self.manifest.checkpoint(), &self.signatures) {
+            return Err(Error::Signatures);
+        }
+        Ok(())
+    }
+
     pub fn verify(&self, ctx: &Context<'_>) -> Result<VerifiedManifest> {
         self.encode()?;
         self.manifest.check_context(ctx)?;
-        if !signatures_verify(ctx, &self.manifest.checkpoint(), &self.signatures) {
+        if !signatures_verify(
+            ctx.tiers,
+            ctx.excluded,
+            &self.manifest.checkpoint(),
+            &self.signatures,
+        ) {
             return Err(Error::Signatures);
         }
         Ok(VerifiedManifest {
@@ -777,7 +797,8 @@ impl VerifiedManifest {
     fn recheck(&self, ctx: &Context<'_>) -> Result<()> {
         self.signed.manifest.check_context(ctx)?;
         if !signatures_verify(
-            ctx,
+            ctx.tiers,
+            ctx.excluded,
             &self.signed.manifest.checkpoint(),
             &self.signed.signatures,
         ) {

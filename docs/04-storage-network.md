@@ -1069,7 +1069,9 @@ is stopped, and resumes from its files when started again. Its configuration is 
 | `sync_every_ms`, `status_every_ms` | the periodic pull, and how often the status is written |
 
 Under `data_dir`: `own/`, the writer's feed (§A node's own disk), and `circle/`, a tiered
-member's circle feed; `replica/`, its replica on disk (§A replica on disk); `transport.key`, the seed of its libp2p key, made at the first
+member's circle feed; `replica/`, its replica on disk (§A replica on disk), with a tiered
+node's selected archive shards in `replica/archive/` (§Archive holders and transfer);
+`transport.key`, the seed of its libp2p key, made at the first
 start, so its peer id stays the same across restarts; and `status`, rewritten whole at each
 period (a file written beside it, then renamed): whether each feed is caught up, its
 peers and how many of them are bound members, the equivocations its replica holds, whether the consortium equivocated, each collected cut's
@@ -1178,7 +1180,7 @@ obtainable. The first library increment is specified below; live distribution re
 ### Public archive segments (T84, first increment)
 
 `network::archive` supplies library primitives; it performs no network I/O or periodic
-work. A caller provides a trusted `Context`: tiers, lineage, the previous cut (or none
+work. Their transport integration is specified in §Archive holders and transfer below. A caller provides a trusted `Context`: tiers, lineage, the previous cut (or none
 at genesis), the exact target cut and view, and the excluded members established by the
 verified beacon history. The module does not choose a fork, establish freshness, replay
 beacon rounds or verify an external anchor. T79's application rules remain outside it.
@@ -1261,10 +1263,86 @@ recovery without a full replica, context and cut rejection, state shapes, shard 
 corruption, exact repairs, deterministic distinct placement, canonical codecs and resource
 bounds. Tests include manifests signed over inconsistent codewords and over semantically
 invalid segments. These are in-process checks, not holder-outage or multi-machine trials.
-T84 remains open for durable holder storage, manifest-authenticated shard transfer,
-discovery, periodic audits and repair delivery. T75 fetches objects with a public writer's
-signed entry: raw archive shards have no such entry and need their own authenticated
-transfer path. No new decoder fuzzing, availability model or T79/T88 approval is implied.
+The holder service below adds persistence and transfer. These primitive tests alone do not
+establish live availability. T75 fetches objects with a public writer's signed entry;
+archive shards instead use the signed-manifest transfer path below. No new decoder
+fuzzing, availability model or T79/T88 approval is implied.
+
+### Archive holders and transfer (T84, second increment)
+
+Tiered `p2p::Handle` nodes expose a read-only archive service. With `Config.store`,
+selected shards persist in its `archive/` subdirectory; otherwise they live in memory.
+Untiered nodes do not negotiate this protocol. No new TOML setting is needed: the node
+process uses the same tiered handle and persistent directory. Admission and retrieval
+are library APIs; there is no archive import/client CLI or automatic manifest production.
+
+**Local admission.** `Handle::install_archive` takes the trusted archive context, the
+signed manifest, the complete public segment and an explicit set of shard indices. It
+verifies the context and certificate, rebuilds the segment's codeword and compares the
+whole manifest before retaining only the selected shards. A threshold signature over an
+invalid or circle-bearing segment does not authorize local installation. Empty, repeated
+or out-of-range indices are rejected. The private prepared value is bound to the node's
+network, ordered member/circle keys and threshold; verification under another configuration,
+including a lower threshold with the same keys, cannot authorize installation here.
+
+Installation replaces that manifest's selected shard set. A persistent holder writes a
+temporary record, syncs it, atomically renames it and syncs the directory before acknowledging
+success. A failure before replacement leaves the old committed record intact; after a
+rename, a sync failure is an uncertain acknowledgement and a retry is safe. The quota
+conservatively reserves room for the old and new records during replacement. Records
+encode version `1`, the tier-configuration digest, a length-prefixed signed manifest,
+a `u64` count, then strictly increasing `(u64 index, length-prefixed shard)` pairs. They
+contain the selected shards, not the complete segment,
+replica, circle objects or state openings. The directory header binds the tier configuration;
+opening under another configuration fails. On restart and before serving, the holder
+checks the record's bounded encoding, manifest certificate, file identity and every retained
+shard's length and hash. A damaged record is unavailable as a whole and can be replaced by
+a valid local reinstall. Temporary records are not served. Restart certificate validation
+checks the configured quorum; it does not reconstruct beacon exclusions, select a lineage
+or establish freshness. Clients supply their own trusted context and apply the full
+first-increment verification. The local storage directory is controlled by its operator.
+
+**Wire format.** `/isegoria/<network-id-hex>/archive/1` carries only reads. The request is
+exactly 41 bytes: version `1`, manifest digest (32 bytes), shard index (`u64` little-endian).
+A missing response is `[1, 0]`. A present response is `[1, 1]`, the manifest digest,
+index, and the shard bytes. The response limit is 16 MiB plus 42 bytes, checked during
+stream reading; extra bytes, invalid tags and noncanonical requests are refused. Requests
+never contain a filesystem path, and there is no wire write, admission or repair command.
+Archive shards are not advertised as T75 public-feed objects.
+
+**Retrieval.** `p2p::archive::fetch` accepts the trusted context, signed manifest, an explicit
+bounded list of indexed peer identities and addresses, and a total deadline. It verifies
+the manifest before contacting a holder, uses a fresh transport key, and matches each reply
+to its request and authenticated peer. Only bytes matching the requested manifest, index,
+exact shard length and signed hash count toward `k`. Once enough arrive, existing archive
+recovery checks the entire codeword, segment CID and cut/public-delta contract and returns
+the segment and repair bytes. Wrong, missing or failed replies do not count; insufficient
+shards or the deadline produce an error. Synchronous verification and reconstruction are
+not preemptible; the deadline is checked again before returning success. This needs no full
+replica. The fresh key does not make retrieval anonymous: holders observe the client's
+address, requested archive and timing. Caller-selected holders establish no independence;
+one peer may supply several indices. Duplicate indices are refused.
+
+**Resource bounds.** One holder accepts at most 256 archive records, 4,096 retained shards
+and 256 MiB of encoded record bytes. Directory scanning is capped at 512 entries, including
+temporary and damaged files, whose actual sizes count toward the byte budget. Each damaged
+archive conservatively reserves 256 shard slots. A record is at most 64 MiB plus the 64 KiB
+signed-manifest bound, 49 header bytes and 16 bytes per possible shard (256). These are
+implementation limits, not retention promises or calibrated deployment parameters. There
+is no eviction policy: a full holder refuses admission, and a directory already exceeding
+these conservative bounds is refused at startup. The client accepts at most 256
+holder entries, each with an address of at most 1,024 bytes and 16 components. Each transport
+behaviour allows at most eight concurrent streams with a three-second request timeout,
+inside the caller's total deadline. These limits do not describe total process memory or
+protect against unlimited connections.
+
+**Evidence and remaining work.** AT-NET-27 exercises loopback transfer, persistent restart,
+loss of holders, damaged files, local repair, context/admission rejection and wire limits.
+It establishes neither independent operators nor Internet reachability. T84 remains open
+for discovering archive holders, automatic manifest assembly/co-signing, placement
+integration, periodic audits, remote repair delivery and an independent-operator trial.
+Returned repair bytes are not automatically sent anywhere; local reinstallation is the
+repair operation demonstrated here. T79/T88 remain unapproved and new codecs are not fuzzed.
 
 
 ---
