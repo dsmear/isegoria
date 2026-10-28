@@ -44,6 +44,113 @@ impl From<network::archive::Error> for InstallError {
     }
 }
 
+pub const MAX_ROSTER: usize = 1024;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Maintenance {
+    Healthy { index: usize },
+    Repaired { index: usize },
+    Unassigned,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum MaintainError {
+    Archive(network::archive::Error),
+    Roster,
+    Identity,
+    Install(InstallError),
+    Fetch(FetchError),
+    Timeout,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct Deadline {
+    started: Instant,
+    budget: Duration,
+}
+impl Deadline {
+    pub(crate) fn remaining(self) -> Result<Duration, MaintainError> {
+        self.budget
+            .checked_sub(self.started.elapsed())
+            .filter(|d| !d.is_zero())
+            .ok_or(MaintainError::Timeout)
+    }
+}
+
+pub(crate) struct Audit {
+    indices: Vec<usize>,
+    healthy: bool,
+}
+
+impl crate::Handle {
+    /// Audits this node's roster assignment and pulls a verified replacement if needed.
+    /// The deadline ends at commit acceptance; accepted durable writes are not canceled.
+    pub async fn maintain_archive(
+        &mut self,
+        ctx: &Context<'_>,
+        signed: &SignedManifest,
+        roster: &[[u8; 32]],
+        bootstrap: Vec<Multiaddr>,
+        deadline: Duration,
+    ) -> Result<Maintenance, MaintainError> {
+        let deadline = Deadline {
+            started: Instant::now(),
+            budget: deadline,
+        };
+        let local = crate::tiered::transport_key(&self.peer_id).ok_or(MaintainError::Identity)?;
+        if roster.len() > MAX_ROSTER
+            || roster.len() < signed.manifest.shard_hashes().len()
+            || roster.iter().copied().collect::<BTreeSet<_>>().len() != roster.len()
+            || roster
+                .iter()
+                .any(|key| ed25519_dalek::VerifyingKey::from_bytes(key).is_err())
+        {
+            return Err(MaintainError::Roster);
+        }
+        let verified = signed.verify(ctx).map_err(MaintainError::Archive)?;
+        let placement = verified
+            .placement(ctx, roster)
+            .map_err(MaintainError::Archive)?;
+        let index = placement.iter().position(|key| *key == local);
+        deadline.remaining()?;
+        let audit = self
+            .ask(|tx| {
+                crate::Command::AuditArchive(
+                    ctx.tiers.context(),
+                    signed.manifest.digest(),
+                    index,
+                    tx,
+                )
+            })
+            .await
+            .map_err(MaintainError::Install)?;
+        deadline.remaining()?;
+        let Some(index) = index else {
+            return Ok(Maintenance::Unassigned);
+        };
+        if audit.healthy {
+            return Ok(Maintenance::Healthy { index });
+        }
+        let recovered = fetch_discovered(ctx, signed, bootstrap, deadline.remaining()?)
+            .await
+            .map_err(|error| match error {
+                FetchError::Timeout => MaintainError::Timeout,
+                error => MaintainError::Fetch(error),
+            })?;
+        deadline.remaining()?;
+        let mut indices = audit.indices;
+        if !indices.contains(&index) {
+            indices.push(index);
+        }
+        let prepared = Prepared::new(ctx, signed, &recovered.segment, &indices)
+            .map_err(MaintainError::Install)?;
+        deadline.remaining()?;
+        self.ask(|tx| crate::Command::MaintainArchive(prepared, deadline, tx))
+            .await?;
+        Ok(Maintenance::Repaired { index })
+    }
+}
+
 pub(crate) struct Prepared {
     context: [u8; 32],
     record: Record,
@@ -367,6 +474,44 @@ impl Store {
         }
         self.retained.insert(digest, indices);
         Ok(())
+    }
+    pub(crate) fn audit(
+        &self,
+        tiers: &Tiers,
+        context: [u8; 32],
+        digest: [u8; 32],
+        index: Option<usize>,
+    ) -> Result<Audit, InstallError> {
+        if context != self.context || tiers.context() != self.context {
+            return Err(InstallError::Configuration);
+        }
+        let Some(index) = index else {
+            return Ok(Audit {
+                indices: Vec::new(),
+                healthy: false,
+            });
+        };
+        let disk;
+        let record = if let Some(dir) = &self.dir {
+            disk = read_record(&dir.join(format!("{}.arc", hex(&digest))), tiers, digest);
+            disk.as_ref()
+        } else {
+            self.records.get(&digest)
+        };
+        let mut indices: BTreeSet<_> = self
+            .retained
+            .get(&digest)
+            .into_iter()
+            .flatten()
+            .copied()
+            .collect();
+        if let Some(record) = record {
+            indices.extend(record.shards.keys().copied());
+        }
+        Ok(Audit {
+            indices: indices.into_iter().collect(),
+            healthy: record.is_some_and(|r| r.shards.contains_key(&index)),
+        })
     }
     pub(crate) fn serve(&self, tiers: &Tiers, request: &[u8]) -> Vec<u8> {
         let Some((digest, index)) = parse_request(request) else {

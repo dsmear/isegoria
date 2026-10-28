@@ -1176,7 +1176,8 @@ holder checks its shard against something the members signed. Each shard's holde
 from the segment, the shard's index and the set of storage nodes, so any node computes who
 should hold it; holders are audited on a period, and a segment with too few shards left is
 rebuilt and its missing shards placed again, while at least `k` authentic shards remain
-obtainable. The first library increment is specified below; live distribution remains open.
+obtainable. The increments below supply the primitives, transfer, discovery and local
+assignment/repair pass. Automatic production and periodic maintenance remain open.
 
 ### Public archive segments (T84, first increment)
 
@@ -1234,8 +1235,9 @@ For each index in ascending order, choose the unused identifier minimizing the p
 The result is independent of roster order and gives each shard a different holder. The
 roster is external to the manifest, so a changed roster can repair the same archive.
 This function supplies neither admission nor independent operators: one actor can control
-many identifiers. Discovery, roster agreement, admission, eviction and scheduling remain
-runtime integration work; there is no claim of Sybil-resistant placement.
+many identifiers. The local assignment/repair pass below connects this function to
+holders. Roster agreement, admission of storage operators, eviction and scheduling remain
+external; there is no claim of Sybil-resistant placement.
 
 **Encoding and limits.** Version 1 uses `network::codec`: little-endian `u64` integers,
 fixed-width hashes, length-prefixed byte fields and strict 0/1 option tags. Counts,
@@ -1341,8 +1343,8 @@ protect against unlimited connections.
 **Evidence and remaining work.** AT-NET-27 exercises loopback transfer, persistent restart,
 loss of holders, damaged files, local repair, context/admission rejection and wire limits.
 It establishes neither independent operators nor Internet reachability. T84 remains open
-for automatic manifest assembly/co-signing, placement
-integration, periodic audits, remote repair delivery and an independent-operator trial.
+for automatic manifest assembly/co-signing, roster coordination, periodic audits,
+coordinated repair across holders and an independent-operator trial.
 Returned repair bytes are not automatically sent anywhere; local reinstallation is the
 repair operation demonstrated here. T79/T88 remain unapproved and new codecs are not fuzzed.
 
@@ -1399,9 +1401,71 @@ damaged-record exclusion, same-index fallback with checked negative and positive
 network/key separation, announcement withdrawal and retry-address lifetime. Invalid
 manifests are refused before contact; bootstrap/candidate bounds and the total deadline are
 tested. These are loopback and in-process checks, not an independent-operator trial.
-The client remains a library API. Automatic manifest production/co-signing, placement,
-periodic audits and remote repair delivery remain separate work. T79/T88 are unchanged;
+The client remains a library API. The local assignment/repair pass below adds placement
+and recovery by a holder. Automatic production/co-signing, periodic audits and coordinated
+repair across holders remain separate work. T79/T88 are unchanged;
 no new fuzzing or mutation campaign is claimed.
+
+### Local archive assignment and repair (T84, fourth increment)
+
+`Handle::maintain_archive` performs one locally requested pass for a trusted archive
+context, signed manifest, storage roster, bootstrap addresses and deadline. It connects
+the placement function above to a holder's persistent storage and discovered retrieval.
+It neither selects a cut nor creates or co-signs a manifest. The caller still supplies
+the trusted lineage, cut, view and exclusions, and chooses the roster. The roster is not
+part of the signed manifest: this API establishes no agreement on which nodes should store
+an archive, operator independence or Sybil resistance.
+
+**Assignment.** Storage identifiers in this API are Ed25519 transport public keys. The
+roster must contain at least `k+m` distinct, decodable keys and at most 1,024. The holder
+extracts its own key from its transport PeerId and uses the existing order-independent
+placement algorithm to determine its index. An unsupported transport identity is refused.
+Manifest/context and roster checks precede network contact, and the node checks the exact
+tier-configuration digest, including the threshold, before local admission. A node with
+no assigned index returns `Unassigned`, leaves any earlier retained shards intact and
+contacts nobody. Roster changes do not authorize deletion or select a new lineage.
+
+**Audit and recovery.** The pass reads and validates the actual archive record, including
+its certificate, file identity and retained shard lengths/hashes. Cached catalogue entries
+are not evidence of intact bytes. If the assigned shard is valid, it returns `Healthy`
+with its index without fetching or rewriting the record. Otherwise it discovers enough
+authentic shards, reconstructs and verifies the complete public segment, and prepares a
+local installation using the same admission rules as `install_archive`. It retains the
+assigned index together with any previously catalogued indices of that manifest, so
+repair does not silently evict additional local copies. A record already damaged at
+startup has no validated catalogue; only the newly assigned index is then retained.
+
+The existing atomic write, configuration checks and storage quotas apply. A successful
+repair returns `Repaired` with the assigned index and announces the stored selection.
+Unavailable or invalid sources, fewer than `k` obtainable authentic shards, quota errors
+and expiry before commitment do not install a new record. The previous stored record
+is preserved on pre-replacement failures. As for ordinary installation, a sync error
+after rename is an uncertain acknowledgement, not a promise that the old record remains.
+Old DHT hints may still exist while a record is missing or corrupt; reads authenticate
+their replies and such hints cannot establish availability.
+
+**Concurrency and deadline.** The method borrows the non-cloneable `Handle` exclusively
+for the pass. Other local installation or maintenance calls cannot overtake its audit
+and overwrite its result through that handle; the node's network event loop keeps running.
+The deadline covers verification, audit, discovery, reconstruction and preparation, with
+a final expiry check in the node before installation starts. Once that local commit starts,
+the method waits for its durability result rather than reporting a timeout after writing.
+Dropping a future after its commit command is queued does not retract that command.
+Synchronous validation and filesystem operations cannot be preempted. Bootstrap/discovery
+bounds and archive quotas are unchanged. An intact or unassigned holder needs no bootstrap.
+
+**Evidence.** AT-NET-29 covers five empty holders adopting their computed assignments,
+recovery by a fresh client after the original source stops, restart loss and corruption,
+live repair preserving extra indices, no-contact healthy/unassigned paths, context and
+roster rejection, failed recovery preserving old data, and expiry before commitment.
+The roster-limit test includes an unselected local identity within a valid roster.
+These are loopback and in-process checks; no independent-operator evidence is added.
+
+This is a library operation, with no timer, new TOML setting, archive CLI or remote-write
+endpoint. A newly assigned or restored holder pulls its own replacement bytes; nobody can
+write into another holder through the archive protocol. Automatic manifest production,
+roster coordination, periodic scheduling, repair orchestration and independent-operator
+validation remain open. T79/T88 and application rules are unchanged.
 
 
 ---

@@ -1547,3 +1547,6 @@ async fn discovered_offline_same_index_fallback() {
     );
     assert!(live.requests.load(Ordering::Relaxed) > 0);
 }
+
+#[path = "archive_tests/maintenance_tests.rs"]
+mod maintenance_tests;

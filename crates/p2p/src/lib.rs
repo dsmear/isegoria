@@ -199,6 +199,17 @@ pub enum PublishError {
 }
 
 enum Command {
+    AuditArchive(
+        [u8; 32],
+        [u8; 32],
+        Option<usize>,
+        oneshot::Sender<Result<archive::Audit, archive::InstallError>>,
+    ),
+    MaintainArchive(
+        archive::Prepared,
+        archive::Deadline,
+        oneshot::Sender<Result<(), archive::MaintainError>>,
+    ),
     InstallArchive(
         archive::Prepared,
         oneshot::Sender<Result<(), archive::InstallError>>,
@@ -842,30 +853,52 @@ impl Node {
         Ok(signed)
     }
 
+    fn install_archive(
+        &mut self,
+        prepared: archive::Prepared,
+    ) -> Result<(), archive::InstallError> {
+        let result = match (&mut self.archive, &self.tiered) {
+            (Some(store), Some(t)) => {
+                let digest = prepared.digest();
+                let old = store.keys(&digest);
+                let result = store.install(&t.tiers, prepared);
+                if result.is_ok() {
+                    let new = store.keys(&digest);
+                    if let Some(kad) = self.swarm.behaviour_mut().kad.as_mut() {
+                        for key in old.iter().filter(|key| !new.contains(key)) {
+                            self.advertisements.remove(key, kad);
+                        }
+                    }
+                    for key in new {
+                        self.advertisements.add_key(key);
+                    }
+                }
+                result
+            }
+            _ => Err(archive::InstallError::Configuration),
+        };
+        self.advertise();
+        result
+    }
+
     fn command(&mut self, command: Command) {
         match command {
             Command::InstallArchive(prepared, tx) => {
-                let result = match (&mut self.archive, &self.tiered) {
-                    (Some(store), Some(t)) => {
-                        let digest = prepared.digest();
-                        let old = store.keys(&digest);
-                        let result = store.install(&t.tiers, prepared);
-                        if result.is_ok() {
-                            let new = store.keys(&digest);
-                            if let Some(kad) = self.swarm.behaviour_mut().kad.as_mut() {
-                                for key in old.iter().filter(|key| !new.contains(key)) {
-                                    self.advertisements.remove(key, kad);
-                                }
-                            }
-                            for key in new {
-                                self.advertisements.add_key(key);
-                            }
-                        }
-                        result
-                    }
+                let result = self.install_archive(prepared);
+                let _ = tx.send(result);
+            }
+            Command::AuditArchive(context, digest, index, tx) => {
+                let result = match (&self.archive, &self.tiered) {
+                    (Some(store), Some(t)) => store.audit(&t.tiers, context, digest, index),
                     _ => Err(archive::InstallError::Configuration),
                 };
-                self.advertise();
+                let _ = tx.send(result);
+            }
+            Command::MaintainArchive(prepared, deadline, tx) => {
+                let result = deadline.remaining().and_then(|_| {
+                    self.install_archive(prepared)
+                        .map_err(archive::MaintainError::Install)
+                });
                 let _ = tx.send(result);
             }
             Command::Listen(addr, tx) => match self.swarm.listen_on(addr) {
