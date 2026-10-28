@@ -90,8 +90,9 @@ proof that the object does not exist. Honest nodes originate only public provide
 a malicious DHT participant can inject arbitrary CID strings as hints. The lookup reveals
 the queried CID and transport metadata to contacted peers; it does not use T85's OHTTP.
 
-The local provider catalogue grows with the verified public replica. Its announcement
-queue deduplicates CIDs and limits application-started concurrent queries to 16. Remote
+The local provider catalogue grows with the verified public replica and selected archive
+shards (§Archive holder discovery). Its shared announcement queue deduplicates routing
+keys and limits application-started concurrent queries to 16. Remote
 provider records use a separate bounded store (1,024 keys, up to 20 providers per key),
 and arbitrary DHT value records are refused. Kademlia packets are limited to 64 KiB;
 object requests have at most eight concurrent streams. These bounds are not a Sybil or
@@ -1308,7 +1309,8 @@ A missing response is `[1, 0]`. A present response is `[1, 1]`, the manifest dig
 index, and the shard bytes. The response limit is 16 MiB plus 42 bytes, checked during
 stream reading; extra bytes, invalid tags and noncanonical requests are refused. Requests
 never contain a filesystem path, and there is no wire write, admission or repair command.
-Archive shards are not advertised as T75 public-feed objects.
+Archive shards are not advertised as T75 public-feed objects; their separate routing
+keys are specified in §Archive holder discovery below.
 
 **Retrieval.** `p2p::archive::fetch` accepts the trusted context, signed manifest, an explicit
 bounded list of indexed peer identities and addresses, and a total deadline. It verifies
@@ -1339,10 +1341,67 @@ protect against unlimited connections.
 **Evidence and remaining work.** AT-NET-27 exercises loopback transfer, persistent restart,
 loss of holders, damaged files, local repair, context/admission rejection and wire limits.
 It establishes neither independent operators nor Internet reachability. T84 remains open
-for discovering archive holders, automatic manifest assembly/co-signing, placement
+for automatic manifest assembly/co-signing, placement
 integration, periodic audits, remote repair delivery and an independent-operator trial.
 Returned repair bytes are not automatically sent anywhere; local reinstallation is the
 repair operation demonstrated here. T79/T88 remain unapproved and new codecs are not fuzzed.
+
+### Archive holder discovery (T84, third increment)
+
+`p2p::archive::fetch_discovered` takes a trusted archive context, its signed manifest,
+bootstrap addresses and a total deadline. The bootstrap need not hold any shard. The
+client verifies the manifest before contacting the network, finds providers for its shard
+indices through the existing network-scoped Kademlia protocol, and retrieves bytes through
+the read-only archive service above. It needs neither a full replica nor a caller-supplied
+holder list. The signed manifest and trusted cut context still come from the caller;
+this is not manifest discovery or a way to choose the latest cut.
+
+**Announcements.** Archive provider keys are 65 bytes: ASCII `isegoria/archive/shard/1/`,
+the 32-byte manifest digest and a `u64` little-endian shard index, distinct from T75's
+bare 32-byte CID keys. A tiered holder advertises only its selected, locally admitted
+shards. On restart it rebuilds those announcements from
+records that pass the bounded certificate, file identity and shard checks. A successful
+replacement removes obsolete local keys and queued announcements and stops providing
+them before announcing the new selection. Queries already in flight finish naturally
+and remain counted against the concurrency limit; they may deliver an obsolete hint
+after replacement. Public-object and archive announcements share the existing
+application-started query limit. Circle CIDs, private payloads and unselected
+shard indices are not added to this catalogue.
+
+Provider records are untrusted routing hints. Remote records may outlive replacement,
+loss or disk damage; stopping a local announcement does not erase other peers' caches.
+There is no periodic disk audit in this increment, and every read still rechecks the
+stored record. The client matches responses to the authenticated peer, request, manifest,
+index, exact length and signed shard hash. Failed or invalid providers can be replaced by
+other candidates for that index. Each index counts at most once toward `k`, even if several
+providers supply it. The same peer may supply multiple indices: discovery establishes
+neither distinct operators nor availability. Once `k` authentic indices arrive, the full
+codeword, segment CID and cut/public-delta checks are the same as explicit-holder recovery.
+
+**Bounds and exposure.** At most 32 bootstrap addresses are accepted, each no larger than
+1,024 bytes or 16 components. The client runs at most eight provider queries and eight
+shard requests concurrently, retains at most 32 candidates per index and 256 candidates
+in total, and attempts each `(peer, index)` at most once. It retains up to eight bounded
+addresses per admitted peer while its provider query is still live, so later retries
+do not depend on temporary query state. The address size/component limits also apply here.
+These finite budgets can exclude an honest provider when hostile hints fill them;
+exhaustion is not proof that an archive
+is absent. Three-second query/request timeouts sit inside the caller's total deadline,
+which covers verification, discovery and reconstruction and is rechecked before success.
+Synchronous verification cannot be preempted. Network protocol names isolate routing;
+the manifest and content checks establish authenticity. The fresh client transport key
+does not hide its address, queried archive indices or timing from contacted peers. No
+OHTTP, NAT traversal, Sybil resistance or traffic-volume defense is added here.
+
+**Evidence and remaining work.** AT-NET-28 exercises five unknown holders through a
+bootstrap with no archive, recovery after two holders stop, retained-only restart and
+damaged-record exclusion, same-index fallback with checked negative and positive controls,
+network/key separation, announcement withdrawal and retry-address lifetime. Invalid
+manifests are refused before contact; bootstrap/candidate bounds and the total deadline are
+tested. These are loopback and in-process checks, not an independent-operator trial.
+The client remains a library API. Automatic manifest production/co-signing, placement,
+periodic audits and remote repair delivery remain separate work. T79/T88 are unchanged;
+no new fuzzing or mutation campaign is claimed.
 
 
 ---

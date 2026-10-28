@@ -15,7 +15,7 @@ use network::replica::{Replica, SignedEntry};
 use network::store::MAX_OBJECT;
 use network::tier::{Tier, Tiers};
 use std::borrow::Cow;
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
 use std::time::Duration;
 
@@ -219,34 +219,49 @@ pub(crate) fn kad_behaviour(
 
 #[derive(Default)]
 pub(crate) struct Announcements {
-    known: HashSet<Cid>,
-    queued: HashSet<Cid>,
-    queue: VecDeque<Cid>,
-    active: HashSet<kad::QueryId>,
+    known: HashSet<RecordKey>,
+    queued: HashSet<RecordKey>,
+    queue: VecDeque<RecordKey>,
+    active: HashMap<kad::QueryId, RecordKey>,
 }
 impl Announcements {
     pub(crate) fn add(&mut self, cid: Cid) {
-        self.known.insert(cid);
-        if self.queued.insert(cid) {
-            self.queue.push_back(cid);
+        self.add_key(RecordKey::new(&cid.0));
+    }
+    pub(crate) fn add_key(&mut self, key: RecordKey) {
+        self.known.insert(key.clone());
+        if self.queued.insert(key.clone()) {
+            self.queue.push_back(key);
         }
     }
+    pub(crate) fn remove(&mut self, key: &RecordKey, kad: &mut kad::Behaviour<ProviderStore>) {
+        self.known.remove(key);
+        self.queued.remove(key);
+        self.queue.retain(|queued| queued != key);
+        kad.stop_providing(key);
+    }
     pub(crate) fn refresh(&mut self) {
-        for cid in self.known.clone() {
-            self.add(cid);
+        for key in self.known.clone() {
+            self.add_key(key);
         }
     }
     pub(crate) fn completed(&mut self, id: kad::QueryId) {
         self.active.remove(&id);
     }
     pub(crate) fn pump(&mut self, kad: &mut kad::Behaviour<ProviderStore>) {
-        while self.active.len() < QUERY_LIMIT {
-            let Some(cid) = self.queue.pop_front() else {
+        let mut remaining = self.queue.len();
+        while self.active.len() < QUERY_LIMIT && remaining > 0 {
+            remaining -= 1;
+            let Some(key) = self.queue.pop_front() else {
                 break;
             };
-            self.queued.remove(&cid);
-            if let Ok(id) = kad.start_providing(RecordKey::new(&cid.0)) {
-                self.active.insert(id);
+            if self.active.values().any(|active| active == &key) {
+                self.queue.push_back(key);
+                continue;
+            }
+            self.queued.remove(&key);
+            if let Ok(id) = kad.start_providing(key.clone()) {
+                self.active.insert(id, key);
             }
         }
     }
@@ -515,10 +530,89 @@ mod tests {
         advertisements.pump(&mut kad);
         assert_eq!(advertisements.active.len(), QUERY_LIMIT);
         assert_eq!(advertisements.queue.len(), 1025 - QUERY_LIMIT);
-        let query = *advertisements.active.iter().next().unwrap();
+        let query = *advertisements.active.keys().next().unwrap();
         advertisements.completed(query);
         advertisements.pump(&mut kad);
         assert_eq!(advertisements.active.len(), QUERY_LIMIT);
         assert_eq!(advertisements.queue.len(), 1025 - QUERY_LIMIT - 1);
+    }
+    // Withdrawal removes queued work; in-flight hints stay counted until completion (AT-NET-28).
+    #[tokio::test]
+    async fn withdrawal_and_readdition_keep_query_accounting() {
+        use libp2p::swarm::ToSwarm;
+        use std::task::{Context, Poll};
+        let local = PeerId::random();
+        let mut kad = kad_behaviour(local, &[3; 32], true);
+        let mut advertisements = Announcements::default();
+        let key = crate::archive::provider_key(&[7; 32], 0);
+        advertisements.add_key(key.clone());
+        advertisements.pump(&mut kad);
+        assert_eq!(advertisements.active.len(), 1);
+        advertisements.refresh();
+        advertisements.refresh();
+        assert_eq!(advertisements.queue.len(), 1);
+        advertisements.pump(&mut kad);
+        assert_eq!(advertisements.active.len(), 1);
+        advertisements.remove(&key, &mut kad);
+        assert!(!advertisements.known.contains(&key));
+        assert!(advertisements.queue.is_empty());
+        assert_eq!(advertisements.active.len(), 1);
+        assert!(!kad
+            .store_mut()
+            .providers(&key)
+            .iter()
+            .any(|r| r.provider == local));
+        advertisements.add_key(key.clone());
+        advertisements.pump(&mut kad);
+        assert_eq!(advertisements.active.len(), 1);
+        assert_eq!(advertisements.queue.len(), 1);
+        let waker = futures::task::noop_waker();
+        let mut context = Context::from_waker(&waker);
+        for _ in 0..100 {
+            if let Poll::Ready(ToSwarm::GenerateEvent(kad::Event::OutboundQueryProgressed {
+                id,
+                step,
+                ..
+            })) = kad.poll(&mut context)
+            {
+                if step.last {
+                    advertisements.completed(id);
+                }
+            }
+            if advertisements.active.is_empty() {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+        assert!(advertisements.active.is_empty());
+        advertisements.pump(&mut kad);
+        assert_eq!(advertisements.active.len(), 1);
+        assert!(advertisements.queue.is_empty());
+        assert!(kad
+            .store_mut()
+            .providers(&key)
+            .iter()
+            .any(|r| r.provider == local));
+        advertisements.remove(&key, &mut kad);
+        for _ in 0..100 {
+            if let Poll::Ready(ToSwarm::GenerateEvent(kad::Event::OutboundQueryProgressed {
+                id,
+                step,
+                ..
+            })) = kad.poll(&mut context)
+            {
+                if step.last {
+                    advertisements.completed(id);
+                }
+            }
+            if advertisements.active.is_empty() {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+        advertisements.refresh();
+        advertisements.pump(&mut kad);
+        assert!(advertisements.active.is_empty());
+        assert!(kad.store_mut().providers(&key).is_empty());
     }
 }

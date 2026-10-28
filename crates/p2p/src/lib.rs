@@ -592,6 +592,11 @@ impl Handle {
                 }
             }
         }
+        if let Some(store) = &node.archive {
+            for key in store.advertisements() {
+                node.advertisements.add_key(key);
+            }
+        }
         node.advertise();
         tokio::spawn(node.run(rx, config.sync_every));
         Ok(Handle {
@@ -841,9 +846,26 @@ impl Node {
         match command {
             Command::InstallArchive(prepared, tx) => {
                 let result = match (&mut self.archive, &self.tiered) {
-                    (Some(store), Some(t)) => store.install(&t.tiers, prepared),
+                    (Some(store), Some(t)) => {
+                        let digest = prepared.digest();
+                        let old = store.keys(&digest);
+                        let result = store.install(&t.tiers, prepared);
+                        if result.is_ok() {
+                            let new = store.keys(&digest);
+                            if let Some(kad) = self.swarm.behaviour_mut().kad.as_mut() {
+                                for key in old.iter().filter(|key| !new.contains(key)) {
+                                    self.advertisements.remove(key, kad);
+                                }
+                            }
+                            for key in new {
+                                self.advertisements.add_key(key);
+                            }
+                        }
+                        result
+                    }
                     _ => Err(archive::InstallError::Configuration),
                 };
+                self.advertise();
                 let _ = tx.send(result);
             }
             Command::Listen(addr, tx) => match self.swarm.listen_on(addr) {
@@ -881,6 +903,8 @@ impl Node {
             SwarmEvent::NewListenAddr { address, .. } => {
                 if self.tiered.is_some() {
                     self.swarm.add_external_address(address.clone());
+                    self.advertisements.refresh();
+                    self.advertise();
                 }
                 for tx in self.listening.drain(..) {
                     let _ = tx.send(Ok(address.clone()));

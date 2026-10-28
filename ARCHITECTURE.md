@@ -187,9 +187,11 @@ run between nodes (T74), with silent proposers replaced by a view change (T76).
 inclusion or freshness. Tiered nodes serve and advertise public entries only; the client
 is a library API. See `docs/04` §Public object discovery for the wire contract and limits.
 `p2p::archive` serves locally admitted, persistent shard sets through the same tiered node;
-its client verifies a signed manifest and reconstructs from explicitly addressed holders.
-No archive DHT integration, automatic producer, periodic audit or repair delivery is supplied
-(`docs/04` §Archive holders and transfer, T84).
+its clients verify a caller-supplied signed manifest and reconstruct from explicit holders
+or providers discovered through Kademlia under separate archive shard keys. Announcements
+cover selected shards, including validated records after restart; provider hints never
+authorize content. No automatic producer, placement, periodic audit or repair delivery is
+supplied (`docs/04` §Archive holders and transfer and §Archive holder discovery, T84).
 
 ## `protocol` — lifecycle orchestration
 
@@ -426,14 +428,14 @@ cargo clippy --workspace --all-targets
 | Public-chain anchoring | **Real** (OpenTimestamps proof format + verification) | Live calendar POST + Bitcoin node/SPV block source |
 | Gossip transport, replication of the signed set | **Real** — libp2p gossipsub + request-response, a grow-only set with equivocation evidence (T18) | — |
 | Protocol state from the replicated set, merge rules; cuts and beacon between nodes | **Real** — signed cuts fix the order, the first of conflicting events wins; members propose in turn, co-sign, commit and reveal on their feeds (T74); a silent proposer replaced by a change of view, single-decree Paxos over the cuts (T76, step 1); an epoch's withholders excluded from its next cuts (T76, step 2) | — |
-| DHT | Tiered public-object lookup over libp2p Kademlia, tested on loopback (T75); library client | Independent-operator reachability, client CLI and archive placement/repair (T84) |
+| DHT | Tiered public-object and archive-shard lookup over libp2p Kademlia, tested on loopback (T75, T84); library clients | Independent-operator reachability, client CLI and archive placement/repair (T84) |
 | Blind relays | **Channel real, loopback-tested, reviewed** — signed key configurations, relay and gateway over libp2p with Oblivious HTTP, receipts of the circle entry, duplicates answered once (T85, first increment) | admission and private reads with T79; no event admitted by a node process yet |
 | Who may read the replicated set | **Real for tiered networks, loopback-tested** — the binding on each connection, every message filtered by verified access, a member's two feeds, a public reader on an `Observer` (T77, reviewed on loopback evidence; no multi-operator run); **none without tiers** — a node serves its whole set to any peer, against D17 | D54: three tiers, two feeds per member, the circle served only to member-bound transport keys (T77); blind relays (T85); a state tree keyed by nym (T86) |
 | A node process | **Real** — `isegoria-node` from a TOML configuration, its files resumed on restart, its status on a period (T78) | an epoch's work (T79) |
 | Answer review between nodes | **None** — `AnswerPath`/`AnswerNode` are offline; the ledger still decodes legacy `NodeEvent` (T79) | the distributed answer-review contract, then its implementation (`docs/05`) |
 | Independent operator setup and trial | **Not established** — current process tests run under one operator; threshold committee messages and setup are local | distributed committee setup (T19), operator contract and trial (T88), Phase 2 gates (`docs/10`, D55) |
 | A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80) | first-peer recovery can miss a longer feed elsewhere; T88 must specify and test the operating procedure |
-| Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from an explicit holder list, tested on loopback | Archive discovery, automatic manifest creation, placement integration, periodic audits and remote repair delivery (T84) |
+| Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from explicit or discovered holders, tested on loopback | Automatic manifest creation, placement integration, periodic audits and remote repair delivery (T84) |
 
 Reference implementations are clearly marked and provide **no** security; they exist
 to make the pipeline testable end-to-end.

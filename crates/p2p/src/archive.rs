@@ -1,7 +1,8 @@
-//! Assigned public archive shards and explicit-holder retrieval (`docs/04` §Public archive).
+//! Assigned public archive shards and checked retrieval (`docs/04` §Public archive).
 
 use crate::{read_limited, write_all};
 use futures::{AsyncRead, AsyncWrite, StreamExt};
+use libp2p::kad::{self, RecordKey};
 use libp2p::request_response::{self, OutboundRequestId, ProtocolSupport};
 use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
 use libp2p::{identity, noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol};
@@ -10,7 +11,7 @@ use network::codec::{Reader, Writer};
 use network::erasure::shard_hash;
 use network::store::MAX_OBJECT;
 use network::tier::Tiers;
-use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
@@ -48,6 +49,9 @@ pub(crate) struct Prepared {
     record: Record,
 }
 impl Prepared {
+    pub(crate) fn digest(&self) -> [u8; 32] {
+        self.record.signed.manifest.digest()
+    }
     pub(crate) fn new(
         ctx: &Context<'_>,
         signed: &SignedManifest,
@@ -148,11 +152,14 @@ impl Record {
     }
 }
 
+type Retained = BTreeMap<[u8; 32], Vec<usize>>;
+
 pub(crate) struct Store {
     context: [u8; 32],
     dir: Option<PathBuf>,
     records: BTreeMap<[u8; 32], Record>,
     temporary: u64,
+    retained: Retained,
 }
 #[derive(Default)]
 struct Usage {
@@ -207,11 +214,12 @@ fn read_record(path: &Path, tiers: &Tiers, digest: [u8; 32]) -> Option<Record> {
 }
 impl Store {
     pub(crate) fn open(tiers: &Tiers, dir: Option<PathBuf>) -> Result<Self, InstallError> {
-        let store = Self {
+        let mut store = Self {
             context: tiers.context(),
             dir,
             records: BTreeMap::new(),
             temporary: 0,
+            retained: BTreeMap::new(),
         };
         if let Some(dir) = &store.dir {
             fs::create_dir_all(dir)?;
@@ -240,12 +248,32 @@ impl Store {
                 }
                 Err(error) => return Err(error.into()),
             }
-            store.usage(tiers)?.check()?;
+            let (usage, retained) = store.inspect(tiers)?;
+            usage.check()?;
+            store.retained = retained;
         }
         Ok(store)
     }
+    pub(crate) fn advertisements(&self) -> Vec<RecordKey> {
+        self.retained
+            .iter()
+            .flat_map(|(digest, indices)| indices.iter().map(|index| provider_key(digest, *index)))
+            .collect()
+    }
+    pub(crate) fn keys(&self, digest: &[u8; 32]) -> Vec<RecordKey> {
+        self.retained
+            .get(digest)
+            .into_iter()
+            .flatten()
+            .map(|index| provider_key(digest, *index))
+            .collect()
+    }
     fn usage(&self, tiers: &Tiers) -> Result<Usage, InstallError> {
+        self.inspect(tiers).map(|(usage, _)| usage)
+    }
+    fn inspect(&self, tiers: &Tiers) -> Result<(Usage, Retained), InstallError> {
         let mut usage = Usage::default();
+        let mut retained = BTreeMap::new();
         if let Some(dir) = &self.dir {
             for entry in fs::read_dir(dir)? {
                 let entry = entry?;
@@ -260,9 +288,12 @@ impl Store {
                     .ok_or(InstallError::Quota)?;
                 if entry.path().extension().is_some_and(|e| e == "arc") {
                     usage.archives += 1;
-                    usage.shards += file_digest(&entry.path())
-                        .and_then(|digest| read_record(&entry.path(), tiers, digest))
-                        .map_or(256, |r| r.shards.len());
+                    let record = file_digest(&entry.path()).and_then(|digest| {
+                        let record = read_record(&entry.path(), tiers, digest)?;
+                        retained.insert(digest, record.shards.keys().copied().collect());
+                        Some(record)
+                    });
+                    usage.shards += record.map_or(256, |r| r.shards.len());
                 }
                 usage.check()?;
             }
@@ -273,7 +304,7 @@ impl Store {
                 usage.bytes += record.size()? as u64;
             }
         }
-        Ok(usage)
+        Ok((usage, retained))
     }
     pub(crate) fn install(
         &mut self,
@@ -285,6 +316,7 @@ impl Store {
         }
         let record = prepared.record;
         let digest = record.signed.manifest.digest();
+        let indices = record.shards.keys().copied().collect();
         let mut usage = self.usage(tiers)?;
         if let Some(dir) = &self.dir {
             let old_path = dir.join(format!("{}.arc", hex(&digest)));
@@ -333,6 +365,7 @@ impl Store {
         } else {
             self.records.insert(digest, record);
         }
+        self.retained.insert(digest, indices);
         Ok(())
     }
     pub(crate) fn serve(&self, tiers: &Tiers, request: &[u8]) -> Vec<u8> {
@@ -350,6 +383,13 @@ impl Store {
             .and_then(|r| r.shards.get(&index))
             .map_or_else(|| vec![1, 0], |shard| reply(digest, index, shard))
     }
+}
+
+pub fn provider_key(digest: &[u8; 32], index: usize) -> RecordKey {
+    let mut key = b"isegoria/archive/shard/1/".to_vec();
+    key.extend(digest);
+    key.extend((index as u64).to_le_bytes());
+    RecordKey::new(&key)
 }
 
 pub fn protocol(network: &[u8; 32]) -> StreamProtocol {
@@ -460,6 +500,7 @@ pub struct Holder {
 pub enum FetchError {
     Archive(network::archive::Error),
     Holders,
+    Bootstrap,
     Timeout,
     Unavailable,
     Transport(String),
@@ -564,6 +605,252 @@ pub async fn fetch(
                 request_response::Event::OutboundFailure { request_id, .. },
             )) => {
                 active.remove(&request_id);
+            }
+            _ => {}
+        }
+    }
+}
+
+const DISCOVERY_CONCURRENCY: usize = 8;
+const CANDIDATES_PER_SHARD: usize = 32;
+const CANDIDATES_TOTAL: usize = 256;
+
+#[derive(NetworkBehaviour)]
+struct DiscoveryClient {
+    kad: kad::Behaviour<crate::discovery::ProviderStore>,
+    archive: request_response::Behaviour<ShardCodec>,
+}
+struct Candidates {
+    seen: Vec<HashSet<PeerId>>,
+    queues: Vec<VecDeque<PeerId>>,
+    total: usize,
+    addresses: HashMap<PeerId, Vec<Multiaddr>>,
+}
+impl Candidates {
+    fn new(n: usize) -> Self {
+        Self {
+            seen: vec![HashSet::new(); n],
+            queues: vec![VecDeque::new(); n],
+            total: 0,
+            addresses: HashMap::new(),
+        }
+    }
+    fn send(
+        &self,
+        swarm: &mut libp2p::Swarm<DiscoveryClient>,
+        peer: PeerId,
+        digest: [u8; 32],
+        index: usize,
+    ) -> OutboundRequestId {
+        for address in self.addresses.get(&peer).into_iter().flatten() {
+            swarm.add_peer_address(peer, address.clone());
+        }
+        swarm
+            .behaviour_mut()
+            .archive
+            .send_request(&peer, request(digest, index))
+    }
+    fn add(&mut self, index: usize, providers: HashSet<PeerId>) -> Vec<PeerId> {
+        let mut providers: Vec<_> = providers.into_iter().collect();
+        providers.sort();
+        let mut added = Vec::new();
+        for peer in providers {
+            if self.total < CANDIDATES_TOTAL
+                && self.seen[index].len() < CANDIDATES_PER_SHARD
+                && self.seen[index].insert(peer)
+            {
+                self.total += 1;
+                self.queues[index].push_back(peer);
+                added.push(peer);
+            }
+        }
+        added
+    }
+}
+
+/// Provider hints locate candidates only; verified recovery establishes the returned bytes.
+/// `deadline` includes synchronous verification and recovery, which cannot be preempted.
+pub async fn fetch_discovered(
+    ctx: &Context<'_>,
+    signed: &SignedManifest,
+    bootstrap: Vec<Multiaddr>,
+    deadline: Duration,
+) -> Result<Recovered, FetchError> {
+    let started = Instant::now();
+    let remaining = || {
+        deadline
+            .checked_sub(started.elapsed())
+            .filter(|d| !d.is_zero())
+            .ok_or(FetchError::Timeout)
+    };
+    let verified = signed.verify(ctx).map_err(FetchError::Archive)?;
+    remaining()?;
+    if bootstrap.is_empty()
+        || bootstrap.len() > 32
+        || bootstrap
+            .iter()
+            .any(|a| a.len() > 1024 || a.iter().count() > 16)
+    {
+        return Err(FetchError::Bootstrap);
+    }
+    let network = ctx.tiers.network_id();
+    let mut swarm =
+        libp2p::SwarmBuilder::with_existing_identity(identity::Keypair::generate_ed25519())
+            .with_tokio()
+            .with_tcp(
+                tcp::Config::default(),
+                noise::Config::new,
+                yamux::Config::default,
+            )
+            .map_err(|e| FetchError::Transport(e.to_string()))?
+            .with_behaviour(|key| DiscoveryClient {
+                kad: crate::discovery::kad_behaviour(key.public().to_peer_id(), &network, false),
+                archive: configured_behaviour(&network, ProtocolSupport::Outbound),
+            })
+            .map_err(|e| FetchError::Transport(e.to_string()))?
+            .with_swarm_config(|c| c.with_idle_connection_timeout(Duration::from_secs(10)))
+            .build();
+    let mut dialed = 0usize;
+    for address in bootstrap {
+        if swarm.dial(address).is_ok() {
+            dialed += 1;
+        }
+    }
+    if dialed == 0 {
+        return Err(FetchError::Bootstrap);
+    }
+    let n = signed.manifest.shard_hashes().len();
+    let digest = signed.manifest.digest();
+    let mut started_queries = false;
+    let mut next_query = 0;
+    let mut queries = HashMap::new();
+    let mut candidates = Candidates::new(n);
+    let mut active: HashMap<OutboundRequestId, (PeerId, usize)> = HashMap::new();
+    let mut shards = vec![None; n];
+    let mut authentic = 0;
+    loop {
+        remaining()?;
+        if started_queries {
+            while queries.len() < DISCOVERY_CONCURRENCY && next_query < n {
+                let index = next_query;
+                next_query += 1;
+                let id = swarm
+                    .behaviour_mut()
+                    .kad
+                    .get_providers(provider_key(&digest, index));
+                queries.insert(id, index);
+            }
+        }
+        for (index, shard) in shards.iter().enumerate() {
+            if active.len() >= DISCOVERY_CONCURRENCY {
+                break;
+            }
+            if shard.is_some() || active.values().any(|(_, i)| *i == index) {
+                continue;
+            }
+            if let Some(peer) = candidates.queues[index].pop_front() {
+                let id = candidates.send(&mut swarm, peer, digest, index);
+                active.insert(id, (peer, index));
+            }
+        }
+        if started_queries && next_query == n && queries.is_empty() && active.is_empty() {
+            return Err(FetchError::Unavailable);
+        }
+        match tokio::time::timeout(remaining()?, swarm.select_next_some())
+            .await
+            .map_err(|_| FetchError::Timeout)?
+        {
+            SwarmEvent::ConnectionEstablished {
+                peer_id, endpoint, ..
+            } => {
+                if let libp2p::core::ConnectedPoint::Dialer { address, .. } = endpoint {
+                    swarm.behaviour_mut().kad.add_address(&peer_id, address);
+                }
+                started_queries = true;
+            }
+            SwarmEvent::Behaviour(DiscoveryClientEvent::Kad(
+                kad::Event::OutboundQueryProgressed {
+                    id,
+                    result: kad::QueryResult::GetProviders(result),
+                    step,
+                    ..
+                },
+            )) => {
+                if let Some(index) = queries.get(&id).copied() {
+                    if shards[index].is_none() {
+                        if let Ok(kad::GetProvidersOk::FoundProviders { providers, .. }) = result {
+                            for peer in candidates.add(index, providers) {
+                                let dial =
+                                    libp2p::swarm::dial_opts::DialOpts::peer_id(peer).build();
+                                let addresses = swarm
+                                    .behaviour_mut()
+                                    .kad
+                                    .handle_pending_outbound_connection(
+                                        dial.connection_id(),
+                                        Some(peer),
+                                        &[],
+                                        libp2p::core::Endpoint::Dialer,
+                                    )
+                                    .unwrap_or_default();
+                                let retained = candidates.addresses.entry(peer).or_default();
+                                for address in addresses
+                                    .into_iter()
+                                    .filter(|a| a.len() <= 1024 && a.iter().count() <= 16)
+                                {
+                                    if retained.len() == 8 {
+                                        break;
+                                    }
+                                    if !retained.contains(&address) {
+                                        retained.push(address);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if step.last {
+                        queries.remove(&id);
+                    }
+                }
+            }
+            SwarmEvent::Behaviour(DiscoveryClientEvent::Archive(
+                request_response::Event::Message {
+                    peer,
+                    message:
+                        request_response::Message::Response {
+                            request_id,
+                            response,
+                        },
+                    ..
+                },
+            )) => {
+                if let Some((expected, index)) = active.remove(&request_id) {
+                    if peer == expected && shards[index].is_none() {
+                        if let Some(shard) = checked(signed, index, &response) {
+                            shards[index] = Some(shard);
+                            candidates.queues[index].clear();
+                            authentic += 1;
+                        }
+                    }
+                    if authentic >= signed.manifest.layout().data_shards {
+                        remaining()?;
+                        let recovered = verified
+                            .recover(ctx, &shards)
+                            .map_err(FetchError::Archive)?;
+                        remaining()?;
+                        return Ok(recovered);
+                    }
+                }
+            }
+            SwarmEvent::Behaviour(DiscoveryClientEvent::Archive(
+                request_response::Event::OutboundFailure { request_id, .. },
+            )) => {
+                active.remove(&request_id);
+            }
+            SwarmEvent::OutgoingConnectionError { .. } if !started_queries => {
+                dialed = dialed.saturating_sub(1);
+                if dialed == 0 {
+                    return Err(FetchError::Unavailable);
+                }
             }
             _ => {}
         }

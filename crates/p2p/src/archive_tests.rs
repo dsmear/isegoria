@@ -836,3 +836,714 @@ async fn hostile_reply_cannot_complete_quorum() {
         Err(FetchError::Holders)
     ));
 }
+
+// Only verified retained indices enter the bounded startup catalogue (AT-NET-28).
+#[test]
+fn advertisement_catalogue_replacement_and_damage() {
+    let f = Fixture::new();
+    let (segment, signed, _) = f.archive();
+    let digest = signed.manifest.digest();
+    let dir = Temp::new();
+    let mut store = Store::open(&f.tiers, Some(dir.0.clone())).unwrap();
+    assert!(store.advertisements().is_empty());
+    store
+        .install(
+            &f.tiers,
+            Prepared::new(&f.context(), &signed, &segment, &[0, 4]).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(
+        store.advertisements(),
+        vec![provider_key(&digest, 0), provider_key(&digest, 4)]
+    );
+    drop(store);
+    let mut store = Store::open(&f.tiers, Some(dir.0.clone())).unwrap();
+    assert_eq!(
+        store.advertisements(),
+        vec![provider_key(&digest, 0), provider_key(&digest, 4)]
+    );
+    store
+        .install(
+            &f.tiers,
+            Prepared::new(&f.context(), &signed, &segment, &[2]).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(store.advertisements(), vec![provider_key(&digest, 2)]);
+    drop(store);
+    let path = dir.0.join(format!("{}.arc", hex(&digest)));
+    let mut bytes = fs::read(&path).unwrap();
+    *bytes.last_mut().unwrap() ^= 1;
+    fs::write(path, bytes).unwrap();
+    assert!(Store::open(&f.tiers, Some(dir.0.clone()))
+        .unwrap()
+        .advertisements()
+        .is_empty());
+    let mut exact = b"isegoria/archive/shard/1/".to_vec();
+    exact.extend(digest);
+    exact.extend(4u64.to_le_bytes());
+    assert_eq!(exact.len(), 65);
+    assert_eq!(provider_key(&digest, 4).to_vec(), exact);
+    assert_ne!(
+        provider_key(&digest, 0),
+        libp2p::kad::RecordKey::new(&digest)
+    );
+    assert_ne!(provider_key(&digest, 0), provider_key(&digest, 1));
+}
+
+// Invalid manifests and unbounded bootstrap input are rejected before contact (AT-NET-28).
+#[tokio::test]
+async fn discovered_preverification_and_input_bounds() {
+    let f = Fixture::new();
+    let (_, signed, shards) = f.archive();
+    let provider = hostile(Some(reply(signed.manifest.digest(), 0, &shards[0]))).await;
+    let mut invalid = signed.clone();
+    invalid.signatures.clear();
+    assert!(matches!(
+        fetch_discovered(
+            &f.context(),
+            &invalid,
+            vec![provider.address.clone()],
+            Duration::from_secs(1)
+        )
+        .await,
+        Err(FetchError::Archive(_))
+    ));
+    assert_eq!(provider.requests.load(Ordering::Relaxed), 0);
+    assert!(matches!(
+        fetch_discovered(&f.context(), &signed, vec![], Duration::from_secs(1)).await,
+        Err(FetchError::Bootstrap)
+    ));
+    assert!(matches!(
+        fetch_discovered(
+            &f.context(),
+            &signed,
+            vec![provider.address.clone(); 33],
+            Duration::from_secs(1)
+        )
+        .await,
+        Err(FetchError::Bootstrap)
+    ));
+    let mut address = Multiaddr::empty();
+    for _ in 0..17 {
+        address.push(libp2p::multiaddr::Protocol::Tcp(1));
+    }
+    assert!(matches!(
+        fetch_discovered(&f.context(), &signed, vec![address], Duration::from_secs(1)).await,
+        Err(FetchError::Bootstrap)
+    ));
+    let oversized = Multiaddr::from(libp2p::multiaddr::Protocol::Dns(std::borrow::Cow::Owned(
+        "x".repeat(1024),
+    )));
+    assert!(matches!(
+        fetch_discovered(
+            &f.context(),
+            &signed,
+            vec![oversized],
+            Duration::from_secs(1)
+        )
+        .await,
+        Err(FetchError::Bootstrap)
+    ));
+    assert!(matches!(
+        fetch_discovered(
+            &f.context(),
+            &signed,
+            vec![provider.address.clone()],
+            Duration::ZERO
+        )
+        .await,
+        Err(FetchError::Timeout)
+    ));
+}
+
+// Candidate hints are deduplicated per index and bounded independently of authenticity (AT-NET-28).
+#[test]
+fn discovery_candidate_budgets() {
+    let peers: HashSet<_> = (0..40).map(|_| PeerId::random()).collect();
+    let mut candidates = Candidates::new(10);
+    for index in 0..10 {
+        candidates.add(index, peers.clone());
+        candidates.add(index, peers.clone());
+        assert!(candidates.queues[index].len() <= 32);
+    }
+    assert_eq!(candidates.total, 256);
+    assert_eq!(
+        candidates.queues.iter().map(VecDeque::len).sum::<usize>(),
+        256
+    );
+}
+
+#[derive(NetworkBehaviour)]
+struct DiscoveryFixtureBehaviour {
+    kad: kad::Behaviour<kad::store::MemoryStore>,
+    archive: request_response::Behaviour<ShardCodec>,
+}
+type Advertised = std::sync::Arc<std::sync::Mutex<HashMap<Vec<u8>, HashSet<PeerId>>>>;
+struct DiscoveryFixture {
+    peer: PeerId,
+    address: Multiaddr,
+    requests: std::sync::Arc<AtomicU64>,
+    contacts: std::sync::Arc<AtomicU64>,
+    advertised: Advertised,
+    task: tokio::task::JoinHandle<()>,
+}
+impl Drop for DiscoveryFixture {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+async fn discovery_fixture(
+    seed: u8,
+    network: [u8; 32],
+    bootstrap: Option<Multiaddr>,
+    keys: Vec<RecordKey>,
+    answer: Option<Vec<u8>>,
+) -> DiscoveryFixture {
+    let key = identity::Keypair::ed25519_from_bytes([seed; 32]).unwrap();
+    let mut swarm = libp2p::SwarmBuilder::with_existing_identity(key)
+        .with_tokio()
+        .with_tcp(
+            tcp::Config::default(),
+            noise::Config::new,
+            yamux::Config::default,
+        )
+        .unwrap()
+        .with_behaviour(|key| {
+            let peer = key.public().to_peer_id();
+            let mut config = kad::Config::new(crate::discovery::kad_protocol(&network));
+            config.set_query_timeout(Duration::from_secs(3));
+            config.set_record_filtering(kad::StoreInserts::FilterBoth);
+            let mut kad =
+                kad::Behaviour::with_config(peer, kad::store::MemoryStore::new(peer), config);
+            kad.set_mode(Some(kad::Mode::Server));
+            DiscoveryFixtureBehaviour {
+                kad,
+                archive: behaviour(&network),
+            }
+        })
+        .unwrap()
+        .build();
+    let peer = *swarm.local_peer_id();
+    swarm
+        .listen_on("/ip4/127.0.0.1/tcp/0".parse().unwrap())
+        .unwrap();
+    let address = loop {
+        if let SwarmEvent::NewListenAddr { address, .. } = swarm.select_next_some().await {
+            swarm.add_external_address(address.clone());
+            break address;
+        }
+    };
+    if let Some(address) = bootstrap {
+        swarm.dial(address).unwrap();
+    }
+    let requests = std::sync::Arc::new(AtomicU64::new(0));
+    let count = requests.clone();
+    let contacts = std::sync::Arc::new(AtomicU64::new(0));
+    let connections = contacts.clone();
+    let advertised = Advertised::default();
+    let recorded = advertised.clone();
+    let task = tokio::spawn(async move {
+        let mut silent = Vec::new();
+        loop {
+            match swarm.select_next_some().await {
+                SwarmEvent::ConnectionEstablished {
+                    peer_id, endpoint, ..
+                } => {
+                    connections.fetch_add(1, Ordering::Relaxed);
+                    if let libp2p::core::ConnectedPoint::Dialer { address, .. } = endpoint {
+                        swarm.behaviour_mut().kad.add_address(&peer_id, address);
+                    }
+                    for key in &keys {
+                        let _ = swarm.behaviour_mut().kad.start_providing(key.clone());
+                    }
+                }
+                SwarmEvent::Behaviour(DiscoveryFixtureBehaviourEvent::Kad(
+                    kad::Event::InboundRequest {
+                        request:
+                            kad::InboundRequest::AddProvider {
+                                record: Some(record),
+                            },
+                    },
+                )) => {
+                    use kad::store::RecordStore;
+                    recorded
+                        .lock()
+                        .unwrap()
+                        .entry(record.key.to_vec())
+                        .or_default()
+                        .insert(record.provider);
+                    swarm
+                        .behaviour_mut()
+                        .kad
+                        .store_mut()
+                        .add_provider(record)
+                        .unwrap();
+                }
+                SwarmEvent::Behaviour(DiscoveryFixtureBehaviourEvent::Archive(
+                    request_response::Event::Message {
+                        message: request_response::Message::Request { channel, .. },
+                        ..
+                    },
+                )) => {
+                    count.fetch_add(1, Ordering::Relaxed);
+                    if let Some(bytes) = &answer {
+                        let _ = swarm
+                            .behaviour_mut()
+                            .archive
+                            .send_response(channel, bytes.clone());
+                    } else {
+                        silent.push(channel);
+                    }
+                }
+                _ => {}
+            }
+        }
+    });
+    DiscoveryFixture {
+        peer,
+        address,
+        requests,
+        contacts,
+        advertised,
+        task,
+    }
+}
+async fn wait_advertisements(bootstrap: &DiscoveryFixture, expected: &[(RecordKey, PeerId)]) {
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if expected.iter().all(|(key, peer)| {
+                bootstrap
+                    .advertised
+                    .lock()
+                    .unwrap()
+                    .get(&key.to_vec())
+                    .is_some_and(|peers| peers.contains(peer))
+            }) {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .unwrap();
+}
+
+// An empty bootstrap locates five unknown assigned holders after two stop (AT-NET-28).
+#[tokio::test]
+async fn discovered_five_holders_two_lost() {
+    let f = Fixture::new();
+    let (segment, signed, _) = f.archive();
+    let bootstrap = discovery_fixture(101, NET, None, vec![], None).await;
+    let mut nodes = Vec::new();
+    let mut expected = Vec::new();
+    for index in 0..5 {
+        let node =
+            crate::Handle::spawn(identity::Keypair::generate_ed25519(), f.config(None)).unwrap();
+        node.install_archive(&f.context(), &signed, &segment, &[index])
+            .await
+            .unwrap();
+        node.listen("/ip4/127.0.0.1/tcp/0".parse().unwrap())
+            .await
+            .unwrap();
+        node.dial(bootstrap.address.clone()).await.unwrap();
+        expected.push((
+            provider_key(&signed.manifest.digest(), index),
+            node.peer_id(),
+        ));
+        nodes.push(Some(node));
+    }
+    wait_advertisements(&bootstrap, &expected).await;
+    assert_eq!(bootstrap.advertised.lock().unwrap().len(), 5);
+    assert!(!bootstrap
+        .advertised
+        .lock()
+        .unwrap()
+        .contains_key(&cid(b"private sentinel").0.to_vec()));
+    nodes[1].take();
+    nodes[4].take();
+    tokio::task::yield_now().await;
+    let recovered = fetch_discovered(
+        &f.context(),
+        &signed,
+        vec![bootstrap.address.clone()],
+        Duration::from_secs(8),
+    )
+    .await
+    .unwrap();
+    assert_eq!(recovered.segment, segment);
+    assert_eq!(
+        recovered
+            .repairs
+            .iter()
+            .map(|(i, _)| *i)
+            .collect::<Vec<_>>(),
+        vec![1, 4]
+    );
+    for node in nodes.into_iter().flatten() {
+        assert!(node.replica().await.is_empty());
+    }
+    assert_eq!(bootstrap.requests.load(Ordering::Relaxed), 0);
+}
+
+// Exactly k-1 honest indices require a checked fallback for the remaining index (AT-NET-28).
+#[tokio::test]
+async fn discovered_hostile_same_index_fallback() {
+    let f = Fixture::new();
+    let (segment, signed, shards) = f.archive();
+    let correct = reply(signed.manifest.digest(), 0, &shards[0]);
+    let mut cases = vec![vec![1, 0], correct.clone()];
+    for offset in [2, 34, 42] {
+        let mut bad = correct.clone();
+        bad[offset] ^= 1;
+        cases.push(bad);
+    }
+    cases.push(correct[..correct.len() - 1].to_vec());
+    for (case, bad) in cases.into_iter().enumerate() {
+        let bootstrap = discovery_fixture(102, NET, None, vec![], None).await;
+        let honest =
+            crate::Handle::spawn(identity::Keypair::generate_ed25519(), f.config(None)).unwrap();
+        honest
+            .install_archive(&f.context(), &signed, &segment, &[1, 2])
+            .await
+            .unwrap();
+        honest
+            .listen("/ip4/127.0.0.1/tcp/0".parse().unwrap())
+            .await
+            .unwrap();
+        honest.dial(bootstrap.address.clone()).await.unwrap();
+        let mut seeds = [103u8, 104];
+        seeds.sort_by_key(|seed| {
+            identity::Keypair::ed25519_from_bytes([*seed; 32])
+                .unwrap()
+                .public()
+                .to_peer_id()
+        });
+        let key = provider_key(&signed.manifest.digest(), 0);
+        let first = discovery_fixture(
+            seeds[0],
+            NET,
+            Some(bootstrap.address.clone()),
+            vec![key.clone()],
+            Some(bad),
+        )
+        .await;
+        wait_advertisements(
+            &bootstrap,
+            &[
+                (key.clone(), first.peer),
+                (provider_key(&signed.manifest.digest(), 1), honest.peer_id()),
+                (provider_key(&signed.manifest.digest(), 2), honest.peer_id()),
+            ],
+        )
+        .await;
+        let result = fetch_discovered(
+            &f.context(),
+            &signed,
+            vec![bootstrap.address.clone()],
+            Duration::from_secs(6),
+        )
+        .await;
+        assert_eq!(
+            result.is_ok(),
+            case == 1,
+            "case {case}: {:?}",
+            result.as_ref().err()
+        );
+        assert!(first.requests.load(Ordering::Relaxed) > 0);
+        if case != 1 {
+            assert!(matches!(result, Err(FetchError::Unavailable)));
+            let prior = first.requests.load(Ordering::Relaxed);
+            let second = discovery_fixture(
+                seeds[1],
+                NET,
+                Some(bootstrap.address.clone()),
+                vec![key.clone()],
+                Some(correct.clone()),
+            )
+            .await;
+            wait_advertisements(&bootstrap, &[(key, second.peer)]).await;
+            assert_eq!(
+                fetch_discovered(
+                    &f.context(),
+                    &signed,
+                    vec![bootstrap.address.clone()],
+                    Duration::from_secs(6)
+                )
+                .await
+                .unwrap()
+                .segment,
+                segment
+            );
+            assert!(first.requests.load(Ordering::Relaxed) > prior);
+            assert!(second.requests.load(Ordering::Relaxed) > 0);
+        }
+    }
+}
+
+// Restart publishes retained assignments only; damaged records publish no shard hints (AT-NET-28).
+#[tokio::test]
+async fn discovered_startup_replacement_and_damage() {
+    let f = Fixture::new();
+    let (segment, signed, _) = f.archive();
+    let dir = Temp::new();
+    let key = identity::Keypair::generate_ed25519();
+    let node = crate::Handle::spawn(key.clone(), f.config(Some(dir.0.clone()))).unwrap();
+    node.install_archive(&f.context(), &signed, &segment, &[0, 1, 2])
+        .await
+        .unwrap();
+    node.listen("/ip4/127.0.0.1/tcp/0".parse().unwrap())
+        .await
+        .unwrap();
+    let old_bootstrap = discovery_fixture(110, NET, None, vec![], None).await;
+    node.dial(old_bootstrap.address.clone()).await.unwrap();
+    wait_advertisements(
+        &old_bootstrap,
+        &[(provider_key(&signed.manifest.digest(), 0), node.peer_id())],
+    )
+    .await;
+    node.install_archive(&f.context(), &signed, &segment, &[1, 3, 4])
+        .await
+        .unwrap();
+    drop(node);
+    tokio::task::yield_now().await;
+    let bootstrap = discovery_fixture(105, NET, None, vec![], None).await;
+    let node = crate::Handle::spawn(key.clone(), f.config(Some(dir.0.clone()))).unwrap();
+    node.listen("/ip4/127.0.0.1/tcp/0".parse().unwrap())
+        .await
+        .unwrap();
+    node.dial(bootstrap.address.clone()).await.unwrap();
+    let expected: Vec<_> = [1, 3, 4]
+        .into_iter()
+        .map(|index| {
+            (
+                provider_key(&signed.manifest.digest(), index),
+                node.peer_id(),
+            )
+        })
+        .collect();
+    wait_advertisements(&bootstrap, &expected).await;
+    assert_eq!(bootstrap.advertised.lock().unwrap().len(), 3);
+    assert_eq!(
+        fetch_discovered(
+            &f.context(),
+            &signed,
+            vec![bootstrap.address.clone()],
+            Duration::from_secs(6)
+        )
+        .await
+        .unwrap()
+        .segment,
+        segment
+    );
+    drop(node);
+    tokio::task::yield_now().await;
+    let path = dir
+        .0
+        .join("archive")
+        .join(format!("{}.arc", hex(&signed.manifest.digest())));
+    let mut bytes = fs::read(&path).unwrap();
+    *bytes.last_mut().unwrap() ^= 1;
+    fs::write(path, bytes).unwrap();
+    let clean = discovery_fixture(106, NET, None, vec![], None).await;
+    let damaged = crate::Handle::spawn(key, f.config(Some(dir.0.clone()))).unwrap();
+    damaged
+        .listen("/ip4/127.0.0.1/tcp/0".parse().unwrap())
+        .await
+        .unwrap();
+    damaged.dial(clean.address.clone()).await.unwrap();
+    assert!(matches!(
+        fetch_discovered(
+            &f.context(),
+            &signed,
+            vec![clean.address.clone()],
+            Duration::from_secs(5)
+        )
+        .await,
+        Err(FetchError::Unavailable)
+    ));
+    assert!(clean.advertised.lock().unwrap().is_empty());
+}
+
+// Network separation, preverification, and silent I/O have real successful controls (AT-NET-28).
+#[tokio::test]
+async fn discovered_network_deadline_and_no_invalid_contact() {
+    let f = Fixture::new();
+    let (_, signed, shards) = f.archive();
+    let bootstrap = discovery_fixture(107, NET, None, vec![], None).await;
+    let mut invalid = signed.clone();
+    invalid.signatures.clear();
+    assert!(matches!(
+        fetch_discovered(
+            &f.context(),
+            &invalid,
+            vec![bootstrap.address.clone()],
+            Duration::from_secs(1)
+        )
+        .await,
+        Err(FetchError::Archive(_))
+    ));
+    tokio::task::yield_now().await;
+    assert_eq!(bootstrap.contacts.load(Ordering::Relaxed), 0);
+    let key = provider_key(&signed.manifest.digest(), 0);
+    let provider = discovery_fixture(
+        108,
+        NET,
+        Some(bootstrap.address.clone()),
+        vec![key.clone()],
+        None,
+    )
+    .await;
+    wait_advertisements(&bootstrap, &[(key.clone(), provider.peer)]).await;
+    let started = Instant::now();
+    assert!(matches!(
+        fetch_discovered(
+            &f.context(),
+            &signed,
+            vec![bootstrap.address.clone()],
+            Duration::from_millis(250)
+        )
+        .await,
+        Err(FetchError::Timeout)
+    ));
+    assert!(started.elapsed() < Duration::from_secs(1));
+    assert!(provider.requests.load(Ordering::Relaxed) > 0);
+    let answer = reply(signed.manifest.digest(), 0, &shards[0]);
+    let matching = discovery_fixture(111, NET, None, vec![key.clone()], Some(answer.clone())).await;
+    assert!(matches!(
+        fetch_discovered(
+            &f.context(),
+            &signed,
+            vec![matching.address.clone()],
+            Duration::from_secs(5)
+        )
+        .await,
+        Err(FetchError::Unavailable)
+    ));
+    assert!(matching.requests.load(Ordering::Relaxed) > 0);
+    let other = discovery_fixture(109, [19; 32], None, vec![key], Some(answer)).await;
+    assert!(matches!(
+        fetch_discovered(
+            &f.context(),
+            &signed,
+            vec![other.address.clone()],
+            Duration::from_secs(5)
+        )
+        .await,
+        Err(FetchError::Unavailable)
+    ));
+    assert_eq!(other.requests.load(Ordering::Relaxed), 0);
+}
+
+// Cached addresses enable retries after query completion, with a negative control (AT-NET-28).
+#[tokio::test]
+async fn discovery_cached_address_dispatch_control() {
+    let peer = PeerId::random();
+    let address: Multiaddr = "/ip4/127.0.0.1/tcp/1234".parse().unwrap();
+    for cached in [false, true] {
+        let mut swarm =
+            libp2p::SwarmBuilder::with_existing_identity(identity::Keypair::generate_ed25519())
+                .with_tokio()
+                .with_tcp(
+                    tcp::Config::default(),
+                    noise::Config::new,
+                    yamux::Config::default,
+                )
+                .unwrap()
+                .with_behaviour(|key| DiscoveryClient {
+                    kad: crate::discovery::kad_behaviour(key.public().to_peer_id(), &NET, false),
+                    archive: configured_behaviour(&NET, ProtocolSupport::Outbound),
+                })
+                .unwrap()
+                .build();
+        assert_eq!(swarm.behaviour().kad.iter_queries().count(), 0);
+        let mut candidates = Candidates::new(1);
+        if cached {
+            candidates.addresses.insert(peer, vec![address.clone()]);
+        }
+        candidates.send(&mut swarm, peer, [1; 32], 0);
+        let dial = libp2p::swarm::dial_opts::DialOpts::peer_id(peer).build();
+        let addresses = swarm
+            .behaviour_mut()
+            .archive
+            .handle_pending_outbound_connection(
+                dial.connection_id(),
+                Some(peer),
+                &[],
+                libp2p::core::Endpoint::Dialer,
+            )
+            .unwrap();
+        assert_eq!(
+            addresses.contains(&address.clone().with_p2p(peer).unwrap()),
+            cached
+        );
+    }
+}
+
+// A stale offline hint for the missing index falls back to another provider (AT-NET-28).
+#[tokio::test]
+async fn discovered_offline_same_index_fallback() {
+    let f = Fixture::new();
+    let (segment, signed, shards) = f.archive();
+    let bootstrap = discovery_fixture(112, NET, None, vec![], None).await;
+    let honest =
+        crate::Handle::spawn(identity::Keypair::generate_ed25519(), f.config(None)).unwrap();
+    honest
+        .install_archive(&f.context(), &signed, &segment, &[1, 2])
+        .await
+        .unwrap();
+    honest
+        .listen("/ip4/127.0.0.1/tcp/0".parse().unwrap())
+        .await
+        .unwrap();
+    honest.dial(bootstrap.address.clone()).await.unwrap();
+    let mut seeds = [113u8, 114];
+    seeds.sort_by_key(|seed| {
+        identity::Keypair::ed25519_from_bytes([*seed; 32])
+            .unwrap()
+            .public()
+            .to_peer_id()
+    });
+    let key = provider_key(&signed.manifest.digest(), 0);
+    let answer = reply(signed.manifest.digest(), 0, &shards[0]);
+    let offline = discovery_fixture(
+        seeds[0],
+        NET,
+        Some(bootstrap.address.clone()),
+        vec![key.clone()],
+        Some(answer.clone()),
+    )
+    .await;
+    let live = discovery_fixture(
+        seeds[1],
+        NET,
+        Some(bootstrap.address.clone()),
+        vec![key.clone()],
+        Some(answer),
+    )
+    .await;
+    wait_advertisements(
+        &bootstrap,
+        &[
+            (key.clone(), offline.peer),
+            (key, live.peer),
+            (provider_key(&signed.manifest.digest(), 1), honest.peer_id()),
+            (provider_key(&signed.manifest.digest(), 2), honest.peer_id()),
+        ],
+    )
+    .await;
+    offline.task.abort();
+    tokio::task::yield_now().await;
+    assert_eq!(
+        fetch_discovered(
+            &f.context(),
+            &signed,
+            vec![bootstrap.address.clone()],
+            Duration::from_secs(7)
+        )
+        .await
+        .unwrap()
+        .segment,
+        segment
+    );
+    assert!(live.requests.load(Ordering::Relaxed) > 0);
+}
