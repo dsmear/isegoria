@@ -17,6 +17,10 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
+#[path = "archive_periodic.rs"]
+mod periodic;
+pub use periodic::{MaintenanceJob, MaintenanceReport, MaintenanceSchedule, ScheduleError};
+
 pub const REQUEST_LIMIT: u64 = 41;
 pub const REPLY_LIMIT: u64 = MAX_OBJECT as u64 + 42;
 pub const MAX_RECORD: usize = (64 << 20) + MAX_MANIFEST + 49 + 256 * 16;

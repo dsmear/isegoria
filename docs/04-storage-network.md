@@ -1177,7 +1177,8 @@ from the segment, the shard's index and the set of storage nodes, so any node co
 should hold it; holders are audited on a period, and a segment with too few shards left is
 rebuilt and its missing shards placed again, while at least `k` authentic shards remain
 obtainable. The increments below supply the primitives, transfer, discovery and local
-assignment/repair pass. Automatic production and periodic maintenance remain open.
+assignment/repair pass and its opt-in periodic runner. Automatic production and deployment
+orchestration remain open.
 
 ### Public archive segments (T84, first increment)
 
@@ -1343,8 +1344,9 @@ protect against unlimited connections.
 **Evidence and remaining work.** AT-NET-27 exercises loopback transfer, persistent restart,
 loss of holders, damaged files, local repair, context/admission rejection and wire limits.
 It establishes neither independent operators nor Internet reachability. T84 remains open
-for automatic manifest assembly/co-signing, roster coordination, periodic audits,
-coordinated repair across holders and an independent-operator trial.
+for automatic manifest assembly/co-signing, roster coordination, process integration,
+coordinated repair across holders and an independent-operator trial. The later increments
+below supply local audit/repair and a periodic runner.
 Returned repair bytes are not automatically sent anywhere; local reinstallation is the
 repair operation demonstrated here. T79/T88 remain unapproved and new codecs are not fuzzed.
 
@@ -1402,8 +1404,8 @@ network/key separation, announcement withdrawal and retry-address lifetime. Inva
 manifests are refused before contact; bootstrap/candidate bounds and the total deadline are
 tested. These are loopback and in-process checks, not an independent-operator trial.
 The client remains a library API. The local assignment/repair pass below adds placement
-and recovery by a holder. Automatic production/co-signing, periodic audits and coordinated
-repair across holders remain separate work. T79/T88 are unchanged;
+and recovery by a holder; the periodic runner follows it. Automatic production/co-signing
+and coordinated repair across holders remain separate work. T79/T88 are unchanged;
 no new fuzzing or mutation campaign is claimed.
 
 ### Local archive assignment and repair (T84, fourth increment)
@@ -1461,11 +1463,63 @@ roster rejection, failed recovery preserving old data, and expiry before commitm
 The roster-limit test includes an unselected local identity within a valid roster.
 These are loopback and in-process checks; no independent-operator evidence is added.
 
-This is a library operation, with no timer, new TOML setting, archive CLI or remote-write
-endpoint. A newly assigned or restored holder pulls its own replacement bytes; nobody can
-write into another holder through the archive protocol. Automatic manifest production,
-roster coordination, periodic scheduling, repair orchestration and independent-operator
-validation remain open. T79/T88 and application rules are unchanged.
+This single-pass operation has no timer; the optional runner below schedules repeated passes.
+A newly assigned or restored holder pulls its own replacement bytes; nobody can write into
+another holder through the archive protocol. There is no archive TOML setting, CLI or
+remote-write endpoint. T79/T88 and application rules are unchanged.
+
+### Periodic local archive maintenance (T84, fifth increment)
+
+`Handle::run_archive_maintenance` schedules the existing pass over an explicit list of
+`archive::MaintenanceJob`s. Each job borrows its trusted context, signed manifest, transport
+roster and bootstrap addresses. The caller supplies `MaintenanceSchedule` with a nonzero
+pause between sweeps and a nonzero deadline for each pass. There is no deployment default.
+The list must contain 1 to 256 distinct manifest digests; invalid list sizes, duplicates,
+zero durations and durations outside the timer's range are rejected before any pass.
+Each job accepts at most 32 bootstrap addresses, each at most 1,024 bytes and 16 components,
+checked before cloning them for a pass. An empty bootstrap is allowed for local-only checks.
+Archive/context, roster and local configuration checks remain those of `maintain_archive`;
+a rejected job is reported as a pass error, not silently replaced with discovered authority.
+
+**Scheduling and reporting.** The first sweep starts immediately and visits jobs in list
+order. One pass finishes before the next starts; after the complete sweep, the runner waits
+the configured pause. Slow recovery does not create overlapping work or a backlog of missed
+ticks. A failed job does not prevent later jobs, and is tried again on the next sweep using
+the same supplied inputs. The non-cloneable handle remains exclusively borrowed while the
+runner executes; the node's network event loop continues independently.
+
+After each pass, a `MaintenanceReport` identifies the job and manifest and holds its outcome
+or error. A Tokio watch channel retains only the latest report: a slow observer can miss
+intermediate outcomes, and this is not an audit log or a per-archive health catalogue.
+There is no accumulating report queue, and an absent observer does not block or stop the
+runner. Observers must release watch-channel borrows before awaiting: holding a read guard
+can block publication under the channel's normal synchronization. Callers needing a complete
+history must arrange their own reporting.
+
+**Stop and restart.** A one-shot stop signal, including dropping its sender, prevents the
+next pass from starting and interrupts the pause. A stop already signalled before the run
+starts performs no pass. An active pass is allowed to finish and report its result; in
+particular, the runner awaits an accepted durable write's acknowledgement. Stopping during
+discovery can therefore wait for the remaining per-pass deadline; synchronous work and an
+accepted durable commit have the limits described above. This graceful stop guarantee
+requires awaiting the runner: dropping or aborting its future is not a rollback and cannot
+retract a queued commit. No background task is spawned by this API.
+
+The schedule and job list are in memory. After a process restart the caller must supply
+them again, and a new run audits the persistent bytes afresh. To change trusted inputs or
+rosters, stop and await the current run before starting another; there is no implicit
+manifest refresh, roster agreement, eviction or reassignment of a dead holder's identity.
+
+**Evidence.** AT-NET-30 covers schedule and bootstrap bounds, no-work pre-signalled stop,
+serial sweeps without catch-up, closed observers, multi-job error isolation, repeated
+recovery and repair of live corruption, stopping during discovery and waiting for a durable
+commit acknowledgement. These are in-process and loopback checks, not an independent-operator
+trial; no new fuzzing or mutation campaign is claimed.
+
+This remains a library API. The node executable does not yet obtain trusted archive jobs or
+start this runner from its configuration. Automatic manifest assembly/co-signing, roster
+coordination, process integration, repair orchestration across holders and validation by
+independent operators remain open. T79/T88 and application rules are unchanged.
 
 
 ---

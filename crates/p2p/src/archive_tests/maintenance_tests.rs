@@ -1,16 +1,21 @@
 use super::*;
 
-fn keys() -> Vec<identity::Keypair> {
+pub(super) fn keys() -> Vec<identity::Keypair> {
     (40..45)
         .map(|seed| identity::Keypair::ed25519_from_bytes([seed; 32]).unwrap())
         .collect()
 }
-fn transport_roster(keys: &[identity::Keypair]) -> Vec<[u8; 32]> {
+pub(super) fn transport_roster(keys: &[identity::Keypair]) -> Vec<[u8; 32]> {
     keys.iter()
         .map(|k| crate::tiered::transport_key(&k.public().to_peer_id()).unwrap())
         .collect()
 }
-fn assigned(f: &Fixture, signed: &SignedManifest, roster: &[[u8; 32]], local: [u8; 32]) -> usize {
+pub(super) fn assigned(
+    f: &Fixture,
+    signed: &SignedManifest,
+    roster: &[[u8; 32]],
+    local: [u8; 32],
+) -> usize {
     signed
         .verify(&f.context())
         .unwrap()
@@ -20,7 +25,7 @@ fn assigned(f: &Fixture, signed: &SignedManifest, roster: &[[u8; 32]], local: [u
         .position(|key| *key == local)
         .unwrap()
 }
-fn path(dir: &Temp, signed: &SignedManifest) -> PathBuf {
+pub(super) fn path(dir: &Temp, signed: &SignedManifest) -> PathBuf {
     dir.0
         .join("archive")
         .join(format!("{}.arc", hex(&signed.manifest.digest())))
@@ -31,7 +36,7 @@ async fn connect(node: &crate::Handle, bootstrap: &DiscoveryFixture) {
         .unwrap();
     node.dial(bootstrap.address.clone()).await.unwrap();
 }
-async fn source(
+pub(super) async fn source(
     f: &Fixture,
     signed: &SignedManifest,
     segment: &Segment,

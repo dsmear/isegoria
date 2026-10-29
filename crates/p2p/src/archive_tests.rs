@@ -1550,3 +1550,6 @@ async fn discovered_offline_same_index_fallback() {
 
 #[path = "archive_tests/maintenance_tests.rs"]
 mod maintenance_tests;
+
+#[path = "archive_tests/periodic_tests.rs"]
+mod periodic_tests;
