@@ -194,9 +194,10 @@ authorize content. `Handle::maintain_archive` computes its local roster assignme
 actual stored bytes and pulls a verified replacement when needed, preserving other retained
 indices. `Handle::run_archive_maintenance` repeats a bounded list of explicit trusted jobs
 sequentially, with completion-relative pauses, latest-result reporting and graceful stop.
-The caller supplies and restarts the schedule; the node executable does not configure it.
+The node executable can load explicit trusted jobs and their schedule from configuration;
+a restricted `Monitor` permits status and dialing while maintenance borrows its sole handle.
 Automatic production, roster agreement and deployment orchestration remain open
-(`docs/04` §Archive holders and transfer through §Periodic local archive maintenance, T84).
+(`docs/04` §Archive holders and transfer through §Archive maintenance in a node process, T84).
 
 ## `protocol` — lifecycle orchestration
 
@@ -285,8 +286,10 @@ over libp2p and logged on the member's circle feed if its embedding admits it (T
 checked configuration: keys, consortium, a tiered network's circle keys and the member's
 circle key, a relay's routes or a member's gateway, transport key kept in the data directory),
 `announcement` (`isegoria-node --announce`: a member's signed key configuration),
-`run` (listen, dial, write the status until stopped), `render` and `parse` (the status
-file). Depends on `p2p` and `network`; the protocol state is not computed here yet (T79).
+`archive` (bounded regular-file loading, checked operator-pinned jobs and latest-result
+status), `run` (listen, dial, report status and optionally maintain archives until stopped),
+`render` and `parse` (the ordinary status file). Maintenance shutdown awaits the active pass.
+Depends on `p2p` and `network`; the protocol state is not computed here yet (T79).
 
 ## `characterization` — the characterization harness
 
@@ -440,7 +443,7 @@ cargo clippy --workspace --all-targets
 | Answer review between nodes | **None** — `AnswerPath`/`AnswerNode` are offline; the ledger still decodes legacy `NodeEvent` (T79) | the distributed answer-review contract, then its implementation (`docs/05`) |
 | Independent operator setup and trial | **Not established** — current process tests run under one operator; threshold committee messages and setup are local | distributed committee setup (T19), operator contract and trial (T88), Phase 2 gates (`docs/10`, D55) |
 | A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80) | first-peer recovery can miss a longer feed elsewhere; T88 must specify and test the operating procedure |
-| Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from explicit or discovered holders, plus local assignment/audit/pull-repair and an opt-in periodic runner, tested in process and on loopback | Automatic manifest creation, roster coordination, node-process integration and repair orchestration (T84) |
+| Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from explicit or discovered holders, plus assignment/audit/pull-repair and operator-configured periodic node-process maintenance, tested on loopback and controlled processes | Automatic manifest creation, roster coordination, repair orchestration and independent operators (T84) |
 
 Reference implementations are clearly marked and provide **no** security; they exist
 to make the pipeline testable end-to-end.

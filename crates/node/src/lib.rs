@@ -1,6 +1,8 @@
 //! A node as an operating-system process (`docs/04` §A node process, `docs/10` T78): its
 //! configuration, its files, its status, and the loop that runs it until it is stopped.
 
+pub mod archive;
+
 use ed25519_dalek::VerifyingKey;
 use libp2p::identity::Keypair;
 use libp2p::Multiaddr;
@@ -40,6 +42,7 @@ pub struct Config {
     #[serde(default)]
     pub relay: bool,
     pub member: Option<MemberConfig>,
+    pub archive_maintenance: Option<archive::Config>,
     #[serde(default = "default_sync")]
     pub sync_every_ms: u64,
     #[serde(default = "default_status")]
@@ -81,6 +84,9 @@ fn default_status() -> u64 {
 #[derive(Debug, PartialEq, Eq)]
 pub enum ConfigError {
     Read(io::ErrorKind),
+    Bounds(&'static str),
+    Archive(&'static str),
+    ArchiveContext(network::archive::Error),
     Parse(String),
     /// A field that is not 64 hex digits: the field's name.
     Hex(&'static str),
@@ -101,7 +107,8 @@ pub enum ConfigError {
 
 impl Config {
     pub fn load(path: &Path) -> Result<Config, ConfigError> {
-        let text = std::fs::read_to_string(path).map_err(|e| ConfigError::Read(e.kind()))?;
+        let bytes = archive::read_bounded(path, archive::MAX_CONFIG, "config")?;
+        let text = String::from_utf8(bytes).map_err(|e| ConfigError::Parse(e.to_string()))?;
         toml::from_str(&text).map_err(|e| ConfigError::Parse(e.to_string()))
     }
 }
@@ -180,6 +187,7 @@ pub struct Plan {
     pub peers: Vec<Multiaddr>,
     pub status: PathBuf,
     pub status_every: Duration,
+    pub archive_maintenance: Option<archive::Plan>,
 }
 
 /// Checks `config` and prepares its directory; nothing runs yet.
@@ -236,6 +244,13 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
         _ => None,
     };
     let (relay, gateway) = blind_plan(&config, tiers.as_ref(), member.as_ref())?;
+    let archive_maintenance = config
+        .archive_maintenance
+        .as_ref()
+        .map(|a| archive::plan(a, tiers_of(&config)?))
+        .transpose()?;
+    let listen = addresses(&config.listen)?;
+    let peers = addresses(&config.peers)?;
     std::fs::create_dir_all(&config.data_dir).map_err(|e| ConfigError::Read(e.kind()))?;
     let transport = transport_key(&config.data_dir.join("transport.key"))?;
     let p2p = P2p {
@@ -256,8 +271,9 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
     Ok(Plan {
         transport,
         p2p,
-        listen: addresses(&config.listen)?,
-        peers: addresses(&config.peers)?,
+        listen,
+        peers,
+        archive_maintenance,
         status: config.data_dir.join("status"),
         status_every: Duration::from_millis(config.status_every_ms),
     })
@@ -467,7 +483,10 @@ async fn dial(handle: &Handle, peers: &[Multiaddr]) {
 /// Runs the node until `stop` completes: listens, dials its peers, dials them again
 /// whenever it has none, and writes its status on each period.
 pub async fn run(plan: Plan, stop: impl Future<Output = ()>) -> Result<(), StartError> {
-    let handle = Handle::spawn(plan.transport, plan.p2p)?;
+    let archive_path = plan.status.with_file_name("archive-status");
+    archive::write_status(&archive_path, plan.archive_maintenance.is_some(), None)
+        .map_err(|e| StartError::Transport(format!("archive maintenance status: {e}")))?;
+    let mut handle = Handle::spawn(plan.transport, plan.p2p)?;
     for path in handle.set_aside() {
         eprintln!("set aside: {}", path.display());
     }
@@ -476,22 +495,56 @@ pub async fn run(plan: Plan, stop: impl Future<Output = ()>) -> Result<(), Start
         eprintln!("listening on {bound}/p2p/{}", handle.peer_id());
     }
     dial(&handle, &plan.peers).await;
+    let monitor = handle.monitor();
+    let (stop_archive, stopped_archive) = tokio::sync::oneshot::channel();
+    let (reports, mut latest) = tokio::sync::watch::channel(None);
+    let jobs = plan.archive_maintenance.as_ref().map(archive::Plan::jobs);
+    let runner = async {
+        if let (Some(archive), Some(jobs)) = (&plan.archive_maintenance, &jobs) {
+            handle
+                .run_archive_maintenance(jobs, archive.schedule, stopped_archive, reports)
+                .await
+        } else {
+            std::future::pending().await
+        }
+    };
+    tokio::pin!(runner);
     let mut tick = tokio::time::interval(plan.status_every);
     tokio::pin!(stop);
-    loop {
+    let result = loop {
         tokio::select! {
-            _ = &mut stop => break,
+            _ = &mut stop => {
+                let _ = stop_archive.send(());
+                break if plan.archive_maintenance.is_some() { runner.await } else { Ok(()) };
+            },
+            result = &mut runner => break result,
+            changed = latest.changed(), if plan.archive_maintenance.is_some() => {
+                if changed.is_ok() {
+                    if let Err(e) = archive::write_status(&archive_path, true, latest.borrow().as_ref()) {
+                        eprintln!("archive maintenance status not written: {e}");
+                    }
+                }
+            },
             _ = tick.tick() => {
-                let status = handle.status().await;
+                let status = monitor.status().await;
                 if let Err(e) = write_status(&plan.status, &status) {
                     eprintln!("status not written: {e}");
                 }
                 if status.peers == 0 {
-                    dial(&handle, &plan.peers).await;
+                    for address in &plan.peers {
+                        let _ = monitor.dial(address.clone()).await;
+                    }
                 }
             }
         }
+    };
+    let _ = write_status(&plan.status, &monitor.status().await);
+    if let Err(e) = archive::write_status(
+        &archive_path,
+        plan.archive_maintenance.is_some(),
+        latest.borrow().as_ref(),
+    ) {
+        eprintln!("archive maintenance status not written: {e}");
     }
-    let _ = write_status(&plan.status, &handle.status().await);
-    Ok(())
+    result.map_err(|e| StartError::Transport(format!("local archive maintenance: {e:?}")))
 }

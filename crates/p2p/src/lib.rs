@@ -232,11 +232,37 @@ enum Command {
     Status(oneshot::Sender<Status>),
 }
 
-/// A running node; dropping it closes its command channel, which ends the node's task.
+/// A running node; dropping its last handle or monitor ends the node's task.
 pub struct Handle {
     peer_id: PeerId,
     commands: mpsc::UnboundedSender<Command>,
     set_aside: Vec<PathBuf>,
+}
+
+/// Status and peer reconnection only; cannot install or mutate stored archive records.
+pub struct Monitor {
+    commands: mpsc::UnboundedSender<Command>,
+}
+
+impl Monitor {
+    pub async fn status(&self) -> Status {
+        ask(&self.commands, Command::Status).await
+    }
+
+    pub async fn dial(&self, addr: Multiaddr) -> Result<(), String> {
+        ask(&self.commands, |tx| Command::Dial(addr, tx)).await
+    }
+}
+
+async fn ask<T>(
+    commands: &mpsc::UnboundedSender<Command>,
+    make: impl FnOnce(oneshot::Sender<T>) -> Command,
+) -> T {
+    let (tx, rx) = oneshot::channel();
+    commands
+        .send(make(tx))
+        .expect("the node runs while a handle or monitor lives");
+    rx.await.expect("the node answers every command")
 }
 
 struct Writing {
@@ -627,11 +653,13 @@ impl Handle {
     }
 
     async fn ask<T>(&self, make: impl FnOnce(oneshot::Sender<T>) -> Command) -> T {
-        let (tx, rx) = oneshot::channel();
-        self.commands
-            .send(make(tx))
-            .expect("the node runs while its handle lives");
-        rx.await.expect("the node answers every command")
+        ask(&self.commands, make).await
+    }
+
+    pub fn monitor(&self) -> Monitor {
+        Monitor {
+            commands: self.commands.clone(),
+        }
     }
 
     /// Listens on `addr` and returns the address bound (`/ip4/127.0.0.1/tcp/0` picks a port).

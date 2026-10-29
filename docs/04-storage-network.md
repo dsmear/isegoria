@@ -1051,7 +1051,7 @@ the answer review between nodes (`10` T79); its proposed contract is
 ### A node process
 
 A node runs as one operating-system process, `isegoria-node <config>` (`10` T78), until it
-is stopped, and resumes from its files when started again. Its configuration is a TOML file:
+is stopped, and resumes from its files when started again. Its configuration is a regular UTF-8 TOML file of at most 1 MiB:
 
 | Key | What it is |
 |---|---|
@@ -1068,10 +1068,13 @@ is stopped, and resumes from its files when started again. Its configuration is 
 | `relay` | `true` for a tiered non-member that forwards persons' requests; needs every member's configuration |
 | `member` | optional: `index`, `every_ms`, `cuts_per_epoch`, `patience`, `view_patience` |
 | `sync_every_ms`, `status_every_ms` | the periodic pull, and how often the status is written |
+| `archive_maintenance` | optional, tiered: explicit trusted archive jobs and their schedule (§Archive maintenance in a node process) |
 
 Under `data_dir`: `own/`, the writer's feed (§A node's own disk), and `circle/`, a tiered
 member's circle feed; `replica/`, its replica on disk (§A replica on disk), with a tiered
 node's selected archive shards in `replica/archive/` (§Archive holders and transfer);
+`archive-status`, the latest configured archive-maintenance result (§Archive maintenance
+in a node process);
 `transport.key`, the seed of its libp2p key, made at the first
 start, so its peer id stays the same across restarts; and `status`, rewritten whole at each
 period (a file written beside it, then renamed): whether each feed is caught up, its
@@ -1344,9 +1347,9 @@ protect against unlimited connections.
 **Evidence and remaining work.** AT-NET-27 exercises loopback transfer, persistent restart,
 loss of holders, damaged files, local repair, context/admission rejection and wire limits.
 It establishes neither independent operators nor Internet reachability. T84 remains open
-for automatic manifest assembly/co-signing, roster coordination, process integration,
-coordinated repair across holders and an independent-operator trial. The later increments
-below supply local audit/repair and a periodic runner.
+for automatic manifest assembly/co-signing, roster coordination, coordinated repair across
+holders and an independent-operator trial. The later increments below supply local
+audit/repair and a periodic runner, including explicit node-process configuration.
 Returned repair bytes are not automatically sent anywhere; local reinstallation is the
 repair operation demonstrated here. T79/T88 remain unapproved and new codecs are not fuzzed.
 
@@ -1465,8 +1468,8 @@ These are loopback and in-process checks; no independent-operator evidence is ad
 
 This single-pass operation has no timer; the optional runner below schedules repeated passes.
 A newly assigned or restored holder pulls its own replacement bytes; nobody can write into
-another holder through the archive protocol. There is no archive TOML setting, CLI or
-remote-write endpoint. T79/T88 and application rules are unchanged.
+another holder through the archive protocol. The process configuration below invokes this
+local API; it adds no remote-write endpoint. T79/T88 and application rules are unchanged.
 
 ### Periodic local archive maintenance (T84, fifth increment)
 
@@ -1516,10 +1519,88 @@ recovery and repair of live corruption, stopping during discovery and waiting fo
 commit acknowledgement. These are in-process and loopback checks, not an independent-operator
 trial; no new fuzzing or mutation campaign is claimed.
 
-This remains a library API. The node executable does not yet obtain trusted archive jobs or
-start this runner from its configuration. Automatic manifest assembly/co-signing, roster
-coordination, process integration, repair orchestration across holders and validation by
-independent operators remain open. T79/T88 and application rules are unchanged.
+The node executable can invoke this library runner through the explicit configuration
+below. Automatic manifest assembly/co-signing, roster coordination, repair orchestration
+across holders and validation by independent operators remain open. T79/T88 and application
+rules are unchanged.
+
+### Archive maintenance in a node process (T84, sixth increment)
+
+`isegoria-node <config>` optionally starts the periodic runner above from an
+`[archive_maintenance]` table. It is accepted only in a tiered network; without the table,
+archive maintenance is disabled and the existing network operation is unchanged. Both
+`interval_ms` (pause after a sweep) and `deadline_ms` (budget for each pass) are required,
+nonzero and within the timer's range. No timing or archive jobs are supplied by default.
+
+The table contains 1 to 256 `[[archive_maintenance.jobs]]` entries:
+
+| Field | Operator-supplied input |
+|---|---|
+| `lineage` | 32-byte lineage identifier, in hex |
+| `target_cut_file` | raw canonical `network::cut::Cut::encode` bytes for the trusted target |
+| `previous_cut_file` | the previous cut in the same encoding; optional only when the target is cut 0 |
+| `view` | the target cut's trusted view number |
+| `excluded` | required array of excluded member indices; empty is an explicit choice |
+| `manifest_file` | raw canonical `network::archive::SignedManifest::encode` bytes |
+| `roster` | required array of storage nodes' Ed25519 transport public keys, in hex |
+| `bootstrap` | required array of discovery multiaddresses; empty is allowed for local-only checks |
+
+**Trust and admission.** Tiers, network id and consortium threshold come only from the
+node's configuration. Lineage, cuts, view and exclusions are independently supplied by the
+operator: they are not inferred from the manifest or fetched from providers. Loading these
+files does not select the latest cut, authenticate the configuration's provenance or verify
+an external anchor. The operator must obtain and pin the intended context through their
+trusted procedure; distributed configuration agreement remains T88.
+
+Before creating the data directory or transport key, planning loads and validates every
+job. Each binary input must be a regular file of at most 64 KiB, read with a byte limit and
+decoded in its existing canonical format. The configuration itself is bounded before TOML
+deserialization. Relative paths retain the node's existing working-directory semantics.
+All files are read once; no input file is watched or reloaded during the run. Local files
+and their permissions are under the operator's control, not an adversarial filesystem API.
+
+The signed manifest must verify against the independently loaded context and the node's
+tiers, including exclusions. A noninitial cut requires its predecessor. Exclusions must be
+distinct valid member indices. Each roster has `k+m` to 1,024 distinct decodable transport
+keys; bootstrap bounds are 32 addresses, 1,024 bytes for both the textual and encoded
+address, and 16 components per address. Duplicate
+manifest digests, malformed encodings, context/certificate mismatches or invalid settings
+refuse startup. The earlier archive admission and recovery checks still apply to fetched
+bytes; valid configuration alone does not establish that any shard is available.
+
+**Runtime and status.** The runner borrows the sole mutable `Handle`. A restricted
+`p2p::Monitor` allows status queries and peer dialing alongside it, with no publication or
+archive-installation API. Network activity, periodic normal status and reconnection continue
+while maintenance waits for shards. The node task lives until the last handle or monitor is
+dropped; the monitor cannot bypass the exclusive archive-maintenance borrow.
+
+`data_dir/archive-status` is a separate latest-result file. Before starting the network,
+startup replaces the previous run's report with `pending`, or `disabled` when the section
+is absent; a failure to write this initial state refuses startup. Reports identify the
+job index and manifest digest and print the maintenance result or error. They are diagnostic
+output, not a stable wire format or a complete history: the underlying watch channel can
+skip intermediate reports. Each update uses a sibling temporary file and rename; later write errors are reported on
+standard error. A report
+is the last completed observation, not a continuous availability certificate. The existing
+`status` format and parser are unchanged.
+
+On SIGTERM, Ctrl-C or the embedding's stop future, the process signals the runner and awaits
+its graceful completion before final status writes. A recovery can consume its remaining
+per-pass deadline, and a committed write is awaited; forced process termination has no such
+guarantee. Restart loads the explicit configuration again and audits the persistent shards
+afresh. Reconfiguring a roster or trusted context requires a restart and does not delete
+previously retained shards.
+
+**Evidence.** AT-NET-31 checks context and certificate mismatches, missing/invalid settings,
+canonical decoding and file/count/address bounds, including nonregular files. Separate
+executables exercise initial repair, live corruption, loss followed by restart, ordinary
+status progress during recovery, graceful SIGTERM with an active pass and pending/disabled
+status reset. These are controlled local processes on loopback, not independent operators.
+
+This integrates operator-configured jobs into the executable. It does not create or co-sign
+manifests, discover trusted contexts, agree a roster, transfer a lost node's identity to a
+replacement or demonstrate independent operation. Those remain outside this increment;
+T79/T88 and the answer-review rules are unchanged.
 
 
 ---
