@@ -27,6 +27,8 @@ pub enum StoreError {
     TooLarge {
         record: u64,
     },
+    /// A read-only open found a torn header or tail, which only a writable open cuts.
+    Torn,
 }
 
 pub const MAX_OBJECT: usize = 16 << 20;
@@ -161,32 +163,75 @@ pub struct ObjectStore {
     index: BTreeMap<Cid, (u64, u64, u64)>,
 }
 
+/// Calls `each` with the offset, number and bytes of every complete object record after the
+/// header; returns where they end and the file's length.
+fn scan(file: &File, mut each: impl FnMut(u64, u64, Vec<u8>)) -> Result<(u64, u64), StoreError> {
+    let total = file.metadata().map_err(io)?.len();
+    let mut reader = BufReader::new(file);
+    reader.seek(SeekFrom::Start(HEADER)).map_err(io)?;
+    let (mut at, mut records) = (HEADER, 0u64);
+    while total - at >= 8 {
+        let mut len = [0u8; 8];
+        reader.read_exact(&mut len).map_err(io)?;
+        let len = u64::from_le_bytes(len);
+        if len > MAX_OBJECT as u64 {
+            return Err(StoreError::TooLarge { record: records });
+        }
+        if len > total - at - 8 {
+            break;
+        }
+        let mut bytes = vec![0u8; len as usize];
+        reader.read_exact(&mut bytes).map_err(io)?;
+        each(at + 8, records, bytes);
+        at += 8 + len;
+        records += 1;
+    }
+    Ok((at, total))
+}
+
+/// The distinct objects of an existing object file, in the order first written. The file is
+/// opened read-only, never created, cut or written; a torn header or tail is `Torn`.
+pub fn read_objects(path: &Path) -> Result<Vec<(Cid, Vec<u8>)>, StoreError> {
+    if !std::fs::metadata(path).map_err(io)?.is_file() {
+        return Err(StoreError::Io(std::io::ErrorKind::InvalidInput));
+    }
+    let mut file = File::open(path).map_err(io)?;
+    let mut head = Vec::new();
+    (&mut file)
+        .take(HEADER)
+        .read_to_end(&mut head)
+        .map_err(io)?;
+    if head != OBJECT_HEADER {
+        return Err(match OBJECT_HEADER.starts_with(&head) {
+            true => StoreError::Torn,
+            false => StoreError::BadHeader,
+        });
+    }
+    let mut objects = BTreeMap::new();
+    let (at, total) = scan(&file, |_, record, bytes| {
+        objects.entry(cid(&bytes)).or_insert((record, bytes));
+    })?;
+    if at != total {
+        return Err(StoreError::Torn);
+    }
+    let mut ordered: Vec<_> = objects.into_iter().collect();
+    ordered.sort_by_key(|(_, (record, _))| *record);
+    Ok(ordered
+        .into_iter()
+        .map(|(id, (_, bytes))| (id, bytes))
+        .collect())
+}
+
 impl ObjectStore {
     /// Opens or creates the object file, indexing every record by its CID (`docs/04` rule 3).
     pub fn open(path: &Path) -> Result<(Self, Recovery), StoreError> {
         let (file, torn_header) = open_file(path, OBJECT_HEADER)?;
-        let total = file.metadata().map_err(io)?.len();
-        let mut reader = BufReader::new(&file);
-        reader.seek(SeekFrom::Start(HEADER)).map_err(io)?;
-        let (mut at, mut records) = (HEADER, 0u64);
-        let mut index = BTreeMap::new();
-        while total - at >= 8 {
-            let mut len = [0u8; 8];
-            reader.read_exact(&mut len).map_err(io)?;
-            let len = u64::from_le_bytes(len);
-            if len > MAX_OBJECT as u64 {
-                return Err(StoreError::TooLarge { record: records });
-            }
-            if len > total - at - 8 {
-                break;
-            }
-            let mut bytes = vec![0u8; len as usize];
-            reader.read_exact(&mut bytes).map_err(io)?;
-            index.entry(cid(&bytes)).or_insert((at + 8, len, records));
-            at += 8 + len;
-            records += 1;
-        }
-        drop(reader);
+        let (mut index, mut records) = (BTreeMap::new(), 0);
+        let (at, total) = scan(&file, |offset, record, bytes| {
+            let len = bytes.len() as u64;
+            index.entry(cid(&bytes)).or_insert((offset, len, record));
+            records = record + 1;
+        })?;
         let torn = total - at;
         cut(&file, at)?;
         let store = ObjectStore {

@@ -26,6 +26,9 @@ pub struct Config {
     pub segment_file: PathBuf,
     pub data_shards: usize,
     pub parity_shards: usize,
+    /// A closing target's snapshot, read only by extraction (`docs/04` §Segment extraction).
+    pub root_statement_file: Option<PathBuf>,
+    pub shape_file: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -33,6 +36,7 @@ pub enum Error {
     Config(ConfigError),
     Archive(network::archive::Error),
     Install(p2p::archive::InstallError),
+    Replica(network::replica::DiskError),
     Io(io::ErrorKind),
     Invalid(&'static str),
 }
@@ -63,19 +67,18 @@ impl Config {
     }
 }
 
-struct Candidate {
-    tiers: Tiers,
+/// The operator's pinned archive context, checked against the node's tiered configuration.
+pub(crate) struct Pinned {
+    pub(crate) tiers: Tiers,
     lineage: [u8; 32],
-    previous: Option<Cut>,
-    target: Cut,
-    view: u64,
-    excluded: Vec<usize>,
-    segment: Vec<u8>,
-    built: BuiltArchive,
+    pub(crate) previous: Option<Cut>,
+    pub(crate) target: Cut,
+    pub(crate) view: u64,
+    pub(crate) excluded: Vec<usize>,
 }
 
-impl Candidate {
-    fn context(&self) -> Context<'_> {
+impl Pinned {
+    pub(crate) fn context(&self) -> Context<'_> {
         Context {
             tiers: &self.tiers,
             lineage: self.lineage,
@@ -84,6 +87,18 @@ impl Candidate {
             view: self.view,
             excluded: &self.excluded,
         }
+    }
+}
+
+struct Candidate {
+    pinned: Pinned,
+    segment: Vec<u8>,
+    built: BuiltArchive,
+}
+
+impl Candidate {
+    fn context(&self) -> Context<'_> {
+        self.pinned.context()
     }
 
     fn reproduce(&self, path: &Path) -> Result<(), Error> {
@@ -107,7 +122,7 @@ fn cut(path: &Path) -> Result<Cut, Error> {
     Ok(cut)
 }
 
-fn candidate(node: &crate::Config, input: &Config) -> Result<Candidate, Error> {
+pub(crate) fn pinned(node: &crate::Config, input: &Config) -> Result<Pinned, Error> {
     let members = keys(&node.consortium.members, "consortium.members")?;
     if members
         .iter()
@@ -125,24 +140,25 @@ fn candidate(node: &crate::Config, input: &Config) -> Result<Candidate, Error> {
     {
         return Err(Error::Invalid("excluded members"));
     }
-    let lineage = unhex(&input.lineage, "archive.lineage")?;
-    let previous = input.previous_cut_file.as_deref().map(cut).transpose()?;
-    let target = cut(&input.target_cut_file)?;
+    Ok(Pinned {
+        tiers,
+        lineage: unhex(&input.lineage, "archive.lineage")?,
+        previous: input.previous_cut_file.as_deref().map(cut).transpose()?,
+        target: cut(&input.target_cut_file)?,
+        view: input.view,
+        excluded: input.excluded.clone(),
+    })
+}
+
+fn candidate(node: &crate::Config, input: &Config) -> Result<Candidate, Error> {
+    let pinned = pinned(node, input)?;
     let bytes = read_bounded(&input.segment_file, MAX_SEGMENT, "archive.segment")?;
     let segment = Segment::decode(&bytes)?;
     if segment.encode()? != bytes {
         return Err(Error::Invalid("segment codec"));
     }
-    let context = Context {
-        tiers: &tiers,
-        lineage,
-        previous: previous.as_ref(),
-        target: &target,
-        view: input.view,
-        excluded: &input.excluded,
-    };
     let built = BuiltArchive::build(
-        &context,
+        &pinned.context(),
         &segment,
         Layout {
             data_shards: input.data_shards,
@@ -150,12 +166,7 @@ fn candidate(node: &crate::Config, input: &Config) -> Result<Candidate, Error> {
         },
     )?;
     Ok(Candidate {
-        tiers,
-        lineage,
-        previous,
-        target,
-        view: input.view,
-        excluded: input.excluded.clone(),
+        pinned,
         segment: bytes,
         built,
     })
@@ -199,7 +210,7 @@ impl Drop for Stage {
     }
 }
 
-fn publish_file(output: &Path, bytes: &[u8]) -> Result<(), Error> {
+pub(crate) fn publish_file(output: &Path, bytes: &[u8]) -> Result<(), Error> {
     let stage = Stage::new(output)?;
     stage.write("file", bytes)?;
     fs::hard_link(stage.0.join("file"), output)?;
@@ -240,8 +251,8 @@ pub fn prepare(node: &crate::Config, input: &Config, output: &Path) -> Result<[u
     ];
     stage.write("manifest.bin", &candidate.built.manifest.encode()?)?;
     stage.write("segment.bin", &candidate.segment)?;
-    stage.write("target.cut", &candidate.target.encode())?;
-    if let Some(previous) = &candidate.previous {
+    stage.write("target.cut", &candidate.pinned.target.encode())?;
+    if let Some(previous) = &candidate.pinned.previous {
         stage.write("previous.cut", &previous.encode())?;
         names.push("previous.cut".to_string());
     }
@@ -293,7 +304,7 @@ pub fn sign(
         .as_ref()
         .ok_or(Error::Invalid("member index required"))?
         .index;
-    if candidate.excluded.contains(&index) {
+    if candidate.pinned.excluded.contains(&index) {
         return Err(Error::Invalid("excluded signer"));
     }
     let key = node
@@ -303,7 +314,7 @@ pub fn sign(
     let bytes = read_bounded(key, crate::MAX_SEED, "archive.member_key")?;
     let text = std::str::from_utf8(&bytes).map_err(|_| Error::Invalid("member seed UTF-8"))?;
     let member = Member::from_seed(unhex(text, "archive.member_key")?);
-    if candidate.tiers.consortium().keys().get(index) != Some(&member.public()) {
+    if candidate.pinned.tiers.consortium().keys().get(index) != Some(&member.public()) {
         return Err(Error::Invalid("member key/index mismatch"));
     }
     let digest = candidate.built.manifest.digest();
@@ -327,7 +338,7 @@ pub fn combine(
     }
     let candidate = candidate(node, input)?;
     candidate.reproduce(manifest)?;
-    if shares.len() > candidate.tiers.consortium().keys().len() {
+    if shares.len() > candidate.pinned.tiers.consortium().keys().len() {
         return Err(Error::Invalid("share count"));
     }
     let cp = candidate.built.manifest.checkpoint();
@@ -343,12 +354,13 @@ pub fn combine(
         }
         let (index, signature) = share.signatures[0];
         let key = candidate
+            .pinned
             .tiers
             .consortium()
             .keys()
             .get(index)
             .ok_or(Error::Invalid("foreign signer"))?;
-        if candidate.excluded.contains(&index)
+        if candidate.pinned.excluded.contains(&index)
             || !cp.verify_signature(key, &signature)
             || signatures.insert(index, signature).is_some()
         {

@@ -2,6 +2,7 @@
 //! configuration, its files, its status, and the loop that runs it until it is stopped.
 
 pub mod archive;
+pub mod extract;
 pub mod install;
 pub mod production;
 

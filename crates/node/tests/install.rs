@@ -1,11 +1,15 @@
 //! Manual holder installation (`docs/04` §Initial archive installation on a holder).
 
+#[allow(dead_code)]
+#[path = "support/holder.rs"]
+mod holder;
 #[cfg(unix)]
 #[path = "support/process.rs"]
 mod process;
 #[allow(dead_code)]
 #[path = "support/production.rs"]
 mod support;
+use holder::*;
 use network::archive::{Layout, SignedManifest};
 use network::codec::Reader;
 use node::install::{install, Outcome};
@@ -13,56 +17,14 @@ use node::production::{self, Error};
 use p2p::archive::{InstallError, Installed};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
-use std::time::{Duration, Instant};
+use std::process::Command;
+use std::time::Duration;
 use support::*;
 
 const SEEDS: [u8; 3] = [41, 42, 43];
 const PRINT: &str = "--transport-public-key";
 const RFC8032_SEED: &str = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60";
 const RFC8032_PUBLIC: &str = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a";
-
-/// The node binary's output, or a failure if it has not exited within 30 s.
-fn cli(args: &[&Path]) -> Output {
-    let mut child = Command::new(env!("CARGO_BIN_EXE_isegoria-node"))
-        .args(args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
-    let end = Instant::now() + Duration::from_secs(30);
-    while child.try_wait().unwrap().is_none() {
-        if Instant::now() > end {
-            let _ = child.kill();
-            panic!("{args:?} did not exit in time");
-        }
-        std::thread::sleep(Duration::from_millis(10));
-    }
-    child.wait_with_output().unwrap()
-}
-
-fn ok(args: &[&Path]) -> String {
-    let out = cli(args);
-    assert!(
-        out.status.success(),
-        "{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    String::from_utf8(out.stdout).unwrap()
-}
-
-fn public(seed: u8) -> String {
-    node::hex(
-        &network::consortium::Member::from_seed([seed; 32])
-            .public()
-            .to_bytes(),
-    )
-}
-
-fn list(values: &[String]) -> String {
-    let quoted: Vec<_> = values.iter().map(|v| format!("\"{v}\"")).collect();
-    format!("[{}]", quoted.join(","))
-}
 
 fn certified(f: &Fixture, name: &str, layout: Layout) -> (PathBuf, PathBuf) {
     let mut input = f.input();
@@ -81,44 +43,6 @@ fn certified(f: &Fixture, name: &str, layout: Layout) -> (PathBuf, PathBuf) {
     let manifest = bundle.join("manifest.bin");
     production::combine(&f.node(2), &input, &manifest, &shares, &certificate).unwrap();
     (bundle, certificate)
-}
-
-fn job(f: &Fixture, certificate: &Path, roster: &[u8]) -> String {
-    let roster: Vec<_> = roster.iter().map(|s| public(*s)).collect();
-    roster_job(f, certificate, &roster)
-}
-
-fn roster_job(f: &Fixture, certificate: &Path, roster: &[String]) -> String {
-    format!("\n[[archive_maintenance.jobs]]\nlineage = \"{}\"\nprevious_cut_file = \"{}\"\ntarget_cut_file = \"{}\"\nview = 4\nexcluded = []\nmanifest_file = \"{}\"\nroster = {}\nbootstrap = []\n",
-        node::hex(&LINEAGE), f.root.join("previous.cut").display(), f.root.join("target.cut").display(), certificate.display(), list(roster))
-}
-
-/// A tiered non-member holder named `name` with transport seed `seed` and `jobs`.
-fn holder(f: &Fixture, name: &str, seed: u8, listen: &str, jobs: &str) -> String {
-    let dir = f.root.join(name);
-    fs::create_dir_all(&dir).unwrap();
-    fs::write(dir.join("transport.key"), node::hex(&[seed; 32])).unwrap();
-    let base = f.node_text(0);
-    let base: String = base
-        .split("[member]")
-        .next()
-        .unwrap()
-        .lines()
-        .filter(|l| !l.starts_with("key_file"))
-        .map(|l| format!("{l}\n"))
-        .collect();
-    base.replace(
-        &f.root.join("node-state").display().to_string(),
-        &dir.display().to_string(),
-    )
-    .replace(
-        "listen = []",
-        &format!("listen = [\"{listen}\"]\nstatus_every_ms = 50"),
-    ) + &format!("\n[archive_maintenance]\ninterval_ms = 100\ndeadline_ms = 2000\n{jobs}")
-}
-
-fn config(text: &str) -> node::Config {
-    toml::from_str(text).unwrap()
 }
 
 fn record(f: &Fixture, name: &str, certificate: &Path) -> PathBuf {
@@ -572,30 +496,6 @@ fn fifo_transport_key_is_refused_without_blocking() {
     assert!(std::os::unix::fs::FileTypeExt::is_fifo(
         &fs::symlink_metadata(&key).unwrap().file_type()
     ));
-}
-
-/// `name`'s holder configuration without archive jobs, in `<name>.toml`.
-fn bare(f: &Fixture, name: &str, seed: u8) -> PathBuf {
-    let text = holder(f, name, seed, "/ip4/127.0.0.1/tcp/0", "");
-    let path = f.root.join(format!("{name}.toml"));
-    fs::write(&path, text.split("\n[archive_maintenance]").next().unwrap()).unwrap();
-    path
-}
-
-/// Every path under `dir`, with a regular file's bytes; nothing else is opened.
-fn tree(dir: &Path) -> Vec<(PathBuf, Option<Vec<u8>>)> {
-    let mut out = Vec::new();
-    for entry in fs::read_dir(dir).unwrap() {
-        let path = entry.unwrap().path();
-        let kind = fs::symlink_metadata(&path).unwrap().file_type();
-        if kind.is_dir() {
-            out.extend(tree(&path));
-        }
-        let bytes = kind.is_file().then(|| fs::read(&path).unwrap());
-        out.push((path, bytes));
-    }
-    out.sort();
-    out
 }
 
 // The printed key is RFC 8032's public key and a roster entry; nothing is written (AT-NET-33).

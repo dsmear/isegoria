@@ -2,7 +2,7 @@
 //! T13): a reopened log is the acknowledged log, a torn tail is cut, corruption is refused.
 
 use network::cid::{cid, Cid};
-use network::store::{DurableLog, ObjectStore, Recovery, StoreError, MAX_OBJECT};
+use network::store::{read_objects, DurableLog, ObjectStore, Recovery, StoreError, MAX_OBJECT};
 use proptest::prelude::*;
 use std::fs;
 use std::path::PathBuf;
@@ -224,6 +224,44 @@ fn at_net_11_a_torn_object_is_cut_and_changed_bytes_are_refused() {
         Some(&b"first object"[..])
     );
     assert_eq!(store.get(&b), Err(StoreError::Corrupt { record: 1 }));
+}
+
+/// AT-NET-34: a read-only open lists distinct objects in written order and refuses, without
+/// writing, every torn header or tail, a foreign header and a missing or non-regular file.
+#[test]
+fn at_net_34_a_read_only_open_never_writes() {
+    let path = scratch("read-only");
+    let (mut store, _) = ObjectStore::open(&path).unwrap();
+    let a = store.put(b"first object").unwrap();
+    let b = store.put(b"second object").unwrap();
+    drop(store);
+    let mut bytes = fs::read(&path).unwrap();
+    bytes.extend((b"first object".len() as u64).to_le_bytes());
+    bytes.extend(b"first object");
+    fs::write(&path, &bytes).unwrap();
+    let listed = vec![
+        (a, b"first object".to_vec()),
+        (b, b"second object".to_vec()),
+    ];
+    assert_eq!(read_objects(&path), Ok(listed));
+    let first = HEADER + 8 + b"first object".len();
+    let ends = [HEADER, first, first + 8 + b"second object".len()];
+    for keep in 0..bytes.len() {
+        fs::write(&path, &bytes[..keep]).unwrap();
+        let read = read_objects(&path);
+        assert_eq!(read.is_ok(), ends.contains(&keep), "kept {keep}: {read:?}");
+        assert!(read.is_ok() || read == Err(StoreError::Torn), "kept {keep}");
+        assert_eq!(fs::read(&path).unwrap(), &bytes[..keep]);
+    }
+    fs::write(&path, b"isegoria-log-v1\n").unwrap();
+    assert_eq!(read_objects(&path), Err(StoreError::BadHeader));
+    let absent = scratch("absent");
+    let not_found = StoreError::Io(std::io::ErrorKind::NotFound);
+    assert_eq!(read_objects(&absent), Err(not_found));
+    assert!(!absent.exists());
+    fs::create_dir(&absent).unwrap();
+    let not_file = StoreError::Io(std::io::ErrorKind::InvalidInput);
+    assert_eq!(read_objects(&absent), Err(not_file));
 }
 
 /// AT-NET-11: no length above the bound is sized from the file or accepted by `put`.

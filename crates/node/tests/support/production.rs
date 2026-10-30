@@ -184,6 +184,8 @@ impl Fixture {
             segment_file: self.root.join("segment.bin"),
             data_shards: 2,
             parity_shards: 1,
+            root_statement_file: None,
+            shape_file: None,
         }
     }
 

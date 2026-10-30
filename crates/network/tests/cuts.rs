@@ -7,6 +7,7 @@ use network::log::TransparencyLog;
 use network::replica::{
     Accepted, DiskError, DurableReplica, FeedWriter, Refused, Replica, SignedEntry, WriterSet,
 };
+use network::store::StoreError;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -263,6 +264,32 @@ fn at_net_15_a_replica_on_disk_survives_a_restart() {
         DurableReplica::open(&lost, set()).err(),
         Some(DiskError::Damaged)
     );
+}
+
+/// AT-NET-34: a read-only replica read is the reopened set and writes nothing, even torn.
+#[test]
+fn at_net_34_a_replica_reads_without_writing() {
+    let dir = scratch("read");
+    {
+        let mut d = DurableReplica::open(&dir, set()).unwrap();
+        for (e, o) in corpus() {
+            d.insert(e, o).unwrap();
+        }
+    }
+    let read = DurableReplica::read(&dir, set()).unwrap();
+    assert_eq!(read.digest(), replica(&corpus()).digest());
+    let entries = dir.join("entries");
+    let mut torn = std::fs::read(&entries).unwrap();
+    torn.extend([1, 2, 3]);
+    std::fs::write(&entries, &torn).unwrap();
+    let refused = DurableReplica::read(&dir, set()).err();
+    assert_eq!(refused, Some(DiskError::Store(StoreError::Torn)));
+    assert_eq!(std::fs::read(&entries).unwrap(), torn);
+    let absent = scratch("absent");
+    let missing = DurableReplica::read(&absent, set()).err();
+    let not_found = StoreError::Io(std::io::ErrorKind::NotFound);
+    assert_eq!(missing, Some(DiskError::Store(not_found)));
+    assert!(!absent.exists());
 }
 
 /// AT-NET-15: a signed entry's encoding is 168 bytes and one per entry.

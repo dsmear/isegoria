@@ -640,7 +640,9 @@ reads, as built.
 object files (§A node's own disk): `objects`, the entries' objects, and `entries`, each
 accepted signed entry's 168-byte encoding. An entry is written after its object and before
 the node's memory changes; opening re-inserts every stored entry, checked again against the
-writer set, so a restarted node holds the set it had.
+writer set, so a restarted node holds the set it had. A read-only read, which refuses a torn
+file instead of cutting it, serves offline extraction (§Segment extraction from a stopped
+node's replica).
 
 ### Blind relays (T85)
 
@@ -1623,9 +1625,10 @@ validation by these offline commands. No private key is needed to prepare or com
 
 `production.toml` requires `lineage`, `target_cut_file`, `view`, `excluded`, `segment_file`,
 `data_shards` and `parity_shards`; `previous_cut_file` is required for a noninitial target
-and absent for cut 0. Paths are relative to the working directory, as in node configuration.
-The cuts are raw canonical `Cut::encode` bytes, and the segment is raw canonical
-`Segment::encode` bytes. All context fields are independently pinned by the operator;
+and absent for cut 0. Its snapshot fields are read only by extraction (§Segment extraction
+from a stopped node's replica). Paths are relative to the working directory, as in node
+configuration. The cuts are raw canonical `Cut::encode` bytes, and the segment is raw
+canonical `Segment::encode` bytes. All context fields are independently pinned by the operator;
 they are never inferred from the candidate manifest or its producer. Each signer supplies
 their own trusted inputs, even when the candidate is received from another operator.
 
@@ -1640,8 +1643,8 @@ remains the signers' external premise pending T79, as in the archive primitive c
 The new bundle directory contains `manifest.bin` (the raw unsigned `Manifest`), canonical
 `segment.bin`, `target.cut`, optional `previous.cut`, and `shard-000.bin` through the final
 shard index. These are preparation outputs, not installed holder records; their manual
-installation is specified below. Automatic extraction of a segment from a live replica is
-not supplied. A `COMPLETE` marker records logical bundle completion, with this exact text:
+installation is specified below. Extraction from a stopped node's replica is manual (below);
+automatic extraction from a live replica is not supplied. A `COMPLETE` marker records logical bundle completion, with this exact text:
 
 ```text
 isegoria/archive/bundle/v1
@@ -1794,6 +1797,69 @@ independent operators.
 This step is manual and local. Remote upload, automatic extraction from the feeds, provisioning
 of other holders, roster agreement, repair orchestration across holders and the
 independent-operator trial remain open. T79/T88 and application rules are unchanged.
+
+### Segment extraction from a stopped node's replica (T84, ninth increment)
+
+One offline command extracts the public `Segment` of an operator-pinned cut from a stopped
+node's own replica and publishes it as the `segment_file` that §Manual archive preparation
+and co-signing then prepares, certifies and installs:
+
+```text
+isegoria-node --archive-extract <node.toml> <production.toml>
+```
+
+On success it prints the segment CID as lowercase hex. An error prints an `archive:`
+diagnostic, exits with code 2 and publishes nothing. The command starts no networking and
+fetches nothing.
+
+**Inputs.** The node TOML is the node's own, tiered; tiers, network id, threshold and
+`data_dir` come from it. `production.toml` supplies the pinned lineage, cuts, view and
+exclusions, checked as for preparation; `data_shards` and `parity_shards` are not used. A
+closing target requires two optional fields, `root_statement_file` and `shape_file`: its T86
+snapshot as canonical `state::RootStatement::encode` and `state::Shape::encode` bytes, read
+within 64 KiB and 32 MiB. A non-closing target refuses them; preparation, signing and
+combination do not read them. The command reads only these files and the replica's
+`data_dir/replica/entries` and `data_dir/replica/objects`.
+
+**Replica access.** After every input check, the command takes the data directory's lock
+without waiting, as the installer does (§Initial archive installation on a holder), and
+holds it while it reads the replica: it is refused while a node runs, and a node does not
+start during the read. `DurableReplica::read` opens both files, which must be regular,
+read-only and never creates, cuts or writes them. As at node start, it rehashes every
+record and reinserts every entry against the writer set; a torn header or tail, which a
+writable open would cut, is refused as `StoreError::Torn`, as are damaged files and refused
+entries. Starting the node once recovers a torn file.
+
+**Certificate.** The existing collection (`cut::collect_with`) over the replica's member
+objects, with the pinned exclusions, must yield exactly the pinned target in the pinned
+view; a pending collection, a conflicting cut for that number, or another cut or view is
+refused. Nothing selects the latest cut or resolves a conflict, and the predecessor is
+pinned, not collected. The segment carries every signature of that collection in member
+order, so replicas holding different signature sets yield different segments; a signer
+whose own extraction differs refuses the candidate and can instead verify the producer's
+segment against their own pinned context.
+
+**Extraction.** `Segment::build` takes each public writer's chain back from its target head
+to the predecessor's length and verifies the whole segment contract (§Public archive
+segments). Circle entries and objects never enter it. A missing public entry or object, an
+incoherent chain, an invalid certificate or snapshot, or a segment over 32 MiB is refused;
+nothing is omitted, fetched or repaired. The snapshot is checked against the target, not
+produced: input and state roots remain T79's.
+
+**Effects.** The segment is published at `segment_file` like the other offline outputs:
+staged beside it, synced and linked without overwriting. The replica, feeds, keys, status
+and archive store are not modified; the lock file is created if absent.
+
+**Evidence.** AT-NET-34 extracts from a durable replica holding public, circle and later
+member entries: an initial and a successor cut give exactly their public deltas, and the
+successor's segment passes the real prepare, sign, combine and install commands. Missing
+or altered entries and objects, torn files, wrong context, pending, conflicting or other-view
+certificates, and closing cuts with a missing, mismatched or unexpected snapshot are
+refused. The replica and existing outputs are unchanged, and on Unix a running node excludes
+the command. The replica is written through `DurableReplica`, not by consortium processes.
+
+Exporting collected cuts for pinning, extraction from a running node, roster agreement and
+the independent-operator trial remain open. T79/T88 and application rules are unchanged.
 
 
 ---

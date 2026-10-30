@@ -5,7 +5,7 @@ use crate::cid::{cid, Cid};
 use crate::codec::{Reader, Writer};
 use crate::hash::tagged;
 use crate::log::{entry_hash, Entry};
-use crate::store::{ObjectStore, StoreError, MAX_OBJECT};
+use crate::store::{read_objects, ObjectStore, StoreError, MAX_OBJECT};
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -622,16 +622,8 @@ impl DurableReplica {
         std::fs::create_dir_all(dir).map_err(|e| DiskError::Store(StoreError::Io(e.kind())))?;
         let (entries, _) = ObjectStore::open(&dir.join("entries")).map_err(store)?;
         let (objects, _) = ObjectStore::open(&dir.join("objects")).map_err(store)?;
-        let mut replica = Replica::new(writers);
-        for id in entries.cids() {
-            let bytes = entries.get(&id).map_err(store)?.ok_or(DiskError::Damaged)?;
-            let entry = SignedEntry::decode(&bytes).ok_or(DiskError::Damaged)?;
-            let object = objects
-                .get(&entry.entry.payload)
-                .map_err(store)?
-                .ok_or(DiskError::Damaged)?;
-            replica.insert(entry, object).map_err(DiskError::Refused)?;
-        }
+        let stored = entries.cids().into_iter().map(|id| entries.get(&id));
+        let replica = rebuild(writers, stored, |payload| objects.get(payload))?;
         Ok(DurableReplica {
             replica,
             entries,
@@ -660,4 +652,34 @@ impl DurableReplica {
     pub fn replica(&self) -> &Replica {
         &self.replica
     }
+
+    /// The replica kept in `dir`, read without creating, cutting or writing a file; a torn
+    /// file is refused (`docs/04` §Segment extraction from a stopped node's replica).
+    pub fn read(dir: &Path, writers: WriterSet) -> Result<Replica, DiskError> {
+        let entries = read_objects(&dir.join("entries")).map_err(DiskError::Store)?;
+        let objects: BTreeMap<Cid, Vec<u8>> = read_objects(&dir.join("objects"))
+            .map_err(DiskError::Store)?
+            .into_iter()
+            .collect();
+        let stored = entries.into_iter().map(|(_, bytes)| Ok(Some(bytes)));
+        rebuild(writers, stored, |payload| Ok(objects.get(payload).cloned()))
+    }
+}
+
+/// Reinserts each stored entry, in stored order, with the object its payload names.
+fn rebuild(
+    writers: WriterSet,
+    entries: impl Iterator<Item = Result<Option<Vec<u8>>, StoreError>>,
+    object: impl Fn(&Cid) -> Result<Option<Vec<u8>>, StoreError>,
+) -> Result<Replica, DiskError> {
+    let mut replica = Replica::new(writers);
+    for bytes in entries {
+        let bytes = bytes.map_err(DiskError::Store)?.ok_or(DiskError::Damaged)?;
+        let entry = SignedEntry::decode(&bytes).ok_or(DiskError::Damaged)?;
+        let object = object(&entry.entry.payload)
+            .map_err(DiskError::Store)?
+            .ok_or(DiskError::Damaged)?;
+        replica.insert(entry, object).map_err(DiskError::Refused)?;
+    }
+    Ok(replica)
 }

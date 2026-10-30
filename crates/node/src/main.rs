@@ -35,6 +35,7 @@ fn archive_command(args: &[PathBuf]) -> Result<String, node::production::Error> 
     let node = node::Config::load(node)?;
     let input = production::Config::load(input)?;
     let digest = match (flag.to_str(), rest) {
+        (Some("--archive-extract"), []) => node::extract::extract(&node, &input).map(|c| c.0),
         (Some("--archive-prepare"), [output]) => production::prepare(&node, &input, output),
         (Some("--archive-sign"), [manifest, output]) => {
             production::sign(&node, &input, manifest, output)
@@ -109,6 +110,7 @@ fn main() -> ExitCode {
         _ => {
             eprintln!("usage: isegoria-node <config.toml> | --announce <config.toml>\n\
                 --transport-public-key <node.toml>\n\
+                --archive-extract <node.toml> <production.toml>\n\
                 --archive-prepare <node.toml> <production.toml> <bundle-dir>\n\
                 --archive-sign <node.toml> <production.toml> <manifest.bin> <share.bin>\n\
                 --archive-combine <node.toml> <production.toml> <manifest.bin> <signed-manifest.bin> <share.bin>...\n\

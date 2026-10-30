@@ -160,8 +160,8 @@ Integrity without permissionless consensus (`docs/04`).
 | `consortium` | §The consortium as backbone | `Member` (ed25519), `Checkpoint` (net-id + member-set bound, T15), `Consortium::new` (`1 ≤ t ≤ n` distinct keys, T63), `Consortium::verify` (t-of-n over its own member set, T63), `verify_excluding` (the beacon's withholders, T37), `CheckpointClient` (monotonic-height, equivocation, T15) |
 | `beacon` | §The epoch's beacon (D41) | `BeaconRound` (`open`, `commit`, `close_commits`, `close_deposits`, `reveal`, `finish`), `Member::beacon_commit`, `BeaconCommit`, `BeaconReveal`, `BeaconOutcome` (`value`, `revealed`, `withheld`, `record`), `RoundError` — commit-reveal among the members, in process (T37) |
 | `codec` | §Events and replay | `Writer`, `Reader`, `DecodeError` — our encoding: little-endian integers, length-prefixed fields checked before sizing (T73) |
-| `store` | §A node's own disk | `DurableLog`, `ObjectStore` (content-addressed), `Recovery`, `StoreError`, `MAX_OBJECT` — append-only files synced before acknowledging; a torn tail cut, other damage refused (T13) |
-| `replica` | §Replication between nodes | `WriterSet`, `FeedWriter`, `SignedEntry`, `EntryId`, `Replica` (`insert`, `feed`, `feed_beyond`, `equivocations`, `digest`, `summary`, `have_for`, `want`, `entries_for`), `FeedError` (T80), `Equivocation`, `Message`, `DurableReplica` (on disk, T74) — the grow-only set of writers' signed entries and the pull sync's messages (T18) |
+| `store` | §A node's own disk | `DurableLog`, `ObjectStore` (content-addressed), `read_objects` (read-only, a torn file refused), `Recovery`, `StoreError`, `MAX_OBJECT` — append-only files synced before acknowledging; a torn tail cut, other damage refused (T13) |
+| `replica` | §Replication between nodes | `WriterSet`, `FeedWriter`, `SignedEntry`, `EntryId`, `Replica` (`insert`, `feed`, `feed_beyond`, `equivocations`, `digest`, `summary`, `have_for`, `want`, `entries_for`), `FeedError` (T80), `Equivocation`, `Message`, `DurableReplica` (on disk, T74; `read` without writing) — the grow-only set of writers' signed entries and the pull sync's messages (T18) |
 | `tier` | §Who reads | `Tier`, `Tiers` (`new`, `writers`, `place`, `bind`, `access`, `member`, `readable`, `serve`), `TierError`, `Access` (valid only under the set that verified it), `TransportBinding`, `Served` (`summary`, `have_for`, `entries_for`) — the tiered writer set from configured keys, a member's transport binding, and the pull sync's answers filtered by verified access (T77 step 1; the transport does not use them yet) |
 | `observer` | §Who reads | `Observer` (`new` for one tiered set, `apply_in_view`, `last`, `beacon`, `excluded`), `ObserveError` (other tiers or replica refused) — a reader without circle access following the signed cuts and the beacon's rounds (T77 step 1) |
 | `rounds` | §The beacon on cuts, §The withholders on cuts | `Rounds` (`count`, `finish`, `outcome`, `excluded`), `Finished`, `Uncounted` — the beacon's rounds as the cuts count them, and whom rule 6 excludes; one rule for the ledger and the members (T76) |
@@ -196,11 +196,12 @@ indices. `Handle::run_archive_maintenance` repeats a bounded list of explicit tr
 sequentially, with completion-relative pauses, latest-result reporting and graceful stop.
 The node executable can load explicit trusted jobs and their schedule from configuration;
 a restricted `Monitor` permits status and dialing while maintenance borrows its sole handle.
-Offline node commands prepare explicit public segments, independently reproduce and
-combine member signatures, and install a holder's assigned shard while its node is stopped
-(`archive::Admitted::install_offline`). Automatic extraction/production, remote
-provisioning, roster agreement and deployment orchestration remain open
-(`docs/04` §Archive holders and transfer through §Initial archive installation on a holder, T84).
+Offline node commands extract a pinned cut's public segment from a stopped node's replica,
+prepare it, independently reproduce and combine member signatures, and install a holder's
+assigned shard while its node is stopped (`archive::Admitted::install_offline`). Automatic
+extraction/production, remote provisioning, roster agreement and deployment orchestration
+remain open (`docs/04` §Archive holders and transfer through §Segment extraction from a
+stopped node's replica, T84).
 
 ## `protocol` — lifecycle orchestration
 
@@ -291,8 +292,10 @@ circle key, a relay's routes or a member's gateway, transport key kept in the da
 `announcement` (`isegoria-node --announce`: a member's signed key configuration),
 `transport_public_key` (`--transport-public-key`: the existing transport key's roster entry),
 `archive` (bounded regular-file loading, checked operator-pinned jobs and latest-result
-status), `production` (offline `--archive-prepare`, `--archive-sign` and `--archive-combine`,
-using independently pinned segments/contexts and no live datastore), `install` (offline
+status), `extract` (offline `--archive-extract` of a pinned cut's public segment from the
+stopped node's replica, read-only under the data directory's lock), `production` (offline
+`--archive-prepare`, `--archive-sign` and `--archive-combine`, using independently pinned
+segments/contexts and no live datastore), `install` (offline
 `--archive-install` of a certified bundle's assigned shard into the holder's own store),
 `run` (hold the data directory's lock, listen, dial, report status and optionally maintain
 archives until stopped),
@@ -451,7 +454,7 @@ cargo clippy --workspace --all-targets
 | Answer review between nodes | **None** — `AnswerPath`/`AnswerNode` are offline; the ledger still decodes legacy `NodeEvent` (T79) | the distributed answer-review contract, then its implementation (`docs/05`) |
 | Independent operator setup and trial | **Not established** — current process tests run under one operator; threshold committee messages and setup are local | distributed committee setup (T19), operator contract and trial (T88), Phase 2 gates (`docs/10`, D55) |
 | A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80) | first-peer recovery can miss a longer feed elsewhere; T88 must specify and test the operating procedure |
-| Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from explicit or discovered holders, plus configured periodic process maintenance and manual preparation/reproduction/co-signing and holder installation tools, tested on loopback and controlled processes | Automatic extraction/production, remote provisioning, roster coordination, repair orchestration and independent operators (T84) |
+| Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from explicit or discovered holders, plus configured periodic process maintenance and manual extraction from a stopped replica, preparation/reproduction/co-signing and holder installation tools, tested on loopback and controlled processes | Automatic extraction/production, remote provisioning, roster coordination, repair orchestration and independent operators (T84) |
 
 Reference implementations are clearly marked and provide **no** security; they exist
 to make the pipeline testable end-to-end.
