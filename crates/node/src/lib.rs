@@ -2,6 +2,7 @@
 //! configuration, its files, its status, and the loop that runs it until it is stopped.
 
 pub mod archive;
+pub mod production;
 
 use ed25519_dalek::VerifyingKey;
 use libp2p::identity::Keypair;

@@ -1597,10 +1597,109 @@ executables exercise initial repair, live corruption, loss followed by restart, 
 status progress during recovery, graceful SIGTERM with an active pass and pending/disabled
 status reset. These are controlled local processes on loopback, not independent operators.
 
-This integrates operator-configured jobs into the executable. It does not create or co-sign
-manifests, discover trusted contexts, agree a roster, transfer a lost node's identity to a
-replacement or demonstrate independent operation. Those remain outside this increment;
-T79/T88 and the answer-review rules are unchanged.
+This integrates operator-configured jobs into the executable; it does not automatically
+create or co-sign manifests, discover trusted contexts, agree a roster, transfer a lost
+node's identity to a replacement or demonstrate independent operation. Manual preparation
+and co-signing tools are specified below. T79/T88 and the answer-review rules are unchanged.
+
+### Manual archive preparation and co-signing (T84, seventh increment)
+
+Three offline commands turn an explicitly supplied public `Segment` into an erasure-coded
+candidate, independently reproduced member signatures and a quorum certificate:
+
+```text
+isegoria-node --archive-prepare <node.toml> <production.toml> <bundle-dir>
+isegoria-node --archive-sign <node.toml> <production.toml> <manifest.bin> <share.bin>
+isegoria-node --archive-combine <node.toml> <production.toml> <manifest.bin> <signed-manifest.bin> <share.bin>...
+```
+
+Each command prints the manifest digest as lowercase hex on success. An error prints an
+`archive:` diagnostic and exits with code 2. They do not start networking, open a node's
+durable replica, create its transport key or modify its data directory. The node TOML is
+used for the configured tiered network and consortium; signing additionally requires the
+member's configured index and `key_file`. Unrelated runtime settings are not a startup
+validation by these offline commands. No private key is needed to prepare or combine.
+
+`production.toml` requires `lineage`, `target_cut_file`, `view`, `excluded`, `segment_file`,
+`data_shards` and `parity_shards`; `previous_cut_file` is required for a noninitial target
+and absent for cut 0. Paths are relative to the working directory, as in node configuration.
+The cuts are raw canonical `Cut::encode` bytes, and the segment is raw canonical
+`Segment::encode` bytes. All context fields are independently pinned by the operator;
+they are never inferred from the candidate manifest or its producer. Each signer supplies
+their own trusted inputs, even when the candidate is received from another operator.
+
+**Preparation.** The tool verifies the segment against the configured tiers and the pinned
+lineage, predecessor, target, view and exclusions, then builds the exact manifest and shards
+with the explicitly chosen `(k, m)`. Existing checks cover the cut certificate, public-only
+delta, signatures, chain continuity and payload hashes. Circle entries cannot enter the
+archive. For a closing cut, the segment must contain the T86 shape and matching root
+statement; nothing creates a placeholder snapshot. The root's input/state correctness
+remains the signers' external premise pending T79, as in the archive primitive contract.
+
+The new bundle directory contains `manifest.bin` (the raw unsigned `Manifest`), canonical
+`segment.bin`, `target.cut`, optional `previous.cut`, and `shard-000.bin` through the final
+shard index. These are preparation outputs, not installed holder records. Initial holder
+import and automatic extraction of a segment from a live replica are not supplied here.
+A `COMPLETE` marker records logical bundle completion, with this exact text:
+
+```text
+isegoria/archive/bundle/v1
+manifest <64 lowercase hex digits>
+```
+
+The marker ends with a newline. It is neither authentication nor a quorum certificate.
+Operators consuming a prepared bundle must require the marker and still authenticate its
+contents. The signing and combining commands accept a raw candidate manifest file and
+independently reconstruct it; they do not infer trust or completeness from this marker.
+
+**Signing.** A member rebuilds the archive from their own production inputs and requires
+the supplied candidate to be byte-for-byte canonical and equal to that rebuilt manifest.
+Only then may the configured member sign its existing archive checkpoint. The seed must
+match the configured consortium key at that index; a relay, missing/mismatched member key
+or excluded member cannot sign through this tool. The output is an existing `SignedManifest`
+encoding with exactly one signature. It is not generally a quorum certificate.
+
+**Combination.** The combiner also independently reproduces the candidate. Every supplied
+share must be canonical, name exactly that manifest and contain exactly one valid signature
+from a distinct nonexcluded configured member. An invalid extra is refused even when other
+shares already reach quorum. Strict verification uses the existing checkpoint message
+(`Checkpoint::verify_signature`); membership, exclusion and quorum are separate checks.
+Signatures are sorted by index, the complete `SignedManifest` is checked against the pinned
+context, and only a valid quorum certificate is published. Its output can be supplied as
+`manifest_file` to node archive maintenance. Supplying the certificate does not seed holders
+or prove that any listed shard is currently available.
+
+**Bounds and publication.** Both TOML inputs are regular files bounded to 1 MiB. Cuts are
+bounded to 64 KiB; manifests, shares and the combined certificate to 64 KiB; the segment to
+32 MiB; the member seed file to 128 bytes. Existing layout and total codeword limits apply.
+Combination accepts at most 910 share paths and no more than the configured member count;
+the complete certificate must still fit its encoding limit. Files are read with a byte
+limit before decoding, and canonical re-encoding is checked. Duplicate consortium keys,
+invalid exclusions and any other validation error refuse the operation before publication.
+
+Existing output files and directories, including empty directories, are never overwritten.
+Files are staged and synced beside the destination, then published with a no-clobber hard
+link; the filesystem must support hard links. For a bundle, `create_dir` reserves a new
+destination atomically, its staged files are linked, and `COMPLETE` is linked last. This is
+logical completion, not atomic visibility of an entire directory: an interrupted bundle
+can remain without the marker and must not be used. Pre-marker cleanup removes only this
+operation's linked files and its own empty directory, never recursively removes an existing
+destination. Unix directory syncs persist the publication order; power-loss durability is
+not established by the tests, and no directory-sync guarantee is added on other platforms.
+A sync error after publishing a file or marker is an uncertain acknowledgement: output may
+exist despite the reported error. Local directories and permissions are operator-controlled.
+
+**Evidence.** AT-NET-32 exercises the executable prepare/sign/combine workflow with a nonempty
+public delta and private entries excluded, two of three member signatures, a certificate
+accepted by the existing maintenance planner and recovery from the produced shards. It also
+checks independent-context/candidate mismatches, invalid or duplicate extra shares, signer
+authorization, closing-snapshot consistency, canonical input bounds and preservation of
+existing output files and empty directories. These are controlled offline processes and
+in-process checks, not automatic publication between members or independent-operator evidence.
+
+These are manual preparation and certificate tools. Automatic segment extraction, manifest
+production/co-signing between running members, initial holder provisioning, roster agreement
+and the independent-operator trial remain open. T79/T88 and application rules are unchanged.
 
 
 ---

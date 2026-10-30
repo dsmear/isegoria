@@ -43,6 +43,12 @@ impl Checkpoint {
             ],
         )
     }
+
+    /// Checks one signature strictly; membership, exclusions and quorum are separate checks.
+    pub fn verify_signature(&self, key: &VerifyingKey, signature: &Signature) -> bool {
+        let message = self.message();
+        key.verify_strict(&message, signature).is_ok()
+    }
 }
 
 pub struct Member {

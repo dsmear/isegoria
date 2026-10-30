@@ -196,8 +196,10 @@ indices. `Handle::run_archive_maintenance` repeats a bounded list of explicit tr
 sequentially, with completion-relative pauses, latest-result reporting and graceful stop.
 The node executable can load explicit trusted jobs and their schedule from configuration;
 a restricted `Monitor` permits status and dialing while maintenance borrows its sole handle.
-Automatic production, roster agreement and deployment orchestration remain open
-(`docs/04` §Archive holders and transfer through §Archive maintenance in a node process, T84).
+Offline node commands prepare explicit public segments and independently reproduce and
+combine member signatures. Automatic extraction/production, initial holder provisioning,
+roster agreement and deployment orchestration remain open
+(`docs/04` §Archive holders and transfer through §Manual archive preparation and co-signing, T84).
 
 ## `protocol` — lifecycle orchestration
 
@@ -287,7 +289,9 @@ checked configuration: keys, consortium, a tiered network's circle keys and the 
 circle key, a relay's routes or a member's gateway, transport key kept in the data directory),
 `announcement` (`isegoria-node --announce`: a member's signed key configuration),
 `archive` (bounded regular-file loading, checked operator-pinned jobs and latest-result
-status), `run` (listen, dial, report status and optionally maintain archives until stopped),
+status), `production` (offline `--archive-prepare`, `--archive-sign` and `--archive-combine`,
+using independently pinned segments/contexts and no live datastore),
+`run` (listen, dial, report status and optionally maintain archives until stopped),
 `render` and `parse` (the ordinary status file). Maintenance shutdown awaits the active pass.
 Depends on `p2p` and `network`; the protocol state is not computed here yet (T79).
 
@@ -443,7 +447,7 @@ cargo clippy --workspace --all-targets
 | Answer review between nodes | **None** — `AnswerPath`/`AnswerNode` are offline; the ledger still decodes legacy `NodeEvent` (T79) | the distributed answer-review contract, then its implementation (`docs/05`) |
 | Independent operator setup and trial | **Not established** — current process tests run under one operator; threshold committee messages and setup are local | distributed committee setup (T19), operator contract and trial (T88), Phase 2 gates (`docs/10`, D55) |
 | A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80) | first-peer recovery can miss a longer feed elsewhere; T88 must specify and test the operating procedure |
-| Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from explicit or discovered holders, plus assignment/audit/pull-repair and operator-configured periodic node-process maintenance, tested on loopback and controlled processes | Automatic manifest creation, roster coordination, repair orchestration and independent operators (T84) |
+| Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from explicit or discovered holders, plus configured periodic process maintenance and manual preparation/reproduction/co-signing tools, tested on loopback and controlled processes | Automatic extraction/production, initial provisioning, roster coordination, repair orchestration and independent operators (T84) |
 
 Reference implementations are clearly marked and provide **no** security; they exist
 to make the pipeline testable end-to-end.
