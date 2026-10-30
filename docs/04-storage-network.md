@@ -1809,8 +1809,10 @@ isegoria-node --archive-extract <node.toml> <production.toml>
 ```
 
 On success it prints the segment CID as lowercase hex. An error prints an `archive:`
-diagnostic, exits with code 2 and publishes nothing. The command starts no networking and
-fetches nothing.
+diagnostic and exits with code 2. A refusal before publication publishes nothing; an error
+after the segment is linked is an uncertain acknowledgement, as for every offline output
+(§Manual archive preparation and co-signing): the segment may exist despite the error. The
+command starts no networking and fetches nothing.
 
 **Inputs.** The node TOML is the node's own, tiered; tiers, network id, threshold and
 `data_dir` come from it. `production.toml` supplies the pinned lineage, cuts, view and
@@ -1858,8 +1860,63 @@ certificates, and closing cuts with a missing, mismatched or unexpected snapshot
 refused. The replica and existing outputs are unchanged, and on Unix a running node excludes
 the command. The replica is written through `DurableReplica`, not by consortium processes.
 
-Exporting collected cuts for pinning, extraction from a running node, roster agreement and
-the independent-operator trial remain open. T79/T88 and application rules are unchanged.
+Extraction from a running node, roster agreement and the independent-operator trial remain
+open. T79/T88 and application rules are unchanged.
+
+### Collected cut export from a stopped node's replica (T84, tenth increment)
+
+One offline command writes a cut that a stopped node's replica collects, as the raw
+`Cut::encode` bytes that `target_cut_file` and `previous_cut_file` take:
+
+```text
+isegoria-node --archive-export-cut <node.toml> <cut.toml> <cut-file>
+```
+
+`cut.toml` requires `number`, `view` and `excluded`: distinct indices of consortium members,
+where empty is an explicit choice. It is a regular file of at most 1 MiB. Network id,
+consortium, threshold and tiers come from the node's own tiered TOML. Nothing chooses the
+latest cut, a view or exclusions, and each cut is exported on its own: a predecessor takes its
+own number, view and exclusions, never a target's.
+
+**Checks.** Replica access is that of §Segment extraction from a stopped node's replica: the
+shared lock, `DurableReplica::read`, no recovery, no write and no network. The existing
+collection (`cut::collect_with`) of `number` with the given exclusions must be ready in
+exactly `view`; a pending collection, a conflicting cut or a cut collected in another view
+is refused. Since that collection checks signatures leniently, the command then applies the
+segment's own certificate check (`archive::verify_certificate`): `verify_strict` signatures
+over the cut's checkpoint in that view, in member order, from at least the threshold of
+distinct non-excluded members. A cut collected without such a quorum is refused. Collection
+rules and signature sets are unchanged.
+
+**Output.** On success the command prints the cut digest as lowercase hex and publishes the
+canonical bytes at `<cut-file>` like every offline output: never over an existing file, and
+an error after the link is an uncertain acknowledgement. Other errors print an `archive:`
+diagnostic, exit with code 2 and publish nothing.
+
+**What the file is.** The file holds the cut alone, without its signatures, view or
+exclusions. It is neither a certificate nor a self-standing proof, and exporting it is no
+trust decision: the operator still pins it, with its view and exclusions, as context. The
+command establishes only that this replica collects the cut with a strict quorum under the
+given view and exclusions. That the cut succeeds a given predecessor with a valid epoch, that
+its writers are known and its public delta remain to segment verification against the pinned
+context (§Public archive segments), at extraction and preparation. That the exclusions are the
+beacon history's stays the operator's premise, as for every archive context; one replica
+shows neither freshness nor other replicas' cuts.
+
+**Evidence.** AT-NET-35 exports a predecessor and a target with different views and
+exclusions, byte for byte their `Cut::encode`, and feeds them to `--archive-extract` and
+`--archive-prepare`. It refuses an uncollected number, another view, a quorum lost to
+exclusions or threshold, conflicting cuts, a quorum reached only by a signature that lenient
+verification accepts and `verify_strict` refuses (extraction refuses it too), missing or
+invalid exclusions, an untiered configuration, missing or damaged replica files and an existing
+output, without changing any file; on Unix a running node excludes the command. Three tiered
+member processes then collect cuts 0 and 1; exported from one stopped member's replica in
+the view its collection reports, they match the digests that member reported while running,
+another view is refused, and extraction and preparation accept them as predecessor and
+target.
+
+Agreement on contexts between operators (T88), roster agreement and the independent-operator
+trial remain open. T79/T88 and application rules are unchanged.
 
 
 ---

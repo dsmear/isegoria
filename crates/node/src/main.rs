@@ -29,6 +29,14 @@ fn archive_command(args: &[PathBuf]) -> Result<String, node::production::Error> 
             ));
         }
     }
+    if let [flag, node, input, output] = args {
+        if flag.as_os_str() == "--archive-export-cut" {
+            let node = node::Config::load(node)?;
+            let input = node::extract::CutConfig::load(input)?;
+            let cut = node::extract::export_cut(&node, &input, output)?;
+            return Ok(node::hex(&cut.digest()));
+        }
+    }
     let [flag, node, input, rest @ ..] = args else {
         return Err(Error::Invalid("archive command arguments"));
     };
@@ -111,6 +119,7 @@ fn main() -> ExitCode {
             eprintln!("usage: isegoria-node <config.toml> | --announce <config.toml>\n\
                 --transport-public-key <node.toml>\n\
                 --archive-extract <node.toml> <production.toml>\n\
+                --archive-export-cut <node.toml> <cut.toml> <cut-file>\n\
                 --archive-prepare <node.toml> <production.toml> <bundle-dir>\n\
                 --archive-sign <node.toml> <production.toml> <manifest.bin> <share.bin>\n\
                 --archive-combine <node.toml> <production.toml> <manifest.bin> <signed-manifest.bin> <share.bin>...\n\

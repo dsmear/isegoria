@@ -122,7 +122,8 @@ fn cut(path: &Path) -> Result<Cut, Error> {
     Ok(cut)
 }
 
-pub(crate) fn pinned(node: &crate::Config, input: &Config) -> Result<Pinned, Error> {
+/// The node's tiered set, with `excluded` distinct indices of its distinct members.
+pub(crate) fn tiers(node: &crate::Config, excluded: &[usize]) -> Result<Tiers, Error> {
     let members = keys(&node.consortium.members, "consortium.members")?;
     if members
         .iter()
@@ -134,14 +135,18 @@ pub(crate) fn pinned(node: &crate::Config, input: &Config) -> Result<Pinned, Err
         return Err(Error::Invalid("duplicate consortium member"));
     }
     let tiers = tiers_of(node)?.ok_or(Error::Invalid("tiered network required"))?;
-    if input.excluded.len() > members.len()
-        || input.excluded.iter().any(|i| *i >= members.len())
-        || input.excluded.iter().collect::<HashSet<_>>().len() != input.excluded.len()
+    if excluded.len() > members.len()
+        || excluded.iter().any(|i| *i >= members.len())
+        || excluded.iter().collect::<HashSet<_>>().len() != excluded.len()
     {
         return Err(Error::Invalid("excluded members"));
     }
+    Ok(tiers)
+}
+
+pub(crate) fn pinned(node: &crate::Config, input: &Config) -> Result<Pinned, Error> {
     Ok(Pinned {
-        tiers,
+        tiers: tiers(node, &input.excluded)?,
         lineage: unhex(&input.lineage, "archive.lineage")?,
         previous: input.previous_cut_file.as_deref().map(cut).transpose()?,
         target: cut(&input.target_cut_file)?,

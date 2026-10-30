@@ -104,6 +104,24 @@ fn signatures_verify(
         >= tiers.consortium().threshold()
 }
 
+/// Checks that `signatures` certify `cut` in `view`: `verify_strict` signatures in member order
+/// from at least the threshold of distinct non-excluded members (`docs/04` §Public archive
+/// segments).
+pub fn verify_certificate(
+    tiers: &Tiers,
+    excluded: &[usize],
+    cut: &Cut,
+    view: u64,
+    signatures: &[(usize, Signature)],
+) -> Result<()> {
+    let set = tiers.consortium().member_set_hash();
+    let cp = cut.checkpoint_in(view, tiers.network_id(), set);
+    match signatures_verify(tiers, excluded, &cp, signatures) {
+        true => Ok(()),
+        false => Err(Error::Signatures),
+    }
+}
+
 fn check_context(ctx: &Context<'_>) -> Result<()> {
     let mut context_len = add(131, cut_len(ctx.target)?)?;
     if let Some(previous) = ctx.previous {
@@ -272,12 +290,13 @@ impl Segment {
         {
             return Err(Error::Context);
         }
-        let cp = self
-            .target
-            .checkpoint_in(self.view, self.network_id, self.member_set_hash);
-        if !signatures_verify(ctx.tiers, ctx.excluded, &cp, &self.signatures) {
-            return Err(Error::Signatures);
-        }
+        verify_certificate(
+            ctx.tiers,
+            ctx.excluded,
+            &self.target,
+            self.view,
+            &self.signatures,
+        )?;
         if !self.entries.windows(2).all(|p| p[0].0.id() < p[1].0.id()) {
             return Err(Error::Delta);
         }

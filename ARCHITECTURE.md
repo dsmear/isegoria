@@ -168,7 +168,7 @@ Integrity without permissionless consensus (`docs/04`).
 | `cut` | §Cuts | `Cut` (`of`, `next`, `digest`, `checkpoint`, `checkpoint_in`, `encode`, `decode`), `Mark`, `added`, `observed` and `Observed` (a reader without circle access: public chains checked, circle marks attested, T77), `CutError`, `MemberObject` (view changes included), `collect`, `Collected`, `proposer`, `proposer_in`, `sign_cut`, `sign_cut_in`, `should_sign`, `should_sign_in`, `counts_own`, `promise`, `signed_in`, `changed_view`, `forced`, `MissingViewChange`, `proposal`, `views_change`, `member_objects` — the consortium-signed marks that fix which entries count and their order; the members' objects that sign them and run the beacon (T74) |
 | `anchoring` | §Anchoring | `Anchor` trait, `OtsAnchor`, `Receipt`, `AnchorState` |
 | `erasure` | §Durability | `encode`, `reconstruct`, `reconstruct_verified` (real Reed–Solomon; per-shard manifest, corrupt-shard authentication before decode, T16) |
-| `archive` | §Public archive segments | Canonical public cut segments and state shapes; signed shard manifests; context-checked audit, reconstruction, repair bytes and deterministic distinct-holder placement (T84, library only) |
+| `archive` | §Public archive segments | Canonical public cut segments and state shapes; signed shard manifests; context-checked audit, reconstruction, repair bytes and deterministic distinct-holder placement; `verify_certificate`, the strict cut-certificate check (T84, library only) |
 
 **Real:** content addressing, Merkle trees, the hash-chained append-only log,
 ed25519 consortium checkpoints, the commit-reveal beacon round (in process), erasure
@@ -196,12 +196,12 @@ indices. `Handle::run_archive_maintenance` repeats a bounded list of explicit tr
 sequentially, with completion-relative pauses, latest-result reporting and graceful stop.
 The node executable can load explicit trusted jobs and their schedule from configuration;
 a restricted `Monitor` permits status and dialing while maintenance borrows its sole handle.
-Offline node commands extract a pinned cut's public segment from a stopped node's replica,
-prepare it, independently reproduce and combine member signatures, and install a holder's
-assigned shard while its node is stopped (`archive::Admitted::install_offline`). Automatic
-extraction/production, remote provisioning, roster agreement and deployment orchestration
-remain open (`docs/04` §Archive holders and transfer through §Segment extraction from a
-stopped node's replica, T84).
+Offline node commands export a collected cut and extract a pinned cut's public segment from a
+stopped node's replica, prepare it, independently reproduce and combine member signatures,
+and install a holder's assigned shard while its node is stopped
+(`archive::Admitted::install_offline`). Automatic extraction/production, remote provisioning,
+roster agreement and deployment orchestration remain open (`docs/04` §Archive holders and
+transfer through §Collected cut export from a stopped node's replica, T84).
 
 ## `protocol` — lifecycle orchestration
 
@@ -292,8 +292,9 @@ circle key, a relay's routes or a member's gateway, transport key kept in the da
 `announcement` (`isegoria-node --announce`: a member's signed key configuration),
 `transport_public_key` (`--transport-public-key`: the existing transport key's roster entry),
 `archive` (bounded regular-file loading, checked operator-pinned jobs and latest-result
-status), `extract` (offline `--archive-extract` of a pinned cut's public segment from the
-stopped node's replica, read-only under the data directory's lock), `production` (offline
+status), `extract` (offline `--archive-export-cut` of a cut the stopped node's replica
+collects with a strict quorum, and `--archive-extract` of a pinned cut's public segment from
+it, read-only under the data directory's lock), `production` (offline
 `--archive-prepare`, `--archive-sign` and `--archive-combine`, using independently pinned
 segments/contexts and no live datastore), `install` (offline
 `--archive-install` of a certified bundle's assigned shard into the holder's own store),
@@ -454,7 +455,7 @@ cargo clippy --workspace --all-targets
 | Answer review between nodes | **None** — `AnswerPath`/`AnswerNode` are offline; the ledger still decodes legacy `NodeEvent` (T79) | the distributed answer-review contract, then its implementation (`docs/05`) |
 | Independent operator setup and trial | **Not established** — current process tests run under one operator; threshold committee messages and setup are local | distributed committee setup (T19), operator contract and trial (T88), Phase 2 gates (`docs/10`, D55) |
 | A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80) | first-peer recovery can miss a longer feed elsewhere; T88 must specify and test the operating procedure |
-| Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from explicit or discovered holders, plus configured periodic process maintenance and manual extraction from a stopped replica, preparation/reproduction/co-signing and holder installation tools, tested on loopback and controlled processes | Automatic extraction/production, remote provisioning, roster coordination, repair orchestration and independent operators (T84) |
+| Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from explicit or discovered holders, plus configured periodic process maintenance and manual cut export and extraction from a stopped replica, preparation/reproduction/co-signing and holder installation tools, tested on loopback and controlled processes | Automatic extraction/production, remote provisioning, roster coordination, repair orchestration and independent operators (T84) |
 
 Reference implementations are clearly marked and provide **no** security; they exist
 to make the pipeline testable end-to-end.

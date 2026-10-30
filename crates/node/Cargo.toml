@@ -21,3 +21,7 @@ toml = "0.8"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+[dev-dependencies]
+curve25519-dalek = "4"
+sha2 = "0.10"
