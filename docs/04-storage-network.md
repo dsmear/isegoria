@@ -1725,10 +1725,11 @@ tiers, network id and threshold come from the node configuration. The marker onl
 job and records that preparation finished; it authenticates nothing. The bundle's
 `manifest.bin` and cut copies are not read. Unrelated runtime settings are not validated.
 
-**Assignment.** The holder's identity is its existing `data_dir/transport.key`, which this
-command never creates. The existing placement over the job's roster gives that transport key
-at most one index; an unassigned key is refused before anything is written. A later roster
-can assign another index of the same archive.
+**Assignment.** The holder's identity is its existing `data_dir/transport.key`, read, as at
+node start, from a regular file of at most 128 bytes (the 64-digit hex seed and whitespace);
+this command never creates or modifies it. The existing placement over the job's roster
+gives that transport key at most one index; an unassigned key is refused before anything is
+written. A later roster can assign another index of the same archive.
 
 **Verification before availability.** `segment.bin` is read within the 32 MiB segment bound
 and must be canonical. The admission of `Handle::install_archive`, exposed for a stopped holder
@@ -1748,14 +1749,19 @@ record format apply unchanged: a refusal before rename keeps the committed recor
 error after rename is an uncertain acknowledgement that a retry resolves.
 
 **Concurrency with a node process.** Only one process may use a data directory's store.
-`isegoria-node <config>` holds an exclusive advisory lock on `data_dir/lock` from before it
-resets `archive-status` until it returns. The installer takes the same lock without waiting,
-after its checks, and holds it while it opens and writes the store. While a node runs, the
-installer is refused without writing; while an installation runs, a node, like a second node
-on the same directory, refuses to start (exit 1) before resetting its status. The procedure is to stop the node, install,
-and start it again. The operating system releases the lock when its process ends, including
-a forced kill. It is a Unix `flock` on a local filesystem; elsewhere nothing enforces it and
-the operator must stop the node. In-process `p2p::Handle` users are outside this lock.
+`isegoria-node <config>` takes an exclusive advisory lock on `data_dir/lock` before it resets
+`archive-status` and hands it to the node's task (`Handle::spawn_holding`), which owns the
+stores and drops the lock after them when it ends. `node::run` returns only after that task
+has ended, also on an error after the task started; if `run` is dropped, the task first
+answers its queued commands, such as an accepted installation or maintenance commit, and only
+then releases the lock. The installer takes the same lock without waiting, after its checks,
+and holds it while it opens and writes the store. While a node runs, the installer is refused
+without writing; while an installation runs, a node, like a second node on the same
+directory, refuses to start (exit 1) before resetting its status. The procedure is to stop
+the node, install, and start it again. The operating system releases the lock when its
+process ends, including a forced kill. It is a Unix `flock` on a local filesystem; elsewhere
+nothing enforces it and the operator must stop the node. In-process users of
+`p2p::Handle::spawn` are outside this lock.
 
 **After installation.** At its next start the node validates the record, announces the
 retained shards and serves them; the configured job's pass audits the actual bytes and reports
@@ -1767,9 +1773,12 @@ of a nonempty public delta, serves the segment from their processes, recovers af
 stops and audits the installed shard as healthy after restart. It checks refusal of altered
 context, below-quorum or unconfigured certificates, missing or mismatched markers, altered
 segment and shard bytes, and unassigned or missing identities; a running node refuses both
-the installer and a second node. Repetition writes nothing; other indices and archives are
-preserved; full or differently bound stores refuse without change. These are controlled local processes, not independent
-operators.
+the installer and a second node. The lock stays held until the storage task ends after a
+stop, an error or the cancellation of `run`, and a queued installation completes before it is
+released; oversized, non-regular or malformed transport keys are refused without blocking or
+writing. Repetition writes nothing; other indices and archives are preserved; full or
+differently bound stores refuse without change. These are controlled local processes, not
+independent operators.
 
 This step is manual and local. Remote upload, automatic extraction from the feeds, provisioning
 of other holders, roster agreement, repair orchestration across holders and the

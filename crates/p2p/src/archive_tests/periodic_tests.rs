@@ -27,6 +27,7 @@ fn controlled_handle() -> (crate::Handle, mpsc::UnboundedReceiver<crate::Command
             peer_id: keys()[0].public().to_peer_id(),
             commands,
             set_aside: vec![],
+            task: tokio::spawn(async {}),
         },
         receiver,
     )

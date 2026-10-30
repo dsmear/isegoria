@@ -401,6 +401,140 @@ fn repeated_installs_preserve_existing_records_and_limits() {
     assert_eq!(snapshot(&bound), vec![("config".to_string(), vec![1; 33])]);
 }
 
+fn prepared(f: &Fixture) -> (PathBuf, PathBuf) {
+    let layout = Layout {
+        data_shards: 2,
+        parity_shards: 1,
+    };
+    certified(f, "bundle", layout)
+}
+
+// The data-directory lock is free only once the storage task has ended (AT-NET-33).
+#[test]
+fn lock_lasts_until_the_storage_task_ends() {
+    let f = Fixture::new("install-lock", false);
+    let (bundle, certificate) = prepared(&f);
+    for case in ["stop", "error", "cancel"] {
+        let listen = match case {
+            "error" => "/ip4/127.0.0.1/udp/0/quic-v1",
+            _ => "/ip4/127.0.0.1/tcp/0",
+        };
+        let text = holder(&f, case, 41, listen, &job(&f, &certificate, &SEEDS));
+        let plan = node::plan(config(&text)).unwrap();
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        runtime.block_on(async {
+            match case {
+                "stop" => node::run(plan, std::future::ready(())).await.unwrap(),
+                "error" => assert!(node::run(plan, std::future::ready(())).await.is_err()),
+                _ => {
+                    let run = node::run(plan, std::future::pending());
+                    tokio::pin!(run);
+                    tokio::select! {
+                        biased;
+                        _ = &mut run => unreachable!("run ended without a stop"),
+                        _ = std::future::ready(()) => {}
+                    }
+                }
+            }
+        });
+        let alive = runtime.metrics().num_alive_tasks();
+        let during = install(&config(&text), &bundle);
+        let locked = matches!(during, Err(Error::Invalid("data directory in use")));
+        assert_eq!(
+            locked,
+            alive > 0,
+            "{case}: {alive} task(s) alive, {during:?}"
+        );
+        assert_eq!(alive, usize::from(case == "cancel"), "{case}");
+        drop(runtime);
+        assert!(install(&config(&text), &bundle).is_ok(), "{case}");
+    }
+}
+
+// Transport keys are read within a bound, never rewritten, and refusals write nothing (AT-NET-33).
+#[test]
+fn transport_key_is_bounded_and_left_unchanged() {
+    let f = Fixture::new("install-key", false);
+    let (bundle, certificate) = prepared(&f);
+    let text = holder(
+        &f,
+        "holder",
+        41,
+        "/ip4/127.0.0.1/tcp/0",
+        &job(&f, &certificate, &SEEDS),
+    );
+    let dir = f.root.join("holder");
+    let key = dir.join("transport.key");
+    let valid = fs::read(&key).unwrap();
+    let padded = |n| [valid.clone(), vec![b' '; n]].concat();
+    for (bytes, expected) in [
+        (padded(65), node::ConfigError::Bounds("transport.key")),
+        (vec![b'z'; 64], node::ConfigError::Hex("transport.key")),
+        (
+            valid[..63].to_vec(),
+            node::ConfigError::Hex("transport.key"),
+        ),
+    ] {
+        fs::write(&key, &bytes).unwrap();
+        for result in [
+            install(&config(&text), &bundle).map(|_| ()),
+            node::plan(config(&text)).map(|_| ()).map_err(Error::Config),
+        ] {
+            assert!(
+                matches!(&result, Err(Error::Config(e)) if *e == expected),
+                "{result:?}"
+            );
+            assert_eq!(
+                snapshot(&dir),
+                vec![("transport.key".to_string(), bytes.clone())]
+            );
+        }
+    }
+    fs::write(&key, padded(64)).unwrap();
+    assert_eq!(
+        install(&config(&text), &bundle).unwrap().installed,
+        Installed::Written
+    );
+    assert_eq!(fs::read(&key).unwrap(), padded(64));
+}
+
+// A FIFO in place of the transport key is refused without opening it (AT-NET-33).
+#[cfg(unix)]
+#[test]
+fn fifo_transport_key_is_refused_without_blocking() {
+    let f = Fixture::new("install-fifo", false);
+    let (bundle, certificate) = prepared(&f);
+    let text = holder(
+        &f,
+        "holder",
+        41,
+        "/ip4/127.0.0.1/tcp/0",
+        &job(&f, &certificate, &SEEDS),
+    );
+    let dir = f.root.join("holder");
+    let key = dir.join("transport.key");
+    fs::remove_file(&key).unwrap();
+    let made = std::process::Command::new("mkfifo")
+        .arg(&key)
+        .status()
+        .unwrap();
+    assert!(made.success());
+    let bounds = node::ConfigError::Bounds("transport.key");
+    assert!(matches!(install(&config(&text), &bundle), Err(Error::Config(e)) if e == bounds));
+    assert!(matches!(node::plan(config(&text)), Err(e) if e == bounds));
+    let names: Vec<_> = fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
+    assert_eq!(names, vec![std::ffi::OsString::from("transport.key")]);
+    assert!(std::os::unix::fs::FileTypeExt::is_fifo(
+        &fs::symlink_metadata(&key).unwrap().file_type()
+    ));
+}
+
 #[cfg(unix)]
 mod processes {
     use super::process::{address, until, Process};

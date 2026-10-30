@@ -300,7 +300,7 @@ pub fn sign(
         .key_file
         .as_ref()
         .ok_or(Error::Invalid("member key required"))?;
-    let bytes = read_bounded(key, 128, "archive.member_key")?;
+    let bytes = read_bounded(key, crate::MAX_SEED, "archive.member_key")?;
     let text = std::str::from_utf8(&bytes).map_err(|_| Error::Invalid("member seed UTF-8"))?;
     let member = Member::from_seed(unhex(text, "archive.member_key")?);
     if candidate.tiers.consortium().keys().get(index) != Some(&member.public()) {

@@ -1553,3 +1553,47 @@ mod maintenance_tests;
 
 #[path = "archive_tests/periodic_tests.rs"]
 mod periodic_tests;
+
+/// Records, when the node's task drops it, whether the archive record was on disk.
+struct Probe(PathBuf, std::sync::Arc<std::sync::Mutex<Option<bool>>>);
+impl Drop for Probe {
+    fn drop(&mut self) {
+        *self.1.lock().unwrap() = Some(self.0.exists());
+    }
+}
+
+// The held value outlives a queued install whose caller was dropped (AT-NET-33).
+#[test]
+fn held_value_outlives_an_accepted_installation() {
+    let f = Fixture::new();
+    let (segment, signed, _) = f.archive();
+    let dir = Temp::new();
+    let record = dir
+        .0
+        .join("archive")
+        .join(format!("{}.arc", hex(&signed.manifest.digest())));
+    let seen = std::sync::Arc::new(std::sync::Mutex::new(None));
+    let probe = Probe(record.clone(), seen.clone());
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    runtime.block_on(async {
+        let key = identity::Keypair::generate_ed25519();
+        let config = f.config(Some(dir.0.clone()));
+        let handle = crate::Handle::spawn_holding(key, config, probe).unwrap();
+        {
+            let ctx = f.context();
+            let install = handle.install_archive(&ctx, &signed, &segment, &[0]);
+            tokio::pin!(install);
+            tokio::select! {
+                biased;
+                _ = &mut install => unreachable!("the node's task has not run"),
+                _ = std::future::ready(()) => {}
+            }
+        }
+        assert!(seen.lock().unwrap().is_none() && !record.exists());
+        handle.finished().await;
+        assert_eq!(*seen.lock().unwrap(), Some(true));
+    });
+}

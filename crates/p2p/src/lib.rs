@@ -237,6 +237,7 @@ pub struct Handle {
     peer_id: PeerId,
     commands: mpsc::UnboundedSender<Command>,
     set_aside: Vec<PathBuf>,
+    task: tokio::task::JoinHandle<()>,
 }
 
 /// Status and peer reconnection only; cannot install or mutate stored archive records.
@@ -307,6 +308,8 @@ struct Node {
     routes: Option<Vec<blind::KeyAnnouncement>>,
     gateway: Option<blind::Gateway>,
     relaying: HashMap<OutboundRequestId, ResponseChannel<Vec<u8>>>,
+    // Last field, so dropped after every store above.
+    _held: Box<dyn Send>,
 }
 
 /// The gossip topic of a network's announcements.
@@ -533,7 +536,17 @@ fn blind_start(
 
 impl Handle {
     /// Starts a node on the current tokio runtime; a writer's own feed is replayed first.
-    pub fn spawn(key: identity::Keypair, mut config: Config) -> Result<Handle, StartError> {
+    pub fn spawn(key: identity::Keypair, config: Config) -> Result<Handle, StartError> {
+        Self::spawn_holding(key, config, ())
+    }
+
+    /// As [`Self::spawn`]; the node's task owns `held` and drops it after its stores, whether
+    /// the task ends or is canceled (`docs/04` §Initial archive installation on a holder).
+    pub fn spawn_holding(
+        key: identity::Keypair,
+        mut config: Config,
+        held: impl Send + 'static,
+    ) -> Result<Handle, StartError> {
         let tiered = match config.tiers.take() {
             Some(tiers) => Some(tiered_start(&key, tiers, &config)?),
             None if config.circle.is_some() => return Err(StartError::NotTheCircle),
@@ -621,6 +634,7 @@ impl Handle {
             routes,
             gateway,
             relaying: HashMap::new(),
+            _held: Box::new(held),
         };
         if let Some(t) = &node.tiered {
             for id in node.store.replica().ids().filter(|id| t.is_public(id)) {
@@ -635,12 +649,20 @@ impl Handle {
             }
         }
         node.advertise();
-        tokio::spawn(node.run(rx, config.sync_every));
+        let task = tokio::spawn(node.run(rx, config.sync_every));
         Ok(Handle {
             peer_id,
             commands,
             set_aside,
+            task,
         })
+    }
+
+    /// Drops this handle and waits for the node's task: it first answers queued commands, and
+    /// ends only once every monitor is dropped too.
+    pub async fn finished(self) {
+        drop(self.commands);
+        let _ = self.task.await;
     }
 
     /// The own files found damaged at the start and renamed `<name>.damaged-<n>`.

@@ -144,10 +144,14 @@ fn addresses(list: &[String]) -> Result<Vec<Multiaddr>, ConfigError> {
         .collect()
 }
 
-/// The node's existing libp2p key; none is made.
+/// The bound on a seed file: 64 hex digits and surrounding whitespace.
+const MAX_SEED: usize = 128;
+
+/// The node's existing libp2p key, read from a bounded regular file; none is made.
 fn stored_transport_key(path: &Path) -> Result<Keypair, ConfigError> {
-    let text = std::fs::read_to_string(path).map_err(|e| ConfigError::Read(e.kind()))?;
-    Keypair::ed25519_from_bytes(unhex(&text, "transport.key")?)
+    let bytes = archive::read_bounded(path, MAX_SEED, "transport.key")?;
+    let text = std::str::from_utf8(&bytes).map_err(|_| ConfigError::Hex("transport.key"))?;
+    Keypair::ed25519_from_bytes(unhex(text, "transport.key")?)
         .map_err(|_| ConfigError::Key("transport.key"))
 }
 
@@ -513,73 +517,79 @@ async fn dial(handle: &Handle, peers: &[Multiaddr]) {
 }
 
 /// Runs the node until `stop` completes: listens, dials its peers, dials them again
-/// whenever it has none, and writes its status on each period.
+/// whenever it has none, and writes its status on each period. Returns once the node's task
+/// has ended; that task holds the data directory's lock, even if this future is dropped.
 pub async fn run(plan: Plan, stop: impl Future<Output = ()>) -> Result<(), StartError> {
-    let _lock = lock(&plan.status.with_file_name("lock"))
+    let lock = lock(&plan.status.with_file_name("lock"))
         .map_err(|e| StartError::Transport(format!("data directory lock: {e}")))?
         .ok_or_else(|| StartError::Transport("data directory in use".to_string()))?;
     let archive_path = plan.status.with_file_name("archive-status");
     archive::write_status(&archive_path, plan.archive_maintenance.is_some(), None)
         .map_err(|e| StartError::Transport(format!("archive maintenance status: {e}")))?;
-    let mut handle = Handle::spawn(plan.transport, plan.p2p)?;
-    for path in handle.set_aside() {
-        eprintln!("set aside: {}", path.display());
-    }
-    for addr in plan.listen {
-        let bound = handle.listen(addr).await.map_err(StartError::Transport)?;
-        eprintln!("listening on {bound}/p2p/{}", handle.peer_id());
-    }
-    dial(&handle, &plan.peers).await;
-    let monitor = handle.monitor();
-    let (stop_archive, stopped_archive) = tokio::sync::oneshot::channel();
-    let (reports, mut latest) = tokio::sync::watch::channel(None);
-    let jobs = plan.archive_maintenance.as_ref().map(archive::Plan::jobs);
-    let runner = async {
-        if let (Some(archive), Some(jobs)) = (&plan.archive_maintenance, &jobs) {
-            handle
-                .run_archive_maintenance(jobs, archive.schedule, stopped_archive, reports)
-                .await
-        } else {
-            std::future::pending().await
+    let mut handle = Handle::spawn_holding(plan.transport, plan.p2p, lock)?;
+    let result = async {
+        for path in handle.set_aside() {
+            eprintln!("set aside: {}", path.display());
         }
-    };
-    tokio::pin!(runner);
-    let mut tick = tokio::time::interval(plan.status_every);
-    tokio::pin!(stop);
-    let result = loop {
-        tokio::select! {
-            _ = &mut stop => {
-                let _ = stop_archive.send(());
-                break if plan.archive_maintenance.is_some() { runner.await } else { Ok(()) };
-            },
-            result = &mut runner => break result,
-            changed = latest.changed(), if plan.archive_maintenance.is_some() => {
-                if changed.is_ok() {
-                    if let Err(e) = archive::write_status(&archive_path, true, latest.borrow().as_ref()) {
-                        eprintln!("archive maintenance status not written: {e}");
+        for addr in plan.listen {
+            let bound = handle.listen(addr).await.map_err(StartError::Transport)?;
+            eprintln!("listening on {bound}/p2p/{}", handle.peer_id());
+        }
+        dial(&handle, &plan.peers).await;
+        let monitor = handle.monitor();
+        let (stop_archive, stopped_archive) = tokio::sync::oneshot::channel();
+        let (reports, mut latest) = tokio::sync::watch::channel(None);
+        let jobs = plan.archive_maintenance.as_ref().map(archive::Plan::jobs);
+        let runner = async {
+            if let (Some(archive), Some(jobs)) = (&plan.archive_maintenance, &jobs) {
+                handle
+                    .run_archive_maintenance(jobs, archive.schedule, stopped_archive, reports)
+                    .await
+            } else {
+                std::future::pending().await
+            }
+        };
+        tokio::pin!(runner);
+        let mut tick = tokio::time::interval(plan.status_every);
+        tokio::pin!(stop);
+        let result = loop {
+            tokio::select! {
+                _ = &mut stop => {
+                    let _ = stop_archive.send(());
+                    break if plan.archive_maintenance.is_some() { runner.await } else { Ok(()) };
+                },
+                result = &mut runner => break result,
+                changed = latest.changed(), if plan.archive_maintenance.is_some() => {
+                    if changed.is_ok() {
+                        if let Err(e) = archive::write_status(&archive_path, true, latest.borrow().as_ref()) {
+                            eprintln!("archive maintenance status not written: {e}");
+                        }
                     }
-                }
-            },
-            _ = tick.tick() => {
-                let status = monitor.status().await;
-                if let Err(e) = write_status(&plan.status, &status) {
-                    eprintln!("status not written: {e}");
-                }
-                if status.peers == 0 {
-                    for address in &plan.peers {
-                        let _ = monitor.dial(address.clone()).await;
+                },
+                _ = tick.tick() => {
+                    let status = monitor.status().await;
+                    if let Err(e) = write_status(&plan.status, &status) {
+                        eprintln!("status not written: {e}");
+                    }
+                    if status.peers == 0 {
+                        for address in &plan.peers {
+                            let _ = monitor.dial(address.clone()).await;
+                        }
                     }
                 }
             }
+        };
+        let _ = write_status(&plan.status, &monitor.status().await);
+        if let Err(e) = archive::write_status(
+            &archive_path,
+            plan.archive_maintenance.is_some(),
+            latest.borrow().as_ref(),
+        ) {
+            eprintln!("archive maintenance status not written: {e}");
         }
-    };
-    let _ = write_status(&plan.status, &monitor.status().await);
-    if let Err(e) = archive::write_status(
-        &archive_path,
-        plan.archive_maintenance.is_some(),
-        latest.borrow().as_ref(),
-    ) {
-        eprintln!("archive maintenance status not written: {e}");
+        result.map_err(|e| StartError::Transport(format!("local archive maintenance: {e:?}")))
     }
-    result.map_err(|e| StartError::Transport(format!("local archive maintenance: {e:?}")))
+    .await;
+    handle.finished().await;
+    result
 }
