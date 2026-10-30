@@ -1,5 +1,8 @@
 //! Operator-pinned archive configuration checks (`docs/04` §Archive maintenance in a node process).
 
+#[cfg(unix)]
+#[path = "support/process.rs"]
+mod process;
 #[path = "support/archive.rs"]
 mod support;
 use node::{plan, Config, ConfigError};
@@ -263,78 +266,13 @@ fn fifo_is_refused_without_opening() {
 
 #[cfg(unix)]
 mod processes {
+    use super::process::{address, until, Process};
     use super::*;
-    use libp2p::identity::Keypair;
     use std::net::TcpListener;
     use std::path::{Path, PathBuf};
-    use std::process::{Child, Command, Stdio};
+    use std::process::Command;
     use std::time::{Duration, Instant};
 
-    struct Process(Child);
-    impl Process {
-        fn start(config: &Path) -> Self {
-            let log = std::fs::File::create(config.with_extension("log")).unwrap();
-            Self(
-                Command::new(env!("CARGO_BIN_EXE_isegoria-node"))
-                    .arg(config)
-                    .stdout(Stdio::null())
-                    .stderr(log)
-                    .spawn()
-                    .unwrap(),
-            )
-        }
-        fn kill(&mut self) {
-            let _ = self.0.kill();
-            let _ = self.0.wait();
-        }
-        async fn terminate(&mut self, limit: Duration) {
-            assert!(Command::new("kill")
-                .args(["-TERM", &self.0.id().to_string()])
-                .status()
-                .unwrap()
-                .success());
-            let end = Instant::now() + limit;
-            loop {
-                if let Some(status) = self.0.try_wait().unwrap() {
-                    assert!(status.success(), "node exited {status}");
-                    return;
-                }
-                assert!(
-                    Instant::now() < end,
-                    "node did not drain its maintenance pass"
-                );
-                tokio::time::sleep(Duration::from_millis(25)).await;
-            }
-        }
-    }
-    impl Drop for Process {
-        fn drop(&mut self) {
-            self.kill();
-        }
-    }
-    fn address(seed: u8) -> String {
-        let port = TcpListener::bind("127.0.0.1:0")
-            .unwrap()
-            .local_addr()
-            .unwrap()
-            .port();
-        let peer = Keypair::ed25519_from_bytes([seed; 32])
-            .unwrap()
-            .public()
-            .to_peer_id();
-        format!("/ip4/127.0.0.1/tcp/{port}/p2p/{peer}")
-    }
-    async fn until(path: &Path, expected: impl Fn(&str) -> bool) -> String {
-        let end = Instant::now() + Duration::from_secs(25);
-        loop {
-            let text = read(path);
-            if expected(&text) {
-                return text;
-            }
-            assert!(Instant::now() < end, "{}: {text}", path.display());
-            tokio::time::sleep(Duration::from_millis(25)).await;
-        }
-    }
     async fn new_status(path: &Path) {
         let end = Instant::now() + Duration::from_secs(3);
         let before = std::fs::metadata(path).and_then(|m| m.modified()).ok();

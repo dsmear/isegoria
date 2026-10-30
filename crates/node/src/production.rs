@@ -32,6 +32,7 @@ pub struct Config {
 pub enum Error {
     Config(ConfigError),
     Archive(network::archive::Error),
+    Install(p2p::archive::InstallError),
     Io(io::ErrorKind),
     Invalid(&'static str),
 }
@@ -220,6 +221,14 @@ fn sync_directory(path: &Path) -> io::Result<()> {
     Ok(())
 }
 
+/// The exact `COMPLETE` text of a bundle: logical completion, never authentication.
+pub(crate) fn marker(digest: &[u8; 32]) -> String {
+    format!(
+        "isegoria/archive/bundle/v1\nmanifest {}\n",
+        crate::hex(digest)
+    )
+}
+
 /// Publishes a new bundle; only a bundle containing `COMPLETE` is complete.
 pub fn prepare(node: &crate::Config, input: &Config, output: &Path) -> Result<[u8; 32], Error> {
     let candidate = candidate(node, input)?;
@@ -243,11 +252,7 @@ pub fn prepare(node: &crate::Config, input: &Config, output: &Path) -> Result<[u
     }
     stage.write(
         "COMPLETE",
-        format!(
-            "isegoria/archive/bundle/v1\nmanifest {}\n",
-            crate::hex(&candidate.built.manifest.digest())
-        )
-        .as_bytes(),
+        marker(&candidate.built.manifest.digest()).as_bytes(),
     )?;
     fs::create_dir(output)?;
     let mut installed = Vec::new();

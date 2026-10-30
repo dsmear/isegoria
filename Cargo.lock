@@ -2660,6 +2660,7 @@ name = "node"
 version = "0.0.0"
 dependencies = [
  "ed25519-dalek",
+ "libc",
  "libp2p",
  "network",
  "p2p",

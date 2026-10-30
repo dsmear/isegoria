@@ -199,6 +199,55 @@ impl Prepared {
         })
     }
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Installed {
+    Written,
+    Present,
+}
+
+/// A segment that passed [`crate::Handle::install_archive`]'s admission, with every shard.
+pub struct Admitted(Prepared);
+
+impl Admitted {
+    pub fn new(
+        ctx: &Context<'_>,
+        signed: &SignedManifest,
+        segment: &Segment,
+    ) -> Result<Self, InstallError> {
+        let n = signed.manifest.shard_hashes().len();
+        Prepared::new(ctx, signed, segment, &(0..n).collect::<Vec<_>>()).map(Self)
+    }
+
+    /// Adds shard `index` to the records under `store` (a node's `Config::store`) with no node
+    /// running, under the admitting tiers; the caller excludes other writers (`docs/04`).
+    pub fn install_offline(
+        self,
+        tiers: &Tiers,
+        store: &Path,
+        index: usize,
+    ) -> Result<Installed, InstallError> {
+        let mut prepared = self.0;
+        if tiers.context() != prepared.context {
+            return Err(InstallError::Configuration);
+        }
+        if !prepared.record.shards.contains_key(&index) {
+            return Err(InstallError::Indices);
+        }
+        let mut holder = Store::open(tiers, Some(store.join("archive")))?;
+        let audit = holder.audit(tiers, prepared.context, prepared.digest(), Some(index))?;
+        if audit.healthy {
+            return Ok(Installed::Present);
+        }
+        prepared
+            .record
+            .shards
+            .retain(|i, _| *i == index || audit.indices.contains(i));
+        holder.install(tiers, prepared)?;
+        Ok(Installed::Written)
+    }
+}
+
 struct Record {
     signed: SignedManifest,
     shards: BTreeMap<usize, Vec<u8>>,

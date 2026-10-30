@@ -1074,7 +1074,8 @@ Under `data_dir`: `own/`, the writer's feed (§A node's own disk), and `circle/`
 member's circle feed; `replica/`, its replica on disk (§A replica on disk), with a tiered
 node's selected archive shards in `replica/archive/` (§Archive holders and transfer);
 `archive-status`, the latest configured archive-maintenance result (§Archive maintenance
-in a node process);
+in a node process); `lock`, held by the running process (§Initial archive installation on
+a holder);
 `transport.key`, the seed of its libp2p key, made at the first
 start, so its peer id stays the same across restarts; and `status`, rewritten whole at each
 period (a file written beside it, then renamed): whether each feed is caught up, its
@@ -1638,9 +1639,9 @@ remains the signers' external premise pending T79, as in the archive primitive c
 
 The new bundle directory contains `manifest.bin` (the raw unsigned `Manifest`), canonical
 `segment.bin`, `target.cut`, optional `previous.cut`, and `shard-000.bin` through the final
-shard index. These are preparation outputs, not installed holder records. Initial holder
-import and automatic extraction of a segment from a live replica are not supplied here.
-A `COMPLETE` marker records logical bundle completion, with this exact text:
+shard index. These are preparation outputs, not installed holder records; their manual
+installation is specified below. Automatic extraction of a segment from a live replica is
+not supplied. A `COMPLETE` marker records logical bundle completion, with this exact text:
 
 ```text
 isegoria/archive/bundle/v1
@@ -1698,8 +1699,81 @@ existing output files and empty directories. These are controlled offline proces
 in-process checks, not automatic publication between members or independent-operator evidence.
 
 These are manual preparation and certificate tools. Automatic segment extraction, manifest
-production/co-signing between running members, initial holder provisioning, roster agreement
-and the independent-operator trial remain open. T79/T88 and application rules are unchanged.
+production/co-signing between running members, roster agreement and the independent-operator
+trial remain open. T79/T88 and application rules are unchanged.
+
+### Initial archive installation on a holder (T84, eighth increment)
+
+One offline command installs a prepared, certified bundle's assigned shard into a stopped
+holder's own store, so that its node process serves and maintains it through the paths above:
+
+```text
+isegoria-node --archive-install <node.toml> <bundle-dir>
+```
+
+On success it prints the manifest digest as lowercase hex, then `shard <index> installed`,
+or `shard <index> present` when nothing was written. An error prints an `archive:` diagnostic
+and exits with code 2. The command starts no networking and sends nothing: there is no remote
+upload, and no holder writes into another. Each holder's operator installs their own shard.
+
+**Trusted inputs.** The node TOML is the holder's own, tiered, with an `[archive_maintenance]`
+table (§Archive maintenance in a node process); its whole plan is loaded and checked as at
+startup. The bundle's `COMPLETE` marker must be present, with the exact text of §Manual
+archive preparation and co-signing, and name the manifest digest of one configured job. That job alone supplies the independently pinned
+lineage, cuts, view and exclusions, the quorum certificate (`manifest_file`) and the roster;
+tiers, network id and threshold come from the node configuration. The marker only selects a
+job and records that preparation finished; it authenticates nothing. The bundle's
+`manifest.bin` and cut copies are not read. Unrelated runtime settings are not validated.
+
+**Assignment.** The holder's identity is its existing `data_dir/transport.key`, which this
+command never creates. The existing placement over the job's roster gives that transport key
+at most one index; an unassigned key is refused before anything is written. A later roster
+can assign another index of the same archive.
+
+**Verification before availability.** `segment.bin` is read within the 32 MiB segment bound
+and must be canonical. The admission of `Handle::install_archive`, exposed for a stopped holder
+as `p2p::archive::Admitted`, verifies the certificate against the pinned context and tiers,
+rebuilds the codeword from the segment under the full segment contract and compares the whole
+manifest. `shard-<index>.bin`, with the index in three digits, is read within the 16 MiB shard
+bound and must match the signed hash of the assigned index. Every check precedes the lock and
+the store, so a refused input writes nothing.
+
+**Storage.** The holder store is `data_dir/replica/archive/` with its existing configuration
+header, scan bounds and quotas (§Archive holders and transfer). If a valid record of the
+manifest already retains the assigned index, nothing is written. Otherwise, as in maintenance,
+the record is replaced by one retaining its previously valid indices and the assigned index,
+or only the assigned index if the old record is damaged. Other manifests' records are not
+touched. The existing temporary write, sync, rename and directory sync, failure semantics and
+record format apply unchanged: a refusal before rename keeps the committed record, and a sync
+error after rename is an uncertain acknowledgement that a retry resolves.
+
+**Concurrency with a node process.** Only one process may use a data directory's store.
+`isegoria-node <config>` holds an exclusive advisory lock on `data_dir/lock` from before it
+resets `archive-status` until it returns. The installer takes the same lock without waiting,
+after its checks, and holds it while it opens and writes the store. While a node runs, the
+installer is refused without writing; while an installation runs, a node, like a second node
+on the same directory, refuses to start (exit 1) before resetting its status. The procedure is to stop the node, install,
+and start it again. The operating system releases the lock when its process ends, including
+a forced kill. It is a Unix `flock` on a local filesystem; elsewhere nothing enforces it and
+the operator must stop the node. In-process `p2p::Handle` users are outside this lock.
+
+**After installation.** At its next start the node validates the record, announces the
+retained shards and serves them; the configured job's pass audits the actual bytes and reports
+`Healthy` without fetching. Installing one holder does not establish that other holders, or
+any `k` of them, hold their shards.
+
+**Evidence.** AT-NET-33 runs the real prepare/sign/combine/install commands for three holders
+of a nonempty public delta, serves the segment from their processes, recovers after one holder
+stops and audits the installed shard as healthy after restart. It checks refusal of altered
+context, below-quorum or unconfigured certificates, missing or mismatched markers, altered
+segment and shard bytes, and unassigned or missing identities; a running node refuses both
+the installer and a second node. Repetition writes nothing; other indices and archives are
+preserved; full or differently bound stores refuse without change. These are controlled local processes, not independent
+operators.
+
+This step is manual and local. Remote upload, automatic extraction from the feeds, provisioning
+of other holders, roster agreement, repair orchestration across holders and the
+independent-operator trial remain open. T79/T88 and application rules are unchanged.
 
 
 ---

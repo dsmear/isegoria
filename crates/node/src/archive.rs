@@ -79,6 +79,12 @@ impl Plan {
             })
             .collect()
     }
+
+    pub(crate) fn job(&self, digest: &[u8; 32]) -> Option<MaintenanceJob<'_>> {
+        self.jobs()
+            .into_iter()
+            .find(|job| job.signed.manifest.digest() == *digest)
+    }
 }
 
 pub(crate) fn read_bounded(

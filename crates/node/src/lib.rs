@@ -2,6 +2,7 @@
 //! configuration, its files, its status, and the loop that runs it until it is stopped.
 
 pub mod archive;
+pub mod install;
 pub mod production;
 
 use ed25519_dalek::VerifyingKey;
@@ -143,15 +144,18 @@ fn addresses(list: &[String]) -> Result<Vec<Multiaddr>, ConfigError> {
         .collect()
 }
 
+/// The node's existing libp2p key; none is made.
+fn stored_transport_key(path: &Path) -> Result<Keypair, ConfigError> {
+    let text = std::fs::read_to_string(path).map_err(|e| ConfigError::Read(e.kind()))?;
+    Keypair::ed25519_from_bytes(unhex(&text, "transport.key")?)
+        .map_err(|_| ConfigError::Key("transport.key"))
+}
+
 /// The node's libp2p key: its seed kept in `path`, made at the first start.
 fn transport_key(path: &Path) -> Result<Keypair, ConfigError> {
     let read = |e: io::Error| ConfigError::Read(e.kind());
     if path.exists() {
-        let seed = unhex(
-            &std::fs::read_to_string(path).map_err(read)?,
-            "transport.key",
-        )?;
-        return Keypair::ed25519_from_bytes(seed).map_err(|_| ConfigError::Key("transport.key"));
+        return stored_transport_key(path);
     }
     let key = Keypair::generate_ed25519();
     let pair = key
@@ -178,6 +182,33 @@ fn write_private(path: &Path, text: &str) -> io::Result<()> {
 #[cfg(not(unix))]
 fn write_private(path: &Path, text: &str) -> io::Result<()> {
     std::fs::write(path, text)
+}
+
+/// An exclusive advisory lock on a data directory's `lock` file, released when dropped.
+struct DataLock {
+    _file: std::fs::File,
+}
+
+/// The lock, or `None` while another process holds it; enforced on Unix only (`docs/04`).
+fn lock(path: &Path) -> io::Result<Option<DataLock>> {
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(path)?;
+    #[cfg(unix)]
+    {
+        use std::os::fd::AsRawFd;
+        // SAFETY: `flock` on a descriptor this function owns.
+        if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+            let e = io::Error::last_os_error();
+            return match e.raw_os_error() {
+                Some(libc::EWOULDBLOCK) => Ok(None),
+                _ => Err(e),
+            };
+        }
+    }
+    Ok(Some(DataLock { _file: file }))
 }
 
 /// What a checked configuration starts.
@@ -484,6 +515,9 @@ async fn dial(handle: &Handle, peers: &[Multiaddr]) {
 /// Runs the node until `stop` completes: listens, dials its peers, dials them again
 /// whenever it has none, and writes its status on each period.
 pub async fn run(plan: Plan, stop: impl Future<Output = ()>) -> Result<(), StartError> {
+    let _lock = lock(&plan.status.with_file_name("lock"))
+        .map_err(|e| StartError::Transport(format!("data directory lock: {e}")))?
+        .ok_or_else(|| StartError::Transport("data directory in use".to_string()))?;
     let archive_path = plan.status.with_file_name("archive-status");
     archive::write_status(&archive_path, plan.archive_maintenance.is_some(), None)
         .map_err(|e| StartError::Transport(format!("archive maintenance status: {e}")))?;

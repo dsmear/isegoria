@@ -5,14 +5,28 @@
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-fn archive_command(args: &[PathBuf]) -> Result<[u8; 32], node::production::Error> {
+fn archive_command(args: &[PathBuf]) -> Result<String, node::production::Error> {
     use node::production::{self, Error};
+    if let [flag, node, bundle] = args {
+        if flag.as_os_str() == "--archive-install" {
+            let done = node::install::install(&node::Config::load(node)?, bundle)?;
+            let state = match done.installed {
+                p2p::archive::Installed::Written => "installed",
+                p2p::archive::Installed::Present => "present",
+            };
+            return Ok(format!(
+                "{}\nshard {} {state}",
+                node::hex(&done.digest),
+                done.index
+            ));
+        }
+    }
     let [flag, node, input, rest @ ..] = args else {
         return Err(Error::Invalid("archive command arguments"));
     };
     let node = node::Config::load(node)?;
     let input = production::Config::load(input)?;
-    match (flag.to_str(), rest) {
+    let digest = match (flag.to_str(), rest) {
         (Some("--archive-prepare"), [output]) => production::prepare(&node, &input, output),
         (Some("--archive-sign"), [manifest, output]) => {
             production::sign(&node, &input, manifest, output)
@@ -21,7 +35,8 @@ fn archive_command(args: &[PathBuf]) -> Result<[u8; 32], node::production::Error
             production::combine(&node, &input, manifest, shares, output)
         }
         _ => Err(Error::Invalid("archive command arguments")),
-    }
+    }?;
+    Ok(node::hex(&digest))
 }
 
 async fn stopped() {
@@ -47,8 +62,8 @@ fn main() -> ExitCode {
         .is_some_and(|a| a.starts_with("--archive-"))
     {
         return match archive_command(&args) {
-            Ok(digest) => {
-                println!("{}", node::hex(&digest));
+            Ok(output) => {
+                println!("{output}");
                 ExitCode::SUCCESS
             }
             Err(error) => {
@@ -75,7 +90,8 @@ fn main() -> ExitCode {
             eprintln!("usage: isegoria-node <config.toml> | --announce <config.toml>\n\
                 --archive-prepare <node.toml> <production.toml> <bundle-dir>\n\
                 --archive-sign <node.toml> <production.toml> <manifest.bin> <share.bin>\n\
-                --archive-combine <node.toml> <production.toml> <manifest.bin> <signed-manifest.bin> <share.bin>...");
+                --archive-combine <node.toml> <production.toml> <manifest.bin> <signed-manifest.bin> <share.bin>...\n\
+                --archive-install <node.toml> <bundle-dir>");
             return ExitCode::from(2);
         }
     };
