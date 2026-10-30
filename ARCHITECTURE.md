@@ -289,6 +289,7 @@ over libp2p and logged on the member's circle feed if its embedding admits it (T
 checked configuration: keys, consortium, a tiered network's circle keys and the member's
 circle key, a relay's routes or a member's gateway, transport key kept in the data directory),
 `announcement` (`isegoria-node --announce`: a member's signed key configuration),
+`transport_public_key` (`--transport-public-key`: the existing transport key's roster entry),
 `archive` (bounded regular-file loading, checked operator-pinned jobs and latest-result
 status), `production` (offline `--archive-prepare`, `--archive-sign` and `--archive-combine`,
 using independently pinned segments/contexts and no live datastore), `install` (offline

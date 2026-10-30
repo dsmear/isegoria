@@ -1731,6 +1731,15 @@ this command never creates or modifies it. The existing placement over the job's
 gives that transport key at most one index; an unassigned key is refused before anything is
 written. A later roster can assign another index of the same archive.
 
+**Roster key.** `isegoria-node --transport-public-key <node.toml>` prints one line on stdout:
+the 32-byte Ed25519 public key of the existing `data_dir/transport.key` in lowercase hex, the
+form of a `roster` entry. Besides the node TOML, which must only parse, it reads that key
+alone, with the bound and decoding above, and never prints the seed. It makes or changes no
+key, directory, lock, status or store, plans and starts nothing, needs no archive job or
+member role, and also runs beside a running node. A missing, malformed, oversized or
+non-regular key prints a diagnostic naming the key file on stderr and exits with code 2. The
+command makes no identity: the node makes its key at its first start (§A node process).
+
 **Verification before availability.** `segment.bin` is read within the 32 MiB segment bound
 and must be canonical. The admission of `Handle::install_archive`, exposed for a stopped holder
 as `p2p::archive::Admitted`, verifies the certificate against the pinned context and tiers,
@@ -1776,7 +1785,9 @@ segment and shard bytes, and unassigned or missing identities; a running node re
 the installer and a second node. The lock stays held until the storage task ends after a
 stop, an error or the cancellation of `run`, and a queued installation completes before it is
 released; oversized, non-regular or malformed transport keys are refused without blocking or
-writing. Repetition writes nothing; other indices and archives are preserved; full or
+writing. `--transport-public-key` reproduces RFC 8032's first test vector, its lines used as a
+roster assign each holder a shard, it reads beside a running node, and its refusals write
+nothing. Repetition writes nothing; other indices and archives are preserved; full or
 differently bound stores refuse without change. These are controlled local processes, not
 independent operators.
 

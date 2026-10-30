@@ -13,9 +13,43 @@ use node::production::{self, Error};
 use p2p::archive::{InstallError, Installed};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Output, Stdio};
+use std::time::{Duration, Instant};
 use support::*;
 
 const SEEDS: [u8; 3] = [41, 42, 43];
+const PRINT: &str = "--transport-public-key";
+const RFC8032_SEED: &str = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60";
+const RFC8032_PUBLIC: &str = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a";
+
+/// The node binary's output, or a failure if it has not exited within 30 s.
+fn cli(args: &[&Path]) -> Output {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_isegoria-node"))
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let end = Instant::now() + Duration::from_secs(30);
+    while child.try_wait().unwrap().is_none() {
+        if Instant::now() > end {
+            let _ = child.kill();
+            panic!("{args:?} did not exit in time");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    child.wait_with_output().unwrap()
+}
+
+fn ok(args: &[&Path]) -> String {
+    let out = cli(args);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    String::from_utf8(out.stdout).unwrap()
+}
 
 fn public(seed: u8) -> String {
     node::hex(
@@ -51,8 +85,12 @@ fn certified(f: &Fixture, name: &str, layout: Layout) -> (PathBuf, PathBuf) {
 
 fn job(f: &Fixture, certificate: &Path, roster: &[u8]) -> String {
     let roster: Vec<_> = roster.iter().map(|s| public(*s)).collect();
+    roster_job(f, certificate, &roster)
+}
+
+fn roster_job(f: &Fixture, certificate: &Path, roster: &[String]) -> String {
     format!("\n[[archive_maintenance.jobs]]\nlineage = \"{}\"\nprevious_cut_file = \"{}\"\ntarget_cut_file = \"{}\"\nview = 4\nexcluded = []\nmanifest_file = \"{}\"\nroster = {}\nbootstrap = []\n",
-        node::hex(&LINEAGE), f.root.join("previous.cut").display(), f.root.join("target.cut").display(), certificate.display(), list(&roster))
+        node::hex(&LINEAGE), f.root.join("previous.cut").display(), f.root.join("target.cut").display(), certificate.display(), list(roster))
 }
 
 /// A tiered non-member holder named `name` with transport seed `seed` and `jobs`.
@@ -410,6 +448,7 @@ fn prepared(f: &Fixture) -> (PathBuf, PathBuf) {
 }
 
 // The data-directory lock is free only once the storage task has ended (AT-NET-33).
+#[cfg(unix)]
 #[test]
 fn lock_lasts_until_the_storage_task_ends() {
     let f = Fixture::new("install-lock", false);
@@ -535,31 +574,126 @@ fn fifo_transport_key_is_refused_without_blocking() {
     ));
 }
 
+/// `name`'s holder configuration without archive jobs, in `<name>.toml`.
+fn bare(f: &Fixture, name: &str, seed: u8) -> PathBuf {
+    let text = holder(f, name, seed, "/ip4/127.0.0.1/tcp/0", "");
+    let path = f.root.join(format!("{name}.toml"));
+    fs::write(&path, text.split("\n[archive_maintenance]").next().unwrap()).unwrap();
+    path
+}
+
+/// Every path under `dir`, with a regular file's bytes; nothing else is opened.
+fn tree(dir: &Path) -> Vec<(PathBuf, Option<Vec<u8>>)> {
+    let mut out = Vec::new();
+    for entry in fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        let kind = fs::symlink_metadata(&path).unwrap().file_type();
+        if kind.is_dir() {
+            out.extend(tree(&path));
+        }
+        let bytes = kind.is_file().then(|| fs::read(&path).unwrap());
+        out.push((path, bytes));
+    }
+    out.sort();
+    out
+}
+
+// The printed key is RFC 8032's public key and a roster entry; nothing is written (AT-NET-33).
+#[test]
+fn transport_public_key_prints_the_roster_entry() {
+    let f = Fixture::new("public-key", false);
+    let (bundle, certificate) = prepared(&f);
+    let path = bare(&f, "vector", 41);
+    let dir = f.root.join("vector");
+    fs::write(dir.join("transport.key"), RFC8032_SEED).unwrap();
+    let before = tree(&dir);
+    assert_eq!(before.len(), 1);
+    let out = cli(&[Path::new(PRINT), &path]);
+    assert!(out.status.success());
+    assert_eq!(out.stdout, format!("{RFC8032_PUBLIC}\n").into_bytes());
+    assert!(out.stderr.is_empty());
+    assert_eq!(tree(&dir), before);
+    let names: Vec<_> = (0..SEEDS.len()).map(|i| format!("holder-{i}")).collect();
+    let keys: Vec<_> = SEEDS
+        .iter()
+        .zip(&names)
+        .map(|(seed, name)| {
+            let line = ok(&[Path::new(PRINT), &bare(&f, name, *seed)]);
+            assert_eq!(line, format!("{}\n", public(*seed)));
+            line.trim_end().to_string()
+        })
+        .collect();
+    let jobs = roster_job(&f, &certificate, &keys);
+    let mut indices: Vec<_> = SEEDS
+        .iter()
+        .zip(&names)
+        .map(|(seed, name)| {
+            let text = holder(&f, name, *seed, "/ip4/127.0.0.1/tcp/0", &jobs);
+            install(&config(&text), &bundle).unwrap().index
+        })
+        .collect();
+    indices.sort();
+    assert_eq!(indices, vec![0, 1, 2]);
+}
+
+// Missing, malformed, oversized or non-regular keys exit 2 and write nothing (AT-NET-33).
+#[test]
+fn transport_public_key_refusals_write_nothing() {
+    let f = Fixture::new("public-key-refusals", false);
+    let path = bare(&f, "holder", 41);
+    let dir = f.root.join("holder");
+    let key = dir.join("transport.key");
+    let seed = fs::read(&key).unwrap();
+    let refused = |expected: &str| {
+        let out = cli(&[Path::new(PRINT), &path]);
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert_eq!(out.status.code(), Some(2), "{stderr}");
+        assert!(out.stdout.is_empty());
+        assert_eq!(
+            stderr,
+            format!("transport key {}: {expected}\n", key.display())
+        );
+    };
+    let (bounds, hex) = ("Bounds(\"transport.key\")", "Hex(\"transport.key\")");
+    for (bytes, expected) in [
+        ([seed.clone(), vec![b' '; 65]].concat(), bounds),
+        (vec![b'z'; 64], hex),
+        (seed[..63].to_vec(), hex),
+        (vec![0xff; 64], hex),
+    ] {
+        fs::write(&key, &bytes).unwrap();
+        let before = tree(&dir);
+        refused(expected);
+        assert_eq!(tree(&dir), before);
+    }
+    fs::remove_file(&key).unwrap();
+    refused("Read(NotFound)");
+    assert!(tree(&dir).is_empty());
+    fs::create_dir(&key).unwrap();
+    refused(bounds);
+    assert_eq!(tree(&dir), vec![(key.clone(), None)]);
+    fs::remove_dir(&key).unwrap();
+    #[cfg(unix)]
+    {
+        assert!(Command::new("mkfifo").arg(&key).status().unwrap().success());
+        refused(bounds);
+        assert_eq!(tree(&dir), vec![(key.clone(), None)]);
+        fs::remove_file(&key).unwrap();
+    }
+    fs::remove_dir(&dir).unwrap();
+    refused("Read(NotFound)");
+    assert!(!dir.exists());
+    let out = cli(&[Path::new(PRINT), &f.root.join("absent.toml")]);
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(out.stderr, b"configuration: Read(NotFound)\n");
+}
+
 #[cfg(unix)]
 mod processes {
     use super::process::{address, until, Process};
     use super::*;
     use libp2p::{Multiaddr, PeerId};
     use p2p::archive::{fetch, Holder};
-    use std::process::Command;
-    use std::time::Duration;
-
-    fn cli(args: &[&Path]) -> std::process::Output {
-        Command::new(env!("CARGO_BIN_EXE_isegoria-node"))
-            .args(args)
-            .output()
-            .unwrap()
-    }
-
-    fn ok(args: &[&Path]) -> String {
-        let out = cli(args);
-        assert!(
-            out.status.success(),
-            "{}",
-            String::from_utf8_lossy(&out.stderr)
-        );
-        String::from_utf8(out.stdout).unwrap()
-    }
 
     async fn served(f: &Fixture, signed: &SignedManifest, holders: Vec<(usize, &str)>) {
         let holders = holders
@@ -710,5 +844,21 @@ mod processes {
         for node in &mut nodes {
             node.terminate(Duration::from_secs(5)).await;
         }
+    }
+
+    // The key is printed beside a running node, which keeps its key and lock (AT-NET-33).
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn transport_public_key_reads_beside_a_running_node() {
+        let f = Fixture::new("public-key-running", false);
+        let path = bare(&f, "holder", 41);
+        let key = f.root.join("holder/transport.key");
+        let seed = fs::read(&key).unwrap();
+        let mut node = Process::start(&path);
+        until(&f.root.join("holder/status"), |s| !s.is_empty()).await;
+        assert_eq!(ok(&[Path::new(PRINT), &path]), format!("{}\n", public(41)));
+        assert_eq!(fs::read(&key).unwrap(), seed);
+        let second = Process::start(&path).exited(Duration::from_secs(10)).await;
+        assert_eq!(second.code(), Some(1));
+        node.terminate(Duration::from_secs(5)).await;
     }
 }

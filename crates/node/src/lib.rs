@@ -155,6 +155,16 @@ fn stored_transport_key(path: &Path) -> Result<Keypair, ConfigError> {
         .map_err(|_| ConfigError::Key("transport.key"))
 }
 
+/// The Ed25519 public key of the existing `data_dir/transport.key`, a roster entry; nothing else
+/// is read or written (`docs/04` §Initial archive installation on a holder).
+pub fn transport_public_key(config: &Config) -> Result<[u8; 32], ConfigError> {
+    stored_transport_key(&config.data_dir.join("transport.key"))?
+        .public()
+        .try_into_ed25519()
+        .map(|key| key.to_bytes())
+        .map_err(|_| ConfigError::Key("transport.key"))
+}
+
 /// The node's libp2p key: its seed kept in `path`, made at the first start.
 fn transport_key(path: &Path) -> Result<Keypair, ConfigError> {
     let read = |e: io::Error| ConfigError::Read(e.kind());

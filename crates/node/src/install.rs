@@ -37,12 +37,7 @@ pub fn install(node: &crate::Config, bundle: &Path) -> Result<Outcome, Error> {
     let job = plan
         .job(&digest)
         .ok_or(Error::Invalid("bundle not configured"))?;
-    let key = crate::stored_transport_key(&node.data_dir.join("transport.key"))?;
-    let own = key
-        .public()
-        .try_into_ed25519()
-        .map_err(|_| Error::Invalid("transport key"))?
-        .to_bytes();
+    let own = crate::transport_public_key(node)?;
     let index = job
         .signed
         .verify(&job.context)?

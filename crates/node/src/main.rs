@@ -2,8 +2,16 @@
 //! process); `--announce <config.toml>` prints a member's signed key configuration. Exit 2 for
 //! a configuration that does not hold, 1 for a node that does not start.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+
+fn transport_public_key(path: &Path) -> Result<String, String> {
+    let config = node::Config::load(path).map_err(|e| format!("configuration: {e:?}"))?;
+    let key = config.data_dir.join("transport.key");
+    node::transport_public_key(&config)
+        .map(|public| node::hex(&public))
+        .map_err(|e| format!("transport key {}: {e:?}", key.display()))
+}
 
 fn archive_command(args: &[PathBuf]) -> Result<String, node::production::Error> {
     use node::production::{self, Error};
@@ -85,9 +93,22 @@ fn main() -> ExitCode {
                 }
             };
         }
+        [flag, path] if flag.as_os_str() == "--transport-public-key" => {
+            return match transport_public_key(path) {
+                Ok(hex) => {
+                    println!("{hex}");
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("{e}");
+                    ExitCode::from(2)
+                }
+            };
+        }
         [path] => path.clone(),
         _ => {
             eprintln!("usage: isegoria-node <config.toml> | --announce <config.toml>\n\
+                --transport-public-key <node.toml>\n\
                 --archive-prepare <node.toml> <production.toml> <bundle-dir>\n\
                 --archive-sign <node.toml> <production.toml> <manifest.bin> <share.bin>\n\
                 --archive-combine <node.toml> <production.toml> <manifest.bin> <signed-manifest.bin> <share.bin>...\n\
