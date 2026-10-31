@@ -20,6 +20,7 @@ bhttp = { version = "=0.8.0", default-features = false }
 ed25519-dalek = "2"
 
 [dev-dependencies]
+network = { path = "../network", features = ["fault-injection"] }
 proptest = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync"] }
 protocol = { path = "../protocol" }

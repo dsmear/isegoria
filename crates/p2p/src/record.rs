@@ -174,13 +174,23 @@ pub enum Found {
     Unreadable,
 }
 
-/// The record at `path`, reading at most one byte past its length.
+/// The record at `path`, reading at most one byte past its length; anything but a regular
+/// file within that length, before and once opened, is unreadable.
 pub fn read(path: &Path) -> Found {
+    let regular = |m: &std::fs::Metadata| m.is_file() && m.len() <= LEN as u64;
+    match std::fs::metadata(path) {
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Found::Missing,
+        Ok(m) if regular(&m) => {}
+        _ => return Found::Unreadable,
+    }
     let file = match File::open(path) {
         Ok(file) => file,
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Found::Missing,
         Err(_) => return Found::Unreadable,
     };
+    if !file.metadata().is_ok_and(|m| regular(&m)) {
+        return Found::Unreadable;
+    }
     let mut bytes = Vec::new();
     match file.take(LEN as u64 + 1).read_to_end(&mut bytes) {
         Ok(_) => Record::decode(&bytes).map_or(Found::Unreadable, Found::Present),

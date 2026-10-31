@@ -6,6 +6,10 @@ license.workspace = true
 rust-version.workspace = true
 description = "Signed append-only logs, content addressing, Merkle anchoring, consortium checkpoints, erasure coding. See docs/04."
 
+# Test builds only, through p2p's dev-dependency: `store::faults` fails chosen own-file writes.
+[features]
+fault-injection = []
+
 # Self-contained integrity primitives and the replicated set are real; the libp2p
 # transport lives in the `p2p` crate, so this one stays free of I/O runtimes. Prefer
 # mature libraries, bespoke crypto only as a tested, documented exception.

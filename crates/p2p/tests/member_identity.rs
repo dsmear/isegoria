@@ -7,7 +7,8 @@ use network::cid::cid;
 use network::consortium::{Consortium, Member};
 use network::log::{Entry, TransparencyLog};
 use network::replica::{FeedWriter, Replica, SignedEntry};
-use network::store::{DurableLog, ObjectStore};
+use network::store::faults::{self, Fault, On};
+use network::store::{read_objects, DurableLog, ObjectStore};
 use network::tier::{Tier, Tiers};
 use p2p::member::MemberRole;
 use p2p::record::{read, Found, Record, State, Stop};
@@ -342,6 +343,49 @@ async fn damage_and_missing_or_foreign_records_stop() {
     assert!(matches!(foreign, Err(StartError::Identity)));
 }
 
+/// Member 0 started on another thread: a start still blocked after 10 s fails the test.
+async fn start_within(config: Config) -> Handle {
+    let runtime = tokio::runtime::Handle::current();
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    std::thread::spawn(move || {
+        let _entered = runtime.enter();
+        let _ = tx.send(Handle::spawn(transport(0), config));
+    });
+    let started = tokio::time::timeout(Duration::from_secs(10), rx).await;
+    started
+        .expect("the start is not blocked")
+        .unwrap()
+        .expect("a node starts")
+}
+
+// A record that is a FIFO or a directory stops the start unblocked, left as found (AT-NET-36).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_non_regular_record_stops_without_blocking() {
+    let mut kinds = vec!["directory"];
+    if cfg!(unix) {
+        kinds.push("fifo");
+    }
+    for kind in kinds {
+        let root = scratch(kind);
+        append(&root.join("own"), &["a"]);
+        let path = root.join("identity");
+        if kind == "directory" {
+            std::fs::create_dir(&path).unwrap();
+        } else {
+            let made = std::process::Command::new("mkfifo").arg(&path).status();
+            assert!(made.unwrap().success());
+        }
+        let m0 = start_within(config(0, &root, IDLE)).await;
+        refused(&m0, Stop::Unreadable).await;
+        assert_eq!(own_ids(&m0.replica().await), 0);
+        m0.finished().await;
+        let kind_now = std::fs::symlink_metadata(&path).unwrap().file_type();
+        assert_eq!(kind_now.is_dir(), kind == "directory");
+        assert!(!kind_now.is_file() && !kind_now.is_symlink());
+        assert!(!root.join("identity.next").exists());
+    }
+}
+
 // Only a verified own entry past or against the files stops, outliving its evidence (AT-NET-36).
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn verified_own_entries_stop_the_member() {
@@ -371,9 +415,8 @@ async fn verified_own_entries_stop_the_member() {
     refused(&m0, Stop::OwnEntry(Tier::Public)).await;
 }
 
-// A stopped member adds no entry, by publication or duty, while it reads on (AT-NET-36).
-#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn a_stopped_member_adds_no_entry() {
+/// Three busy members; member 0 stops by a verified own entry, or by a failed feed write.
+async fn busy_member_stops(by_failed_write: bool) {
     let roots: Vec<PathBuf> = (0..3).map(|_| scratch("busy")).collect();
     let mut members = Vec::new();
     for (i, root) in roots.iter().enumerate() {
@@ -385,10 +428,21 @@ async fn a_stopped_member_adds_no_entry() {
     }
     let (m0, m1) = (&members[0].0, &members[1].0);
     until("two cuts", || async { m0.status().await.cuts.len() >= 2 }).await;
-    let len = m0.replica().await.feed(&public(0)).len();
-    let (beyond, object) = signed(NET, len + 3, "gap");
-    assert!(m0.insert(beyond, object).await.is_ok());
-    refused(m0, Stop::OwnEntry(Tier::Public)).await;
+    let stop = if by_failed_write {
+        let lost = b"busy-lost".to_vec();
+        faults::arm(On::Object, cid(&lost), Fault::Write);
+        assert!(matches!(
+            m0.publish(lost).await,
+            Err(PublishError::Store(_))
+        ));
+        Stop::Failed
+    } else {
+        let len = m0.replica().await.feed(&public(0)).len();
+        let (beyond, object) = signed(NET, len + 3, "gap");
+        assert!(m0.insert(beyond, object).await.is_ok());
+        Stop::OwnEntry(Tier::Public)
+    };
+    refused(m0, stop).await;
     let mine = own_ids(&m0.replica().await);
     let cuts = m1.status().await.cuts.len();
     until("the others collect three more cuts", || async {
@@ -401,7 +455,142 @@ async fn a_stopped_member_adds_no_entry() {
     .await;
     assert_eq!(own_ids(&m0.replica().await), mine);
     assert!(own_ids(&m1.replica().await) <= mine);
-    refused(m0, Stop::OwnEntry(Tier::Public)).await;
+    refused(m0, stop).await;
+}
+
+// A stopped member adds no entry, by publication or duty, while it reads on (AT-NET-36).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_stopped_member_adds_no_entry() {
+    busy_member_stops(false).await;
+}
+
+// A failed feed write stops a busy member's duties while the others collect cuts (AT-NET-36).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_failed_feed_write_stops_the_duties() {
+    busy_member_stops(true).await;
+}
+
+fn feed_key(tier: Tier) -> [u8; 32] {
+    match tier {
+        Tier::Public => public(0),
+        Tier::Circle => circle(0),
+    }
+}
+
+async fn publish_on(h: &Handle, tier: Tier, object: &[u8]) -> Result<SignedEntry, PublishError> {
+    match tier {
+        Tier::Public => h.publish(object.to_vec()).await,
+        Tier::Circle => h.publish_circle(object.to_vec()).await,
+    }
+}
+
+/// The log's length in bytes and the objects of member 0's `tier` files, read unchanged.
+fn held(root: &Path, tier: Tier) -> (u64, Vec<Vec<u8>>) {
+    let dir = root.join(if tier == Tier::Public {
+        "own"
+    } else {
+        "circle"
+    });
+    let log = std::fs::metadata(dir.join("log")).unwrap().len();
+    let objects = read_objects(&dir.join("objects")).unwrap();
+    (log, objects.into_iter().map(|(_, o)| o).collect())
+}
+
+/// Member 0 fails, by `fault`, the write `on` of `tier`'s entry after `before` others, then
+/// restarts on what its files hold.
+async fn failed_write(tier: Tier, before: usize, on: On, fault: Fault) {
+    let case = format!("fault-{tier:?}-{before}-{on:?}-{fault:?}");
+    let object = |k: &str| format!("{case}-{k}").into_bytes();
+    let (m1, a1) = peer().await;
+    let root = scratch("feed-fault");
+    record(0, &root, [State::Unused; 2]);
+    let m0 = joined(&root, &a1).await;
+    let mut objects: Vec<Vec<u8>> = (0..before).map(|k| object(&k.to_string())).collect();
+    for o in &objects {
+        publish_on(&m0, tier, o).await.unwrap();
+    }
+    let lost = object("lost");
+    faults::arm(on, cid(&lost), fault);
+    let failed = publish_on(&m0, tier, &lost).await;
+    assert!(
+        matches!(failed, Err(PublishError::Store(_))),
+        "{case}: {failed:?}"
+    );
+    refused(&m0, Stop::Failed).await;
+    let len = |r: &Replica| r.feed(&feed_key(tier)).len();
+    assert_eq!(len(&m0.replica().await), before, "{case}");
+    let i = usize::from(tier == Tier::Circle);
+    let mut states = [State::Unused; 2];
+    states[i] = if before == 0 {
+        State::Opening
+    } else {
+        State::Written
+    };
+    assert_eq!(on_disk(&root).states, states, "{case}");
+    until("member 1 holds the earlier entries", || async {
+        len(&m1.replica().await) == before
+    })
+    .await;
+    m0.finished().await;
+    until("member 0 has left", || async {
+        m1.status().await.peers == 0
+    })
+    .await;
+    assert_eq!(len(&m1.replica().await), before, "{case}");
+
+    let kept = on == On::Log && fault == Fault::Sync;
+    if on == On::Log || fault == Fault::Sync {
+        objects.push(lost.clone());
+    }
+    let entries = before + usize::from(kept);
+    assert_eq!(
+        held(&root, tier),
+        (16 + 104 * entries as u64, objects),
+        "{case}"
+    );
+    let m0 = joined(&root, &a1).await;
+    assert_eq!(m0.status().await.stopped, None, "{case}");
+    if kept {
+        states[i] = State::Written;
+    }
+    assert_eq!(on_disk(&root).states, states, "{case}");
+    assert_eq!(len(&m0.replica().await), entries, "{case}");
+    let next = publish_on(&m0, tier, &object("next")).await.unwrap();
+    assert_eq!(next.entry.seq as usize, entries, "{case}");
+    states[i] = State::Written;
+    assert_eq!(on_disk(&root).states, states, "{case}");
+    until("member 1 holds the feed", || async {
+        len(&m1.replica().await) == entries + 1
+    })
+    .await;
+    let replica = m1.replica().await;
+    assert!(replica.equivocations().is_empty(), "{case}");
+    let at = replica.feed(&feed_key(tier))[before].id();
+    let expected = if kept { lost } else { object("next") };
+    assert_eq!(replica.get(&at).unwrap().1.to_vec(), expected, "{case}");
+}
+
+/// Every write and sync fault of the object and the log, first entry and later, on `tier`.
+async fn failed_writes(tier: Tier) {
+    for before in [0, 1] {
+        for on in [On::Object, On::Log] {
+            for fault in [Fault::Write, Fault::Sync] {
+                failed_write(tier, before, on, fault).await;
+            }
+        }
+    }
+}
+
+// A failed public-feed write signs nothing and stops both feeds; a restart resumes (AT-NET-36).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn failed_public_feed_writes_stop_until_a_restart() {
+    failed_writes(Tier::Public).await;
+}
+
+// A failed circle-feed write signs nothing and stops both feeds; a restart resumes (AT-NET-36).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn failed_circle_feed_writes_stop_until_a_restart() {
+    failed_writes(Tier::Circle).await;
 }
 
 // A record write failing after its rename signs nothing; a restart resumes one history (AT-NET-36).

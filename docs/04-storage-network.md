@@ -1287,9 +1287,10 @@ and a newline; the public feed's key and the circle feed's key, 32 bytes each; e
 state, *unused* 0, *opening* 1 or *written* 2; a durable stop, its kind (0 none, 1 lost, 2
 inconsistent, 3 set aside, 4 own entry) and its feed (0 public, 1 circle, 0 with no stop);
 then the CID of all the bytes before it. Any other length, header, value or checksum makes it
-unreadable. It is replaced atomically: written to `identity.next`, synced, renamed over
-`identity`, the directory synced. A failure at any of these steps, before or after the
-rename, is a failed write: the disk may hold either record. The two feeds start
+unreadable, and so does anything at its path but a regular file, checked before the file is
+opened and again once it is. It is replaced atomically: written to `identity.next`, synced,
+renamed over `identity`, the directory synced. A failure at any of these steps, before or
+after the rename, is a failed write: the disk may hold either record. The two feeds start
 independently: one may be *written* while the other is still *unused*.
 
 **Before a feed's first signature**, the durable writes follow this order:
@@ -1367,11 +1368,17 @@ operating prohibition, under which the operator does not resume that identity's 
 counter and no unlocking procedure exists.
 
 *Evidence.* AT-NET-36 (`p2p::record`'s unit tests, `p2p/tests/member_identity.rs`,
-`node/tests/identity.rs`, one test each in `tiered_nodes.rs`, `blind_relays.rs` and
-`writer_recovery.rs`). *Limits.* Until B, a member still catches up from the first peer that
-answers (T80 rule 2); own entries held only by nodes not reached remain undetected. The
-record's writes are tested failing before and after their rename; a failing write of the
-feed's own files stops the member by the same rule but is not fault-injected.
+`node/tests/identity.rs`, two tests in `blind_relays.rs`, one each in `tiered_nodes.rs` and
+`writer_recovery.rs`). The feed files' writes fail through `network::store::faults`, built
+only into test builds (feature `fault-injection`): the object's or the entry's write (half
+written, then cut back) or sync (written, then the sync and the cut fail, so the bytes stay),
+for a first and a later entry of either feed by publication, and once each under a gateway
+and under running duties. *Limits.* Until B, a member still catches up from the first peer
+that answers (T80 rule 2); own entries held only by nodes not reached remain undetected. The
+record's writes are tested failing before and after their rename. The feed files' failures
+are injected where the store writes, not raised by a file system; a half-written record a
+failed cut leaves is tested at the start only at the file level (AT-NET-11). A FIFO put at
+the record's path between its type check and its opening can still block the start.
 
 **Increment B — the sync with two other verified members (proposed).** For each feed, the
 member writes only after sync rounds with two distinct other member identities whose binding

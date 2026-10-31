@@ -125,6 +125,55 @@ fn opening_a_record() {
     assert_eq!(read(&path), Found::Unreadable);
 }
 
+/// `read` on its own thread: a read still blocked after 10 s fails the test, its FIFO unblocked.
+fn read_within(path: &Path) -> Found {
+    let (tx, rx) = std::sync::mpsc::channel();
+    let owned = path.to_path_buf();
+    std::thread::spawn(move || tx.send(read(&owned)));
+    rx.recv_timeout(std::time::Duration::from_secs(10))
+        .unwrap_or_else(|_| {
+            let writer = path.to_path_buf();
+            std::thread::spawn(move || OpenOptions::new().write(true).open(writer));
+            panic!("reading {} blocked", path.display())
+        })
+}
+
+// A FIFO, a directory or an oversized file is unreadable at once and left as found (AT-NET-36).
+#[test]
+fn only_a_regular_file_is_read() {
+    let dir = scratch("kinds");
+    let path = dir.join("identity");
+    let record = Record::new(PUBLIC, CIRCLE).encode();
+    std::fs::write(&path, &record).unwrap();
+    assert_eq!(
+        read_within(&path),
+        Found::Present(Record::new(PUBLIC, CIRCLE))
+    );
+    let over = [record.as_slice(), &[0]].concat();
+    std::fs::write(&path, &over).unwrap();
+    assert_eq!(read_within(&path), Found::Unreadable);
+    assert_eq!(std::fs::read(&path).unwrap(), over);
+    std::fs::remove_file(&path).unwrap();
+    std::fs::create_dir(&path).unwrap();
+    assert_eq!(read_within(&path), Found::Unreadable);
+    #[cfg(unix)]
+    {
+        std::fs::remove_dir(&path).unwrap();
+        let made = std::process::Command::new("mkfifo").arg(&path).status();
+        assert!(made.unwrap().success());
+        assert_eq!(read_within(&path), Found::Unreadable);
+        let mut guard = Guard::open(Some(&path), PUBLIC, Some(CIRCLE)).unwrap();
+        assert_eq!(guard.halt(Stop::Lost(Tier::Public)), Stop::Unreadable);
+        let kind = std::fs::symlink_metadata(&path).unwrap().file_type();
+        assert!(std::os::unix::fs::FileTypeExt::is_fifo(&kind));
+    }
+    let names: Vec<_> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
+    assert_eq!(names, ["identity"]);
+}
+
 // A new record is never written over an existing file (AT-NET-36).
 #[test]
 fn creation_never_overwrites() {

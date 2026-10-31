@@ -31,6 +31,9 @@ pub enum StoreError {
     Torn,
 }
 
+#[cfg(feature = "fault-injection")]
+pub mod faults;
+
 pub const MAX_OBJECT: usize = 16 << 20;
 
 const HEADER: u64 = 16;
@@ -84,6 +87,10 @@ fn sync_dir(_path: &Path) {}
 
 /// Writes `bytes` at `at` and syncs; on failure cuts the file back to `at`.
 fn write_at(file: &mut File, at: u64, bytes: &[u8]) -> Result<(), StoreError> {
+    #[cfg(feature = "fault-injection")]
+    if let Some(e) = faults::strike(file, at, bytes) {
+        return Err(e);
+    }
     let written = file
         .seek(SeekFrom::Start(at))
         .and_then(|_| file.write_all(bytes))

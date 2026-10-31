@@ -13,6 +13,7 @@ use network::cid::cid;
 use network::consortium::{Consortium, Member};
 use network::log::TransparencyLog;
 use network::replica::{EntryId, FeedWriter, Refused, Replica};
+use network::store::faults::{self, Fault, On};
 use network::tier::{Tier, Tiers};
 use p2p::blind::{
     seal, submit, Answer, Carried, ClientError, Gateway, GatewayKey, KeyAnnouncement, Refusal,
@@ -20,7 +21,7 @@ use p2p::blind::{
 };
 use p2p::member::MemberRole;
 use p2p::record::Stop;
-use p2p::{read_limited, Config, Handle, Own, StartError};
+use p2p::{read_limited, Config, Handle, Own, PublishError, StartError};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -1137,4 +1138,25 @@ async fn at_net_36_a_stopped_gateway_logs_nothing_new() {
     assert_eq!(after, Ok(Answer::Failed));
     assert_eq!(send(&n.relay_addr, 0, &event).await, Ok(Answer::Logged(id)));
     assert_eq!(circle_len(&n.members[0], 0).await, 1);
+}
+
+/// AT-NET-36: a gateway whose feed write fails logs no new event, the failure gone, nor publishes.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_36_a_failed_gateway_write_logs_nothing_after() {
+    let n = net(&scratch("failed-write"), 2).await;
+    let event = b"synthetic-event-kept".to_vec();
+    let Ok(Answer::Logged(id)) = send(&n.relay_addr, 0, &event).await else {
+        panic!("the first event is logged")
+    };
+    let failing = b"synthetic-event-failing".to_vec();
+    faults::arm(On::Log, cid(&failing), Fault::Write);
+    assert_eq!(send(&n.relay_addr, 0, &failing).await, Ok(Answer::Failed));
+    assert_eq!(n.members[0].status().await.stopped, Some(Stop::Failed));
+    for later in [failing.as_slice(), b"synthetic-event-later"] {
+        assert_eq!(send(&n.relay_addr, 0, later).await, Ok(Answer::Failed));
+    }
+    assert_eq!(send(&n.relay_addr, 0, &event).await, Ok(Answer::Logged(id)));
+    assert_eq!(circle_len(&n.members[0], 0).await, 1);
+    let refused = Err(PublishError::Stopped(Stop::Failed));
+    assert_eq!(n.members[0].publish(b"public".to_vec()).await, refused);
 }

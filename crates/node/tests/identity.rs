@@ -216,4 +216,33 @@ mod processes {
         node.terminate(Duration::from_secs(5)).await;
         assert!(!restored.join("identity").exists());
     }
+
+    // A FIFO in the record's place starts the node stopped, reported unreadable, kept (AT-NET-36).
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_fifo_record_is_reported_unreadable() {
+        let root = scratch("fifo-record");
+        let dirs = [root.join("m0"), root.join("m1")];
+        for dir in &dirs {
+            assert!(new_identity(dir).status.success());
+        }
+        let keys = [publics(&dirs[0]), publics(&dirs[1])];
+        let record = dirs[0].join("identity");
+        fs::remove_file(&record).unwrap();
+        assert!(Command::new("mkfifo")
+            .arg(&record)
+            .status()
+            .unwrap()
+            .success());
+        let path = root.join("m0.toml");
+        fs::write(&path, toml(&dirs[0], 0, &keys, port(), &[])).unwrap();
+        let mut node = Process::start(&path);
+        until(&dirs[0].join("status"), |s| {
+            s.contains("stopped unreadable\n")
+        })
+        .await;
+        node.terminate(Duration::from_secs(5)).await;
+        let kind = fs::symlink_metadata(&record).unwrap().file_type();
+        assert!(std::os::unix::fs::FileTypeExt::is_fifo(&kind));
+        assert!(!dirs[0].join("identity.next").exists());
+    }
 }
