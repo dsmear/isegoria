@@ -68,12 +68,12 @@ D52 states they are not conditions of the answer review (below).
 ## Current priorities
 
 Phase 2 targets an independently operated experimental P2P testnet (D55).
-Follow `10` §2: T88's contract is approved (`01` D57) and T79 must be specified first;
-T79's implementation remains the final runtime integration, followed by the
-independent-operator trial. Single-operator runs do not close the phase. Shared event
-formats, results, cuts and ledger must change together with their users. Do not restore
-legacy pilot gates or add automatic rounds through the integration. D54 is the network
-decision previously called D44 here.
+Follow `10` §2: T88's contract is approved (`01` D57) and may be implemented in authorized
+increments; T79 needs the owner's approval before its own implementation and remains the
+final runtime integration, followed by the independent-operator trial. Single-operator runs
+do not close the phase. Shared event formats, results, cuts and ledger must change together
+with their users. Do not restore legacy pilot gates or add automatic rounds through the
+integration. D54 is the network decision previously called D44 here.
 
 Use `phase1-handoff.md` to resume. Task status belongs in `10-roadmap.md`, review
 findings and evidence in `15-phase1-review.md`, parameter procedures in

@@ -590,8 +590,8 @@ holds is an equivocation, so (`10` T80):
 The writer catches up with the first peer that answers: a peer reached later that holds a
 longer feed finds the equivocation as evidence, it does not prevent it. A node whose writer
 key is not in the writer set does not start. For the trial's members, T88-P4 (`01` D57)
-replaces rules 2 and 3 with two verified members and a stop after loss (§Operating
-contract); the code does not do so yet.
+replaces rules 2 and 3 with two verified members and a stop after a detected loss
+(§Operating contract); the code does not do so yet.
 
 A member of a tiered network keeps **two feeds**, each with its own files and catch-up
 (`own/` the public feed under its consortium key, `circle/` the circle feed under its
@@ -1113,18 +1113,21 @@ add no consensus rule at runtime, where §Cuts is unchanged. The answer review's
   The network id derives from the canonical configuration, and nothing that depends on the
   id enters the material it derives from: entry and cut signatures, transport bindings,
   signed key configurations (T85-P3). Members, authorized keys and rules stay fixed for the
-  trial; changing any of them is a new configuration, so a new network. A new empty network
-  is not D54's fork with continuity (T86): it starts without the old state, and carrying
-  anything over would need its own decision. Application parameters still open stay with
-  T79 (T79-P1).
-  - *To implement.* The configuration holds a version, the threshold and the members in
-    order, each with its consortium key (its public feed's), its circle key and its HPKE
-    public key; a member's key configuration follows from that key and its index (T85-P3).
-    The network id is `network`'s tagged SHA-256 of the configuration's canonical encoding
-    under `isegoria/genesis/v1`: one encoding, strict decoding, a known-answer test. A node
-    whose TOML differs from the document or its id does not start. Members' transport keys,
-    bound on each connection, and holder rosters (below) stay out of it. Whether the relays'
-    transport keys (T85-P4) and the issuer's public key belong to it is open (T79, T19).
+  trial; changing any of them is a new configuration, so a new network. A plain new genesis
+  starts without the old state: it does not realize the fork with continuity that D54 and
+  D56 approve in their perimeter (§The state tree and the fork, T86-P7 and P8: the lineage
+  inherited, the parent's last anchored statement, frozen leaves reopened, the parent's
+  issuer keys listed), whose dependencies are not built (`10` T86). Application parameters
+  still open stay with T79 (T79-P1).
+  - *Proposed schema, not approved.* The configuration would hold a version, the threshold
+    and the members in order, each with its consortium key (its public feed's), its circle
+    key and its HPKE public key, a member's key configuration following from that key and
+    its index (T85-P3). The network id would be `network`'s tagged SHA-256 of the canonical
+    encoding under `isegoria/genesis/v1`, with one encoding, strict decoding and a
+    known-answer test, and a node whose TOML differs from the document or its id would not
+    start. Members' transport keys would stay out, bound on each connection (§Transport),
+    and so would holder rosters, agreed per archive (below). Whether the relays' transport
+    keys (T85-P4) and the issuer's public key belong to it is open (T79, T19).
   - *Built:* `network_id` is a free value in each node's TOML, which repeats the members',
     circle and HPKE lists; nothing derives the id or compares the lists across operators.
 - **T88-P2 — keys.** *Approved:* the separate keys already built stay — the consortium key
@@ -1161,18 +1164,21 @@ add no consensus rule at runtime, where §Cuts is unchanged. The answer review's
   member's duties do not stop at a conflict (§Obstacles in the code).
 - **T88-P4 — recovery.** *Approved:* after a restart a member writes nothing, its duties
   included, before its checks and the required sync. Consulting at least two other members
-  whose binding verified is the trial's minimum check, not a general proof of completeness:
-  a cut that marked a member's entries had `t` signers holding them, at least `t − 1` of
-  them others, so any `n − t + 1` others (two) include one — if they kept the history they
-  signed for. After data loss or the restoration of an older backup, writes under the same
-  identity do not resume automatically: the member stays stopped in its writes until its
-  recovery is justified. Entries spread but not yet in a cut remain a risk. No proof of
-  completeness, automatic detection of every rollback or unlocking procedure is approved,
-  so a member stopped in its writes stays so. For the trial's members this replaces T80's
-  automatic resumption (§A writer's own feed: damaged files set aside, the feed taken back
-  from the first peer that answers, writes resumed), which the code still performs.
-  *Built (T80):* no write before one sync round with any peer (for the circle feed, with a
-  granting member); a fork or a gap stops the writer.
+  — distinct member identities whose binding verified; several connections or transport keys
+  of one member count once — is the trial's minimum check, not a general proof of
+  completeness: a cut that marked a member's entries had `t` signers holding them, at least
+  `t − 1` of them others, so any `n − t + 1` others (two) include one — if they kept the
+  history they signed for. After data loss or the restoration of an older backup, writes
+  under the same identity do not resume automatically: the member stays stopped in its
+  writes until its recovery is justified. Entries spread but not yet in a cut remain a risk.
+  No proof of completeness, automatic detection of every rollback or unlocking procedure is
+  approved, so a member stopped in its writes stays so. For the trial's members this
+  replaces T80's automatic resumption (§A writer's own feed: damaged files set aside, the
+  feed taken back from the first peer that answers, writes resumed), which the code still
+  performs. A restoration its operator knows of falls under the procedure's prohibition, and
+  one that nothing detects is a residual (§Proposed increments). *Built (T80):* no write
+  before one sync round with any peer (for the circle feed, with a granting member); a fork
+  or a gap stops the writer.
 
 ### Archives and holders in the trial
 
@@ -1216,15 +1222,23 @@ each operator runs its own machine and keeps its own secrets throughout.
    returns.
 6. **Faults.** Delay, drop and duplicate messages; partition 3–1 (the three progress) and
    2–2 (neither side does), then rejoin. A node given another configuration must not start
-   *(needs code)*. A member whose files are lost or replaced by an older copy stays stopped
-   in its writes *(needs code)*. A conflict, an equivocation or a compromised key stops the
-   trial: keep every data directory as it is, choose no branch, and make any continuation a
-   new configuration.
-7. **Evidence.** The pinned revision, the configuration digest and the four confirmations;
-   each node's status over time and its log; the cut digests compared across nodes; the
-   archive digests and CIDs; copies of the data directories at every stop; and a table of
-   the safety and progress observed against P3's assumptions, with the beacon's and
-   recovery's limits.
+   *(needs code)*. A detected loss or inconsistency stops a member's writes durably *(needs
+   code)*. An operator who restores a member's directory or keys from a backup or any copy
+   does not resume that identity's writes, and records the restoration; an undetected
+   restoration is a residual. A conflict, an equivocation or a compromised key stops the
+   trial: every operator keeps its data directories as they are, no branch is chosen, and
+   any continuation is a new configuration.
+7. **Evidence.** Shared evidence holds no secret and no circle content, only what verifies
+   the outcomes: the pinned revision, the configuration document, its digest and the four
+   confirmations; each node's status over time; the exported cuts, segments, manifests and
+   certificates with their digests and CIDs, compared across nodes; public entries,
+   conflicting signed cuts and public-feed equivocations; the faults injected and when; the
+   restorations operators know of; and a table of the safety and progress observed against
+   P3's assumptions, with the beacon's and recovery's limits. A log is shared once its
+   operator has checked it for secrets. Full copies of a data directory hold private keys
+   and circle data: each operator keeps its own, as they were at every stop, and does not
+   share them. A circle-feed conflict is shown outside by its public marks; the members,
+   who read the circle, can check its entries.
 
 ### Obstacles in the code
 
@@ -1259,55 +1273,112 @@ As of `b089e3f`:
 10. **Evidence.** Process tests run under one operator on loopback; nothing collects a
     trial's evidence.
 
-### First increment (proposed, not implemented): a member's start modes
+### Proposed increments A and B (not implemented)
 
-P4 with P2's local identity, before P1's derived id: P4 is where the code contradicts the
-approved contract, and defects come before features. It covers members; writers in networks
-without tiers keep T80's rules (T85-P4 leaves those networks to a separate decision). One new
-choice needs the owner's approval: the identity record, and that only a new identity starts
-fresh.
+P4 is where the code contradicts the approved contract, so it comes first, in two increments;
+neither alone completes P4. Both cover members: writers in networks without tiers keep T80's
+rules (T85-P4 leaves those networks to a separate decision). P1's configuration, the conflict
+stop and the views follow (§Obstacles in the code, 5–7). Everything in this subsection is
+proposed, not approved; **the identity record needs the owner's approval before A.**
 
-- **A new identity.** `isegoria-node --new-identity <data-dir>` generates the member's
-  consortium, circle and HPKE secrets and its transport key from the system's randomness
-  into a data directory that does not yet exist, each file created new and private (`0600`
-  on Unix), with an identity record, *fresh*, naming the public keys. It prints those keys
-  and the roster entry; it reads no configuration and contacts no peer. Secrets supplied any
-  other way, from a backup included, never start fresh.
-- **First start of an empty network.** A fresh record and empty files: the member writes
-  nothing until, for each feed, sync rounds with two distinct other members whose binding
-  verified (for the circle feed, granting) have ended. The record turns *started*, synced,
-  before the first entry is signed. An entry of its keys offered by anyone shows another
-  instance: the member stops its writes.
-- **Intact restart.** A started record and files opened with nothing set aside: the same
-  two-member gate, then the next `seq`. An entry of its keys that its log lacks, offered by
-  a member or marked by a collected cut, shows a rollback or another instance: the member
-  stops its writes.
-- **Recovery after loss.** Configured keys without their record, a started record with
-  empty files, files set aside at the open, or a stop above: the member writes nothing, no
-  duty included, and records the stop and its reason durably. It keeps replicating, serving
-  and reading, and its status reports the stop. Nothing in the code clears it.
+**The identity record (awaiting approval).** A file in the data directory, replaced
+atomically (written beside it, synced, renamed, the directory synced), naming the member's
+public keys and holding for each of its two feeds a state, *unused*, *opening* or *written*,
+and possibly a stop with its reason. Only `--new-identity` creates it, both feeds *unused*.
+The two feeds start independently: one may be *written* while the other is still *unused*.
+Before a feed's first entry the durable writes follow this order:
 
-Acceptance criteria, each test failing first on `b089e3f` where the behaviour exists:
+1. the record turns the feed *opening*;
+2. the entry is appended to the feed's log and synced (§A node's own disk);
+3. the record turns the feed *written*;
+4. only then is the entry signed and published.
 
-1. `--new-identity` refuses an existing directory, writes private files, prints the public
-   keys a node derives from them, gives different keys on two runs and uses no network.
-2. Four tiered member processes from new identities: none writes before two other verified
-   members answered — one member, or any number of unbound peers, does not suffice — and
-   cuts are then collected.
-3. A member restarted with intact files writes nothing before two verified members answered,
-   then continues at the next `seq` with no equivocation; with one other member reachable it
-   stays silent.
-4. Lost files with the keys restored, a damaged log, and an older copy whose later entry a
-   consulted member holds each stop the writes durably across restarts: no new entry
-   anywhere, the reason in the status, the replica still served.
-5. AT-NET-18's resumption cases become stops for members; §A writer's own feed, `08` NET-010
-   and G-23, and `10` T88 change with them.
-6. Stated as residual, not as prevented: an older copy no consulted member contradicts, and
-   entries no cut marked held only by members not consulted.
+Later entries change nothing in the record. Nothing is signed before step 3, so a crash
+between steps 1 and 2 leaves *opening* with an empty log and no signature anywhere: the feed
+makes its first entry again. A crash between steps 2 and 3 leaves *opening* with one unsigned
+entry: the open turns the feed *written*, and signing that entry later gives the same
+signature (ed25519 is deterministic). At each open, per feed:
 
-Out of scope, in this order afterwards: the conflict stop (obstacle 6); the canonical
-configuration, its derived id and the node's check (P1, obstacle 5); the views and
-exclusions (7); the trial's evidence (10).
+| Record | Own files at the open | Meaning |
+|---|---|---|
+| *unused* | empty | not started |
+| *opening* | empty, or one entry | a crash before the first signature |
+| *written* | at least one entry, intact | an intact restart; B's sync precedes a write |
+| *written* | empty | detected loss: stop |
+| *unused*, or *opening* | more entries than the state allows | detected inconsistency: stop |
+| any | set aside as damaged | detected loss: stop |
+
+With a member's keys configured and no record, the node writes a record already stopped; a
+record naming other keys refuses the start, as another identity's directory. A stop is
+written durably and survives restarts: the member writes nothing, no duty included, keeps
+replicating, serving and reading, and its status reports the stop. Nothing in the code
+clears it.
+
+**What a local record cannot show.** It does not tell the original from a copy restored
+with its keys: a restored or cloned directory, record included, looks as it did when copied,
+and restoring an earlier copy of the whole directory erases a later stop. So a *detected*
+loss or inconsistency — the table above, or a verified own entry below — is a durable stop;
+a restoration its operator knows of falls under an operating prohibition: the operator does
+not resume that identity's writes (§The trial's procedure); an undetected rollback or clone
+is a stated residual. No external counter and no unlocking procedure is proposed.
+
+**Evidence of a missing own history.** Three checks, in order: the signed entry is held with
+its object and its signature verifies under one of the member's own writer keys; it belongs
+to this network, its writer in this configuration's writer set and its signature over this
+network id; and, against the local log, its `seq` lies beyond the log's end or it differs
+from the log's entry at that `seq`. An entry passing all three shows a rollback or another
+instance, since the log is synced before any signature, and stops the member. An identifier,
+an announcement, a summary or a cut mark naming an own entry the replica does not hold
+verified is an unresolved reference: it proves nothing and stops nothing; it only means the
+sync round that brought it does not count (B).
+
+**Increment A — identity initialization and the stop after a detected loss or
+inconsistency.** `isegoria-node --new-identity <data-dir>` generates the consortium, circle
+and HPKE secrets and the transport key from the system's randomness into a directory that
+does not yet exist, each file created new and private (`0600` on Unix), with the record, and
+prints the public keys and the roster entry; it reads no configuration and contacts no peer.
+The node keeps the record's order and table, and the evidence above replaces T80's taking
+back of the feed for members. Acceptance criteria, each test failing first on `189615d`
+where the behaviour exists:
+
+1. `--new-identity` refuses an existing path, writes private files, prints the public keys
+   a node derives from them, gives different keys on two runs and uses no network.
+2. Every row of the table: the legitimate states start, the others stop durably across
+   restarts, with no new entry anywhere, the reason in the status and the replica served.
+3. A crash between each pair of the four steps resumes with no equivocation: the first
+   entry signed once, or twice with the same signature.
+4. A verified own entry beyond the log, or contradicting it, stops the member; an unresolved
+   identifier, an announcement or an entry that does not verify stops nothing.
+5. AT-NET-18's resumption cases become stops for members; §A writer's own feed, `08`
+   NET-010, NET-011 and G-23, and `10` T88 change with them.
+
+*Limits.* Until B, a restarted member still catches up from the first peer that answers
+(T80 rule 2). A restored or cloned directory, an earlier copy erasing a stop, and own
+entries held only by nodes not reached remain residual; a known restoration is the
+operator's prohibition.
+
+**Increment B — the sync with two other verified members.** For each feed, the member
+writes only after sync rounds with two distinct other member identities whose binding
+verified (for the circle feed, granting) have each ended with no own entry left
+unresolved, at every start, a first start of an empty network included. The count is per
+member index: several connections or transport keys of one member count once, and unbound
+peers and relays never count. A round counts only while the binding, and the grant it was
+asked under, still hold (§A writer's own feed). Acceptance criteria:
+
+1. Four tiered member processes from new identities (A): none writes before two other
+   members' rounds; one member, even over two connections or two transport keys it binds,
+   or any number of unbound peers, does not suffice; the cuts are then collected.
+2. A member restarted with intact files writes nothing until two other members answered,
+   then continues at the next `seq` with no equivocation; with one other member reachable
+   it writes nothing.
+3. An older copy whose later entry a consulted member holds stops the member once the entry
+   is fetched and verified (A); an identifier announced and never served keeps that round
+   from counting and stops nothing.
+4. §A writer's own feed rule 2, `08` NET-010 and G-23, and `10` T88 change with them.
+
+*Limits.* Two members are the trial's minimum check, not completeness: entries no cut marked
+held only by members not consulted, and members that lost the history they signed for, stay
+undetected. Without A, a loss resumes as under T80.
 
 ---
 
