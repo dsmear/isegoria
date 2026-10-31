@@ -19,6 +19,7 @@ use p2p::blind::{
     GATEWAY_PROTOCOL, MAX_REPLY, MAX_REQUEST, RELAY_PROTOCOL,
 };
 use p2p::member::MemberRole;
+use p2p::record::Stop;
 use p2p::{read_limited, Config, Handle, Own, StartError};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -97,6 +98,18 @@ fn circle_key(i: usize) -> [u8; 32] {
 
 /// Member `i` under `root`; member 0 runs a gateway for the relay and the spy, admitting the
 /// synthetic events this file sends.
+/// Member `i`'s identity record in `root`, made once (`docs/04` §Increments A and B).
+fn identity(i: usize, root: &Path) -> Option<PathBuf> {
+    std::fs::create_dir_all(root).unwrap();
+    let path = root.join("identity");
+    if !path.exists() {
+        let public = Member::from_seed([MEMBER_SEEDS[i]; 32]).public().to_bytes();
+        let circle = FeedWriter::from_seed(NET, [CIRCLE_SEEDS[i]; 32]).public();
+        p2p::record::create(&path, public, circle.to_bytes()).unwrap();
+    }
+    Some(path)
+}
+
 fn member_config(i: usize, root: &Path) -> Config {
     let seed = [MEMBER_SEEDS[i]; 32];
     Config {
@@ -128,6 +141,7 @@ fn member_config(i: usize, root: &Path) -> Config {
             relays: vec![transport_bytes(RELAY_SEED), transport_bytes(SPY_SEED)],
             admit: Box::new(|bytes| bytes.starts_with(b"synthetic-event")),
         }),
+        identity: identity(i, root),
     }
 }
 
@@ -143,6 +157,7 @@ fn relay_config(own: Option<Own>) -> Config {
         tiers: Some(tiers()),
         relay: Some(announcements()),
         gateway: None,
+        identity: None,
     }
 }
 
@@ -1095,4 +1110,31 @@ async fn at_net_24_the_gateway_matches_the_reference_hpke() {
     assert_eq!(id.writer, circle_key(0));
     let held = n.members[0].replica().await;
     assert_eq!(held.get(&id).map(|(_, o)| o.to_vec()), Some(event));
+}
+
+/// AT-NET-36: a stopped gateway logs no new event and still answers one already on its feed.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_36_a_stopped_gateway_logs_nothing_new() {
+    let n = net(&scratch("stopped"), 2).await;
+    let event = b"synthetic-event-before".to_vec();
+    let Ok(Answer::Logged(id)) = send(&n.relay_addr, 0, &event).await else {
+        panic!("the first event is logged")
+    };
+    let mut log = TransparencyLog::new();
+    let objects: Vec<Vec<u8>> = (0..3).map(|k| format!("gap-{k}").into_bytes()).collect();
+    for object in &objects {
+        log.append(cid(object));
+    }
+    let writer = FeedWriter::from_seed(NET, [CIRCLE_SEEDS[0]; 32]);
+    let beyond = writer.sign(&log.entries()[2]);
+    assert!(n.members[0]
+        .insert(beyond, objects[2].clone())
+        .await
+        .is_ok());
+    let stopped = n.members[0].status().await.stopped;
+    assert_eq!(stopped, Some(Stop::OwnEntry(Tier::Circle)));
+    let after = send(&n.relay_addr, 0, b"synthetic-event-after").await;
+    assert_eq!(after, Ok(Answer::Failed));
+    assert_eq!(send(&n.relay_addr, 0, &event).await, Ok(Answer::Logged(id)));
+    assert_eq!(circle_len(&n.members[0], 0).await, 1);
 }

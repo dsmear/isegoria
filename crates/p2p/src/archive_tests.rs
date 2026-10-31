@@ -122,6 +122,7 @@ impl Fixture {
             tiers: Some(Self::tiers(2)),
             relay: None,
             gateway: None,
+            identity: None,
         }
     }
 }

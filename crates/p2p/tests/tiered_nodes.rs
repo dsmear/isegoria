@@ -14,6 +14,7 @@ use network::log::TransparencyLog;
 use network::replica::{EntryId, FeedWriter, Message, Replica, SignedEntry, Summary};
 use network::tier::{Tier, Tiers, TransportBinding};
 use p2p::member::MemberRole;
+use p2p::record::Stop;
 use p2p::tiered::Bind;
 use p2p::{
     read_limited, topic, Config, Handle, Own, PublishError, Status, BIND_PROTOCOL, MESSAGE_LIMIT,
@@ -74,6 +75,18 @@ fn transport_bytes(key: &Keypair) -> [u8; 32] {
     key.public().try_into_ed25519().unwrap().to_bytes()
 }
 
+/// Member `i`'s identity record in `root`, made once (`docs/04` §Increments A and B).
+fn identity(i: usize, root: &std::path::Path) -> Option<PathBuf> {
+    std::fs::create_dir_all(root).unwrap();
+    let path = root.join("identity");
+    if !path.exists() {
+        let public = Member::from_seed([MEMBER_SEEDS[i]; 32]).public().to_bytes();
+        let circle = FeedWriter::from_seed(NET, [CIRCLE_SEEDS[i]; 32]).public();
+        p2p::record::create(&path, public, circle.to_bytes()).unwrap();
+    }
+    Some(path)
+}
+
 /// Member `i` keeping both feeds under `root`, its replica on disk there if `stored`.
 fn member_config(i: usize, root: &std::path::Path, stored: bool) -> Config {
     Config {
@@ -110,6 +123,7 @@ fn member_config_every(i: usize, root: &std::path::Path, stored: bool, every: Du
         tiers: Some(tiers()),
         relay: None,
         gateway: None,
+        identity: identity(i, root),
     }
 }
 
@@ -125,6 +139,7 @@ fn reader_config() -> Config {
         tiers: Some(tiers()),
         relay: None,
         gateway: None,
+        identity: None,
     }
 }
 
@@ -717,9 +732,9 @@ async fn at_net_23_a_restart_keeps_the_grant_and_the_history() {
     assert!(r.equivocations().is_empty());
 }
 
-/// AT-NET-23: a member without files writes no circle entry until a member has served it.
+/// AT-NET-23/36: a member without files catches its circle up only from a member; it signs nothing.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn at_net_23_the_circle_feed_recovers_only_from_a_member() {
+async fn at_net_23_the_circle_feed_catches_up_only_from_a_member() {
     let root = scratch("recover");
     let (m1, a1) = start(transport(1), member_config(1, &root.join("1"), false)).await;
     let (m2, _) = start(transport(2), member_config(2, &root.join("2"), false)).await;
@@ -770,22 +785,25 @@ async fn at_net_23_the_circle_feed_recovers_only_from_a_member() {
     assert!(!s.circle_caught_up);
     assert_eq!(s.peers, 1);
     assert_eq!(s.bound, 0);
-    assert_eq!(
-        m0.publish_circle(b"too-early".to_vec()).await,
-        Err(PublishError::NotCaughtUp)
-    );
+    let stopped = Err(PublishError::Stopped(Stop::OwnEntry(Tier::Public)));
+    assert_eq!(s.stopped, Some(Stop::OwnEntry(Tier::Public)));
+    assert_eq!(m0.publish_circle(b"too-early".to_vec()).await, stopped);
     m0.dial(a1).await.unwrap();
     until("the circle feed catches up", || async {
         status(&m0).await.circle_caught_up
     })
     .await;
-    publish_circle(&m0, b"circle-next".to_vec()).await;
-    converged(&[&m0, &m1]).await;
-    let r = m1.replica().await;
+    assert_eq!(m0.publish_circle(b"circle-next".to_vec()).await, stopped);
+    assert_eq!(m0.publish(b"public-next".to_vec()).await, stopped);
     let circle0 = FeedWriter::from_seed(NET, [CIRCLE_SEEDS[0]; 32])
         .public()
         .to_bytes();
-    assert_eq!(r.feed(&circle0).len(), 4);
+    until("member 0 holds its circle feed", || async {
+        m0.replica().await.feed(&circle0).len() == 3
+    })
+    .await;
+    let r = m1.replica().await;
+    assert_eq!(r.feed(&circle0).len(), 3);
     assert!(r.equivocations().iter().all(|e| e.a.writer != circle0));
 }
 
@@ -880,7 +898,8 @@ async fn not_recovered(node: &Handle) {
     );
 }
 
-/// A new grant and a real recovery: the circle feed continues at `seq` 3 without a fork.
+/// A new grant catches the circle feed up: its three verified entries stop the member, which
+/// signs nothing (`docs/04` §Increments A and B).
 async fn recover(node: &Handle, spy: &Spy, addr: &Multiaddr) {
     {
         let mut script = spy.script.lock().unwrap();
@@ -888,17 +907,17 @@ async fn recover(node: &Handle, spy: &Spy, addr: &Multiaddr) {
         script.granting = true;
     }
     spy.order(Order::Dial(addr.clone()));
-    until("the circle feed recovers", || async {
+    until("the circle feed catches up", || async {
         status(node).await.circle_caught_up
     })
     .await;
-    let next = node.publish_circle(b"circle-next".to_vec()).await.unwrap();
-    assert_eq!(next.entry.seq, 3);
+    let stopped = Err(PublishError::Stopped(Stop::OwnEntry(Tier::Circle)));
+    assert_eq!(node.publish_circle(b"circle-next".to_vec()).await, stopped);
     let r = node.replica().await;
     let circle0 = FeedWriter::from_seed(NET, [CIRCLE_SEEDS[0]; 32])
         .public()
         .to_bytes();
-    assert_eq!(r.feed(&circle0).len(), 4);
+    assert_eq!(r.feed(&circle0).len(), 3);
     assert!(r.equivocations().iter().all(|e| e.a.writer != circle0));
 }
 
@@ -938,4 +957,46 @@ async fn at_net_23_a_refusal_ends_the_grant() {
     ));
     not_recovered(&node).await;
     recover(&node, &spy, &addr).await;
+}
+
+/// AT-NET-36: own identifiers a bound member offers and never serves stop nothing; entries do.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_36_unserved_own_identifiers_stop_nothing() {
+    let root = scratch("unserved");
+    let (node, addr) = start(transport(0), member_config(0, &root, false)).await;
+    let key = Keypair::generate_ed25519();
+    let binding = tiers().bind(&member_keys()[1], 1, transport_bytes(&key));
+    let spy = Spy::start(key, Some(binding));
+    let history = circle_history();
+    let invented = EntryId {
+        writer: member_keys()[0].public().to_bytes(),
+        seq: 0,
+        hash: [9; 32],
+    };
+    {
+        let mut script = spy.script.lock().unwrap();
+        script.offer = history.iter().map(|(e, _)| e.id()).collect();
+        script.offer.push(invented);
+        script.offer.sort();
+        script.granting = true;
+    }
+    spy.connect(addr).await;
+    let wants = || {
+        let heard = spy.heard.lock().unwrap();
+        let want = |r: &&Vec<u8>| matches!(Message::decode(r), Some(Message::Want(_)));
+        heard.sent.iter().filter(want).count()
+    };
+    until("the node asks twice", || async { wants() >= 2 }).await;
+    let s = status(&node).await;
+    assert!(!s.caught_up && !s.circle_caught_up);
+    assert_eq!(s.stopped, None);
+    let refused = node.publish_circle(b"waits".to_vec()).await;
+    assert_eq!(refused, Err(PublishError::NotCaughtUp));
+    let record = p2p::record::read(&root.join("identity"));
+    assert!(matches!(record, p2p::record::Found::Present(r) if r.stop.is_none()));
+    spy.script.lock().unwrap().serve = history;
+    until("the served history stops the member", || async {
+        status(&node).await.stopped == Some(Stop::OwnEntry(Tier::Circle))
+    })
+    .await;
 }

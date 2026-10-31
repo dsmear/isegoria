@@ -14,6 +14,7 @@ use network::replica::{FeedWriter, WriterSet};
 use network::tier::{TierError, Tiers};
 use p2p::blind::{Gateway, GatewayKey, KeyAnnouncement};
 use p2p::member::MemberRole;
+use p2p::record::Stop;
 use p2p::{Config as P2p, Handle, Own, StartError, Status};
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -226,6 +227,67 @@ fn lock(path: &Path) -> io::Result<Option<DataLock>> {
     Ok(Some(DataLock { _file: file }))
 }
 
+/// The public keys of a new identity, which `--new-identity` prints.
+pub struct NewIdentity {
+    pub consortium: [u8; 32],
+    pub circle: [u8; 32],
+    pub hpke: [u8; 32],
+    pub transport: [u8; 32],
+}
+
+#[cfg(unix)]
+fn create_private_dir(dir: &Path) -> io::Result<()> {
+    use std::os::unix::fs::DirBuilderExt;
+    std::fs::DirBuilder::new().mode(0o700).create(dir)
+}
+
+#[cfg(not(unix))]
+fn create_private_dir(dir: &Path) -> io::Result<()> {
+    std::fs::create_dir(dir)
+}
+
+fn sync_dir(dir: &Path) -> io::Result<()> {
+    #[cfg(unix)]
+    std::fs::File::open(dir)?.sync_all()?;
+    #[cfg(not(unix))]
+    let _ = dir;
+    Ok(())
+}
+
+/// Makes a new identity in `dir`, which must not exist (`docs/04` §Increments A and B): four
+/// secrets from the system's randomness in private files, then its record, both feeds unused.
+pub fn new_identity(dir: &Path) -> io::Result<NewIdentity> {
+    create_private_dir(dir)?;
+    let mut seeds = [[0u8; 32]; 4];
+    for seed in &mut seeds {
+        getrandom::getrandom(seed).map_err(io::Error::other)?;
+    }
+    let [member, circle, hpke, transport] = seeds;
+    let names = ["member.key", "circle.key", "hpke.key", "transport.key"];
+    for (name, seed) in names.into_iter().zip(seeds) {
+        write_private(&dir.join(name), &hex(&seed))?;
+    }
+    let invalid = |what| io::Error::new(io::ErrorKind::InvalidData, what);
+    let keys = NewIdentity {
+        consortium: Member::from_seed(member).public().to_bytes(),
+        circle: ed25519_dalek::SigningKey::from_bytes(&circle)
+            .verifying_key()
+            .to_bytes(),
+        hpke: p2p::blind::public_key(&hpke).ok_or_else(|| invalid("hpke key"))?,
+        transport: Keypair::ed25519_from_bytes(transport)
+            .ok()
+            .and_then(|k| k.public().try_into_ed25519().ok())
+            .ok_or_else(|| invalid("transport key"))?
+            .to_bytes(),
+    };
+    p2p::record::create(&dir.join("identity"), keys.consortium, keys.circle)?;
+    sync_dir(dir)?;
+    if let Some(parent) = dir.parent().filter(|p| !p.as_os_str().is_empty()) {
+        sync_dir(parent)?;
+    }
+    Ok(keys)
+}
+
 /// What a checked configuration starts.
 pub struct Plan {
     pub transport: Keypair,
@@ -314,6 +376,7 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
         tiers,
         relay,
         gateway,
+        identity: Some(config.data_dir.join("identity")),
     };
     Ok(Plan {
         transport,
@@ -458,13 +521,14 @@ pub fn announcement(config: &Config) -> Result<String, ConfigError> {
 /// The status file's text: one line per fact, cuts and rounds in order.
 pub fn render(status: &Status) -> String {
     let mut out = format!(
-        "caught_up {}\ncircle_caught_up {}\npeers {}\nbound {}\nequivocations {}\nconflict {}\n",
+        "caught_up {}\ncircle_caught_up {}\npeers {}\nbound {}\nequivocations {}\nconflict {}\nstopped {}\n",
         status.caught_up,
         status.circle_caught_up,
         status.peers,
         status.bound,
         status.equivocations,
-        status.conflict
+        status.conflict,
+        status.stopped.map_or("none".to_string(), |s| s.name())
     );
     for (n, digest) in status.cuts.iter().enumerate() {
         out += &format!("cut {n} {}\n", hex(digest));
@@ -489,6 +553,10 @@ pub fn parse(text: &str) -> Option<Status> {
             ["bound", v] => status.bound = v.parse().ok()?,
             ["equivocations", v] => status.equivocations = v.parse().ok()?,
             ["conflict", v] => status.conflict = v.parse().ok()?,
+            ["stopped", "none"] => status.stopped = None,
+            ["stopped", ..] => {
+                status.stopped = Some(Stop::parse(line.strip_prefix("stopped ")?)?);
+            }
             ["cut", n, d] => {
                 (n.parse::<usize>().ok()? == status.cuts.len()).then_some(())?;
                 status.cuts.push(unhex(d, "cut").ok()?);

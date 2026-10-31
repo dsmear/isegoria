@@ -60,6 +60,7 @@ async fn node_stored(
         tiers: None,
         relay: None,
         gateway: None,
+        identity: None,
     };
     let handle = Handle::spawn(Keypair::generate_ed25519(), config).expect("a node starts");
     let addr = handle
@@ -243,6 +244,7 @@ async fn at_net_14_only_writers_publish() {
         tiers: None,
         relay: None,
         gateway: None,
+        identity: None,
     };
     let outsider = Handle::spawn(Keypair::generate_ed25519(), config);
     assert!(matches!(outsider.err(), Some(StartError::NotAWriter)));

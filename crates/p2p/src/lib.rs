@@ -5,6 +5,7 @@ pub mod archive;
 pub mod blind;
 pub mod discovery;
 pub mod member;
+pub mod record;
 pub mod tiered;
 
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, StreamExt};
@@ -20,6 +21,7 @@ use network::replica::{
 };
 use network::store::{DurableLog, ObjectStore, StoreError};
 use network::tier::{Tier, Tiers};
+use record::{Guard, State, Stop};
 use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -144,6 +146,9 @@ pub struct Config {
     pub relay: Option<Vec<blind::KeyAnnouncement>>,
     /// A tiered member's gateway (`docs/04` §Blind relays).
     pub gateway: Option<blind::Gateway>,
+    /// The record governing a tiered node's feeds; without one they write nothing (`docs/04`
+    /// §Increments A and B). Ignored without tiers.
+    pub identity: Option<PathBuf>,
 }
 
 /// What a node reports of itself (`docs/04` §A node process).
@@ -163,6 +168,8 @@ pub struct Status {
     pub cuts: Vec<[u8; 32]>,
     /// Each finished round, from epoch 0: its value and its withholders.
     pub beacons: Vec<(Option<[u8; 32]>, Vec<usize>)>,
+    /// Why a tiered writer signs nothing, if it does not (`docs/04` §Increments A and B).
+    pub stopped: Option<Stop>,
 }
 
 #[derive(Debug)]
@@ -185,6 +192,8 @@ pub enum StartError {
     /// A relay or gateway outside a tiered network, a relay with a member role or a feed, a
     /// gateway of another member, or key configurations that do not verify (`docs/04`).
     Relays,
+    /// An identity record naming another key for a configured feed.
+    Identity,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -196,6 +205,8 @@ pub enum PublishError {
     Feed(FeedError),
     Store(String),
     Replica(DiskError),
+    /// The tiered writer is stopped (`docs/04` §Increments A and B).
+    Stopped(Stop),
 }
 
 enum Command {
@@ -278,6 +289,26 @@ enum Feed {
     Circle,
 }
 
+impl Feed {
+    fn tier(self) -> Tier {
+        match self {
+            Feed::Public => Tier::Public,
+            Feed::Circle => Tier::Circle,
+        }
+    }
+}
+
+/// A governed feed's failed file write stops the member until a restart; an object refused
+/// for its size does not.
+fn stored<T>(result: Result<T, StoreError>, guard: Option<&mut Guard>) -> Result<T, PublishError> {
+    result.map_err(|e| {
+        if let (StoreError::Io(_), Some(g)) = (e, guard) {
+            g.halt(Stop::Failed);
+        }
+        PublishError::Store(format!("{e:?}"))
+    })
+}
+
 /// What an outbound sync request was, so its response is read for what it is; a pull keeps
 /// the grant it was asked under.
 #[derive(Clone, Copy)]
@@ -295,6 +326,8 @@ struct Node {
     topic: IdentTopic,
     writing: Option<Writing>,
     circle: Option<Writing>,
+    /// A tiered node's record; `None` without tiers, where T80's rules hold.
+    identity: Option<Guard>,
     listening: Vec<oneshot::Sender<Result<Multiaddr, String>>>,
     member: Option<MemberRole>,
     network_id: [u8; 32],
@@ -364,9 +397,12 @@ fn set_aside(path: &Path) -> Result<Option<PathBuf>, StartError> {
     Ok(Some(to))
 }
 
-/// Opens the own feed, setting damaged files aside (`docs/04` §A node's own disk, rule 2);
-/// returns it and the paths set aside.
-fn open_own(own: Own, replica: &mut Store) -> Result<(Writing, Vec<PathBuf>), StartError> {
+/// An opened feed, the object of each of its entries, and the paths set aside.
+type Opened = (Writing, Vec<Vec<u8>>, Vec<PathBuf>);
+
+/// A feed's files, damaged ones set aside (`docs/04` §A node's own disk, rule 2); nothing is
+/// signed.
+fn open_writing(own: Own, replica: &Store) -> Result<Opened, StartError> {
     if !replica.replica().writers().contains(&own.writer.public()) {
         return Err(StartError::NotAWriter);
     }
@@ -384,24 +420,98 @@ fn open_own(own: Own, replica: &mut Store) -> Result<(Writing, Vec<PathBuf>), St
             (log, objects, Vec::new())
         }
     };
-    let me = own.writer.public().to_bytes();
-    if let Err(e @ FeedError::Forked { .. }) =
-        replica.replica().feed_beyond(&me, log.log().entries())
-    {
-        return Err(StartError::Feed(e));
-    }
-    for (entry, object) in log.log().entries().iter().zip(named) {
-        replica
-            .insert(own.writer.sign(entry), object)
-            .map_err(StartError::Replica)?;
-    }
-    let mut writing = Writing {
+    let writing = Writing {
         writer: own.writer,
         log,
         objects,
     };
+    Ok((writing, named, aside))
+}
+
+/// Signs the feed's entries again into the replica; the signatures are deterministic.
+fn replay(w: &Writing, named: Vec<Vec<u8>>, replica: &mut Store) -> Result<(), StartError> {
+    for (entry, object) in w.log.log().entries().iter().zip(named) {
+        replica
+            .insert(w.writer.sign(entry), object)
+            .map_err(StartError::Replica)?;
+    }
+    Ok(())
+}
+
+/// Opens a writer's own feed under T80's rules (`docs/04` §A writer's own feed); returns it
+/// and the paths set aside.
+fn open_own(own: Own, replica: &mut Store) -> Result<(Writing, Vec<PathBuf>), StartError> {
+    let (mut writing, named, aside) = open_writing(own, replica)?;
+    let me = writing.writer.public().to_bytes();
+    if let Err(e @ FeedError::Forked { .. }) = replica
+        .replica()
+        .feed_beyond(&me, writing.log.log().entries())
+    {
+        return Err(StartError::Feed(e));
+    }
+    replay(&writing, named, replica)?;
     let _ = writing.catch_up(replica.replica());
     Ok((writing, aside))
+}
+
+/// Whether the replica holds a verified entry of `w`'s key beyond its files or contradicting
+/// them (`docs/04` §Increments A and B).
+fn own_entry(replica: &Replica, w: &Writing) -> bool {
+    let me = w.writer.public().to_bytes();
+    !matches!(replica.feed_beyond(&me, w.log.log().entries()), Ok(beyond) if beyond.is_empty())
+}
+
+/// What a governed feed's files, with `entries` entries, show against its state at the start.
+fn classify(state: State, entries: usize, aside: bool, tier: Tier) -> Option<Stop> {
+    match (aside, state, entries) {
+        (true, ..) => Some(Stop::SetAside(tier)),
+        (_, State::Written, 0) => Some(Stop::Lost(tier)),
+        (_, State::Unused, 1..) | (_, State::Opening, 2..) => Some(Stop::Inconsistent(tier)),
+        _ => None,
+    }
+}
+
+type Feeds = (Option<Writing>, Option<Writing>, Vec<PathBuf>);
+
+/// A tiered node's feeds under its record: classified and checked before any signature, an
+/// opening feed's one entry kept and the feed made written, then signed again unless stopped.
+fn open_governed(
+    own: Option<Own>,
+    circle: Option<Own>,
+    replica: &mut Store,
+    guard: &mut Guard,
+) -> Result<Feeds, StartError> {
+    let mut aside = Vec::new();
+    let mut opened = Vec::new();
+    for (own, tier) in [(own, Tier::Public), (circle, Tier::Circle)] {
+        let Some(own) = own else { continue };
+        let (writing, named, set) = open_writing(own, replica)?;
+        let entries = writing.log.log().len();
+        if let Some(stop) = classify(guard.state(tier), entries, !set.is_empty(), tier) {
+            guard.halt(stop);
+        }
+        if own_entry(replica.replica(), &writing) {
+            guard.halt(Stop::OwnEntry(tier));
+        }
+        aside.extend(set);
+        opened.push((tier, writing, named));
+    }
+    for (tier, writing, _) in &opened {
+        if guard.state(*tier) == State::Opening && writing.log.log().len() == 1 {
+            let _ = guard.advance(*tier, State::Written);
+        }
+    }
+    let (mut public, mut circle) = (None, None);
+    for (tier, writing, named) in opened {
+        if guard.stop().is_none() {
+            replay(&writing, named, replica)?;
+        }
+        match tier {
+            Tier::Public => public = Some(writing),
+            Tier::Circle => circle = Some(writing),
+        }
+    }
+    Ok((public, circle, aside))
 }
 
 impl Writing {
@@ -575,28 +685,43 @@ impl Handle {
             ),
             None => Store::Memory(Replica::new(config.writers.clone())),
         };
-        let (writing, mut set_aside) = match config.own {
-            Some(own) => {
-                let (writing, aside) = open_own(own, &mut replica)?;
-                (Some(writing), aside)
-            }
-            None => (None, Vec::new()),
-        };
-        let circle = match config.circle {
-            Some(own) => {
-                let (circle, aside) = open_own(own, &mut replica)?;
-                set_aside.extend(aside);
-                Some(circle)
-            }
-            None => None,
-        };
         if let Some(role) = &config.member {
             let key = role.member.public();
             let mine = role.consortium.keys().get(role.index) == Some(&key);
-            if !mine || writing.as_ref().is_none_or(|w| w.writer.public() != key) {
+            if !mine || config.own.as_ref().is_none_or(|w| w.writer.public() != key) {
                 return Err(StartError::NotTheMember);
             }
         }
+        let mut guard = match (&config.own, &tiered) {
+            (Some(own), Some(_)) => {
+                let circle = config.circle.as_ref().map(|c| c.writer.public().to_bytes());
+                let public = own.writer.public().to_bytes();
+                let path = config.identity.as_deref();
+                Some(Guard::open(path, public, circle).map_err(|_| StartError::Identity)?)
+            }
+            _ => None,
+        };
+        let (writing, circle, set_aside) = match guard.as_mut() {
+            Some(guard) => open_governed(config.own, config.circle, &mut replica, guard)?,
+            None => {
+                let (writing, mut set_aside) = match config.own {
+                    Some(own) => {
+                        let (writing, aside) = open_own(own, &mut replica)?;
+                        (Some(writing), aside)
+                    }
+                    None => (None, Vec::new()),
+                };
+                let circle = match config.circle {
+                    Some(own) => {
+                        let (circle, aside) = open_own(own, &mut replica)?;
+                        set_aside.extend(aside);
+                        Some(circle)
+                    }
+                    None => None,
+                };
+                (writing, circle, set_aside)
+            }
+        };
         let network_id = config.writers.network_id();
         let consortium = config.member.as_ref().map(|m| &m.consortium);
         let collector = consortium
@@ -621,6 +746,7 @@ impl Handle {
             topic,
             writing,
             circle,
+            identity: guard,
             listening: Vec::new(),
             member: config.member,
             network_id,
@@ -801,11 +927,13 @@ impl Node {
             conflict,
             cuts,
             beacons,
+            stopped: self.identity.as_ref().and_then(|g| g.stop()),
         }
     }
 
     fn duties(&mut self) {
-        let Some(role) = self.member.as_ref().filter(|_| self.caught_up) else {
+        let writes = self.identity.as_ref().is_none_or(|g| g.stop().is_none());
+        let Some(role) = self.member.as_ref().filter(|_| self.caught_up && writes) else {
             return;
         };
         let objects = role.duties(self.store.replica(), self.network_id, &mut self.progress);
@@ -884,23 +1012,76 @@ impl Node {
         Ok(accepted)
     }
 
-    fn publish(&mut self, feed: Feed, object: Vec<u8>) -> Result<SignedEntry, PublishError> {
-        let (w, ready) = match feed {
+    /// Whether `feed` may sign now. Governed: the member not stopped, the feed caught up, no
+    /// verified own entry outside its files. Otherwise caught up, taking its feed back (T80).
+    fn ready(&mut self, feed: Feed) -> Result<(), PublishError> {
+        let (w, caught) = match feed {
             Feed::Public => (self.writing.as_mut(), self.caught_up),
             Feed::Circle => (self.circle.as_mut(), self.circle_caught_up),
         };
         let w = w.ok_or(PublishError::NotAWriter)?;
-        if !ready {
+        let Some(guard) = self.identity.as_mut() else {
+            if !caught {
+                return Err(PublishError::NotCaughtUp);
+            }
+            return w.catch_up(self.store.replica());
+        };
+        if let Some(stop) = guard.stop() {
+            return Err(PublishError::Stopped(stop));
+        }
+        if !caught {
             return Err(PublishError::NotCaughtUp);
         }
-        w.catch_up(self.store.replica())?;
-        let store = |e: StoreError| PublishError::Store(format!("{e:?}"));
-        let payload = w.objects.put(&object).map_err(store)?;
-        let entry = w.log.append(payload).map_err(store)?;
+        if own_entry(self.store.replica(), w) {
+            return Err(PublishError::Stopped(
+                guard.halt(Stop::OwnEntry(feed.tier())),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Signs `object` on `feed`; a governed feed's first entry follows the record's durable
+    /// order (`docs/04` §Increments A and B).
+    fn publish(&mut self, feed: Feed, object: Vec<u8>) -> Result<SignedEntry, PublishError> {
+        self.ready(feed)?;
+        let tier = feed.tier();
+        let w = match feed {
+            Feed::Public => self.writing.as_mut(),
+            Feed::Circle => self.circle.as_mut(),
+        }
+        .ok_or(PublishError::NotAWriter)?;
+        if let Some(g) = self.identity.as_mut() {
+            if g.state(tier) == State::Unused {
+                g.advance(tier, State::Opening)
+                    .map_err(PublishError::Stopped)?;
+            }
+        }
+        let payload = stored(w.objects.put(&object), self.identity.as_mut())?;
+        let entry = stored(w.log.append(payload), self.identity.as_mut())?;
+        if let Some(g) = self.identity.as_mut() {
+            if g.state(tier) == State::Opening {
+                g.advance(tier, State::Written)
+                    .map_err(PublishError::Stopped)?;
+            }
+        }
         let signed = w.writer.sign(&entry);
         self.accept(signed.clone(), object)
             .map_err(PublishError::Replica)?;
         Ok(signed)
+    }
+
+    /// Stops a governed member whose replica now holds a verified own entry outside its files.
+    fn watch(&mut self) {
+        let Some(guard) = self.identity.as_mut() else {
+            return;
+        };
+        for (w, tier) in [(&self.writing, Tier::Public), (&self.circle, Tier::Circle)] {
+            if w.as_ref()
+                .is_some_and(|w| own_entry(self.store.replica(), w))
+            {
+                guard.halt(Stop::OwnEntry(tier));
+            }
+        }
     }
 
     fn install_archive(
@@ -964,7 +1145,9 @@ impl Node {
                 let _ = tx.send(self.publish(feed, object));
             }
             Command::Insert(entry, object, tx) => {
-                let _ = tx.send(self.accept(entry, object));
+                let accepted = self.accept(entry, object);
+                self.watch();
+                let _ = tx.send(accepted);
             }
             Command::Replica(tx) => {
                 let _ = tx.send(self.store.replica().clone());
@@ -1254,7 +1437,7 @@ impl Node {
         let Some(w) = self.circle.as_mut() else {
             return blind::Answer::Failed;
         };
-        if w.catch_up(self.store.replica()).is_err() {
+        if self.identity.is_none() && w.catch_up(self.store.replica()).is_err() {
             return blind::Answer::Failed;
         }
         let payload = network::cid::cid(&event);
@@ -1296,15 +1479,11 @@ impl Node {
         };
         if !self.caught_up && !lacks(&self.writing) {
             self.caught_up = true;
-            if let Some(w) = self.writing.as_mut() {
-                let _ = w.catch_up(self.store.replica());
-            }
+            let _ = self.ready(Feed::Public);
         }
         if circle && !self.circle_caught_up && !lacks(&self.circle) {
             self.circle_caught_up = true;
-            if let Some(w) = self.circle.as_mut() {
-                let _ = w.catch_up(self.store.replica());
-            }
+            let _ = self.ready(Feed::Circle);
         }
     }
 
@@ -1374,6 +1553,7 @@ impl Node {
                         }
                     }
                     if !new.is_empty() {
+                        self.watch();
                         self.announce(&new);
                         self.pull(peer);
                     }

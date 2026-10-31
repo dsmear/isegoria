@@ -2,7 +2,9 @@
 //! the transport key kept across starts, and the status file's one text per status.
 
 use network::consortium::Member;
+use network::tier::Tier;
 use node::{hex, parse, plan, render, Config, ConfigError};
+use p2p::record::Stop;
 use p2p::Status;
 use std::path::PathBuf;
 
@@ -109,6 +111,7 @@ fn at_net_21_the_status_file_has_one_text() {
         conflict: false,
         cuts: vec![[1; 32], [2; 32]],
         beacons: vec![(Some([9; 32]), vec![]), (None, vec![0, 2])],
+        stopped: Some(Stop::OwnEntry(Tier::Circle)),
     };
     let text = render(&status);
     assert_eq!(parse(&text), Some(status.clone()));
@@ -119,6 +122,8 @@ fn at_net_21_the_status_file_has_one_text() {
         text.replace("[0,2]", "0,2"),
         text.replace("peers 3", "peers three"),
         text.replace("bound 2", "bound -2"),
+        text.replace("own-entry circle", "own-entry elsewhere"),
+        text.replace("stopped own-entry circle", "stopped"),
         text.clone() + "spare line\n",
     ] {
         assert_eq!(parse(&bad), None, "{bad}");

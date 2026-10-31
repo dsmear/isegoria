@@ -102,9 +102,10 @@ assumes members follow the rules, and view changes require majority quorums. The
 beacon retains withholding bias/stall risk; writer recovery still relies on the first
 peer that answers, which can be stale. T88's approved contract (`01` D57,
 [04 §Operating contract](04-storage-network.md#operating-contract-t88)) states these limits
-and requires two verified members and no automatic resumption after loss; they must be
-built and exercised before the independent-operator trial, not hidden by a single-operator
-demo.
+and requires two verified members and no automatic resumption after loss. Increment A
+(`01` D58) builds the stop after a detected loss for tiered networks; the two members are not
+built. Both must be exercised before the independent-operator trial, not hidden by a
+single-operator demo.
 
 A member sees the circle's plaintext. Public roots bind records but do not let an
 outsider recompute private results or guarantee their availability. Independent

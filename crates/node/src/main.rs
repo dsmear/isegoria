@@ -102,6 +102,21 @@ fn main() -> ExitCode {
                 }
             };
         }
+        [flag, dir] if flag.as_os_str() == "--new-identity" => {
+            return match node::new_identity(dir) {
+                Ok(keys) => {
+                    println!("consortium {}", node::hex(&keys.consortium));
+                    println!("circle {}", node::hex(&keys.circle));
+                    println!("hpke {}", node::hex(&keys.hpke));
+                    println!("transport {}", node::hex(&keys.transport));
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("identity {}: {e}", dir.display());
+                    ExitCode::from(2)
+                }
+            };
+        }
         [flag, path] if flag.as_os_str() == "--transport-public-key" => {
             return match transport_public_key(path) {
                 Ok(hex) => {
@@ -117,6 +132,7 @@ fn main() -> ExitCode {
         [path] => path.clone(),
         _ => {
             eprintln!("usage: isegoria-node <config.toml> | --announce <config.toml>\n\
+                --new-identity <data-dir>\n\
                 --transport-public-key <node.toml>\n\
                 --archive-extract <node.toml> <production.toml>\n\
                 --archive-export-cut <node.toml> <cut.toml> <cut-file>\n\

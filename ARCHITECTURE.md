@@ -268,8 +268,11 @@ request-response (`/isegoria/sync/1`: Summary→Have, Want→Entries). A writer'
 its `network::store` log, signed again on restart; after a start it writes only once a sync
 round with a peer has ended (`caught_up`), takes back the entries its key signed past its
 log (`network::replica::Replica::feed_beyond`), sets damaged own files aside (`set_aside`)
-and refuses a fork or a gap of its feed (T80). Given a directory, the node keeps its replica
-on disk (`DurableReplica`, T74). `member`: `MemberRole`, `Progress`, `collected` — a
+and refuses a fork or a gap of its feed (T80). In a tiered network `record` (`Record`,
+`Stop`, `create`, `read`) governs every feed instead: an identity record ordered durably
+before each feed's first signature, and a durable stop after a detected loss, inconsistency
+or verified own entry (`Config::identity`, `Status::stopped`, T88 increment A). Given a
+directory, the node keeps its replica on disk (`DurableReplica`, T74). `member`: `MemberRole`, `Progress`, `collected` — a
 consortium member node's duties on a timer: commit, reveal, propose cut `k` in the views
 where `(k + v) mod n` is its index, co-sign, change view (T74, T76). Only `network` is a dependency: the
 engine and the protocol state stay free of I/O and of an async runtime (T18). `tiered`:
@@ -290,6 +293,8 @@ over libp2p and logged on the member's circle feed if its embedding admits it (T
 checked configuration: keys, consortium, a tiered network's circle keys and the member's
 circle key, a relay's routes or a member's gateway, transport key kept in the data directory),
 `announcement` (`isegoria-node --announce`: a member's signed key configuration),
+`new_identity` (`--new-identity`: four private secrets and an identity record in a new data
+directory, public keys printed),
 `transport_public_key` (`--transport-public-key`: the existing transport key's roster entry),
 `archive` (bounded regular-file loading, checked operator-pinned jobs and latest-result
 status), `extract` (offline `--archive-export-cut` of a cut the stopped node's replica
@@ -453,8 +458,8 @@ cargo clippy --workspace --all-targets
 | Who may read the replicated set | **Real for tiered networks, loopback-tested** — the binding on each connection, every message filtered by verified access, a member's two feeds, a public reader on an `Observer` (T77, reviewed on loopback evidence; no multi-operator run); **none without tiers** — a node serves its whole set to any peer, against D17 | D54: three tiers, two feeds per member, the circle served only to member-bound transport keys (T77); blind relays (T85); a state tree keyed by nym (T86) |
 | A node process | **Real** — `isegoria-node` from a TOML configuration, its files resumed on restart, its status on a period (T78) | an epoch's work (T79) |
 | Answer review between nodes | **None** — `AnswerPath`/`AnswerNode` are offline; the ledger still decodes legacy `NodeEvent` (T79) | the distributed answer-review contract, then its implementation (`docs/05`) |
-| Independent operator setup and trial | **Not established** — current process tests run under one operator; threshold committee messages and setup are local | distributed committee setup (T19); T88's operating contract, approved (D57) but not built, and its trial; Phase 2 gates (`docs/10`, D55) |
-| A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80) | first-peer recovery can miss a longer feed elsewhere; T88-P4 (D57) requires two verified members and no automatic resumption after loss — not built, not tested |
+| Independent operator setup and trial | **Not established** — current process tests run under one operator; threshold committee messages and setup are local | distributed committee setup (T19); T88's operating contract, approved (D57) with increment A built (D58), and its trial; Phase 2 gates (`docs/10`, D55) |
+| A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80); in a tiered network a detected loss, inconsistency or verified own entry stops the member durably instead (D58, AT-NET-36) | first-peer recovery can miss a longer feed elsewhere; T88-P4's two verified members (increment B) are not built |
 | Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from explicit or discovered holders, plus configured periodic process maintenance and manual cut export and extraction from a stopped replica, preparation/reproduction/co-signing and holder installation tools, tested on loopback and controlled processes | Automatic extraction/production, remote provisioning, roster coordination, repair orchestration and independent operators (T84) |
 
 Reference implementations are clearly marked and provide **no** security; they exist

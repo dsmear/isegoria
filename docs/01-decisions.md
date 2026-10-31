@@ -1969,3 +1969,36 @@ runtime. For the trial's members, P4 supersedes the automatic resumption of writ
 file loss that `10` T80 built (`04` §A writer's own feed). This approval does not approve
 T79, does not implement or verify T88, and closes neither T84, T88 nor Phase 2; T19 and
 `10` §2's gates remain required. Phase 1's rules are unchanged.
+
+## D58 — The trial members' identity record (T88, increment A)
+
+**Decided** by the owner; recorded 2026-10-31. Approves the identity record and increment A
+of `04` §Operating contract under D57's P4, with the binding clarifications below; that
+section owns the contract.
+
+- `--new-identity <data-dir>` generates four separate secrets locally into a new directory,
+  with private files and the identity record, and prints public keys only.
+- The public and circle feeds have independent states, unused, opening and written. Before a
+  feed's first signature the durable order is opening, the entry in the log synced, written,
+  then the signature and publication.
+- A member stops durably after a detected loss or inconsistency, with no automatic unlocking.
+  Keys configured without a record leave the member stopped in its writes, with no automatic
+  migration. A stopped member adds no entry to either feed, its automatic duties included;
+  replication, reading and serving continue as far as the data allows. Writers of networks
+  without tiers are outside this increment.
+
+**Clarifications.**
+1. An opening feed holding one complete entry keeps and resumes exactly that entry and its
+   object: none is replaced, skipped or given other content at the same `seq`.
+2. A required write or sync that fails, also after a rename that may have changed the disk,
+   ends the way to the signature.
+3. A corrupt or unreadable record neither becomes unused nor is overwritten as a new
+   identity. If a stop cannot be persisted, the member still writes nothing.
+4. The record does not prevent cloning or rolling back the whole directory; these residuals,
+   and the operating prohibition on resuming writes after a known restoration, stay explicit.
+5. Only a verified own entry, in the network's context and compared with the log, is the
+   evidence; unverified announcements or identifiers justify no durable stop.
+6. Public marks alone do not show every private fork.
+
+**Scope.** Increment B, the sync with two other members, follows; P4 is not complete. No
+unlocking, migration of old identities, genesis schema, T79 decision or Phase 1 change.

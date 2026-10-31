@@ -33,6 +33,7 @@ fn config(tiered: bool) -> Config {
         tiers: tiered.then(tiers),
         relay: None,
         gateway: None,
+        identity: None,
     }
 }
 fn entry(seed: u8, object: &[u8]) -> SignedEntry {

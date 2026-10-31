@@ -15,6 +15,7 @@ network = { path = "../network" }
 p2p = { path = "../p2p" }
 libp2p = { version = "0.56", default-features = false, features = ["ed25519"] }
 ed25519-dalek = "2"
+getrandom = "0.2"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "signal"] }
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"

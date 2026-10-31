@@ -72,6 +72,7 @@ fn config_waiting(i: usize, role: bool, patience: u32, view_patience: u32) -> Co
         tiers: None,
         relay: None,
         gateway: None,
+        identity: None,
     }
 }
 

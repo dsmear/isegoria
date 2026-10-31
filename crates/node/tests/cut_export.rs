@@ -331,6 +331,13 @@ mod processes {
                 let dir = f.root.join(format!("runtime-{i}"));
                 fs::create_dir_all(&dir).unwrap();
                 fs::write(dir.join("transport.key"), node::hex(&[90 + i as u8; 32])).unwrap();
+                let key = |s: u8| {
+                    network::consortium::Member::from_seed([s; 32])
+                        .public()
+                        .to_bytes()
+                };
+                let record = dir.join("identity");
+                p2p::record::create(&record, key(1 + i as u8), key(11 + i as u8)).unwrap();
                 let circle = f.root.join(format!("circle-{i}.key"));
                 fs::write(&circle, node::hex(&[11 + i as u8; 32])).unwrap();
                 let peers: Vec<_> = (0..3)

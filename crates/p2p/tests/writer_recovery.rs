@@ -34,6 +34,11 @@ fn me() -> [u8; 32] {
 
 /// A node; with `own`, writer 1 keeps its feed there.
 async fn node(own: Option<&Path>) -> (Handle, Multiaddr) {
+    node_with(own, None).await
+}
+
+/// As [`node`], given an identity record's path, which a network without tiers ignores.
+async fn node_with(own: Option<&Path>, identity: Option<PathBuf>) -> (Handle, Multiaddr) {
     let config = Config {
         writers: WriterSet::new(NET, &[writer().public()]),
         sync_every: Duration::from_millis(200),
@@ -48,6 +53,7 @@ async fn node(own: Option<&Path>) -> (Handle, Multiaddr) {
         tiers: None,
         relay: None,
         gateway: None,
+        identity,
     };
     let handle = Handle::spawn(Keypair::generate_ed25519(), config).expect("a node starts");
     let addr = handle
@@ -289,4 +295,20 @@ async fn at_net_18_caught_up_only_with_the_whole_feed() {
         tokio::task::yield_now().await;
     }
     whole(&w.replica().await, 3);
+}
+
+/// AT-NET-36: without tiers the identity record is out of scope: a writer without one still
+/// rebuilds its lost feed and continues (T80).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn at_net_36_a_writer_without_tiers_keeps_t80() {
+    let (relay, addr, dir) = history(3).await;
+    std::fs::remove_dir_all(&dir).unwrap();
+    let record = dir.with_extension("identity");
+    let (w, _) = node_with(Some(&dir), Some(record.clone())).await;
+    w.dial(addr).await.unwrap();
+    assert_eq!(publish(&w, b"after").await.entry.seq, 3);
+    converged(&[&w, &relay], 4).await;
+    whole(&relay.replica().await, 4);
+    assert_eq!(w.status().await.stopped, None);
+    assert!(!record.exists());
 }

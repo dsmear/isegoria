@@ -106,6 +106,13 @@ impl GatewayKey {
     }
 }
 
+/// The X25519 public key the 32 bytes of `hpke_key_file` make (RFC 9180 `DeriveKeyPair`).
+pub fn public_key(ikm: &[u8; 32]) -> Option<[u8; 32]> {
+    let suite = SymmetricSuite::new(Kdf::HkdfSha256, Aead::Aes128Gcm);
+    let config = KeyConfig::derive(0, Kem::X25519Sha256, vec![suite], ikm).ok()?;
+    config.encode().ok()?.get(3..35)?.try_into().ok()
+}
+
 /// A gateway's admission check, supplied by its embedding: which bytes it would log.
 pub type Admission = Box<dyn Fn(&[u8]) -> bool + Send>;
 
