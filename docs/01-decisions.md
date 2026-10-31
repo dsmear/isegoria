@@ -1927,3 +1927,45 @@ Where continuity of de-duplication is missing, enrollment and issuance stop; exi
 nyms can continue under the authentication and reopening rules (T86-P8). The migration
 itself remains T19/T22. This approval does not approve T79 or T88, implement real-person
 uniqueness, or close T86 or Phase 2.
+
+## D57 — The independent-operator trial's operating contract
+
+**Decided** by the owner; recorded 2026-10-31. Approves T88-P1–P4 and the trial's archive
+custody in `04` §Operating contract, which owns the contract, the trial's procedure and the
+proposed implementation.
+
+- **Configuration (P1).** The four operators each verify and confirm one canonical
+  configuration before the first start. Its digest identifies the document and does not by
+  itself authenticate its origin. The network id derives from it; signatures and bindings
+  that depend on the id stay out of the material it derives from. Members, authorized keys
+  and rules stay fixed for the trial; changing them is a new configuration, so a new
+  network, which is not D54's fork with continuity (T86). Open application parameters stay
+  with T79.
+- **Keys (P2).** The separate keys already built stay; the proposal to derive them all from
+  the member's seed is withdrawn. Each operator generates and keeps its own secrets locally
+  and exchanges public keys only. One active instance per member identity, backups under
+  its operator's control, no automatic rotation; a compromise suspends the trial and needs
+  a new configuration.
+- **Quorum and faults (P3).** `n = 4`, `t = 3`, four independent operators. Progress only
+  with an available and eligible quorum; the threshold is never lowered. The faults are
+  crashes, restarts, delays, message loss and duplication, and partitions; no Byzantine
+  tolerance is claimed. A node that detects a conflict stops progress and keeps the
+  evidence, choosing no branch automatically. The beacon's limits stay explicit.
+- **Recovery (P4).** After a restart, no write before the checks and the required sync.
+  Consulting at least two other verified members is the trial's minimum check, not a
+  general proof of completeness. After data loss or the restoration of an older backup,
+  writes under the same identity do not resume automatically; the member stays stopped in
+  its writes until its recovery is justified. Entries spread but not yet in a cut remain a
+  risk. No proof of completeness, automatic detection of every rollback or unlocking
+  procedure is approved.
+- **Archives and holders.** The holder roster is distinct from the consortium and assigns
+  storage without restricting public reading. Context, certificate, roster and redundancy
+  parameters are agreed by hand; each operator verifies and installs locally. The first
+  trial needs no remote upload; it exercises a rebuild without a local replica, the loss of
+  holders within the expected bound and the restoration of redundancy.
+
+**Scope.** The operators' confirmations set up the trial; they are no consensus rule at
+runtime. For the trial's members, P4 supersedes the automatic resumption of writes after
+file loss that `10` T80 built (`04` §A writer's own feed). This approval does not approve
+T79, does not implement or verify T88, and closes neither T84, T88 nor Phase 2; T19 and
+`10` §2's gates remain required. Phase 1's rules are unchanged.

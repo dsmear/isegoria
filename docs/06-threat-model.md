@@ -99,10 +99,12 @@ path are design obligations, not protections the runtime already provides.
 D55 targets independently operated experimental nodes; independent administration
 does not make the present cut protocol Byzantine-tolerant. Its agreement argument
 assumes members follow the rules, and view changes require majority quorums. The
-beacon retains withholding bias/stall risk; writer recovery relies on the first peer
-that answers, which can be stale. These limits must be specified and exercised in
-T88 before the independent-operator trial, not hidden by a single-operator demo;
-[04 §Operating contract](04-storage-network.md#operating-contract-t88--proposed) proposes them.
+beacon retains withholding bias/stall risk; writer recovery still relies on the first
+peer that answers, which can be stale. T88's approved contract (`01` D57,
+[04 §Operating contract](04-storage-network.md#operating-contract-t88)) states these limits
+and requires two verified members and no automatic resumption after loss; they must be
+built and exercised before the independent-operator trial, not hidden by a single-operator
+demo.
 
 A member sees the circle's plaintext. Public roots bind records but do not let an
 outsider recompute private results or guarantee their availability. Independent

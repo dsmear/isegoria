@@ -116,7 +116,7 @@ contract leaves to the implementation:
 decision or a built network rule; *consequence* is what the current code forces; each
 **T79-Pn** is a new choice awaiting the owner's decision before T79 is implemented. The
 operators' side — keys, genesis, quorum, faults, recovery — is `04` §Operating contract
-(T88-P1–P4). Nothing here changes D49–D53 or the offline `AnswerNode` and its `CloseEpoch`.
+(T88-P1–P4, approved in `01` D57, not implemented). Nothing here changes D49–D53 or the offline `AnswerNode` and its `CloseEpoch`.
 
 **Configuration and authorization.**
 - *Approved.* Consortium-signed cuts order every event; the first of conflicting events wins,
