@@ -530,15 +530,30 @@ pub fn render(status: &Status) -> String {
         status.conflict,
         status.stopped.map_or("none".to_string(), |s| s.name())
     );
+    out += &format!("synced [{}]\n", members(&status.synced));
+    out += &format!("circle_synced [{}]\n", members(&status.circle_synced));
     for (n, digest) in status.cuts.iter().enumerate() {
         out += &format!("cut {n} {}\n", hex(digest));
     }
     for (e, (value, withheld)) in status.beacons.iter().enumerate() {
         let value = value.map_or("none".to_string(), |v| hex(&v));
-        let withheld: Vec<String> = withheld.iter().map(|m| m.to_string()).collect();
-        out += &format!("beacon {e} {value} [{}]\n", withheld.join(","));
+        out += &format!("beacon {e} {value} [{}]\n", members(withheld));
     }
     out
+}
+
+fn members(list: &[usize]) -> String {
+    let list: Vec<String> = list.iter().map(|m| m.to_string()).collect();
+    list.join(",")
+}
+
+/// The members `[1,2]` lists, `None` for other text.
+fn parse_members(text: &str) -> Option<Vec<usize>> {
+    let list = text.strip_prefix('[')?.strip_suffix(']')?;
+    list.split(',')
+        .filter(|m| !m.is_empty())
+        .map(|m| m.parse().ok())
+        .collect()
 }
 
 /// The status a status file holds, `None` if the text is not one [`render`] writes.
@@ -553,6 +568,8 @@ pub fn parse(text: &str) -> Option<Status> {
             ["bound", v] => status.bound = v.parse().ok()?,
             ["equivocations", v] => status.equivocations = v.parse().ok()?,
             ["conflict", v] => status.conflict = v.parse().ok()?,
+            ["synced", list] => status.synced = parse_members(list)?,
+            ["circle_synced", list] => status.circle_synced = parse_members(list)?,
             ["stopped", "none"] => status.stopped = None,
             ["stopped", ..] => {
                 status.stopped = Some(Stop::parse(line.strip_prefix("stopped ")?)?);
@@ -568,13 +585,7 @@ pub fn parse(text: &str) -> Option<Status> {
                 } else {
                     Some(unhex(v, "beacon").ok()?)
                 };
-                let list = w.strip_prefix('[')?.strip_suffix(']')?;
-                let withheld = list
-                    .split(',')
-                    .filter(|m| !m.is_empty())
-                    .map(|m| m.parse().ok())
-                    .collect::<Option<Vec<usize>>>()?;
-                status.beacons.push((value, withheld));
+                status.beacons.push((value, parse_members(w)?));
             }
             _ => return None,
         }

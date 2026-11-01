@@ -152,48 +152,61 @@ mod processes {
         format!("[{}]", quoted.join(","))
     }
 
-    /// Member `index` of the two in `keys`, keeping its files in `dir`, dialing `peers`.
+    /// Member `index` of `keys`, `threshold` of them signing, keeping its files in `dir`,
+    /// dialing `peers`.
     fn toml(
         dir: &Path,
         index: usize,
-        keys: &[[[u8; 32]; 4]; 2],
+        keys: &[[[u8; 32]; 4]],
+        threshold: usize,
         listen: u16,
         peers: &[String],
     ) -> String {
-        let members = [keys[0][0], keys[1][0]];
-        let circle = [keys[0][1], keys[1][1]];
-        let writers = [members[0], members[1], circle[0], circle[1]];
+        let members: Vec<[u8; 32]> = keys.iter().map(|k| k[0]).collect();
+        let circle: Vec<[u8; 32]> = keys.iter().map(|k| k[1]).collect();
+        let writers: Vec<[u8; 32]> = members.iter().chain(&circle).copied().collect();
         let peers: Vec<String> = peers.iter().map(|p| format!("\"{p}\"")).collect();
-        format!("network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = [\"/ip4/127.0.0.1/tcp/{listen}\"]\npeers = [{}]\nwriters = {}\nkey_file = \"{}\"\ncircle_key_file = \"{}\"\nstatus_every_ms = 100\nsync_every_ms = 100\n[consortium]\nmembers = {}\nthreshold = 2\ncircle = {}\n[member]\nindex = {index}\nevery_ms = 100\ncuts_per_epoch = 1000\npatience = 10\nview_patience = 20\n",
+        format!("network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = [\"/ip4/127.0.0.1/tcp/{listen}\"]\npeers = [{}]\nwriters = {}\nkey_file = \"{}\"\ncircle_key_file = \"{}\"\nstatus_every_ms = 100\nsync_every_ms = 100\n[consortium]\nmembers = {}\nthreshold = {threshold}\ncircle = {}\n[member]\nindex = {index}\nevery_ms = 100\ncuts_per_epoch = 1000\npatience = 10\nview_patience = 20\n",
             node::hex(&[36; 32]), dir.display(), peers.join(","), list(&writers), dir.join("member.key").display(), dir.join("circle.key").display(), list(&members), list(&circle))
     }
 
-    // New identities write and collect cuts; restored keys without a record stop (AT-NET-36).
+    // Four new identities, n = 4, t = 3: two others' rounds before writing, then cuts (AT-NET-37).
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn new_identities_write_and_keys_without_a_record_stop() {
         let root = scratch("processes");
-        let dirs = [root.join("m0"), root.join("m1")];
+        let dirs: Vec<PathBuf> = (0..4).map(|i| root.join(format!("m{i}"))).collect();
         for dir in &dirs {
             assert!(new_identity(dir).status.success());
         }
-        let keys = [publics(&dirs[0]), publics(&dirs[1])];
-        let ports = [port(), port()];
+        let keys: Vec<[[u8; 32]; 4]> = dirs.iter().map(|d| publics(d)).collect();
+        let ports: Vec<u16> = (0..4).map(|_| port()).collect();
         let address = |i: usize| {
             let key = libp2p::identity::ed25519::PublicKey::try_from_bytes(&keys[i][3]).unwrap();
             let peer = libp2p::identity::PublicKey::from(key).to_peer_id();
             format!("/ip4/127.0.0.1/tcp/{}/p2p/{peer}", ports[i])
         };
-        let configs: Vec<PathBuf> = (0..2)
+        let configs: Vec<PathBuf> = (0..4)
             .map(|i| {
                 let path = root.join(format!("m{i}.toml"));
-                fs::write(&path, toml(&dirs[i], i, &keys, ports[i], &[address(1 - i)])).unwrap();
+                let peers: Vec<String> = (0..4).filter(|j| *j != i).map(address).collect();
+                fs::write(&path, toml(&dirs[i], i, &keys, 3, ports[i], &peers)).unwrap();
                 path
             })
             .collect();
-        let mut nodes: Vec<Process> = configs.iter().map(|c| Process::start(c)).collect();
+        let mut nodes: Vec<Process> = configs[..2].iter().map(|c| Process::start(c)).collect();
+        for (i, other) in [(0, "1"), (1, "0")] {
+            let line = format!("synced [{other}]\ncircle_synced [{other}]\n");
+            let text = until(&dirs[i].join("status"), |s| s.contains(&line)).await;
+            let status = node::parse(&text).unwrap();
+            assert!(!status.caught_up && !status.circle_caught_up, "{text}");
+            assert!(status.cuts.is_empty() && status.stopped.is_none(), "{text}");
+        }
+        nodes.extend(configs[2..].iter().map(|c| Process::start(c)));
         for dir in &dirs {
             until(&dir.join("status"), |s| {
-                node::parse(s).is_some_and(|s| s.cuts.len() >= 2 && s.stopped.is_none())
+                node::parse(s).is_some_and(|s| {
+                    s.caught_up && s.circle_caught_up && s.cuts.len() >= 2 && s.stopped.is_none()
+                })
             })
             .await;
         }
@@ -207,7 +220,7 @@ mod processes {
             fs::copy(dirs[0].join(name), restored.join(name)).unwrap();
         }
         let path = root.join("restored.toml");
-        fs::write(&path, toml(&restored, 0, &keys, port(), &[])).unwrap();
+        fs::write(&path, toml(&restored, 0, &keys, 3, port(), &[])).unwrap();
         let mut node = Process::start(&path);
         until(&restored.join("status"), |s| {
             s.contains("stopped missing\n")
@@ -234,7 +247,7 @@ mod processes {
             .unwrap()
             .success());
         let path = root.join("m0.toml");
-        fs::write(&path, toml(&dirs[0], 0, &keys, port(), &[])).unwrap();
+        fs::write(&path, toml(&dirs[0], 0, &keys, 2, port(), &[])).unwrap();
         let mut node = Process::start(&path);
         until(&dirs[0].join("status"), |s| {
             s.contains("stopped unreadable\n")

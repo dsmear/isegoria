@@ -96,14 +96,61 @@ pub fn transport_key(peer: &PeerId) -> Option<[u8; 32]> {
 }
 
 /// A tiered node's view of its peers: whose binding verified, and who granted it the circle,
-/// each grant numbered so that one withdrawn and given again is a new one.
+/// each verification and grant numbered so that one withdrawn and given again is a new one.
 pub(crate) struct Tiered {
     pub(crate) tiers: Tiers,
     pub(crate) binding: Option<TransportBinding>,
     pub(crate) public: PublicCollector,
-    accesses: HashMap<PeerId, Access>,
+    accesses: HashMap<PeerId, (Access, u64)>,
     grants: HashMap<PeerId, u64>,
-    next_grant: u64,
+    next: u64,
+}
+
+/// What a pull was asked under: the peer's member, binding number and grant.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Asked {
+    pub(crate) member: usize,
+    binding: u64,
+    pub(crate) grant: Option<u64>,
+}
+
+/// Other members a start check needs (`docs/04` §Increments A and B, B 8).
+pub(crate) const OTHER_MEMBERS: usize = 2;
+
+/// A governed feed's start check (`docs/04` §Increments A and B, B 1–3).
+#[derive(Default)]
+pub(crate) struct Check {
+    rounds: HashMap<PeerId, Asked>,
+    done: Option<Vec<usize>>,
+}
+
+impl Check {
+    /// Counts `peer`'s round if it still `stands`; whether it completed the check.
+    pub(crate) fn count(&mut self, t: &Tiered, peer: PeerId, asked: Asked, circle: bool) -> bool {
+        if self.done.is_some() {
+            return false;
+        }
+        self.rounds.insert(peer, asked);
+        self.rounds.retain(|p, a| t.stands(p, a, circle));
+        let members = self.members(t, circle);
+        let complete = members.len() >= OTHER_MEMBERS;
+        if complete {
+            self.done = Some(members);
+        }
+        complete
+    }
+
+    /// The other members whose rounds hold, sorted; once complete, those that completed it.
+    pub(crate) fn members(&self, t: &Tiered, circle: bool) -> Vec<usize> {
+        if let Some(done) = &self.done {
+            return done.clone();
+        }
+        let standing = self.rounds.iter().filter(|(p, a)| t.stands(p, a, circle));
+        let mut members: Vec<usize> = standing.map(|(_, a)| a.member).collect();
+        members.sort_unstable();
+        members.dedup();
+        members
+    }
 }
 
 impl Tiered {
@@ -114,12 +161,12 @@ impl Tiered {
             binding,
             accesses: HashMap::new(),
             grants: HashMap::new(),
-            next_grant: 0,
+            next: 0,
         }
     }
 
     pub(crate) fn access(&self, peer: &PeerId) -> Access {
-        self.accesses.get(peer).copied().unwrap_or(Access::PUBLIC)
+        self.accesses.get(peer).map_or(Access::PUBLIC, |(a, _)| *a)
     }
 
     /// Sets `peer`'s access from `binding`, checked against its authenticated key; whether it
@@ -127,10 +174,11 @@ impl Tiered {
     pub(crate) fn verify(&mut self, peer: &PeerId, binding: Option<&TransportBinding>) -> bool {
         let access = transport_key(peer).map_or(Access::PUBLIC, |k| self.tiers.access(&k, binding));
         let member = self.tiers.member(access).is_some();
-        if member {
-            self.accesses.insert(*peer, access);
-        } else {
+        if !member {
             self.forget(peer);
+        } else if self.accesses.get(peer).is_none_or(|(a, _)| *a != access) {
+            self.next += 1;
+            self.accesses.insert(*peer, (access, self.next));
         }
         member
     }
@@ -141,8 +189,8 @@ impl Tiered {
         if !granted || !self.accesses.contains_key(&peer) {
             self.grants.remove(&peer);
         } else if let Entry::Vacant(new) = self.grants.entry(peer) {
-            self.next_grant += 1;
-            new.insert(self.next_grant);
+            self.next += 1;
+            new.insert(self.next);
         }
     }
 
@@ -160,6 +208,25 @@ impl Tiered {
     /// Whether `grant` is still `peer`'s: not once withdrawn, even if granted again since.
     pub(crate) fn holds(&self, peer: &PeerId, grant: u64) -> bool {
         self.grant(peer) == Some(grant)
+    }
+
+    /// What a pull asked of `peer` now is asked under; `None` unless its binding verified.
+    pub(crate) fn asked(&self, peer: &PeerId) -> Option<Asked> {
+        let (access, binding) = self.accesses.get(peer)?;
+        Some(Asked {
+            member: self.tiers.member(*access)?,
+            binding: *binding,
+            grant: self.grant(peer),
+        })
+    }
+
+    /// Whether `asked`'s binding, and for the circle its grant, are still `peer`'s (`holds`).
+    pub(crate) fn stands(&self, peer: &PeerId, asked: &Asked, circle: bool) -> bool {
+        let bound = self
+            .accesses
+            .get(peer)
+            .is_some_and(|(_, n)| *n == asked.binding);
+        bound && (!circle || asked.grant.is_some_and(|g| self.holds(peer, g)))
     }
 
     /// The summary to send `peer`, and the answers to its Summary and Want.
@@ -192,7 +259,7 @@ impl Tiered {
     /// A connected peer whose binding verified as member `member`'s.
     pub(crate) fn peer_of(&self, member: usize) -> Option<PeerId> {
         let mut bound = self.accesses.iter();
-        let found = bound.find(|(_, a)| self.tiers.member(**a) == Some(member));
+        let found = bound.find(|(_, (a, _))| self.tiers.member(*a) == Some(member));
         found.map(|(peer, _)| *peer)
     }
 

@@ -177,10 +177,11 @@ async fn publish_circle(h: &Handle, object: Vec<u8>) {
     .await;
 }
 
-/// Three members connected to member 0, each with `n` circle and `n` public objects.
+/// Three members, each connected to the others, each with `n` circle and `n` public objects.
 async fn three_members(name: &str, n: usize) -> (Vec<Handle>, Multiaddr) {
     let root = scratch(name);
     let mut handles = Vec::new();
+    let mut addresses: Vec<Multiaddr> = Vec::new();
     let mut first = None;
     for i in 0..3 {
         let (h, addr) = start(
@@ -188,11 +189,11 @@ async fn three_members(name: &str, n: usize) -> (Vec<Handle>, Multiaddr) {
             member_config(i, &root.join(i.to_string()), false),
         )
         .await;
-        if let Some(a) = &first {
+        for a in &addresses {
             h.dial(Clone::clone(a)).await.unwrap();
-        } else {
-            first = Some(addr);
         }
+        first.get_or_insert(addr.clone());
+        addresses.push(addr);
         handles.push(h);
     }
     for (i, h) in handles.iter().enumerate() {
@@ -699,16 +700,17 @@ async fn at_net_23_members_and_a_public_reader_agree() {
 async fn at_net_23_a_restart_keeps_the_grant_and_the_history() {
     let root = scratch("restart");
     let (m1, a1) = start(transport(1), member_config(1, &root.join("1"), false)).await;
-    let (m2, _) = start(transport(2), member_config(2, &root.join("2"), false)).await;
+    let (m2, a2) = start(transport(2), member_config(2, &root.join("2"), false)).await;
     m2.dial(a1.clone()).await.unwrap();
     let digest = {
         let (m0, _) = start(transport(0), member_config(0, &root.join("0"), true)).await;
         m0.dial(a1.clone()).await.unwrap();
+        m0.dial(a2.clone()).await.unwrap();
         for k in 0..3 {
             publish_circle(&m0, format!("circle-before-{k}").into_bytes()).await;
         }
         converged(&[&m0, &m1]).await;
-        assert_eq!(status(&m0).await.bound, 1);
+        assert_eq!(status(&m0).await.bound, 2);
         m0.replica().await.digest()
     };
     until("the old connection closes", || async {
@@ -718,8 +720,9 @@ async fn at_net_23_a_restart_keeps_the_grant_and_the_history() {
     let (m0, _) = start(transport(0), member_config(0, &root.join("0"), true)).await;
     assert_eq!(m0.replica().await.digest(), digest);
     m0.dial(a1).await.unwrap();
+    m0.dial(a2).await.unwrap();
     until("bound again", || async {
-        status(&m0).await.bound == 1 && status(&m1).await.bound == 2
+        status(&m0).await.bound == 2 && status(&m1).await.bound == 2
     })
     .await;
     publish_circle(&m0, b"circle-after".to_vec()).await;
@@ -732,18 +735,20 @@ async fn at_net_23_a_restart_keeps_the_grant_and_the_history() {
     assert!(r.equivocations().is_empty());
 }
 
-/// AT-NET-23/36: a member without files catches its circle up only from a member; it signs nothing.
+/// AT-NET-23/36/37: a member without files completes its circle check only from members; it
+/// signs nothing.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_23_the_circle_feed_catches_up_only_from_a_member() {
     let root = scratch("recover");
     let (m1, a1) = start(transport(1), member_config(1, &root.join("1"), false)).await;
-    let (m2, _) = start(transport(2), member_config(2, &root.join("2"), false)).await;
+    let (m2, a2) = start(transport(2), member_config(2, &root.join("2"), false)).await;
     m2.dial(a1.clone()).await.unwrap();
     let (reader, _) = start(transport(3), reader_config()).await;
     reader.dial(a1.clone()).await.unwrap();
     {
         let (m0, _) = start(transport(0), member_config(0, &root.join("0"), false)).await;
         m0.dial(a1.clone()).await.unwrap();
+        m0.dial(a2.clone()).await.unwrap();
         for k in 0..3 {
             publish_circle(&m0, format!("circle-old-{k}").into_bytes()).await;
             m0.publish(format!("public-old-{k}").into_bytes())
@@ -776,19 +781,19 @@ async fn at_net_23_the_circle_feed_catches_up_only_from_a_member() {
     )
     .await;
     isolated.connect(lost_addr).await;
-    until("the public feed catches up", || async {
-        status(&m0).await.caught_up
+    until("the served public history stops member 0", || async {
+        status(&m0).await.stopped.is_some()
     })
     .await;
-    tokio::time::sleep(Duration::from_secs(2)).await;
     let s = status(&m0).await;
-    assert!(!s.circle_caught_up);
+    assert!(!s.caught_up && !s.circle_caught_up);
     assert_eq!(s.peers, 1);
     assert_eq!(s.bound, 0);
     let stopped = Err(PublishError::Stopped(Stop::OwnEntry(Tier::Public)));
     assert_eq!(s.stopped, Some(Stop::OwnEntry(Tier::Public)));
     assert_eq!(m0.publish_circle(b"too-early".to_vec()).await, stopped);
     m0.dial(a1).await.unwrap();
+    m0.dial(a2).await.unwrap();
     until("the circle feed catches up", || async {
         status(&m0).await.circle_caught_up
     })
@@ -851,25 +856,28 @@ fn circle_history() -> Vec<(SignedEntry, Vec<u8>)> {
         .collect()
 }
 
-/// A fresh member 0 that pulls only when a connection or a reply asks it to, and a spy bound
-/// as member 1's second transport, granting it and holding every Summary it sends.
-async fn recovering(name: &str) -> (Handle, Multiaddr, Spy, PeerId) {
+/// A fresh member 0 that pulls only when a connection or a reply asks it to; a spy bound as
+/// member 2 whose rounds it counts; and a spy bound as member 1's second transport, granting
+/// it and holding every Summary it sends.
+async fn recovering(name: &str) -> (Handle, Multiaddr, Spy, PeerId, Spy) {
     let config = member_config_every(0, &scratch(name), false, Duration::from_secs(3600));
     let (node, addr) = start(transport(0), config).await;
-    let key = Keypair::generate_ed25519();
-    let binding = tiers().bind(&member_keys()[1], 1, transport_bytes(&key));
-    let spy = Spy::start(key, Some(binding));
+    let (other, _) = bound_spy(2, true);
+    other.connect(addr.clone()).await;
+    answered(&other, 2).await;
+    let (spy, _) = bound_spy(1, true);
     {
         let mut script = spy.script.lock().unwrap();
         let history = circle_history();
         script.offer = history.iter().map(|(e, _)| e.id()).collect();
+        script.offer.push(witness());
+        script.offer.sort();
         script.serve = history;
         script.hold = true;
-        script.granting = true;
     }
     let peer = spy.connect(addr.clone()).await;
     held(&spy, 2).await;
-    (node, addr, spy, peer)
+    (node, addr, spy, peer, other)
 }
 
 async fn held(spy: &Spy, n: usize) {
@@ -889,13 +897,59 @@ async fn hello(spy: &Spy, peer: PeerId, binding: Option<TransportBinding>) {
     .await;
 }
 
-async fn not_recovered(node: &Handle) {
-    tokio::time::sleep(Duration::from_secs(1)).await;
-    assert!(!status(node).await.circle_caught_up);
-    assert_eq!(
-        node.publish_circle(b"too-early".to_vec()).await,
-        Err(PublishError::NotCaughtUp)
-    );
+/// Member 0, once it read the spy's `n` answers, has completed neither check.
+async fn not_recovered(node: &Handle, spy: &Spy, n: usize) {
+    answered(spy, n).await;
+    waiting(node).await;
+}
+
+/// An entry of member 2's public feed no node holds, offered and never served: a node asks
+/// for it once for every answer it reads (`answered`).
+fn witness() -> EntryId {
+    EntryId {
+        writer: member_keys()[2].public().to_bytes(),
+        seq: 0,
+        hash: [7; 32],
+    }
+}
+
+/// A spy bound as member `m` under a fresh transport key, granting the circle if `granting`,
+/// offering the witness.
+fn bound_spy(m: usize, granting: bool) -> (Spy, TransportBinding) {
+    let key = Keypair::generate_ed25519();
+    let binding = tiers().bind(&member_keys()[m], m, transport_bytes(&key));
+    let spy = Spy::start(key, Some(binding));
+    {
+        let mut script = spy.script.lock().unwrap();
+        script.offer = vec![witness()];
+        script.granting = granting;
+    }
+    (spy, binding)
+}
+
+/// The Wants a spy received.
+fn wants(spy: &Spy) -> usize {
+    let heard = spy.heard.lock().unwrap();
+    let want = |r: &&Vec<u8>| matches!(Message::decode(r), Some(Message::Want(_)));
+    heard.sent.iter().filter(want).count()
+}
+
+/// Waits until the node has read `n` of the spy's answers offering the witness.
+async fn answered(spy: &Spy, n: usize) {
+    until("the node reads the spy's answers", || async {
+        wants(spy) >= n
+    })
+    .await;
+}
+
+/// Neither of the node's feeds may write yet, and it is not stopped.
+async fn waiting(node: &Handle) {
+    let s = status(node).await;
+    assert!(!s.caught_up && !s.circle_caught_up, "{s:?}");
+    assert_eq!(s.stopped, None);
+    let early = Err(PublishError::NotCaughtUp);
+    assert_eq!(node.publish(b"too-early".to_vec()).await, early);
+    assert_eq!(node.publish_circle(b"too-early".to_vec()).await, early);
 }
 
 /// A new grant catches the circle feed up: its three verified entries stop the member, which
@@ -924,38 +978,40 @@ async fn recover(node: &Handle, spy: &Spy, addr: &Multiaddr) {
 /// AT-NET-23: an answer arriving after its grant was withdrawn recovers no circle feed.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_23_a_withdrawn_grant_recovers_nothing() {
-    let (node, addr, spy, peer) = recovering("withdrawn").await;
+    let (node, addr, spy, peer, _other) = recovering("withdrawn").await;
     hello(&spy, peer, None).await;
     let offer = spy.script.lock().unwrap().offer.clone();
     spy.order(Order::Release(usize::MAX, Message::Have(offer).encode()));
-    not_recovered(&node).await;
+    not_recovered(&node, &spy, 2).await;
     recover(&node, &spy, &addr).await;
 }
 
 /// AT-NET-23: an answer to a pull of a grant since lost and given again recovers nothing.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_23_an_earlier_grant_recovers_nothing() {
-    let (node, addr, spy, peer) = recovering("earlier").await;
+    let (node, addr, spy, peer, _other) = recovering("earlier").await;
     hello(&spy, peer, None).await;
     spy.order(Order::Dial(addr.clone()));
     held(&spy, 4).await;
-    spy.order(Order::Release(2, Message::Have(Vec::new()).encode()));
-    not_recovered(&node).await;
+    spy.order(Order::Release(2, Message::Have(vec![witness()]).encode()));
+    not_recovered(&node, &spy, 2).await;
     recover(&node, &spy, &addr).await;
 }
 
 /// AT-NET-23: a reply refusing the circle ends the grant given before it.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_23_a_refusal_ends_the_grant() {
-    let (node, addr, spy, _) = recovering("refused").await;
+    let (node, addr, spy, _, _other) = recovering("refused").await;
     spy.script.lock().unwrap().granting = false;
     spy.order(Order::Dial(addr.clone()));
     held(&spy, 4).await;
-    spy.order(Order::Release(
-        usize::MAX,
-        Message::Have(Vec::new()).encode(),
-    ));
-    not_recovered(&node).await;
+    let empty = Message::Have(vec![witness()]).encode();
+    spy.order(Order::Release(usize::MAX, empty));
+    answered(&spy, 4).await;
+    let s = status(&node).await;
+    assert!(!s.circle_caught_up, "{s:?}");
+    let early = Err(PublishError::NotCaughtUp);
+    assert_eq!(node.publish_circle(b"too-early".to_vec()).await, early);
     recover(&node, &spy, &addr).await;
 }
 
@@ -980,18 +1036,12 @@ async fn at_net_36_unserved_own_identifiers_stop_nothing() {
         script.offer.sort();
         script.granting = true;
     }
+    let (other, _) = bound_spy(2, true);
+    other.connect(addr.clone()).await;
     spy.connect(addr).await;
-    let wants = || {
-        let heard = spy.heard.lock().unwrap();
-        let want = |r: &&Vec<u8>| matches!(Message::decode(r), Some(Message::Want(_)));
-        heard.sent.iter().filter(want).count()
-    };
-    until("the node asks twice", || async { wants() >= 2 }).await;
-    let s = status(&node).await;
-    assert!(!s.caught_up && !s.circle_caught_up);
-    assert_eq!(s.stopped, None);
-    let refused = node.publish_circle(b"waits".to_vec()).await;
-    assert_eq!(refused, Err(PublishError::NotCaughtUp));
+    answered(&other, 3).await;
+    answered(&spy, 3).await;
+    waiting(&node).await;
     let record = p2p::record::read(&root.join("identity"));
     assert!(matches!(record, p2p::record::Found::Present(r) if r.stop.is_none()));
     spy.script.lock().unwrap().serve = history;
@@ -999,4 +1049,112 @@ async fn at_net_36_unserved_own_identifiers_stop_nothing() {
         status(&node).await.stopped == Some(Stop::OwnEntry(Tier::Circle))
     })
     .await;
+}
+
+/// AT-NET-37: member 1 over two transport keys, a binding as the node's own index and unbound
+/// peers open no feed; member 2 opens the public feed, and the circle once it grants it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_37_two_other_members_open_each_feed() {
+    let (node, addr) = start(transport(0), member_config(0, &scratch("two"), false)).await;
+    let (unbound, other) = (
+        Spy::start(Keypair::generate_ed25519(), None),
+        Spy::start(Keypair::generate_ed25519(), None),
+    );
+    for spy in [&unbound, &other] {
+        spy.script.lock().unwrap().offer = vec![witness()];
+    }
+    let spies = [
+        bound_spy(1, true).0,
+        bound_spy(1, true).0,
+        bound_spy(0, true).0,
+        unbound,
+        other,
+    ];
+    for spy in &spies {
+        spy.connect(addr.clone()).await;
+    }
+    for spy in &spies {
+        answered(spy, 4).await;
+    }
+    waiting(&node).await;
+    assert_eq!(node.replica().await.len(), 0);
+    let (second, _) = bound_spy(2, false);
+    second.connect(addr.clone()).await;
+    answered(&second, 4).await;
+    let s = status(&node).await;
+    assert!(s.caught_up && !s.circle_caught_up, "{s:?}");
+    assert!(node.publish(b"public-first".to_vec()).await.is_ok());
+    let early = node.publish_circle(b"circle-early".to_vec()).await;
+    assert_eq!(early, Err(PublishError::NotCaughtUp));
+    second.script.lock().unwrap().granting = true;
+    second.order(Order::Dial(addr));
+    until("the circle feed's check completes", || async {
+        status(&node).await.circle_caught_up
+    })
+    .await;
+    assert_eq!(
+        node.publish_circle(b"circle-first".to_vec())
+            .await
+            .unwrap()
+            .entry
+            .seq,
+        0
+    );
+}
+
+/// AT-NET-37: answers held while their binding lapsed count for nothing, even once it verifies
+/// again; a member's new round then completes both checks.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_37_answers_held_through_a_lapse_count_for_nothing() {
+    let config = member_config_every(0, &scratch("held"), false, Duration::from_secs(3600));
+    let (node, addr) = start(transport(0), config).await;
+    let (other, _) = bound_spy(2, true);
+    other.connect(addr.clone()).await;
+    answered(&other, 2).await;
+    let (spy, binding) = bound_spy(1, true);
+    spy.script.lock().unwrap().hold = true;
+    let peer = spy.connect(addr.clone()).await;
+    held(&spy, 2).await;
+    hello(&spy, peer, None).await;
+    hello(&spy, peer, Some(binding)).await;
+    spy.order(Order::Release(
+        usize::MAX,
+        Message::Have(vec![witness()]).encode(),
+    ));
+    not_recovered(&node, &spy, 2).await;
+    spy.script.lock().unwrap().hold = false;
+    spy.order(Order::Dial(addr));
+    until("both checks complete", || async {
+        let s = status(&node).await;
+        s.caught_up && s.circle_caught_up
+    })
+    .await;
+    assert!(node.publish(b"after".to_vec()).await.is_ok());
+}
+
+/// AT-NET-37: a member's round lapses with its last connection; reconnected, it counts again.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_37_a_disconnected_members_round_lapses() {
+    let config = member_config_every(0, &scratch("gone"), false, Duration::from_secs(3600));
+    let (node, addr) = start(transport(0), config).await;
+    let (first, _) = bound_spy(1, true);
+    first.connect(addr.clone()).await;
+    answered(&first, 2).await;
+    drop(first);
+    until("member 1 has left", || async {
+        status(&node).await.peers == 0
+    })
+    .await;
+    let (second, _) = bound_spy(2, true);
+    second.connect(addr.clone()).await;
+    answered(&second, 2).await;
+    waiting(&node).await;
+    let (again, _) = bound_spy(1, true);
+    again.connect(addr).await;
+    until("both checks complete", || async {
+        let s = status(&node).await;
+        s.caught_up && s.circle_caught_up
+    })
+    .await;
+    assert!(node.publish_circle(b"after".to_vec()).await.is_ok());
 }

@@ -183,8 +183,8 @@ where
     }
 }
 
-/// Three members (member 0 with the gateway, `members` of them started) and a relay bound
-/// to them; member 0's circle feed caught up when another member is there.
+/// Three members (member 0 with the gateway, `members` of them started, each connected to the
+/// others) and a relay bound to them; member 0's circle feed caught up when two others are.
 struct Net {
     members: Vec<Handle>,
     member0: Multiaddr,
@@ -195,13 +195,17 @@ struct Net {
 async fn net(root: &Path, members: usize) -> Net {
     let (m0, member0) = start(transport(0), member_config(0, &root.join("0"))).await;
     let mut handles = vec![m0];
+    let mut addresses = vec![member0.clone()];
     for i in 1..members {
-        let (h, _) = start(
+        let (h, addr) = start(
             transport(i as u8),
             member_config(i, &root.join(i.to_string())),
         )
         .await;
-        h.dial(member0.clone()).await.unwrap();
+        for a in &addresses {
+            h.dial(a.clone()).await.unwrap();
+        }
+        addresses.push(addr);
         handles.push(h);
     }
     let (relay, relay_addr) = start(transport(RELAY_SEED), relay_config(None)).await;
@@ -210,7 +214,7 @@ async fn net(root: &Path, members: usize) -> Net {
         relay.status().await.bound >= 1
     })
     .await;
-    if members > 1 {
+    if members > 2 {
         until("member 0's circle feed catches up", || async {
             handles[0].status().await.circle_caught_up
         })
@@ -363,7 +367,7 @@ fn at_net_24_key_configurations_verify_only_as_signed() {
 /// AT-NET-24: a synthetic event reaches member 0's circle feed through the relay, receipted.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_24_an_event_reaches_the_circle_feed_through_a_relay() {
-    let n = net(&scratch("path"), 2).await;
+    let n = net(&scratch("path"), 3).await;
     let event = b"synthetic-event-path".to_vec();
     let answer = send(&n.relay_addr, 0, &event).await.unwrap();
     let Answer::Logged(id) = answer else {
@@ -394,7 +398,7 @@ async fn at_net_24_an_event_reaches_the_circle_feed_through_a_relay() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_24_duplicates_are_logged_once() {
     let root = scratch("duplicates");
-    let n = net(&root, 2).await;
+    let n = net(&root, 3).await;
     let event = b"synthetic-event-twice".to_vec();
     let (a, b) = tokio::join!(
         send(&n.relay_addr, 0, &event),
@@ -410,12 +414,14 @@ async fn at_net_24_duplicates_are_logged_once() {
     drop(relay);
     drop(members.remove(0));
     until("member 0 has left", || async {
-        members[0].status().await.peers == 0
+        members[0].status().await.peers == 1
     })
     .await;
     let n = {
         let (m0, member0) = start(transport(0), member_config(0, &root.join("0"))).await;
-        members[0].dial(member0.clone()).await.unwrap();
+        for m in &members {
+            m.dial(member0.clone()).await.unwrap();
+        }
         let (relay, relay_addr) = start(transport(RELAY_SEED), relay_config(None)).await;
         relay.dial(member0.clone()).await.unwrap();
         until("bound again", || async {
@@ -449,7 +455,7 @@ async fn at_net_24_retry_later_before_the_circle_feed_caught_up() {
 /// AT-NET-24: another network's path, another member's key and oversized requests are refused.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_24_wrong_network_recipient_and_size_are_refused() {
-    let n = net(&scratch("wrong"), 2).await;
+    let n = net(&scratch("wrong"), 3).await;
     let mut m = Http::request(
         b"POST".to_vec(),
         b"isegoria".to_vec(),
@@ -739,7 +745,7 @@ fn contains(hay: &[u8], needle: &[u8]) -> bool {
 /// AT-NET-24: an instrumented relay sees nothing of the event, its path or the receipt.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_24_the_relay_sees_no_plaintext() {
-    let n = net(&scratch("plaintext"), 2).await;
+    let n = net(&scratch("plaintext"), 3).await;
     let spy = Spy::start(transport(SPY_SEED), n.member0.clone(), Tamper::None).await;
     let event = b"synthetic-event-secret-content".to_vec();
     let Ok(Answer::Logged(id)) = send(&spy.addr, 0, &event).await else {
@@ -767,7 +773,7 @@ async fn at_net_24_the_relay_sees_no_plaintext() {
 /// requests, is refused; nothing is logged for the refused requests.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_24_alterations_and_swapped_replies_are_refused() {
-    let n = net(&scratch("alter"), 2).await;
+    let n = net(&scratch("alter"), 3).await;
     let cases = [
         (
             Tamper::Request(0),
@@ -805,7 +811,7 @@ async fn at_net_24_alterations_and_swapped_replies_are_refused() {
 /// AT-NET-24: member 0's gateway answers only listed relays, before decapsulating.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_24_the_gateway_answers_only_listed_relays() {
-    let n = net(&scratch("listed"), 2).await;
+    let n = net(&scratch("listed"), 3).await;
     let sealed = seal(&tiers(), &announcements()[0], b"synthetic-event-direct").unwrap();
     let outsider = Spy::start(Keypair::generate_ed25519(), n.member0.clone(), Tamper::None).await;
     assert_eq!(
@@ -1085,7 +1091,7 @@ fn at_net_24_the_client_matches_the_reference_hpke() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_24_the_gateway_matches_the_reference_hpke() {
     use hpke::{Kem as _, Serializable};
-    let n = net(&scratch("reference"), 2).await;
+    let n = net(&scratch("reference"), 3).await;
     let relay = Spy::start(transport(SPY_SEED), n.member0.clone(), Tamper::None).await;
     let (_, pk) = ReferenceKem::derive_keypair(&[HPKE_SEEDS[0]; 32]);
     let (encapped, mut sender) = hpke::setup_sender::<ReferenceAead, ReferenceKdf, ReferenceKem>(
@@ -1116,7 +1122,7 @@ async fn at_net_24_the_gateway_matches_the_reference_hpke() {
 /// AT-NET-36: a stopped gateway logs no new event and still answers one already on its feed.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_36_a_stopped_gateway_logs_nothing_new() {
-    let n = net(&scratch("stopped"), 2).await;
+    let n = net(&scratch("stopped"), 3).await;
     let event = b"synthetic-event-before".to_vec();
     let Ok(Answer::Logged(id)) = send(&n.relay_addr, 0, &event).await else {
         panic!("the first event is logged")
@@ -1143,7 +1149,7 @@ async fn at_net_36_a_stopped_gateway_logs_nothing_new() {
 /// AT-NET-36: a gateway whose feed write fails logs no new event, the failure gone, nor publishes.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_36_a_failed_gateway_write_logs_nothing_after() {
-    let n = net(&scratch("failed-write"), 2).await;
+    let n = net(&scratch("failed-write"), 3).await;
     let event = b"synthetic-event-kept".to_vec();
     let Ok(Answer::Logged(id)) = send(&n.relay_addr, 0, &event).await else {
         panic!("the first event is logged")
@@ -1159,4 +1165,30 @@ async fn at_net_36_a_failed_gateway_write_logs_nothing_after() {
     assert_eq!(circle_len(&n.members[0], 0).await, 1);
     let refused = Err(PublishError::Stopped(Stop::Failed));
     assert_eq!(n.members[0].publish(b"public".to_vec()).await, refused);
+}
+
+/// AT-NET-37: with one other member a gateway logs no event and answers `RetryLater`; with two
+/// it logs it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_37_a_gateway_waits_for_two_other_members() {
+    let root = scratch("two-members");
+    let n = net(&root, 2).await;
+    until("member 1's circle round is held", || async {
+        n.members[0].status().await.circle_synced == [1]
+    })
+    .await;
+    let event = b"synthetic-event-two".to_vec();
+    assert_eq!(send(&n.relay_addr, 0, &event).await, Ok(Answer::RetryLater));
+    assert_eq!(circle_len(&n.members[0], 0).await, 0);
+    let (m2, _) = start(transport(2), member_config(2, &root.join("2"))).await;
+    m2.dial(n.member0.clone()).await.unwrap();
+    until("member 0's circle check completes", || async {
+        n.members[0].status().await.circle_caught_up
+    })
+    .await;
+    let Ok(Answer::Logged(id)) = send(&n.relay_addr, 0, &event).await else {
+        panic!("the event is logged")
+    };
+    assert_eq!((id.writer, id.seq), (circle_key(0), 0));
+    assert_eq!(circle_len(&n.members[0], 0).await, 1);
 }

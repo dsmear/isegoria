@@ -26,7 +26,7 @@ use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use tiered::{Bind, Tiered};
+use tiered::{Asked, Bind, Check, Tiered};
 use tokio::sync::{mpsc, oneshot};
 
 /// The most bytes a sync request or response may carry.
@@ -154,9 +154,15 @@ pub struct Config {
 /// What a node reports of itself (`docs/04` §A node process).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Status {
+    /// Whether the public feed may write after its sync: T80's round, or a governed feed's
+    /// start check (`docs/04` §Increments A and B, B).
     pub caught_up: bool,
-    /// Whether a tiered member's circle feed caught up from a member that granted it.
+    /// As `caught_up`, for a tiered member's circle feed, counting members that granted it.
     pub circle_caught_up: bool,
+    /// A governed public feed's start check: the other members whose rounds it holds, sorted.
+    pub synced: Vec<usize>,
+    /// As `synced`, for the circle feed.
+    pub circle_synced: Vec<usize>,
     pub peers: usize,
     /// Connected peers whose binding verified.
     pub bound: usize,
@@ -199,7 +205,8 @@ pub enum StartError {
 #[derive(Debug, PartialEq, Eq)]
 pub enum PublishError {
     NotAWriter,
-    /// No sync round with a peer has ended since the start (`docs/04` §A writer's own feed).
+    /// The feed's sync has not completed since the start: T80's round with a peer, or a
+    /// governed feed's start check (`docs/04` §A writer's own feed, §Increments A and B).
     NotCaughtUp,
     /// The replica holds an entry of this writer that its log cannot take.
     Feed(FeedError),
@@ -310,10 +317,10 @@ fn stored<T>(result: Result<T, StoreError>, guard: Option<&mut Guard>) -> Result
 }
 
 /// What an outbound sync request was, so its response is read for what it is; a pull keeps
-/// the grant it was asked under.
+/// the binding and grant it was asked under.
 #[derive(Clone, Copy)]
 enum Sent {
-    Pull { grant: Option<u64> },
+    Pull { asked: Option<Asked> },
     Want,
     Announce,
 }
@@ -328,6 +335,9 @@ struct Node {
     circle: Option<Writing>,
     /// A tiered node's record; `None` without tiers, where T80's rules hold.
     identity: Option<Guard>,
+    /// A governed node's member index, and its public and circle feeds' start checks.
+    me: Option<usize>,
+    checks: [Check; 2],
     listening: Vec<oneshot::Sender<Result<Multiaddr, String>>>,
     member: Option<MemberRole>,
     network_id: [u8; 32],
@@ -473,8 +483,8 @@ fn classify(state: State, entries: usize, aside: bool, tier: Tier) -> Option<Sto
 
 type Feeds = (Option<Writing>, Option<Writing>, Vec<PathBuf>);
 
-/// A tiered node's feeds under its record: classified and checked before any signature, an
-/// opening feed's one entry kept and the feed made written, then signed again unless stopped.
+/// A tiered node's feeds under its record: classified and checked before any signature; a
+/// written feed's entries signed again unless stopped, an opening feed's one entry kept.
 fn open_governed(
     own: Option<Own>,
     circle: Option<Own>,
@@ -496,14 +506,9 @@ fn open_governed(
         aside.extend(set);
         opened.push((tier, writing, named));
     }
-    for (tier, writing, _) in &opened {
-        if guard.state(*tier) == State::Opening && writing.log.log().len() == 1 {
-            let _ = guard.advance(*tier, State::Written);
-        }
-    }
     let (mut public, mut circle) = (None, None);
     for (tier, writing, named) in opened {
-        if guard.stop().is_none() {
+        if guard.stop().is_none() && guard.state(tier) == State::Written {
             replay(&writing, named, replica)?;
         }
         match tier {
@@ -701,6 +706,10 @@ impl Handle {
             }
             _ => None,
         };
+        let me = match (&tiered, &guard, &config.own) {
+            (Some(t), Some(_), Some(own)) => t.tiers.place(&own.writer.public().to_bytes()),
+            _ => None,
+        };
         let (writing, circle, set_aside) = match guard.as_mut() {
             Some(guard) => open_governed(config.own, config.circle, &mut replica, guard)?,
             None => {
@@ -747,6 +756,8 @@ impl Handle {
             writing,
             circle,
             identity: guard,
+            me: me.map(|(index, _)| index),
+            checks: Default::default(),
             listening: Vec::new(),
             member: config.member,
             network_id,
@@ -857,7 +868,7 @@ impl Handle {
         self.ask(Command::Peers).await
     }
 
-    /// Whether a sync round with a peer has ended since the start, so a writer may write.
+    /// Whether the public feed's sync has completed since the start, so it may write.
     pub async fn caught_up(&self) -> bool {
         self.ask(Command::CaughtUp).await
     }
@@ -928,6 +939,16 @@ impl Node {
             cuts,
             beacons,
             stopped: self.identity.as_ref().and_then(|g| g.stop()),
+            synced: self.synced(0, false),
+            circle_synced: self.synced(1, true),
+        }
+    }
+
+    /// The other members a governed feed's check holds rounds of; none for other nodes.
+    fn synced(&self, i: usize, circle: bool) -> Vec<usize> {
+        match (&self.tiered, &self.identity) {
+            (Some(t), Some(_)) => self.checks[i].members(t, circle),
+            _ => Vec::new(),
         }
     }
 
@@ -965,9 +986,9 @@ impl Node {
     }
 
     fn pull(&mut self, peer: PeerId) {
-        let grant = self.tiered.as_ref().and_then(|t| t.grant(&peer));
+        let asked = self.tiered.as_ref().and_then(|t| t.asked(&peer));
         let summary = Message::Summary(self.summary_for(&peer));
-        self.send(&peer, summary, Sent::Pull { grant });
+        self.send(&peer, summary, Sent::Pull { asked });
     }
 
     fn advertise(&mut self) {
@@ -1037,6 +1058,32 @@ impl Node {
                 guard.halt(Stop::OwnEntry(feed.tier())),
             ));
         }
+        self.resume(feed)
+    }
+
+    /// Signs an opening feed's one entry, never signed before, once its check completed: the
+    /// feed turns written first (`docs/04` §Increments A and B, B 6).
+    fn resume(&mut self, feed: Feed) -> Result<(), PublishError> {
+        let tier = feed.tier();
+        let w = match feed {
+            Feed::Public => self.writing.as_ref(),
+            Feed::Circle => self.circle.as_ref(),
+        };
+        let (Some(w), Some(guard)) = (w, self.identity.as_mut()) else {
+            return Ok(());
+        };
+        if guard.state(tier) != State::Opening || w.log.log().len() != 1 {
+            return Ok(());
+        }
+        let entry = w.log.log().entries()[0].clone();
+        let Ok(Some(object)) = w.objects.get(&entry.payload) else {
+            return Err(PublishError::Stopped(guard.halt(Stop::Failed)));
+        };
+        guard
+            .advance(tier, State::Written)
+            .map_err(PublishError::Stopped)?;
+        let signed = w.writer.sign(&entry);
+        self.accept(signed, object).map_err(PublishError::Replica)?;
         Ok(())
     }
 
@@ -1487,6 +1534,38 @@ impl Node {
         }
     }
 
+    /// Counts a pull's answer, whose unheld entries `want` names, towards each governed feed's
+    /// start check; a feed whose check completes is made ready (`docs/04` §Increments A and B,
+    /// B 1–5).
+    fn checked_by(&mut self, peer: PeerId, asked: Option<Asked>, want: &[EntryId]) {
+        let (Some(t), Some(asked)) = (self.tiered.as_ref(), asked) else {
+            return;
+        };
+        if Some(asked.member) == self.me {
+            return;
+        }
+        let mut completed = Vec::new();
+        for (i, (feed, w)) in [(Feed::Public, &self.writing), (Feed::Circle, &self.circle)]
+            .into_iter()
+            .enumerate()
+        {
+            let Some(w) = w else { continue };
+            let key = w.writer.public().to_bytes();
+            let circle = feed == Feed::Circle;
+            let own = want.iter().any(|id| id.writer == key);
+            if !own && self.checks[i].count(t, peer, asked, circle) {
+                completed.push(feed);
+            }
+        }
+        for feed in completed {
+            match feed {
+                Feed::Public => self.caught_up = true,
+                Feed::Circle => self.circle_caught_up = true,
+            }
+            let _ = self.ready(feed);
+        }
+    }
+
     fn sync_message(&mut self, peer: PeerId, message: request_response::Message<Vec<u8>, Vec<u8>>) {
         match message {
             request_response::Message::Request {
@@ -1525,9 +1604,7 @@ impl Node {
                 request_id,
                 response,
             } => match (Message::decode(&response), self.pending.remove(&request_id)) {
-                (Some(Message::Have(ids)), Some(Sent::Pull { grant })) => {
-                    let held = |t: &Tiered| grant.is_some_and(|g| t.holds(&peer, g));
-                    let circle = self.tiered.as_ref().is_some_and(held);
+                (Some(Message::Have(ids)), Some(Sent::Pull { asked })) => {
                     let want: Vec<EntryId> = self
                         .store
                         .replica()
@@ -1535,7 +1612,14 @@ impl Node {
                         .into_iter()
                         .filter(|id| self.reads(&peer, &id.writer))
                         .collect();
-                    self.caught_up_by(&want, circle);
+                    if self.identity.is_some() {
+                        self.checked_by(peer, asked, &want);
+                    } else {
+                        let grant = asked.and_then(|a| a.grant);
+                        let held = |t: &Tiered| grant.is_some_and(|g| t.holds(&peer, g));
+                        let circle = self.tiered.as_ref().is_some_and(held);
+                        self.caught_up_by(&want, circle);
+                    }
                     self.ask_for(peer, want);
                 }
                 (Some(Message::Entries(list)), Some(Sent::Want)) => {

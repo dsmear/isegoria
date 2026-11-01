@@ -591,21 +591,20 @@ The writer catches up with the first peer that answers: a peer reached later tha
 longer feed finds the equivocation as evidence, it does not prevent it. A node whose writer
 key is not in the writer set does not start. In a tiered network increment A (`01` D58)
 changes rules 1 and 3 for every feed: files set aside, or a verified own entry past the
-files, stop the member instead of letting it start empty and take its feed back (§Increments
-A and B). Rule 2's first peer stays until increment B, two verified members, is built.
+files, stop the member instead of letting it start empty and take its feed back, and
+increment B (D59) replaces rule 2's first peer with two other verified members (§Increments
+A and B).
 
-A member of a tiered network keeps **two feeds**, each with its own files and catch-up
-(`own/` the public feed under its consortium key, `circle/` the circle feed under its
-circle key). Rule 2 holds for the public feed after a sync round with any peer; for the
-circle feed only after one asked of a member whose binding verified and which granted this
-node the circle before the request, and answered while that same grant holds. A grant is
-withdrawn by a hello or reply whose binding does not verify, by a reply refusing the circle
-and by the last connection closing; one given again after is a new grant, and the answer to
-a request asked under the old one proves nothing. A peer that serves the public tier alone
-proves nothing about the circle feed, which writes nothing until then. Like the public
-feed's, this catch-up is only as complete as the answering member's history: an entry of
-this feed it never received, or lost, stays undiscovered, and the next write equivocates
-against it (T80's residual; T88-P4 requires two other verified members, not built).
+A member of a tiered network keeps **two feeds**, each with its own files and its own start
+check (`own/` the public feed under its consortium key, `circle/` the circle feed under its
+circle key): rounds with two other members whose binding verified, for the circle feed
+members that granted this node the circle before the request (§Increments A and B, B). A
+grant is withdrawn by a hello or reply whose binding does not verify, by a reply refusing
+the circle and by the last connection closing; one given again after is a new grant, and
+the answer to a request asked under the old one proves nothing. A binding is withdrawn the
+same way, but for a refusal, and one verified again is likewise a new one. A peer that
+serves the public tier alone proves nothing about the circle feed. The check is only as
+complete as the consulted members' histories (B's limits).
 
 **Transport.** libp2p 0.56 over TCP, with Noise and Yamux: gossipsub (signed, strict
 validation) carries the announcements, at most 512 identifiers per message, on the topic
@@ -1084,13 +1083,16 @@ in a node process); `lock`, held by the running process (§Initial archive insta
 a holder);
 `transport.key`, the seed of its libp2p key, made at the first
 start, so its peer id stays the same across restarts; and `status`, rewritten whole at each
-period (a file written beside it, then renamed): whether each feed is caught up, its
-peers and how many of them are bound members, the equivocations its replica holds, whether the consortium equivocated, each collected cut's
-digest from number 0, and each finished round's value and withholders. A configuration that
-does not hold — a bad key, a threshold outside `1..=n`, a member without a key, circle keys
-that are not one distinct key per member, `writers` other than the tiered set's keys, a
-tiered member without its own circle key, a circle key file outside one — refuses to start. The node dials its peers at the start and again whenever it has none, so a node
-restarted later reaches the others, which dial no one.
+period (a file written beside it, then renamed): whether each feed is caught up and, for a
+tiered node's feeds, the other members whose rounds its start check holds (`synced`,
+`circle_synced`, §Increments A and B), its peers and how many of them are bound members,
+the equivocations its replica holds, whether the consortium equivocated, each collected
+cut's digest from number 0, and each finished round's value and withholders. A
+configuration that does not hold — a bad key, a threshold outside `1..=n`, a member without
+a key, circle keys that are not one distinct key per member, `writers` other than the tiered
+set's keys, a tiered member without its own circle key, a circle key file outside one —
+refuses to start. The node dials its peers at the start and again whenever it has none, so a
+node restarted later reaches the others, which dial no one.
 
 The collected cuts are kept, not collected again from number 0 at each look: a node extends
 them from the last one, counting the beacon's rounds as it goes (`p2p::member::Collector`).
@@ -1179,9 +1181,10 @@ add no consensus rule at runtime, where §Cuts is unchanged. The answer review's
   feed taken back from the first peer that answers, writes resumed). A restoration its
   operator knows of falls under the procedure's prohibition, and one that nothing detects is
   a residual. *Built:* increment A (`01` D58), the identity record and the stop after a
-  detected loss, inconsistency or verified own entry, for every feed of a tiered network
-  (§Increments A and B). *Not built:* increment B; until then a member writes after one sync
-  round with any peer (for the circle feed, with a granting member), as T80 built.
+  detected loss, inconsistency or verified own entry, and increment B (D59), each feed's
+  start check with two other verified members, for every feed of a tiered network
+  (§Increments A and B); tested in-process, on loopback and on controlled processes, with no
+  trial run.
 
 ### Archives and holders in the trial
 
@@ -1212,7 +1215,7 @@ each operator runs its own machine and keeps its own secrets throughout.
    four confirmations go into the evidence. Only then does each sign its key configuration
    (`--announce`), exchange it and write its node's TOML.
 3. **First start.** Each member starts from empty files under its new identity and writes
-   nothing before sync rounds with two other verified members *(needs code)*. Record each
+   nothing before sync rounds with two other verified members. Record each
    status: `bound`, `caught_up`, `circle_caught_up` and the first cuts.
 4. **Archiving.** At agreed cut numbers one operator at a time stops its node (the other
    three progress), exports the predecessor and the target with their views and exclusions
@@ -1221,7 +1224,7 @@ each operator runs its own machine and keeps its own secrets throughout.
    roster and `(k, m)`, prepare, co-sign and combine, and each installs its own shard. Then
    they rebuild without a replica, stop up to `m` holders, and repair.
 5. **Stop and restart.** One member at a time: it writes nothing before the required sync
-   *(needs code)* while the other three progress. Two members down stop progress until one
+   while the other three progress. Two members down stop progress until one
    returns.
 6. **Faults.** Delay, drop and duplicate messages; partition 3–1 (the three progress) and
    2–2 (neither side does), then rejoin. A node given another configuration must not start
@@ -1246,13 +1249,14 @@ each operator runs its own machine and keeps its own secrets throughout.
 
 ### Obstacles in the code
 
-Increment A removed the automatic resumption after a loss, the missing start modes and the
-missing identity initialization in tiered networks. What remains:
+Increments A and B removed the automatic resumption after a loss, the missing start modes,
+the missing identity initialization and the recovery from the first peer in tiered networks.
+What remains:
 
 1. **Recovery from the first peer.** A feed counts as caught up after the first pull answer
    that offers nothing of its key (`p2p` `caught_up_by`): for the public feed from any peer,
-   bound or not; for the circle feed from one granting member. P4 needs two other verified
-   members (increment B).
+   bound or not; for the circle feed from one granting member. *Resolved* for tiered networks
+   by increment B (D59): two other verified members; writers without tiers keep T80.
 2. **The network id** is a free TOML value (P1, *Built*).
 3. **Conflicts.** `MemberRole::duties` does not consult `Collector::conflict`: after two cuts
    are collected for one number, a member keeps committing, changing view and signing at
@@ -1271,9 +1275,9 @@ missing identity initialization in tiered networks. What remains:
 ### Increments A and B
 
 P4 is where the code contradicted the approved contract, so it comes first, in two
-increments; neither alone completes P4. **A is approved (`01` D58)**, contract below; **B is
-proposed, not approved**. P1's configuration, the conflict stop and the views follow
-(§Obstacles in the code, 2–4).
+increments, approved (`01` D58, D59) and specified below; together they still do not
+complete P4. P1's configuration, the conflict stop and the views follow (§Obstacles in the
+code, 2–4).
 
 **Scope of A.** The record governs every feed of a node in a tiered network, whose writers
 are all members' keys, with or without the member role, so no configuration writes around
@@ -1305,9 +1309,9 @@ signature, and the member then signs nothing until a restart reads the disk agai
 status reports `failed`); an object over the size bound is refused without that. Nothing is
 signed before step 3, so a crash between steps 1 and 2 leaves *opening* with no entry and no
 signature anywhere, and the feed makes its first entry anew. A crash between steps 2 and 3
-leaves *opening* with one complete entry: the start keeps exactly that entry and its object,
-turns the feed *written*, and only then signs it. Nothing replaces it, skips it or puts other
-content at its `seq`.
+leaves *opening* with one complete entry: the start keeps exactly that entry and its object;
+once the feed's sync check completes (B, 6), the feed turns *written*, and only then is the
+entry signed. Nothing replaces it, skips it or puts other content at its `seq`.
 
 **At the start**, before any signature:
 
@@ -1321,13 +1325,13 @@ content at its `seq`.
 |---|---|---|
 | *unused* | no entry | not started |
 | *opening* | no entry, or one complete entry | a crash before the first signature |
-| *written* | at least one entry | intact files; B's sync is not yet required |
+| *written* | at least one entry | intact files; B's sync precedes a new entry |
 | *written* | no entry | detected loss: stop `lost` |
 | *unused*, or *opening* | more entries than the state allows | detected inconsistency: stop `inconsistent` |
 | any | damaged, set aside | detected loss: stop `set-aside` |
 
-Unless stopped, an *opening* feed with its one entry turns *written*, and then every entry of
-the files is signed again into the replica (the signatures are deterministic). A stopped
+Unless stopped, every entry of a *written* feed's files is signed again into the replica (the
+signatures are deterministic); an *opening* feed's one entry waits for B's check. A stopped
 member signs nothing, at the start included.
 
 **Evidence of a missing own history.** The replica holds only entries whose signature
@@ -1373,35 +1377,90 @@ counter and no unlocking procedure exists.
 only into test builds (feature `fault-injection`): the object's or the entry's write (half
 written, then cut back) or sync (written, then the sync and the cut fail, so the bytes stay),
 for a first and a later entry of either feed by publication, and once each under a gateway
-and under running duties. *Limits.* Until B, a member still catches up from the first peer
-that answers (T80 rule 2); own entries held only by nodes not reached remain undetected. The
-record's writes are tested failing before and after their rename. The feed files' failures
-are injected where the store writes, not raised by a file system; a half-written record a
-failed cut leaves is tested at the start only at the file level (AT-NET-11). A FIFO put at
-the record's path between its type check and its opening can still block the start.
+and under running duties. *Limits.* Own entries held only by members not consulted remain
+undetected (B's limits). The record's writes are tested failing before and after their
+rename. The feed files' failures are injected where the store writes, not raised by a file
+system; a half-written record a failed cut leaves is tested at the start only at the file
+level (AT-NET-11). A FIFO put at the record's path between its type check and its opening
+can still block the start.
 
-**Increment B — the sync with two other verified members (proposed).** For each feed, the
-member writes only after sync rounds with two distinct other member identities whose binding
-verified (for the circle feed, granting) have each ended with no own entry left unresolved,
-at every start, a first start of an empty network included. The count is per member index:
-several connections or transport keys of one member count once, and unbound peers and relays
-never count. A round counts only while the binding, and the grant it was asked under, still
-hold (§A writer's own feed). Acceptance criteria:
+**Increment B — the sync with two other verified members (`01` D59).** It governs the same
+feeds as A: every feed of a tiered node under its record, with or without the member role.
+Writers in networks without tiers keep T80's rule 2; relays, readers and holders write no
+feed and keep their catch-up after one round with any peer.
 
-1. Four tiered member processes from new identities (A): none writes before two other
-   members' rounds; one member, even over two connections or two transport keys it binds,
-   or any number of unbound peers, does not suffice; the cuts are then collected.
-2. A member restarted with intact files writes nothing until two other members answered,
-   then continues at the next `seq` with no equivocation; with one other member reachable
-   it writes nothing.
-3. An older copy whose later entry a consulted member holds stops the member once the entry
+1. **A round** is one pull this node asked — its Summary — and the Have answering it, matched
+   to that request. Announcements, their empty acknowledgements and any other answer are no
+   round. A round is asked of member `m` when, at its sending, the peer's binding had
+   verified as `m`'s (§Transport); a peer whose binding has not verified, a relay or any
+   unbound peer, asks no round, whatever it answers. For the circle feed the peer must also
+   have granted this node the circle before the request.
+2. **A round counts** for a feed when its answer arrives and: `m` is another member than this
+   node's own index; the peer's binding is still the verification the round was asked under,
+   not withdrawn since, even if verified again (bindings are numbered as grants are, §A
+   writer's own feed); for the circle feed, the grant it was asked under still holds; and the
+   Have names no entry of the feed's key that the replica lacks, of those the peer may give.
+   A round naming one does not count: the node asks for the entry, and A stops the member if
+   it arrives verified past or against the files; nothing is taken back into the feed. An
+   identifier the peer never serves keeps its later rounds from counting and stops nothing.
+3. **How long a round counts.** A counted round is evidence for its feed while the binding,
+   and for the circle the grant, it was asked and answered under still hold; a lapse before
+   the check completes drops it, and only a new round of that member counts again. The
+   feed's **check completes** when the evidence held at once covers two distinct other
+   members, by index: several connections or transport keys of one member count once. Once
+   complete, it holds for the rest of the run: later disconnections, lapses and rounds
+   change nothing, and no publication asks for a quorum again. Nothing of it is written, so
+   every start, the first included, begins with none.
+4. **Each feed separately.** The public feed's check counts bound members; the circle's only
+   members that granted this node the circle. One feed's completion opens nothing of the
+   other.
+5. **Before its check completes, a feed adds no entry:** a publication on it is refused
+   (`PublishError::NotCaughtUp`), the duties, which write on the public feed, do not run, the
+   gateway answers `RetryLater`, and the start signs nothing new. A's stop is separate: a
+   stopped member still counts its rounds and may complete its checks, which lift no stop;
+   a publication is refused for the stop first.
+6. **The start's signatures.** A written feed's entries are signed again into the replica at
+   the start, before the check: that reproduces the history its files hold, since ed25519
+   is deterministic and the files are synced before any signature, so an entry the files
+   hold at a `seq` is the one any earlier signature at that `seq` signed. An *opening* feed's
+   one complete entry was never signed (the record turns *written* before the signature):
+   signing it is a new signature, so it waits for that feed's check; then the feed turns
+   *written*, the entry is signed and announced, and the next entry follows it.
+7. **Observable.** The status reports, per feed, whether its check completed (`caught_up`,
+   `circle_caught_up` for a governed feed) and the other members whose rounds it holds
+   (`synced`, `circle_synced`), frozen at completion; `stopped` stays A's.
+8. **Two** is the trial's minimum for `n = 4`, `t = 3` (P4); it is fixed, not derived from
+   `n` and `t`.
+
+Acceptance criteria:
+
+1. Four tiered member processes from new identities, `n = 4`, `t = 3`: none writes before two
+   other members' rounds; the cuts are then collected.
+2. One other member, even over two connections or two transport keys it binds, or any number
+   of unbound peers, does not suffice; the public check does not open the circle feed.
+3. Answers held back while a binding or a grant lapsed, and rounds of a member since
+   disconnected and reconnected, do not count.
+4. A member restarted with intact files writes nothing with one other member reachable; with
+   two it continues at the next `seq` with no equivocation.
+5. An older copy whose later entry a consulted member holds stops the member once the entry
    is fetched and verified (A); an identifier announced and never served keeps that round
    from counting and stops nothing.
-4. §A writer's own feed rule 2, `08` NET-010 and G-23, and `10` T88 change with them.
+6. Neither the gateway, the duties, a tiered feed without the member role nor an opening
+   feed's entry at the start writes before the check; A's guarantees, writers without tiers,
+   relays and holders are unchanged.
+
+*Evidence.* AT-NET-37 (`p2p/tests/tiered_nodes.rs`, `member_identity.rs`, `blind_relays.rs`,
+`node/tests/identity.rs`): spies bound as chosen members over chosen transport keys, holding
+or answering pulls, and four member processes; the fixtures of AT-NET-23, -24 and -36 run
+with two other members. In-process, loopback and controlled processes only.
 
 *Limits.* Two members are the trial's minimum check, not completeness: entries no cut marked
 held only by members not consulted, and members that lost the history they signed for, stay
-undetected. Without A, a loss resumes as under T80.
+undetected. A written feed's last entry whose signature a crash prevented is not told apart
+by the record: the start signs it as the files hold it, which a restored older copy can
+turn into an equivocation (P4's operating prohibition). A round's evidence rests on the
+answering member's binding and grant as this node saw them, not on the member's own view of
+the connection.
 
 ---
 

@@ -2002,3 +2002,34 @@ section owns the contract.
 
 **Scope.** Increment B, the sync with two other members, follows; P4 is not complete. No
 unlocking, migration of old identities, genesis schema, T79 decision or Phase 1 change.
+
+## D59 — The trial members' sync with two other members (T88, increment B)
+
+**Decided** by the owner; recorded 2026-10-31. Authorizes increment B of `04` §Operating
+contract under D57's P4, preserving every guarantee of D58; that section owns the contract,
+including how long a round's evidence lasts.
+
+- At every start, the first included, each feed of a tiered node produces new entries only
+  after completed sync rounds with at least two other distinct members. A member counts by
+  its index in the verified configuration, never by peer id: the member itself is excluded,
+  and several connections or transport keys of one member count once.
+- Only a peer whose binding verified counts, for the public feed too; for the circle feed it
+  must also have granted this node the circle. A round is the answer to a pull this node
+  asked; empty acknowledgements, announcements and unrelated answers complete none. An
+  answer held back while the binding or the grant it needs lapsed counts for nothing, even
+  if granted again since.
+- A round naming an own entry this node lacks does not count, and an incomplete answer is no
+  proof of recovery. A verified own entry past or against the files still stops the member
+  durably (D58); it is never taken back into the feed.
+- No path writes around the check: publication on either feed, the gateway, the duties, a
+  tiered feed without the member role, or the start. An opening feed's one entry, never
+  signed, is signed only after its feed's check, unlike the start's deterministic
+  reproduction of the signatures a written feed's files hold. Writers without tiers, relays
+  and holders without feeds keep their behaviour.
+- The check's completion and A's stop stay distinct and observable; the counts are distinct
+  members, held in memory, and no start inherits them. The check belongs to the start: it
+  adds no quorum to each later publication.
+
+**Scope.** Two members are the trial's minimum check, not a general proof of completeness.
+No unlocking of A, new genesis, T79 decision or Phase 1 change; P4, T88 and Phase 2 are not
+complete on local tests.

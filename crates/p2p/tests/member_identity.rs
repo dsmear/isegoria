@@ -142,23 +142,48 @@ where
     }
 }
 
-/// Member 1 with a new identity, to sync with.
-async fn peer() -> (Handle, Multiaddr) {
+/// Member `i` with a new identity, to sync with.
+async fn peer(i: usize) -> (Handle, Multiaddr) {
     let root = scratch("peer");
-    record(1, &root, [State::Unused; 2]);
-    start(1, config(1, &root, IDLE)).await
+    record(i, &root, [State::Unused; 2]);
+    start(i, config(i, &root, IDLE)).await
 }
 
-/// Member 0 on `root`, connected to `peer` and caught up on both feeds.
-async fn joined(root: &Path, peer: &Multiaddr) -> Handle {
+/// Members 1 and 2 with new identities: member 1, both addresses, and member 2.
+async fn peers() -> (Handle, Vec<Multiaddr>, Handle) {
+    let (m1, a1) = peer(1).await;
+    let (m2, a2) = peer(2).await;
+    (m1, vec![a1, a2], m2)
+}
+
+/// Member 0 on `root`, connected to `peers` and caught up on both feeds.
+async fn joined(root: &Path, peers: &[Multiaddr]) -> Handle {
     let (h, _) = start(0, config(0, root, IDLE)).await;
-    h.dial(peer.clone()).await.unwrap();
+    for peer in peers {
+        h.dial(peer.clone()).await.unwrap();
+    }
     until("member 0 catches up", || async {
         let s = h.status().await;
         s.caught_up && s.circle_caught_up
     })
     .await;
     h
+}
+
+/// Waits until both of `h`'s checks hold the rounds of exactly `members`, and neither is done.
+async fn synced(h: &Handle, members: &[usize]) {
+    until("the rounds are held", || async {
+        let s = h.status().await;
+        s.synced == members && s.circle_synced == members
+    })
+    .await;
+    let s = h.status().await;
+    assert!(!s.caught_up && !s.circle_caught_up, "{s:?}");
+}
+
+/// Waits until `h` holds no connection.
+async fn alone(h: &Handle) {
+    until("no peer is left", || async { h.status().await.peers == 0 }).await;
 }
 
 fn own_ids(r: &Replica) -> usize {
@@ -190,7 +215,7 @@ fn signed(net: [u8; 32], seq: usize, tag: &str) -> (SignedEntry, Vec<u8>) {
 // A new identity writes its public feed, then its circle after a restart: one history (AT-NET-36).
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn feeds_start_independently_and_keep_one_history() {
-    let (m1, a1) = peer().await;
+    let (m1, a1, _m2) = peers().await;
     let root = scratch("fresh");
     record(0, &root, [State::Unused; 2]);
     let m0 = joined(&root, &a1).await;
@@ -217,10 +242,10 @@ async fn feeds_start_independently_and_keep_one_history() {
     assert!(m1.replica().await.equivocations().is_empty());
 }
 
-// A crash before the first signature: nothing made anew, a complete entry kept (AT-NET-36).
+// A crash before the first signature: nothing anew, a complete entry kept (AT-NET-36/37).
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_crash_before_the_first_signature_resumes_it() {
-    let (_m1, a1) = peer().await;
+    let (_m1, a1, _m2) = peers().await;
     let root = scratch("opening-empty");
     record(0, &root, [State::Opening, State::Unused]);
     let m0 = joined(&root, &a1).await;
@@ -229,22 +254,30 @@ async fn a_crash_before_the_first_signature_resumes_it() {
     assert_eq!(m0.publish(b"first".to_vec()).await.unwrap().entry.seq, 0);
     assert_eq!(on_disk(&root).states, [State::Written, State::Unused]);
 
-    let (m1, a1) = peer().await;
+    let (m1, a1, _m2) = peers().await;
     let root = scratch("opening-one");
     record(0, &root, [State::Unused, State::Opening]);
     let kept = append(&root.join("circle"), &["kept"]);
     let (m0, _) = start(0, config(0, &root, IDLE)).await;
+    assert_eq!(on_disk(&root).states, [State::Unused, State::Opening]);
+    assert_eq!(own_ids(&m0.replica().await), 0);
+    m0.dial(a1[0].clone()).await.unwrap();
+    synced(&m0, &[1]).await;
+    assert_eq!(on_disk(&root).states, [State::Unused, State::Opening]);
+    assert_eq!(own_ids(&m0.replica().await), 0);
+    let early = m0.publish_circle(b"early".to_vec()).await;
+    assert_eq!(early, Err(PublishError::NotCaughtUp));
+    m0.dial(a1[1].clone()).await.unwrap();
+    until("the circle's check completes", || async {
+        m0.status().await.circle_caught_up
+    })
+    .await;
     assert_eq!(on_disk(&root).states, [State::Unused, State::Written]);
     let held = m0.replica().await;
     let feed = held.feed(&circle(0));
     assert_eq!(feed.len(), 1);
     assert_eq!(feed[0].entry, kept[0]);
     assert_eq!(held.get(&feed[0].id()).unwrap().1, b"kept");
-    m0.dial(a1).await.unwrap();
-    until("the circle catches up", || async {
-        m0.status().await.circle_caught_up
-    })
-    .await;
     let next = m0.publish_circle(b"next".to_vec()).await.unwrap();
     assert_eq!((next.entry.seq, next.entry.prev), (1, kept[0].hash));
     until("member 1 holds both", || async {
@@ -423,8 +456,10 @@ async fn busy_member_stops(by_failed_write: bool) {
         record(i, root, [State::Unused; 2]);
         members.push(start(i, config(i, root, BUSY)).await);
     }
-    for (h, _) in &members[1..] {
-        h.dial(members[0].1.clone()).await.unwrap();
+    for (i, (h, _)) in members.iter().enumerate() {
+        for (_, earlier) in &members[..i] {
+            h.dial(earlier.clone()).await.unwrap();
+        }
     }
     let (m0, m1) = (&members[0].0, &members[1].0);
     until("two cuts", || async { m0.status().await.cuts.len() >= 2 }).await;
@@ -501,7 +536,7 @@ fn held(root: &Path, tier: Tier) -> (u64, Vec<Vec<u8>>) {
 async fn failed_write(tier: Tier, before: usize, on: On, fault: Fault) {
     let case = format!("fault-{tier:?}-{before}-{on:?}-{fault:?}");
     let object = |k: &str| format!("{case}-{k}").into_bytes();
-    let (m1, a1) = peer().await;
+    let (m1, a1, _m2) = peers().await;
     let root = scratch("feed-fault");
     record(0, &root, [State::Unused; 2]);
     let m0 = joined(&root, &a1).await;
@@ -601,7 +636,7 @@ async fn a_record_write_failing_after_its_rename_signs_nothing() {
     let mode = |root: &Path, m| {
         std::fs::set_permissions(root, std::fs::Permissions::from_mode(m)).unwrap()
     };
-    let (m1, a1) = peer().await;
+    let (m1, a1, _m2) = peers().await;
     let root = scratch("unsynced");
     record(0, &root, [State::Unused; 2]);
     let m0 = joined(&root, &a1).await;
@@ -630,4 +665,146 @@ async fn a_record_write_failing_after_its_rename_signs_nothing() {
     })
     .await;
     assert_eq!(own_ids(&m1.replica().await), 1);
+}
+
+// A restart with intact files waits for two other members, then continues at `seq` (AT-NET-37).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_intact_restart_waits_for_two_other_members() {
+    let (m1, a, m2) = peers().await;
+    let root = scratch("intact");
+    record(0, &root, [State::Unused; 2]);
+    let m0 = joined(&root, &a).await;
+    m0.publish(b"p0".to_vec()).await.unwrap();
+    m0.publish_circle(b"c0".to_vec()).await.unwrap();
+    m0.finished().await;
+    alone(&m1).await;
+    alone(&m2).await;
+    let (m0, _) = start(0, config(0, &root, IDLE)).await;
+    assert_eq!(own_ids(&m0.replica().await), 2);
+    m0.dial(a[0].clone()).await.unwrap();
+    synced(&m0, &[1]).await;
+    let early = Err(PublishError::NotCaughtUp);
+    assert_eq!(m0.publish(b"early".to_vec()).await, early);
+    assert_eq!(m0.publish_circle(b"early".to_vec()).await, early);
+    m0.dial(a[1].clone()).await.unwrap();
+    until("both checks complete", || async {
+        let s = m0.status().await;
+        s.caught_up && s.circle_caught_up && s.synced == [1, 2] && s.circle_synced == [1, 2]
+    })
+    .await;
+    assert_eq!(m0.publish(b"p1".to_vec()).await.unwrap().entry.seq, 1);
+    assert_eq!(
+        m0.publish_circle(b"c1".to_vec()).await.unwrap().entry.seq,
+        1
+    );
+    for m in [&m1, &m2] {
+        until("the others hold both feeds", || async {
+            let r = m.replica().await;
+            r.feed(&public(0)).len() == 2 && r.feed(&circle(0)).len() == 2
+        })
+        .await;
+        assert!(m.replica().await.equivocations().is_empty());
+    }
+}
+
+// An older copy stops once a consulted member serves its later entry, signing nothing (AT-NET-37).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_older_copy_stops_on_the_entry_a_member_serves() {
+    let (m1, a, m2) = peers().await;
+    let root = scratch("older");
+    record(0, &root, [State::Unused; 2]);
+    let m0 = joined(&root, &a).await;
+    m0.publish(b"p0".to_vec()).await.unwrap();
+    let copy = scratch("older-copy");
+    for name in ["own", "circle"] {
+        let to = copy.join(name);
+        std::fs::create_dir_all(&to).unwrap();
+        for file in ["log", "objects"] {
+            let from = root.join(name).join(file);
+            if from.exists() {
+                std::fs::copy(from, to.join(file)).unwrap();
+            }
+        }
+    }
+    std::fs::copy(root.join("identity"), copy.join("identity")).unwrap();
+    m0.publish(b"p1".to_vec()).await.unwrap();
+    until("member 1 holds both", || async {
+        m1.replica().await.feed(&public(0)).len() == 2
+    })
+    .await;
+    m0.finished().await;
+    alone(&m1).await;
+    alone(&m2).await;
+    let (m0, _) = start(0, config(0, &copy, IDLE)).await;
+    m0.dial(a[0].clone()).await.unwrap();
+    until("the served entry stops member 0", || async {
+        m0.status().await.stopped == Some(Stop::OwnEntry(Tier::Public))
+    })
+    .await;
+    refused(&m0, Stop::OwnEntry(Tier::Public)).await;
+    assert_eq!(on_disk(&copy).stop, Some(Stop::OwnEntry(Tier::Public)));
+    assert_eq!(m0.replica().await.feed(&public(0)).len(), 2);
+    m0.finished().await;
+    let log = std::fs::metadata(copy.join("own/log")).unwrap().len();
+    assert_eq!(
+        log,
+        16 + 104,
+        "the served entry is not taken into the files"
+    );
+    assert!(m1.replica().await.equivocations().is_empty());
+}
+
+// Duties wait for two other members' rounds, then the members collect cuts (AT-NET-37).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn duties_wait_for_two_other_members() {
+    let roots: Vec<PathBuf> = (0..3).map(|_| scratch("duties")).collect();
+    for (i, root) in roots.iter().enumerate() {
+        record(i, root, [State::Unused; 2]);
+    }
+    let (m0, a0) = start(0, config(0, &roots[0], BUSY)).await;
+    let (m1, a1) = start(1, config(1, &roots[1], BUSY)).await;
+    m1.dial(a0.clone()).await.unwrap();
+    synced(&m0, &[1]).await;
+    synced(&m1, &[0]).await;
+    assert_eq!(own_ids(&m0.replica().await), 0);
+    assert!(m0.status().await.cuts.is_empty());
+    let (m2, _) = start(2, config(2, &roots[2], BUSY)).await;
+    m2.dial(a0).await.unwrap();
+    m2.dial(a1).await.unwrap();
+    until("three members collect two cuts", || async {
+        let mut cuts = Vec::new();
+        for m in [&m0, &m1, &m2] {
+            cuts.push(m.status().await.cuts.len());
+        }
+        cuts.iter().all(|n| *n >= 2)
+    })
+    .await;
+}
+
+// A tiered public feed without the member role waits for two other members too (AT-NET-37).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_feed_without_the_member_role_waits_too() {
+    let (_m1, a, _m2) = peers().await;
+    let root = scratch("no-role");
+    record(0, &root, [State::Unused; 2]);
+    let config = Config {
+        member: None,
+        circle: None,
+        ..config(0, &root, IDLE)
+    };
+    let (m0, _) = start(0, config).await;
+    m0.dial(a[0].clone()).await.unwrap();
+    until("member 1's round is held", || async {
+        m0.status().await.synced == [1]
+    })
+    .await;
+    let early = m0.publish(b"early".to_vec()).await;
+    assert_eq!(early, Err(PublishError::NotCaughtUp));
+    m0.dial(a[1].clone()).await.unwrap();
+    until("the public check completes", || async {
+        m0.status().await.caught_up
+    })
+    .await;
+    assert_eq!(m0.publish(b"p0".to_vec()).await.unwrap().entry.seq, 0);
+    assert_eq!(m0.status().await.circle_synced, Vec::<usize>::new());
 }
