@@ -1094,7 +1094,8 @@ tiered node's feeds, the other members whose rounds its start check holds (`sync
 `circle_synced`, §Increments A and B), whether a member's duties halted at a conflict
 (`duties_halted`), its peers and how many of them are bound members,
 the equivocations its replica holds, whether the consortium equivocated, each collected
-cut's digest from number 0, and each finished round's value and withholders. A
+cut from number 0 with its digest, view and exclusions (§The cuts' views and exclusions in
+the status), and each finished round's value and withholders. A
 configuration that does not hold — a bad key, a threshold outside `1..=n`, a member without
 a key, circle keys that are not one distinct key per member, `writers` other than the tiered
 set's keys, a tiered member without its own circle key, a circle key file outside one —
@@ -1203,9 +1204,9 @@ parameters `(k, m)`; each operator verifies and installs locally (§Initial arch
 installation on a holder). The first trial needs no remote upload. It exercises a rebuild
 without a local replica, the loss of holders within the bound `m` and the restoration of
 redundancy by repair. *Built:* the tools of §Public archive segments through §Collected cut
-export, tested in-process, on loopback and on controlled processes. *Not built:* any
-comparison of contexts between operators, and the views and exclusions the contexts need
-(§Obstacles in the code).
+export, and each collected cut's view and exclusions in the status (§The cuts' views and
+exclusions in the status), tested in-process, on loopback and on controlled processes. *Not
+built:* any comparison of contexts between operators (§Obstacles in the code).
 
 ### The trial's procedure
 
@@ -1226,11 +1227,11 @@ each operator runs its own machine and keeps its own secrets throughout.
    nothing before sync rounds with two other verified members. Record each
    status: `bound`, `caught_up`, `circle_caught_up` and the first cuts.
 4. **Archiving.** At agreed cut numbers one operator at a time stops its node (the other
-   three progress), exports the predecessor and the target with their views and exclusions
-   (`--archive-export-cut`; learning the views *(needs code)*) and extracts the segment
-   (`--archive-extract`). The operators compare digests and CIDs, agree the context, the
-   roster and `(k, m)`, prepare, co-sign and combine, and each installs its own shard. Then
-   they rebuild without a replica, stop up to `m` holders, and repair.
+   three progress), exports the predecessor and the target with the views and exclusions its
+   status reports (`--archive-export-cut`, §The cuts' views and exclusions in the status) and
+   extracts the segment (`--archive-extract`). The operators compare digests and CIDs, agree
+   the context, the roster and `(k, m)`, prepare, co-sign and combine, and each installs its
+   own shard. Then they rebuild without a replica, stop up to `m` holders, and repair.
 5. **Stop and restart.** One member at a time: it writes nothing before the required sync
    while the other three progress. Two members down stop progress until one
    returns.
@@ -1268,10 +1269,10 @@ What remains:
 2. **The network id** is a free TOML value (P1, *Built*).
 3. **Conflicts.** *Resolved* for the duties (§The duties' stop at a conflict): after two cuts
    are collected for one number, a member's duties produce nothing more.
-4. **Views and exclusions.** The status reports each collected cut's digest and each round's
-   withholders, but not the view a cut was collected in or the exclusions it was collected
-   under. `--archive-export-cut` takes both from the operator; AT-NET-35 obtains the view
-   from a `collect_with` oracle.
+4. **Views and exclusions.** *Resolved* for the status (§The cuts' views and exclusions in the
+   status): each collected cut's view and exclusions are reported as the replica's collection
+   gives them. The operator still copies them into `cut.toml`, and nothing checks the
+   exclusions against the beacon history at the export.
 5. **One active instance.** The data-directory lock is advisory and per directory; a second
    instance under the same keys elsewhere shows only when it equivocates.
 6. **Archives.** Extraction needs the member stopped; nothing compares contexts, rosters or
@@ -1283,8 +1284,8 @@ What remains:
 
 P4 is where the code contradicted the approved contract, so it comes first, in two
 increments, approved (`01` D58, D59) and specified below; together they still do not
-complete P4. P1's configuration and the views follow (§Obstacles in the code, 2 and 4); the
-duties' conflict stop is below.
+complete P4. P1's configuration follows (§Obstacles in the code, 2); the duties' conflict
+stop and the cuts' views in the status are below.
 
 **Scope of A.** The record governs every feed of a node in a tiered network, whose writers
 are all members' keys, with or without the member role, so no configuration writes around
@@ -1515,6 +1516,76 @@ for ten duty periods after its status reports the halt. In-process and loopback 
 and once B's check completes its duties may run until the signatures arrive again. The
 stop covers the duties only. Nothing collects or reports which cuts conflict beyond the
 status's flag and the replica's signatures, and nothing resolves a conflict.
+
+### The cuts' views and exclusions in the status
+
+Authorized by the owner on 2026-11-01 within D57 (the trial's archive custody, step 4 of the
+procedure); no new decision. An archive context pins each cut with the view and the
+exclusions it is collected under (§Collected cut export), and the status reports both.
+
+1. **What is reported.** Each collected cut from number 0, one line of the status file each,
+   `cut <number> <digest> <view> [<excluded>]`: the view its signatures count in, and the
+   members whose signatures its collection does not count, increasing, possibly none.
+   Members (`p2p::member::Collector`), a tiered network's readers (`PublicCollector`) and a
+   node without a role given a consortium report them alike.
+2. **The exclusions** are those collection applies (§The withholders on cuts): the withholders
+   of each round that finished with a value at an earlier cut of this cut's epoch. A round
+   finishing at cut `r` excludes only from cuts after `r`, so a cut's exclusions follow from
+   the cuts before it and do not change once it is collected.
+3. **The view** is the one `cut::collect_with` gives for the cut's number, with those
+   exclusions, on the replica the node holds when it writes the status: the lowest view in
+   which `t` of the cut's signatures count. The replica only grows, so the view can only
+   fall: when signatures given in a lower view before their signers' view change arrive after
+   the cut was collected in a higher one, say from a member cut off once it signed, the next
+   status reports the lower view. The status follows the replica rather than the view the
+   cut was first collected in, because the export and the extraction run that collection and
+   refuse any other view, and because two nodes holding the same replica then report the same
+   view, whatever order its signatures arrived in.
+4. **The export.** On the replica the status was written from, `--archive-export-cut` with a
+   reported cut's number, view and exclusions finds that cut in that view, refuses another
+   view, and still refuses a cut without a strict quorum. It reads the replica as the node
+   left it: entries the node took after its last status (a node stopping writes one last
+   status) can lower a view, and the export then refuses the reported one instead of
+   exporting anything. The export applies its one list to every cut signed for the number,
+   while collection gives each cut its own epoch's exclusions: a competing cut of another
+   epoch, complete only with signatures rule 6 does not count for it, is a conflict to the
+   export, which refuses, and none to the status.
+5. **Conflicts and restarts.** At a conflict the cuts before the contested number keep
+   their views and exclusions, by the same rule, and the contested number adds nothing
+   beyond `conflict`. Nothing new is stored: a restart rebuilds the values from the kept
+   replica, as it rebuilds the cuts.
+6. **Unchanged.** Collection, rule 6, the conflict condition, signatures, `Cut::encode`,
+   the replica, the identity record and the archive formats; `cut.toml` and the rules of
+   `--archive-export-cut`, `--archive-extract` and `--archive-prepare`: their inputs stay
+   explicit, nothing chooses a cut, a view or exclusions for them, and the exclusions stay
+   the operator's premise. The operator copies the reported values into `cut.toml` and the
+   production input.
+7. **Not established.** The status is one replica's local view when it was written: no
+   certificate, no evidence that operators agree, and no proof that the exclusions are the
+   beacon history other members hold. A node missing a signature reports a higher view, or
+   the cut not yet. Comparing nodes' statuses and exports stays the procedure's (steps 4, 7).
+
+*Proposed, not built.* `--archive-export-cut` could also check `excluded` against its own
+replica's beacon history, the rule-6 set a collection from number 0 gives the cut, and refuse
+a mismatch: today any list that still yields the cut in the view passes, an empty one
+included when no excluded member signed it. Changing the command's rules needs the owner.
+
+*Evidence.* AT-NET-39 (`p2p/tests/cut_views.rs`, `cut_views_nodes.rs`, one test in
+`beacon_between_nodes.rs`, `node/tests/config.rs`, `node/tests/cut_export.rs`): both
+collectors against `collect_with` on cuts in views 0 to 2, a withholder whose signature
+would have completed a cut, lower views reaching `t` after collection, an excluded member's
+lower-view signature, conflicts at the next and at a collected number, and a property over
+generated beacon messages and signatures, some given late; tiered member nodes, `n = 4`,
+`t = 3`, member 3 never running but its commit held, with a reader and a restart from the
+stored replica; an untiered network's members and a node given the consortium, the silent
+proposer's commit held; the status file's text and its refusals; member processes whose
+exported cuts take the status file's values (§Collected cut export). In-process, loopback
+and controlled processes only.
+
+*Limits.* The values are as fresh as the last status and as complete as the replica. Nothing
+checks the exclusions against the beacon history at the export (above), and nothing compares
+statuses between operators. Between processes a later view and a withholder come only from a
+member stopped by A from its start; a view lowered after collection is tested in-process.
 
 ---
 
@@ -2270,10 +2341,12 @@ exclusions or threshold, conflicting cuts, a quorum reached only by a signature 
 verification accepts and `verify_strict` refuses (extraction refuses it too), missing or
 invalid exclusions, an untiered configuration, missing or damaged replica files and an existing
 output, without changing any file; on Unix a running node excludes the command. Three tiered
-member processes then collect cuts 0 and 1; exported from one stopped member's replica in
-the view its collection reports, they match the digests that member reported while running,
-another view is refused, and extraction and preparation accept them as predecessor and
-target.
+member processes then collect cuts 0 to 5, member 2 stopped by A from its start on a commit
+of its key placed in every replica, so its cuts 2 and 5 go to a later view and, once it
+withholds its reveal, cut 5 excludes it (AT-NET-39). Each cut is exported from member 0's
+stopped replica with the number, view and exclusions of that member's status file and
+matches the digest reported there; another view is refused; cuts 4 and 5, with their
+reported views and exclusions, feed extraction and preparation as predecessor and target.
 
 Agreement on contexts between operators (T88), roster agreement and the independent-operator
 trial remain open. T79/T88 and application rules are unchanged.

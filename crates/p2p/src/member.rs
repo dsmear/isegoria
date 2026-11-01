@@ -1,6 +1,7 @@
 //! A consortium member's duties on its node (`docs/04` §Proposing and signing, §Changing view,
 //! §The beacon on cuts, T74, T76): what to commit, reveal, propose, co-sign or change view.
 
+use ed25519_dalek::Signature;
 use network::beacon::BeaconOutcome;
 use network::beacon::RoundId;
 use network::consortium::{Consortium, Member};
@@ -13,7 +14,7 @@ use network::observer::{ObserveError, Observer};
 use network::replica::Replica;
 use network::rounds::Rounds;
 use network::tier::Tiers;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::time::Duration;
 
 pub struct MemberRole {
@@ -73,6 +74,16 @@ fn context_of(consortium: &Consortium, network_id: [u8; 32]) -> Context {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct OtherContext;
 
+/// A collected cut as a node reports it (`docs/04` §The cuts' views and exclusions in the
+/// status): the view its signatures count in, and the members whose signatures it does not
+/// count, increasing.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CollectedCut {
+    pub digest: [u8; 32],
+    pub view: u64,
+    pub excluded: Vec<usize>,
+}
+
 /// The cuts collected so far and the beacon's rounds they ran, extended from the last cut
 /// rather than collected again from number 0 (`docs/04` §A node process); fixed to one
 /// consortium and network, by [`Collector::new`] or at its first update.
@@ -80,6 +91,7 @@ pub struct OtherContext;
 pub struct Collector {
     context: Option<Context>,
     cuts: Vec<Cut>,
+    collected: Vec<CollectedCut>,
     rounds: Rounds,
     conflict: bool,
 }
@@ -105,9 +117,16 @@ impl Collector {
             return Err(OtherContext);
         }
         self.context = Some(context);
+        let others = recheck(
+            replica,
+            consortium,
+            network_id,
+            &self.cuts,
+            &mut self.collected,
+        );
         let rounds = &self.rounds;
         let excluded = |c: &Cut| rounds.excluded(c);
-        if !self.conflict && contested(replica, consortium, network_id, &self.cuts, &excluded) {
+        if !self.conflict && contested(replica, consortium, network_id, others, &excluded) {
             *self = Collector::new(consortium, network_id);
         }
         while !self.conflict {
@@ -116,8 +135,8 @@ impl Collector {
             let ready = collect_with(replica, consortium, network_id, number, &|c| {
                 rounds.excluded(c)
             });
-            let cut = match ready {
-                Collected::Ready(cut, _, _) => cut,
+            let (cut, view) = match ready {
+                Collected::Ready(cut, view, _) => (cut, view),
                 Collected::Conflict(..) => {
                     self.conflict = true;
                     break;
@@ -127,6 +146,7 @@ impl Collector {
             let Ok(order) = added(replica, self.cuts.last(), &cut) else {
                 break;
             };
+            let excluded = self.rounds.excluded(&cut);
             for id in order {
                 let object = replica.get(&id).and_then(|(_, b)| MemberObject::decode(b));
                 let own = object.filter(|o| {
@@ -139,6 +159,11 @@ impl Collector {
             }
             let last = self.cuts.last();
             self.rounds.finish(consortium, network_id, &cut, last);
+            self.collected.push(CollectedCut {
+                digest: cut.digest(),
+                view,
+                excluded,
+            });
             self.cuts.push(cut);
         }
         Ok(&self.cuts)
@@ -146,6 +171,11 @@ impl Collector {
 
     pub fn cuts(&self) -> &[Cut] {
         &self.cuts
+    }
+
+    /// Each collected cut's digest, view and exclusions, from number 0.
+    pub fn collected_cuts(&self) -> &[CollectedCut] {
+        &self.collected
     }
 
     /// Whether the consortium signed two cuts for one number.
@@ -159,23 +189,57 @@ impl Collector {
     }
 }
 
-/// Whether a number in `cuts` now has another cut signed by `t` members.
-fn contested(
+/// Lowers each collected cut's view to the lowest in which `replica` holds `t` of its counted
+/// signatures, as [`collect_with`] picks it; returns the numbers signed for another cut.
+fn recheck(
     replica: &Replica,
     consortium: &Consortium,
     network_id: [u8; 32],
     cuts: &[Cut],
-    excluded: &dyn Fn(&Cut) -> Vec<usize>,
-) -> bool {
-    let mut numbers = BTreeSet::new();
+    collected: &mut [CollectedCut],
+) -> BTreeSet<u64> {
+    type Group = (Cut, Vec<(usize, Signature)>);
+    let mut others = BTreeSet::new();
+    let mut lower: BTreeMap<(usize, u64), Group> = BTreeMap::new();
     for (_, o) in member_objects(replica, consortium) {
-        if let MemberObject::CutSignature { cut, .. } = o {
-            let held = usize::try_from(cut.number).ok().and_then(|n| cuts.get(n));
-            if held.is_some_and(|mine| *mine != cut) {
-                numbers.insert(cut.number);
-            }
+        let MemberObject::CutSignature {
+            cut,
+            view,
+            member,
+            signature,
+            ..
+        } = o
+        else {
+            continue;
+        };
+        let Some(k) = usize::try_from(cut.number).ok().filter(|k| *k < cuts.len()) else {
+            continue;
+        };
+        if cuts[k] != cut {
+            others.insert(cut.number);
+        } else if view < collected[k].view {
+            let group = lower.entry((k, view)).or_insert_with(|| (cut, Vec::new()));
+            group.1.push((member, signature));
         }
     }
+    for ((k, view), (cut, signatures)) in lower {
+        let cp = cut.checkpoint_in(view, network_id, consortium.member_set_hash());
+        let counted = consortium.verify_excluding(&cp, &signatures, &collected[k].excluded);
+        if counted && view < collected[k].view {
+            collected[k].view = view;
+        }
+    }
+    others
+}
+
+/// Whether one of `numbers` now has two cuts each signed by `t` members.
+fn contested(
+    replica: &Replica,
+    consortium: &Consortium,
+    network_id: [u8; 32],
+    numbers: BTreeSet<u64>,
+    excluded: &dyn Fn(&Cut) -> Vec<usize>,
+) -> bool {
     numbers.into_iter().any(|n| {
         let ready = collect_with(replica, consortium, network_id, n, excluded);
         matches!(ready, Collected::Conflict(..))
@@ -188,6 +252,7 @@ fn contested(
 pub struct PublicCollector {
     observer: Observer,
     cuts: Vec<Cut>,
+    collected: Vec<CollectedCut>,
     conflict: bool,
 }
 
@@ -196,6 +261,7 @@ impl PublicCollector {
         PublicCollector {
             observer: Observer::new(tiers),
             cuts: Vec::new(),
+            collected: Vec::new(),
             conflict: false,
         }
     }
@@ -210,9 +276,10 @@ impl PublicCollector {
             return Err(ObserveError::Replica);
         }
         let (c, net) = (tiers.consortium(), tiers.network_id());
+        let others = recheck(replica, c, net, &self.cuts, &mut self.collected);
         let observer = &self.observer;
         let excluded = |cut: &Cut| observer.excluded(cut);
-        if !self.conflict && contested(replica, c, net, &self.cuts, &excluded) {
+        if !self.conflict && contested(replica, c, net, others, &excluded) {
             *self = PublicCollector::new(tiers);
         }
         while !self.conflict {
@@ -221,6 +288,7 @@ impl PublicCollector {
             let ready = collect_with(replica, c, net, number, &|cut| observer.excluded(cut));
             match ready {
                 Collected::Ready(cut, view, sigs) => {
+                    let excluded = self.observer.excluded(&cut);
                     if self
                         .observer
                         .apply_in_view(replica, tiers, &cut, view, &sigs)
@@ -228,6 +296,11 @@ impl PublicCollector {
                     {
                         break;
                     }
+                    self.collected.push(CollectedCut {
+                        digest: cut.digest(),
+                        view,
+                        excluded,
+                    });
                     self.cuts.push(cut);
                 }
                 Collected::Conflict(..) => self.conflict = true,
@@ -243,6 +316,11 @@ impl PublicCollector {
 
     pub fn conflict(&self) -> bool {
         self.conflict
+    }
+
+    /// As [`Collector::collected_cuts`].
+    pub fn collected_cuts(&self) -> &[CollectedCut] {
+        &self.collected
     }
 
     pub fn beacons(&self) -> Vec<&BeaconOutcome> {

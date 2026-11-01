@@ -3,8 +3,11 @@
 
 use identity::credential::Issuer;
 use libp2p::identity::Keypair;
+use network::beacon::RoundId;
+use network::cid::cid;
 use network::consortium::{Consortium, Member};
-use network::cut::{collect_with, Collected};
+use network::cut::{collect_with, Collected, MemberObject};
+use network::log::TransparencyLog;
 use network::replica::{FeedWriter, Replica, WriterSet};
 use p2p::member::{collected, MemberRole};
 use p2p::{Config, Handle, Own, StartError};
@@ -167,7 +170,8 @@ async fn at_net_17_members_cut_and_run_the_beacon_between_nodes() {
     for h in nodes {
         let status = h.status().await;
         let digests: Vec<_> = outcomes[0].0.iter().map(|c| c.digest()).collect();
-        assert_eq!(status.cuts[..5], digests[..], "the status reports the cuts");
+        let reported: Vec<_> = status.cuts[..5].iter().map(|c| c.digest).collect();
+        assert_eq!(reported, digests, "the status reports the cuts");
         let rounds: Vec<_> = [&outcomes[0].1 .0, &outcomes[0].1 .1]
             .iter()
             .map(|o| {
@@ -285,4 +289,66 @@ async fn at_net_19_a_member_stopped_midway_is_replaced() {
     m2.dial(addr).await.unwrap();
     cut_at_least(&[&m1, &m2], before + 6, 60).await;
     agreed(&[&m1, &m2], before + 6).await;
+}
+
+/// AT-NET-39: with the proposer of cut 0 never started but its commit held, the members and a
+/// node given the consortium report the same views and exclusions: views after 0, and the
+/// withholder excluded from the rest of the epoch after its round.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_39_every_status_reports_views_and_exclusions() {
+    let (m1, m2, relay) = (quick(1).await, quick(2).await, start(3, false).await);
+    let round = RoundId {
+        network_id: NET,
+        member_set_hash: consortium().member_set_hash(),
+        epoch: 0,
+    };
+    let (commit, _) = Member::from_seed([SEEDS[0]; 32]).beacon_commit(round, 0);
+    let object = MemberObject::Commit(commit).encode();
+    let log = TransparencyLog::new().append(cid(&object)).clone();
+    let entry = FeedWriter::from_seed(NET, [SEEDS[0]; 32]).sign(&log);
+    m1.insert(entry, object).await.unwrap();
+    let addr = m1
+        .listen("/ip4/127.0.0.1/tcp/0".parse().unwrap())
+        .await
+        .unwrap();
+    for h in [&m2, &relay] {
+        h.dial(addr.clone()).await.unwrap();
+    }
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(60);
+    let reported = loop {
+        let s = m1.status().await;
+        if s.cuts.len() >= 5
+            && s.beacons
+                .first()
+                .is_some_and(|b| b.0.is_some() && b.1 == [0])
+        {
+            break s.cuts;
+        }
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "cuts did not advance"
+        );
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    };
+    assert!(
+        reported[0].view >= 1 && reported[3].view >= 1,
+        "{reported:?}"
+    );
+    for (k, cut) in reported.iter().enumerate().take(5) {
+        let withheld: &[usize] = if k == 3 { &[0] } else { &[] };
+        assert_eq!(cut.excluded, withheld, "cut {k}");
+    }
+    for h in [&m2, &relay] {
+        loop {
+            let cuts = h.status().await.cuts;
+            if cuts.len() >= 5 && cuts[..5] == reported[..5] {
+                break;
+            }
+            assert!(
+                tokio::time::Instant::now() < deadline,
+                "the statuses differ"
+            );
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    }
 }

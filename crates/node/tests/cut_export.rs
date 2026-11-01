@@ -297,7 +297,9 @@ fn damaged_replica_or_existing_output_changes_nothing() {
 mod processes {
     use super::process::{address, until, Process};
     use super::*;
-    use network::cut::{collect_with, Collected};
+    use network::beacon::RoundId;
+    use network::tier::Tier;
+    use p2p::record::Stop;
     use std::time::Duration;
 
     // A running node's lock excludes the export, which succeeds once it stops (AT-NET-35).
@@ -321,7 +323,25 @@ mod processes {
         assert_eq!(fs::read(&output).unwrap(), f.target.encode());
     }
 
-    // Cuts tiered member processes collect export as they reported and feed extraction (AT-NET-35).
+    /// Member 2's commit for epoch 0, first on its public feed, put into `dir`'s replica: A
+    /// stops member 2 at its start, so it signs nothing and withholds its reveal.
+    fn withheld_commit(f: &Fixture, dir: &Path) {
+        let round = RoundId {
+            network_id: NET,
+            member_set_hash: f.tiers.consortium().member_set_hash(),
+            epoch: 0,
+        };
+        let (commit, _) = f.members[2].beacon_commit(round, 2);
+        let object = MemberObject::Commit(commit).encode();
+        let entry =
+            FeedWriter::from_seed(NET, [3; 32]).sign(TransparencyLog::new().append(cid(&object)));
+        let writers = f.tiers.writers().clone();
+        let mut replica = DurableReplica::open(&dir.join("replica"), writers).unwrap();
+        replica.insert(entry, object).unwrap();
+    }
+
+    // Cuts tiered member processes collect export with the view and exclusions the status file
+    // reports, a view after 0 and a withholder included, and feed extraction (AT-NET-35, -39).
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn cuts_collected_by_member_processes_are_exported() {
         let f = Fixture::new("export-runtime", false);
@@ -338,6 +358,7 @@ mod processes {
                 };
                 let record = dir.join("identity");
                 p2p::record::create(&record, key(1 + i as u8), key(11 + i as u8)).unwrap();
+                withheld_commit(&f, &dir);
                 let circle = f.root.join(format!("circle-{i}.key"));
                 fs::write(&circle, node::hex(&[11 + i as u8; 32])).unwrap();
                 let peers: Vec<_> = (0..3)
@@ -358,10 +379,10 @@ mod processes {
                     )
                     .replace("listen = []", &settings)
                     .replace("\n[consortium]", &circle)
-                    .replace("cuts_per_epoch = 1\n", "cuts_per_epoch = 1000\n")
+                    .replace("cuts_per_epoch = 1\n", "cuts_per_epoch = 4\n")
                     .replace(
                         "\npatience = 2\nview_patience = 2\n",
-                        "\npatience = 10\nview_patience = 20\n",
+                        "\npatience = 4\nview_patience = 8\n",
                     );
                 let path = f.root.join(format!("runtime-{i}.toml"));
                 fs::write(&path, text).unwrap();
@@ -369,49 +390,64 @@ mod processes {
             })
             .collect();
         let mut nodes: Vec<_> = configs.iter().map(|c| Process::start(c)).collect();
-        for i in 0..3 {
-            let status = f.root.join(format!("runtime-{i}/status"));
-            until(&status, |s| {
-                node::parse(s).is_some_and(|s| s.cuts.len() >= 2)
-            })
-            .await;
-        }
+        let status = |i: usize| f.root.join(format!("runtime-{i}/status"));
+        until(&status(2), |s| {
+            node::parse(s).is_some_and(|s| s.stopped == Some(Stop::OwnEntry(Tier::Public)))
+        })
+        .await;
+        until(&status(0), |s| {
+            node::parse(s)
+                .is_some_and(|s| s.cuts.len() >= 6 && s.beacons.first().is_some_and(|b| b.1 == [2]))
+        })
+        .await;
         for node in &mut nodes {
             node.terminate(Duration::from_secs(5)).await;
         }
-        let status = fs::read_to_string(f.root.join("runtime-0/status")).unwrap();
-        let digests = node::parse(&status).unwrap().cuts;
-        let writers = f.tiers.writers().clone();
-        let stored = DurableReplica::read(&f.root.join("runtime-0/replica"), writers).unwrap();
+        let reported = node::parse(&fs::read_to_string(status(0)).unwrap()).unwrap();
+        let cuts = &reported.cuts;
+        assert!(
+            reported.beacons[0].0.is_some(),
+            "the round of epoch 0 has a value"
+        );
+        assert!(
+            cuts[2].view >= 1 && cuts[5].view >= 1,
+            "member 2 proposes nothing"
+        );
+        for (k, cut) in cuts.iter().enumerate() {
+            let withheld: &[usize] = if (5..8).contains(&k) { &[2] } else { &[] };
+            assert_eq!(cut.excluded, withheld, "cut {k}");
+        }
         let mut exported = Vec::new();
-        for number in 0..2u64 {
-            let ready = collect_with(&stored, f.tiers.consortium(), NET, number, &|_| vec![]);
-            let Collected::Ready(_, view, _) = ready else {
-                panic!("cut {number}: {ready:?}");
-            };
-            let wanted = cut_toml(&f, &format!("export-{number}"), number, view, &[]);
-            let output = f.root.join(format!("export-{number}.cut"));
+        for (number, reported) in cuts.iter().enumerate().take(6) {
+            let name = format!("export-{number}");
+            let wanted = cut_toml(&f, &name, number as u64, reported.view, &reported.excluded);
+            let output = f.root.join(format!("{name}.cut"));
             let printed = ok(&[Path::new(EXPORT), &configs[0], &wanted, &output]);
-            assert_eq!(
-                printed,
-                format!("{}\n", node::hex(&digests[number as usize]))
-            );
+            assert_eq!(printed, format!("{}\n", node::hex(&reported.digest)));
             let cut = Cut::decode(&fs::read(&output).unwrap()).unwrap();
-            assert_eq!(cut.digest(), digests[number as usize]);
-            let other = cut_toml(&f, &format!("other-{number}"), number, view + 1, &[]);
+            assert_eq!(cut.digest(), reported.digest);
+            let view = if reported.view > 0 { 0 } else { 1 };
+            let other = cut_toml(
+                &f,
+                &format!("other-{number}"),
+                number as u64,
+                view,
+                &reported.excluded,
+            );
             let other = cli(&[
                 Path::new(EXPORT),
                 &configs[0],
                 &other,
                 &f.root.join("x.cut"),
             ]);
-            assert_eq!(other.status.code(), Some(2));
-            exported.push((output, view));
+            assert_eq!(other.status.code(), Some(2), "cut {number} in view {view}");
+            exported.push(output);
         }
         let input = production::Config {
-            previous_cut_file: Some(exported[0].0.clone()),
-            target_cut_file: exported[1].0.clone(),
-            view: exported[1].1,
+            previous_cut_file: Some(exported[4].clone()),
+            target_cut_file: exported[5].clone(),
+            view: cuts[5].view,
+            excluded: cuts[5].excluded.clone(),
             segment_file: f.root.join("runtime-segment.bin"),
             ..f.input()
         };

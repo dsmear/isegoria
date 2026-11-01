@@ -13,7 +13,7 @@ use network::consortium::{Consortium, Member};
 use network::replica::{FeedWriter, WriterSet};
 use network::tier::{TierError, Tiers};
 use p2p::blind::{Gateway, GatewayKey, KeyAnnouncement};
-use p2p::member::MemberRole;
+use p2p::member::{CollectedCut, MemberRole};
 use p2p::record::Stop;
 use p2p::{Config as P2p, Handle, Own, StartError, Status};
 use serde::Deserialize;
@@ -533,14 +533,22 @@ pub fn render(status: &Status) -> String {
     );
     out += &format!("synced [{}]\n", members(&status.synced));
     out += &format!("circle_synced [{}]\n", members(&status.circle_synced));
-    for (n, digest) in status.cuts.iter().enumerate() {
-        out += &format!("cut {n} {}\n", hex(digest));
+    for (n, cut) in status.cuts.iter().enumerate() {
+        out += &cut_line(n, cut);
+        out.push('\n');
     }
     for (e, (value, withheld)) in status.beacons.iter().enumerate() {
         let value = value.map_or("none".to_string(), |v| hex(&v));
         out += &format!("beacon {e} {value} [{}]\n", members(withheld));
     }
     out
+}
+
+/// A collected cut's line: number, digest, view and exclusions (`docs/04` §The cuts' views
+/// and exclusions in the status).
+fn cut_line(number: usize, cut: &CollectedCut) -> String {
+    let (digest, view) = (hex(&cut.digest), cut.view);
+    format!("cut {number} {digest} {view} [{}]", members(&cut.excluded))
 }
 
 fn members(list: &[usize]) -> String {
@@ -576,9 +584,17 @@ pub fn parse(text: &str) -> Option<Status> {
             ["stopped", ..] => {
                 status.stopped = Some(Stop::parse(line.strip_prefix("stopped ")?)?);
             }
-            ["cut", n, d] => {
-                (n.parse::<usize>().ok()? == status.cuts.len()).then_some(())?;
-                status.cuts.push(unhex(d, "cut").ok()?);
+            ["cut", n, d, v, list] => {
+                let number = status.cuts.len();
+                (n.parse::<usize>().ok()? == number).then_some(())?;
+                let cut = CollectedCut {
+                    digest: unhex(d, "cut").ok()?,
+                    view: v.parse().ok()?,
+                    excluded: parse_members(list)?,
+                };
+                let increasing = cut.excluded.windows(2).all(|w| w[0] < w[1]);
+                (increasing && cut_line(number, &cut) == line).then_some(())?;
+                status.cuts.push(cut);
             }
             ["beacon", e, v, w] => {
                 (e.parse::<usize>().ok()? == status.beacons.len()).then_some(())?;

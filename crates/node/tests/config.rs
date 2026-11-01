@@ -4,6 +4,7 @@
 use network::consortium::Member;
 use network::tier::Tier;
 use node::{hex, parse, plan, render, Config, ConfigError};
+use p2p::member::CollectedCut;
 use p2p::record::Stop;
 use p2p::Status;
 use std::path::PathBuf;
@@ -109,7 +110,7 @@ fn at_net_21_the_status_file_has_one_text() {
         bound: 2,
         equivocations: 1,
         conflict: false,
-        cuts: vec![[1; 32], [2; 32]],
+        cuts: vec![cut([1; 32], 0, &[]), cut([2; 32], 1, &[2])],
         beacons: vec![(Some([9; 32]), vec![]), (None, vec![0, 2])],
         stopped: Some(Stop::OwnEntry(Tier::Circle)),
         synced: vec![1, 3],
@@ -133,6 +134,65 @@ fn at_net_21_the_status_file_has_one_text() {
         text.clone() + "spare line\n",
     ] {
         assert_eq!(parse(&bad), None, "{bad}");
+    }
+}
+
+fn cut(digest: [u8; 32], view: u64, excluded: &[usize]) -> CollectedCut {
+    CollectedCut {
+        digest,
+        view,
+        excluded: excluded.to_vec(),
+    }
+}
+
+/// AT-NET-39: each cut's line carries its view and exclusions, read back exactly; malformed
+/// values, lists and orders are refused.
+#[test]
+fn at_net_39_the_status_file_carries_views_and_exclusions() {
+    let status = Status {
+        cuts: vec![
+            cut([0xab; 32], 0, &[]),
+            cut([0xcd; 32], u64::MAX, &[0, 3, 17]),
+            cut([0xef; 32], 1, &[2]),
+        ],
+        ..Status::default()
+    };
+    let text = render(&status);
+    let ab = hex(&[0xab; 32]);
+    let cd = hex(&[0xcd; 32]);
+    assert!(text.contains(&format!("cut 0 {ab} 0 []\n")), "{text}");
+    assert!(
+        text.contains(&format!("cut 1 {cd} {} [0,3,17]\n", u64::MAX)),
+        "{text}"
+    );
+    assert_eq!(parse(&text), Some(status));
+    let line = format!("cut 0 {ab} 0 []");
+    for bad in [
+        format!("cut 0 {ab} 0"),
+        format!("cut 0 {ab} []"),
+        format!("cut 0 {ab} 0 [] spare"),
+        format!("cut 0 {ab} -1 []"),
+        format!("cut 0 {ab} +1 []"),
+        format!("cut 0 {ab} 01 []"),
+        format!("cut 0 {ab} one []"),
+        format!("cut 0 {ab} 18446744073709551616 []"),
+        format!("cut 0 {ab} 0 2"),
+        format!("cut 0 {ab} 0 [2"),
+        format!("cut 0 {ab} 0 [2,1]"),
+        format!("cut 0 {ab} 0 [1,1]"),
+        format!("cut 0 {ab} 0 [1,]"),
+        format!("cut 0 {ab} 0 [,1]"),
+        format!("cut 0 {ab} 0 [01]"),
+        format!("cut 0 {ab} 0 [x]"),
+        format!("cut 0 {ab} 0 [-1]"),
+        format!("cut 0 {} 0 []", ab.to_uppercase()),
+        format!("cut 0 {} 0 []", &ab[2..]),
+        format!("cut 00 {ab} 0 []"),
+        line.replace("cut 0", "cut 1"),
+        format!("{line}\n{line}"),
+        format!("cut  0 {ab} 0 []"),
+    ] {
+        assert_eq!(parse(&format!("{bad}\n")), None, "{bad}");
     }
 }
 

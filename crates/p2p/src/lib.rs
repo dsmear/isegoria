@@ -170,8 +170,9 @@ pub struct Status {
     pub equivocations: usize,
     /// Whether the consortium signed two cuts for one number.
     pub conflict: bool,
-    /// The collected cuts' digests, from number 0.
-    pub cuts: Vec<[u8; 32]>,
+    /// The collected cuts from number 0, each with the view and exclusions it is collected
+    /// under (`docs/04` §The cuts' views and exclusions in the status).
+    pub cuts: Vec<member::CollectedCut>,
     /// Each finished round, from epoch 0: its value and its withholders.
     pub beacons: Vec<(Option<[u8; 32]>, Vec<usize>)>,
     /// Why a tiered writer signs nothing, if it does not (`docs/04` §Increments A and B).
@@ -910,7 +911,6 @@ impl Node {
 
     fn status(&mut self) -> Status {
         let replica = self.store.replica();
-        let digests = |cuts: &[network::cut::Cut]| cuts.iter().map(|c| c.digest()).collect();
         let rounds = |outcomes: Vec<&network::beacon::BeaconOutcome>| {
             outcomes
                 .iter()
@@ -921,7 +921,11 @@ impl Node {
             (Some(t), None) => {
                 let _ = t.public.update(replica, &t.tiers);
                 let p = &t.public;
-                (digests(p.cuts()), p.conflict(), rounds(p.beacons()))
+                (
+                    p.collected_cuts().to_vec(),
+                    p.conflict(),
+                    rounds(p.beacons()),
+                )
             }
             _ => {
                 let consortium = self.member.as_ref().map(|m| &m.consortium);
@@ -929,7 +933,11 @@ impl Node {
                     let _ = self.collector.update(replica, c, self.network_id);
                 }
                 let c = &self.collector;
-                (digests(c.cuts()), c.conflict(), rounds(c.beacons()))
+                (
+                    c.collected_cuts().to_vec(),
+                    c.conflict(),
+                    rounds(c.beacons()),
+                )
             }
         };
         Status {
