@@ -1106,7 +1106,8 @@ The collected cuts are kept, not collected again from number 0 at each look: a n
 them from the last one, counting the beacon's rounds as it goes (`p2p::member::Collector`).
 A cut signed by `t` members for a number already collected, other than the one collected,
 is the consortium equivocating: the node keeps the cuts before that number and stops there,
-as collecting from 0 would.
+as collecting from 0 would, also when an earlier conflict had already stopped it at a later
+number.
 
 ## Operating contract (T88)
 
@@ -1506,7 +1507,7 @@ withholder's signature not counted (§The withholders on cuts).
 
 *Evidence.* AT-NET-38 (`p2p/tests/member_duties.rs`, `p2p/tests/cut_conflict.rs`): duties
 read from replicas holding a conflict, found at once or on a number already collected, and
-looked at again; competing cuts short of a certificate, by count or by a withholder; three
+looked at again, also after a second conflict at an earlier number; competing cuts short of a certificate, by count or by a withholder; three
 member nodes (`n = 3`, `t = 2`) where members 1 and 2's keys sign a second cut on entries
 past their feeds, which A then stops them for, the evidence served to a reader, and a
 restart from a stored replica holding the conflict. The node tests observe member 0's feed
@@ -1552,8 +1553,10 @@ exclusions it is collected under (§Collected cut export), and the status report
    export, which refuses, and none to the status.
 5. **Conflicts and restarts.** At a conflict the cuts before the contested number keep
    their views and exclusions, by the same rule, and the contested number adds nothing
-   beyond `conflict`. Nothing new is stored: a restart rebuilds the values from the kept
-   replica, as it rebuilds the cuts.
+   beyond `conflict`, which stays set. A second conflict at a number already collected takes
+   the cuts back to those before it, as collecting from 0 does (§A node process). Nothing
+   new is stored: a restart rebuilds the values from the kept replica, as it rebuilds the
+   cuts.
 6. **Unchanged.** Collection, rule 6, the conflict condition, signatures, `Cut::encode`,
    the replica, the identity record and the archive formats; `cut.toml` and the rules of
    `--archive-export-cut`, `--archive-extract` and `--archive-prepare`: their inputs stay
@@ -1574,13 +1577,15 @@ included when no excluded member signed it. Changing the command's rules needs t
 `beacon_between_nodes.rs`, `node/tests/config.rs`, `node/tests/cut_export.rs`): both
 collectors against `collect_with` on cuts in views 0 to 2, a withholder whose signature
 would have completed a cut, lower views reaching `t` after collection, an excluded member's
-lower-view signature, conflicts at the next and at a collected number, and a property over
-generated beacon messages and signatures, some given late; tiered member nodes, `n = 4`,
-`t = 3`, member 3 never running but its commit held, with a reader and a restart from the
-stored replica; an untiered network's members and a node given the consortium, the silent
-proposer's commit held; the status file's text and its refusals; member processes whose
-exported cuts take the status file's values (§Collected cut export). In-process, loopback
-and controlled processes only.
+lower-view signature, conflicts at the next and at a collected number, a second conflict
+at numbers 1 and 0 after one at the next number, and properties over generated beacon
+messages, signatures (some given late) and rival cuts, and over a conflict at the next number
+followed by one at a collected number, each reported as a fresh collector reports it; tiered
+member nodes, `n = 4`, `t = 3`, member 3 never running but its commit held, with a reader and
+a restart from the stored replica; an untiered network's members and a node given the
+consortium, the silent proposer's commit held; the status file's text and its refusals;
+member processes whose exported cuts take the status file's values (§Collected cut export).
+In-process, loopback and controlled processes only.
 
 *Limits.* The values are as fresh as the last status and as complete as the replica. Nothing
 checks the exclusions against the beacon history at the export (above), and nothing compares

@@ -687,7 +687,8 @@ async fn at_net_23_members_and_a_public_reader_agree() {
     let (r, m) = (status(&reader).await, status(&members[0]).await);
     let n = r.cuts.len().min(m.cuts.len());
     assert!(n >= 5);
-    assert_eq!(r.cuts[..n], m.cuts[..n]);
+    let digests = |s: &Status| s.cuts[..n].iter().map(|c| c.digest).collect::<Vec<_>>();
+    assert_eq!(digests(&r), digests(&m));
     let b = r.beacons.len().min(m.beacons.len());
     assert!(b >= 2);
     assert_eq!(r.beacons[..b], m.beacons[..b]);

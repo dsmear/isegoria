@@ -10,6 +10,7 @@ use network::replica::{FeedWriter, Replica};
 use network::tier::{Tier, Tiers};
 use p2p::member::{CollectedCut, Collector, PublicCollector};
 use proptest::prelude::*;
+use proptest::test_runner::TestCaseError;
 
 const NET: [u8; 32] = [39; 32];
 
@@ -150,6 +151,7 @@ impl Both {
             "the reader reports alike"
         );
         assert_eq!(reported.len(), cuts.len());
+        assert_eq!(self.member.conflict(), self.reader.conflict());
         (cuts, reported)
     }
 }
@@ -180,8 +182,7 @@ fn exclusions(reported: &[CollectedCut]) -> Vec<Vec<usize>> {
     reported.iter().map(|r| r.excluded.clone()).collect()
 }
 
-// Cuts collected in views 0, 1 and 2 report their own view, short of `t` in the lower ones
-// (AT-NET-39).
+// Cuts collected in views 0, 1 and 2 each report their own view (AT-NET-39).
 #[test]
 fn at_net_39_each_cut_reports_its_view() {
     for (n, t) in [(3, 2), (4, 3)] {
@@ -226,8 +227,7 @@ fn withheld() -> (Net, Vec<Cut>) {
     (net, vec![first, closing, ending])
 }
 
-// The withholder is reported excluded exactly from the cuts after the round's end in its
-// epoch, its signature not counted where it would have completed the cut (AT-NET-39).
+// Rule 6's withholder is reported excluded exactly where collection excludes it (AT-NET-39).
 #[test]
 fn at_net_39_cuts_report_the_withholders_rule_6_excludes() {
     let (mut net, mut cuts) = withheld();
@@ -261,8 +261,7 @@ fn at_net_39_cuts_report_the_withholders_rule_6_excludes() {
     oracle(&net, &collected, &reported);
 }
 
-// A lower view that reaches `t` after the cut was collected is reported once it does, as a
-// fresh collector reports it; an excluded member's signature lowers nothing (AT-NET-39).
+// A lower view completed after collection is reported, by no excluded signer (AT-NET-39).
 #[test]
 fn at_net_39_a_lower_view_completed_later_is_reported() {
     let mut net = Net::new(4, 3);
@@ -298,8 +297,7 @@ fn at_net_39_a_lower_view_completed_later_is_reported() {
     assert_eq!(views(&both.update(&net).1), [0, 0, 0, 0]);
 }
 
-// At a conflict, found next or on a number already collected, the cuts before it keep their
-// views and exclusions and the contested number is not reported (AT-NET-39).
+// At a conflict the cuts before it keep their views and exclusions (AT-NET-39).
 #[test]
 fn at_net_39_a_conflict_keeps_the_cuts_before_it() {
     let (mut net, mut cuts) = withheld();
@@ -333,6 +331,47 @@ fn at_net_39_a_conflict_keeps_the_cuts_before_it() {
     assert_eq!(held, before[..2]);
 }
 
+// A second conflict at an earlier number takes both collectors back to it (AT-NET-39).
+#[test]
+fn at_net_39_a_second_conflict_takes_the_cuts_back() {
+    for earlier in [1usize, 0] {
+        let mut net = Net::new(3, 2);
+        let mut cuts: Vec<Cut> = Vec::new();
+        for m in 0..3 {
+            net.draft(m);
+            let cut = Cut::next(&net.replica, cuts.last(), 0, false);
+            net.sign(&cut, 0, &[0, 1]);
+            cuts.push(cut);
+        }
+        let mut both = Both::new(&net);
+        assert_eq!(both.update(&net).0, cuts);
+        for (m, by) in [(1, [0, 1]), (2, [1, 2])] {
+            net.draft(m);
+            let next = Cut::next(&net.replica, cuts.last(), 0, false);
+            net.sign(&next, 0, &by);
+        }
+        assert_eq!(both.update(&net).0, cuts);
+        assert!(both.member.conflict());
+        net.draft(2);
+        let rival = Cut::next(
+            &net.replica,
+            earlier.checked_sub(1).map(|p| &cuts[p]),
+            0,
+            false,
+        );
+        assert_ne!(rival, cuts[earlier]);
+        net.sign(&rival, 0, &[0, 2]);
+        let (kept, reported) = both.update(&net);
+        assert!(both.member.conflict());
+        assert_eq!(kept, cuts[..earlier], "second conflict at {earlier}");
+        let mut fresh = Both::new(&net);
+        assert_eq!(fresh.update(&net), (kept.clone(), reported.clone()));
+        assert!(fresh.member.conflict());
+        oracle(&net, &kept, &reported);
+        assert_eq!(both.update(&net), (kept, reported), "looked at again");
+    }
+}
+
 /// When a generated signature is given: never, as its cut is built, or after every cut.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Given {
@@ -342,7 +381,8 @@ enum Given {
 }
 
 /// One cut of a generated schedule: whether it closes its epoch, the members committing at an
-/// epoch's start and revealing after its close, each member's signature per view, an update.
+/// epoch's start and revealing after its close, each member's signature per view, an update,
+/// and a rival cut for the number `back` before this one with its view-0 signers.
 #[derive(Clone, Debug)]
 struct Planned {
     closes: bool,
@@ -350,6 +390,7 @@ struct Planned {
     reveals: Vec<bool>,
     signers: Vec<Vec<Given>>,
     update: bool,
+    rival: Option<(usize, Vec<bool>)>,
 }
 
 fn planned(n: usize) -> impl Strategy<Value = Planned> {
@@ -361,14 +402,18 @@ fn planned(n: usize) -> impl Strategy<Value = Planned> {
         mask(0.7),
         proptest::collection::vec(proptest::collection::vec(given, n), 3),
         proptest::bool::weighted(0.7),
+        proptest::option::weighted(0.06, (0..8usize, mask(0.7))),
     )
-        .prop_map(|(closes, commits, reveals, signers, update)| Planned {
-            closes,
-            commits,
-            reveals,
-            signers,
-            update,
-        })
+        .prop_map(
+            |(closes, commits, reveals, signers, update, rival)| Planned {
+                closes,
+                commits,
+                reveals,
+                signers,
+                update,
+                rival,
+            },
+        )
 }
 
 fn schedule() -> impl Strategy<Value = (usize, usize, Vec<Planned>)> {
@@ -381,53 +426,118 @@ fn schedule() -> impl Strategy<Value = (usize, usize, Vec<Planned>)> {
     })
 }
 
+/// A cut after `prev` signed in view 0 by `by`, unlike any cut before it: a circle draft first.
+fn rival(net: &mut Net, prev: Option<&Cut>, epoch: u64, closes: bool, by: &[usize]) -> Cut {
+    net.draft(0);
+    let cut = Cut::next(&net.replica, prev, epoch, closes);
+    net.sign(&cut, 0, by);
+    cut
+}
+
+/// Builds `plan` into `net`, `both` updated where planned and the late signatures given last;
+/// returns the cuts built and the rivals signed.
+fn build(net: &mut Net, both: &mut Both, plan: &[Planned]) -> (Vec<Cut>, Vec<Cut>) {
+    let n = net.n;
+    let (mut built, mut late, mut rivals) = (Vec::<Cut>::new(), Vec::new(), Vec::new());
+    for (k, p) in plan.iter().enumerate() {
+        let last = built.last();
+        let epoch = last.map_or(0, |l| l.epoch + u64::from(l.closes));
+        if last.is_none_or(|l| l.closes) {
+            if let Some(e) = last.map(|l| l.epoch) {
+                for m in (0..n).filter(|m| p.reveals[*m]) {
+                    net.reveal(m, e);
+                }
+            }
+            for m in (0..n).filter(|m| p.commits[*m]) {
+                net.commit(m, epoch);
+            }
+        }
+        net.draft(k % n);
+        let cut = Cut::next(&net.replica, built.last(), epoch, p.closes);
+        for (view, given) in p.signers.iter().enumerate() {
+            for (m, when) in given.iter().enumerate() {
+                match when {
+                    Given::Now => net.sign(&cut, view as u64, &[m]),
+                    Given::Late => late.push((cut.clone(), view as u64, m)),
+                    Given::Never => {}
+                }
+            }
+        }
+        built.push(cut);
+        if let Some((back, signers)) = &p.rival {
+            let j = k - back % (k + 1);
+            let by: Vec<usize> = (0..n).filter(|m| signers[*m]).collect();
+            let (prev, like) = (j.checked_sub(1).map(|i| &built[i]), &built[j]);
+            rivals.push(rival(net, prev, like.epoch, like.closes, &by));
+        }
+        if p.update {
+            both.update(net);
+        }
+    }
+    for (cut, view, m) in late {
+        net.sign(&cut, view, &[m]);
+    }
+    (built, rivals)
+}
+
+/// After an update, each collected cut was signed among `signed`, is `collect_with`'s, and a
+/// fresh collector reports alike; returns the cuts and the report.
+fn agrees(
+    net: &Net,
+    both: &mut Both,
+    signed: &[&[Cut]],
+) -> Result<(Vec<Cut>, Vec<CollectedCut>), TestCaseError> {
+    let (cuts, reported) = both.update(net);
+    for (k, cut) in cuts.iter().enumerate() {
+        prop_assert!(
+            signed.iter().any(|s| s.contains(cut)),
+            "cut {} never signed",
+            k
+        );
+    }
+    oracle(net, &cuts, &reported);
+    let mut fresh = Both::new(net);
+    prop_assert_eq!(fresh.update(net), (cuts.clone(), reported.clone()));
+    prop_assert_eq!(fresh.member.conflict(), both.member.conflict());
+    Ok((cuts, reported))
+}
+
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(128))]
 
-    /// AT-NET-39: under generated beacon messages and signatures in views 0–2, some given after
-    /// every cut, each reported cut is `collect_with`'s with its view and exclusions, and the
-    /// incremental collectors report what a fresh one reports.
+    /// AT-NET-39: generated schedules and rivals report `collect_with`'s cuts, as a fresh one does.
     #[test]
     fn at_net_39_reports_follow_collect_with((n, t, plan) in schedule()) {
         let mut net = Net::new(n, t);
         let mut both = Both::new(&net);
-        let mut built: Vec<Cut> = Vec::new();
-        let mut late = Vec::new();
-        for (k, p) in plan.iter().enumerate() {
-            let last = built.last();
-            let epoch = last.map_or(0, |l| l.epoch + u64::from(l.closes));
-            if last.is_none_or(|l| l.closes) {
-                if let Some(e) = last.map(|l| l.epoch) {
-                    for m in (0..n).filter(|m| p.reveals[*m]) {
-                        net.reveal(m, e);
-                    }
-                }
-                for m in (0..n).filter(|m| p.commits[*m]) {
-                    net.commit(m, epoch);
-                }
-            }
-            net.draft(k % n);
-            let cut = Cut::next(&net.replica, built.last(), epoch, p.closes);
-            for (view, given) in p.signers.iter().enumerate() {
-                for (m, when) in given.iter().enumerate() {
-                    match when {
-                        Given::Now => net.sign(&cut, view as u64, &[m]),
-                        Given::Late => late.push((cut.clone(), view as u64, m)),
-                        Given::Never => {}
-                    }
-                }
-            }
-            if p.update {
-                both.update(&net);
-            }
-            built.push(cut);
+        let (built, rivals) = build(&mut net, &mut both, &plan);
+        agrees(&net, &mut both, &[&built, &rivals])?;
+    }
+
+    /// AT-NET-39: after a conflict at the next number, one at a collected number reports as from 0.
+    #[test]
+    fn at_net_39_a_second_conflict_reports_as_from_zero(
+        (n, t, plan) in schedule(),
+        back in 0..8usize,
+    ) {
+        let mut net = Net::new(n, t);
+        let mut both = Both::new(&net);
+        let (built, mut rivals) = build(&mut net, &mut both, &plan);
+        let (cuts, _) = agrees(&net, &mut both, &[&built, &rivals])?;
+        let all: Vec<usize> = (0..n).collect();
+        let last = cuts.last();
+        let epoch = last.map_or(0, |l| l.epoch + u64::from(l.closes));
+        for _ in 0..2 {
+            rivals.push(rival(&mut net, last, epoch, false, &all));
         }
-        for (cut, view, m) in late {
-            net.sign(&cut, view, &[m]);
+        prop_assert_eq!(agrees(&net, &mut both, &[&built, &rivals])?.0, cuts.clone());
+        prop_assert!(both.member.conflict());
+        if let Some(j) = back.checked_rem(cuts.len()) {
+            let (prev, like) = (j.checked_sub(1).map(|i| &cuts[i]), &cuts[j]);
+            rivals.push(rival(&mut net, prev, like.epoch, like.closes, &all));
+            let (second, _) = agrees(&net, &mut both, &[&built, &rivals])?;
+            prop_assert!(both.member.conflict());
+            prop_assert_eq!(&second[..], &cuts[..j]);
         }
-        let (cuts, reported) = both.update(&net);
-        prop_assert_eq!(&cuts[..], &built[..cuts.len()]);
-        oracle(&net, &cuts, &reported);
-        prop_assert_eq!(Both::new(&net).update(&net).1, reported);
     }
 }

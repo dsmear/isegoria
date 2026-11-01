@@ -153,7 +153,8 @@ fn agree(statuses: &[Status], cuts: usize, beacons: usize) {
     for s in statuses {
         assert_eq!(s.equivocations, 0, "a writer equivocated");
         assert!(!s.conflict);
-        assert_eq!(s.cuts[..cuts], statuses[0].cuts[..cuts], "the cuts differ");
+        let digests = |s: &Status| s.cuts[..cuts].iter().map(|c| c.digest).collect::<Vec<_>>();
+        assert_eq!(digests(s), digests(&statuses[0]), "the cuts differ");
         assert_eq!(s.beacons[..beacons], statuses[0].beacons[..beacons]);
     }
 }

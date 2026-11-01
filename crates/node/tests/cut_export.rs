@@ -340,8 +340,7 @@ mod processes {
         replica.insert(entry, object).unwrap();
     }
 
-    // Cuts tiered member processes collect export with the view and exclusions the status file
-    // reports, a view after 0 and a withholder included, and feed extraction (AT-NET-35, -39).
+    // Member processes' cuts export with their status file's views and exclusions (AT-NET-35).
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn cuts_collected_by_member_processes_are_exported() {
         let f = Fixture::new("export-runtime", false);

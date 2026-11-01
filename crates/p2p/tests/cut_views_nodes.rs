@@ -158,8 +158,7 @@ fn expected_exclusions(reported: &[CollectedCut]) {
     }
 }
 
-// Member nodes and a reader report each cut's view and exclusions as their replicas collect
-// them, a view after 0 and a withholder included, and so does a restart (AT-NET-39).
+// Members, a reader and a restart report the views and exclusions collected (AT-NET-39).
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn members_and_a_reader_report_views_and_exclusions() {
     let roots: Vec<PathBuf> = (0..3).map(|i| scratch(&format!("member-{i}"))).collect();

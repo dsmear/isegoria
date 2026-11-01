@@ -145,8 +145,7 @@ fn cut(digest: [u8; 32], view: u64, excluded: &[usize]) -> CollectedCut {
     }
 }
 
-/// AT-NET-39: each cut's line carries its view and exclusions, read back exactly; malformed
-/// values, lists and orders are refused.
+/// AT-NET-39: cut lines read back with views and exclusions; malformed ones are refused.
 #[test]
 fn at_net_39_the_status_file_carries_views_and_exclusions() {
     let status = Status {

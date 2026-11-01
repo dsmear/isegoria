@@ -453,3 +453,36 @@ fn at_net_38_a_cut_short_of_a_certificate_is_no_conflict() {
     let (roles, mut progress) = members_viewing();
     assert!(looks(&mut net, &roles, &mut progress, 4) > 0);
 }
+
+// A second conflict at an earlier collected number keeps every member's duties halted (AT-NET-38).
+#[test]
+fn at_net_38_a_second_conflict_keeps_the_duties_halted() {
+    let mut net = Net::new();
+    let (roles, mut progress) = members_viewing();
+    let mut made = 0;
+    while collected(&net.replica, &consortium(), NET).len() < 3 {
+        made += looks(&mut net, &roles, &mut progress, 1);
+        assert!(made < 1000, "the members progress");
+    }
+    let cuts = collected(&net.replica, &consortium(), NET);
+    let last = cuts.last().unwrap();
+    let epoch = last.epoch + u64::from(last.closes);
+    for (tag, by) in [(8, [0, 1]), (9, [1, 2])] {
+        net.commit(2, tag);
+        let next = Cut::next(&net.replica, Some(last), epoch, false);
+        net.sign(&next, &by);
+    }
+    let held = net.replica.len();
+    assert_eq!(looks(&mut net, &roles, &mut progress, 4), 0);
+    assert!(progress.iter().all(Progress::halted));
+    net.commit(2, 7);
+    let rival = Cut::next(&net.replica, Some(&cuts[0]), cuts[1].epoch, cuts[1].closes);
+    assert_ne!(rival, cuts[1]);
+    net.sign(&rival, &[0, 2]);
+    for _ in 0..12 {
+        assert_eq!(looks(&mut net, &roles, &mut progress, 1), 0);
+        assert!(progress.iter().all(Progress::halted));
+    }
+    assert_eq!(net.replica.len(), held + 3);
+    assert_eq!(collected(&net.replica, &consortium(), NET), cuts[..1]);
+}

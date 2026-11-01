@@ -291,9 +291,7 @@ async fn at_net_19_a_member_stopped_midway_is_replaced() {
     agreed(&[&m1, &m2], before + 6).await;
 }
 
-/// AT-NET-39: with the proposer of cut 0 never started but its commit held, the members and a
-/// node given the consortium report the same views and exclusions: views after 0, and the
-/// withholder excluded from the rest of the epoch after its round.
+/// AT-NET-39: members and a node given the consortium report the same views and exclusions.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_39_every_status_reports_views_and_exclusions() {
     let (m1, m2, relay) = (quick(1).await, quick(2).await, start(3, false).await);

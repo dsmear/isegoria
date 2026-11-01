@@ -105,7 +105,8 @@ impl Collector {
     }
 
     /// Extends the cuts from `replica`, a withholder's signature counted only where rule 6
-    /// allows; two cuts collected for one number keep the cuts before it and stop there.
+    /// allows; two cuts collected for one number, also after an earlier conflict, keep the
+    /// cuts before it and stop there.
     pub fn update(
         &mut self,
         replica: &Replica,
@@ -126,9 +127,18 @@ impl Collector {
         );
         let rounds = &self.rounds;
         let excluded = |c: &Cut| rounds.excluded(c);
-        if !self.conflict && contested(replica, consortium, network_id, others, &excluded) {
-            *self = Collector::new(consortium, network_id);
+        if contested(replica, consortium, network_id, others, &excluded) {
+            let mut fresh = Collector::new(consortium, network_id);
+            fresh.extend(replica, consortium, network_id);
+            fresh.conflict = true;
+            *self = fresh;
         }
+        self.extend(replica, consortium, network_id);
+        Ok(&self.cuts)
+    }
+
+    /// Collects the next cuts from `replica` until one is pending or two conflict.
+    fn extend(&mut self, replica: &Replica, consortium: &Consortium, network_id: [u8; 32]) {
         while !self.conflict {
             let number = self.cuts.len() as u64;
             let rounds = &self.rounds;
@@ -166,7 +176,6 @@ impl Collector {
             });
             self.cuts.push(cut);
         }
-        Ok(&self.cuts)
     }
 
     pub fn cuts(&self) -> &[Cut] {
@@ -266,8 +275,8 @@ impl PublicCollector {
         }
     }
 
-    /// Extends the cuts from `replica`; other tiers, or a replica of another writer set, are
-    /// refused before anything changes.
+    /// Extends the cuts from `replica` as [`Collector::update`] does; other tiers, or a replica
+    /// of another writer set, are refused before anything changes.
     pub fn update(&mut self, replica: &Replica, tiers: &Tiers) -> Result<&[Cut], ObserveError> {
         if !self.observer.follows(tiers) {
             return Err(ObserveError::Context);
@@ -279,9 +288,19 @@ impl PublicCollector {
         let others = recheck(replica, c, net, &self.cuts, &mut self.collected);
         let observer = &self.observer;
         let excluded = |cut: &Cut| observer.excluded(cut);
-        if !self.conflict && contested(replica, c, net, others, &excluded) {
-            *self = PublicCollector::new(tiers);
+        if contested(replica, c, net, others, &excluded) {
+            let mut fresh = PublicCollector::new(tiers);
+            fresh.extend(replica, tiers);
+            fresh.conflict = true;
+            *self = fresh;
         }
+        self.extend(replica, tiers);
+        Ok(&self.cuts)
+    }
+
+    /// As [`Collector`]'s extension, each cut applied by the observer.
+    fn extend(&mut self, replica: &Replica, tiers: &Tiers) {
+        let (c, net) = (tiers.consortium(), tiers.network_id());
         while !self.conflict {
             let number = self.cuts.len() as u64;
             let observer = &self.observer;
@@ -307,7 +326,6 @@ impl PublicCollector {
                 Collected::Pending => break,
             }
         }
-        Ok(&self.cuts)
     }
 
     pub fn cuts(&self) -> &[Cut] {
