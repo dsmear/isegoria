@@ -724,15 +724,20 @@ growth. Batching (`10` T28) and PRIV-003 would blur it; neither is built.
     request; 403 bytes the admission check refuses; 503 "retry later" while the member's
     circle feed is not caught up; 500 a write that failed. Admission is a predicate the
     embedding supplies — `p2p` keeps no protocol state, and which events it admits is T79.
-  - *The receipt* names the circle entry `(writer, seq, hash)` that logged the bytes. It
-    attests that registration only: not that the protocol applied or accepted the event,
+  - *The receipt* names the circle entry `(writer, seq, hash)` that logged the bytes, signed
+    by the member and held in its replica; bytes in its log alone get none. It attests that
+    registration only: not that the protocol applied or accepted the event,
     which cuts and the ledger decide later (a duplicate refused, the first wins).
   - *Duplicates.* OHTTP does not stop a replay (RFC 9458 §6.5). A gateway answers bytes it
     already logged on its circle feed with that entry's receipt and logs nothing: whether the
     requests come together (its node takes them one at a time), after a restart (its circle
     feed is on disk) or in a new encapsulation of the same bytes (they have one content id).
-    "The same answer" is the same result, sealed in the current request's context, never a
-    stored ciphertext. Through two members one event makes two entries, the ledger counting
+    Bytes its log holds in an entry it has not signed get no receipt: an *opening* entry
+    answers "retry later" until the circle check signs it (§Increments A and B, B 6), and
+    then its receipt; one a stopped member holds unsigned — an opening entry, or one whose
+    signature a failed write prevented — answers 500, and nothing is logged or signed for
+    it. "The same answer" is the same result, sealed in the current request's context, never
+    a stored ciphertext. Through two members one event makes two entries, the ledger counting
     the first.
 
 **T79-P7.** Whether a read request's proof binds the request's encapsulation (`enc`) is left
@@ -754,8 +759,9 @@ requests, which each client refuses.
 (`Config::relay`) forwards a request unchanged, by its key id, to the peer whose binding
 verified as that member's (§Transport); a member's gateway (`Config::gateway`) checks, in
 order, the listed relay, the key id, the decapsulation, the path, admission and its circle
-feed's catch-up, finds bytes already logged by their content id on its circle log, and
-otherwise publishes them there. The codec refuses a request or reply beyond its limit as it
+feed's catch-up, finds bytes already logged by their content id on its circle log,
+answering with their receipt only if its replica holds the entry signed, and otherwise
+publishes them there. The codec refuses a request or reply beyond its limit as it
 reads it, and an empty reply is a failed exchange. In `node`: `consortium.hpke`,
 `hpke_key_file`, `relays`, `relay`, and `isegoria-node --announce <config>` printing a member's
 signed key configuration. **What a node process can do:** forward as a relay, and terminate
@@ -1345,7 +1351,8 @@ replica does not hold is an unresolved reference: it proves nothing and stops no
 
 **A stopped member** adds no entry to either feed: a publication on either is refused
 (`PublishError::Stopped`), the member's duties do not run, and its gateway answers `Failed`
-to a new event while still answering an event already on its feed. Replication, serving,
+to a new event and to one its log holds unsigned, while still answering an event whose entry
+it signed. Replication, serving,
 reading and the status go on as far as the data allows; the status reports the stop
 (`stopped <reason>`, `none` while the member may write). A durable stop is written into a
 readable record; if that write fails, the member stays stopped in memory. Nothing in the code
@@ -1451,8 +1458,10 @@ Acceptance criteria:
 
 *Evidence.* AT-NET-37 (`p2p/tests/tiered_nodes.rs`, `member_identity.rs`, `blind_relays.rs`,
 `node/tests/identity.rs`): spies bound as chosen members over chosen transport keys, holding
-or answering pulls, and four member processes; the fixtures of AT-NET-23, -24 and -36 run
-with two other members. In-process, loopback and controlled processes only.
+or answering pulls, and four member processes; a gateway's receipts for an opening entry
+before and after its check, with the member stopped, and after a failed record write; the
+fixtures of AT-NET-23, -24 and -36 run with two other members. In-process, loopback and
+controlled processes only.
 
 *Limits.* Two members are the trial's minimum check, not completeness: entries no cut marked
 held only by members not consulted, and members that lost the history they signed for, stay

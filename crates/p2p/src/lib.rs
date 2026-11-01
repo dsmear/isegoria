@@ -1490,13 +1490,26 @@ impl Node {
         let payload = network::cid::cid(&event);
         let writer = w.writer.public().to_bytes();
         if let Some(e) = w.log.log().entries().iter().find(|e| e.payload == payload) {
-            let (seq, hash) = (e.seq, e.hash);
-            return blind::Answer::Logged(EntryId { writer, seq, hash });
+            let id = EntryId {
+                writer,
+                seq: e.seq,
+                hash: e.hash,
+            };
+            return self.receipt(id);
         }
         match self.publish(Feed::Circle, event) {
             Ok(signed) => blind::Answer::Logged(signed.id()),
             Err(PublishError::NotCaughtUp) => blind::Answer::RetryLater,
             Err(_) => blind::Answer::Failed,
+        }
+    }
+
+    /// The receipt of an event its circle log already holds as `id`: only once the replica
+    /// holds that entry signed, never signing for it (`docs/04` §Blind relays, T85-P5).
+    fn receipt(&self, id: EntryId) -> blind::Answer {
+        match self.store.replica().contains(&id) {
+            true => blind::Answer::Logged(id),
+            false => blind::Answer::Failed,
         }
     }
 

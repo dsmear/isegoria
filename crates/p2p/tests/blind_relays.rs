@@ -11,16 +11,17 @@ use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
 use libp2p::{noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol};
 use network::cid::cid;
 use network::consortium::{Consortium, Member};
-use network::log::TransparencyLog;
+use network::log::{Entry, TransparencyLog};
 use network::replica::{EntryId, FeedWriter, Refused, Replica};
 use network::store::faults::{self, Fault, On};
+use network::store::{DurableLog, ObjectStore};
 use network::tier::{Tier, Tiers};
 use p2p::blind::{
     seal, submit, Answer, Carried, ClientError, Gateway, GatewayKey, KeyAnnouncement, Refusal,
     GATEWAY_PROTOCOL, MAX_REPLY, MAX_REQUEST, RELAY_PROTOCOL,
 };
 use p2p::member::MemberRole;
-use p2p::record::Stop;
+use p2p::record::{read, Found, Record, State, Stop};
 use p2p::{read_limited, Config, Handle, Own, PublishError, StartError};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -1119,10 +1120,12 @@ async fn at_net_24_the_gateway_matches_the_reference_hpke() {
     assert_eq!(held.get(&id).map(|(_, o)| o.to_vec()), Some(event));
 }
 
-/// AT-NET-36: a stopped gateway logs no new event and still answers one already on its feed.
+/// AT-NET-36/37: a stopped gateway logs no new event and answers one it signed before the stop
+/// with the same receipt, writing nothing.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_36_a_stopped_gateway_logs_nothing_new() {
-    let n = net(&scratch("stopped"), 3).await;
+    let root = scratch("stopped");
+    let n = net(&root, 3).await;
     let event = b"synthetic-event-before".to_vec();
     let Ok(Answer::Logged(id)) = send(&n.relay_addr, 0, &event).await else {
         panic!("the first event is logged")
@@ -1142,8 +1145,10 @@ async fn at_net_36_a_stopped_gateway_logs_nothing_new() {
     assert_eq!(stopped, Some(Stop::OwnEntry(Tier::Circle)));
     let after = send(&n.relay_addr, 0, b"synthetic-event-after").await;
     assert_eq!(after, Ok(Answer::Failed));
+    let files = circle_files(&root);
     assert_eq!(send(&n.relay_addr, 0, &event).await, Ok(Answer::Logged(id)));
     assert_eq!(circle_len(&n.members[0], 0).await, 1);
+    assert_eq!(circle_files(&root), files);
 }
 
 /// AT-NET-36: a gateway whose feed write fails logs no new event, the failure gone, nor publishes.
@@ -1191,4 +1196,132 @@ async fn at_net_37_a_gateway_waits_for_two_other_members() {
     };
     assert_eq!((id.writer, id.seq), (circle_key(0), 0));
     assert_eq!(circle_len(&n.members[0], 0).await, 1);
+}
+
+/// Member 0's directory under `root`, made before it starts: a record of `states` and `stop`,
+/// and public and circle files holding `feeds`, as a crash before their signatures leaves them.
+fn prepared(
+    root: &Path,
+    states: [State; 2],
+    stop: Option<Stop>,
+    feeds: [&[&[u8]]; 2],
+) -> Vec<Entry> {
+    let public = Member::from_seed([MEMBER_SEEDS[0]; 32]).public().to_bytes();
+    let record = Record {
+        states,
+        stop,
+        ..Record::new(public, circle_key(0))
+    };
+    std::fs::create_dir_all(root.join("0")).unwrap();
+    std::fs::write(root.join("0").join("identity"), record.encode()).unwrap();
+    let mut circle = Vec::new();
+    for (name, objects) in ["own", "circle"].into_iter().zip(feeds) {
+        let dir = root.join("0").join(name);
+        std::fs::create_dir_all(&dir).unwrap();
+        let (mut log, _) = DurableLog::open(&dir.join("log")).unwrap();
+        let (mut store, _) = ObjectStore::open(&dir.join("objects")).unwrap();
+        circle = objects
+            .iter()
+            .map(|o| log.append(store.put(o).unwrap()).unwrap())
+            .collect();
+    }
+    circle
+}
+
+/// Member 0's circle log and objects, as bytes.
+fn circle_files(root: &Path) -> [Vec<u8>; 2] {
+    ["log", "objects"].map(|f| std::fs::read(root.join("0/circle").join(f)).unwrap())
+}
+
+fn record_of(root: &Path) -> Record {
+    match read(&root.join("0/identity")) {
+        Found::Present(record) => record,
+        other => panic!("no readable record: {other:?}"),
+    }
+}
+
+/// AT-NET-37: a stopped member whose circle check completed gives no receipt for an opening
+/// entry it never signed, and signs nothing.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_37_an_unsigned_opening_entry_gets_no_receipt() {
+    let root = scratch("unsigned-opening");
+    let event = b"synthetic-event-unsigned".to_vec();
+    let stop = Some(Stop::OwnEntry(Tier::Public));
+    prepared(
+        &root,
+        [State::Unused, State::Opening],
+        stop,
+        [&[], &[&event]],
+    );
+    let files = circle_files(&root);
+    let n = net(&root, 3).await;
+    assert_eq!(n.members[0].status().await.stopped, stop);
+    assert_eq!(send(&n.relay_addr, 0, &event).await, Ok(Answer::Failed));
+    assert_eq!(circle_len(&n.members[0], 0).await, 0);
+    assert_eq!(record_of(&root).states, [State::Unused, State::Opening]);
+    assert_eq!(circle_files(&root), files);
+}
+
+/// AT-NET-37: an event whose entry reached the circle log but whose record write failed before
+/// the signature gets no receipt, then or sent again.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_37_an_event_whose_signature_failed_gets_no_receipt() {
+    let root = scratch("unsigned-failed");
+    let kept: &[u8] = b"public-kept";
+    prepared(
+        &root,
+        [State::Written, State::Opening],
+        None,
+        [&[kept], &[]],
+    );
+    std::fs::create_dir(root.join("0/identity.next")).unwrap();
+    let n = net(&root, 3).await;
+    let event = b"synthetic-event-failed".to_vec();
+    assert_eq!(send(&n.relay_addr, 0, &event).await, Ok(Answer::Failed));
+    assert_eq!(n.members[0].status().await.stopped, Some(Stop::Failed));
+    let files = circle_files(&root);
+    assert_eq!(files[0].len(), 16 + 104, "the entry reached the log");
+    assert_eq!(send(&n.relay_addr, 0, &event).await, Ok(Answer::Failed));
+    assert_eq!(circle_len(&n.members[0], 0).await, 0);
+    assert_eq!(record_of(&root).states, [State::Written, State::Opening]);
+    assert_eq!(circle_files(&root), files);
+}
+
+/// AT-NET-37: an opening event gets `RetryLater` before the circle check, then the receipt of
+/// its kept entry, resumed once, also for a duplicate.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_37_an_opening_event_is_resumed_once() {
+    let root = scratch("opening-event");
+    let event = b"synthetic-event-opening".to_vec();
+    let kept = prepared(
+        &root,
+        [State::Unused, State::Opening],
+        None,
+        [&[], &[&event]],
+    );
+    let files = circle_files(&root);
+    let n = net(&root, 2).await;
+    until("member 1's circle round is held", || async {
+        n.members[0].status().await.circle_synced == [1]
+    })
+    .await;
+    assert_eq!(send(&n.relay_addr, 0, &event).await, Ok(Answer::RetryLater));
+    assert_eq!(circle_len(&n.members[0], 0).await, 0);
+    let (m2, _) = start(transport(2), member_config(2, &root.join("2"))).await;
+    m2.dial(n.member0.clone()).await.unwrap();
+    until("member 0's circle check completes", || async {
+        n.members[0].status().await.circle_caught_up
+    })
+    .await;
+    let Ok(Answer::Logged(id)) = send(&n.relay_addr, 0, &event).await else {
+        panic!("the kept entry's receipt")
+    };
+    assert_eq!(
+        (id.writer, id.seq, id.hash),
+        (circle_key(0), 0, kept[0].hash)
+    );
+    assert_eq!(send(&n.relay_addr, 0, &event).await, Ok(Answer::Logged(id)));
+    assert_eq!(circle_len(&n.members[0], 0).await, 1);
+    assert_eq!(record_of(&root).states[1], State::Written);
+    assert_eq!(circle_files(&root), files);
 }
