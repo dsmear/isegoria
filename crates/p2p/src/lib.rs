@@ -176,6 +176,9 @@ pub struct Status {
     pub beacons: Vec<(Option<[u8; 32]>, Vec<usize>)>,
     /// Why a tiered writer signs nothing, if it does not (`docs/04` §Increments A and B).
     pub stopped: Option<Stop>,
+    /// Whether a member's duties halted at a consortium conflict (`docs/04` §The duties' stop
+    /// at a conflict); apart from `stopped`.
+    pub duties_halted: bool,
 }
 
 #[derive(Debug)]
@@ -941,6 +944,7 @@ impl Node {
             stopped: self.identity.as_ref().and_then(|g| g.stop()),
             synced: self.synced(0, false),
             circle_synced: self.synced(1, true),
+            duties_halted: self.member.is_some() && self.progress.halted(),
         }
     }
 

@@ -50,6 +50,12 @@ impl Progress {
             ..Progress::default()
         }
     }
+
+    /// Whether the duties halted at a conflict their collector found (`docs/04` §The duties'
+    /// stop at a conflict); never cleared.
+    pub fn halted(&self) -> bool {
+        self.collector.conflict()
+    }
 }
 
 /// The network id, member-set hash and threshold a collector counts its rounds under.
@@ -263,7 +269,7 @@ impl MemberRole {
         }
     }
 
-    /// The objects this member publishes now.
+    /// The objects this member publishes now; none once its cuts hold a conflict.
     pub fn duties(
         &self,
         replica: &Replica,
@@ -278,6 +284,9 @@ impl MemberRole {
         else {
             return Vec::new();
         };
+        if progress.halted() {
+            return Vec::new();
+        }
         let last = cuts.last();
         let epoch = last.map_or(0, |l| l.epoch + u64::from(l.closes));
         let objects: Vec<(usize, MemberObject)> = member_objects(replica, c)

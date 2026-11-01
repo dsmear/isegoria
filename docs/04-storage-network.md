@@ -1091,7 +1091,8 @@ a holder);
 start, so its peer id stays the same across restarts; and `status`, rewritten whole at each
 period (a file written beside it, then renamed): whether each feed is caught up and, for a
 tiered node's feeds, the other members whose rounds its start check holds (`synced`,
-`circle_synced`, §Increments A and B), its peers and how many of them are bound members,
+`circle_synced`, §Increments A and B), whether a member's duties halted at a conflict
+(`duties_halted`), its peers and how many of them are bound members,
 the equivocations its replica holds, whether the consortium equivocated, each collected
 cut's digest from number 0, and each finished round's value and withholders. A
 configuration that does not hold — a bad key, a threshold outside `1..=n`, a member without
@@ -1170,8 +1171,9 @@ add no consensus rule at runtime, where §Cuts is unchanged. The answer review's
   One member down leaves no slack; a 2–2 partition stops progress. A member whose feed
   equivocates writes nothing more in this configuration. *Built:* collection stops at a
   consortium conflict and keeps both cuts (§Cuts); a writer stops at a fork of its own feed
-  (§A writer's own feed); the status reports conflicts and equivocations. *Not built:* a
-  member's duties do not stop at a conflict (§Obstacles in the code).
+  (§A writer's own feed); the status reports conflicts and equivocations; a member's duties
+  stop at a conflict (§The duties' stop at a conflict). P3 is not complete with it: no trial
+  has exercised these assumptions.
 - **T88-P4 — recovery.** *Approved:* after a restart a member writes nothing, its duties
   included, before its checks and the required sync. Consulting at least two other members
   — distinct member identities whose binding verified; several connections or transport keys
@@ -1264,9 +1266,8 @@ What remains:
    bound or not; for the circle feed from one granting member. *Resolved* for tiered networks
    by increment B (D59): two other verified members; writers without tiers keep T80.
 2. **The network id** is a free TOML value (P1, *Built*).
-3. **Conflicts.** `MemberRole::duties` does not consult `Collector::conflict`: after two cuts
-   are collected for one number, a member keeps committing, changing view and signing at
-   that number.
+3. **Conflicts.** *Resolved* for the duties (§The duties' stop at a conflict): after two cuts
+   are collected for one number, a member's duties produce nothing more.
 4. **Views and exclusions.** The status reports each collected cut's digest and each round's
    withholders, but not the view a cut was collected in or the exclusions it was collected
    under. `--archive-export-cut` takes both from the operator; AT-NET-35 obtains the view
@@ -1282,8 +1283,8 @@ What remains:
 
 P4 is where the code contradicted the approved contract, so it comes first, in two
 increments, approved (`01` D58, D59) and specified below; together they still do not
-complete P4. P1's configuration, the conflict stop and the views follow (§Obstacles in the
-code, 2–4).
+complete P4. P1's configuration and the views follow (§Obstacles in the code, 2 and 4); the
+duties' conflict stop is below.
 
 **Scope of A.** The record governs every feed of a node in a tiered network, whose writers
 are all members' keys, with or without the member role, so no configuration writes around
@@ -1391,10 +1392,12 @@ system; a half-written record a failed cut leaves is tested at the start only at
 level (AT-NET-11). A FIFO put at the record's path between its type check and its opening
 can still block the start.
 
-**Increment B — the sync with two other verified members (`01` D59).** It governs the same
-feeds as A: every feed of a tiered node under its record, with or without the member role.
-Writers in networks without tiers keep T80's rule 2; relays, readers and holders write no
-feed and keep their catch-up after one round with any peer.
+**Increment B — the sync with two other verified members (`01` D59).** Built, and reviewed
+(2026-11-01) within its perimeter: in-process, loopback and controlled processes; the review's
+finding, a gateway receipt for an entry never signed, is corrected (§Blind relays, T85-P5).
+It governs the same feeds as A: every feed of a tiered node under its record, with or without
+the member role. Writers in networks without tiers keep T80's rule 2; relays, readers and
+holders write no feed and keep their catch-up after one round with any peer.
 
 1. **A round** is one pull this node asked — its Summary — and the Have answering it, matched
    to that request. Announcements, their empty acknowledgements and any other answer are no
@@ -1470,6 +1473,48 @@ by the record: the start signs it as the files hold it, which a restored older c
 turn into an equivocation (P4's operating prohibition). A round's evidence rests on the
 answering member's binding and grant as this node saw them, not on the member's own view of
 the connection.
+
+### The duties' stop at a conflict
+
+Under D57's P3 — a node that detects a conflict stops progress, keeps the evidence and
+chooses no branch — this increment stops a member's duties. What a conflict is stays §Cuts'
+rule, unchanged: two cuts with one number, each counted with `t` signatures in one view, a
+withholder's signature not counted (§The withholders on cuts).
+
+1. **What stops.** At each look a member first extends its cuts from its replica
+   (`p2p::member::Collector`). If that finds a conflict — at the next number, or at a number
+   it already collected, now holding a second cut signed by `t` members — the look produces
+   nothing: no commit or reveal of the beacon, no proposal, co-signature or view change, and
+   no object is made or signed to find out. A conflict found is never cleared, so every
+   later look of the run produces nothing either.
+2. **What it does not do.** It chooses no branch, changes no view to go around the conflict,
+   lowers no threshold and unlocks nothing. The cuts before the conflicting number stay
+   collected; none after it is.
+3. **What continues.** Replication, serving — the conflicting signatures, which are the
+   evidence, included — reading, the status (`conflict`; `duties_halted` once a look of the
+   member's duties found the conflict, so not while A's stop or B's check keeps them from
+   running), and A's and B's checks. Publication on the public and circle feeds and the
+   gateway's logging are outside this stop and keep their rules: A's stop, B's check, the
+   receipt of a signed entry. Their entries enter no further cut, since collection stops at
+   the conflict; whether a conflict should also stop them is not decided here.
+4. **At a restart** the condition is rebuilt from the replica: no new file or field records
+   it. With the replica on disk, the duties' first look finds the conflict before it produces
+   anything, and the duties run only after B's check anyway.
+5. **Separate from A.** It is no identity stop: nothing is written into the record,
+   `stopped` does not report it, and only a new configuration continues past it (P3).
+
+*Evidence.* AT-NET-38 (`p2p/tests/member_duties.rs`, `p2p/tests/cut_conflict.rs`): duties
+read from replicas holding a conflict, found at once or on a number already collected, and
+looked at again; competing cuts short of a certificate, by count or by a withholder; three
+member nodes (`n = 3`, `t = 2`) where members 1 and 2's keys sign a second cut on entries
+past their feeds, which A then stops them for, the evidence served to a reader, and a
+restart from a stored replica holding the conflict. The node tests observe member 0's feed
+for ten duty periods after its status reports the halt. In-process and loopback only.
+
+*Limits.* A member whose replica is in memory starts without the conflicting signatures,
+and once B's check completes its duties may run until the signatures arrive again. The
+stop covers the duties only. Nothing collects or reports which cuts conflict beyond the
+status's flag and the replica's signatures, and nothing resolves a conflict.
 
 ---
 

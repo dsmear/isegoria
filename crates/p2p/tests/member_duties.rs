@@ -341,3 +341,115 @@ fn at_net_21_the_collector_matches_collecting_from_zero() {
     assert_eq!(kept.len(), 1);
     assert!(collector.conflict());
 }
+
+/// Cuts 0 and 1 signed by members 0 and 1, then a second cut 1 signed by members 1 and 2.
+fn conflicted(net: &mut Net) -> (Cut, Cut) {
+    let first = Cut::next(&net.replica, None, 0, false);
+    net.sign(&first, &[0, 1]);
+    let second = Cut::next(&net.replica, Some(&first), 0, false);
+    net.sign(&second, &[0, 1]);
+    net.commit(2, 9);
+    let other = Cut::next(&net.replica, Some(&first), 0, false);
+    assert_ne!(other, second);
+    net.sign(&other, &[1, 2]);
+    (second, other)
+}
+
+/// Runs every member's duties `looks` times, publishing what they make; what was made.
+fn looks(net: &mut Net, roles: &[MemberRole], progress: &mut [Progress], looks: usize) -> usize {
+    let mut made = 0;
+    for _ in 0..looks {
+        for (role, p) in roles.iter().zip(progress.iter_mut()) {
+            made += net.run(role, p).len();
+        }
+    }
+    made
+}
+
+fn members_viewing() -> (Vec<MemberRole>, Vec<Progress>) {
+    let roles: Vec<MemberRole> = (0..3).map(|m| viewing(m, 1000, 0)).collect();
+    let progress = (0..3).map(|_| Progress::new(&consortium(), NET)).collect();
+    (roles, progress)
+}
+
+/// AT-NET-38: with a conflict already in the replica, no member's duties make any object.
+#[test]
+fn at_net_38_a_conflict_held_stops_every_duty() {
+    let mut net = Net::new();
+    conflicted(&mut net);
+    let held = net.replica.len();
+    let (roles, mut progress) = members_viewing();
+    assert_eq!(looks(&mut net, &roles, &mut progress, 8), 0);
+    assert_eq!(net.replica.len(), held);
+}
+
+/// AT-NET-38: members progressing until a second cut for a collected number stop, look after
+/// look, keeping the cuts before it.
+#[test]
+fn at_net_38_a_conflict_on_a_collected_cut_stops_the_duties() {
+    let mut net = Net::new();
+    let (roles, mut progress) = members_viewing();
+    let mut made = 0;
+    while collected(&net.replica, &consortium(), NET).len() < 3 {
+        made += looks(&mut net, &roles, &mut progress, 1);
+        assert!(made < 1000, "the members progress");
+    }
+    let cuts = collected(&net.replica, &consortium(), NET);
+    let other = Cut::next(&net.replica, Some(&cuts[0]), cuts[1].epoch, cuts[1].closes);
+    assert_ne!(other, cuts[1]);
+    net.sign(&other, &[1, 2]);
+    let held = net.replica.len();
+    assert_eq!(looks(&mut net, &roles, &mut progress, 12), 0);
+    assert_eq!(net.replica.len(), held);
+    let mut collector = Collector::default();
+    let kept = collector.update(&net.replica, &consortium(), NET).unwrap();
+    assert_eq!(kept, &cuts[..1]);
+    assert!(collector.conflict());
+}
+
+/// AT-NET-38: a second cut short of `t` counted signatures, by count or by a withholder's,
+/// is no conflict: the duties go on.
+#[test]
+fn at_net_38_a_cut_short_of_a_certificate_is_no_conflict() {
+    let mut net = Net::new();
+    let (first, _) = {
+        let first = Cut::next(&net.replica, None, 0, false);
+        net.sign(&first, &[0, 1]);
+        net.commit(2, 9);
+        let other = Cut::next(&net.replica, None, 0, false);
+        net.sign(&other, &[2]);
+        (first, other)
+    };
+    let (roles, mut progress) = members_viewing();
+    assert!(looks(&mut net, &roles, &mut progress, 4) > 0);
+    assert!(collected(&net.replica, &consortium(), NET).len() > 1);
+    assert_eq!(collected(&net.replica, &consortium(), NET)[0], first);
+
+    let mut net = Net::new();
+    for m in 0..3 {
+        net.commit(m, 0);
+    }
+    let closing = Cut::next(&net.replica, None, 0, true);
+    net.sign(&closing, &[0, 1]);
+    net.reveal(0, 0);
+    net.reveal(1, 0);
+    let after = Cut::next(&net.replica, Some(&closing), 1, false);
+    net.sign(&after, &[0, 1]);
+    let next = Cut::next(&net.replica, Some(&after), 1, false);
+    net.sign(&next, &[0, 1]);
+    net.commit(0, 7);
+    let other = Cut::next(&net.replica, Some(&after), 1, false);
+    assert_ne!(other, next);
+    net.sign(&other, &[1, 2]);
+    let mut collector = Collector::default();
+    assert_eq!(
+        collector
+            .update(&net.replica, &consortium(), NET)
+            .unwrap()
+            .len(),
+        3
+    );
+    assert!(!collector.conflict());
+    let (roles, mut progress) = members_viewing();
+    assert!(looks(&mut net, &roles, &mut progress, 4) > 0);
+}

@@ -114,6 +114,7 @@ fn at_net_21_the_status_file_has_one_text() {
         stopped: Some(Stop::OwnEntry(Tier::Circle)),
         synced: vec![1, 3],
         circle_synced: vec![2],
+        duties_halted: true,
     };
     let text = render(&status);
     assert_eq!(parse(&text), Some(status.clone()));
@@ -124,6 +125,7 @@ fn at_net_21_the_status_file_has_one_text() {
         text.replace("[0,2]", "0,2"),
         text.replace("synced [1,3]", "synced 1,3"),
         text.replace("circle_synced [2]", "circle_synced [two]"),
+        text.replace("duties_halted true", "duties_halted yes"),
         text.replace("peers 3", "peers three"),
         text.replace("bound 2", "bound -2"),
         text.replace("own-entry circle", "own-entry elsewhere"),

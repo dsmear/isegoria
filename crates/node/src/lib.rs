@@ -521,13 +521,14 @@ pub fn announcement(config: &Config) -> Result<String, ConfigError> {
 /// The status file's text: one line per fact, cuts and rounds in order.
 pub fn render(status: &Status) -> String {
     let mut out = format!(
-        "caught_up {}\ncircle_caught_up {}\npeers {}\nbound {}\nequivocations {}\nconflict {}\nstopped {}\n",
+        "caught_up {}\ncircle_caught_up {}\npeers {}\nbound {}\nequivocations {}\nconflict {}\nduties_halted {}\nstopped {}\n",
         status.caught_up,
         status.circle_caught_up,
         status.peers,
         status.bound,
         status.equivocations,
         status.conflict,
+        status.duties_halted,
         status.stopped.map_or("none".to_string(), |s| s.name())
     );
     out += &format!("synced [{}]\n", members(&status.synced));
@@ -568,6 +569,7 @@ pub fn parse(text: &str) -> Option<Status> {
             ["bound", v] => status.bound = v.parse().ok()?,
             ["equivocations", v] => status.equivocations = v.parse().ok()?,
             ["conflict", v] => status.conflict = v.parse().ok()?,
+            ["duties_halted", v] => status.duties_halted = v.parse().ok()?,
             ["synced", list] => status.synced = parse_members(list)?,
             ["circle_synced", list] => status.circle_synced = parse_members(list)?,
             ["stopped", "none"] => status.stopped = None,
