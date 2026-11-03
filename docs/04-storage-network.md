@@ -1005,7 +1005,9 @@ it is refused as not authorized.
 **Collecting a cut.** A node takes, for the next number, the cut that `t` distinct members
 signed on their feeds **in one view**; signatures given in different views are not added
 up. Two different cuts each signed by `t` members for one number, in any views, are the
-consortium equivocating: the node stops there and holds both as evidence (NET-006).
+consortium equivocating: the node stops there and holds both as evidence (NET-006). Every
+consortium signature check, of cuts, checkpoints and beacon commits, is Ed25519
+`verify_strict`, and a node's configuration refuses a member or writer key of small order.
 
 **Proposing and signing.** Cut `k` is proposed in **views** 0, 1, 2, …: the proposer of view
 `v` is member `(k + v) mod n`, who signs its proposal first; its epoch and closing are its
@@ -2352,11 +2354,11 @@ own number, view and exclusions, never a target's.
 shared lock, `DurableReplica::read`, no recovery, no write and no network. The existing
 collection (`cut::collect_with`) of `number` with the given exclusions must be ready in
 exactly `view`; a pending collection, a conflicting cut or a cut collected in another view
-is refused. Since that collection checks signatures leniently, the command then applies the
-segment's own certificate check (`archive::verify_certificate`): `verify_strict` signatures
-over the cut's checkpoint in that view, in member order, from at least the threshold of
-distinct non-excluded members. A cut collected without such a quorum is refused. Collection
-rules and signature sets are unchanged.
+is refused. That collection counts only `verify_strict` signatures, and the command then
+applies the segment's own certificate check (`archive::verify_certificate`): `verify_strict`
+signatures over the cut's checkpoint in that view, in member order, from at least the
+threshold of distinct non-excluded members. A cut collected without such a quorum is
+refused. Collection rules and signature sets are unchanged.
 
 **Output.** On success the command prints the cut digest as lowercase hex and publishes the
 canonical bytes at `<cut-file>` like every offline output: never over an existing file, and
@@ -2377,7 +2379,7 @@ shows neither freshness nor other replicas' cuts.
 exclusions, byte for byte their `Cut::encode`, and feeds them to `--archive-extract` and
 `--archive-prepare`. It refuses an uncollected number, another view, a quorum lost to
 exclusions or threshold, conflicting cuts, a quorum reached only by a signature that lenient
-verification accepts and `verify_strict` refuses (extraction refuses it too), missing or
+verification accepts and `verify_strict` refuses, as not collected (extraction too), missing or
 invalid exclusions, an untiered configuration, missing or damaged replica files and an existing
 output, without changing any file; on Unix a running node excludes the command. Three tiered
 member processes then collect cuts 0 to 5, member 2 stopped by A from its start on a commit

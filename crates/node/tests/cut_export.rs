@@ -232,18 +232,18 @@ fn uncertified_cuts_are_refused_without_change() {
     add_signature(&f, &lenient, 1, &f.target, 4, signature);
     fs::write(lenient.join("lock"), b"").unwrap();
     let node = member(&f, &lenient);
-    let signatures = "Archive(Signatures)";
     refused(
         &f,
         &lenient,
-        vec![("lenient", node.clone(), wanted(8, 4, &[]), signatures)],
+        vec![("lenient", node.clone(), wanted(8, 4, &[]), missing)],
     );
     let input = production::Config {
         segment_file: f.root.join("lenient.bin"),
         ..f.input()
     };
     let result = extract(&config(&node), &input).map(|_| ());
-    assert_eq!(format!("{result:?}"), format!("Err({signatures})"));
+    let target = "Invalid(\"target not collected in replica\")";
+    assert_eq!(format!("{result:?}"), format!("Err({target})"));
 }
 
 // Missing or damaged replica files and existing outputs are refused without change (AT-NET-35).

@@ -1,7 +1,8 @@
 //! The epoch's beacon round (`docs/04` §The epoch's beacon, `docs/08` §9.4, D41, T37):
 //! commits fixed before the deposits close, reveals after, withholders excluded and recorded.
 
-use ed25519_dalek::Signature;
+use curve25519_dalek::{EdwardsPoint, Scalar};
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use network::beacon::{BeaconCommit, BeaconReveal, BeaconRound, RoundError, RoundId};
 use network::consortium::{Checkpoint, Consortium, Member};
 
@@ -336,4 +337,36 @@ fn at_net_10_the_record_binds_who_revealed_and_who_withheld() {
     assert!(outcomes.iter().all(|o| o.value().is_none()));
     let records: std::collections::HashSet<_> = outcomes.iter().map(|o| o.record()).collect();
     assert_eq!(records.len(), outcomes.len());
+}
+
+/// The identity point, of small order, and `R = [s]B`, `s`: it verifies leniently on any message.
+fn small_order_key_and_forgery() -> (VerifyingKey, Signature) {
+    let mut identity = [0; 32];
+    identity[0] = 1;
+    let s = Scalar::from(7u64);
+    let r = EdwardsPoint::mul_base(&s).compress().to_bytes();
+    let forged: [u8; 64] = [r, s.to_bytes()].concat().try_into().unwrap();
+    (
+        VerifyingKey::from_bytes(&identity).unwrap(),
+        Signature::from_bytes(&forged),
+    )
+}
+
+/// AT-NET-10: a commit forged for a small-order member key is refused.
+#[test]
+fn at_net_10_a_commit_forged_for_a_small_order_member_key_is_refused() {
+    let (weak, forged) = small_order_key_and_forgery();
+    assert!(weak.verify(b"any message", &forged).is_ok());
+    let (members, _) = committee();
+    let mut keys: Vec<VerifyingKey> = members.iter().map(Member::public).collect();
+    keys[0] = weak;
+    let consortium = Consortium::new(keys, 3);
+    let mut round = BeaconRound::open(&consortium, NET, EPOCH);
+    let commit = BeaconCommit {
+        round: round.id(),
+        member: 0,
+        commitment: [5; 32],
+        signature: forged,
+    };
+    assert_eq!(round.commit(&commit), Err(RoundError::BadSignature));
 }

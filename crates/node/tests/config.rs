@@ -89,6 +89,27 @@ fn at_net_21_what_refuses_to_start() {
     ));
 }
 
+/// AT-NET-21: a small-order key among the writers, members or circle keys refuses to start.
+#[test]
+fn at_net_21_a_small_order_key_refuses_to_start() {
+    let identity = hex(&[[1].as_slice(), &[0; 31]].concat());
+    let writers = format!("writers = [\"{}\", \"{identity}\"]", key(1));
+    assert_eq!(
+        planned("weak-writer", |t| t
+            .replace(&format!("writers = [\"{}\"]", key(1)), &writers)),
+        Err(ConfigError::Key("writers"))
+    );
+    assert_eq!(
+        planned("weak-member", |t| t.replace(&key(2), &identity)),
+        Err(ConfigError::Key("consortium.members"))
+    );
+    let circle = format!("[consortium]\ncircle = [\"{identity}\"]");
+    assert_eq!(
+        planned("weak-circle", |t| t.replace("[consortium]", &circle)),
+        Err(ConfigError::Key("consortium.circle"))
+    );
+}
+
 /// AT-NET-21: the transport key is made at the first start and kept, so the peer id stays.
 #[test]
 fn at_net_21_the_peer_id_survives_a_restart() {

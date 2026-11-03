@@ -101,7 +101,7 @@ pub enum ConfigError {
     Parse(String),
     /// A field that is not 64 hex digits: the field's name.
     Hex(&'static str),
-    /// A key that is no ed25519 public key, or repeated among the members.
+    /// A key that is no ed25519 public key, one of small order, or repeated among the members.
     Key(&'static str),
     /// A threshold outside `1..=n`.
     Threshold,
@@ -143,7 +143,10 @@ fn unhex(text: &str, field: &'static str) -> Result<[u8; 32], ConfigError> {
 
 fn keys(list: &[String], field: &'static str) -> Result<Vec<VerifyingKey>, ConfigError> {
     list.iter()
-        .map(|k| VerifyingKey::from_bytes(&unhex(k, field)?).map_err(|_| ConfigError::Key(field)))
+        .map(|k| {
+            let key = VerifyingKey::from_bytes(&unhex(k, field)?).ok();
+            key.filter(|k| !k.is_weak()).ok_or(ConfigError::Key(field))
+        })
         .collect()
 }
 

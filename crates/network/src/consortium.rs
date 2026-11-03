@@ -3,7 +3,7 @@
 
 use crate::hash::tagged;
 use crate::log::{ConsistencyError, TransparencyLog};
-use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use std::collections::HashSet;
 
 /// A signed log head bound to its network and signing member set (NET-006).
@@ -116,7 +116,7 @@ impl Consortium {
             && self
                 .members
                 .get(idx)
-                .is_some_and(|pk| pk.verify(&cp.message(), sig).is_ok())
+                .is_some_and(|pk| cp.verify_signature(pk, sig))
     }
 
     pub fn threshold(&self) -> usize {
@@ -149,7 +149,7 @@ impl Consortium {
             if seen[*idx] || excluded.contains(idx) {
                 continue;
             }
-            if pk.verify(&msg, sig).is_ok() {
+            if pk.verify_strict(&msg, sig).is_ok() {
                 seen[*idx] = true;
                 valid += 1;
             }
@@ -285,5 +285,27 @@ impl CheckpointClient {
             // Same head, or a lower height: a stale replay to ignore.
             Some(_) => CheckpointUpdate::Stale,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use curve25519_dalek::{EdwardsPoint, Scalar};
+    use ed25519_dalek::Verifier;
+
+    /// AT-NET-09: a cut signature forged for a small-order member key is not that member's.
+    #[test]
+    fn a_forgery_for_a_small_order_member_key_signs_no_cut() {
+        let mut identity = [0; 32];
+        identity[0] = 1;
+        let weak = VerifyingKey::from_bytes(&identity).unwrap();
+        let s = Scalar::from(7u64);
+        let r = EdwardsPoint::mul_base(&s).compress().to_bytes();
+        let forged = Signature::from_bytes(&[r, s.to_bytes()].concat().try_into().unwrap());
+        let con = Consortium::new(vec![weak, Member::from_seed([1; 32]).public()], 1);
+        let cp = Checkpoint::new([0; 32], con.member_set_hash(), 0, [2; 32]);
+        assert!(weak.verify(&cp.message(), &forged).is_ok());
+        assert!(!con.signed_by(&cp, 0, &forged));
     }
 }

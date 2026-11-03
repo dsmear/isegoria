@@ -4,7 +4,7 @@
 use crate::cid::Cid;
 use crate::consortium::{Consortium, Member};
 use crate::hash::tagged;
-use ed25519_dalek::{Signature, Signer, Verifier, VerifyingKey};
+use ed25519_dalek::{Signature, Signer, VerifyingKey};
 
 /// One round: a network, the member set the round is held under, and the epoch.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -193,7 +193,7 @@ impl<'a> BeaconRound<'a> {
             .keys()
             .get(commit.member)
             .ok_or(RoundError::NotAMember)?;
-        key.verify(
+        key.verify_strict(
             &self.round.commit_message(&commit.commitment),
             &commit.signature,
         )

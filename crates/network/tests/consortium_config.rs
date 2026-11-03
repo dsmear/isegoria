@@ -1,8 +1,11 @@
 //! Consortium configuration and member-set binding (`docs/08` NET-005, `docs/10` T63):
 //! `1 ≤ t ≤ n` distinct keys at construction; `verify` holds a checkpoint to its own set.
 
-use ed25519_dalek::{Signature, VerifyingKey};
-use network::consortium::{Checkpoint, Consortium, Member};
+use curve25519_dalek::{EdwardsPoint, Scalar};
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+use network::consortium::{
+    Checkpoint, CheckpointClient, CheckpointReject, CheckpointUpdate, Consortium, Member,
+};
 
 const NET: [u8; 32] = [0x5A; 32];
 
@@ -98,4 +101,35 @@ fn at_net_09_verify_rejects_a_checkpoint_declaring_another_member_set() {
             "foreign set {foreign:?}"
         );
     }
+}
+
+/// The identity point, of small order, and `R = [s]B`, `s`: it verifies leniently on any message.
+fn small_order_key_and_forgery() -> (VerifyingKey, Signature) {
+    let mut identity = [0; 32];
+    identity[0] = 1;
+    let s = Scalar::from(7u64);
+    let r = EdwardsPoint::mul_base(&s).compress().to_bytes();
+    let forged: [u8; 64] = [r, s.to_bytes()].concat().try_into().unwrap();
+    (
+        VerifyingKey::from_bytes(&identity).unwrap(),
+        Signature::from_bytes(&forged),
+    )
+}
+
+/// AT-NET-09: a signature forged for a small-order member key counts toward no checkpoint.
+#[test]
+fn at_net_09_a_forgery_for_a_small_order_member_key_does_not_count() {
+    let m = members(2);
+    let (weak, forged) = small_order_key_and_forgery();
+    assert!(weak.verify(b"any message", &forged).is_ok());
+    let con = Consortium::new(vec![weak, m[0].public(), m[1].public()], 2);
+    let cp = Checkpoint::new(NET, con.member_set_hash(), 5, [3; 32]);
+    let honest = vec![(1, m[0].sign(&cp)), (2, m[1].sign(&cp))];
+    assert!(con.verify(&cp, &honest));
+    let sigs = vec![(0, forged), honest[0]];
+    assert!(!con.verify(&cp, &sigs));
+    assert!(!con.verify_excluding(&cp, &sigs, &[2]));
+    let mut client = CheckpointClient::new(NET, con);
+    let refused = CheckpointUpdate::Rejected(CheckpointReject::InsufficientSignatures);
+    assert_eq!(client.ingest(&cp, &sigs), refused);
 }
