@@ -69,8 +69,9 @@ D52 states they are not conditions of the answer review (below).
 
 Phase 2 targets an independently operated experimental P2P testnet (D55).
 Follow `10` §2: T88's contract is approved (`01` D57) and may be implemented in authorized
-increments; T79 needs the owner's approval before its own implementation and remains the
-final runtime integration, followed by the independent-operator trial. Single-operator runs
+increments; T79's contract is approved (`01` D60) and is implemented in `10` §2.3's four
+increments; it remains the final runtime integration (T19 does not count as one), followed
+by the independent-operator trial. Single-operator runs
 do not close the phase. Shared event formats, results, cuts and ledger must change together
 with their users. Do not restore legacy pilot gates or add automatic rounds through the
 integration. D54 is the network decision previously called D44 here.
