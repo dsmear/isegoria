@@ -1112,11 +1112,12 @@ number.
 ## Operating contract (T88)
 
 **Status.** *Approved* by the owner (`01` D57, recorded 2026-10-31): T88-P1–P4 and the
-trial's archive custody below. *Built* names what the code does today, *not built* what the
-approved rules still need (§Obstacles in the code). Nothing here is *verified*: no
-independent-operator trial has run. T88, T84 and Phase 2 stay open; T79 is not approved, and
-T19 and `10` §2's gates remain required. The operators' confirmations set up the trial; they
-add no consensus rule at runtime, where §Cuts is unchanged. The answer review's side is `05`
+trial's archive custody below, which the trial no longer exercises (owner, 2026-11-03).
+*Built* names what the code does today, *not built* what the approved rules still need
+(§Obstacles in the code). Nothing here is *verified*: no independent-operator trial has run.
+T88, T84 (frozen) and Phase 2 stay open; T79 is not approved, and T19 and `10` §2's gates
+remain required. The operators' confirmations set up the trial; they add no consensus rule
+at runtime, where §Cuts is unchanged. The answer review's side is `05`
 §Distributed integration (T79-P1–P7, proposed).
 
 - **T88-P1 — the initial configuration (genesis).** *Approved:* the four operators each
@@ -1202,12 +1203,10 @@ add no consensus rule at runtime, where §Cuts is unchanged. The answer review's
 does not restrict public reading. The operators agree by hand on each archive's context
 (lineage, cuts, view and exclusions), its quorum certificate, the roster and the redundancy
 parameters `(k, m)`; each operator verifies and installs locally (§Initial archive
-installation on a holder). The first trial needs no remote upload. It exercises a rebuild
-without a local replica, the loss of holders within the bound `m` and the restoration of
-redundancy by repair. *Built:* the tools of §Public archive segments through §Collected cut
-export, and each collected cut's view and exclusions in the status (§The cuts' views and
-exclusions in the status), tested in-process, on loopback and on controlled processes. *Not
-built:* any comparison of contexts between operators (§Obstacles in the code).
+installation on a holder). *Rectified by the owner, 2026-11-03:* the trial exercises no
+archive — no export, extraction, co-signing or installation, no rebuild without a replica,
+holder loss or repair — and T84 is frozen during Phase 2 (`10` Milestone 2). The tools of
+§Public archive segments through §Collected cut export stay as built, outside the trial.
 
 ### The trial's procedure
 
@@ -1216,8 +1215,7 @@ each operator runs its own machine and keeps its own secrets throughout.
 
 1. **Preparation.** Each operator pins the agreed revision, generates its member's secrets
    locally (`--new-identity`), keeps a backup under its own control, and sends the others
-   only the public keys it printed and its addresses. Each holder prints its roster entry
-   (`--transport-public-key`).
+   only the public keys it printed and its addresses.
 2. **Configuration confirmation.** One operator assembles the canonical configuration. Each
    operator checks its own keys and index, `n = 4`, `t = 3` and the version, computes the
    digest and the network id itself *(needs code)*, and confirms them to every other
@@ -1227,12 +1225,9 @@ each operator runs its own machine and keeps its own secrets throughout.
 3. **First start.** Each member starts from empty files under its new identity and writes
    nothing before sync rounds with two other verified members. Record each
    status: `bound`, `caught_up`, `circle_caught_up` and the first cuts.
-4. **Archiving.** At agreed cut numbers one operator at a time stops its node (the other
-   three progress), exports the predecessor and the target with the views and exclusions its
-   status reports (`--archive-export-cut`, §The cuts' views and exclusions in the status) and
-   extracts the segment (`--archive-extract`). The operators compare digests and CIDs, agree
-   the context, the roster and `(k, m)`, prepare, co-sign and combine, and each installs its
-   own shard. Then they rebuild without a replica, stop up to `m` holders, and repair.
+4. **Archiving — outside the trial** (owner, 2026-11-03; §Archives and holders in the trial).
+   No node is stopped to export or extract, and no archive is prepared, installed, rebuilt
+   or repaired.
 5. **Stop and restart.** One member at a time: it writes nothing before the required sync
    while the other three progress. Two members down stop progress until one
    returns.
@@ -1246,8 +1241,7 @@ each operator runs its own machine and keeps its own secrets throughout.
    chosen, and any continuation is a new configuration.
 7. **Evidence.** Shared evidence holds no secret and no circle content, only what verifies
    the outcomes: the pinned revision, the configuration document, its digest and the four
-   confirmations; each node's status over time; the exported cuts, segments, manifests and
-   certificates with their digests and CIDs, compared across nodes; public entries,
+   confirmations; each node's status over time; public entries,
    conflicting signed cuts and public-feed equivocations; the faults injected and when; the
    restorations operators know of; and a table of the safety and progress observed against
    P3's assumptions, with the beacon's and recovery's limits. A log is shared once its
@@ -1277,7 +1271,8 @@ What remains:
 5. **One active instance.** The data-directory lock is advisory and per directory; a second
    instance under the same keys elsewhere shows only when it equivocates.
 6. **Archives.** Extraction needs the member stopped; nothing compares contexts, rosters or
-   parameters between operators.
+   parameters between operators. Since the trial exercises no archive (2026-11-03), this no
+   longer blocks it.
 7. **Evidence.** Process tests run under one operator on loopback; nothing collects a
    trial's evidence.
 
@@ -1566,7 +1561,8 @@ exclusions it is collected under (§Collected cut export), and the status report
 7. **Not established.** The status is one replica's local view when it was written: no
    certificate, no evidence that operators agree, and no proof that the exclusions are the
    beacon history other members hold. A node missing a signature reports a higher view, or
-   the cut not yet. Comparing nodes' statuses and exports stays the procedure's (steps 4, 7).
+   the cut not yet. Comparing nodes' statuses stays the procedure's (step 7); the trial makes
+   no export (step 4).
 
 *Proposed, not built.* `--archive-export-cut` could also check `excluded` against its own
 replica's beacon history, the rule-6 set a collection from number 0 gives the cut, and refuse

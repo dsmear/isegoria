@@ -1962,7 +1962,9 @@ proposed implementation.
   storage without restricting public reading. Context, certificate, roster and redundancy
   parameters are agreed by hand; each operator verifies and installs locally. The first
   trial needs no remote upload; it exercises a rebuild without a local replica, the loss of
-  holders within the expected bound and the restoration of redundancy.
+  holders within the expected bound and the restoration of redundancy. *Rectified by the
+  owner, 2026-11-03:* the trial no longer exercises archives (rebuild without a replica,
+  holder loss, repair), and T84 is frozen during Phase 2 (`10` Milestone 2).
 
 **Scope.** The operators' confirmations set up the trial; they are no consensus rule at
 runtime. For the trial's members, P4 supersedes the automatic resumption of writes after
