@@ -73,6 +73,24 @@ fn what_decoding_refuses() {
     assert!(IssuerPublic::decode(&over).is_none());
 }
 
+// A point on the curve but outside G2 does not decode, though it is well formed (AT-ID-09).
+#[test]
+fn a_point_outside_g2_is_refused() {
+    use ark_bls12_381::{Fq, Fq2, G2Affine};
+    use ark_serialize::CanonicalSerialize;
+    let outside = (1u64..)
+        .filter_map(|i| {
+            G2Affine::get_point_from_x_unchecked(Fq2::new(Fq::from(i), Fq::from(0u64)), true)
+        })
+        .find(|p| !p.is_in_correct_subgroup_assuming_on_curve())
+        .unwrap();
+    assert!(outside.is_on_curve());
+    let mut bytes = vec![1];
+    outside.serialize_compressed(&mut bytes).unwrap();
+    assert_eq!(bytes.len(), 97);
+    assert!(IssuerPublic::decode(&bytes).is_none());
+}
+
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(64))]
 

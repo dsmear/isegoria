@@ -2074,6 +2074,9 @@ contract, `04` §Operating contract the genesis's schema (T88-P1).
   request, and the tally stays in the circle.
 - **Genesis.** T88-P1's schema, holding also the family, `AnswerConfig`, the issuer's public
   key and the relays' transport keys; each node's TOML repeats them and the node compares.
+  *Rectified by the owner, 2026-11-03:* each node's TOML repeats only the values that node
+  uses — the relays only on a gateway, the HPKE keys only where `consortium.hpke` is listed,
+  never the version; the derived network id binds every other value.
 - **Credentials.** Before T19, from a single-key test issuer held by a party that is no
   member: no real-person uniqueness (D55), and nyms minted without limit, a declared risk.
   Gate 1 runs every role under one operator and claims no independence; the trial's procedure

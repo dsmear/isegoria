@@ -5,6 +5,7 @@ use crate::codec::{DecodeError, Reader, Writer};
 use crate::consortium::Consortium;
 use crate::hash::tagged;
 use crate::tier::Tiers;
+use curve25519_dalek::montgomery::MontgomeryPoint;
 use ed25519_dalek::VerifyingKey;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -44,9 +45,10 @@ pub enum GenesisError {
     Members,
     Threshold,
     Family,
-    /// A key that is not one canonical encoding of an Ed25519 point or an X25519 coordinate.
+    /// A key that is not one canonical encoding of an Ed25519 point or an X25519 coordinate, or
+    /// one of small order.
     Key,
-    /// A key twice among the consortium and circle keys, the HPKE keys or the relays.
+    /// A key twice, in one role or across roles.
     Repeated,
     /// Relays not in increasing order.
     Order,
@@ -58,18 +60,19 @@ impl From<DecodeError> for GenesisError {
     }
 }
 
-/// The key, if `bytes` are the canonical encoding of an Ed25519 point.
+/// The key, if `bytes` are the canonical encoding of an Ed25519 point not of small order.
 fn ed25519(bytes: &[u8; 32]) -> Option<VerifyingKey> {
     let key = VerifyingKey::from_bytes(bytes).ok()?;
-    (key.to_edwards().compress().as_bytes() == bytes).then_some(key)
+    (key.to_edwards().compress().as_bytes() == bytes && !key.is_weak()).then_some(key)
 }
 
-/// Whether little-endian `bytes` are below `2^255 − 19`.
+/// Whether little-endian `bytes` are below `2^255 − 19` and no X25519 output from them is zero.
 fn x25519(bytes: &[u8; 32]) -> bool {
     let mut p = [0xff; 32];
     p[0] = 0xed;
     p[31] = 0x7f;
-    bytes.iter().rev().lt(p.iter().rev())
+    let zero = MontgomeryPoint(*bytes).mul_clamped([1; 32]) == MontgomeryPoint([0; 32]);
+    bytes.iter().rev().lt(p.iter().rev()) && !zero
 }
 
 impl Genesis {
@@ -97,13 +100,10 @@ impl Genesis {
         if r.u8()? != VERSION {
             return Err(GenesisError::Version);
         }
-        let threshold = r.u64()?;
+        let threshold = usize::try_from(r.u64()?).map_err(|_| GenesisError::Threshold)?;
         let n = r.u64()?;
         if n == 0 || n > MAX_MEMBERS as u64 {
             return Err(GenesisError::Members);
-        }
-        if threshold == 0 || threshold > n {
-            return Err(GenesisError::Threshold);
         }
         let mut members = Vec::new();
         for _ in 0..n {
@@ -124,7 +124,7 @@ impl Genesis {
         }
         r.finish()?;
         let genesis = Genesis {
-            threshold: threshold as usize,
+            threshold,
             members,
             answer_config,
             issuer,
@@ -142,32 +142,24 @@ impl Genesis {
         if !(1..=n).contains(&self.threshold) {
             return Err(GenesisError::Threshold);
         }
-        let mut signing = BTreeSet::new();
-        let mut hpke = BTreeSet::new();
-        for m in &self.members {
-            for key in [&m.consortium, &m.circle] {
-                ed25519(key).ok_or(GenesisError::Key)?;
-                if !signing.insert(*key) {
-                    return Err(GenesisError::Repeated);
-                }
+        let mut seen = BTreeSet::new();
+        let signing = self.members.iter().flat_map(|m| [&m.consortium, &m.circle]);
+        for key in signing.chain(&self.relays) {
+            ed25519(key).ok_or(GenesisError::Key)?;
+            if !seen.insert(*key) {
+                return Err(GenesisError::Repeated);
             }
+        }
+        for m in &self.members {
             if !x25519(&m.hpke) {
                 return Err(GenesisError::Key);
             }
-            if !hpke.insert(m.hpke) {
+            if !seen.insert(m.hpke) {
                 return Err(GenesisError::Repeated);
             }
         }
-        for relay in &self.relays {
-            ed25519(relay).ok_or(GenesisError::Key)?;
-        }
-        for pair in self.relays.windows(2) {
-            if pair[0] == pair[1] {
-                return Err(GenesisError::Repeated);
-            }
-            if pair[0] > pair[1] {
-                return Err(GenesisError::Order);
-            }
+        if self.relays.windows(2).any(|pair| pair[0] > pair[1]) {
+            return Err(GenesisError::Order);
         }
         Ok(())
     }

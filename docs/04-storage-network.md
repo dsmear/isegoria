@@ -1155,23 +1155,26 @@ add no consensus rule at runtime, where §Cuts is unchanged. The answer review's
     length-prefixed fields, then the relays in increasing order. Decoding refuses every other
     byte string: a truncation or trailing byte, another version or family, no member or more
     than 256 (a key id is one byte), `t` outside `1..=n`, an Ed25519 key that is not a
-    canonical point encoding, an X25519 key not below `2^255 − 19`, a key repeated among the
-    consortium and circle keys, among the HPKE keys or among the relays, and unordered relays;
-    a node also refuses a part that is not one canonical encoding of a valid configuration
-    (negative zeros included) or of a key other than the identity. The document's digest is
+    canonical point encoding or is of small order, an X25519 key not below `2^255 − 19` or of
+    low order, any key repeated, in one role or across roles, and unordered relays. A node
+    also refuses an issuer key that is not one canonical encoding of a G2 element other than
+    the identity, and an `AnswerConfig` other than D49–D51's, which the family pins, in its
+    canonical encoding (negative zeros refused). The document's digest is
     the plain SHA-256 of its bytes, the id its tagged hash; the known answers come from an
     independent oracle. A tiered node's TOML names the document (`genesis`) and repeats its
     values (§A node process): `network_id`, `consortium.members`, `threshold` and `circle`
     in order, `family`, `answer_config` and `issuer`, `consortium.hpke` when listed — one per
-    member, each with the genesis's key — and a gateway's `relays` as a set. A difference or
+    member, each with the genesis's key — and a gateway's `relays` as a set: only the values
+    the node uses, never the version, the derived id binding the others (the owner's
+    rectification of `01` D60, 2026-11-03). A difference or
     a missing value refuses the start with the field named, before any file is made; so does a
     tiered TOML without `genesis`. `--announce` signs only the genesis's HPKE key.
     `isegoria-node --genesis-digest <file>` prints `digest`, `network_id`, then the document
     line by line (`version`, `threshold`, `member <i> <consortium> <circle> <hpke>`, `family`,
-    `answer_config`, `issuer`, `relay`), reading only that file and writing nothing. Networks
-    without tiers keep a free `network_id`. *Not built:* a command assembling the document
-    from the operators' printed keys; a check of a relay's own transport key against it. The
-    version is not repeated in the TOML. Tested in-process and on controlled processes.
+    `answer_config` with its parameters by name, `issuer`, `relay`), reading only that file and
+    writing nothing. Networks without tiers keep a free `network_id`. *Not built:* a command
+    assembling the document from the operators' printed keys; a check of a relay's own
+    transport key against it. Tested in-process and on controlled processes.
 - **T88-P2 — keys.** *Approved:* the separate keys already built stay — the consortium key
   (public feed), the circle key, the HPKE key and the transport key, each from its own
   secret; the earlier proposal to derive them all from the member's seed is withdrawn. Each

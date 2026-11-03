@@ -16,6 +16,8 @@ fault-injection = []
 [dependencies]
 sha2 = "0.10"
 ed25519-dalek = "2"
+# X25519 coordinates in the genesis checked for low order (docs/04 T88-P1).
+curve25519-dalek = "4"
 reed-solomon-erasure = "6"
 # OpenTimestamps proof format (parse/build/verify). MIT/Apache-2.0. See docs/04.
 opentimestamps = "0.2"

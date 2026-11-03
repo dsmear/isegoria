@@ -17,7 +17,8 @@ pub enum Error {
     /// A tiered configuration, or one repeating a genesis's values, that names none.
     Missing,
     Decode(GenesisError),
-    /// The document's configuration or issuer key is not one canonical, valid encoding.
+    /// The document's configuration is not D49–D51's, which the family pins, in its encoding;
+    /// or its issuer key is not one canonical encoding.
     AnswerConfig,
     Issuer,
     /// The TOML value that does not repeat the document's.
@@ -41,8 +42,9 @@ fn refused(error: Error) -> ConfigError {
 pub fn load(path: &Path) -> Result<Document, ConfigError> {
     let bytes = read_bounded(path, MAX_CONFIG, "genesis")?;
     let genesis = Genesis::decode(&bytes).map_err(|e| refused(Error::Decode(e)))?;
-    let answer_config =
-        AnswerConfig::decode(&genesis.answer_config).ok_or(refused(Error::AnswerConfig))?;
+    let answer_config = AnswerConfig::decode(&genesis.answer_config)
+        .filter(|config| *config == AnswerConfig::default())
+        .ok_or(refused(Error::AnswerConfig))?;
     let issuer = IssuerPublic::decode(&genesis.issuer).ok_or(refused(Error::Issuer))?;
     Ok(Document {
         digest: genesis.digest(),
@@ -63,7 +65,13 @@ pub fn render(document: &Document) -> String {
         let keys = [m.consortium, m.circle, m.hpke].map(|k| hex(&k));
         out += &format!("member {i} {}\n", keys.join(" "));
     }
-    out += &format!("family {FAMILY}\nanswer_config {}\n", hex(&g.answer_config));
+    let c = &document.answer_config;
+    let ((num, den), (low, high, q, new)) = (c.rule.threshold(), c.quotas.parts());
+    let (group, quorum, weight) = (c.rule.group(), c.rule.quorum(), c.divided_weight);
+    out += &format!("family {FAMILY}\nanswer_config group {group} quorum {quorum} ");
+    out += &format!("threshold {num}/{den} divided_weight {weight} low {low} high {high} ");
+    out += &format!("quotas {} {} {} new_author {new} ", q[0], q[1], q[2]);
+    out += &format!("half_life_closings {}\n", c.author.half_life_closings());
     out += &format!("issuer {}\n", hex(&g.issuer));
     for relay in &g.relays {
         out += &format!("relay {}\n", hex(relay));

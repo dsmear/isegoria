@@ -169,7 +169,7 @@ fn what_decoding_refuses() {
     p[0] = 0xed;
     p[31] = 0x7f;
     let mut below_p = p;
-    below_p[0] = 0xec;
+    below_p[0] = 0xeb;
     assert_eq!(with(&|g| g.members[0].hpke = p), Some(Key));
     assert_eq!(with(&|g| g.members[0].hpke = [0xff; 32]), Some(Key));
     assert_eq!(with(&|g| g.members[0].hpke = below_p), None);
@@ -185,6 +185,83 @@ fn what_decoding_refuses() {
     assert_eq!(with(&|g| g.relays.clear()), None);
 }
 
+/// Small-order Ed25519 points, canonically encoded: the identity, order 2 and order 4.
+fn small_order() -> [[u8; 32]; 3] {
+    let mut identity = [0; 32];
+    identity[0] = 1;
+    let mut minus_one = [0xff; 32];
+    minus_one[0] = 0xec;
+    minus_one[31] = 0x7f;
+    for k in [identity, minus_one, [0; 32]] {
+        assert!(VerifyingKey::from_bytes(&k).is_ok_and(|k| k.is_weak()));
+    }
+    [identity, minus_one, [0; 32]]
+}
+
+/// Low-order X25519 coordinates: 0, 1, `p − 1` and the two of order 8.
+fn low_order() -> [[u8; 32]; 5] {
+    let unhex = |h: &str| -> [u8; 32] {
+        let b: Vec<u8> = (0..32)
+            .map(|i| u8::from_str_radix(&h[2 * i..2 * i + 2], 16).unwrap())
+            .collect();
+        b.try_into().unwrap()
+    };
+    let mut one = [0; 32];
+    one[0] = 1;
+    let mut minus_one = [0xff; 32];
+    minus_one[0] = 0xec;
+    minus_one[31] = 0x7f;
+    [
+        [0; 32],
+        one,
+        minus_one,
+        unhex("e0eb7a7c3b41b8ae1656e3faf19fc46ada098deb9c32b1fd866205165f49b800"),
+        unhex("5f9c95bca3508c24b1d0b1559c83ef5b04445cc4581c8e86d8224eddd09f1157"),
+    ]
+}
+
+// Small-order keys in every role, and a key repeated across roles, are refused (AT-NET-40).
+#[test]
+fn weak_and_shared_keys_are_refused() {
+    use GenesisError::*;
+    let with = |f: &dyn Fn(&mut Genesis)| {
+        let mut g = known();
+        f(&mut g);
+        (
+            Genesis::decode(&g.encode()).err(),
+            g.check().err(),
+            g.tiers().err(),
+        )
+    };
+    let all = |e| (Some(e), Some(e), Some(e));
+    for weak in small_order() {
+        assert_eq!(with(&|g| g.members[1].consortium = weak), all(Key));
+        assert_eq!(with(&|g| g.members[0].circle = weak), all(Key));
+        assert_eq!(with(&|g| g.relays = vec![weak]), all(Key));
+    }
+    for weak in low_order() {
+        assert_eq!(with(&|g| g.members[1].hpke = weak), all(Key));
+    }
+    assert_eq!(with(&|g| g.relays = vec![short(1)]), all(Repeated));
+    assert_eq!(with(&|g| g.relays = vec![short(12)]), all(Repeated));
+    assert!(short(1)[31] < 0x80);
+    assert_eq!(with(&|g| g.members[1].hpke = short(1)), all(Repeated));
+}
+
+// An in-memory document holds the member bound too: none, or one more than the bound (AT-NET-40).
+#[test]
+fn the_member_bound_holds_in_memory() {
+    let mut g = known();
+    g.members.clear();
+    g.threshold = 0;
+    assert_eq!(g.check(), Err(GenesisError::Members));
+    assert_eq!(g.tiers().err(), Some(GenesisError::Members));
+    g.members = members(MAX_MEMBERS + 1);
+    g.threshold = 1;
+    assert_eq!(g.check(), Err(GenesisError::Members));
+    assert_eq!(g.tiers().err(), Some(GenesisError::Members));
+}
+
 /// Member `i`'s keys from two bytes of seed, distinct for every `i` and role.
 fn wide(i: usize, role: u8) -> [u8; 32] {
     let mut seed = [role; 32];
@@ -192,22 +269,25 @@ fn wide(i: usize, role: u8) -> [u8; 32] {
     key(seed)
 }
 
+/// `n` members with distinct keys, none of small order.
+fn members(n: usize) -> Vec<GenesisMember> {
+    (0..n)
+        .map(|i| {
+            let mut hpke = [0x55; 32];
+            hpke[..2].copy_from_slice(&(i as u16).to_le_bytes());
+            hpke[31] = 0;
+            GenesisMember {
+                consortium: wide(i, 1),
+                circle: wide(i, 2),
+                hpke,
+            }
+        })
+        .collect()
+}
+
 // `MAX_MEMBERS` members decode and one more is refused (AT-NET-40).
 #[test]
 fn the_member_bound() {
-    let members = |n: usize| -> Vec<GenesisMember> {
-        (0..n)
-            .map(|i| {
-                let mut hpke = [0; 32];
-                hpke[..2].copy_from_slice(&(i as u16).to_le_bytes());
-                GenesisMember {
-                    consortium: wide(i, 1),
-                    circle: wide(i, 2),
-                    hpke,
-                }
-            })
-            .collect()
-    };
     let mut g = known();
     g.members = members(MAX_MEMBERS);
     assert_eq!(Genesis::decode(&g.encode()), Ok(g.clone()));

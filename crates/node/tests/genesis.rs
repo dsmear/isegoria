@@ -310,12 +310,6 @@ fn a_toml_that_differs_from_the_genesis_refuses_to_start() {
 fn a_different_document_refuses_to_start() {
     let g = trial();
     let (root, path, text) = fixture("other-document", &g);
-    let mut config = g.clone();
-    config.answer_config = AnswerConfig {
-        divided_weight: 0.5,
-        ..AnswerConfig::default()
-    }
-    .encode();
     let mut issuer = g.clone();
     issuer.issuer = identity::credential::Issuer::new([78; 32])
         .public()
@@ -326,7 +320,6 @@ fn a_different_document_refuses_to_start() {
     let mut threshold = g.clone();
     threshold.threshold = 4;
     for (name, other, field) in [
-        ("answer config", config, "answer_config"),
         ("issuer", issuer, "issuer"),
         ("relay", relay, "relays"),
         ("threshold", threshold, "consortium.threshold"),
@@ -342,7 +335,7 @@ fn a_different_document_refuses_to_start() {
     }
 }
 
-// A missing, oversized, non-canonical or invalid document refuses the start (AT-NET-40).
+// A missing, non-canonical or invalid document, or another configuration, refuses (AT-NET-40).
 #[test]
 fn a_document_that_does_not_hold_refuses_to_start() {
     let g = trial();
@@ -374,6 +367,23 @@ fn a_document_that_does_not_hold_refuses_to_start() {
     std::fs::write(&path, config.encode()).unwrap();
     let answer = Err(ConfigError::Genesis(Error::AnswerConfig));
     assert_eq!(planned(&root, &text).map(|_| ()), answer);
+    let other = AnswerConfig {
+        divided_weight: 0.5,
+        ..AnswerConfig::default()
+    };
+    for valid in [
+        other,
+        AnswerConfig {
+            rule: ConsensusRule::new(12, 8, 3, 4).unwrap(),
+            ..other
+        },
+    ] {
+        config.answer_config = valid.encode();
+        assert_eq!(AnswerConfig::decode(&config.answer_config), Some(valid));
+        std::fs::write(&path, config.encode()).unwrap();
+        let pinned = text.replace(&hex(&g.id()), &hex(&config.id()));
+        assert_eq!(planned(&root, &pinned).map(|_| ()), answer, "{valid:?}");
+    }
     let mut issuer = g.clone();
     issuer.issuer[1] ^= 0x40;
     std::fs::write(&path, issuer.encode()).unwrap();
@@ -442,10 +452,9 @@ mod processes {
             let keys = [m.consortium, m.circle, m.hpke].map(|k| hex(&k));
             text += &format!("member {i} {}\n", keys.join(" "));
         }
-        text += &format!(
-            "family answer-review/v1\nanswer_config {}\n",
-            hex(&g.answer_config)
-        );
+        text += "family answer-review/v1\nanswer_config group 12 quorum 9 threshold 3/4 \
+                 divided_weight 0.25 low 0.3 high 0.7 quotas 1 2 3 new_author 2 \
+                 half_life_closings 45\n";
         text += &format!("issuer {}\n", hex(&g.issuer));
         for relay in &g.relays {
             text += &format!("relay {}\n", hex(relay));

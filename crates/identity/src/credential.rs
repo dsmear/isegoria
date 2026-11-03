@@ -375,8 +375,7 @@ impl IssuerPublic {
             params: SignatureParamsG1::<E>::new::<Sha256>(PARAMS_LABEL, MSG_COUNT),
             public_key,
         };
-        (rest.is_empty() && issuer.public_key.is_valid() && issuer.encode() == bytes)
-            .then_some(issuer)
+        (issuer.public_key.is_valid() && issuer.encode() == bytes).then_some(issuer)
     }
 
     pub(crate) fn params(&self) -> &SignatureParamsG1<E> {
