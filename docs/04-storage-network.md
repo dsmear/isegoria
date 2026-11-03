@@ -174,7 +174,7 @@ voting.
 ### The epoch's beacon (D41)
 
 The network supplies one public random value per epoch, its **beacon**.
-The retained legacy draws use it; `05` T79-P3 proposes the answer-review draw's binding.
+The retained legacy draws use it, as will the answer review between nodes (`05` T79-P3, D60).
 It must be fixed only after the candidates are, and
 nobody may be able to choose it. A value computed from the log, as the checkpoint head was
 (`01` D29), fails the second condition: whoever orders or includes the last deposits
@@ -222,9 +222,9 @@ keys the checkpoints' member-set hash commits to) and threshold `t`:
    the record.
 7. **Fewer than `t` reveals.** No beacon for `e`. The legacy draw policy makes deposits
    and pending draws wait for epoch `e + 1`, whose round starts from new secrets (a retry
-   of `e` would reuse already revealed secrets). For the answer review `05` T79-P4
-   proposes the same wait, explicitly; the offline contract has no missing-beacon event
-   or automatic retry.
+   of `e` would reuse already revealed secrets). For the answer review between nodes `05`
+   T79-P4 (D60) makes the same wait explicit; the offline contract has no missing-beacon
+   event or automatic retry.
    The withholders are recorded as in 6. Requiring `t` reveals is what makes the
    value unpredictable under the consortium's own assumption: with fewer than `t` colluding
    members, any `t` reveals hold an honest secret.
@@ -651,8 +651,8 @@ node's replica).
 
 **Status (2026-10-22).** The first increment, the transport channel, is built on T85-P1–P5
 at the owner's instruction, P5 as stated below, and reviewed (§As built). Which messages a person sends —
-the events, the read requests, their replies — stays `05` T79-P2 and T79-P7, proposed; T85
-as a whole stays open with them.
+the events, the read requests, their replies — is `05` T79-P2 and T79-P7, approved in `01`
+D60 and not built; T85 as a whole stays open with them.
 
 *Decided (D54, `10` T85).* A person sends each event sealed to one member's key through a
 relay, as Oblivious HTTP (RFC 9458) over HPKE (RFC 9180): the relay sees where a message
@@ -740,8 +740,9 @@ growth. Batching (`10` T28) and PRIV-003 would blur it; neither is built.
     a stored ciphertext. Through two members one event makes two entries, the ledger counting
     the first.
 
-**T79-P7.** Whether a read request's proof binds the request's encapsulation (`enc`) is left
-to T79-P7; this channel does not change OHTTP to provide it.
+**T79-P7 (D60).** A read request's proof binds a fresh response key, not the request's
+encapsulation (`enc`): this channel's OHTTP is unchanged, and the reply sealed to that key
+inside the OHTTP reply is a bespoke composition (`05` §Distributed integration).
 
 **First increment: acceptance.** Over loopback, with synthetic events and an instrumented
 relay: the RFC 9458 vector; the whole path to the circle feed; nothing of the event, the
@@ -1055,7 +1056,7 @@ for the members collecting cuts (`network::rounds`).
 Public CID lookup without a full replica is specified in §Public object discovery (T75);
 circle objects are never offered through it (§Who reads). The node process
 does not run
-the answer review between nodes (`10` T79); its proposed contract is
+the answer review between nodes (`10` T79); its contract, approved in `01` D60, is
 `05` §Distributed integration. In code: `network::replica`,
 `network::cut`, `protocol::ledger`, the `p2p` crate.
 
@@ -1112,13 +1113,14 @@ number.
 ## Operating contract (T88)
 
 **Status.** *Approved* by the owner (`01` D57, recorded 2026-10-31): T88-P1–P4 and the
-trial's archive custody below, which the trial no longer exercises (owner, 2026-11-03).
+trial's archive custody below, which the trial no longer exercises (owner, 2026-11-03);
+T88-P1's schema in `01` D60 (2026-11-03).
 *Built* names what the code does today, *not built* what the approved rules still need
 (§Obstacles in the code). Nothing here is *verified*: no independent-operator trial has run.
-T88, T84 (frozen) and Phase 2 stay open; T79 is not approved, and T19 and `10` §2's gates
-remain required. The operators' confirmations set up the trial; they add no consensus rule
-at runtime, where §Cuts is unchanged. The answer review's side is `05`
-§Distributed integration (T79-P1–P7, proposed).
+T88, T84 (frozen) and Phase 2 stay open; T79's contract is approved (D60) and not built, and
+T19 and `10` §2's gates remain required. The operators' confirmations set up the trial; they
+add no consensus rule at runtime, where §Cuts is unchanged. The answer review's side is `05`
+§Distributed integration (T79-P1–P7, approved in D60).
 
 - **T88-P1 — the initial configuration (genesis).** *Approved:* the four operators each
   verify and confirm the same canonical configuration before the first start. Its digest
@@ -1130,17 +1132,19 @@ at runtime, where §Cuts is unchanged. The answer review's side is `05`
   starts without the old state: it does not realize the fork with continuity that D54 and
   D56 approve in their perimeter (§The state tree and the fork, T86-P7 and P8: the lineage
   inherited, the parent's last anchored statement, frozen leaves reopened, the parent's
-  issuer keys listed), whose dependencies are not built (`10` T86). Application parameters
-  still open stay with T79 (T79-P1).
-  - *Proposed schema, not approved.* The configuration would hold a version, the threshold
-    and the members in order, each with its consortium key (its public feed's), its circle
-    key and its HPKE public key, a member's key configuration following from that key and
-    its index (T85-P3). The network id would be `network`'s tagged SHA-256 of the canonical
-    encoding under `isegoria/genesis/v1`, with one encoding, strict decoding and a
-    known-answer test, and a node whose TOML differs from the document or its id would not
-    start. Members' transport keys would stay out, bound on each connection (§Transport),
-    and so would holder rosters, agreed per archive (below). Whether the relays' transport
-    keys (T85-P4) and the issuer's public key belong to it is open (T79, T19).
+  issuer keys listed), whose dependencies are not built (`10` T86). The application's
+  parameters are in it (`05` T79-P1).
+  - *Schema, approved (`01` D60).* The configuration holds a version, the threshold and the
+    members in order, each with its consortium key (its public feed's), its circle key and
+    its HPKE public key, a member's key configuration following from that key and its index
+    (T85-P3); the event family, the answer review v1, with its `AnswerConfig` (`05` T79-P1);
+    the issuer's public key, before T19 the test issuer's (`05` §Distributed integration);
+    and the relays' transport keys (T85-P4). The network id is `network`'s tagged SHA-256 of
+    the canonical encoding under `isegoria/genesis/v1`, with one encoding, strict decoding
+    and a known-answer test. Each node's TOML repeats these values, and a node whose TOML
+    differs from the document or its id does not start. Members' transport keys stay out,
+    bound on each connection (§Transport), and so do holder rosters, agreed per archive
+    (below). Another issuer or relay is a new network.
   - *Built:* `network_id` is a free value in each node's TOML, which repeats the members',
     circle and HPKE lists; nothing derives the id or compares the lists across operators.
 - **T88-P2 — keys.** *Approved:* the separate keys already built stay — the consortium key
@@ -1211,7 +1215,10 @@ holder loss or repair — and T84 is frozen during Phase 2 (`10` Milestone 2). T
 ### The trial's procedure
 
 The minimal written procedure. Steps marked *(needs code)* wait on §Obstacles in the code;
-each operator runs its own machine and keeps its own secrets throughout.
+each operator runs its own machine and keeps its own secrets throughout. The answer review's
+steps are not written yet: `01` D60 has them added with T79 — the test issuer and issuance,
+the non-member relays, participants' credentials and client with the trial's sizing, the
+operators' closure commands, the comparison of state digests and a round without a beacon.
 
 1. **Preparation.** Each operator pins the agreed revision, generates its member's secrets
    locally (`--new-identity`), keeps a backup under its own control, and sends the others

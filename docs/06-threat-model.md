@@ -112,7 +112,7 @@ outsider recompute private results or guarantee their availability. Independent
 operators and blind relays do not eliminate member leaks or relay/member collusion.
 
 Decisions are in [01, D54–D55](01-decisions.md). Network contracts and residual limits
-are in [04](04-storage-network.md); the proposed integration contract in
-[05](05-question-lifecycle.md#distributed-integration-t79--proposed-contract).
+are in [04](04-storage-network.md); the integration contract, approved in D60, in
+[05](05-question-lifecycle.md#distributed-integration-t79--approved-contract-d60).
 [10 §2](10-roadmap.md#phase-2--p2p-network) defines the planned trial; its evidence
 has not been established by the existing loopback tests.

@@ -1808,6 +1808,15 @@ mean this entry.
   | circle | the consortium members, nobody else | deposits (the drafts), reviewer and respondent admissions, panels, commits, reveals, every lifecycle step, the engine's inputs, the results' records per nym |
   | self | one nym, for its own records only | its leaf of the state tree and the path proving it |
 
+  *Rectified by the owner, 2026-11-03 (D60), for the answer review only; the legacy path's
+  rows are unchanged.* In the public row, in place of "each decided item's outcome by content
+  id": "each epoch's roots, which commit to the decided questions' outcomes; in the answer
+  review no per-question outcome and no content id is public". The circle row adds "closure
+  requests and the answer review's derived state (pool, seals, groups, tallies, verdicts,
+  observations, quotas)". A content id covers its question's key, so a public outcome would
+  give the key to whoever holds the view (`05` T79-P6). Until T86 produces the roots for this
+  family, nothing public commits to the answer review's outcomes.
+
   An item admitted to the pool stays in the circle: it is administered, and publishing it
   is the leakage `05` [9] guards against.
 - **Two feeds per member.** A member writes public objects on one feed and circle objects on
@@ -2035,3 +2044,66 @@ including how long a round's evidence lasts.
 **Scope.** Two members are the trial's minimum check, not a general proof of completeness.
 No unlocking of A, new genesis, T79 decision or Phase 1 change; P4, T88 and Phase 2 are not
 complete on local tests.
+
+## D60 — The answer review between nodes: T79's contract
+
+**Decided** by the owner; recorded 2026-11-03. Approves T79-P1–P7 in `05` §Distributed
+integration with the precisions folded into them there, where the consequence lines are also
+corrected against the code, and the choices below that P1–P7 left open; `05` owns the
+contract, `04` §Operating contract the genesis's schema (T88-P1).
+
+- **Family and authorization (P1, P2).** One event family per network, the answer review v1,
+  with D49–D51's `AnswerConfig` unchanged; the proofs' contexts prefixed by the network id
+  and a family tag. Persons' events on members' circle feeds, closures by members only,
+  `Draw` and `CloseEpoch` derived; a transition applies only where cut order defines it.
+- **Derived steps and the beacon (P3, P4).** Seals, the beacon value's assignment and the
+  draws are derived at each cut's end, a round's value going only to epochs up to its own.
+  Members check epochs and closings before co-signing; a collected cut failing the checks is
+  not applied, the node stopping with the evidence as at a conflict. A sealed epoch without a
+  value waits for the next one: no deadline, retry or new state.
+- **Closures (P5).** `t` distinct members' requests, each on its operator's explicit command;
+  a request to close an epoch counts only in a cut of that epoch, an excluded member's
+  included; no `cuts_per_epoch` or automatic trigger.
+- **Tiers (P6).** Every answer-review object stays in the circle; no per-question outcome and
+  no content id is public; with T86 the epoch roots commit to them. Rectifies D54 for the
+  answer review (D54, *Rectified*).
+- **Private reads (P7).** A fresh response key per request, bound in the proof's context, the
+  reply HPKE-sealed to it inside the OHTTP reply: a bespoke composition with known-answer
+  tests. Binding OHTTP's `enc` instead is dropped, infeasible with `ohttp` 0.8.0 without a
+  bespoke OHTTP. An event's status goes only to its own nym, a reviewer reads one view per
+  request, and the tally stays in the circle.
+- **Genesis.** T88-P1's schema, holding also the family, `AnswerConfig`, the issuer's public
+  key and the relays' transport keys; each node's TOML repeats them and the node compares.
+- **Credentials.** Before T19, from a single-key test issuer held by a party that is no
+  member: no real-person uniqueness (D55), and nyms minted without limit, a declared risk.
+  Gate 1 runs every role under one operator and claims no independence; the trial's procedure
+  names the issuer's holder before gate 2; gate 3 uses T19's committee key, a new genesis.
+- **Participants.** A separate `isegoria-client` binary, in a new crate, and a test-only
+  issuer tool; persons' secrets stay out of members' directories. With D49's parameters
+  unchanged the trial has at least 13 reviewers and 3 authors outside the pool (about 16
+  credentials) over at least 3–4 epochs, reviewers' credentials held by parties with no
+  access to member data (members read the key in clear in the circle), and at least one relay
+  operator who is no member; scripted participants are allowed if declared synthetic.
+- **D53's rules between nodes.** The pool as availability, the draw after the deposit epoch's
+  closure and the final unavailability under 12 hold unchanged for the network family, by
+  this decision; D53's scope stays offline.
+- **The node.** One hook trait in `p2p`, implemented in `node`, so `p2p` does not depend on
+  `protocol`; the state rebuilt from the replica at each start, not persisted. Operators
+  command a running node through a file spool in its data directory
+  (`isegoria-node --request …`) that the duties read, executed requests shown in the status;
+  a stopped member writes nothing. The status gives a digest of the whole derived state at
+  each closing cut. A question's encoding is bounded so its view fits one reply, an oversized
+  deposit invalid and consuming no slot; the gateway admits without state.
+- **Procedure and order.** The trial's procedure is updated with T79 (`04` §The trial's
+  procedure). T79 reaches gate 1 with the test issuer before T19; T19's committee setup is not
+  runtime integration, so T79 stays the final one (D55); switching to T19's key is a new
+  genesis before gate 3.
+
+**Scope.** A contract, nothing built: T79, T85, T88 and Phase 2 stay open, and `10` §2's
+gates remain required. D49–D53, the offline path and the legacy path's contract are
+unchanged.
+
+**Limits.** Consensus establishes no truth (D48); no Byzantine tolerance is claimed (D57);
+the parameters are provisional and uncalibrated (D52, `14`); test credentials establish no
+real-person uniqueness. Until T86 produces roots for this family, nothing public commits to
+the answer review's outcomes.

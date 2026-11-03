@@ -110,30 +110,37 @@ contract leaves to the implementation:
   observation with its weight; the configuration is in the log. Accepted questions are usable
   from their closure.
 
-## Distributed integration (T79) — proposed contract
+## Distributed integration (T79) — approved contract (D60)
 
-**Status (2026-10-22): proposed; not approved, not implemented.** *Approved* restates a
-decision or a built network rule; *consequence* is what the current code forces; each
-**T79-Pn** is a new choice awaiting the owner's decision before T79 is implemented. The
-operators' side — keys, genesis, quorum, faults, recovery — is `04` §Operating contract
-(T88-P1–P4, approved in `01` D57; increments A and B built under D58 and D59). Nothing here changes D49–D53 or the offline `AnswerNode` and its `CloseEpoch`.
+**Status (2026-11-03): approved by the owner (`01` D60); not implemented.** *Approved*
+restates an earlier decision or a built network rule; *consequence* is what the current code
+forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision recorded in
+D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04` §Operating
+contract (T88-P1–P4, approved in `01` D57, the genesis's schema in D60; increments A and B
+built under D58 and D59). Nothing here changes D49–D53 or the offline `AnswerNode` and its
+`CloseEpoch`.
 
 **Configuration and authorization.**
 - *Approved.* Consortium-signed cuts order every event; the first of conflicting events wins,
   and a refused one is recorded without stopping the cut (`04` §Cuts). A person signs
   nothing; members log persons' events (D54, T85).
-- *Consequence.* `AnswerEvent` and `NodeEvent` share a version byte and kind numbers, so bytes
-  cannot tell them apart; the ledger decodes `NodeEvent` only. A question's number counts the
-  accepted deposits before it in cut order, the same on every node.
-- **T79-P1 — one family per network.** The genesis (T88-P1) names the answer review v1 and
-  pins `AnswerConfig` in the offline record's encoding; the network id is the genesis hash,
-  so every feed entry and cut signature binds the configuration. Its ledger decodes member
-  objects and `AnswerEvent`s only; anything else is `NotAnEvent`. *Consequence:* the proofs'
-  contexts (pool, deposit, commit) do not name a network, so one network's proof replays into
-  another under the same issuer; this family prefixes them with the network id, the offline
-  contexts unchanged.
-- **T79-P2 — who logs what**, always on a member's circle feed; an answer event on a public
-  feed is refused:
+- *Consequence.* The headers of `AnswerEvent` and `NodeEvent` share the version byte and the
+  kind numbers 1–5; their bodies differ, and strict decoding refuses almost every byte string
+  of the other family, but no tag keeps the two families apart. The ledger decodes `NodeEvent`
+  only. A question's number counts the accepted deposits before it in cut order, the same on
+  every node.
+- **T79-P1 — one family per network** (approved). The genesis (`04` T88-P1, which holds its
+  schema) names the answer review v1 and pins `AnswerConfig`, D49–D51's unchanged, in the
+  offline record's encoding; the network id is the genesis hash, so every feed entry and cut
+  signature binds the configuration, and changing a parameter is a new network. Its ledger
+  decodes member objects and `AnswerEvent`s only; anything else is `NotAnEvent`.
+  *Consequence:* the proofs' contexts (pool, deposit, commit) name no network, the deposit's
+  (`cid ‖ epoch`, shared with the legacy path) not even a domain, so a proof replays into
+  another network under the same issuer. This family prefixes each with the network id and a
+  family tag, the offline contexts and the nyms unchanged (invariant 5); a `Reveal`, with no
+  proof, opens only its prefixed commit.
+- **T79-P2 — who logs what** (approved), always on a member's circle feed, the member counted
+  by its circle key's index in the configuration; an answer event on a public feed is refused:
 
   | Event | Logged by | Applied |
   |---|---|---|
@@ -141,95 +148,147 @@ operators' side — keys, genesis, quorum, faults, recovery — is `04` §Operat
   | `CloseCommits`, `Close`, an epoch-closure request (new) | members only | as T79-P5 |
   | `Draw`, `CloseEpoch` | nobody: refused from every feed | derived, T79-P3 |
 
+  A transition applies only where it is defined at its point in cut order: a `CloseCommits`
+  for a question still `Pending` is refused and not counted.
+- *Question size (D60).* In this family a question's encoding is bounded so that its view
+  fits one reply (T79-P7): about 48 KiB, the exact value set at implementation and recorded
+  in `14` as provisional — checked deterministically by the ledger and by the gateway; an
+  oversized deposit is an invalid request and consumes no slot (D51). The offline path has no
+  such bound.
+- *Gateway admission (D60).* Without state: a gateway admits a well-formed `AnswerEvent` of a
+  kind a person sends, its proof verified under the genesis's issuer key in the prefixed
+  context, for a deposit also `Question::check` and the size bound; a `Reveal`, which carries
+  no proof, if it decodes. Cut order alone decides what the state accepts, the same on every
+  node. A relay's volume stays unbounded (T85).
+- *Credentials before T19 (D60).* Persons' credentials come from a single-key test issuer
+  (`identity::credential::Issuer`) held by a party that is no member, named in the trial's
+  procedure before gate 2, its public key in the genesis. It establishes no real-person
+  uniqueness (D55) and can mint nyms without limit, so it could fill the pool and steer the
+  groups: a declared risk. Gate 1 runs every role under one operator and claims no
+  independence; gate 3 uses T19's committee key under a new genesis. `AnonymousCredential`
+  has a private test encoding (a file with mode 0600), `IssuerPublic` a public encoding with
+  a known-answer test.
+
 **The closing cut, the beacon and the author's time.**
 - *Approved.* The cut closing epoch `e` is its commit and deposit checkpoint; reveals count
-  in the next cut, at whose end the round finishes (`04` §The beacon on cuts). D53 fixes the
-  pool at the deposit epoch's closure, and the draw follows it.
+  in the next cut, at whose end the round finishes (`04` §The beacon on cuts).
+- *D53 in this family (D60).* D53's three rules hold here unchanged, by D60, not by D53, whose
+  scope stays offline: joining the pool is availability, with no exit; a question is drawn
+  after its deposit epoch's closure; with fewer than 12 in the pool fixed there, it stays
+  unavailable for good.
 - *Consequence.* Offline `CloseEpoch` records pool and beacon together; on cuts the value
   exists one cut later. `AnswerPath` and `02` §C.1 count one closing per epoch with no skipped
-  number, while cuts may skip epochs.
-- **T79-P3 — derived transitions.** At the end of each cut, after its entries, every node
-  applies: if the cut closes `e`, `e`'s seal — the pool's length, epoch `e + 1`, one more
-  closing — as offline `CloseEpoch` without its value; when a round finishes with a value,
-  every sealed epoch still lacking one takes it, and their pending questions are drawn in
-  question order (12 distinct, or D53's unavailability). Offline `CloseEpoch { e, B }` is the
-  two steps at once, so what applies between them behaves as after the offline closure: a
-  join misses `e`'s pool, a deposit of `e + 1` fixes its quota from observations of epochs up
-  to `e`, and a round closed there records its observation in `e + 1`.
-- *Members' checks before co-signing*, beyond `04` §Proposing and signing: cut 0 is epoch 0;
-  cut `k + 1` has cut `k`'s epoch, plus one if `k` closed; a cut closes exactly when T79-P5's
-  requests for its epoch are counted; the member's ledger has applied every earlier cut. Since
-  no derived step is written, a member still co-signs entries the state refuses (the first
-  wins). T79's "an invalid derived step is not co-signed" then means: a proposal failing
-  these checks is not co-signed, and a `Draw` or `CloseEpoch` object is refused on every node.
+  number, whereas a cut may skip epochs, may pass to the next epoch with no closing cut, and
+  cut 0 may carry any epoch; the members' checks below exclude all three.
+- **T79-P3 — derived transitions** (approved). At the end of each cut, after its entries,
+  every node applies: if the cut closes `e`, `e`'s seal — the pool's length, epoch `e + 1`,
+  one more closing — as offline `CloseEpoch` without its value; when the round of epoch `f`
+  finishes with a value, every sealed epoch up to `f` still lacking one takes it, and their
+  pending questions are drawn in question order (12 distinct, or D53's unavailability). A
+  value never goes to a later epoch: members know it from the reveals before the cut applying
+  it is signed, and could still choose that epoch's joins and deposits. Offline
+  `CloseEpoch { e, B }` is the two steps at once, so what applies between them behaves as
+  after the offline closure: a join misses `e`'s pool, a deposit of `e + 1` fixes its quota
+  from observations of epochs up to `e`, and a round closed there records its observation in
+  `e + 1`.
+- *Members' checks before co-signing* (approved), beyond `04` §Proposing and signing: cut 0 is
+  epoch 0; cut `k + 1` has cut `k`'s epoch, plus one if `k` closed; a cut of epoch `e` closes
+  `e` exactly when the cuts before it of epoch `e` counted `t` distinct members' requests to
+  close `e` (T79-P5); the member's ledger has applied every earlier cut. Since no derived step
+  is written, a member still co-signs entries the state refuses (the first wins). T79's "an
+  invalid derived step is not co-signed" then means: a proposal failing these checks is not
+  co-signed, and a `Draw` or `CloseEpoch` object is refused on every node. A collected cut
+  failing them — `t` members colluding — is not applied: the node stops progress there and
+  keeps the evidence, as at a conflict (`04` T88-P3).
 
 **No beacon.**
 - *Approved.* Fewer than `t` reveals give no value and exclude no one (`04` rule 7); a round is
   not retried with revealed secrets. D53's unavailability concerns the pool, not the beacon.
-- **T79-P4 — wait for the next value (recommended).** A sealed epoch without a value keeps its
+- **T79-P4 — wait for the next value** (approved). A sealed epoch without a value keeps its
   pool; its questions stay `Pending` until the next round that ends with a value, which seeds
-  each by its number. No event, deadline, state or review round is added, and no author's
-  slot is lost to a consortium failure. Residual (`04` §The epoch's beacon): `n − t + 1`
+  each by its number (T79-P3). No event, deadline, state or review round is added, and no
+  author's slot is lost to a consortium failure. Residual (`04` §The epoch's beacon): `n − t + 1`
   members can stall a round, publicly, choosing between two values or delaying the draws
-  without limit. *Rejected:* unavailability for good (D53 stretched to a consortium failure,
-  and a veto for `n − t + 1` members); waiting on the same epoch (its secrets are spent).
+  without limit. Testing it needs a test-only fault switch that withholds members' reveals
+  while they keep signing cuts; reveals are automatic today.
+  *Rejected:* unavailability for good — a veto over any epoch for `n − t + 1` members.
+  *Rejected:* a retry on the same epoch — its secrets are spent.
 
 **Closures: epochs, commits, rounds.**
 - *Approved.* Closures are explicit: none at a count of answers, by deadline or by retry, and
   nothing enters after one (D49).
-- *Consequence.* Today the proposer alone closes an epoch, after `cuts_per_epoch` cuts: a timer
-  cadence, and one member's power over the deposit window and, through D53, over permanent
+- *Consequence.* Today a proposer closes an epoch after `cuts_per_epoch` cuts, a setting local
+  to each proposer while the role rotates; co-signers check only that the epoch does not go
+  back, never `closes` (`04` §Proposing and signing), so any proposer can close or skip an
+  epoch at any cut, and `patience` has it propose a closing cut with beacon commits missing:
+  one member's power over the deposit window and, through D53's rules, over permanent
   unavailability.
-- **T79-P5 — `t` members, on their operators' command.** A closure takes effect at the `t`-th
-  distinct member's request in cut order: the `t`-th `CloseCommits` or `Close` performs the
-  offline transition, a member's repeated request is refused; after the `t`-th epoch-closure
-  request for `e`, the next cut closes `e`. A node emits a request only on its operator's
-  explicit instruction; an answer-review network uses neither `cuts_per_epoch` nor any
-  automatic trigger. A commit or reveal ordered after its closure is refused. An early
-  closure takes `t` colluding members, as a wrong cut does; `n − t + 1` operators who decline
-  stall it, visibly. When operators request is the trial's written procedure (T88), not code.
-  *Alternative:* one member's request (first wins) — faster, but one member could force
-  insufficient participation.
+- **T79-P5 — `t` members, on their operators' command** (approved). A closure takes effect at
+  the `t`-th distinct member's request in cut order: the `t`-th `CloseCommits` or `Close`
+  performs the offline transition, a member's repeated request is refused; after the `t`-th
+  request to close `e`, the next cut closes `e`. A request to close `e` counts only in a cut of
+  epoch `e`. A member excluded under rule 6 still counts: a request is no signature, and the
+  closure still takes `t` members. A node emits a request only on its operator's explicit
+  command (`01` D60, through a request spool); an answer-review network uses neither
+  `cuts_per_epoch` nor any automatic trigger. A commit or reveal ordered after its closure is
+  refused. An early closure takes `t` colluding members, as a wrong cut does; `n − t + 1`
+  operators who decline stall it, visibly. When operators request is the trial's written
+  procedure (T88), not code.
+  *Rejected:* one member's request, the first winning — one member could force insufficient
+  participation.
 
 **Tiers.**
-- *Approved.* D54's tiers (`04` §Who reads); the reviewer's view omits the key and the content
-  id (§The answer review).
-- **T79-P6 — every answer-review object in the circle.** Joins, deposits, commits, reveals,
-  closure requests and the derived state (pool, seals, groups, tallies, verdicts,
+- *Approved.* D54's tiers (`04` §Who reads), rectified for the answer review by D60; the
+  reviewer's view omits the key and the content id (§The answer review).
+- **T79-P6 — every answer-review object in the circle** (approved). Joins, deposits, commits,
+  reveals, closure requests and the derived state (pool, seals, groups, tallies, verdicts,
   observations, quotas) are circle; the genesis, cuts, beacon objects and, with T86, each
-  epoch's roots are public; a nym's own records are self. *Conflict:* D54 makes each decided
-  item's outcome public by content id, but this content id covers the key. Whoever holds the
-  view — a reviewer, later any respondent — hashes each alternative as the key until one
-  matches, and an identical deposit by another author (AT-ANS-14) still under review would
-  take its key from an earlier public outcome. Recommended: no object carrying a content id
-  leaves the circle and no per-question outcome is public; the epoch roots commit to them.
-  The options left publish a verdict per question: by number alone, or by a salted
-  commitment to the content id.
+  epoch's roots, which commit to the outcomes, are public; a nym's own records are self. No
+  object carrying a content id leaves the circle, and no per-question outcome is public: the
+  content id covers the key, so whoever holds the view — a reviewer, later any respondent —
+  would find the key in at most 256 tries against a public outcome, and an identical deposit
+  by another author (AT-ANS-14) still under review would lose its key. Until T86 produces
+  roots for this family, nothing public commits to the outcomes.
+  *Rejected:* a public verdict by question number — whoever knows the number reads it.
+  *Rejected:* a public verdict under a salted commitment to the content id — salts to keep.
 
 **Private requests and responses (T85).**
-- **T79-P7.** A person sends an event, or a read request, sealed to one member's HPKE key
-  through a blind relay (the channel: `04` §Blind relays). Whether the proof binds the OHTTP
-  request's encapsulation (`enc`) rather than a separate response key is part of this proposal. A read request carries a proof under its role whose context binds the
-  network, the request's kind and a fresh response key; the member answers from its state,
-  logs nothing, and seals the reply to that key, so a replay is answered only to the sender.
-  Replies: to an event, the circle entry `(writer, seq)` that logged it, then whether a cut
-  applied or refused it and why (a duplicate names only the requester's own question,
-  AT-ANS-14); to a reviewer (`Judge`), each question whose group holds its nym, by number and
+- **T79-P7** (approved). A person sends an event, or a read request on a path `…/read` beside
+  `…/event`, sealed to one member's HPKE key through a blind relay (the channel: `04` §Blind
+  relays). A read request carries a proof under its role whose context binds the network, the
+  request's kind and a fresh response key; the member answers from its state, logs nothing,
+  and seals the reply to that key inside the OHTTP reply, so a proof copied from a member's
+  plaintext yields replies only its original sender can open. The inner seal is RFC 9180's
+  base mode, single-shot, through the `hpke` crate behind `ohttp` (T85-P2): a **bespoke**
+  composition of primitives (`docs/CLAUDE.md`), with known-answer tests. Replies: to an event,
+  the circle entry `(writer, seq)` that logged it, then whether a cut applied or refused it
+  and why (a duplicate names only the requester's own question, AT-ANS-14), and only to a
+  request proved under the nym the event names, a refusal's reason being circle data; to a
+  reviewer (`Judge`), each question whose group holds its nym, one per reply, by number and
   view — never the key, content id, group or others' answers — and whether its own commit and
-  reveal counted; to an author
-  (`Propose`), its questions' rounds, verdicts and observations, its `C_a` and quota. The
-  tally stays in the circle (recommended; disclosing it to the author is a separate choice).
-  Retries are safe: the state refuses a repeated join, deposit, commit or reveal whichever
-  member logs it, and reads change nothing. Author and reviewer use separate requests and
-  response keys (invariant 4).
+  reveal counted; to an author (`Propose`), its questions' rounds, verdicts and observations,
+  its `C_a` and quota. The tally stays in the circle. Retries are safe: the state refuses a
+  repeated join, deposit, commit or reveal whichever member logs it, and reads change nothing.
+  Author and reviewer use separate requests and response keys (invariant 4).
+  *Rejected:* a proof binding the request's `enc` — `ohttp` 0.8.0 would need a bespoke OHTTP.
+  *Rejected:* a context of network and kind alone — a bearer token valid for good.
 
-**Delay, duplicates and restart** (*consequences of the cut rules*). A cut waits for the
+**Where the state is computed (D60).** `p2p` keeps no protocol state and does not depend on
+`protocol`: one hook trait in `p2p`, implemented in `node`, applies a collected cut, says
+whether to sign a proposal after the last cut (`may_sign`) and whether a cut closes its epoch
+(`closes`), admits a gateway's bytes (`admit`) and answers a read (`read`). The answer state
+is rebuilt at each start from the replica and the signed cuts (`04` §A replica on disk), and
+not persisted.
+
+**Delay, duplicates and restart.** *Consequences of the cut rules:* a cut waits for the
 entries it names; a signed entry received twice is one entry; a person's event logged by two
 members applies once, the second refused with its reason on every node; an event after its
-window is refused on every node. A restarted node rebuilds the answer state from its replica
-and the signed cuts (`04` §A replica on disk), so one history gives the same draws, outcomes,
-records and quotas. Nothing signs the derived state before T86's roots: until then gate 3
-compares a digest of it that each node's status reports per closing cut (T79).
+window is refused on every node. *Requirement, not built:* a restarted node rebuilds the
+answer state as above, so one history gives the same draws, outcomes, records and quotas;
+today no node process holds protocol state, and this holds only for the `Ledger` the tests
+drive. Nothing signs the derived state before T86's roots: until then gate 3 compares each
+node's *state digest* (D60), a tagged SHA-256 of a canonical encoding of the whole derived
+state, reported in its status at each closing cut.
 
 ---
 
