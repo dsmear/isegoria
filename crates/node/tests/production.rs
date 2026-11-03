@@ -1,3 +1,6 @@
+#[path = "support/genesis.rs"]
+mod genesis;
+#[allow(dead_code)]
 #[path = "support/production.rs"]
 mod support;
 use network::archive::{Layout, SignedManifest, MAX_MANIFEST, MAX_SEGMENT};
@@ -162,7 +165,7 @@ fn combine_rejects_bad_extras_duplicates_foreign_and_different_manifests() {
             0 => {
                 share.signatures[0].1 = f.members[0].sign(&f.target.checkpoint_in(
                     4,
-                    NET,
+                    net(),
                     f.tiers.consortium().member_set_hash(),
                 ))
             }

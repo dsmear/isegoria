@@ -1,6 +1,8 @@
 //! Segment extraction from a stopped node's replica (`docs/04` §Segment extraction from a
 //! stopped node's replica).
 
+#[path = "support/genesis.rs"]
+mod genesis;
 #[allow(dead_code)]
 #[path = "support/holder.rs"]
 mod holder;
@@ -297,12 +299,8 @@ fn wrong_context_or_certificate_is_refused() {
     let mut forked = f.previous.clone();
     forked.marks[0].head = [9; 32];
     let pin = |previous, target, view, name| input(&f, previous, target, view, name);
-    let untiered: String = node
-        .lines()
-        .filter(|l| !l.starts_with("circle ="))
-        .map(|l| format!("{l}\n"))
-        .collect();
-    let foreign = node.replace(&node::hex(&NET), &node::hex(&[7; 32]));
+    let untiered = untiered(&node);
+    let foreign = f.foreign(&node);
     let (later, missing) = (
         "Invalid(\"replica collects another cut or view\")",
         "Invalid(\"target not collected in replica\")",
@@ -341,7 +339,7 @@ fn wrong_context_or_certificate_is_refused() {
                 "threshold",
                 node.replace("threshold = 2", "threshold = 3"),
                 pin(None, &first, 0, "e"),
-                missing,
+                "Config(Genesis(Differs(\"consortium.threshold\")))",
             ),
             (
                 "predecessor number",

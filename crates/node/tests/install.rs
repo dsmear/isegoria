@@ -1,5 +1,7 @@
 //! Manual holder installation (`docs/04` §Initial archive installation on a holder).
 
+#[path = "support/genesis.rs"]
+mod genesis;
 #[allow(dead_code)]
 #[path = "support/holder.rs"]
 mod holder;

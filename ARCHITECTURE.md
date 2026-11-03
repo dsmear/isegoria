@@ -60,6 +60,7 @@ protocol ──► scoring
 characterization ──► protocol, scoring, identity   (the characterization harness: a tool, not part of a node)
 p2p              ──► network             (the libp2p transport for replication, T18)
 node             ──► p2p, network        (the node process, T78)
+                 ──► protocol, identity  (only to validate a genesis's family parts, T88-P1)
 
 scoring   (no internal deps; only rand, rand_chacha)
 identity  (sha2, voprf, curve25519-dalek, bbs_plus, schnorr_pok, arkworks,
@@ -116,7 +117,7 @@ The state authenticates but does not issue (`docs/03`).
 | `ratelimit` | §Cost of proposing | `rln_token`, `within_quota`, `SlotLedger` |
 | `enrollment` | §M1 | `IdentityDocument` (+ `Cie`, `Spid`), `UniquenessOracle` (`VoprfOracle` real + `ReferenceOracle` test-only), `EnrollmentRegistry` |
 | `oprf` | §M1 | `ThresholdOprfOracle` (Shamir + DLEQ), `KeyShare`, `PublicShare`, `PartialEval`, `DleqProof` |
-| `credential` | §M2; `04` §The state tree and the fork | `Credential`, `Issuer`, `ThresholdIssuer`, `IssuerPublic`, `IssuanceRequest`, `AnonymousCredential`; holder `state_salt_key` from the canonical credential scalar and role (T86) |
+| `credential` | §M2; `04` §The state tree and the fork | `Credential`, `Issuer`, `ThresholdIssuer`, `IssuerPublic` (`encode`, `decode`: the genesis's 97 bytes, T88-P1), `IssuanceRequest`, `AnonymousCredential`; holder `state_salt_key` from the canonical credential scalar and role (T86) |
 | `hash` (private) | — | domain-separated SHA-256 |
 
 **Real:** role pseudonyms (deterministic → not rotatable → no whitewashing; distinct
@@ -162,6 +163,7 @@ Integrity without permissionless consensus (`docs/04`).
 | `codec` | §Events and replay | `Writer`, `Reader`, `DecodeError` — our encoding: little-endian integers, length-prefixed fields checked before sizing (T73) |
 | `store` | §A node's own disk | `DurableLog`, `ObjectStore` (content-addressed), `read_objects` (read-only, a torn file refused), `Recovery`, `StoreError`, `MAX_OBJECT`, `faults` (feature `fault-injection`, test builds only) — append-only files synced before acknowledging; a torn tail cut, other damage refused (T13) |
 | `replica` | §Replication between nodes | `WriterSet`, `FeedWriter`, `SignedEntry`, `EntryId`, `Replica` (`insert`, `feed`, `feed_beyond`, `equivocations`, `digest`, `summary`, `have_for`, `want`, `entries_for`), `FeedError` (T80), `Equivocation`, `Message`, `DurableReplica` (on disk, T74; `read` without writing) — the grow-only set of writers' signed entries and the pull sync's messages (T18) |
+| `genesis` | §Operating contract (T88-P1) | `Genesis`, `GenesisMember`, `GenesisError` (`encode`, `decode`, `check`, `digest`, `id`, `tiers`) — a tiered network's canonical configuration, strictly decoded; the network id its tagged hash; the family's parts opaque bytes the node validates |
 | `tier` | §Who reads | `Tier`, `Tiers` (`new`, `writers`, `place`, `bind`, `access`, `member`, `readable`, `serve`), `TierError`, `Access` (valid only under the set that verified it), `TransportBinding`, `Served` (`summary`, `have_for`, `entries_for`) — the tiered writer set from configured keys, a member's transport binding, and the pull sync's answers filtered by verified access (T77 step 1; the transport does not use them yet) |
 | `observer` | §Who reads | `Observer` (`new` for one tiered set, `apply_in_view`, `last`, `beacon`, `excluded`), `ObserveError` (other tiers or replica refused) — a reader without circle access following the signed cuts and the beacon's rounds (T77 step 1) |
 | `rounds` | §The beacon on cuts, §The withholders on cuts | `Rounds` (`count`, `finish`, `outcome`, `excluded`), `Finished`, `Uncounted` — the beacon's rounds as the cuts count them, and whom rule 6 excludes; one rule for the ledger and the members (T76) |
@@ -238,7 +240,7 @@ steps are seeded for reproducibility.
 | `answer_author` | §C.1, the answer review (D50, D51) | `contribution`, `Observation`, `AuthorRecord` (one per question; counted from the next epoch), `QuotaBands` (1/2/3 at 0.30 and 0.70, a new author 2) | `author_time`, `scoring::reputation` |
 | `answer_path` | The answer review (D49–D52) | `AnswerPath::{new, apply, usable, closure, view, reputation, quota, slots, …}`, `AnswerConfig`, `Round`, `Closure`, `Applied`, `Refused`, `commit_context`, `POOL_CONTEXT` — pool, deposit and quota, draw, commit-reveal, closure, outcome and observation, epochs; each event checked whole before it applies (T87) | `answer*`, `admission`, `deposit`, `lottery`, `randomness` |
 | `answer_events` | The answer review | `AnswerEvent` (join, deposit, draw, commit, end of commits, reveal, close, close epoch), `encode`, `decode` | `answer`, `network::codec` |
-| `answer_node` | The answer review | `AnswerNode::{open, submit, state, events}`, `AnswerNodeError` — the durable offline node: configuration pinned in the first record, accepted events replayed on open | `answer_path`, `answer_events`, `network::store` |
+| `answer_node` | The answer review | `AnswerNode::{open, submit, state, events}`, `AnswerNodeError`, `AnswerConfig::{encode, decode}` (the record's encoding, strict for the genesis, T88-P1) — the durable offline node: configuration pinned in the first record, accepted events replayed on open | `answer_path`, `answer_events`, `network::store` |
 | `lifecycle` | §9.1 | `State`, `Event`, `step`, `deposit`, `K_MIN` — rejects every invalid transition (T12); `Event::Resolve` re-decides the band (T10/T30); `SupplementaryReview` carries the extra round, `AssignExtraReviewers` then commit-reveal, `K_EXTRA_MAX` (T60); `Event::Explore` takes a gate rejection to `Explored` and `Measured`, never the pool (D35, T52); `State::Contested` — a DIF item with a verified source, from `Pilot2` or the pool, re-validated into either pool (D38, T55) | `gate`, `review`, `exposure`, `identity::nym` |
 | `orchestrator` | Epoch glue | `bridging_weights`, `weighted_ratings` (prior-epoch `w_u` → the fit, T5), `epoch_weight_cap` (`3 × median` over the weights that count, D33), `run_item`, `ItemVerdicts` (drives the epoch through `step`, T12), `ExtraRound`, `extra_round`, `expanded_ratings` (the band's second round and the re-decision's ratings, T60), `settle_appeal` (the escrow settled by the outcome the terminal state concludes, T61, `docs/15` C5–C6; any other state settles nothing, `docs/15` A11 (f)), `ItemVerdicts::dif` (stage 2's `Recheck`, indeterminate kept pending, `docs/15` A4), `ItemVerdicts::explored` (the beacon's exploration draw walked to `Measured`, T52), `ItemVerdicts::source_verified` (a DIF failure with a verified source is `Contested`, and settles an appeal as promoted, T55), `axis_mask`, `N_MIN_REVIEWS` (the reviewer floor of the axis, T39) | `lifecycle`, `appeal`, `probation`, `scoring::bridging` |
 | `panel_scores` | §C.2 band baselines (`docs/16` C5) | `Forecast`, `first_panel_baselines` (the other first panelists), `extra_round_baseline` (the first panel, fixed before the extra round), `item_scores`; `None` where no weight remains, never the reviewer's own forecast or 0; weights scaled by a power of two (`docs/17` §14.9) | `scoring::reputation`, `libm` |
@@ -294,7 +296,9 @@ checked configuration: keys, consortium, a tiered network's circle keys and the 
 circle key, a relay's routes or a member's gateway, transport key kept in the data directory),
 `announcement` (`isegoria-node --announce`: a member's signed key configuration),
 `new_identity` (`--new-identity`: four private secrets and an identity record in a new data
-directory, public keys printed),
+directory, public keys printed), `genesis` (a tiered network's document loaded and checked, its
+`AnswerConfig` and issuer key decoded, the TOML's repeated values compared with it; `render`
+for `--genesis-digest`, which prints its digest, network id and contents),
 `transport_public_key` (`--transport-public-key`: the existing transport key's roster entry),
 `archive` (bounded regular-file loading, checked operator-pinned jobs and latest-result
 status), `extract` (offline `--archive-export-cut` of a cut the stopped node's replica
@@ -306,7 +310,8 @@ segments/contexts and no live datastore), `install` (offline
 `run` (hold the data directory's lock, listen, dial, report status and optionally maintain
 archives until stopped),
 `render` and `parse` (the ordinary status file). Maintenance shutdown awaits the active pass.
-Depends on `p2p` and `network`; the protocol state is not computed here yet (T79).
+Depends on `p2p` and `network`, and on `protocol` and `identity` only to validate the genesis;
+the protocol state is not computed here yet (T79).
 
 ## `characterization` — the characterization harness
 

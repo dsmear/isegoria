@@ -167,7 +167,7 @@ built under D58 and D59). Nothing here changes D49–D53 or the offline `AnswerN
   groups: a declared risk. Gate 1 runs every role under one operator and claims no
   independence; gate 3 uses T19's committee key under a new genesis. `AnonymousCredential`
   has a private test encoding (a file with mode 0600), `IssuerPublic` a public encoding with
-  a known-answer test.
+  a known-answer test (built with the genesis, `04` T88-P1).
 
 **The closing cut, the beacon and the author's time.**
 - *Approved.* The cut closing epoch `e` is its commit and deposit checkpoint; reveals count

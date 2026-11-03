@@ -1,5 +1,7 @@
 //! Operator-pinned archive configuration checks (`docs/04` §Archive maintenance in a node process).
 
+#[path = "support/genesis.rs"]
+mod genesis;
 #[cfg(unix)]
 #[path = "support/process.rs"]
 mod process;
@@ -106,7 +108,7 @@ fn noninitial_job_loads_its_explicit_predecessor() {
         excluded: &[],
     };
     let member = Member::from_seed([1; 32]);
-    let checkpoint = target.checkpoint_in(0, NET, f.tiers.consortium().member_set_hash());
+    let checkpoint = target.checkpoint_in(0, net(), f.tiers.consortium().member_set_hash());
     let segment = Segment::build(
         &context,
         &Replica::new(f.tiers.writers().clone()),

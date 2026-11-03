@@ -365,6 +365,18 @@ fn at_net_24_key_configurations_verify_only_as_signed() {
     }
 }
 
+/// AT-NET-40: a signed configuration carries the X25519 key its seed derives, nothing else.
+#[test]
+fn at_net_40_a_configuration_carries_its_hpke_key() {
+    for (i, a) in announcements().iter().enumerate() {
+        assert!(a.hpke_key().is_some());
+        assert_eq!(a.hpke_key(), p2p::blind::public_key(&[HPKE_SEEDS[i]; 32]));
+    }
+    let mut short = announcements()[0].clone();
+    short.config.pop();
+    assert_eq!(short.hpke_key(), None);
+}
+
 /// AT-NET-24: a synthetic event reaches member 0's circle feed through the relay, receipted.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn at_net_24_an_event_reaches_the_circle_feed_through_a_relay() {

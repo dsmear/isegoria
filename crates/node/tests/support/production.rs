@@ -10,7 +10,30 @@ use node::production::{self, Config};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub const NET: [u8; 32] = [61; 32];
+/// Members of seeds 1–3, circle 11–13 and HPKE 21–23, two signing, no relay.
+pub fn document() -> network::genesis::Genesis {
+    let members = (0..3).map(|i| super::genesis::seeded(1 + i, 11 + i, 21 + i));
+    super::genesis::genesis(2, members.collect(), vec![])
+}
+
+pub fn net() -> [u8; 32] {
+    document().id()
+}
+
+/// `text` without its circle keys and genesis: a network without tiers.
+pub fn untiered(text: &str) -> String {
+    let tiered = [
+        "circle =",
+        "genesis =",
+        "family =",
+        "answer_config =",
+        "issuer =",
+    ];
+    let kept = text
+        .lines()
+        .filter(|l| !tiered.iter().any(|p| l.starts_with(p)));
+    kept.map(|l| format!("{l}\n")).collect()
+}
 pub const LINEAGE: [u8; 32] = [62; 32];
 pub const PUBLIC: &[u8] = b"independently authenticated public delta";
 pub const PRIVATE: &[u8] = b"private sentinel never in output";
@@ -31,17 +54,18 @@ impl Fixture {
             .join(format!("{name}-{}", std::process::id()));
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(&root).unwrap();
+        super::genesis::write(&root.join("genesis.bin"), &document());
         let members: Vec<_> = (1..=3).map(|i| Member::from_seed([i; 32])).collect();
         let circle: Vec<_> = (11..=13)
             .map(|i| Member::from_seed([i; 32]).public())
             .collect();
         let tiers = Tiers::new(
-            NET,
+            net(),
             Consortium::new(members.iter().map(Member::public).collect(), 2),
             &circle,
         )
         .unwrap();
-        let public = FeedWriter::from_seed(NET, [1; 32]);
+        let public = FeedWriter::from_seed(net(), [1; 32]);
         let mut log = TransparencyLog::new();
         let first = public.sign(log.append(cid(b"trusted prefix")));
         let previous = Cut {
@@ -57,7 +81,7 @@ impl Fixture {
         let entry = public.sign(log.append(cid(PUBLIC)));
         let mut replica = Replica::new(tiers.writers().clone());
         replica.insert(entry.clone(), PUBLIC.to_vec()).unwrap();
-        let circle_writer = FeedWriter::from_seed(NET, [11; 32]);
+        let circle_writer = FeedWriter::from_seed(net(), [11; 32]);
         let mut private_log = TransparencyLog::new();
         let private = circle_writer.sign(private_log.append(cid(PRIVATE)));
         replica.insert(private.clone(), PRIVATE.to_vec()).unwrap();
@@ -88,7 +112,7 @@ impl Fixture {
             view: 4,
             excluded: &[],
         };
-        let cp = target.checkpoint_in(4, NET, tiers.consortium().member_set_hash());
+        let cp = target.checkpoint_in(4, net(), tiers.consortium().member_set_hash());
         let signatures = members
             .iter()
             .enumerate()
@@ -103,7 +127,7 @@ impl Fixture {
             .unwrap();
             Snapshot {
                 statement: RootStatement {
-                    network_id: NET,
+                    network_id: net(),
                     lineage: LINEAGE,
                     member_set_hash: tiers.consortium().member_set_hash(),
                     epoch: 2,
@@ -167,7 +191,19 @@ impl Fixture {
             .map(|i| Member::from_seed([i; 32]).public().to_bytes())
             .collect::<Vec<_>>();
         let writers = members.iter().chain(&circle).copied().collect();
-        format!("network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = []\nwriters = {}\nkey_file = \"{}\"\n[consortium]\nmembers = {}\nthreshold = 2\ncircle = {}\n[member]\nindex = {index}\nevery_ms = 100\ncuts_per_epoch = 1\npatience = 2\nview_patience = 2\n", node::hex(&NET), self.root.join("node-state").display(), list(writers), self.root.join(format!("member-{index}.key")).display(), list(members), list(circle))
+        let lines = super::genesis::lines(&self.root.join("genesis.bin"), &document());
+        lines + &format!("network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = []\nwriters = {}\nkey_file = \"{}\"\n[consortium]\nmembers = {}\nthreshold = 2\ncircle = {}\n[member]\nindex = {index}\nevery_ms = 100\ncuts_per_epoch = 1\npatience = 2\nview_patience = 2\n", node::hex(&net()), self.root.join("node-state").display(), list(writers), self.root.join(format!("member-{index}.key")).display(), list(members), list(circle))
+    }
+
+    /// `text` under another genesis, one relay added: another network with the same members.
+    pub fn foreign(&self, text: &str) -> String {
+        let mut other = document();
+        other.relays = vec![super::genesis::key(41)];
+        let path = self.root.join("foreign.bin");
+        super::genesis::write(&path, &other);
+        let genesis = self.root.join("genesis.bin").display().to_string();
+        text.replace(&genesis, &path.display().to_string())
+            .replace(&node::hex(&net()), &node::hex(&other.id()))
     }
 
     pub fn node(&self, index: usize) -> node::Config {

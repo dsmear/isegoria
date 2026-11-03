@@ -1,6 +1,6 @@
 //! `isegoria-node <config.toml>`: runs a node until SIGTERM or Ctrl-C (`docs/04` §A node
-//! process); `--announce <config.toml>` prints a member's signed key configuration. Exit 2 for
-//! a configuration that does not hold, 1 for a node that does not start.
+//! process); the flags below are the operators' commands. Exit 2 for a configuration or input
+//! that does not hold, 1 for a node that does not start.
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -117,6 +117,18 @@ fn main() -> ExitCode {
                 }
             };
         }
+        [flag, path] if flag.as_os_str() == "--genesis-digest" => {
+            return match node::genesis::load(path) {
+                Ok(document) => {
+                    print!("{}", node::genesis::render(&document));
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("genesis {}: {e:?}", path.display());
+                    ExitCode::from(2)
+                }
+            };
+        }
         [flag, path] if flag.as_os_str() == "--transport-public-key" => {
             return match transport_public_key(path) {
                 Ok(hex) => {
@@ -133,6 +145,7 @@ fn main() -> ExitCode {
         _ => {
             eprintln!("usage: isegoria-node <config.toml> | --announce <config.toml>\n\
                 --new-identity <data-dir>\n\
+                --genesis-digest <genesis-file>\n\
                 --transport-public-key <node.toml>\n\
                 --archive-extract <node.toml> <production.toml>\n\
                 --archive-export-cut <node.toml> <cut.toml> <cut-file>\n\

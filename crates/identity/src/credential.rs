@@ -7,7 +7,7 @@ use crate::nym::{derive_nym, Nym, Role};
 
 use ark_bls12_381::{Bls12_381, Fr, G1Affine};
 use ark_ff::PrimeField;
-use ark_serialize::{CanonicalSerialize, SerializationError};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use ark_std::rand::{rngs::StdRng, SeedableRng};
 use ark_std::UniformRand;
 use bbs_plus::prelude::{
@@ -351,7 +351,34 @@ pub struct IssuerPublic {
     public_key: PublicKeyG2<E>,
 }
 
+const ISSUER_ENCODING: u8 = 1;
+
 impl IssuerPublic {
+    /// 97 bytes: the version, then the compressed G2 verifying key (`docs/05` §Distributed
+    /// integration, credentials before T19).
+    pub fn encode(&self) -> Vec<u8> {
+        let mut bytes = vec![ISSUER_ENCODING];
+        self.public_key
+            .serialize_compressed(&mut bytes)
+            .expect("a G2 point serializes");
+        bytes
+    }
+
+    /// `None` unless `bytes` are exactly one encoding of a key in the group, not its identity.
+    pub fn decode(bytes: &[u8]) -> Option<Self> {
+        let (&version, mut rest) = bytes.split_first()?;
+        if version != ISSUER_ENCODING {
+            return None;
+        }
+        let public_key = PublicKeyG2::<E>::deserialize_compressed(&mut rest).ok()?;
+        let issuer = IssuerPublic {
+            params: SignatureParamsG1::<E>::new::<Sha256>(PARAMS_LABEL, MSG_COUNT),
+            public_key,
+        };
+        (rest.is_empty() && issuer.public_key.is_valid() && issuer.encode() == bytes)
+            .then_some(issuer)
+    }
+
     pub(crate) fn params(&self) -> &SignatureParamsG1<E> {
         &self.params
     }

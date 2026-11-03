@@ -1,6 +1,8 @@
 //! Collected cut export from a stopped node's replica (`docs/04` §Collected cut export from a
 //! stopped node's replica).
 
+#[path = "support/genesis.rs"]
+mod genesis;
 #[allow(dead_code)]
 #[path = "support/holder.rs"]
 mod holder;
@@ -52,7 +54,7 @@ fn wanted(number: u64, view: u64, excluded: &[usize]) -> CutConfig {
 fn lenient_only(f: &Fixture, index: usize, cut: &Cut, view: u64) -> Signature {
     let key = SigningKey::from_bytes(&[index as u8 + 1; 32]);
     assert_eq!(key.verifying_key(), f.members[index].public());
-    let cp = cut.checkpoint_in(view, NET, f.tiers.consortium().member_set_hash());
+    let cp = cut.checkpoint_in(view, net(), f.tiers.consortium().member_set_hash());
     let mut h = Sha256::new();
     let height = cp.height.to_le_bytes();
     let fields: [&[u8]; 5] = [
@@ -97,7 +99,7 @@ fn add_signature(f: &Fixture, dir: &Path, index: usize, cut: &Cut, view: u64, si
         named: Vec::new(),
     }
     .encode();
-    let writer = FeedWriter::from_seed(NET, [index as u8 + 1; 32]);
+    let writer = FeedWriter::from_seed(net(), [index as u8 + 1; 32]);
     let entry = writer.sign(TransparencyLog::new().append(cid(&object)));
     replica.insert(entry, object).unwrap();
 }
@@ -184,12 +186,9 @@ fn uncertified_cuts_are_refused_without_change() {
     );
     fs::write(dir.join("lock"), b"").unwrap();
     let node = member(&f, &dir);
-    let untiered: String = node
-        .lines()
-        .filter(|l| !l.starts_with("circle ="))
-        .map(|l| format!("{l}\n"))
-        .collect();
+    let untiered = untiered(&node);
     let threshold = node.replace("threshold = 2", "threshold = 3");
+    let differs = "Config(Genesis(Differs(\"consortium.threshold\")))";
     let missing = "Invalid(\"cut not collected in replica\")";
     let exclusions = "Invalid(\"excluded members\")";
     let view = "Invalid(\"cut collected in another view\")";
@@ -200,7 +199,7 @@ fn uncertified_cuts_are_refused_without_change() {
             ("other number", node.clone(), wanted(9, 4, &[]), missing),
             ("other view", node.clone(), wanted(8, 3, &[]), view),
             ("excluded signer", node.clone(), wanted(7, 2, &[0]), missing),
-            ("threshold", threshold, wanted(7, 2, &[]), missing),
+            ("threshold", threshold, wanted(7, 2, &[]), differs),
             ("out of range", node.clone(), wanted(8, 4, &[3]), exclusions),
             ("repeated", node.clone(), wanted(8, 4, &[1, 1]), exclusions),
             (
@@ -327,14 +326,14 @@ mod processes {
     /// stops member 2 at its start, so it signs nothing and withholds its reveal.
     fn withheld_commit(f: &Fixture, dir: &Path) {
         let round = RoundId {
-            network_id: NET,
+            network_id: net(),
             member_set_hash: f.tiers.consortium().member_set_hash(),
             epoch: 0,
         };
         let (commit, _) = f.members[2].beacon_commit(round, 2);
         let object = MemberObject::Commit(commit).encode();
         let entry =
-            FeedWriter::from_seed(NET, [3; 32]).sign(TransparencyLog::new().append(cid(&object)));
+            FeedWriter::from_seed(net(), [3; 32]).sign(TransparencyLog::new().append(cid(&object)));
         let writers = f.tiers.writers().clone();
         let mut replica = DurableReplica::open(&dir.join("replica"), writers).unwrap();
         replica.insert(entry, object).unwrap();

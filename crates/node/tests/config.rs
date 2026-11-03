@@ -1,6 +1,9 @@
 //! A node's configuration and files (`docs/04` §A node process, T78): what refuses to start,
 //! the transport key kept across starts, and the status file's one text per status.
 
+#[path = "support/genesis.rs"]
+mod genesis;
+
 use network::consortium::Member;
 use network::tier::Tier;
 use node::{hex, parse, plan, render, Config, ConfigError};
@@ -203,9 +206,19 @@ fn at_net_21_the_default_periods() {
     assert_eq!(planned.status_every, std::time::Duration::from_secs(1));
 }
 
-/// The member configuration made tiered: circle keys of seeds 11 and 12, writers all four.
+/// The tiered set's genesis: members of seeds 1 and 2, circle 11 and 12, HPKE 21 and 22.
+fn document() -> network::genesis::Genesis {
+    let members = vec![genesis::seeded(1, 11, 21), genesis::seeded(2, 12, 22)];
+    genesis::genesis(2, members, vec![genesis::key(5)])
+}
+
+/// The member configuration made tiered: circle keys of seeds 11 and 12, writers all four, the
+/// genesis beside `circle_key` named and repeated.
 fn tiered(circle_key: &std::path::Path) -> impl Fn(String) -> String + '_ {
     move |t: String| {
+        let g = document();
+        let lines = genesis::write(&circle_key.with_file_name("genesis.bin"), &g);
+        let t = lines + &t.replace(&hex(&[7; 32]), &hex(&g.id()));
         let writers = format!(
             "[\"{}\", \"{}\", \"{}\", \"{}\"]",
             key(1),
@@ -259,22 +272,22 @@ fn at_net_23_a_tiered_configuration() {
     let read = plan(load("tiered-reader", reader).unwrap()).unwrap();
     assert!(read.p2p.tiers.is_some() && read.p2p.circle.is_none() && read.p2p.member.is_none());
     let edit = |name: &str, f: &dyn Fn(String) -> String| planned(name, |t| f(tiered(&own)(t)));
+    let circle = Err(ConfigError::Genesis(node::genesis::Error::Differs(
+        "consortium.circle",
+    )));
     assert_eq!(
         edit("one-circle", &|t| t.replace(
             &format!(", \"{}\"]\n\n[member]", key(12)),
             "]\n\n[member]"
         )),
-        Err(ConfigError::Tiers(network::tier::TierError::Count))
+        circle
     );
-    let repeated = network::tier::TierError::Repeated {
-        key: Member::from_seed([2; 32]).public().to_bytes(),
-    };
     assert_eq!(
         edit("member-key", &|t| t.replace(
             &format!("\"{}\"]\n\n[member]", key(12)),
             &format!("\"{}\"]\n\n[member]", key(2))
         )),
-        Err(ConfigError::Tiers(repeated))
+        circle
     );
     assert_eq!(
         edit("writers", &|t| t.replace(
@@ -306,10 +319,7 @@ fn at_net_23_a_tiered_configuration() {
 
 /// Members 0 and 1's signed key configurations, from HPKE seeds 21 and 22, in hex.
 fn hpke_line() -> String {
-    let members: Vec<_> = [1, 2].map(|s| Member::from_seed([s; 32]).public()).to_vec();
-    let circle = [11, 12].map(|s| Member::from_seed([s; 32]).public());
-    let consortium = network::consortium::Consortium::new(members, 2);
-    let tiers = network::tier::Tiers::new([7; 32], consortium, &circle).unwrap();
+    let tiers = document().tiers().unwrap();
     let signed: Vec<String> = [0usize, 1]
         .map(|i| {
             let member = Member::from_seed([i as u8 + 1; 32]);
@@ -341,7 +351,7 @@ fn at_net_24_relays_and_gateways_in_the_configuration() {
                     &format!(
                         "\nhpke_key_file = \"{}\"\nrelays = [\"{}\"]\n\n[consortium]",
                         key.display(),
-                        hex(&[5; 32])
+                        hex(&genesis::key(5))
                     ),
                 )
         }
@@ -351,7 +361,7 @@ fn at_net_24_relays_and_gateways_in_the_configuration() {
     assert!(hpke.contains(&signed));
     let member = plan(config).unwrap();
     let gateway = member.p2p.gateway.as_ref().expect("a gateway");
-    assert_eq!(gateway.relays, vec![[5; 32]]);
+    assert_eq!(gateway.relays, vec![genesis::key(5)]);
     assert!(!(gateway.admit)(b"anything at all"));
     assert!(member.p2p.relay.is_none());
     let relay = |t: String| {

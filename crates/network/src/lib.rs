@@ -10,6 +10,7 @@ pub mod codec;
 pub mod consortium;
 pub mod cut;
 pub mod erasure;
+pub mod genesis;
 pub mod log;
 pub mod merkle;
 pub mod observer;

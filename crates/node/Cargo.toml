@@ -13,6 +13,9 @@ path = "src/main.rs"
 [dependencies]
 network = { path = "../network" }
 p2p = { path = "../p2p" }
+# The genesis's answer-review configuration and issuer key, validated (docs/04 T88-P1).
+protocol = { path = "../protocol" }
+identity = { path = "../identity" }
 libp2p = { version = "0.56", default-features = false, features = ["ed25519"] }
 ed25519-dalek = "2"
 getrandom = "0.2"

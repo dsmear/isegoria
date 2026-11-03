@@ -61,6 +61,25 @@ fn read_config(r: &mut Reader) -> Option<AnswerConfig> {
     })
 }
 
+impl AnswerConfig {
+    /// The offline record's encoding, twelve little-endian words: the genesis's (`docs/04` T88-P1).
+    pub fn encode(&self) -> Vec<u8> {
+        let mut w = Writer::new();
+        write_config(&mut w, self);
+        w.finish()
+    }
+
+    /// `None` unless `bytes` are exactly the encoding of a valid configuration, zeros positive.
+    pub fn decode(bytes: &[u8]) -> Option<Self> {
+        let mut r = Reader::new(bytes);
+        let config = read_config(&mut r)?;
+        r.finish().ok()?;
+        let (low, high, _, _) = config.quotas.parts();
+        let signed = low.is_sign_negative() || high.is_sign_negative();
+        (config.is_valid() && !signed).then_some(config)
+    }
+}
+
 fn config_record(config: &AnswerConfig) -> Vec<u8> {
     let mut w = Writer::new();
     w.fixed(MAGIC).u8(0);

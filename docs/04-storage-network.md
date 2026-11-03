@@ -1067,16 +1067,18 @@ is stopped, and resumes from its files when started again. Its configuration is 
 
 | Key | What it is |
 |---|---|
-| `network_id` | the network's id, 64 hex digits |
+| `network_id` | the network's id, 64 hex digits; in a tiered network the one its genesis derives |
+| `genesis` | a tiered network: its genesis document (§Operating contract, T88-P1), required there |
+| `family`, `answer_config`, `issuer` | with `genesis`: `answer-review/v1`, then the document's `AnswerConfig` and issuer key in hex |
 | `data_dir` | the node's directory |
 | `listen`, `peers` | the multiaddresses it listens on and dials |
 | `writers` | the writer set, one public key each (hex) |
 | `consortium.members`, `consortium.threshold` | the members' public keys in order, and `t` |
 | `key_file` | optional: a file holding the writer's 32-byte seed (hex); a member's key is its writer key |
 | `consortium.circle` | optional: the members' circle keys in member order — a tiered network, whose `writers` must be exactly the members' and circle keys |
+| `consortium.hpke` | optional, tiered: the members' signed key configurations in member order, in hex (§Blind relays; `--announce` prints a member's), each with its member's HPKE key in the genesis |
 | `circle_key_file` | a member of a tiered network: its circle seed (hex), whose key must be its own in `consortium.circle` |
-| `consortium.hpke` | optional, tiered: the members' signed key configurations in member order, in hex (§Blind relays; `--announce` prints a member's) |
-| `hpke_key_file`, `relays` | a tiered member's gateway: its HPKE seed (hex), whose configuration must be its own in `consortium.hpke`, and the relays' transport keys it answers |
+| `hpke_key_file`, `relays` | a tiered member's gateway: its HPKE seed (hex), whose configuration must be its own in `consortium.hpke`, and the relays' transport keys it answers, the genesis's in any order |
 | `relay` | `true` for a tiered non-member that forwards persons' requests; needs every member's configuration |
 | `member` | optional: `index`, `every_ms`, `cuts_per_epoch`, `patience`, `view_patience` |
 | `sync_every_ms`, `status_every_ms` | the periodic pull, and how often the status is written |
@@ -1099,8 +1101,9 @@ cut from number 0 with its digest, view and exclusions (§The cuts' views and ex
 the status), and each finished round's value and withholders. A
 configuration that does not hold — a bad key, a threshold outside `1..=n`, a member without
 a key, circle keys that are not one distinct key per member, `writers` other than the tiered
-set's keys, a tiered member without its own circle key, a circle key file outside one —
-refuses to start. The node dials its peers at the start and again whenever it has none, so a
+set's keys, a tiered member without its own circle key, a circle key file outside one, a tiered
+configuration without its genesis or repeating a value other than the document's — refuses
+to start. The node dials its peers at the start and again whenever it has none, so a
 node restarted later reaches the others, which dial no one.
 
 The collected cuts are kept, not collected again from number 0 at each look: a node extends
@@ -1145,8 +1148,30 @@ add no consensus rule at runtime, where §Cuts is unchanged. The answer review's
     differs from the document or its id does not start. Members' transport keys stay out,
     bound on each connection (§Transport), and so do holder rosters, agreed per archive
     (below). Another issuer or relay is a new network.
-  - *Built:* `network_id` is a free value in each node's TOML, which repeats the members',
-    circle and HPKE lists; nothing derives the id or compares the lists across operators.
+  - *Built (AT-NET-40):* `network::genesis` encodes the version (1), `t` and `n` (8 bytes
+    each), each member's three keys, the family (1, the answer review v1), the `AnswerConfig`
+    (`protocol`'s offline record encoding, twelve words) and the issuer key (`IssuerPublic`'s
+    97 bytes: version 1, the compressed G2 key under the crate's fixed parameters) as
+    length-prefixed fields, then the relays in increasing order. Decoding refuses every other
+    byte string: a truncation or trailing byte, another version or family, no member or more
+    than 256 (a key id is one byte), `t` outside `1..=n`, an Ed25519 key that is not a
+    canonical point encoding, an X25519 key not below `2^255 − 19`, a key repeated among the
+    consortium and circle keys, among the HPKE keys or among the relays, and unordered relays;
+    a node also refuses a part that is not one canonical encoding of a valid configuration
+    (negative zeros included) or of a key other than the identity. The document's digest is
+    the plain SHA-256 of its bytes, the id its tagged hash; the known answers come from an
+    independent oracle. A tiered node's TOML names the document (`genesis`) and repeats its
+    values (§A node process): `network_id`, `consortium.members`, `threshold` and `circle`
+    in order, `family`, `answer_config` and `issuer`, `consortium.hpke` when listed — one per
+    member, each with the genesis's key — and a gateway's `relays` as a set. A difference or
+    a missing value refuses the start with the field named, before any file is made; so does a
+    tiered TOML without `genesis`. `--announce` signs only the genesis's HPKE key.
+    `isegoria-node --genesis-digest <file>` prints `digest`, `network_id`, then the document
+    line by line (`version`, `threshold`, `member <i> <consortium> <circle> <hpke>`, `family`,
+    `answer_config`, `issuer`, `relay`), reading only that file and writing nothing. Networks
+    without tiers keep a free `network_id`. *Not built:* a command assembling the document
+    from the operators' printed keys; a check of a relay's own transport key against it. The
+    version is not repeated in the TOML. Tested in-process and on controlled processes.
 - **T88-P2 — keys.** *Approved:* the separate keys already built stay — the consortium key
   (public feed), the circle key, the HPKE key and the transport key, each from its own
   secret; the earlier proposal to derive them all from the member's seed is withdrawn. Each
@@ -1223,12 +1248,13 @@ operators' closure commands, the comparison of state digests and a round without
 1. **Preparation.** Each operator pins the agreed revision, generates its member's secrets
    locally (`--new-identity`), keeps a backup under its own control, and sends the others
    only the public keys it printed and its addresses.
-2. **Configuration confirmation.** One operator assembles the canonical configuration. Each
-   operator checks its own keys and index, `n = 4`, `t = 3` and the version, computes the
-   digest and the network id itself *(needs code)*, and confirms them to every other
-   operator over a channel it authenticates on its own: the digest proves no origin. The
-   four confirmations go into the evidence. Only then does each sign its key configuration
-   (`--announce`), exchange it and write its node's TOML.
+2. **Configuration confirmation.** One operator assembles the canonical configuration
+   *(needs code: no command assembles it)*. Each operator checks its own keys and index,
+   `n = 4`, `t = 3` and the version, computes the digest and the network id itself
+   (`--genesis-digest`), and confirms them to every other operator over a channel it
+   authenticates on its own: the digest proves no origin. The four confirmations go into the
+   evidence. Only then does each sign its key configuration (`--announce`), exchange it and
+   write its node's TOML, naming the document and repeating its values.
 3. **First start.** Each member starts from empty files under its new identity and writes
    nothing before sync rounds with two other verified members. Record each
    status: `bound`, `caught_up`, `circle_caught_up` and the first cuts.
@@ -1239,13 +1265,14 @@ operators' closure commands, the comparison of state digests and a round without
    while the other three progress. Two members down stop progress until one
    returns.
 6. **Faults.** Delay, drop and duplicate messages; partition 3–1 (the three progress) and
-   2–2 (neither side does), then rejoin. A node given another configuration must not start
-   *(needs code)*. A detected loss or inconsistency stops a member's writes durably
-   (§Increments A and B). An operator who restores a member's directory or keys from a
-   backup or any copy does not resume that identity's writes, and records the restoration;
-   an undetected restoration is a residual. A conflict, an equivocation or a compromised key
-   stops the trial: every operator keeps its data directories as they are, no branch is
-   chosen, and any continuation is a new configuration.
+   2–2 (neither side does), then rejoin. A node given another configuration must not start:
+   a TOML repeating other values than its genesis, or its network id, refuses the start. A
+   detected loss or inconsistency stops a member's writes durably (§Increments A and B). An
+   operator who restores a member's directory or keys from a backup or any copy does not
+   resume that identity's writes, and records the restoration; an undetected restoration is
+   a residual. A conflict, an equivocation or a compromised key stops the trial: every
+   operator keeps its data directories as they are, no branch is chosen, and any
+   continuation is a new configuration.
 7. **Evidence.** Shared evidence holds no secret and no circle content, only what verifies
    the outcomes: the pinned revision, the configuration document, its digest and the four
    confirmations; each node's status over time; public entries,
@@ -1268,7 +1295,8 @@ What remains:
    that offers nothing of its key (`p2p` `caught_up_by`): for the public feed from any peer,
    bound or not; for the circle feed from one granting member. *Resolved* for tiered networks
    by increment B (D59): two other verified members; writers without tiers keep T80.
-2. **The network id** is a free TOML value (P1, *Built*).
+2. **The network id.** *Resolved* for tiered networks: it derives from the genesis, which
+   each node's TOML names and repeats (T88-P1, *Built*); no command assembles the document.
 3. **Conflicts.** *Resolved* for the duties (§The duties' stop at a conflict): after two cuts
    are collected for one number, a member's duties produce nothing more.
 4. **Views and exclusions.** *Resolved* for the status (§The cuts' views and exclusions in the
@@ -1287,8 +1315,8 @@ What remains:
 
 P4 is where the code contradicted the approved contract, so it comes first, in two
 increments, approved (`01` D58, D59) and specified below; together they still do not
-complete P4. P1's configuration follows (§Obstacles in the code, 2); the duties' conflict
-stop and the cuts' views in the status are below.
+complete P4. P1's genesis is built (T88-P1); the duties' conflict stop and the cuts' views in
+the status are below.
 
 **Scope of A.** The record governs every feed of a node in a tiered network, whose writers
 are all members' keys, with or without the member role, so no configuration writes around

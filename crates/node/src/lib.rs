@@ -3,6 +3,7 @@
 
 pub mod archive;
 pub mod extract;
+pub mod genesis;
 pub mod install;
 pub mod production;
 
@@ -11,7 +12,7 @@ use libp2p::identity::Keypair;
 use libp2p::Multiaddr;
 use network::consortium::{Consortium, Member};
 use network::replica::{FeedWriter, WriterSet};
-use network::tier::{TierError, Tiers};
+use network::tier::Tiers;
 use p2p::blind::{Gateway, GatewayKey, KeyAnnouncement};
 use p2p::member::{CollectedCut, MemberRole};
 use p2p::record::Stop;
@@ -26,7 +27,13 @@ use std::time::Duration;
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
+    /// In a tiered network, the id its genesis derives (`docs/04` T88-P1).
     pub network_id: String,
+    /// A tiered network's genesis document, whose family's parts the next three repeat in hex.
+    pub genesis: Option<PathBuf>,
+    pub family: Option<String>,
+    pub answer_config: Option<String>,
+    pub issuer: Option<String>,
     pub data_dir: PathBuf,
     pub listen: Vec<String>,
     #[serde(default)]
@@ -100,13 +107,13 @@ pub enum ConfigError {
     Threshold,
     Address(String),
     MemberWithoutKey,
-    Tiers(TierError),
     /// `writers` is not exactly the tiered set's members' and circle keys.
     Writers,
     /// A tiered member without its circle key, or a circle key file elsewhere or of another key.
     CircleKey,
     /// A relay or gateway setting that does not hold: the field.
     Relays(&'static str),
+    Genesis(genesis::Error),
 }
 
 impl Config {
@@ -322,7 +329,7 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
     let seed = seed_of(&config.key_file, "key_file")?;
     let circle_seed = seed_of(&config.circle_key_file, "circle_key_file")?;
     let circle = keys(&config.consortium.circle, "consortium.circle")?;
-    let tiers = tiers_of(&config)?;
+    let (tiers, document) = tiered(&config)?.unzip();
     let member = match (config.member.as_ref(), seed) {
         (None, _) => None,
         (Some(_), None) => return Err(ConfigError::MemberWithoutKey),
@@ -352,7 +359,8 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
         _ if circle_seed.is_some() => return Err(ConfigError::CircleKey),
         _ => None,
     };
-    let (relay, gateway) = blind_plan(&config, tiers.as_ref(), member.as_ref())?;
+    let tiered = tiers.as_ref().zip(document.as_ref());
+    let (relay, gateway) = blind_plan(&config, tiered, member.as_ref())?;
     let archive_maintenance = config
         .archive_maintenance
         .as_ref()
@@ -389,25 +397,30 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
     })
 }
 
-/// The tiered set a configuration declares, if any: its circle keys and `writers` checked.
-fn tiers_of(config: &Config) -> Result<Option<Tiers>, ConfigError> {
+/// The tiered set and genesis a configuration declares, if any: the document's set, once the
+/// TOML's repeated values and `writers` match it (`docs/04` T88-P1).
+fn tiered(config: &Config) -> Result<Option<(Tiers, genesis::Document)>, ConfigError> {
     let circle = keys(&config.consortium.circle, "consortium.circle")?;
-    if circle.is_empty() {
-        return Ok(None);
-    }
-    let network_id = unhex(&config.network_id, "network_id")?;
-    let members = keys(&config.consortium.members, "consortium.members")?;
-    let t = config.consortium.threshold;
-    if !(1..=members.len()).contains(&t) {
-        return Err(ConfigError::Threshold);
-    }
-    let tiers =
-        Tiers::new(network_id, Consortium::new(members, t), &circle).map_err(ConfigError::Tiers)?;
+    let Some(path) = &config.genesis else {
+        let repeated = [&config.family, &config.answer_config, &config.issuer];
+        return match circle.is_empty() && repeated.iter().all(|v| v.is_none()) {
+            true => Ok(None),
+            false => Err(ConfigError::Genesis(genesis::Error::Missing)),
+        };
+    };
+    let document = genesis::load(path)?;
+    genesis::compare(config, &document)?;
+    let decode = |e| ConfigError::Genesis(genesis::Error::Decode(e));
+    let tiers = document.genesis.tiers().map_err(decode)?;
     let writers = keys(&config.writers, "writers")?;
-    if WriterSet::new(network_id, &writers) != *tiers.writers() {
+    if WriterSet::new(tiers.network_id(), &writers) != *tiers.writers() {
         return Err(ConfigError::Writers);
     }
-    Ok(Some(tiers))
+    Ok(Some((tiers, document)))
+}
+
+fn tiers_of(config: &Config) -> Result<Option<Tiers>, ConfigError> {
+    Ok(tiered(config)?.map(|(tiers, _)| tiers))
 }
 
 fn bytes_of(text: &str) -> Option<Vec<u8>> {
@@ -421,16 +434,35 @@ fn bytes_of(text: &str) -> Option<Vec<u8>> {
         .collect()
 }
 
-/// The members' key configurations, each verified as its position's member's.
-fn announcements(tiers: &Tiers, list: &[String]) -> Result<Vec<KeyAnnouncement>, ConfigError> {
-    list.iter()
+/// The members' key configurations, each verified as its position's member's; when listed, all
+/// of them, each with its member's HPKE key in the genesis.
+fn announcements(
+    tiers: &Tiers,
+    document: &genesis::Document,
+    list: &[String],
+) -> Result<Vec<KeyAnnouncement>, ConfigError> {
+    let routes = list
+        .iter()
         .enumerate()
         .map(|(i, text)| {
             let a = bytes_of(text).and_then(|b| KeyAnnouncement::decode(&b));
             a.filter(|a| a.member == i && a.verify(tiers))
                 .ok_or(ConfigError::Relays("consortium.hpke"))
         })
-        .collect()
+        .collect::<Result<Vec<_>, _>>()?;
+    let keys: Vec<_> = routes.iter().map(KeyAnnouncement::hpke_key).collect();
+    let own: Vec<_> = document
+        .genesis
+        .members
+        .iter()
+        .map(|m| Some(m.hpke))
+        .collect();
+    if !routes.is_empty() && keys != own {
+        return Err(ConfigError::Genesis(genesis::Error::Differs(
+            "consortium.hpke",
+        )));
+    }
+    Ok(routes)
 }
 
 /// A member's gateway key from its `hpke_key_file`.
@@ -445,20 +477,20 @@ fn gateway_key(tiers: &Tiers, role: &MemberRole, path: &Path) -> Result<GatewayK
 /// nothing, since no admission rule exists before `docs/10` T79.
 fn blind_plan(
     config: &Config,
-    tiers: Option<&Tiers>,
+    tiered: Option<(&Tiers, &genesis::Document)>,
     member: Option<&MemberRole>,
 ) -> Result<(Option<Vec<KeyAnnouncement>>, Option<Gateway>), ConfigError> {
     let asked = config.relay
         || config.hpke_key_file.is_some()
         || !config.relays.is_empty()
         || !config.consortium.hpke.is_empty();
-    let Some(tiers) = tiers.filter(|_| asked) else {
+    let Some((tiers, document)) = tiered.filter(|_| asked) else {
         return match asked {
             true => Err(ConfigError::Relays("consortium.circle")),
             false => Ok((None, None)),
         };
     };
-    let routes = announcements(tiers, &config.consortium.hpke)?;
+    let routes = announcements(tiers, document, &config.consortium.hpke)?;
     let relay = match config.relay {
         true if member.is_none()
             && config.key_file.is_none()
@@ -490,9 +522,10 @@ fn blind_plan(
     Ok((relay, gateway))
 }
 
-/// A member's signed OHTTP key configuration in hex, for the shared `consortium.hpke`.
+/// A member's signed OHTTP key configuration in hex, for the shared `consortium.hpke`; its key
+/// must be the member's in the genesis.
 pub fn announcement(config: &Config) -> Result<String, ConfigError> {
-    let tiers = tiers_of(config)?.ok_or(ConfigError::Relays("consortium.circle"))?;
+    let (tiers, document) = tiered(config)?.ok_or(ConfigError::Relays("consortium.circle"))?;
     let (Some(m), Some(path)) = (&config.member, &config.key_file) else {
         return Err(ConfigError::MemberWithoutKey);
     };
@@ -513,9 +546,14 @@ pub fn announcement(config: &Config) -> Result<String, ConfigError> {
         .hpke_key_file
         .as_ref()
         .ok_or(ConfigError::Relays("hpke_key_file"))?;
-    Ok(hex(&gateway_key(&tiers, &role, path)?
-        .announcement()
-        .encode()))
+    let key = gateway_key(&tiers, &role, path)?;
+    let own = document.genesis.members.get(m.index).map(|m| m.hpke);
+    if key.announcement().hpke_key() != own {
+        return Err(ConfigError::Genesis(genesis::Error::Differs(
+            "hpke_key_file",
+        )));
+    }
+    Ok(hex(&key.announcement().encode()))
 }
 
 /// The status file's text: one line per fact, cuts and rounds in order.

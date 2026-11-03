@@ -6,7 +6,14 @@ use network::tier::Tiers;
 use node::hex;
 use std::path::{Path, PathBuf};
 
-pub const NET: [u8; 32] = [113; 32];
+/// One member of seeds 1, 11 and 21, alone signing, no relay.
+pub fn document() -> network::genesis::Genesis {
+    super::genesis::genesis(1, vec![super::genesis::seeded(1, 11, 21)], vec![])
+}
+
+pub fn net() -> [u8; 32] {
+    document().id()
+}
 pub const LINEAGE: [u8; 32] = [114; 32];
 
 pub struct Fixture {
@@ -39,9 +46,10 @@ impl Fixture {
             .join(format!("{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
+        super::genesis::write(&root.join("genesis.bin"), &document());
         let member = Member::from_seed([1; 32]);
         let tiers = Tiers::new(
-            NET,
+            net(),
             Consortium::new(vec![member.public()], 1),
             &[Member::from_seed([11; 32]).public()],
         )
@@ -60,7 +68,7 @@ impl Fixture {
             view: 0,
             excluded: &[],
         };
-        let cp = target.checkpoint_in(0, NET, tiers.consortium().member_set_hash());
+        let cp = target.checkpoint_in(0, net(), tiers.consortium().member_set_hash());
         let segment = Segment::build(
             &context,
             &Replica::new(tiers.writers().clone()),
@@ -105,8 +113,9 @@ impl Fixture {
 
     pub fn config(&self, name: &str, listen: &str, peers: &[String], job: Option<&str>) -> String {
         let listen = listen.split("/p2p/").next().unwrap();
-        let mut text = format!("network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = [\"{listen}\"]\npeers = {}\nwriters = [\"{}\",\"{}\"]\nstatus_every_ms = 50\nsync_every_ms = 100\n\n[consortium]\nmembers = [\"{}\"]\nthreshold = 1\ncircle = [\"{}\"]\n",
-            hex(&NET), self.root.join(name).display(), quoted(peers), public(1), public(11), public(1), public(11));
+        let lines = super::genesis::lines(&self.root.join("genesis.bin"), &document());
+        let mut text = lines + &format!("network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = [\"{listen}\"]\npeers = {}\nwriters = [\"{}\",\"{}\"]\nstatus_every_ms = 50\nsync_every_ms = 100\n\n[consortium]\nmembers = [\"{}\"]\nthreshold = 1\ncircle = [\"{}\"]\n",
+            hex(&net()), self.root.join(name).display(), quoted(peers), public(1), public(11), public(1), public(11));
         if let Some(job) = job {
             text +=
                 &format!("\n[archive_maintenance]\ninterval_ms = 100\ndeadline_ms = 3000\n{job}");

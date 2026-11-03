@@ -1,6 +1,8 @@
 //! `--new-identity` and a member node's identity record (`docs/04` §Increments A and B,
 //! `docs/01` D58, AT-NET-36): four private secrets, public keys printed, no record made later.
 
+#[path = "support/genesis.rs"]
+mod genesis;
 #[allow(dead_code)]
 #[path = "support/process.rs"]
 mod process;
@@ -166,8 +168,15 @@ mod processes {
         let circle: Vec<[u8; 32]> = keys.iter().map(|k| k[1]).collect();
         let writers: Vec<[u8; 32]> = members.iter().chain(&circle).copied().collect();
         let peers: Vec<String> = peers.iter().map(|p| format!("\"{p}\"")).collect();
-        format!("network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = [\"/ip4/127.0.0.1/tcp/{listen}\"]\npeers = [{}]\nwriters = {}\nkey_file = \"{}\"\ncircle_key_file = \"{}\"\nstatus_every_ms = 100\nsync_every_ms = 100\n[consortium]\nmembers = {}\nthreshold = {threshold}\ncircle = {}\n[member]\nindex = {index}\nevery_ms = 100\ncuts_per_epoch = 1000\npatience = 10\nview_patience = 20\n",
-            node::hex(&[36; 32]), dir.display(), peers.join(","), list(&writers), dir.join("member.key").display(), dir.join("circle.key").display(), list(&members), list(&circle))
+        let entries = keys.iter().map(|k| network::genesis::GenesisMember {
+            consortium: k[0],
+            circle: k[1],
+            hpke: k[2],
+        });
+        let document = super::genesis::genesis(threshold, entries.collect(), vec![]);
+        let lines = super::genesis::write(&dir.with_extension("genesis"), &document);
+        lines + &format!("network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = [\"/ip4/127.0.0.1/tcp/{listen}\"]\npeers = [{}]\nwriters = {}\nkey_file = \"{}\"\ncircle_key_file = \"{}\"\nstatus_every_ms = 100\nsync_every_ms = 100\n[consortium]\nmembers = {}\nthreshold = {threshold}\ncircle = {}\n[member]\nindex = {index}\nevery_ms = 100\ncuts_per_epoch = 1000\npatience = 10\nview_patience = 20\n",
+            node::hex(&document.id()), dir.display(), peers.join(","), list(&writers), dir.join("member.key").display(), dir.join("circle.key").display(), list(&members), list(&circle))
     }
 
     // Four new identities, n = 4, t = 3: two others' rounds before writing, then cuts (AT-NET-37).

@@ -63,6 +63,12 @@ impl KeyAnnouncement {
         })
     }
 
+    /// The X25519 public key of a configuration of `verify`'s length (`docs/04` T88-P1).
+    pub fn hpke_key(&self) -> Option<[u8; 32]> {
+        let c = &self.config;
+        (c.len() == CONFIG_LEN).then(|| c[3..35].try_into().ok())?
+    }
+
     /// Whether this is member `member`'s configuration under `tiers`: signed by its consortium
     /// key for this network and member set, its index the key id, X25519 with this suite only.
     pub fn verify(&self, tiers: &Tiers) -> bool {

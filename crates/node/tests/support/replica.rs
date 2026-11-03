@@ -1,6 +1,6 @@
 //! A stopped node's replica written as a node stores it, with the inputs that pin its cuts.
 
-use super::support::{Fixture, NET, PRIVATE, PUBLIC};
+use super::support::{net, Fixture, PRIVATE, PUBLIC};
 use network::cid::cid;
 use network::cut::{Cut, MemberObject};
 use network::log::TransparencyLog;
@@ -18,7 +18,7 @@ pub fn replica(f: &Fixture, dir: &Path, signed: &[(&Cut, u64, &[usize])]) {
         .into_iter()
         .map(|seed| {
             (
-                FeedWriter::from_seed(NET, [seed; 32]),
+                FeedWriter::from_seed(net(), [seed; 32]),
                 TransparencyLog::new(),
             )
         })
@@ -38,7 +38,7 @@ pub fn replica(f: &Fixture, dir: &Path, signed: &[(&Cut, u64, &[usize])]) {
                 cut: (*cut).clone(),
                 view: *view,
                 member,
-                signature: f.members[member].sign(&cut.checkpoint_in(*view, NET, set)),
+                signature: f.members[member].sign(&cut.checkpoint_in(*view, net(), set)),
                 named: Vec::new(),
             };
             put(member, object.encode());
