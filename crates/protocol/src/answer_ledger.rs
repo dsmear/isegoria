@@ -63,10 +63,6 @@ pub enum Refusal {
 /// Why the members' checks refuse a cut (`docs/05` T79-P3).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CheckFailure {
-    /// Not the cut after the last one this ledger applied.
-    NotNext {
-        expected: u64,
-    },
     Epoch {
         expected: u64,
     },
@@ -81,6 +77,10 @@ pub enum CheckFailure {
 pub enum AnswerLedgerError {
     /// A replica of another writer set than the ledger's tiers.
     Replica,
+    /// Not the cut after the last one applied: an earlier, a repeated or a later number.
+    OutOfSequence {
+        expected: u64,
+    },
     /// Fewer than the threshold of member signatures, a withholder's not counted (rule 6).
     Unsigned,
     /// A cut `t` members signed that the members' checks refuse: not applied.
@@ -114,12 +114,17 @@ impl Next {
         })
     }
 
-    pub fn check(&self, cut: &Cut) -> Result<(), CheckFailure> {
+    /// `OutOfSequence` unless `cut` has the next number, then the members' checks.
+    pub fn check(&self, cut: &Cut) -> Result<(), AnswerLedgerError> {
         if cut.number != self.number {
-            return Err(CheckFailure::NotNext {
+            return Err(AnswerLedgerError::OutOfSequence {
                 expected: self.number,
             });
         }
+        self.checks(cut).map_err(AnswerLedgerError::Checks)
+    }
+
+    fn checks(&self, cut: &Cut) -> Result<(), CheckFailure> {
         if cut.epoch != self.epoch {
             return Err(CheckFailure::Epoch {
                 expected: self.epoch,
@@ -162,6 +167,8 @@ pub struct AnswerLedger {
     last: Option<Cut>,
     rounds: Rounds,
     requests: BTreeMap<Request, BTreeSet<usize>>,
+    view: u64,
+    refused: Vec<(EntryId, Refusal)>,
 }
 
 impl AnswerLedger {
@@ -175,6 +182,8 @@ impl AnswerLedger {
             last: None,
             rounds: Rounds::new(),
             requests: BTreeMap::new(),
+            view: 0,
+            refused: Vec::new(),
         })
     }
 
@@ -199,23 +208,35 @@ impl AnswerLedger {
         if replica.writers() != self.tiers.writers() {
             return Err(AnswerLedgerError::Replica);
         }
+        let overflow = AnswerLedgerError::Checks(CheckFailure::Overflow);
+        let next = self.next().ok_or(overflow)?;
+        if cut.number != next.number {
+            return Err(AnswerLedgerError::OutOfSequence {
+                expected: next.number,
+            });
+        }
         let (consortium, network) = (self.tiers.consortium(), self.tiers.network_id());
         let checkpoint = cut.checkpoint_in(view, network, consortium.member_set_hash());
         if !consortium.verify_excluding(&checkpoint, sigs, &self.rounds.excluded(cut)) {
             return Err(AnswerLedgerError::Unsigned);
         }
-        self.check(cut).map_err(AnswerLedgerError::Checks)?;
+        next.check(cut)?;
         let order = added(replica, self.last.as_ref(), cut).map_err(AnswerLedgerError::Cut)?;
         let mut report = CutReport::default();
         for id in order {
             let (_, object) = replica.get(&id).expect("`added` names only held entries");
-            report.entries.push((id, self.entry(id, object, cut)));
+            let result = self.entry(id, object, cut);
+            if let Err(refusal) = result {
+                self.refused.push((id, refusal));
+            }
+            report.entries.push((id, result));
         }
         if cut.closes {
             let sealed = self.path.seal().expect("the checks refuse a seal past u64");
             report.sealed = Some(sealed);
         }
         let last = self.last.replace(cut.clone());
+        self.view = view;
         let consortium = self.tiers.consortium();
         self.rounds.finish(consortium, network, cut, last.as_ref());
         let finished = last.filter(|l| l.closes).map(|l| l.epoch);
@@ -317,8 +338,11 @@ impl AnswerLedger {
     }
 
     /// The members' checks on a proposal after the last cut applied (`docs/05` T79-P3).
-    pub fn check(&self, cut: &Cut) -> Result<(), CheckFailure> {
-        self.next().ok_or(CheckFailure::Overflow)?.check(cut)
+    pub fn check(&self, cut: &Cut) -> Result<(), AnswerLedgerError> {
+        let next = self
+            .next()
+            .ok_or(AnswerLedgerError::Checks(CheckFailure::Overflow))?;
+        next.check(cut)
     }
 
     pub fn state(&self) -> &AnswerPath {
@@ -327,6 +351,11 @@ impl AnswerLedger {
 
     pub fn last(&self) -> Option<&Cut> {
         self.last.as_ref()
+    }
+
+    /// Every entry refused so far, with its reason, in the order the cuts applied them.
+    pub fn refused(&self) -> &[(EntryId, Refusal)] {
+        &self.refused
     }
 
     pub fn beacon(&self, epoch: u64) -> Option<&BeaconOutcome> {
@@ -338,24 +367,238 @@ impl AnswerLedger {
         self.rounds.excluded(cut)
     }
 
-    /// The tagged SHA-256 of the network id, the path's state and the requests counted (D60).
+    /// The tagged SHA-256 of the network id, the path's state, the requests, the beacon rounds,
+    /// the last cut's number and view, and the refusals, in one canonical encoding (D60).
     pub fn digest(&self) -> [u8; 32] {
         let mut state = Writer::new();
         self.path.write_state(&mut state);
-        let mut requests = Writer::new();
-        requests.u64(self.requests.len() as u64);
+        let mut w = Writer::new();
+        w.u64(self.requests.len() as u64);
         for (request, members) in &self.requests {
             let (kind, n) = match request {
                 Request::Commits(q) => (0, q),
                 Request::Round(q) => (1, q),
                 Request::Epoch(e) => (2, e),
             };
-            requests.u8(kind).u64(*n).u64(members.len() as u64);
+            w.u8(kind).u64(*n).u64(members.len() as u64);
             for m in members {
-                requests.u64(*m as u64);
+                w.u64(*m as u64);
             }
         }
+        self.rounds.write(&mut w);
+        match &self.last {
+            None => w.u8(0),
+            Some(cut) => w.u8(1).u64(cut.number).u64(self.view),
+        };
+        w.u64(self.refused.len() as u64);
+        for (id, refusal) in &self.refused {
+            w.fixed(&id.writer).u64(id.seq).fixed(&id.hash);
+            write_refusal(&mut w, refusal);
+        }
         let network = self.tiers.network_id();
-        tagged(DIGEST, &[&network, &state.finish(), &requests.finish()])
+        tagged(DIGEST, &[&network, &state.finish(), &w.finish()])
+    }
+}
+
+fn write_refusal(w: &mut Writer, refusal: &Refusal) {
+    let (code, detail) = match refusal {
+        Refusal::NotAnEvent => (0, 0),
+        Refusal::NotAuthorized => (1, 0),
+        Refusal::PublicFeed => (2, 0),
+        Refusal::Derived => (3, 0),
+        Refusal::WrongEpoch => (4, 0),
+        Refusal::Repeated => (5, 0),
+        Refusal::TooLarge => (6, 0),
+        Refusal::OutOfWindow => (7, 0),
+        Refusal::Beacon(e) => (8, *e as u64),
+        Refusal::Path(_) => (9, 0),
+    };
+    w.u8(code).u64(detail);
+    if let Refusal::Path(r) = refusal {
+        let (code, detail) = match r {
+            Refused::WrongEpoch => (0, 0),
+            Refused::Malformed(m) => (1, *m as u64),
+            Refused::Unproven(u) => (2, *u as u64),
+            Refused::AlreadyInPool => (3, 0),
+            Refused::Duplicate { question } => (4, *question),
+            Refused::OverQuota { quota } => (5, u64::from(*quota)),
+            Refused::UnknownQuestion => (6, 0),
+            Refused::BeaconPending => (7, 0),
+            Refused::WrongRound => (8, 0),
+            Refused::NotDrawn => (9, 0),
+            Refused::AlreadyCommitted => (10, 0),
+            Refused::NoCommit => (11, 0),
+            Refused::AlreadyRevealed => (12, 0),
+            Refused::RevealMismatch => (13, 0),
+            Refused::AnswerOutOfRange => (14, 0),
+            Refused::Overflow => (15, 0),
+            Refused::NetworkOnly => (16, 0),
+        };
+        w.u8(code).u64(detail);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::admission::Unproven;
+    use crate::answer::Malformed;
+    use identity::credential::Issuer;
+    use network::beacon::RoundId;
+    use network::consortium::{Consortium, Member};
+    use network::replica::FeedWriter;
+
+    const NET: [u8; 32] = [0x79; 32];
+
+    fn id(b: u8) -> EntryId {
+        EntryId {
+            writer: [b; 32],
+            seq: u64::from(b),
+            hash: [b; 32],
+        }
+    }
+
+    /// A ledger with requests, a cut point, refusals and a counted beacon commit.
+    fn ledger(network: [u8; 32]) -> AnswerLedger {
+        let members: Vec<_> = (0..4).map(|i| Member::from_seed([10 + i; 32])).collect();
+        let keys = members.iter().map(Member::public).collect();
+        let circle: Vec<_> = (0..4)
+            .map(|i| FeedWriter::from_seed(network, [20 + i; 32]).public())
+            .collect();
+        let tiers = Tiers::new(network, Consortium::new(keys, 3), &circle).unwrap();
+        let issuer = Issuer::new([1; 32]).public();
+        let mut l = AnswerLedger::new(tiers, issuer, AnswerConfig::default()).unwrap();
+        l.requests
+            .insert(Request::Commits(0), BTreeSet::from([0, 1]));
+        l.requests.insert(Request::Epoch(0), BTreeSet::from([2]));
+        let cut = Cut {
+            number: 4,
+            epoch: 0,
+            closes: false,
+            marks: Vec::new(),
+        };
+        let round = RoundId {
+            network_id: network,
+            member_set_hash: l.tiers.consortium().member_set_hash(),
+            epoch: 0,
+        };
+        let commit = MemberObject::Commit(members[0].beacon_commit(round, 0).0);
+        let c = l.tiers.consortium();
+        l.rounds.count(c, network, &commit, &cut, None).unwrap();
+        (l.last, l.view) = (Some(cut), 1);
+        let duplicate = Refusal::Path(Refused::Duplicate { question: 0 });
+        l.refused = vec![(id(1), Refusal::NotAnEvent), (id(2), duplicate)];
+        l
+    }
+
+    fn rekey(l: &mut AnswerLedger, from: Request, to: Request) {
+        let members = l.requests.remove(&from).unwrap();
+        l.requests.insert(to, members);
+    }
+
+    // AT-T79-15: ledgers differing in one part of the digest — network, requests, cut point,
+    // refusals, rounds, path — digest apart.
+    #[test]
+    fn every_part_is_in_the_digest() {
+        type Change = fn(&mut AnswerLedger);
+        let changes: Vec<(&str, Change)> = vec![
+            ("a requester", |l| {
+                l.requests.get_mut(&Request::Commits(0)).unwrap().insert(3);
+            }),
+            ("a request's kind", |l| {
+                rekey(l, Request::Commits(0), Request::Round(0))
+            }),
+            ("a request's question", |l| {
+                rekey(l, Request::Commits(0), Request::Commits(1))
+            }),
+            ("a request's epoch", |l| {
+                rekey(l, Request::Epoch(0), Request::Epoch(1))
+            }),
+            ("no cut", |l| l.last = None),
+            ("the cut's number", |l| l.last.as_mut().unwrap().number += 1),
+            ("the view", |l| l.view = 2),
+            ("a refused writer", |l| l.refused[0].0.writer[0] ^= 1),
+            ("a refused seq", |l| l.refused[0].0.seq += 1),
+            ("a refused hash", |l| l.refused[0].0.hash[0] ^= 1),
+            ("a reason", |l| l.refused[0].1 = Refusal::NotAuthorized),
+            ("a reason's detail", |l| {
+                l.refused[1].1 = Refusal::Path(Refused::Duplicate { question: 1 })
+            }),
+            ("a refusal more", |l| {
+                l.refused.push((id(4), Refusal::Derived))
+            }),
+            ("their order", |l| l.refused.swap(0, 1)),
+            ("a round", |l| l.rounds = Rounds::new()),
+            ("the path", |l| {
+                l.path.seal().unwrap();
+            }),
+        ];
+        let reference = ledger(NET).digest();
+        assert_eq!(ledger(NET).digest(), reference);
+        for (part, change) in changes {
+            let mut l = ledger(NET);
+            change(&mut l);
+            assert_ne!(l.digest(), reference, "{part}");
+        }
+        assert_ne!(ledger([9; 32]).digest(), reference);
+    }
+
+    // AT-T79-15: each refusal, with each detail it carries, encodes apart from every other.
+    #[test]
+    fn every_refusal_encodes_apart() {
+        use Refused as R;
+        let mut path = vec![R::WrongEpoch, R::AlreadyInPool, R::UnknownQuestion];
+        path.extend([
+            R::BeaconPending,
+            R::WrongRound,
+            R::NotDrawn,
+            R::AlreadyCommitted,
+        ]);
+        path.extend([R::NoCommit, R::AlreadyRevealed, R::RevealMismatch]);
+        path.extend([R::AnswerOutOfRange, R::Overflow, R::NetworkOnly]);
+        path.extend([R::Duplicate { question: 0 }, R::Duplicate { question: 1 }]);
+        path.extend([R::OverQuota { quota: 1 }, R::OverQuota { quota: 2 }]);
+        path.extend([Unproven::BadProof, Unproven::WrongRole].map(R::Unproven));
+        let malformed = [
+            Malformed::EmptyContext,
+            Malformed::EmptyStem,
+            Malformed::TooFewAlternatives,
+            Malformed::TooManyAlternatives,
+            Malformed::EmptyAlternative,
+            Malformed::RepeatedAlternative,
+            Malformed::KeyOutOfRange,
+        ];
+        path.extend(malformed.map(R::Malformed));
+        let beacon = [
+            RoundError::WrongNetwork,
+            RoundError::WrongMemberSet,
+            RoundError::WrongEpoch,
+            RoundError::NotAMember,
+            RoundError::BadSignature,
+            RoundError::DuplicateCommit,
+            RoundError::CommitsClosed,
+            RoundError::RevealsNotOpen,
+            RoundError::NoCommit,
+            RoundError::RevealMismatch,
+            RoundError::AlreadyRevealed,
+            RoundError::OutOfPhase,
+        ];
+        let mut all = vec![
+            Refusal::NotAnEvent,
+            Refusal::NotAuthorized,
+            Refusal::PublicFeed,
+        ];
+        all.extend([Refusal::Derived, Refusal::WrongEpoch, Refusal::Repeated]);
+        all.extend([Refusal::TooLarge, Refusal::OutOfWindow]);
+        all.extend(beacon.map(Refusal::Beacon));
+        all.extend(path.into_iter().map(Refusal::Path));
+        let encoded: BTreeSet<Vec<u8>> = (all.iter())
+            .map(|r| {
+                let mut w = Writer::new();
+                write_refusal(&mut w, r);
+                w.finish()
+            })
+            .collect();
+        assert_eq!(encoded.len(), all.len());
     }
 }

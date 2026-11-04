@@ -13,7 +13,9 @@ use proptest::prelude::*;
 use protocol::answer::{Answer, Question};
 use protocol::answer_events::AnswerEvent;
 use protocol::answer_ledger::Refusal;
-use protocol::answer_ledger::{Accepted, AnswerLedger, AnswerLedgerError, CheckFailure, Next};
+use protocol::answer_ledger::{
+    fits, Accepted, AnswerLedger, AnswerLedgerError, CheckFailure, Next, MAX_QUESTION,
+};
 use protocol::answer_path::{AnswerConfig, AnswerPath, Refused, Round};
 use protocol::answer_rule::Verdict;
 use rand::seq::SliceRandom;
@@ -54,7 +56,7 @@ enum Op {
     },
     RevealGroup {
         question: u8,
-        skip: u8,
+        skip: u16,
         via: u8,
     },
     Request {
@@ -78,7 +80,7 @@ enum Op {
     /// its reveals, then `t` requests to close it.
     Advance {
         pattern: u8,
-        skip: u8,
+        skip: u16,
         from: u8,
     },
     /// `t` members ask to close the open epoch.
@@ -86,6 +88,10 @@ enum Op {
         from: u8,
     },
     Cut,
+    /// A cut whose signatures are given in view 1 or 2.
+    CutIn {
+        view: u8,
+    },
     BadCut {
         kind: u8,
     },
@@ -298,7 +304,7 @@ impl Model {
         self.mapped.insert(id, Mapped::Request(kind, member % N));
     }
 
-    fn advance(&mut self, pattern: u8, skip: u8, from: u8) {
+    fn advance(&mut self, pattern: u8, skip: u16, from: u8) {
         let open = |q: &u64| match self.offline.entry(*q).map(|e| &e.round) {
             Some(Round::Committing { .. }) => Some((*q, false)),
             Some(Round::Revealing { .. }) => Some((*q, true)),
@@ -315,7 +321,7 @@ impl Model {
                     let p = self.reviewer(q, i as u8);
                     if !revealing {
                         self.commit(q, p, patterned(pattern, i), from, false);
-                    } else if (skip >> (i % 8)) & 1 == 0 {
+                    } else if (skip >> (i % 16)) & 1 == 0 {
                         self.reveal(q, p, true, from);
                     }
                 }
@@ -403,10 +409,14 @@ impl Model {
                     1 => epoch.saturating_sub(1),
                     _ => epoch,
                 };
-                let q = match tag % 5 {
+                let q = match tag % 6 {
                     4 => Question {
                         context: Vec::new(),
                         ..question("malformed")
+                    },
+                    5 => Question {
+                        context: vec![b'x'; MAX_QUESTION],
+                        ..question("oversized")
                     },
                     t => question(&format!("q{t}")),
                 };
@@ -416,7 +426,12 @@ impl Model {
                     deposit(i, a, &q, named, Some(&NET)),
                     deposit(i, a, &q, named, None),
                 );
-                self.person_event(via, events.0, events.1);
+                if fits(&q) {
+                    self.person_event(via, events.0, events.1);
+                } else {
+                    let id = self.net.log(usize::from(via) % N, &events.0);
+                    self.mapped.insert(id, Mapped::Refused(Refusal::TooLarge));
+                }
             }
             Op::Commit {
                 question,
@@ -457,7 +472,7 @@ impl Model {
             } => {
                 let q = self.question(question);
                 for (i, _) in self.group(q).iter().enumerate() {
-                    if (skip >> (i % 8)) & 1 == 0 {
+                    if (skip >> (i % 16)) & 1 == 0 {
                         let p = self.reviewer(q, i as u8);
                         self.reveal(q, p, true, via);
                     }
@@ -492,6 +507,7 @@ impl Model {
                 }
             }
             Op::Cut => self.cut(),
+            Op::CutIn { view } => self.cut_in(1 + u64::from(view % 2)),
             Op::BadCut { kind } => self.bad_cut(kind),
         }
     }
@@ -552,6 +568,10 @@ impl Model {
     }
 
     fn cut(&mut self) {
+        self.cut_in(0);
+    }
+
+    fn cut_in(&mut self, view: u64) {
         let next = self.next();
         let (replica, last) = (&self.net.replica, self.net.ledger.last());
         let cut = Cut::next(replica, last, next.epoch, next.closes);
@@ -560,10 +580,7 @@ impl Model {
         if cut.closes {
             self.net.withhold = self.withheld(cut.epoch);
         }
-        let report = self
-            .net
-            .apply(cut.clone())
-            .expect("the model's cut applies");
+        let report = (self.net.apply_in(cut.clone(), view)).expect("the model's cut applies");
         let expected: Vec<_> = order.iter().map(|id| (*id, self.step(id, &cut))).collect();
         assert_eq!(report.entries, expected);
         let mut sealed = None;
@@ -596,50 +613,77 @@ impl Model {
         same_state(self.net.ledger.state(), &self.offline, &self.authors);
     }
 
+    /// A cut the members' checks refuse, one out of sequence, one short of signatures, or one on
+    /// another replica: refused, the ledger unchanged.
     fn bad_cut(&mut self, kind: u8) {
         let next = self.next();
-        let base = Cut::next(
-            &self.net.replica,
-            self.net.ledger.last(),
-            next.epoch,
-            next.closes,
-        );
-        let (cut, failure) = match kind % 3 {
-            0 => (
-                Cut {
+        let net = &self.net;
+        let base = Cut::next(&net.replica, net.ledger.last(), next.epoch, next.closes);
+        let checks = AnswerLedgerError::Checks;
+        let out = AnswerLedgerError::OutOfSequence {
+            expected: next.number,
+        };
+        let (cut, view, sigs, error) = match kind % 7 {
+            0 => {
+                let cut = Cut {
                     epoch: next.epoch + 1,
                     ..base
-                },
-                CheckFailure::Epoch {
+                };
+                let epoch = CheckFailure::Epoch {
                     expected: next.epoch,
-                },
-            ),
-            1 => (
-                Cut {
+                };
+                (cut, 0, None, checks(epoch))
+            }
+            1 => {
+                let cut = Cut {
                     closes: !next.closes,
                     ..base
-                },
-                CheckFailure::Closes {
+                };
+                let closes = CheckFailure::Closes {
                     expected: next.closes,
-                },
-            ),
-            _ => (
-                Cut {
+                };
+                (cut, 0, None, checks(closes))
+            }
+            3 if !net.cuts.is_empty() => {
+                let (cut, view, sigs) = net.cuts.last().unwrap().clone();
+                (cut, view, Some(sigs), out)
+            }
+            4 if net.cuts.len() > 1 => {
+                let (cut, view, sigs) = net.cuts[0].clone();
+                (cut, view, Some(sigs), out)
+            }
+            5 => {
+                let short = net.signed_by(&base, 0, 0..T - 1);
+                (base, 0, Some(short), AnswerLedgerError::Unsigned)
+            }
+            6 => (base, 0, None, AnswerLedgerError::Replica),
+            _ => {
+                let cut = Cut {
                     number: next.number + 1,
                     ..base
-                },
-                CheckFailure::NotNext {
-                    expected: next.number,
-                },
-            ),
+                };
+                (cut, 0, None, out)
+            }
         };
-        let before = (self.net.ledger.digest(), self.net.ledger.last().cloned());
-        assert_eq!(self.net.ledger.check(&cut), Err(failure));
-        assert_eq!(self.net.apply(cut), Err(AnswerLedgerError::Checks(failure)));
-        assert_eq!(
-            (self.net.ledger.digest(), self.net.ledger.last().cloned()),
-            before
-        );
+        let sigs = sigs.unwrap_or_else(|| net.sign_in(&cut, view));
+        if !matches!(
+            error,
+            AnswerLedgerError::Unsigned | AnswerLedgerError::Replica
+        ) {
+            assert_eq!(net.ledger.check(&cut), Err(error));
+        }
+        let before = (net.ledger.digest(), net.ledger.last().cloned());
+        let foreign = Replica::new(tiers_on(OTHER).writers().clone());
+        let (ledger, replica) = (&mut self.net.ledger, &self.net.replica);
+        let on = if error == AnswerLedgerError::Replica {
+            &foreign
+        } else {
+            replica
+        };
+        let applied = ledger.apply_in_view(on, &cut, view, &sigs);
+        assert_eq!(applied.map(|_| ()), Err(error));
+        let after = (ledger.digest(), ledger.last().cloned());
+        assert_eq!(after, before);
     }
 
     /// The same cuts on a new ledger, the entries delivered shuffled, each twice, a cut applied
@@ -653,8 +697,8 @@ impl Model {
         for (entry, object) in entries {
             replica.insert(entry.clone(), object.clone()).unwrap();
             replica.insert(entry, object).unwrap();
-            while let Some((cut, sigs)) = self.net.cuts.get(next) {
-                match ledger.apply(&replica, cut, sigs) {
+            while let Some((cut, view, sigs)) = self.net.cuts.get(next) {
+                match ledger.apply_in_view(&replica, cut, *view, sigs) {
                     Ok(_) => next += 1,
                     Err(AnswerLedgerError::Cut(CutError::Missing { .. })) => break,
                     Err(e) => panic!("{e:?}"),
@@ -677,18 +721,78 @@ fn op() -> impl Strategy<Value = Op> {
         2 => (b(), b(), b()).prop_map(|(question, pattern, via)| Op::CommitGroup { question, pattern, via }),
         1 => (b(), b(), prop::bool::weighted(0.85), b())
             .prop_map(|(question, slot, honest, via)| Op::Reveal { question, slot, honest, via }),
-        2 => (b(), prop_oneof![3 => Just(0u8), 1 => b()], b())
+        2 => (b(), absent(), b())
             .prop_map(|(question, skip, via)| Op::RevealGroup { question, skip, via }),
         1 => (b(), b(), b()).prop_map(|(kind, target, member)| Op::Request { kind, target, member }),
         1 => (b(), b(), b()).prop_map(|(kind, target, from)| Op::RequestAll { kind, target, from }),
         1 => b().prop_map(|via| Op::Again { via }),
         1 => (b(), b()).prop_map(|(kind, via)| Op::Noise { kind, via }),
-        8 => (b(), prop_oneof![3 => Just(0u8), 1 => b()], b())
+        8 => (b(), absent(), b())
             .prop_map(|(pattern, skip, from)| Op::Advance { pattern, skip, from }),
         2 => b().prop_map(|from| Op::CloseEpoch { from }),
-        7 => Just(Op::Cut),
+        6 => Just(Op::Cut),
+        1 => b().prop_map(|view| Op::CutIn { view }),
         1 => b().prop_map(|kind| Op::BadCut { kind }),
     ]
+}
+
+/// Which of a group do not reveal: none, exactly 3 or 4 of 12 (the quorum's edge), or any.
+fn absent() -> impl Strategy<Value = u16> {
+    let exactly = |k| {
+        prop::sample::subsequence((0..12u16).collect::<Vec<_>>(), k)
+            .prop_map(|bits| bits.iter().fold(0, |mask, b| mask | 1 << b))
+    };
+    prop_oneof![5 => Just(0u16), 2 => exactly(3), 1 => exactly(4), 1 => any::<u16>()]
+}
+
+/// Other ops spliced into the group-of-12 histories.
+fn aside() -> impl Strategy<Value = Op> {
+    let b = any::<u8>;
+    prop_oneof![
+        2 => b().prop_map(|view| Op::CutIn { view }),
+        1 => (b(), b(), b(), b(), prop::bool::weighted(0.2))
+            .prop_map(|(question, slot, answer, via, bad)| Op::Commit { question, slot, answer, via, bad }),
+        1 => (b(), b(), prop::bool::weighted(0.7), b())
+            .prop_map(|(question, slot, honest, via)| Op::Reveal { question, slot, honest, via }),
+        1 => (b(), b(), b()).prop_map(|(kind, target, member)| Op::Request { kind, target, member }),
+        1 => b().prop_map(|via| Op::Again { via }),
+        1 => (b(), b()).prop_map(|(kind, via)| Op::Noise { kind, via }),
+        2 => b().prop_map(|kind| Op::BadCut { kind }),
+        1 => (b(), b(), b(), 2..8u8).prop_map(|(author, tag, via, skew)| Op::Deposit { author, tag, via, skew }),
+    ]
+}
+
+/// One epoch of a group-of-12 history: its deposits, its closure and the draws, then each round
+/// advanced through commits, their closure, reveals and its closure, other ops in between.
+fn epoch12() -> impl Strategy<Value = Vec<Op>> {
+    let b = any::<u8>;
+    let deposits = prop::collection::vec(
+        (b(), 0..4u8, b()).prop_map(|(author, tag, via)| Op::Deposit {
+            author,
+            tag,
+            via,
+            skew: 2,
+        }),
+        1..3,
+    );
+    let step = (b(), absent(), b(), prop::option::weighted(0.4, aside()));
+    let rounds = prop::collection::vec(step, 4..10);
+    (deposits, b(), rounds).prop_map(|(deposits, from, rounds)| {
+        let mut ops = deposits;
+        ops.extend([Op::CloseEpoch { from }, Op::Cut, Op::Cut, Op::Cut]);
+        for (pattern, skip, from, aside) in rounds {
+            ops.extend([
+                Op::Advance {
+                    pattern,
+                    skip,
+                    from,
+                },
+                Op::Cut,
+            ]);
+            ops.extend(aside);
+        }
+        ops
+    })
 }
 
 /// Each epoch's withholders: none, one (a value, and that member excluded), or two (no value).
@@ -741,15 +845,17 @@ proptest! {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig { cases: 4, max_shrink_iters: 16, ..ProptestConfig::default() })]
+    #![proptest_config(ProptestConfig { cases: 16, max_shrink_iters: 16, ..ProptestConfig::default() })]
 
-    /// AT-T79-12: the same under D49's group of 12 and quorum of 9, the pool joined first.
+    /// AT-T79-12: the same under D49's group of 12 and quorum of 9, the pool joined first, the
+    /// rounds driven to their outcomes.
     #[test]
     fn at_t79_12_cuts_follow_the_offline_path_at_twelve(
-        ops in prop::collection::vec(op(), 40..100),
+        epochs in prop::collection::vec(epoch12(), 1..4),
         withheld in withhold(),
         seed in any::<u64>(),
     ) {
+        let ops = epochs.concat();
         check(AnswerConfig::default(), 14, &(0..13).collect::<Vec<_>>(), &ops, withheld, seed);
     }
 }

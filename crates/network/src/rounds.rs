@@ -2,6 +2,7 @@
 //! cuts, T74, T76): the commits and reveals each cut counts, the outcomes, and rule 6.
 
 use crate::beacon::{BeaconCommit, BeaconOutcome, BeaconReveal, BeaconRound, RoundError};
+use crate::codec::Writer;
 use crate::consortium::Consortium;
 use crate::cut::{Cut, MemberObject};
 use std::collections::BTreeMap;
@@ -133,6 +134,28 @@ impl Rounds {
         self.finished.insert(epoch, finished);
     }
 
+    /// The open rounds' counted commits and reveals, then each finished round's cut, epoch and
+    /// outcome record, by epoch: one canonical encoding.
+    pub fn write(&self, w: &mut Writer) {
+        w.u64(self.open.len() as u64);
+        for (epoch, round) in &self.open {
+            w.u64(*epoch).u64(round.commits.len() as u64);
+            for c in &round.commits {
+                w.u64(c.member as u64).fixed(&c.commitment);
+                w.fixed(&c.signature.to_bytes());
+            }
+            w.u64(round.reveals.len() as u64);
+            for r in &round.reveals {
+                w.u64(r.member as u64).fixed(&r.secret);
+            }
+        }
+        w.u64(self.finished.len() as u64);
+        for (epoch, f) in &self.finished {
+            w.u64(*epoch).u64(f.at).u64(f.epoch);
+            w.fixed(&f.outcome.record().0);
+        }
+    }
+
     pub fn outcome(&self, epoch: u64) -> Option<&BeaconOutcome> {
         self.finished.get(&epoch).map(|f| &f.outcome)
     }
@@ -149,5 +172,123 @@ impl Rounds {
         out.sort_unstable();
         out.dedup();
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::beacon::RoundId;
+    use crate::consortium::Member;
+
+    const NET: [u8; 32] = [3; 32];
+
+    fn members() -> Vec<Member> {
+        (0..3).map(|i| Member::from_seed([40 + i; 32])).collect()
+    }
+
+    fn consortium() -> Consortium {
+        Consortium::new(members().iter().map(Member::public).collect(), 2)
+    }
+
+    fn cut(number: u64, epoch: u64, closes: bool) -> Cut {
+        Cut {
+            number,
+            epoch,
+            closes,
+            marks: Vec::new(),
+        }
+    }
+
+    fn pair(m: usize, epoch: u64) -> (BeaconCommit, BeaconReveal) {
+        let c = consortium();
+        let round = RoundId {
+            network_id: NET,
+            member_set_hash: c.member_set_hash(),
+            epoch,
+        };
+        members()[m].beacon_commit(round, m)
+    }
+
+    /// Epoch 0's round finished with members 0 and 1 revealing; epoch 1's open with two commits.
+    fn base(revealing: &[usize]) -> Rounds {
+        let (c, mut rounds) = (consortium(), Rounds::new());
+        let (closing, next) = (cut(0, 0, true), cut(1, 1, false));
+        for m in 0..3 {
+            let commit = MemberObject::Commit(pair(m, 0).0);
+            rounds.count(&c, NET, &commit, &closing, None).unwrap();
+        }
+        for &m in revealing {
+            let reveal = MemberObject::Reveal {
+                epoch: 0,
+                reveal: pair(m, 0).1,
+            };
+            rounds
+                .count(&c, NET, &reveal, &next, Some(&closing))
+                .unwrap();
+        }
+        for m in 0..2 {
+            let commit = MemberObject::Commit(pair(m, 1).0);
+            rounds
+                .count(&c, NET, &commit, &next, Some(&closing))
+                .unwrap();
+        }
+        rounds.finish(&c, NET, &next, Some(&closing));
+        rounds
+    }
+
+    fn encoded(rounds: &Rounds) -> Vec<u8> {
+        let mut w = Writer::new();
+        rounds.write(&mut w);
+        w.finish()
+    }
+
+    fn open(r: &mut Rounds) -> &mut Round {
+        r.open.get_mut(&1).unwrap()
+    }
+
+    // AT-T79-15: rounds differing in one counted commit, reveal or finished outcome encode apart.
+    #[test]
+    fn every_counted_message_and_outcome_is_encoded() {
+        type Change = fn(&mut Rounds);
+        let changes: Vec<(&str, Change)> = vec![
+            ("a committer", |r| open(r).commits[1].member = 2),
+            ("a commitment", |r| open(r).commits[1].commitment[0] ^= 1),
+            ("a signature", |r| {
+                open(r).commits[1].signature = pair(2, 1).0.signature
+            }),
+            ("a commit more", |r| open(r).commits.push(pair(2, 1).0)),
+            ("a reveal", |r| open(r).reveals.push(pair(0, 1).1)),
+            ("an open epoch", |r| {
+                let round = r.open.remove(&1).unwrap();
+                r.open.insert(2, round);
+            }),
+            ("the finishing cut", |r| {
+                r.finished.get_mut(&0).unwrap().at += 1
+            }),
+            ("its epoch", |r| r.finished.get_mut(&0).unwrap().epoch += 1),
+            ("an outcome", |r| {
+                let other = base(&[0]).finished.remove(&0).unwrap();
+                r.finished.insert(0, other);
+            }),
+            ("a finished epoch", |r| {
+                let finished = r.finished.remove(&0).unwrap();
+                r.finished.insert(5, finished);
+            }),
+        ];
+        let reference = encoded(&base(&[0, 1]));
+        for (field, change) in changes {
+            let mut rounds = base(&[0, 1]);
+            change(&mut rounds);
+            assert_ne!(encoded(&rounds), reference, "{field}");
+        }
+        let mut with_reveal = base(&[0, 1]);
+        open(&mut with_reveal).reveals.push(pair(0, 1).1);
+        let mut other_secret = with_reveal.clone();
+        open(&mut other_secret).reveals[0].secret[0] ^= 1;
+        assert_ne!(encoded(&with_reveal), encoded(&other_secret));
+        let mut other_revealer = with_reveal.clone();
+        open(&mut other_revealer).reveals[0].member = 1;
+        assert_ne!(encoded(&with_reveal), encoded(&other_revealer));
     }
 }

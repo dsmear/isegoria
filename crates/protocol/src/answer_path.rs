@@ -713,3 +713,243 @@ fn write_round(w: &mut Writer, round: &Round) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn nym(b: u8) -> Nym {
+        Nym([b; 32])
+    }
+
+    fn observation(weight: f64) -> Observation {
+        let origin = AuthorPoint {
+            epoch: 1,
+            closings: 1,
+        };
+        Observation {
+            success: false,
+            weight,
+            origin,
+        }
+    }
+
+    fn entry(round: Round) -> Entry {
+        let alternatives = vec![b"a".to_vec(), b"b".to_vec(), b"x".to_vec()];
+        let question = Question {
+            context: b"c".to_vec(),
+            stem: b"s".to_vec(),
+            alternatives,
+            key: 0,
+        };
+        Entry {
+            content: question.content_id(),
+            question,
+            author: nym(7),
+            epoch: 0,
+            round,
+        }
+    }
+
+    fn record(question: u64, weight: f64) -> AuthorRecord {
+        let mut record = AuthorRecord::default();
+        record.record(question, observation(weight)).unwrap();
+        record
+    }
+
+    /// A state with every round kind, both kinds of seal, a slot and an author record.
+    fn base() -> AnswerPath {
+        let mut p = AnswerPath::new(AnswerConfig::default()).unwrap();
+        (p.epoch, p.closings, p.pool) = (2, 2, vec![nym(1), nym(2)]);
+        p.seals.insert(
+            0,
+            Seal {
+                beacon: Some([5; 32]),
+                pool: 2,
+            },
+        );
+        p.seals.insert(
+            1,
+            Seal {
+                beacon: None,
+                pool: 2,
+            },
+        );
+        let commits = BTreeMap::from([(nym(1), AnswerCommit([8; 32]))]);
+        let answers = BTreeMap::from([(nym(1), Answer::Alternative(0))]);
+        let group = vec![nym(1), nym(2)];
+        let tally = Tally {
+            alternatives: vec![3, 1, 0],
+            none: 1,
+            abstentions: 1,
+            absences: 1,
+        };
+        let closure = Closure {
+            tally,
+            verdict: Verdict::Divided,
+            rule: ConsensusRule::default(),
+            at: observation(0.25).origin,
+            observation: Some(observation(0.25)),
+        };
+        p.entries = vec![
+            entry(Round::Pending),
+            entry(Round::Unavailable { available: 1 }),
+            entry(Round::Committing {
+                group: group.clone(),
+                commits: commits.clone(),
+            }),
+            entry(Round::Revealing {
+                group,
+                commits,
+                answers,
+            }),
+            entry(Round::Closed(closure)),
+        ];
+        p.slots.insert((0, nym(7)), Slots { quota: 2, used: 1 });
+        p.authors.insert(nym(7), record(4, 0.25));
+        p
+    }
+
+    fn state(path: &AnswerPath) -> Vec<u8> {
+        let mut w = Writer::new();
+        path.write_state(&mut w);
+        w.finish()
+    }
+
+    fn group(p: &mut AnswerPath, q: usize) -> &mut Vec<Nym> {
+        match &mut p.entries[q].round {
+            Round::Committing { group, .. } | Round::Revealing { group, .. } => group,
+            _ => unreachable!(),
+        }
+    }
+
+    fn commits(p: &mut AnswerPath, q: usize) -> &mut BTreeMap<Nym, AnswerCommit> {
+        match &mut p.entries[q].round {
+            Round::Committing { commits, .. } | Round::Revealing { commits, .. } => commits,
+            _ => unreachable!(),
+        }
+    }
+
+    fn answers(p: &mut AnswerPath) -> &mut BTreeMap<Nym, Answer> {
+        match &mut p.entries[3].round {
+            Round::Revealing { answers, .. } => answers,
+            _ => unreachable!(),
+        }
+    }
+
+    fn closed(p: &mut AnswerPath) -> &mut Closure {
+        match &mut p.entries[4].round {
+            Round::Closed(c) => c,
+            _ => unreachable!(),
+        }
+    }
+
+    fn observed(p: &mut AnswerPath) -> &mut Observation {
+        closed(p).observation.as_mut().unwrap()
+    }
+
+    fn rekey<K: Ord + Copy, V>(map: &mut BTreeMap<K, V>, from: K, to: K) {
+        let value = map.remove(&from).unwrap();
+        map.insert(to, value);
+    }
+
+    // AT-T79-15: states differing in one encoded field encode apart; the rebuilt indexes do not.
+    #[test]
+    fn every_field_is_encoded() {
+        type Change = fn(&mut AnswerPath);
+        let changes: Vec<(&str, Change)> = vec![
+            ("configuration", |p| p.config.divided_weight = 0.5),
+            ("epoch", |p| p.epoch += 1),
+            ("closings", |p| p.closings += 1),
+            ("a pool nym", |p| p.pool[1] = nym(3)),
+            ("the pool's length", |p| p.pool.push(nym(3))),
+            ("a sealed pool", |p| p.seals.get_mut(&0).unwrap().pool = 1),
+            ("a seal's value", |p| {
+                p.seals.get_mut(&0).unwrap().beacon = Some([6; 32])
+            }),
+            ("a missing value", |p| {
+                p.seals.get_mut(&1).unwrap().beacon = Some([5; 32])
+            }),
+            ("a seal's epoch", |p| rekey(&mut p.seals, 1, 3)),
+            ("a context", |p| p.entries[0].question.context.push(b'x')),
+            ("a text", |p| p.entries[0].question.stem.push(b'x')),
+            ("an alternative", |p| {
+                p.entries[0].question.alternatives[2] = b"y".to_vec()
+            }),
+            ("a key", |p| p.entries[0].question.key = 1),
+            ("a content id", |p| p.entries[0].content = Cid([1; 32])),
+            ("an author", |p| p.entries[0].author = nym(8)),
+            ("a deposit epoch", |p| p.entries[0].epoch = 1),
+            ("a round's kind", |p| {
+                p.entries[0].round = Round::Unavailable { available: 0 }
+            }),
+            ("availability", |p| {
+                p.entries[1].round = Round::Unavailable { available: 2 }
+            }),
+            ("a group", |p| group(p, 2)[1] = nym(3)),
+            ("a commitment", |p| {
+                commits(p, 2).insert(nym(1), AnswerCommit([9; 32]));
+            }),
+            ("a committer", |p| rekey(commits(p, 2), nym(1), nym(2))),
+            ("a revealing group", |p| group(p, 3)[0] = nym(3)),
+            ("a revealing commitment", |p| {
+                commits(p, 3).insert(nym(2), AnswerCommit([8; 32]));
+            }),
+            ("an answer", |p| {
+                answers(p).insert(nym(1), Answer::NoneCorrect);
+            }),
+            ("an answerer", |p| rekey(answers(p), nym(1), nym(2))),
+            ("a count", |p| closed(p).tally.alternatives[1] += 1),
+            ("the alternatives", |p| closed(p).tally.alternatives.push(0)),
+            ("none", |p| closed(p).tally.none += 1),
+            ("abstentions", |p| closed(p).tally.abstentions += 1),
+            ("absences", |p| closed(p).tally.absences += 1),
+            ("a verdict", |p| closed(p).verdict = Verdict::Discarded),
+            ("a rule", |p| {
+                closed(p).rule = ConsensusRule::new(12, 10, 3, 4).unwrap()
+            }),
+            ("a closure's epoch", |p| closed(p).at.epoch += 1),
+            ("a closure's closings", |p| closed(p).at.closings += 1),
+            ("no observation", |p| closed(p).observation = None),
+            ("a success", |p| observed(p).success = true),
+            ("a weight", |p| observed(p).weight = 1.0),
+            ("an origin's epoch", |p| observed(p).origin.epoch += 1),
+            ("an origin's closings", |p| observed(p).origin.closings += 1),
+            ("a quota", |p| {
+                p.slots.get_mut(&(0, nym(7))).unwrap().quota = 3
+            }),
+            ("slots used", |p| {
+                p.slots.get_mut(&(0, nym(7))).unwrap().used = 2
+            }),
+            ("a slot's epoch", |p| {
+                rekey(&mut p.slots, (0, nym(7)), (1, nym(7)))
+            }),
+            ("a slot's author", |p| {
+                rekey(&mut p.slots, (0, nym(7)), (0, nym(8)))
+            }),
+            ("a record's author", |p| {
+                rekey(&mut p.authors, nym(7), nym(8))
+            }),
+            ("a record's question", |p| {
+                p.authors.insert(nym(7), record(5, 0.25));
+            }),
+            ("a record's weight", |p| {
+                p.authors.insert(nym(7), record(4, 1.0));
+            }),
+            ("another question", |p| {
+                p.entries.push(entry(Round::Pending))
+            }),
+        ];
+        let reference = state(&base());
+        for (field, change) in changes {
+            let mut path = base();
+            change(&mut path);
+            assert_ne!(state(&path), reference, "{field}");
+        }
+        let mut indexes = base();
+        indexes.in_pool.insert(nym(9));
+        indexes.contents.insert((nym(9), Cid([0; 32])), 0);
+        indexes.network = Some([1; 32]);
+        assert_eq!(state(&indexes), reference);
+    }
+}

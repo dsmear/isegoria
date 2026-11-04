@@ -42,6 +42,14 @@ fn writer(m: usize, tier: Tier) -> FeedWriter {
     FeedWriter::from_seed(NET, [base + m as u8; 32])
 }
 
+/// Every writer key of the tiered set: the members' consortium keys, then their circle keys.
+pub fn writer_keys() -> Vec<ed25519_dalek::VerifyingKey> {
+    let public = (0..N).map(|m| writer(m, Tier::Public).public());
+    public
+        .chain((0..N).map(|m| writer(m, Tier::Circle).public()))
+        .collect()
+}
+
 pub fn tiers_on(network: [u8; 32]) -> Tiers {
     let circle: Vec<_> = (0..N).map(|m| writer(m, Tier::Circle).public()).collect();
     Tiers::new(network, consortium(), &circle).expect("a valid tiered set")
@@ -167,6 +175,9 @@ pub fn reveal(p: &Person, q: u64, answer: Answer, nonce: [u8; 32]) -> AnswerEven
     }
 }
 
+/// A cut applied, the view its signatures were given in, and the signatures.
+pub type Applied = (Cut, u64, Vec<(usize, Signature)>);
+
 /// The members' feeds on one replica and a ledger over its cuts; each epoch's beacon commits
 /// are published as it opens, its reveals after its closing cut by members not in `withhold`.
 pub struct Net {
@@ -174,7 +185,7 @@ pub struct Net {
     feeds: BTreeMap<(usize, bool), (FeedWriter, TransparencyLog)>,
     pub replica: Replica,
     pub ledger: AnswerLedger,
-    pub cuts: Vec<(Cut, Vec<(usize, Signature)>)>,
+    pub cuts: Vec<Applied>,
     pub withhold: BTreeSet<usize>,
     pub beacon: BTreeSet<EntryId>,
 }
@@ -252,26 +263,51 @@ impl Net {
         Cut::next(&self.replica, self.ledger.last(), next.epoch, next.closes)
     }
 
-    /// `T` members' signatures over `cut`, none of a member rule 6 excludes.
+    /// `T` members' signatures over `cut` in view 0, none of a member rule 6 excludes.
     pub fn sign(&self, cut: &Cut) -> Vec<(usize, Signature)> {
+        self.sign_in(cut, 0)
+    }
+
+    pub fn sign_in(&self, cut: &Cut, view: u64) -> Vec<(usize, Signature)> {
         let excluded = self.ledger.excluded(cut);
-        let cp = cut.checkpoint(NET, consortium().member_set_hash());
-        (members().iter().enumerate())
-            .filter(|(i, _)| !excluded.contains(i))
-            .take(T)
-            .map(|(i, m)| (i, m.sign(&cp)))
+        let signers = (0..N).filter(|i| !excluded.contains(i)).take(T);
+        self.signed_by(cut, view, signers)
+    }
+
+    pub fn signed_by(
+        &self,
+        cut: &Cut,
+        view: u64,
+        by: impl IntoIterator<Item = usize>,
+    ) -> Vec<(usize, Signature)> {
+        let cp = cut.checkpoint_in(view, NET, consortium().member_set_hash());
+        by.into_iter()
+            .map(|i| (i, members()[i].sign(&cp)))
             .collect()
     }
 
     pub fn apply(&mut self, cut: Cut) -> Result<CutReport, AnswerLedgerError> {
-        let sigs = self.sign(&cut);
-        let report = self.ledger.apply(&self.replica, &cut, &sigs)?;
+        self.apply_in(cut, 0)
+    }
+
+    pub fn apply_in(&mut self, cut: Cut, view: u64) -> Result<CutReport, AnswerLedgerError> {
+        let sigs = self.sign_in(&cut, view);
+        let report = self
+            .ledger
+            .apply_in_view(&self.replica, &cut, view, &sigs)?;
         if cut.closes {
             self.reveals(cut.epoch);
             self.commits(cut.epoch + 1);
         }
-        self.cuts.push((cut, sigs));
+        self.cuts.push((cut, view, sigs));
         Ok(report)
+    }
+
+    /// Applies every cut so far, in its view, to `ledger` on `replica`.
+    pub fn replay(&self, ledger: &mut AnswerLedger, replica: &Replica) {
+        for (cut, view, sigs) in &self.cuts {
+            ledger.apply_in_view(replica, cut, *view, sigs).unwrap();
+        }
     }
 
     pub fn cut(&mut self) -> CutReport {

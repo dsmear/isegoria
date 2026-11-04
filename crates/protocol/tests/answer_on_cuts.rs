@@ -7,9 +7,11 @@ use answer_net::*;
 use identity::credential::Issuer;
 use identity::nullifier::prove;
 use identity::nym::Role;
+use network::cid::cid;
 use network::codec::Writer;
 use network::cut::{Cut, CutError, MemberObject};
-use network::replica::{EntryId, Replica};
+use network::log::TransparencyLog;
+use network::replica::{EntryId, FeedWriter, Replica, WriterSet};
 use network::tier::Tier;
 use protocol::admission::Unproven;
 use protocol::answer::{Answer, Question};
@@ -30,7 +32,7 @@ use protocol::randomness::{Beacon, ANSWER_DRAW};
 use std::collections::BTreeSet;
 
 use Accepted::{Applied as Done, Requested};
-use CheckFailure::{Closes, Epoch, NotNext};
+use CheckFailure::{Closes, Epoch};
 
 fn outcome(report: &CutReport, id: EntryId) -> Result<Accepted, Refusal> {
     let found = report.entries.iter().find(|(i, _)| *i == id);
@@ -119,7 +121,6 @@ fn at_t79_1_what_each_feed_may_carry() {
     }
     assert_eq!(report.entries.len(), expected.len() + N);
     assert_eq!(net.ledger.state(), fresh.state());
-    assert_eq!(net.ledger.digest(), fresh.digest());
     let request = AnswerEvent::RequestCloseEpoch { epoch: 7 };
     let bytes = request.encode();
     assert_eq!(AnswerEvent::decode(&bytes).map(|e| e.encode()), Some(bytes));
@@ -320,7 +321,7 @@ fn at_t79_4_epoch_closure_requests() {
 }
 
 /// AT-T79-5: the members' checks — cut 0 in epoch 0, one epoch more only after a closing cut,
-/// closing exactly at t requests, no gap; a signed cut failing them is not applied.
+/// closing exactly at t requests, the next number; a signed cut failing them is not applied.
 #[test]
 fn at_t79_5_the_members_checks() {
     let c = |number, epoch, closes| Cut {
@@ -329,6 +330,7 @@ fn at_t79_5_the_members_checks() {
         closes,
         marks: Vec::new(),
     };
+    let failed = |f| Err(AnswerLedgerError::Checks(f));
     let first = Next::after(None, 0, T).unwrap();
     let start = Next {
         number: 0,
@@ -337,21 +339,28 @@ fn at_t79_5_the_members_checks() {
     };
     assert_eq!(first, start);
     assert_eq!(first.check(&c(0, 0, false)), Ok(()));
-    assert_eq!(first.check(&c(0, 1, false)), Err(Epoch { expected: 0 }));
-    assert_eq!(first.check(&c(0, 0, true)), Err(Closes { expected: false }));
-    assert_eq!(first.check(&c(1, 0, false)), Err(NotNext { expected: 0 }));
+    assert_eq!(first.check(&c(0, 1, false)), failed(Epoch { expected: 0 }));
+    assert_eq!(
+        first.check(&c(0, 0, true)),
+        failed(Closes { expected: false })
+    );
+    let gap = Err(AnswerLedgerError::OutOfSequence { expected: 0 });
+    assert_eq!(first.check(&c(1, 0, false)), gap);
     let open = Next::after(Some(&c(4, 2, false)), T - 1, T).unwrap();
     assert_eq!((open.number, open.epoch, open.closes), (5, 2, false));
-    assert_eq!(open.check(&c(5, 3, false)), Err(Epoch { expected: 2 }));
+    assert_eq!(open.check(&c(5, 3, false)), failed(Epoch { expected: 2 }));
     let asked = Next::after(Some(&c(4, 2, false)), T, T).unwrap();
-    assert_eq!(asked.check(&c(5, 2, false)), Err(Closes { expected: true }));
+    assert_eq!(
+        asked.check(&c(5, 2, false)),
+        failed(Closes { expected: true })
+    );
     assert_eq!(asked.check(&c(5, 2, true)), Ok(()));
     let closed = Next::after(Some(&c(4, 2, true)), 0, T).unwrap();
     assert_eq!((closed.number, closed.epoch, closed.closes), (5, 3, false));
     for epoch in [2, 4] {
         assert_eq!(
             closed.check(&c(5, epoch, false)),
-            Err(Epoch { expected: 3 })
+            failed(Epoch { expected: 3 })
         );
     }
     assert_eq!(Next::after(Some(&c(u64::MAX, 0, false)), 0, T), None);
@@ -359,15 +368,16 @@ fn at_t79_5_the_members_checks() {
     let last = Next::after(Some(&c(0, u64::MAX, false)), T, T).unwrap();
     assert_eq!(
         last.check(&c(1, u64::MAX, true)),
-        Err(CheckFailure::Overflow)
+        failed(CheckFailure::Overflow)
     );
 
     let mut net = Net::new(AnswerConfig::default());
     let (fresh, digest) = (net.ledger.state().clone(), net.ledger.digest());
     let refused = |net: &mut Net, cut: Cut, failure: CheckFailure| {
         let (last, digest) = (net.ledger.last().cloned(), net.ledger.digest());
+        let failure = AnswerLedgerError::Checks(failure);
         assert_eq!(net.ledger.check(&cut), Err(failure));
-        assert_eq!(net.apply(cut), Err(AnswerLedgerError::Checks(failure)));
+        assert_eq!(net.apply(cut), Err(failure));
         assert_eq!(
             (net.ledger.last().cloned(), net.ledger.digest()),
             (last, digest)
@@ -387,11 +397,6 @@ fn at_t79_5_the_members_checks() {
     net.cut();
     let open = proposal(&net, 0, false);
     refused(&mut net, open, Closes { expected: true });
-    let gap = Cut {
-        number: 2,
-        ..proposal(&net, 0, true)
-    };
-    refused(&mut net, gap, NotNext { expected: 1 });
     assert_eq!(net.cut().sealed, Some(0));
     for epoch in [0, 2] {
         let cut = proposal(&net, epoch, false);
@@ -623,9 +628,7 @@ fn at_t79_9_duplicates_restart_and_delivery() {
 
     let fresh = || AnswerLedger::new(tiers(), net.issuer.public(), small()).unwrap();
     let mut restarted = fresh();
-    for (cut, sigs) in &net.cuts {
-        restarted.apply(&net.replica, cut, sigs).unwrap();
-    }
+    net.replay(&mut restarted, &net.replica);
     assert_eq!(restarted.state(), net.ledger.state());
     assert_eq!(restarted.digest(), net.ledger.digest());
     let mut entries = net.entries();
@@ -636,8 +639,8 @@ fn at_t79_9_duplicates_restart_and_delivery() {
         for _ in 0..2 {
             replica.insert(entry.clone(), object.clone()).unwrap();
         }
-        while let Some((cut, sigs)) = net.cuts.get(next) {
-            match late.apply(&replica, cut, sigs) {
+        while let Some((cut, view, sigs)) = net.cuts.get(next) {
+            match late.apply_in_view(&replica, cut, *view, sigs) {
                 Ok(_) => next += 1,
                 Err(AnswerLedgerError::Cut(CutError::Missing { .. })) => {
                     waited += 1;
@@ -690,29 +693,135 @@ fn at_t79_10_the_question_size_bound() {
     assert_eq!(net.ledger.state().slots(&b.propose, 0), slots);
 }
 
-/// AT-T79-11: the digest binds the network and the derived state: a refused entry or an empty
-/// cut leaves it, an accepted event, a counted request and a seal change it.
+/// AT-T79-11: the digest covers the network, the derived state, the beacon rounds, the cut point
+/// and the refusals, each alone changing it; one history gives one digest.
 #[test]
 fn at_t79_11_the_state_digest() {
     let issuer = Issuer::new([1u8; 32]);
     let other = AnswerLedger::new(tiers_on(OTHER), issuer.public(), AnswerConfig::default());
-    let mut net = Net::new(AnswerConfig::default());
-    let empty = net.ledger.digest();
+    let empty = Net::new(AnswerConfig::default()).ledger.digest();
+    assert_eq!(empty, Net::new(AnswerConfig::default()).ledger.digest());
     assert_ne!(empty, other.unwrap().digest());
+    let revealing = |withhold: [usize; 3]| {
+        let mut net = Net::new(small());
+        net.withhold = BTreeSet::from(withhold);
+        net.close_epoch();
+        net
+    };
+    let (two, one) = (revealing([2, 3, 3]), revealing([1, 2, 3]));
+    assert_ne!(two.ledger.beacon(0), one.ledger.beacon(0));
+    assert_eq!(two.ledger.state(), one.ledger.state());
+    assert_ne!(two.ledger.digest(), one.ledger.digest());
+    let views = [0, 1].map(|view| {
+        let mut net = Net::new(small());
+        let cut = net.propose();
+        net.apply_in(cut, view).unwrap();
+        net
+    });
+    assert_eq!(views[0].ledger.state(), views[1].ledger.state());
+    assert_ne!(views[0].ledger.digest(), views[1].ledger.digest());
+    let mut later = Net::new(small());
+    let mut sooner = Net::new(small());
+    for net in [&mut later, &mut sooner] {
+        net.cut();
+    }
+    let at_one = later.ledger.digest();
+    later.cut();
+    assert_eq!(later.ledger.state(), sooner.ledger.state());
+    assert_ne!(later.ledger.digest(), at_one);
+    let (mut refusing, mut quiet) = (Net::new(small()), Net::new(small()));
+    refusing.publish(0, Tier::Circle, b"no event".to_vec());
+    refusing.cut();
+    quiet.cut();
+    assert_eq!(refusing.ledger.state(), quiet.ledger.state());
+    assert_ne!(refusing.ledger.digest(), quiet.ledger.digest());
+    let joined = join(&quiet.issuer, &person(&quiet.issuer, 100), Some(&NET));
+    let (mut joining, mut alone) = (Net::new(small()), Net::new(small()));
+    joining.log(0, &joined);
+    joining.cut();
+    alone.cut();
+    assert_ne!(joining.ledger.digest(), alone.ledger.digest());
+}
+
+/// AT-T79-14: a cut needs `t` signatures in its own view, none of a member rule 6 excludes, on a
+/// replica of the ledger's writer set; otherwise nothing changes.
+#[test]
+fn at_t79_14_signatures_exclusions_views_and_the_replica() {
+    let mut net = Net::new(small());
+    let cut = net.propose();
+    let (state, digest) = (net.ledger.state().clone(), net.ledger.digest());
+    let short = net.signed_by(&cut, 0, 0..T - 1);
+    let in_one = net.signed_by(&cut, 1, 0..T);
+    let unsigned = Err(AnswerLedgerError::Unsigned);
+    assert_eq!(net.ledger.apply(&net.replica, &cut, &short), unsigned);
+    assert_eq!(net.ledger.apply(&net.replica, &cut, &in_one), unsigned);
+    let in_two = net.ledger.apply_in_view(&net.replica, &cut, 2, &in_one);
+    assert_eq!(in_two, unsigned);
+    let foreign = Replica::new(tiers_on(OTHER).writers().clone());
+    let sigs = net.sign(&cut);
+    let replica = Err(AnswerLedgerError::Replica);
+    assert_eq!(net.ledger.apply(&foreign, &cut, &sigs), replica);
+    let outsider = FeedWriter::from_seed(NET, [99; 32]);
+    let keys = [writer_keys(), vec![outsider.public()]].concat();
+    let mut wide = Replica::new(WriterSet::new(NET, &keys));
+    for (entry, object) in net.entries() {
+        wide.insert(entry, object).unwrap();
+    }
+    let object = AnswerEvent::RequestCloseEpoch { epoch: 0 }.encode();
+    let entry = TransparencyLog::new().append(cid(&object)).clone();
+    wide.insert(outsider.sign(&entry), object).unwrap();
+    let marked = Cut::next(&wide, None, 0, false);
+    assert!(marked
+        .marks
+        .iter()
+        .any(|m| m.writer == outsider.public().to_bytes()));
+    let marked_sigs = net.sign(&marked);
+    assert_eq!(net.ledger.apply(&wide, &marked, &marked_sigs), replica);
+    assert_eq!((net.ledger.state(), net.ledger.digest()), (&state, digest));
+    assert!(net.ledger.last().is_none());
+    assert!(net
+        .ledger
+        .apply_in_view(&net.replica, &cut, 1, &in_one)
+        .is_ok());
+
+    let mut net = Net::new(small());
+    net.withhold = BTreeSet::from([3]);
+    net.close_epoch();
+    let cut = net.propose();
+    assert_eq!(net.ledger.excluded(&cut), [3]);
+    let (with, without) = (net.signed_by(&cut, 0, 1..4), net.signed_by(&cut, 0, 0..3));
+    assert_eq!(net.ledger.apply(&net.replica, &cut, &with), unsigned);
+    assert!(net.ledger.apply(&net.replica, &cut, &without).is_ok());
+}
+
+/// AT-T79-16: an earlier, a repeated or a later cut number is out of sequence, apart from a
+/// failed check, and changes nothing.
+#[test]
+fn at_t79_16_out_of_sequence_cuts() {
+    let mut net = Net::new(AnswerConfig::default());
     net.cut();
-    assert_eq!(net.ledger.digest(), empty);
-    let joined = join(&net.issuer, &person(&net.issuer, 100), Some(&NET));
-    net.log(0, &joined);
     net.cut();
-    let once = net.ledger.digest();
-    assert_ne!(once, empty);
-    net.log(1, &joined);
+    let (digest, last) = (net.ledger.digest(), net.ledger.last().cloned());
+    let future = Cut {
+        number: 3,
+        ..net.propose()
+    };
+    let future_sigs = net.sign(&future);
+    let (stale, repeated) = (net.cuts[0].clone(), net.cuts[1].clone());
+    let cases = [
+        (stale.0, stale.2),
+        (repeated.0, repeated.2),
+        (future, future_sigs),
+    ];
+    let out = Err(AnswerLedgerError::OutOfSequence { expected: 2 });
+    for (cut, sigs) in cases {
+        assert_eq!(net.ledger.check(&cut), out);
+        let applied = net.ledger.apply(&net.replica, &cut, &sigs);
+        assert_eq!(applied.map(|_| ()), out);
+        assert_eq!(
+            (net.ledger.digest(), net.ledger.last().cloned()),
+            (digest, last.clone())
+        );
+    }
     net.cut();
-    assert_eq!(net.ledger.digest(), once);
-    net.request(0..T, &AnswerEvent::RequestCloseEpoch { epoch: 0 });
-    net.cut();
-    let asked = net.ledger.digest();
-    assert_ne!(asked, once);
-    assert_eq!(net.cut().sealed, Some(0));
-    assert_ne!(net.ledger.digest(), asked);
 }

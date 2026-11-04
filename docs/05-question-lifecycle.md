@@ -294,12 +294,14 @@ each closing cut.
 **Built on cuts (`10` T79, first increment, 2026-11-04).**
 `protocol::answer_ledger::AnswerLedger`, beside the legacy `protocol::Ledger`, which keeps its
 contract, holds the state of one network: its `Tiers`, the issuer's key and an `AnswerConfig`
-(the node pins D49–D51's, `04` T88-P1). A signed cut applies on a replica of that writer set,
-after its signatures (rule 6's withholders not counted), the members' checks and its entries
-held; a cut failing the checks is `AnswerLedgerError::Checks` and changes nothing. Then come
-its entries in cut order, its seal, and the value of the round it finished; each entry's
-`CutReport` line names what it did (`Accepted`) or why not (`Refusal`). The choices the contract
-left to the implementation:
+(the node pins D49–D51's, `04` T88-P1). A cut applies on a replica of that writer set (else
+`Replica`), when it has the next number (else `OutOfSequence`: an earlier, repeated or later
+cut, no evidence of collusion), `t` signatures in its view with rule 6's withholders not counted
+(else `Unsigned`), the members' checks (else `Checks`: `t` members signed a cut they forbid) and
+its entries held (else `Cut`, to wait); each error changes nothing. Then come its entries in cut
+order, its seal, and the value of the round it finished; each entry's `CutReport` line names
+what it did (`Accepted`) or why not (`Refusal`). The choices the contract left to the
+implementation:
 - *Contexts.* `answer_path::network_context`: the tag `isegoria/answer-review/network/v1`, the
   network id, then the offline context; offline contexts and nyms unchanged.
 - *The request kind.* `AnswerEvent::RequestCloseEpoch { epoch }`, kind 9; the offline path
@@ -312,15 +314,21 @@ left to the implementation:
   epoch counts in a cut of that epoch only (`WrongEpoch`), once per member; one past the `t`-th
   counts and changes nothing. Requests stay in the state.
 - *The members' checks.* `answer_ledger::Next::after(last, requested, t)` and `Next::check`, a
-  pure function of the last cut and the requests counted for the next cut's epoch;
-  `AnswerLedger::next` and `check` apply them to the ledger, for the proposer and co-signers.
+  pure function of the last cut and the requests counted for the next cut's epoch, giving
+  `OutOfSequence` or `Checks`; `AnswerLedger::next` and `check` apply them to the ledger, for
+  the proposer and co-signers.
 - *Question size.* `answer_ledger::MAX_QUESTION`, 49,152 bytes (48 KiB) of the question's
   encoding, checked by `fits` (`14`).
 - *State digest.* `AnswerLedger::digest`: SHA-256 tagged `isegoria/answer-review/state/v1` over
   the network id, the path's canonical state (configuration, epoch, closings, pool, seals with
   their values, every question with its round and closure, slots, author records; the indexes
-  rebuilt from them left out) and the requests counted. Beacon rounds, cuts and refusals are not
-  in it.
+  rebuilt from them left out), the requests counted, the beacon rounds (each open round's
+  counted commits and reveals, each finished round's cut, epoch and outcome record — value,
+  revealers, withholders), the last cut's number and view, and every refusal with its entry and
+  reason in cut order (`AnswerLedger::refused`).
+- *For the gateway (increment 3).* The ledger counts a `CloseCommits`, `Close` or
+  `RequestCloseEpoch` on member `i`'s circle feed as `i`'s request, so the gateway must refuse
+  those kinds from persons.
 
 *The mapping to the offline path*, which the differential test checks: each entry a cut applies
 is the same offline event at the same point — a person's event with its offline proof, the
@@ -329,9 +337,9 @@ closing cut of `e` is offline `CloseEpoch { e, B }` at its end, `B` the value `e
 (the first round from `e` on that has one); at the end of the cut after `f`'s closing cut, when
 round `f` has a value, offline `Draw` of each pending question of the sealed epochs up to `f`
 still without one, in question order. *Evidence:* `protocol/tests/answer_on_cuts.rs` and
-`answer_on_cuts_model.rs`, `p2p/tests/blind_relays.rs` (AT-T79-1–13, `08` §12). *Not built:* the
-hook, the request spool, the digest in the status, gateway admission, private reads, the client,
-the test issuer and the switch withholding reveals.
+`answer_on_cuts_model.rs`, the modules' unit tests, `p2p/tests/blind_relays.rs` (AT-T79-1–16,
+`08` §12). *Not built:* the hook, the request spool, the digest in the status, gateway admission,
+private reads, the client, the test issuer and the switch withholding reveals.
 
 ---
 
