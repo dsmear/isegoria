@@ -1059,8 +1059,8 @@ Public CID lookup without a full replica is specified in §Public object discove
 circle objects are never offered through it (§Who reads). The node process
 does not run
 the answer review between nodes (`10` T79); its contract, approved in `01` D60, is
-`05` §Distributed integration. In code: `network::replica`,
-`network::cut`, `protocol::ledger`, the `p2p` crate.
+`05` §Distributed integration, its state on cuts `protocol::answer_ledger`. In code:
+`network::replica`, `network::cut`, `protocol::ledger`, the `p2p` crate.
 
 ### A node process
 
@@ -1122,8 +1122,8 @@ trial's archive custody below, which the trial no longer exercises (owner, 2026-
 T88-P1's schema in `01` D60 (2026-11-03).
 *Built* names what the code does today, *not built* what the approved rules still need
 (§Obstacles in the code). Nothing here is *verified*: no independent-operator trial has run.
-T88, T84 (frozen) and Phase 2 stay open; T79's contract is approved (D60) and not built, and
-T19 and `10` §2's gates remain required. The operators' confirmations set up the trial; they
+T88, T84 (frozen) and Phase 2 stay open; T79's contract is approved (D60), only its state on
+signed cuts built (`05` §Built on cuts), and T19 and `10` §2's gates remain required. The operators' confirmations set up the trial; they
 add no consensus rule at runtime, where §Cuts is unchanged. The answer review's side is `05`
 §Distributed integration (T79-P1–P7, approved in D60).
 

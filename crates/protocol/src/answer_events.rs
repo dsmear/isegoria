@@ -45,6 +45,10 @@ pub enum AnswerEvent {
         epoch: u64,
         beacon: [u8; 32],
     },
+    /// A member's request to close `epoch`, counted only on a network (`docs/05` T79-P5).
+    RequestCloseEpoch {
+        epoch: u64,
+    },
 }
 
 const VERSION: u8 = 1;
@@ -100,6 +104,9 @@ impl AnswerEvent {
             AnswerEvent::CloseEpoch { epoch, beacon } => {
                 w.u8(8).u64(*epoch).fixed(beacon);
             }
+            AnswerEvent::RequestCloseEpoch { epoch } => {
+                w.u8(9).u64(*epoch);
+            }
         }
         w.finish()
     }
@@ -143,6 +150,9 @@ impl AnswerEvent {
             8 => AnswerEvent::CloseEpoch {
                 epoch: r.u64().ok()?,
                 beacon: r.fixed().ok()?,
+            },
+            9 => AnswerEvent::RequestCloseEpoch {
+                epoch: r.u64().ok()?,
             },
             _ => return None,
         };

@@ -23,6 +23,7 @@ use p2p::blind::{
 use p2p::member::MemberRole;
 use p2p::record::{read, Found, Record, State, Stop};
 use p2p::{read_limited, Config, Handle, Own, PublishError, StartError};
+use protocol::answer_ledger::{fits, MAX_QUESTION};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -954,6 +955,34 @@ fn at_net_24_the_reply_limit_counts_the_encapsulation() {
         fresh().open(&Carried::Sealed(vec![0; MAX_REPLY])),
         Err(ClientError::Open)
     );
+}
+
+/// AT-T79-13: a question the answer review admits on a network has a view that, with 1 KiB for
+/// its seals, fits one reply.
+#[test]
+fn at_t79_13_a_maximal_question_view_fits_one_reply() {
+    let mut question = protocol::answer::Question {
+        context: Vec::new(),
+        stem: b"stem".to_vec(),
+        alternatives: vec![b"a".to_vec(), b"b".to_vec()],
+        key: 0,
+    };
+    let len = |q: &protocol::answer::Question| {
+        let mut w = network::codec::Writer::new();
+        q.write(&mut w);
+        w.finish().len()
+    };
+    question.context = vec![b'x'; MAX_QUESTION - len(&question)];
+    assert!(len(&question) == MAX_QUESTION && fits(&question));
+    let mut view = network::codec::Writer::new();
+    view.u64(u64::MAX)
+        .field(&question.context)
+        .field(&question.stem)
+        .u64(question.alternatives.len() as u64);
+    for alternative in &question.alternatives {
+        view.field(alternative);
+    }
+    assert!(view.finish().len() + 1024 <= MAX_REPLY);
 }
 
 /// AT-NET-24: a reply over MAX_REPLY bytes is refused by the relay and by the client.

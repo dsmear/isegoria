@@ -112,13 +112,14 @@ contract leaves to the implementation:
 
 ## Distributed integration (T79) — approved contract (D60)
 
-**Status (2026-11-03): approved by the owner (`01` D60); not implemented.** *Approved*
-restates an earlier decision or a built network rule; *consequence* is what the current code
-forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision recorded in
-D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04` §Operating
-contract (T88-P1–P4, approved in `01` D57, the genesis's schema in D60; increments A and B
-built under D58 and D59). Nothing here changes D49–D53 or the offline `AnswerNode` and its
-`CloseEpoch`.
+**Status (2026-11-04): approved by the owner (`01` D60); the state on signed cuts is built
+(§Built on cuts), the node, participants and trial (`10` §2.3's increments 2–4) are not.**
+*Approved* restates an earlier decision or a built network rule; *consequence* is what the
+current code forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision
+recorded in D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04`
+§Operating contract (T88-P1–P4, approved in `01` D57, the genesis's schema in D60; increments
+A and B built under D58 and D59). Nothing here changes D49–D53 or the offline `AnswerNode`
+and its `CloseEpoch`.
 
 **Configuration and authorization.**
 - *Approved.* Consortium-signed cuts order every event; the first of conflicting events wins,
@@ -126,9 +127,9 @@ built under D58 and D59). Nothing here changes D49–D53 or the offline `AnswerN
   nothing; members log persons' events (D54, T85).
 - *Consequence.* The headers of `AnswerEvent` and `NodeEvent` share the version byte and the
   kind numbers 1–5; their bodies differ, and strict decoding refuses almost every byte string
-  of the other family, but no tag keeps the two families apart. The ledger decodes `NodeEvent`
-  only. A question's number counts the accepted deposits before it in cut order, the same on
-  every node.
+  of the other family, but no tag keeps the two families apart. The legacy ledger decodes
+  `NodeEvent` only, the answer review's `AnswerEvent` only (§Built on cuts). A question's number
+  counts the accepted deposits before it in cut order, the same on every node.
 - **T79-P1 — one family per network** (approved). The genesis (`04` T88-P1, which holds its
   schema) names the answer review v1 and pins `AnswerConfig`, D49–D51's unchanged, in the
   offline record's encoding; the network id is the genesis hash, so every feed entry and cut
@@ -283,12 +284,54 @@ not persisted.
 **Delay, duplicates and restart.** *Consequences of the cut rules:* a cut waits for the
 entries it names; a signed entry received twice is one entry; a person's event logged by two
 members applies once, the second refused with its reason on every node; an event after its
-window is refused on every node. *Requirement, not built:* a restarted node rebuilds the
-answer state as above, so one history gives the same draws, outcomes, records and quotas;
-today no node process holds protocol state, and this holds only for the `Ledger` the tests
-drive. Nothing signs the derived state before T86's roots: until then gate 3 compares each
-node's *state digest* (D60), a tagged SHA-256 of a canonical encoding of the whole derived
-state, reported in its status at each closing cut.
+window is refused on every node. *Requirement:* a restarted node rebuilds the answer state
+as above, so one history gives the same draws, outcomes, records and quotas; this holds for
+`AnswerLedger` (AT-T79-9, AT-T79-12), which no node process holds yet. Nothing signs the
+derived state before T86's roots: until then gate 3 compares each node's *state digest* (D60),
+a tagged SHA-256 of a canonical encoding of the whole derived state, reported in its status at
+each closing cut.
+
+**Built on cuts (`10` T79, first increment, 2026-11-04).**
+`protocol::answer_ledger::AnswerLedger`, beside the legacy `protocol::Ledger`, which keeps its
+contract, holds the state of one network: its `Tiers`, the issuer's key and an `AnswerConfig`
+(the node pins D49–D51's, `04` T88-P1). A signed cut applies on a replica of that writer set,
+after its signatures (rule 6's withholders not counted), the members' checks and its entries
+held; a cut failing the checks is `AnswerLedgerError::Checks` and changes nothing. Then come
+its entries in cut order, its seal, and the value of the round it finished; each entry's
+`CutReport` line names what it did (`Accepted`) or why not (`Refusal`). The choices the contract
+left to the implementation:
+- *Contexts.* `answer_path::network_context`: the tag `isegoria/answer-review/network/v1`, the
+  network id, then the offline context; offline contexts and nyms unchanged.
+- *The request kind.* `AnswerEvent::RequestCloseEpoch { epoch }`, kind 9; the offline path
+  refuses it (`Refused::NetworkOnly`), its other events unchanged.
+- *An entry's checks, in order.* A member object counts only on its member's public feed; then
+  the decoding (else `NotAnEvent`); `Draw` and `CloseEpoch` are `Derived` on any feed; any other
+  event on a public feed is `PublicFeed`; a `CloseCommits` or `Close` is refused for an unknown
+  question, then where its round is not the one it closes (not counted), then if `Repeated`;
+  a deposit past the size bound is `TooLarge`; then the offline checks. A request to close an
+  epoch counts in a cut of that epoch only (`WrongEpoch`), once per member; one past the `t`-th
+  counts and changes nothing. Requests stay in the state.
+- *The members' checks.* `answer_ledger::Next::after(last, requested, t)` and `Next::check`, a
+  pure function of the last cut and the requests counted for the next cut's epoch;
+  `AnswerLedger::next` and `check` apply them to the ledger, for the proposer and co-signers.
+- *Question size.* `answer_ledger::MAX_QUESTION`, 49,152 bytes (48 KiB) of the question's
+  encoding, checked by `fits` (`14`).
+- *State digest.* `AnswerLedger::digest`: SHA-256 tagged `isegoria/answer-review/state/v1` over
+  the network id, the path's canonical state (configuration, epoch, closings, pool, seals with
+  their values, every question with its round and closure, slots, author records; the indexes
+  rebuilt from them left out) and the requests counted. Beacon rounds, cuts and refusals are not
+  in it.
+
+*The mapping to the offline path*, which the differential test checks: each entry a cut applies
+is the same offline event at the same point — a person's event with its offline proof, the
+`t`-th distinct member's `CloseCommits` or `Close` the offline one, every other entry none; a
+closing cut of `e` is offline `CloseEpoch { e, B }` at its end, `B` the value `e` later takes
+(the first round from `e` on that has one); at the end of the cut after `f`'s closing cut, when
+round `f` has a value, offline `Draw` of each pending question of the sealed epochs up to `f`
+still without one, in question order. *Evidence:* `protocol/tests/answer_on_cuts.rs` and
+`answer_on_cuts_model.rs`, `p2p/tests/blind_relays.rs` (AT-T79-1–13, `08` §12). *Not built:* the
+hook, the request spool, the digest in the status, gateway admission, private reads, the client,
+the test issuer and the switch withholding reveals.
 
 ---
 

@@ -14,6 +14,7 @@ use identity::credential::IssuerPublic;
 use identity::nullifier::NullifierProof;
 use identity::nym::{Nym, Role};
 use network::cid::Cid;
+use network::codec::Writer;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// The path's parameters, pinned for a log's life: provisional, uncalibrated (`docs/14`, D52).
@@ -45,6 +46,14 @@ impl AnswerConfig {
 
 /// The context of a reviewer's proof to join the pool.
 pub const POOL_CONTEXT: &[u8] = b"isegoria/answer-pool/v1";
+
+/// The family tag before the network id in a network's proof contexts (`docs/05` T79-P1).
+pub const NETWORK_FAMILY: &[u8] = b"isegoria/answer-review/network/v1";
+
+/// `context`, an offline proof context, as network `network_id` binds it.
+pub fn network_context(network_id: &[u8; 32], context: &[u8]) -> Vec<u8> {
+    [NETWORK_FAMILY, network_id, context].concat()
+}
 
 /// The context of a commitment's proof: it binds the question and the commitment.
 pub fn commit_context(question: u64, commitment: &AnswerCommit) -> Vec<u8> {
@@ -103,10 +112,11 @@ pub struct Slots {
     pub used: u32,
 }
 
-/// A closed epoch: its beacon value and how many of the pool had joined by its closure.
+/// A closed epoch: how many of the pool had joined by its closure, and its beacon value once
+/// recorded (on a network, a later round's, `docs/05` T79-P3).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Seal {
-    beacon: [u8; 32],
+    beacon: Option<[u8; 32]>,
     pool: usize,
 }
 
@@ -162,6 +172,8 @@ pub enum Refused {
     RevealMismatch,
     AnswerOutOfRange,
     Overflow,
+    /// A member's request to close an epoch: only a network counts it (`docs/05` T79-P5).
+    NetworkOnly,
 }
 
 impl From<Unproven> for Refused {
@@ -182,6 +194,7 @@ pub struct AnswerPath {
     entries: Vec<Entry>,
     slots: BTreeMap<(u64, Nym), Slots>,
     authors: BTreeMap<Nym, AuthorRecord>,
+    network: Option<[u8; 32]>,
 }
 
 impl AnswerPath {
@@ -198,7 +211,20 @@ impl AnswerPath {
             entries: Vec::new(),
             slots: BTreeMap::new(),
             authors: BTreeMap::new(),
+            network: None,
         })
+    }
+
+    /// An empty path whose proofs bind `network_id` (`docs/05` T79-P1).
+    pub(crate) fn for_network(config: AnswerConfig, network_id: [u8; 32]) -> Option<Self> {
+        let mut path = Self::new(config)?;
+        path.network = Some(network_id);
+        Some(path)
+    }
+
+    fn context(&self, offline: &[u8]) -> Vec<u8> {
+        self.network
+            .map_or_else(|| offline.to_vec(), |id| network_context(&id, offline))
     }
 
     pub fn apply(
@@ -228,11 +254,12 @@ impl AnswerPath {
             } => self.reveal(*question, *reviewer, *answer, nonce),
             AnswerEvent::Close { question } => self.close(*question),
             AnswerEvent::CloseEpoch { epoch, beacon } => self.close_epoch(*epoch, *beacon),
+            AnswerEvent::RequestCloseEpoch { .. } => Err(Refused::NetworkOnly),
         }
     }
 
     fn join(&mut self, proof: &NullifierProof, issuer: &IssuerPublic) -> Result<Applied, Refused> {
-        let reviewer = admit(proof, issuer, Role::Judge, POOL_CONTEXT)?;
+        let reviewer = admit(proof, issuer, Role::Judge, &self.context(POOL_CONTEXT))?;
         if self.in_pool.contains(&reviewer) {
             return Err(Refused::AlreadyInPool);
         }
@@ -253,12 +280,8 @@ impl AnswerPath {
         }
         question.check().map_err(Refused::Malformed)?;
         let content = question.content_id();
-        let author = admit(
-            proof,
-            issuer,
-            Role::Propose,
-            &deposit_context(content, epoch),
-        )?;
+        let context = self.context(&deposit_context(content, epoch));
+        let author = admit(proof, issuer, Role::Propose, &context)?;
         if let Some(&existing) = self.contents.get(&(author, content)) {
             return Err(Refused::Duplicate { question: existing });
         }
@@ -292,6 +315,7 @@ impl AnswerPath {
             return Err(Refused::WrongRound);
         }
         let seal = *self.seals.get(&entry.epoch).ok_or(Refused::BeaconPending)?;
+        let beacon = seal.beacon.ok_or(Refused::BeaconPending)?;
         let required = self.config.rule.group();
         if seal.pool < required as usize {
             let available = seal.pool as u32;
@@ -301,7 +325,7 @@ impl AnswerPath {
                 required,
             });
         }
-        let seed = Beacon::from_value(seal.beacon).seed(ANSWER_DRAW, question);
+        let seed = Beacon::from_value(beacon).seed(ANSWER_DRAW, question);
         let group = lottery::admit(
             &self.pool[..seal.pool],
             required as usize,
@@ -326,12 +350,8 @@ impl AnswerPath {
         let Round::Committing { group, commits } = &entry.round else {
             return Err(Refused::WrongRound);
         };
-        let reviewer = admit(
-            proof,
-            issuer,
-            Role::Judge,
-            &commit_context(question, &commitment),
-        )?;
+        let context = self.context(&commit_context(question, &commitment));
+        let reviewer = admit(proof, issuer, Role::Judge, &context)?;
         if !group.contains(&reviewer) {
             return Err(Refused::NotDrawn);
         }
@@ -432,13 +452,91 @@ impl AnswerPath {
         if epoch != self.epoch {
             return Err(Refused::WrongEpoch);
         }
-        let next = self.epoch.checked_add(1).ok_or(Refused::Overflow)?;
+        self.seal()?;
+        self.seals
+            .entry(epoch)
+            .and_modify(|s| s.beacon = Some(beacon));
+        Ok(Applied::EpochClosed { epoch })
+    }
+
+    /// Closes the open epoch without its beacon value: its pool, one closing more (T79-P3).
+    pub(crate) fn seal(&mut self) -> Result<u64, Refused> {
+        let epoch = self.epoch;
+        let next = epoch.checked_add(1).ok_or(Refused::Overflow)?;
         let closings = self.closings.checked_add(1).ok_or(Refused::Overflow)?;
         let pool = self.pool.len();
-        self.seals.insert(epoch, Seal { beacon, pool });
+        self.seals.insert(epoch, Seal { beacon: None, pool });
         self.epoch = next;
         self.closings = closings;
-        Ok(Applied::EpochClosed { epoch })
+        Ok(epoch)
+    }
+
+    /// Gives `beacon`, round `round`'s value, to every sealed epoch up to it still lacking one,
+    /// then draws their pending questions in question order (T79-P3, P4).
+    pub(crate) fn assign(
+        &mut self,
+        round: u64,
+        beacon: [u8; 32],
+    ) -> (Vec<u64>, Vec<(u64, Applied)>) {
+        let mut valued = Vec::new();
+        for (epoch, seal) in self.seals.range_mut(..=round) {
+            if seal.beacon.is_none() {
+                seal.beacon = Some(beacon);
+                valued.push(*epoch);
+            }
+        }
+        let pending: Vec<u64> = (0..self.questions())
+            .filter(|&q| {
+                let e = &self.entries[q as usize];
+                e.round == Round::Pending && valued.contains(&e.epoch)
+            })
+            .collect();
+        let drawn = pending
+            .into_iter()
+            .map(|q| {
+                (
+                    q,
+                    self.draw(q)
+                        .expect("a valued epoch's pending question draws"),
+                )
+            })
+            .collect();
+        (valued, drawn)
+    }
+
+    /// Every field but the indexes rebuilt from them, in one canonical encoding (D60's digest).
+    pub(crate) fn write_state(&self, w: &mut Writer) {
+        w.field(&self.config.encode())
+            .u64(self.epoch)
+            .u64(self.closings)
+            .u64(self.pool.len() as u64);
+        for nym in &self.pool {
+            w.fixed(&nym.0);
+        }
+        w.u64(self.seals.len() as u64);
+        for (epoch, seal) in &self.seals {
+            w.u64(*epoch).u64(seal.pool as u64);
+            write_option(w, seal.beacon.as_ref());
+        }
+        w.u64(self.entries.len() as u64);
+        for e in &self.entries {
+            e.question.write(w);
+            w.fixed(&e.content.0).fixed(&e.author.0).u64(e.epoch);
+            write_round(w, &e.round);
+        }
+        w.u64(self.slots.len() as u64);
+        for ((epoch, nym), s) in &self.slots {
+            w.u64(*epoch).fixed(&nym.0);
+            w.u64(u64::from(s.quota)).u64(u64::from(s.used));
+        }
+        w.u64(self.authors.len() as u64);
+        for (nym, record) in &self.authors {
+            w.fixed(&nym.0).u64(record.observations().count() as u64);
+            for (q, o) in record.observations() {
+                w.u64(q);
+                write_observation(w, o);
+            }
+        }
     }
 
     fn point(&self) -> AuthorPoint {
@@ -532,5 +630,86 @@ impl AnswerPath {
 
     pub fn slots(&self, author: &Nym, epoch: u64) -> Option<Slots> {
         self.slots.get(&(epoch, *author)).copied()
+    }
+}
+
+fn write_option(w: &mut Writer, bytes: Option<&[u8; 32]>) {
+    match bytes {
+        None => w.u8(0),
+        Some(b) => w.u8(1).fixed(b),
+    };
+}
+
+fn write_nyms<'a>(w: &mut Writer, nyms: impl ExactSizeIterator<Item = &'a Nym>) {
+    w.u64(nyms.len() as u64);
+    for nym in nyms {
+        w.fixed(&nym.0);
+    }
+}
+
+fn write_commits(w: &mut Writer, commits: &BTreeMap<Nym, AnswerCommit>) {
+    w.u64(commits.len() as u64);
+    for (nym, c) in commits {
+        w.fixed(&nym.0).fixed(&c.0);
+    }
+}
+
+fn write_observation(w: &mut Writer, o: &Observation) {
+    w.u8(u8::from(o.success)).u64(o.weight.to_bits());
+    w.u64(o.origin.epoch).u64(o.origin.closings);
+}
+
+fn write_round(w: &mut Writer, round: &Round) {
+    match round {
+        Round::Pending => {
+            w.u8(0);
+        }
+        Round::Unavailable { available } => {
+            w.u8(1).u64(u64::from(*available));
+        }
+        Round::Committing { group, commits } => {
+            w.u8(2);
+            write_nyms(w, group.iter());
+            write_commits(w, commits);
+        }
+        Round::Revealing {
+            group,
+            commits,
+            answers,
+        } => {
+            w.u8(3);
+            write_nyms(w, group.iter());
+            write_commits(w, commits);
+            w.u64(answers.len() as u64);
+            for (nym, a) in answers {
+                w.fixed(&nym.0).fixed(&a.code());
+            }
+        }
+        Round::Closed(c) => {
+            let (num, den) = c.rule.threshold();
+            w.u8(4).u64(c.tally.alternatives.len() as u64);
+            for n in c
+                .tally
+                .alternatives
+                .iter()
+                .chain([&c.tally.none, &c.tally.abstentions])
+            {
+                w.u64(u64::from(*n));
+            }
+            w.u64(u64::from(c.tally.absences)).u8(c.verdict as u8);
+            for part in [c.rule.group(), c.rule.quorum(), num, den] {
+                w.u64(u64::from(part));
+            }
+            w.u64(c.at.epoch).u64(c.at.closings);
+            match &c.observation {
+                None => {
+                    w.u8(0);
+                }
+                Some(o) => {
+                    w.u8(1);
+                    write_observation(w, o);
+                }
+            }
+        }
     }
 }

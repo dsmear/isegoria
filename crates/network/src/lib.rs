@@ -20,7 +20,7 @@ pub mod state;
 pub mod store;
 pub mod tier;
 
-mod hash;
+pub mod hash;
 
 /// Infrastructural node roles (`docs/04`), distinct from the three person actions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

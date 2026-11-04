@@ -52,6 +52,11 @@ impl AuthorRecord {
         self.observations.get(&question)
     }
 
+    /// Every observation by question number.
+    pub fn observations(&self) -> impl Iterator<Item = (u64, &Observation)> {
+        self.observations.iter().map(|(q, o)| (*q, o))
+    }
+
     /// The observations that count at `at`: those recorded in an earlier epoch.
     pub fn counted(&self, at: AuthorPoint) -> usize {
         self.counting(at).count()

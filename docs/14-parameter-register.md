@@ -247,6 +247,20 @@ under it (`01` D52).
 - **Location.** `01` D51, D52; `protocol::answer_author::QuotaBands::default()`, pinned with the
   rest. The prior `(2, 3)` and `H` are §C.1's, below; `AnswerConfig` pins `H` too.
 
+### The question's size on a network — 49,152 bytes (48 KiB), provisional
+
+- **Reason.** On a network the question's encoding (context, text, alternatives, key) is bounded
+  so that its view fits one sealed reply of 64 KiB (`p2p::blind::MAX_REPLY`) with its seals
+  (`01` D60, `05` §Distributed integration). A larger deposit is an invalid request and spends
+  no slot (D51); the offline path has no bound.
+- **Calibration.** None: set at implementation (T79, 2026-11-04), not measured against real
+  questions. **Sensitivity.** Not measured.
+- **If it moves.** Up, toward the reply's limit: less room for the reply's seals and fields;
+  down: longer contexts are refused. Not in `AnswerConfig` or the genesis: a change is a change
+  of the family's rules, applied by every node alike.
+- **Location.** `protocol::answer_ledger::MAX_QUESTION`, checked by `answer_ledger::fits` in the
+  ledger (and, from T79's third increment, the gateway); AT-T79-10 and AT-T79-13.
+
 ## Level B — the empirical validation
 
 To be written by step 4 once the supplement's DIF studies have run on the corrected model
