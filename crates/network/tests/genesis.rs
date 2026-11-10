@@ -1,9 +1,9 @@
-//! The genesis document (`docs/04` §Operating contract, T88-P1, AT-NET-40): its one encoding,
+//! The genesis document (`docs/04` §Operating contract, T88-P1, AT-NET-40, 41): its one encoding,
 //! strict decoding, the digest and network id it derives, and the tiered set it configures.
 
 use ed25519_dalek::VerifyingKey;
 use network::consortium::Member;
-use network::genesis::{Genesis, GenesisError, GenesisMember, MAX_MEMBERS};
+use network::genesis::{Field, Genesis, GenesisError, GenesisMember, MAX_MEMBERS};
 use network::tier::Tier;
 use proptest::collection::vec;
 use proptest::prelude::*;
@@ -293,6 +293,67 @@ fn the_member_bound() {
     assert_eq!(Genesis::decode(&g.encode()), Ok(g.clone()));
     g.members = members(MAX_MEMBERS + 1);
     assert_eq!(Genesis::decode(&g.encode()), Err(GenesisError::Members));
+}
+
+// The fault `check` refuses is named by its field, a repeat at its later place (AT-NET-41).
+#[test]
+fn a_fault_names_its_field() {
+    use GenesisError::*;
+    let with = |f: &dyn Fn(&mut Genesis)| {
+        let mut g = known();
+        f(&mut g);
+        let fault = g.fault();
+        assert_eq!(g.check().err(), fault.map(|(error, _)| error));
+        fault
+    };
+    let weak = small_order()[0];
+    assert_eq!(with(&|_| ()), None);
+    assert_eq!(
+        with(&|g| g.members.clear()),
+        Some((Members, Field::Members))
+    );
+    let many = |g: &mut Genesis| g.members = members(MAX_MEMBERS + 1);
+    assert_eq!(with(&many), Some((Members, Field::Members)));
+    let threshold = Some((Threshold, Field::Threshold));
+    assert_eq!(with(&|g| g.threshold = 0), threshold);
+    assert_eq!(with(&|g| g.threshold = 3), threshold);
+    assert_eq!(
+        with(&|g| g.members[1].consortium = weak),
+        Some((Key, Field::Consortium(1)))
+    );
+    assert_eq!(
+        with(&|g| g.members[0].circle = not_canonical()[0]),
+        Some((Key, Field::Circle(0)))
+    );
+    assert_eq!(
+        with(&|g| g.members[1].hpke = low_order()[1]),
+        Some((Key, Field::Hpke(1)))
+    );
+    assert_eq!(with(&|g| g.relays[1] = weak), Some((Key, Field::Relay(1))));
+    assert_eq!(
+        with(&|g| g.members[1].consortium = short(11)),
+        Some((Repeated, Field::Consortium(1)))
+    );
+    assert_eq!(
+        with(&|g| g.members[1].circle = short(1)),
+        Some((Repeated, Field::Circle(1)))
+    );
+    assert_eq!(
+        with(&|g| g.relays[0] = short(12)),
+        Some((Repeated, Field::Relay(0)))
+    );
+    assert_eq!(
+        with(&|g| g.relays[1] = g.relays[0]),
+        Some((Repeated, Field::Relay(1)))
+    );
+    assert_eq!(
+        with(&|g| g.members[1].hpke = [0x21; 32]),
+        Some((Repeated, Field::Hpke(1)))
+    );
+    assert_eq!(
+        with(&|g| g.relays.reverse()),
+        Some((Order, Field::Relay(1)))
+    );
 }
 
 prop_compose! {

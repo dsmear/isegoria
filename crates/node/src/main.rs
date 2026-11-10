@@ -136,6 +136,18 @@ fn main() -> ExitCode {
                 }
             };
         }
+        [flag, input, output] if flag.as_os_str() == "--genesis-assemble" => {
+            return match node::genesis::assemble(input, output) {
+                Ok(document) => {
+                    print!("{}", node::genesis::render(&document));
+                    ExitCode::SUCCESS
+                }
+                Err(e) => {
+                    eprintln!("genesis {}: {e:?}", input.display());
+                    ExitCode::from(2)
+                }
+            };
+        }
         [flag, path] if flag.as_os_str() == "--transport-public-key" => {
             return match transport_public_key(path) {
                 Ok(hex) => {
@@ -153,6 +165,7 @@ fn main() -> ExitCode {
             eprintln!("usage: isegoria-node <config.toml> | --announce <config.toml>\n\
                 --new-identity <data-dir>\n\
                 --genesis-digest <genesis-file>\n\
+                --genesis-assemble <genesis.toml> <genesis-file>\n\
                 --transport-public-key <node.toml>\n\
                 --archive-extract <node.toml> <production.toml>\n\
                 --archive-export-cut <node.toml> <cut.toml> <cut-file>\n\

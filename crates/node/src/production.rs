@@ -180,7 +180,7 @@ fn candidate(node: &crate::Config, input: &Config) -> Result<Candidate, Error> {
 struct Stage(PathBuf);
 
 impl Stage {
-    fn new(output: &Path) -> Result<Self, Error> {
+    fn new(output: &Path) -> io::Result<Self> {
         static NEXT: AtomicU64 = AtomicU64::new(0);
         let parent = parent_of(output);
         for _ in 0..32 {
@@ -192,13 +192,13 @@ impl Stage {
             match fs::create_dir(&path) {
                 Ok(()) => return Ok(Self(path)),
                 Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
-                Err(error) => return Err(error.into()),
+                Err(error) => return Err(error),
             }
         }
-        Err(Error::Io(io::ErrorKind::AlreadyExists))
+        Err(io::ErrorKind::AlreadyExists.into())
     }
 
-    fn write(&self, name: &str, bytes: &[u8]) -> Result<(), Error> {
+    fn write(&self, name: &str, bytes: &[u8]) -> io::Result<()> {
         let mut file = OpenOptions::new()
             .create_new(true)
             .write(true)
@@ -215,7 +215,7 @@ impl Drop for Stage {
     }
 }
 
-pub(crate) fn publish_file(output: &Path, bytes: &[u8]) -> Result<(), Error> {
+pub(crate) fn publish_file(output: &Path, bytes: &[u8]) -> io::Result<()> {
     let stage = Stage::new(output)?;
     stage.write("file", bytes)?;
     fs::hard_link(stage.0.join("file"), output)?;

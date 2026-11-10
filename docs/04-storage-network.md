@@ -1178,9 +1178,25 @@ add no consensus rule at runtime, where §Cuts is unchanged. The answer review's
     `isegoria-node --genesis-digest <file>` prints `digest`, `network_id`, then the document
     line by line (`version`, `threshold`, `member <i> <consortium> <circle> <hpke>`, `family`,
     `answer_config` with its parameters by name, `issuer`, `relay`), reading only that file and
-    writing nothing. Networks without tiers keep a free `network_id`. *Not built:* a command
-    assembling the document from the operators' printed keys; a check of a relay's own
-    transport key against it. Tested in-process and on controlled processes.
+    writing nothing. Networks without tiers keep a free `network_id`.
+  - *Built (AT-NET-41):* `isegoria-node --genesis-assemble <genesis.toml> <genesis-file>`
+    writes the canonical document from a TOML holding `threshold`, `family`
+    (`answer-review/v1`), `issuer` (the key's 97 bytes in hex, as `--genesis-digest` prints
+    it), `relays` (a list, in any order: the document holds them in increasing order) and one
+    `[[member]]` table per member, in member order, with the `consortium`, `circle` and `hpke`
+    keys its operator's `--new-identity` printed; a `transport` key, like any other field, is
+    refused. The family pins D49–D51's `AnswerConfig`, which the command writes; the version
+    is 1. Every input is checked before anything is written, and a refusal names the field: a
+    key that is not 64 hex digits or not a valid key is `Input("member[1].circle", Key)`, a
+    repeated one is named at its later place (signing keys member by member, then the relays
+    in the order listed, then the HPKE keys), a member count outside `1..=256` is `member`,
+    `t` outside `1..=n` is `threshold`, another family is `family`, an issuer that is not one
+    canonical key is `Issuer`. The command writes only its output file, published whole
+    through a staging directory beside it that it removes, and refuses an output that exists;
+    it then prints what `--genesis-digest` prints for that file. It checks the count and
+    threshold, not that they are the trial's `n = 4`, `t = 3`: each operator confirms that.
+    *Not built:* a check of a relay's own transport key against the document. Tested
+    in-process and on controlled processes.
 - **T88-P2 — keys.** *Approved:* the separate keys already built stay — the consortium key
   (public feed), the circle key, the HPKE key and the transport key, each from its own
   secret; the earlier proposal to derive them all from the member's seed is withdrawn. Each
@@ -1257,8 +1273,9 @@ operators' closure commands, the comparison of state digests and a round without
 1. **Preparation.** Each operator pins the agreed revision, generates its member's secrets
    locally (`--new-identity`), keeps a backup under its own control, and sends the others
    only the public keys it printed and its addresses.
-2. **Configuration confirmation.** One operator assembles the canonical configuration
-   *(needs code: no command assembles it)*. Each operator checks its own keys and index,
+2. **Configuration confirmation.** One operator assembles the canonical configuration from
+   the printed keys and the agreed parameters (`--genesis-assemble`, T88-P1) and sends the
+   file to the others. Each operator checks its own keys and index,
    `n = 4`, `t = 3` and the version, computes the digest and the network id itself
    (`--genesis-digest`), and confirms them to every other operator over a channel it
    authenticates on its own: the digest proves no origin. The four confirmations go into the
@@ -1305,7 +1322,7 @@ What remains:
    bound or not; for the circle feed from one granting member. *Resolved* for tiered networks
    by increment B (D59): two other verified members; writers without tiers keep T80.
 2. **The network id.** *Resolved* for tiered networks: it derives from the genesis, which
-   each node's TOML names and repeats (T88-P1, *Built*); no command assembles the document.
+   each node's TOML names and repeats (T88-P1, *Built*), and `--genesis-assemble` writes it.
 3. **Conflicts.** *Resolved* for the duties (§The duties' stop at a conflict): after two cuts
    are collected for one number, a member's duties produce nothing more.
 4. **Views and exclusions.** *Resolved* for the status (§The cuts' views and exclusions in the
