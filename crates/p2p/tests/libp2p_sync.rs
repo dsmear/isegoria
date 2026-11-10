@@ -364,3 +364,33 @@ async fn a_dial_does_not_leave_from_the_listening_port() {
     let (_, from) = accepted.await.unwrap().unwrap();
     assert_ne!(Some(from.port()), listening);
 }
+
+// An address holds one dial at a time and is dialed again once that one ends (AT-NET-45).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn connect_holds_one_dial_per_address() {
+    let (handle, _) = node(None).await;
+    let monitor = handle.monitor();
+    let target = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = target.local_addr().unwrap().port();
+    let peers = vec![format!("/ip4/127.0.0.1/tcp/{port}").parse().unwrap()];
+    monitor.connect(&peers).await;
+    let limit = Duration::from_secs(10);
+    let first = tokio::time::timeout(limit, target.accept()).await.unwrap();
+    let first = first.unwrap();
+    monitor.connect(&peers).await;
+    let brief = Duration::from_millis(500);
+    assert!(tokio::time::timeout(brief, target.accept()).await.is_err());
+    drop(first);
+    let redial = async {
+        loop {
+            monitor.connect(&peers).await;
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    };
+    tokio::select! {
+        accepted = tokio::time::timeout(limit, target.accept()) => {
+            accepted.unwrap().unwrap();
+        }
+        _ = redial => {}
+    }
+}

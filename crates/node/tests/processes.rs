@@ -84,20 +84,24 @@ struct Nodes {
 
 impl Nodes {
     fn start(name: &str) -> Nodes {
+        let mut nodes = Nodes::configured(name);
+        for i in 0..4 {
+            nodes.spawn(i);
+        }
+        nodes
+    }
+
+    fn configured(name: &str) -> Nodes {
         let root = scratch(name);
         let addrs: Vec<String> = (0..4)
             .map(|_| format!("/ip4/127.0.0.1/tcp/{}", free_port()))
             .collect();
         let configs: Vec<PathBuf> = (0..4).map(|i| config(&root, i, &addrs)).collect();
-        let mut nodes = Nodes {
+        Nodes {
             root,
             configs,
             children: (0..4).map(|_| None).collect(),
-        };
-        for i in 0..4 {
-            nodes.spawn(i);
         }
-        nodes
     }
 
     fn spawn(&mut self, i: usize) {
@@ -121,6 +125,15 @@ impl Nodes {
     fn status(&self, i: usize) -> Option<Status> {
         let path = self.root.join(format!("node{i}")).join("status");
         parse(&std::fs::read_to_string(path).ok()?)
+    }
+
+    /// Waits, at most 15 s, until node `i` reports `peers` peers.
+    fn until_peers(&self, i: usize, peers: usize) {
+        let deadline = Instant::now() + Duration::from_secs(15);
+        while self.status(i).is_none_or(|s| s.peers != peers) {
+            assert!(Instant::now() < deadline, "{:?}", self.status(i));
+            std::thread::sleep(Duration::from_millis(50));
+        }
     }
 
     /// Waits until every node in `who` reports at least `cuts` cuts and `beacons` rounds.
@@ -176,6 +189,20 @@ fn at_net_21_node_processes_agree_and_a_restart_rejoins() {
     nodes.spawn(1);
     let after = nodes.until(&all, before + 6, 4, 120);
     agree(&after, before + 6, 4);
+}
+
+/// AT-NET-45: a node with a peer still reaches a configured one that starts later and dials no one.
+#[test]
+fn at_net_44_a_node_with_a_peer_reaches_a_later_one() {
+    let mut nodes = Nodes::configured("late-peer");
+    let text = std::fs::read_to_string(&nodes.configs[3]).unwrap();
+    let dials = text.lines().find(|l| l.starts_with("peers = ")).unwrap();
+    std::fs::write(&nodes.configs[3], text.replace(dials, "peers = []")).unwrap();
+    nodes.spawn(1);
+    nodes.spawn(0);
+    nodes.until_peers(0, 1);
+    nodes.spawn(3);
+    nodes.until_peers(0, 2);
 }
 
 /// AT-NET-21: a SIGTERM that arrives once the data directory is locked stops the node cleanly.

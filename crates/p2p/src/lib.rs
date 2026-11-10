@@ -16,7 +16,7 @@ use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, StreamExt};
 use libp2p::gossipsub::{self, IdentTopic, MessageAcceptance, MessageAuthenticity, ValidationMode};
 use libp2p::request_response::{self, OutboundRequestId, ProtocolSupport, ResponseChannel};
 use libp2p::swarm::dial_opts::DialOpts;
-use libp2p::swarm::{behaviour::toggle::Toggle, NetworkBehaviour, SwarmEvent};
+use libp2p::swarm::{behaviour::toggle::Toggle, ConnectionId, NetworkBehaviour, SwarmEvent};
 use libp2p::{identity, noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm};
 use member::{Collector, MemberRole, Progress};
 use network::consortium::Consortium;
@@ -27,6 +27,7 @@ use network::replica::{
 use network::store::{DurableLog, ObjectStore, StoreError};
 use network::tier::{Tier, Tiers};
 use record::{Guard, State, Stop};
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -255,6 +256,7 @@ enum Command {
     ),
     Listen(Multiaddr, oneshot::Sender<Result<Multiaddr, String>>),
     Dial(Multiaddr, oneshot::Sender<Result<(), String>>),
+    Connect(Vec<Multiaddr>, oneshot::Sender<()>),
     Publish(
         Feed,
         Vec<u8>,
@@ -289,8 +291,9 @@ impl Monitor {
         ask(&self.commands, Command::Status).await
     }
 
-    pub async fn dial(&self, addr: Multiaddr) -> Result<(), String> {
-        ask(&self.commands, |tx| Command::Dial(addr, tx)).await
+    /// Dials each of `peers` that holds no pending or open connection from an earlier call.
+    pub async fn connect(&self, peers: &[Multiaddr]) {
+        ask(&self.commands, |tx| Command::Connect(peers.to_vec(), tx)).await
     }
 }
 
@@ -347,6 +350,7 @@ enum Sent {
 }
 
 struct Node {
+    outbound: HashMap<Multiaddr, ConnectionId>,
     archive: Option<archive::Store>,
     advertisements: discovery::Announcements,
     swarm: Swarm<Behaviour>,
@@ -789,6 +793,7 @@ impl Handle {
             identity: guard,
             me: me.map(|(index, _)| index),
             checks: Default::default(),
+            outbound: HashMap::new(),
             listening: Vec::new(),
             member: config.member,
             network_id,
@@ -1300,9 +1305,20 @@ impl Node {
                 }
             },
             Command::Dial(addr, tx) => {
-                let opts = DialOpts::unknown_peer_id().address(addr);
-                let dial = self.swarm.dial(opts.allocate_new_port().build());
+                let dial = self.swarm.dial(new_port(addr));
                 let _ = tx.send(dial.map_err(|e| e.to_string()));
+            }
+            Command::Connect(peers, tx) => {
+                for addr in peers {
+                    if let Entry::Vacant(slot) = self.outbound.entry(addr) {
+                        let opts = new_port(slot.key().clone());
+                        let id = opts.connection_id();
+                        if self.swarm.dial(opts).is_ok() {
+                            slot.insert(id);
+                        }
+                    }
+                }
+                let _ = tx.send(());
             }
             Command::Publish(feed, object, tx) => {
                 let _ = tx.send(self.publish(feed, object));
@@ -1328,6 +1344,11 @@ impl Node {
     }
 
     fn event(&mut self, event: SwarmEvent<BehaviourEvent>) {
+        if let SwarmEvent::ConnectionClosed { connection_id, .. }
+        | SwarmEvent::OutgoingConnectionError { connection_id, .. } = &event
+        {
+            self.outbound.retain(|_, id| id != connection_id);
+        }
         match event {
             SwarmEvent::NewListenAddr { address, .. } => {
                 if self.tiered.is_some() {
@@ -1775,6 +1796,13 @@ impl Node {
             },
         }
     }
+}
+
+fn new_port(addr: Multiaddr) -> DialOpts {
+    DialOpts::unknown_peer_id()
+        .address(addr)
+        .allocate_new_port()
+        .build()
 }
 
 enum Store {
