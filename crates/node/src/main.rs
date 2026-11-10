@@ -56,19 +56,26 @@ fn archive_command(args: &[PathBuf]) -> Result<String, node::production::Error> 
     Ok(node::hex(&digest))
 }
 
-async fn stopped() {
-    #[cfg(unix)]
-    {
-        use tokio::signal::unix::{signal, SignalKind};
-        if let Ok(mut term) = signal(SignalKind::terminate()) {
-            tokio::select! {
-                _ = tokio::signal::ctrl_c() => {}
-                _ = term.recv() => {}
-            }
-            return;
+/// Installs the SIGTERM and Ctrl-C handlers now, inside a runtime; the future completes at
+/// the first of them, also one received before it is first polled.
+#[cfg(unix)]
+fn stopped() -> std::io::Result<impl std::future::Future<Output = ()>> {
+    use tokio::signal::unix::{signal, SignalKind};
+    let mut term = signal(SignalKind::terminate())?;
+    let mut interrupt = signal(SignalKind::interrupt())?;
+    Ok(async move {
+        tokio::select! {
+            _ = term.recv() => {}
+            _ = interrupt.recv() => {}
         }
-    }
-    let _ = tokio::signal::ctrl_c().await;
+    })
+}
+
+#[cfg(not(unix))]
+fn stopped() -> std::io::Result<impl std::future::Future<Output = ()>> {
+    Ok(async {
+        let _ = tokio::signal::ctrl_c().await;
+    })
 }
 
 fn main() -> ExitCode {
@@ -173,7 +180,17 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    match runtime.block_on(node::run(plan, stopped())) {
+    let stop = {
+        let _inside = runtime.enter();
+        match stopped() {
+            Ok(stop) => stop,
+            Err(e) => {
+                eprintln!("signal handlers: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    };
+    match runtime.block_on(node::run(plan, stop)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("start: {e:?}");

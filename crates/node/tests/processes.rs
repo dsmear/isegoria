@@ -177,3 +177,46 @@ fn at_net_21_node_processes_agree_and_a_restart_rejoins() {
     let after = nodes.until(&all, before + 6, 4, 120);
     agree(&after, before + 6, 4);
 }
+
+/// AT-NET-21: a SIGTERM that arrives once the data directory is locked stops the node cleanly.
+#[cfg(unix)]
+#[test]
+fn at_net_21_a_sigterm_during_the_start_stops_the_node() {
+    for round in 0..10 {
+        let root = scratch(&format!("early-term-{round}"));
+        let addrs: Vec<String> = (0..4)
+            .map(|_| format!("/ip4/127.0.0.1/tcp/{}", free_port()))
+            .collect();
+        let log = std::fs::File::create(root.join("node3.log")).unwrap();
+        let mut child = Command::new(env!("CARGO_BIN_EXE_isegoria-node"))
+            .arg(config(&root, 3, &addrs))
+            .stdout(Stdio::null())
+            .stderr(log)
+            .spawn()
+            .expect("the node starts");
+        let deadline = Instant::now() + Duration::from_secs(20);
+        while !root.join("node3").join("lock").exists() {
+            assert!(
+                Instant::now() < deadline,
+                "the node never locked its directory"
+            );
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        let sent = Command::new("kill")
+            .args(["-TERM", &child.id().to_string()])
+            .status()
+            .unwrap();
+        assert!(sent.success());
+        let status = loop {
+            if let Some(status) = child.try_wait().unwrap() {
+                break status;
+            }
+            if Instant::now() >= deadline {
+                let _ = child.kill();
+                panic!("round {round}: the node did not stop");
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        };
+        assert!(status.success(), "round {round}: node exited {status}");
+    }
+}

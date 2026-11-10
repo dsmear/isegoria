@@ -13,7 +13,8 @@ permissionless consensus.**
 each administering its nodes and holding its own keys. Single-operator processes are
 an intermediate check. The signing set stays defined by the network configuration;
 P2P does not mean anyone may sign the state. `10` §2 owns the work order and completion
-gates. `05` §Distributed integration proposes the answer-review interface.
+gates. `05` §Distributed integration holds the answer review's integration contract,
+approved in `01` D60.
 
 **Trust boundary.** The current cut protocol's agreement argument assumes members
 follow its rules, with majority quorums for view changes; it is not a Byzantine-fault
@@ -1065,7 +1066,10 @@ the answer review between nodes (`10` T79); its contract, approved in `01` D60, 
 ### A node process
 
 A node runs as one operating-system process, `isegoria-node <config>` (`10` T78), until it
-is stopped, and resumes from its files when started again. Its configuration is a regular UTF-8 TOML file of at most 1 MiB:
+is stopped, and resumes from its files when started again. SIGTERM and Ctrl-C stop it; their
+handlers are installed before the data directory is locked, so a signal during the start
+stops it as one received later does, and a process that cannot install them does not start.
+Its configuration is a regular UTF-8 TOML file of at most 1 MiB:
 
 | Key | What it is |
 |---|---|
