@@ -377,13 +377,14 @@ mod processes {
                     )
                     .replace("listen = []", &settings)
                     .replace("\n[consortium]", &circle)
-                    .replace("cuts_per_epoch = 1\n", "cuts_per_epoch = 4\n")
                     .replace(
                         "\npatience = 2\nview_patience = 2\n",
                         "\npatience = 4\nview_patience = 8\n",
                     );
                 let path = f.root.join(format!("runtime-{i}.toml"));
                 fs::write(&path, text).unwrap();
+                let close = ["close-epoch".to_string(), "0".to_string()];
+                node::answer::request(&node::Config::load(&path).unwrap(), &close).unwrap();
                 path
             })
             .collect();
@@ -411,8 +412,11 @@ mod processes {
             cuts[2].view >= 1 && cuts[5].view >= 1,
             "member 2 proposes nothing"
         );
+        let first = cuts.iter().position(|c| !c.excluded.is_empty());
+        let first = first.expect("member 2 excluded after round 0");
+        assert!((2..=5).contains(&first), "cut {first}");
         for (k, cut) in cuts.iter().enumerate() {
-            let withheld: &[usize] = if (5..8).contains(&k) { &[2] } else { &[] };
+            let withheld: &[usize] = if k >= first { &[2] } else { &[] };
             assert_eq!(cut.excluded, withheld, "cut {k}");
         }
         let mut exported = Vec::new();
@@ -439,6 +443,7 @@ mod processes {
                 &f.root.join("x.cut"),
             ]);
             assert_eq!(other.status.code(), Some(2), "cut {number} in view {view}");
+            assert_eq!(cut.closes, number + 2 == first, "cut {number}");
             exported.push(output);
         }
         let input = production::Config {

@@ -68,7 +68,7 @@ fn member(root: &Path, g: &Genesis, path: &Path) -> String {
         "{}network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = [\"/ip4/127.0.0.1/tcp/0\"]\n\
          writers = {}\nkey_file = \"{}\"\ncircle_key_file = \"{}\"\nhpke_key_file = \"{}\"\n\
          relays = {}\n\n[consortium]\nmembers = {}\nthreshold = {}\ncircle = {}\nhpke = [{}]\n\n\
-         [member]\nindex = 0\nevery_ms = 100\ncuts_per_epoch = 2\npatience = 5\nview_patience = 10\n",
+         [member]\nindex = 0\nevery_ms = 100\npatience = 5\nview_patience = 10\n",
         lines(path, g),
         hex(&g.id()),
         root.join("data").display(),

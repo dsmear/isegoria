@@ -140,9 +140,9 @@ fn at_net_21_the_status_file_has_one_text() {
         synced: vec![1, 3],
         circle_synced: vec![2],
         duties_halted: true,
-        digests: vec![],
+        digests: vec![(1, [5; 32])],
         refused_cut: None,
-        requests: vec![],
+        requests: vec![("1-close-epoch-0".to_string(), 0)],
     };
     let text = render(&status);
     assert_eq!(parse(&text), Some(status.clone()));
@@ -269,6 +269,7 @@ fn tiered(circle_key: &std::path::Path) -> impl Fn(String) -> String + '_ {
                 key(12)
             ),
         )
+        .replace("cuts_per_epoch = 2\n", "")
     }
 }
 

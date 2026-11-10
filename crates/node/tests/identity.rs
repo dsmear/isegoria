@@ -175,7 +175,7 @@ mod processes {
         });
         let document = super::genesis::genesis(threshold, entries.collect(), vec![]);
         let lines = super::genesis::write(&dir.with_extension("genesis"), &document);
-        lines + &format!("network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = [\"/ip4/127.0.0.1/tcp/{listen}\"]\npeers = [{}]\nwriters = {}\nkey_file = \"{}\"\ncircle_key_file = \"{}\"\nstatus_every_ms = 100\nsync_every_ms = 100\n[consortium]\nmembers = {}\nthreshold = {threshold}\ncircle = {}\n[member]\nindex = {index}\nevery_ms = 100\ncuts_per_epoch = 1000\npatience = 10\nview_patience = 20\n",
+        lines + &format!("network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = [\"/ip4/127.0.0.1/tcp/{listen}\"]\npeers = [{}]\nwriters = {}\nkey_file = \"{}\"\ncircle_key_file = \"{}\"\nstatus_every_ms = 100\nsync_every_ms = 100\n[consortium]\nmembers = {}\nthreshold = {threshold}\ncircle = {}\n[member]\nindex = {index}\nevery_ms = 100\npatience = 10\nview_patience = 20\n",
             node::hex(&document.id()), dir.display(), peers.join(","), list(&writers), dir.join("member.key").display(), dir.join("circle.key").display(), list(&members), list(&circle))
     }
 

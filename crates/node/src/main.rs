@@ -13,6 +13,23 @@ fn transport_public_key(path: &Path) -> Result<String, String> {
         .map_err(|e| format!("transport key {}: {e:?}", key.display()))
 }
 
+/// `--request <node.toml> <command> <n>`: spools an operator's closure request (`docs/04`).
+fn request(path: &Path, args: &[PathBuf]) -> ExitCode {
+    let args: Option<Vec<String>> = args.iter().map(|a| Some(a.to_str()?.to_string())).collect();
+    let config = node::Config::load(path);
+    let spooled = config.and_then(|c| node::answer::request(&c, &args.unwrap_or_default()));
+    match spooled {
+        Ok(name) => {
+            println!("{name}");
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("request: {e:?}");
+            ExitCode::from(2)
+        }
+    }
+}
+
 fn archive_command(args: &[PathBuf]) -> Result<String, node::production::Error> {
     use node::production::{self, Error};
     if let [flag, node, bundle] = args {
@@ -160,6 +177,7 @@ fn main() -> ExitCode {
                 }
             };
         }
+        [flag, path, args @ ..] if flag.as_os_str() == "--request" => return request(path, args),
         [path] => path.clone(),
         _ => {
             eprintln!("usage: isegoria-node <config.toml> | --announce <config.toml>\n\
@@ -167,6 +185,7 @@ fn main() -> ExitCode {
                 --genesis-digest <genesis-file>\n\
                 --genesis-assemble <genesis.toml> <genesis-file>\n\
                 --transport-public-key <node.toml>\n\
+                --request <node.toml> close-commits <question> | close <question> | close-epoch <epoch>\n\
                 --archive-extract <node.toml> <production.toml>\n\
                 --archive-export-cut <node.toml> <cut.toml> <cut-file>\n\
                 --archive-prepare <node.toml> <production.toml> <bundle-dir>\n\

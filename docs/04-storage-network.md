@@ -1012,7 +1012,7 @@ consortium signature check, of cuts, checkpoints and beacon commits, is Ed25519
 
 **Proposing and signing.** Cut `k` is proposed in **views** 0, 1, 2, …: the proposer of view
 `v` is member `(k + v) mod n`, who signs its proposal first; its epoch and closing are its
-call. A member signs a cut for `k` in view `v` — over the cut's checkpoint in that view: the
+call, except in a tiered network, where the hook decides them (`05` §Built in the node). A member signs a cut for `k` in view `v` — over the cut's checkpoint in that view: the
 height its number, the head its digest in view 0 and `H("isegoria/cut/view/v1" ‖ digest ‖ v)`
 in a later view — when it is that view's proposal, the cut extends the last collected one,
 the member holds every entry it names, the cut counts the member's own beacon messages (a
@@ -1057,10 +1057,10 @@ so the members left can always sign. The rounds are counted by one rule for the 
 for the members collecting cuts (`network::rounds`).
 
 Public CID lookup without a full replica is specified in §Public object discovery (T75);
-circle objects are never offered through it (§Who reads). The node process
-does not run
-the answer review between nodes (`10` T79); its contract, approved in `01` D60, is
-`05` §Distributed integration, its state on cuts `protocol::answer_ledger`. In code:
+circle objects are never offered through it (§Who reads). A member's node runs the answer
+review on the cuts it collects (`05` §Built in the node, `10` T79); persons reach it only with
+T79's third increment. Its contract, approved in `01` D60, is `05` §Distributed integration, its
+state on cuts `protocol::answer_ledger`. In code:
 `network::replica`, `network::cut`, `protocol::ledger`, the `p2p` crate.
 
 ### A node process
@@ -1086,7 +1086,7 @@ Its configuration is a regular UTF-8 TOML file of at most 1 MiB:
 | `circle_key_file` | a member of a tiered network: its circle seed (hex), whose key must be its own in `consortium.circle` |
 | `hpke_key_file`, `relays` | a tiered member's gateway: its HPKE seed (hex), whose configuration must be its own in `consortium.hpke`, and the relays' transport keys it answers, the genesis's in any order |
 | `relay` | `true` for a tiered non-member that forwards persons' requests; needs every member's configuration |
-| `member` | optional: `index`, `every_ms`, `cuts_per_epoch`, `patience`, `view_patience` |
+| `member` | optional: `index`, `every_ms`, `patience`, `view_patience`, and `cuts_per_epoch` in a network without a genesis only, where it is required (`05` §Built in the node) |
 | `sync_every_ms`, `status_every_ms` | the periodic pull, and how often the status is written |
 | `archive_maintenance` | optional, tiered: explicit trusted archive jobs and their schedule (§Archive maintenance in a node process) |
 
@@ -1094,7 +1094,8 @@ Under `data_dir`: `own/`, the writer's feed (§A node's own disk), and `circle/`
 member's circle feed; `replica/`, its replica on disk (§A replica on disk), with a tiered
 node's selected archive shards in `replica/archive/` (§Archive holders and transfer);
 `archive-status`, the latest configured archive-maintenance result (§Archive maintenance
-in a node process); `lock`, held by the running process (§Initial archive installation on
+in a node process); `requests/`, a tiered member's spool of its operator's closure requests,
+executed ones in `requests/done/` (`isegoria-node --request`, `05` §Built in the node); `lock`, held by the running process (§Initial archive installation on
 a holder);
 `transport.key`, the seed of its libp2p key, made at the first
 start, so its peer id stays the same across restarts; and `status`, rewritten whole at each
@@ -1104,7 +1105,9 @@ tiered node's feeds, the other members whose rounds its start check holds (`sync
 (`duties_halted`), its peers and how many of them are bound members,
 the equivocations its replica holds, whether the consortium equivocated, each collected
 cut from number 0 with its digest, view and exclusions (§The cuts' views and exclusions in
-the status), and each finished round's value and withholders. A
+the status), each finished round's value and withholders, and for a tiered member the state
+digest after each closing cut, the cut its hook refused if any, and its executed requests
+(`05` §Built in the node). A
 configuration that does not hold — a bad key, a threshold outside `1..=n`, a member without
 a key, circle keys that are not one distinct key per member, `writers` other than the tiered
 set's keys, a tiered member without its own circle key, a circle key file outside one, a tiered
@@ -1126,8 +1129,9 @@ trial's archive custody below, which the trial no longer exercises (owner, 2026-
 T88-P1's schema in `01` D60 (2026-11-03).
 *Built* names what the code does today, *not built* what the approved rules still need
 (§Obstacles in the code). Nothing here is *verified*: no independent-operator trial has run.
-T88, T84 (frozen) and Phase 2 stay open; T79's contract is approved (D60), only its state on
-signed cuts built (`05` §Built on cuts), and T19 and `10` §2's gates remain required. The operators' confirmations set up the trial; they
+T88, T84 (frozen) and Phase 2 stay open; T79's contract is approved (D60), its state on
+signed cuts and a member's node running it built (`05` §Built on cuts, §Built in the node), and
+T19 and `10` §2's gates remain required. The operators' confirmations set up the trial; they
 add no consensus rule at runtime, where §Cuts is unchanged. The answer review's side is `05`
 §Distributed integration (T79-P1–P7, approved in D60).
 
@@ -1268,7 +1272,8 @@ The minimal written procedure. Steps marked *(needs code)* wait on §Obstacles i
 each operator runs its own machine and keeps its own secrets throughout. The answer review's
 steps are not written yet: `01` D60 has them added with T79 — the test issuer and issuance,
 the non-member relays, participants' credentials and client with the trial's sizing, the
-operators' closure commands, the comparison of state digests and a round without a beacon.
+operators' closure commands, the comparison of state digests and a round without a beacon. The
+closure commands and the digests in the status are built (`05` §Built in the node).
 
 1. **Preparation.** Each operator pins the agreed revision, generates its member's secrets
    locally (`--new-identity`), keeps a backup under its own control, and sends the others

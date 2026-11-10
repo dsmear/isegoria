@@ -192,7 +192,7 @@ impl Fixture {
             .collect::<Vec<_>>();
         let writers = members.iter().chain(&circle).copied().collect();
         let lines = super::genesis::lines(&self.root.join("genesis.bin"), &document());
-        lines + &format!("network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = []\nwriters = {}\nkey_file = \"{}\"\n[consortium]\nmembers = {}\nthreshold = 2\ncircle = {}\n[member]\nindex = {index}\nevery_ms = 100\ncuts_per_epoch = 1\npatience = 2\nview_patience = 2\n", node::hex(&net()), self.root.join("node-state").display(), list(writers), self.root.join(format!("member-{index}.key")).display(), list(members), list(circle))
+        lines + &format!("network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = []\nwriters = {}\nkey_file = \"{}\"\n[consortium]\nmembers = {}\nthreshold = 2\ncircle = {}\n[member]\nindex = {index}\nevery_ms = 100\npatience = 2\nview_patience = 2\n", node::hex(&net()), self.root.join("node-state").display(), list(writers), self.root.join(format!("member-{index}.key")).display(), list(members), list(circle))
     }
 
     /// `text` under another genesis, one relay added: another network with the same members.

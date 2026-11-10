@@ -242,7 +242,7 @@ steps are seeded for reproducibility.
 | `answer_path` | The answer review (D49–D52) | `AnswerPath::{new, apply, usable, closure, view, reputation, quota, slots, …}`, `AnswerConfig`, `Round`, `Closure`, `Applied`, `Refused`, `commit_context`, `POOL_CONTEXT`, `network_context`, `NETWORK_FAMILY` — pool, deposit and quota, draw, commit-reveal, closure, outcome and observation, epochs; each event checked whole before it applies (T87); on a network, prefixed proof contexts and the seal apart from its value (T79-P1, P3) | `answer*`, `admission`, `deposit`, `lottery`, `randomness` |
 | `answer_events` | The answer review | `AnswerEvent` (join, deposit, draw, commit, end of commits, reveal, close, close epoch; a member's request to close an epoch, refused offline), `encode`, `decode` | `answer`, `network::codec` |
 | `answer_node` | The answer review | `AnswerNode::{open, submit, state, events}`, `AnswerNodeError`, `AnswerConfig::{encode, decode}` (the record's encoding, strict for the genesis, T88-P1) — the durable offline node: configuration pinned in the first record, accepted events replayed on open | `answer_path`, `answer_events`, `network::store` |
-| `answer_ledger` | §Distributed integration (`docs/05`, D60) | `AnswerLedger::{new, apply, apply_in_view, next, check, state, refused, beacon, excluded, digest}`, `Next::{after, check}`, `CutReport`, `Accepted`, `Refusal`, `CheckFailure`, `AnswerLedgerError` (`OutOfSequence` apart from `Checks`), `MAX_QUESTION`, `fits` — the answer review on signed cuts of a tiered network: persons' events on circle feeds, closures by `t` members, the seal, the round's value and the draws derived at each cut's end, the members' checks, the state digest (T79, first increment; no node caller yet) | `answer_path`, `answer_events`, `network::{cut, rounds, tier, hash}` |
+| `answer_ledger` | §Distributed integration (`docs/05`, D60) | `AnswerLedger::{new, apply, apply_in_view, next, check, state, refused, beacon, excluded, digest}`, `Next::{after, check}`, `CutReport`, `Accepted`, `Refusal`, `CheckFailure`, `AnswerLedgerError` (`OutOfSequence` apart from `Checks`), `MAX_QUESTION`, `fits` — the answer review on signed cuts of a tiered network: persons' events on circle feeds, closures by `t` members, the seal, the round's value and the draws derived at each cut's end, the members' checks, the state digest (T79, first increment; run by `node::answer`) | `answer_path`, `answer_events`, `network::{cut, rounds, tier, hash}` |
 | `lifecycle` | §9.1 | `State`, `Event`, `step`, `deposit`, `K_MIN` — rejects every invalid transition (T12); `Event::Resolve` re-decides the band (T10/T30); `SupplementaryReview` carries the extra round, `AssignExtraReviewers` then commit-reveal, `K_EXTRA_MAX` (T60); `Event::Explore` takes a gate rejection to `Explored` and `Measured`, never the pool (D35, T52); `State::Contested` — a DIF item with a verified source, from `Pilot2` or the pool, re-validated into either pool (D38, T55) | `gate`, `review`, `exposure`, `identity::nym` |
 | `orchestrator` | Epoch glue | `bridging_weights`, `weighted_ratings` (prior-epoch `w_u` → the fit, T5), `epoch_weight_cap` (`3 × median` over the weights that count, D33), `run_item`, `ItemVerdicts` (drives the epoch through `step`, T12), `ExtraRound`, `extra_round`, `expanded_ratings` (the band's second round and the re-decision's ratings, T60), `settle_appeal` (the escrow settled by the outcome the terminal state concludes, T61, `docs/15` C5–C6; any other state settles nothing, `docs/15` A11 (f)), `ItemVerdicts::dif` (stage 2's `Recheck`, indeterminate kept pending, `docs/15` A4), `ItemVerdicts::explored` (the beacon's exploration draw walked to `Measured`, T52), `ItemVerdicts::source_verified` (a DIF failure with a verified source is `Contested`, and settles an appeal as promoted, T55), `axis_mask`, `N_MIN_REVIEWS` (the reviewer floor of the axis, T39) | `lifecycle`, `appeal`, `probation`, `scoring::bridging` |
 | `panel_scores` | §C.2 band baselines (`docs/16` C5) | `Forecast`, `first_panel_baselines` (the other first panelists), `extra_round_baseline` (the first panel, fixed before the extra round), `item_scores`; `None` where no weight remains, never the reviewer's own forecast or 0; weights scaled by a power of two (`docs/17` §14.9) | `scoring::reputation`, `libm` |
@@ -283,8 +283,11 @@ engine and the protocol state stay free of I/O and of an async runtime (T18). `t
 `Bind` (`/isegoria/bind/1`), `transport_key` — in a tiered network each connection's
 binding is checked against the peer's Noise-authenticated key, and every sync message,
 announcement and forwarded gossip carries only what that peer reads (T77); without tiers
-the sync answers any peer with the whole set. A member's duties are the cuts and the
-beacon, not an epoch's work (T79). The cuts are extended from the last one
+the sync answers any peer with the whole set. `hook`: `Hook`, `Hooked`, `Follower`, the spool
+(`pending`, `done`, `executed`) — the protocol state a member's node computes outside `p2p`
+(`docs/05` §Built in the node): each collected cut applied once, a refused one stopping the
+duties, `closes` and `may_sign` deciding what the duties propose and sign (`duties_with`), the
+operator's spooled requests logged on the circle feed. The cuts are extended from the last one
 (`member::Collector`, fixed to one context; `member::PublicCollector` for a node without
 the circle), and `Handle::status` reports them with the finished rounds (T78). `blind`:
 `KeyAnnouncement`, `GatewayKey`, `Gateway`, `seal`, `Sealed::open`, `submit` — a person's event
@@ -311,9 +314,11 @@ segments/contexts and no live datastore), `install` (offline
 `--archive-install` of a certified bundle's assigned shard into the holder's own store),
 `run` (hold the data directory's lock, listen, dial, report status and optionally maintain
 archives until stopped),
-`render` and `parse` (the ordinary status file). Maintenance shutdown awaits the active pass.
-Depends on `p2p` and `network`, and on `protocol` and `identity` only to validate the genesis;
-the protocol state is not computed here yet (T79).
+`render` and `parse` (the ordinary status file, with a tiered member's digests, refused cut
+and executed requests), `answer` (`AnswerHook`, the `p2p` hook over `protocol::answer_ledger`
+in every tiered member; `request` for `--request`, an operator's closure request spooled).
+Maintenance shutdown awaits the active pass. Depends on `p2p` and `network`, on `protocol` for
+the genesis and the answer review's state (T79, second increment), on `identity` for the genesis.
 
 ## `characterization` — the characterization harness
 
