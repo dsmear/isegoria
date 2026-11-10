@@ -326,8 +326,9 @@ implementation:
   their values, every question with its round and closure, slots, author records; the indexes
   rebuilt from them left out), the requests counted, the beacon rounds (each open round's
   counted commits and reveals, each finished round's cut, epoch and outcome record — value,
-  revealers, withholders), the last cut's number and view, and every refusal with its entry and
-  reason in cut order (`AnswerLedger::refused`).
+  revealers, withholders), the last cut's number, and every refusal with its entry and reason in
+  cut order (`AnswerLedger::refused`); not the view a cut was signed in, which nodes can see
+  differently for one history (`01` D64).
 - *For the gateway (increment 3).* The ledger counts a `CloseCommits`, `Close` or
   `RequestCloseEpoch` on member `i`'s circle feed as `i`'s request, so the gateway must refuse
   those kinds from persons.

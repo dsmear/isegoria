@@ -694,7 +694,7 @@ fn at_t79_10_the_question_size_bound() {
 }
 
 /// AT-T79-11: the digest covers the network, the derived state, the beacon rounds, the cut point
-/// and the refusals, each alone changing it; one history gives one digest.
+/// and the refusals, each alone changing it; one history gives one digest in any view.
 #[test]
 fn at_t79_11_the_state_digest() {
     let issuer = Issuer::new([1u8; 32]);
@@ -719,7 +719,7 @@ fn at_t79_11_the_state_digest() {
         net
     });
     assert_eq!(views[0].ledger.state(), views[1].ledger.state());
-    assert_ne!(views[0].ledger.digest(), views[1].ledger.digest());
+    assert_eq!(views[0].ledger.digest(), views[1].ledger.digest());
     let mut later = Net::new(small());
     let mut sooner = Net::new(small());
     for net in [&mut later, &mut sooner] {
