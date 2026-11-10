@@ -2114,8 +2114,8 @@ the answer review's outcomes.
 ## D61 — T19 inside Milestone 2: the issuing committee, operated by the trial's members
 
 **Decided** by the owner; recorded 2026-11-10. Narrows what D55 brought into Phase 2 and
-settles the choices T19's contract needs first. The contract is *proposed*, not approved, in
-`03` §Committee setup for the trial (T19-P1–P6).
+settles the choices T19's contract needs first. The contract, proposed the same day, is
+`03` §Committee setup for the trial (T19-P1–P6); D63 approves it.
 
 - **Scope.** Inside Milestone 2, T19 is the issuing committee's distributed setup and
   issuance (threshold BBS+): no dealer, no in-process exchange. The uniqueness committee's
@@ -2135,8 +2135,8 @@ authenticates stays distinct from whoever issues. `t` committee members can issu
 list, fill the pool and steer the groups: the same coalition that signs a wrong cut (`04`
 T88-P3). No Byzantine tolerance is claimed (D57).
 
-**Scope.** Nothing built and no contract approved: T19, T79, T88 and Phase 2 stay open.
-D49–D53, D57–D60's other choices and the genesis's schema are unchanged.
+**Scope.** Nothing built, and this decision approves no contract: T19, T79, T88 and Phase 2
+stay open. D49–D53, D57–D60's other choices and the genesis's schema are unchanged.
 
 ## D62 — Assurance of Phase 2's code: fuzzing before gate 2, mutation testing outside the milestone
 
@@ -2152,3 +2152,33 @@ D49–D53, D57–D60's other choices and the genesis's schema are unchanged.
 **Scope.** The decision opens the task and authorizes no run: each campaign is authorized
 when assigned. Fuzzing shows no panic and one encoding on the inputs it reached; it proves
 neither the decoders nor the protocols correct.
+
+## D63 — The trial's issuing committee: T19's contract
+
+**Decided** by the owner; recorded 2026-11-10. The owner left the choice among the proposed
+options to the implementing agent and adopted its recommendation: T19-P1–P6 in `03`
+§Committee setup for the trial are approved as proposed, with two precisions folded in
+there. `03` owns the contract.
+
+- **Committee (P1).** The gate-3 genesis's four members in its order, threshold 3.
+- **Ceremony (P2).** Before the genesis: member keys, then the ceremony — key generation,
+  every pair's base OT, one prepared signature per listed slot by three named members —
+  then the genesis with the resulting issuer key. No party holds the key or two shares.
+- **Messages (P3).** One strict encoding each, signed by the sender's consortium key and
+  bound to the ceremony's id; a message for one member sealed to its HPKE key. *Precision:*
+  the signature has a tag of its own, apart from feed entries and cuts.
+- **Transport (P4).** Files carried by hand, through a tool apart from the node process; the
+  carrier can only withhold.
+- **Issuance (P5).** A fixed list of slots, one prepared signature per slot, used once, each
+  member recording durably what it answered. *Precision:* a label is an opaque slot number,
+  never a name or an attribute of a person (invariant 1).
+- **Abort, loss, compromise (P6).** Nothing of an aborted ceremony is reused; a lost share is
+  not recovered; a compromised share suspends the trial.
+
+**Scope.** A contract, nothing built; T19 follows T79's increments (`10` §2.3). Two points
+return to the owner if the first implementation step does not confirm them: the library's
+key generation yielding the genesis's issuer key, and the number of rounds. The composition
+is bespoke and unreviewed (`10` T23).
+
+**Limits.** D61's: `t` members can issue outside the list; no real-person uniqueness; no
+robustness against a member that deviates, and no Byzantine tolerance (D57).

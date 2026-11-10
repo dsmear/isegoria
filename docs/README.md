@@ -27,7 +27,7 @@ and evidence; they are not additional acceptance gates for this path.
 | Document | Responsibility |
 |---|---|
 | [Architecture](../ARCHITECTURE.md) | Design-to-code map and test strategy |
-| [03 — Identity](03-identity-enrollment.md) | Enrollment and pseudonym requirements, assumptions and gaps; the trial's committee setup (T19), proposed |
+| [03 — Identity](03-identity-enrollment.md) | Enrollment and pseudonym requirements, assumptions and gaps; the trial's committee setup (T19) |
 | [04 — Storage and network](04-storage-network.md) | Separate network design; outside the offline closure |
 | [07 — Assurance](07-verification-and-assurance.md) | Verification methodology |
 | [08 — Audit](08-formal-specification.md) | Dated audit and remediation records, including the added answer-review matrix |

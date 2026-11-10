@@ -175,12 +175,12 @@ checks are specified in [05](05-question-lifecycle.md#the-answer-review-01-d49d5
 
 ---
 
-## Committee setup for the trial (T19) — proposed contract
+## Committee setup for the trial (T19) — approved contract (D63)
 
-**Status (2026-11-10): proposed; not approved, not implemented.** *Decided* restates `01` D61
+**Status (2026-11-10): approved (`01` D63); not implemented.** *Decided* restates `01` D61
 or an earlier decision; *consequence* is what the current code forces; each **T19-Pn** is a
-choice awaiting the owner's decision before T19 is implemented. Only the issuing committee
-is in scope (D61); the uniqueness committee's setup stays open in T19, outside Milestone 2.
+choice D63 approves. Only the issuing committee is in scope (D61); the uniqueness
+committee's setup stays open in T19, outside Milestone 2.
 
 - *Decided (D61).* The trial's four consortium operators form the issuing committee.
   Credentials are synthetic, for a written list of participant slots, exchanged by hand.
@@ -199,12 +199,12 @@ is in scope (D61); the uniqueness committee's setup stays open in T19, outside M
   two interactive phases for a batch of signatures followed by one non-interactive share per
   signature. Composing them across machines is **bespoke** (`docs/CLAUDE.md`).
 
-**T19-P1 — committee and threshold** (proposed). The committee is the gate-3 genesis's four
+**T19-P1 — committee and threshold** (approved). The committee is the gate-3 genesis's four
 members in its order, threshold 3, the consortium's `t`: issuing outside the list takes the
 coalition that signs a wrong cut.
 *Rejected:* 2 of 4 — weaker than a cut. *Rejected:* 4 of 4 — one lost share ends issuance.
 
-**T19-P2 — the ceremony, before the genesis** (proposed). The order is: each operator
+**T19-P2 — the ceremony, before the genesis** (approved). The order is: each operator
 generates its member keys (`--new-identity`); the four run the ceremony under them; the
 genesis is assembled with the resulting issuer key and confirmed as `04` T88-P1 asks. The
 ceremony, each operator on its own machine with its own system randomness, is the key
@@ -217,24 +217,25 @@ the same list.
 *To confirm at the first implementation step, else back to the owner:* that the library's key
 generation yields `IssuerPublic` under the crate's fixed parameters, and the number of rounds.
 
-**T19-P3 — messages** (proposed). Each message has one encoding, strictly decoded, and is
-signed by its sender's consortium key over the ceremony's id, the round, the sender and the
-recipient. The id is a tagged hash of the members' consortium and HPKE keys in order, the
+**T19-P3 — messages** (approved). Each message has one encoding, strictly decoded, and is
+signed by its sender's consortium key, under a tag of its own, over the ceremony's id, the
+round, the sender and the recipient. The id is a tagged hash of the members' consortium and HPKE keys in order, the
 threshold, the slot list's digest and a fresh value from each member, so no message of
 another ceremony, committee or list is accepted. A message for one member is sealed to that
 member's HPKE key (RFC 9180 base mode, as `05` T79-P7's inner seal). A message that fails
 its decoding, signature, id, round or the library's own check is refused and ends the
 ceremony for that member.
 
-**T19-P4 — transport: files, by hand** (proposed). A command-line tool apart from the node
+**T19-P4 — transport: files, by hand** (approved). A command-line tool apart from the node
 process reads the files received and writes the files to send, one step per round; the
 operators carry them over any channel. Signed and sealed messages make the carrier
 untrusted: it can withhold, nothing else. No network service is added.
 *Rejected:* a channel between the members' nodes — the network needs the key first (above),
 and a second network before the genesis is a runtime path used once.
 
-**T19-P5 — issuance** (proposed). The procedure lists the slots, each a label; the list's
-digest is in the ceremony's id. A participant generates its secret with the client and
+**T19-P5 — issuance** (approved). The procedure lists the slots, each a label; the list's
+digest is in the ceremony's id. A label is an opaque slot number, never a name or an
+attribute of a person (invariant 1). A participant generates its secret with the client and
 sends its request for one slot. Each of the three members checks the request's proof, that
 the label is listed and that it has answered no request for that slot — recorded durably
 before its share leaves — and returns its share; the participant combines three shares and
@@ -243,7 +244,7 @@ request, never two: a second request for a slot is refused, also after a restart
 record of the slots answered ends that member's issuance. The ceremony's id fixes the
 list: a slot outside it is another ceremony, so the list carries the spares the trial needs.
 
-**T19-P6 — abort, loss and compromise** (proposed). The faults are D57's: crashes, delays,
+**T19-P6 — abort, loss and compromise** (approved). The faults are D57's: crashes, delays,
 lost and repeated files. Any refusal, a different public key or list, or the operators'
 decision aborts; nothing of an aborted ceremony is reused — new id, new randomness, new
 shares. A lost share is not recovered: the three members left prepare signatures again
