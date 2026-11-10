@@ -79,6 +79,7 @@ fn config(i: usize, root: &Path) -> Config {
         relay: None,
         gateway: None,
         identity: Some(record),
+        hook: None,
     }
 }
 
@@ -90,6 +91,7 @@ fn reader_config() -> Config {
         store: None,
         member: None,
         identity: None,
+        hook: None,
         ..config(0, &scratch("reader"))
     }
 }

@@ -140,6 +140,9 @@ fn at_net_21_the_status_file_has_one_text() {
         synced: vec![1, 3],
         circle_synced: vec![2],
         duties_halted: true,
+        digests: vec![],
+        refused_cut: None,
+        requests: vec![],
     };
     let text = render(&status);
     assert_eq!(parse(&text), Some(status.clone()));

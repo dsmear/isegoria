@@ -388,6 +388,7 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
         relay,
         gateway,
         identity: Some(config.data_dir.join("identity")),
+        hook: None,
     };
     Ok(Plan {
         transport,

@@ -123,6 +123,7 @@ impl Fixture {
             relay: None,
             gateway: None,
             identity: None,
+            hook: None,
         }
     }
 }

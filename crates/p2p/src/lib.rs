@@ -4,6 +4,7 @@
 pub mod archive;
 pub mod blind;
 pub mod discovery;
+pub mod hook;
 pub mod member;
 pub mod record;
 pub mod tiered;
@@ -149,6 +150,9 @@ pub struct Config {
     /// The record governing a tiered node's feeds; without one they write nothing (`docs/04`
     /// §Increments A and B). Ignored without tiers.
     pub identity: Option<PathBuf>,
+    /// A member's protocol state and its operator's spool (`docs/05` §Where the state is
+    /// computed); without one, a proposer closes epochs by `cuts_per_epoch`.
+    pub hook: Option<hook::Hooked>,
 }
 
 /// What a node reports of itself (`docs/04` §A node process).
@@ -178,8 +182,14 @@ pub struct Status {
     /// Why a tiered writer signs nothing, if it does not (`docs/04` §Increments A and B).
     pub stopped: Option<Stop>,
     /// Whether a member's duties halted at a consortium conflict (`docs/04` §The duties' stop
-    /// at a conflict); apart from `stopped`.
+    /// at a conflict) or at a cut its hook refused; apart from `stopped`.
     pub duties_halted: bool,
+    /// The hook's state digest after each closing cut it applied, by cut number.
+    pub digests: Vec<(u64, [u8; 32])>,
+    /// The collected cut the hook refused, and why: nothing after it is applied.
+    pub refused_cut: Option<(u64, String)>,
+    /// The operator's requests logged on the circle feed, by name, with their entry's `seq`.
+    pub requests: Vec<(String, u64)>,
 }
 
 #[derive(Debug)]
@@ -355,6 +365,9 @@ struct Node {
     routes: Option<Vec<blind::KeyAnnouncement>>,
     gateway: Option<blind::Gateway>,
     relaying: HashMap<OutboundRequestId, ResponseChannel<Vec<u8>>>,
+    hooked: Option<hook::Hooked>,
+    follower: hook::Follower,
+    requests: Vec<(String, u64)>,
     // Last field, so dropped after every store above.
     _held: Box<dyn Send>,
 }
@@ -694,6 +707,9 @@ impl Handle {
             ),
             None => Store::Memory(Replica::new(config.writers.clone())),
         };
+        if config.hook.is_some() && config.member.is_none() {
+            return Err(StartError::NotTheMember);
+        }
         if let Some(role) = &config.member {
             let key = role.member.public();
             let mine = role.consortium.keys().get(role.index) == Some(&key);
@@ -775,8 +791,12 @@ impl Handle {
             routes,
             gateway,
             relaying: HashMap::new(),
+            hooked: config.hook,
+            follower: hook::Follower::default(),
+            requests: Vec::new(),
             _held: Box::new(held),
         };
+        node.requests = node.executed();
         if let Some(t) = &node.tiered {
             for id in node.store.replica().ids().filter(|id| t.is_public(id)) {
                 if let Some((entry, _)) = node.store.replica().get(&id) {
@@ -910,6 +930,7 @@ impl Node {
     }
 
     fn status(&mut self) -> Status {
+        self.follow();
         let replica = self.store.replica();
         let rounds = |outcomes: Vec<&network::beacon::BeaconOutcome>| {
             outcomes
@@ -952,7 +973,67 @@ impl Node {
             stopped: self.identity.as_ref().and_then(|g| g.stop()),
             synced: self.synced(0, false),
             circle_synced: self.synced(1, true),
-            duties_halted: self.member.is_some() && self.progress.halted(),
+            duties_halted: self.member.is_some()
+                && (self.progress.halted() || self.follower.refused().is_some()),
+            digests: self.follower.digests().to_vec(),
+            refused_cut: self.follower.refused().cloned(),
+            requests: self.requests.clone(),
+        }
+    }
+
+    /// Applies to the hook the cuts collected since it last looked.
+    fn follow(&mut self) {
+        let (Some(hooked), Some(role)) = (self.hooked.as_mut(), self.member.as_ref()) else {
+            return;
+        };
+        let replica = self.store.replica();
+        let _ = self
+            .collector
+            .update(replica, &role.consortium, self.network_id);
+        self.follower
+            .follow(&mut *hooked.hook, &self.collector, replica);
+    }
+
+    /// The `seq` of the circle feed's entry holding `object`, if logged.
+    fn logged(&self, object: &[u8]) -> Option<u64> {
+        let payload = network::cid::cid(object);
+        let log = self.circle.as_ref()?.log.log();
+        log.entries()
+            .iter()
+            .find(|e| e.payload == payload)
+            .map(|e| e.seq)
+    }
+
+    /// The spool's executed requests the circle feed holds, as the status lists them.
+    fn executed(&self) -> Vec<(String, u64)> {
+        let Some(h) = &self.hooked else {
+            return Vec::new();
+        };
+        let done = hook::executed(&h.spool).unwrap_or_default();
+        let logged = done
+            .into_iter()
+            .map(|(name, b)| Some((name, self.logged(&b)?)));
+        logged.flatten().collect()
+    }
+
+    /// Logs each spooled request on the circle feed once, then moves it to `done/`; an object
+    /// already logged is not signed again.
+    fn spool(&mut self) {
+        let Some(dir) = self.hooked.as_ref().map(|h| h.spool.clone()) else {
+            return;
+        };
+        for (name, object) in hook::pending(&dir).unwrap_or_default() {
+            let seq = match self.logged(&object) {
+                Some(seq) => seq,
+                None => match self.publish(Feed::Circle, object) {
+                    Ok(signed) => signed.id().seq,
+                    Err(_) => return,
+                },
+            };
+            if hook::done(&dir, &name).is_err() {
+                return;
+            }
+            self.requests.push((name, seq));
         }
     }
 
@@ -965,13 +1046,22 @@ impl Node {
     }
 
     fn duties(&mut self) {
+        self.follow();
         let writes = self.identity.as_ref().is_none_or(|g| g.stop().is_none());
         let Some(role) = self.member.as_ref().filter(|_| self.caught_up && writes) else {
             return;
         };
-        let objects = role.duties(self.store.replica(), self.network_id, &mut self.progress);
+        if self.follower.refused().is_some() {
+            return;
+        }
+        let hook = self.hooked.as_ref().map(|h| &*h.hook);
+        let replica = self.store.replica();
+        let objects = role.duties_with(replica, self.network_id, &mut self.progress, hook);
         for object in objects {
             let _ = self.publish(Feed::Public, object.encode());
+        }
+        if !self.progress.halted() {
+            self.spool();
         }
     }
 

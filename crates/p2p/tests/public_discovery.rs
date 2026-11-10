@@ -34,6 +34,7 @@ fn config(tiered: bool) -> Config {
         relay: None,
         gateway: None,
         identity: None,
+        hook: None,
     }
 }
 fn entry(seed: u8, object: &[u8]) -> SignedEntry {
