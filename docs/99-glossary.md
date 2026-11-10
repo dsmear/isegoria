@@ -196,9 +196,9 @@ A Merkle tree with one position for every possible key, almost all of them empty
 position is fixed by the key itself. Besides proving that a record is in the tree, you can
 prove that a key has **no** record, by showing its position empty.
 
-The planned state tree uses this property to prevent a pseudonym with a bad record
-from re-entering a fork as new. It is decided, not implemented (D54, T86;
-[04](04-storage-network.md)).
+The state tree uses this property to prevent a pseudonym with a bad record from
+re-entering a fork as new. Its primitives are built and tested on synthetic records; no
+node produces or reads a tree yet (D54, D56, T86; [04](04-storage-network.md)).
 
 ## Blind relay (Oblivious HTTP)
 
@@ -206,9 +206,9 @@ A message travels sealed for its final recipient through an intermediary. The in
 knows **where** it comes from but cannot read it; the recipient reads it but sees only the
 intermediary as its sender. Standardized as Oblivious HTTP (RFC 9458), over HPKE (RFC 9180).
 
-The planned channel separates addresses from event contents, assuming the relay and
-member do not collude. It is decided, not implemented (D54, T85;
-[04](04-storage-network.md)).
+The channel separates addresses from event contents, assuming the relay and member do
+not collude. It is built and tested on loopback; a node process admits no event through
+it before T79 (D54, T85; [04](04-storage-network.md)).
 
 ## Content-addressed storage
 

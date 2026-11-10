@@ -11,7 +11,7 @@ and evidence; they are not additional acceptance gates for this path.
 | Document | Responsibility |
 |---|---|
 | [00 — Overview](00-overview.md) | Plain-language explanation and principles |
-| [01 — Decisions](01-decisions.md) | Owner decisions and their chronology; D45–D53 govern the current direction, D54–D62 the Phase 2 network and trial |
+| [01 — Decisions](01-decisions.md) | Owner decisions and their chronology; D45–D53 govern the current direction, D54–D63 the Phase 2 network and trial |
 | [05 — Lifecycle](05-question-lifecycle.md) | Answer-review contract first, separate forecast-and-pilot contract afterwards |
 | [02 — Scoring](02-scoring-engine.md) | Author-index mathematics (§C.1); retained earlier engine and its scoped guarantees |
 | [06 — Threat model](06-threat-model.md) | Current protections, assumptions and accepted risks |

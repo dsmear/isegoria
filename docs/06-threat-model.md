@@ -91,8 +91,9 @@ lifecycle. Configured with tiers, it serves a peer outside the circle the public
 only, its binding checked against the peer's authenticated transport key (T77, tested on
 loopback); without tiers it still serves its whole set to any connected peer. The blind
 relay channel exists (T85's first increment, tested on loopback) but a node process admits
-no event through it before T79; the state tree (T86) is unimplemented, and relays still
-write in a network without tiers: run such a network only among machines its operator
+no event through it before T79; the state tree's primitives exist (T86's first increment,
+synthetic records) but no node produces or reads a tree, and relays still write in a
+network without tiers: run such a network only among machines its operator
 controls. Draft and panel privacy, unlinkability by network address and the private fork
 path are design obligations, not protections the runtime already provides.
 
@@ -111,7 +112,11 @@ A member sees the circle's plaintext. Public roots bind records but do not let a
 outsider recompute private results or guarantee their availability. Independent
 operators and blind relays do not eliminate member leaks or relay/member collusion.
 
-Decisions are in [01, D54–D55](01-decisions.md). Network contracts and residual limits
+Whoever issues credentials can fill the reviewers' pool and steer the groups: before T19 the
+single-key test issuer alone (`01` D60), at gate 3 any `t` members of the issuing committee
+(`01` D61, D63).
+
+Decisions are in [01, D54–D63](01-decisions.md). Network contracts and residual limits
 are in [04](04-storage-network.md); the integration contract, approved in D60, in
 [05](05-question-lifecycle.md#distributed-integration-t79--approved-contract-d60).
 [10 §2](10-roadmap.md#phase-2--p2p-network) defines the planned trial; its evidence
