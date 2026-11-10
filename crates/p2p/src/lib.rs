@@ -4,10 +4,10 @@
 pub mod archive;
 pub mod blind;
 pub mod discovery;
-pub mod hook;
 #[cfg(fuzzing)]
 #[doc(hidden)]
 pub mod fuzz;
+pub mod hook;
 pub mod member;
 pub mod record;
 pub mod tiered;
