@@ -45,13 +45,23 @@ pub enum GenesisError {
     Members,
     Threshold,
     Family,
-    /// A key that is not one canonical encoding of an Ed25519 point or an X25519 coordinate, or
-    /// one of small order.
+    /// A key not one canonical Ed25519 point or X25519 coordinate, or one of small order.
     Key,
     /// A key twice, in one role or across roles.
     Repeated,
     /// Relays not in increasing order.
     Order,
+}
+
+/// Where a document does not hold: a member's or relay's key by its index in its list.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Field {
+    Members,
+    Threshold,
+    Consortium(usize),
+    Circle(usize),
+    Hpke(usize),
+    Relay(usize),
 }
 
 impl From<DecodeError> for GenesisError {
@@ -135,33 +145,45 @@ impl Genesis {
     }
 
     pub fn check(&self) -> Result<(), GenesisError> {
+        self.fault().map_or(Ok(()), |(error, _)| Err(error))
+    }
+
+    /// The first fault [`Genesis::check`] refuses and its field (`docs/04` T88-P1).
+    pub fn fault(&self) -> Option<(GenesisError, Field)> {
         let n = self.members.len();
         if n == 0 || n > MAX_MEMBERS {
-            return Err(GenesisError::Members);
+            return Some((GenesisError::Members, Field::Members));
         }
         if !(1..=n).contains(&self.threshold) {
-            return Err(GenesisError::Threshold);
+            return Some((GenesisError::Threshold, Field::Threshold));
         }
         let mut seen = BTreeSet::new();
-        let signing = self.members.iter().flat_map(|m| [&m.consortium, &m.circle]);
-        for key in signing.chain(&self.relays) {
-            ed25519(key).ok_or(GenesisError::Key)?;
-            if !seen.insert(*key) {
-                return Err(GenesisError::Repeated);
+        let mut repeated = |key: &[u8; 32]| !seen.insert(*key);
+        let signing = self.members.iter().enumerate().flat_map(|(i, m)| {
+            [
+                (&m.consortium, Field::Consortium(i)),
+                (&m.circle, Field::Circle(i)),
+            ]
+        });
+        let relays = self.relays.iter().zip((0..).map(Field::Relay));
+        for (key, field) in signing.chain(relays) {
+            if ed25519(key).is_none() {
+                return Some((GenesisError::Key, field));
+            }
+            if repeated(key) {
+                return Some((GenesisError::Repeated, field));
             }
         }
-        for m in &self.members {
+        for (i, m) in self.members.iter().enumerate() {
             if !x25519(&m.hpke) {
-                return Err(GenesisError::Key);
+                return Some((GenesisError::Key, Field::Hpke(i)));
             }
-            if !seen.insert(m.hpke) {
-                return Err(GenesisError::Repeated);
+            if repeated(&m.hpke) {
+                return Some((GenesisError::Repeated, Field::Hpke(i)));
             }
         }
-        if self.relays.windows(2).any(|pair| pair[0] > pair[1]) {
-            return Err(GenesisError::Order);
-        }
-        Ok(())
+        let unordered = self.relays.windows(2).position(|pair| pair[0] > pair[1]);
+        unordered.map(|i| (GenesisError::Order, Field::Relay(i + 1)))
     }
 
     /// The SHA-256 of the encoding: the file's digest, which identifies it without the code.
