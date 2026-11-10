@@ -43,7 +43,7 @@ and evidence; they are not additional acceptance gates for this path.
   documents 16, 17, 19 and 20 in this directory are redirects.
 - [Simulations](../sim/README.md): historical prototypes and scoped numerical oracles.
 - [Paper](../archive/phase1-forecast-pilot/paper/README.md): archived analysis of the earlier forecast-and-pilot design,
-  with distinct PDF and source versions; not a validation of the answer review.
+  LaTeX sources, data and scripts; not a validation of the answer review.
 
 Historical results retain their hypotheses and scope. They are not measurements of the
 new mechanism, and their open findings are not closed by T87.

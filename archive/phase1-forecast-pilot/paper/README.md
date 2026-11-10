@@ -12,8 +12,8 @@ the offline answer review adopted in D49–D53. For the current product, read th
 
 | Material | Scope |
 |---|---|
-| [Stored PDF](main.pdf) | September snapshot: code `2ee5e79`, decisions D32–D41 at `7507eab`. It lacks the October source amendments. |
-| [LaTeX sources](main.tex) | September paper plus the October 11 O1 qualification and October 14 A8/A9 corrections. The historical analysis remains distinct from the current product; the PDF has not been rebuilt. |
+| PDF | None stored. The September build (code `2ee5e79`, decisions D32–D41 at `7507eab`), which lacked the October source amendments, was removed on 2026-11-10; it is in the git history up to `ae0fda6`. |
+| [LaTeX sources](main.tex) | September paper plus the October 11 O1 qualification and October 14 A8/A9 corrections. The historical analysis remains distinct from the current product; no PDF has been built from them. |
 | `data/` and `scripts/` | Historical measurements and their generators, not answer-review validation. |
 
 Current finding states and conditional closures belong only in the

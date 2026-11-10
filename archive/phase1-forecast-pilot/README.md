@@ -42,8 +42,8 @@ their tests and `fixtures/a12_*.json`) and A2's tools (`dtf_composition.py`,
 sources, data and scripts: the analysis of the previous design's bridging score, IRT/DIF,
 forecast score and coordination, and the source of `docs/01` D32–D41. Moved on 2026-11-10,
 after CI's differential oracles took their own copy of the two fits they need
-(`sim/oracle_bridging.py`, `sim/oracle_mixture.py`). The stored PDF predates the October
-source amendments. Changed by the move: the README's links out of the archive and the Rust
+(`sim/oracle_bridging.py`, `sim/oracle_mixture.py`). No PDF is stored: the September
+build, older than its sources, was removed the same day. Changed by the move: the README's links out of the archive and the Rust
 harness's path to `crates/scoring`.
 
 ### Results — [`verification/reports/`](verification/reports/)
