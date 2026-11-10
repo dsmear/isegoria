@@ -18,6 +18,61 @@ pip install numpy scipy
 
 ## Files
 
+### `answer_bridging.py`
+
+Exploratory, on synthetic rounds of the answer review; not a validation, and no rule it
+compares is adopted ([`01` D52](../docs/01-decisions.md) keeps bridging out of the answer
+review's acceptance conditions; `00` §Future direction). Standard library only, seeded.
+
+Each run draws two camps of reviewers (majority share 0.6–0.8, positions as
+`bridging_irt_dif.py`), then questions of six kinds, each answered by 12 reviewers drawn
+uniformly, a tenth of the answers missing. An answer coincides with the key with probability
+`q + 0.45 · f_u · lean`, clipped. Three readings of the same answers are counted per kind:
+
+- `d49`: the count of `01` D49 (quorum 9, three quarters);
+- `sb75`, `sb80`: the quorum, a usable answer from each estimated side, and the side-balanced
+  score `S_j ≥ τ` (`02` §A.3, D32, D42) from the bridging fit of all the run's answers,
+  0 or 1, with equal weights. The full fit's score, not the bootstrap minimum;
+- `known75`: the mean of the two generated camps' observed agreement at 0.75, sides known —
+  what 12 answers allow when the axis is not to be estimated.
+
+The fit minimizes `02` §A's objective by exact block updates from four seeded starts, the
+lowest objective kept: one from the leading singular pair of the intercepts' residuals, three
+random. Random starts alone stopped at worse optima on these sparse 0/1 data and understated
+the axis' recovery. It is not the engine's optimizer and no fixture depends on it. `check()`
+runs first: D49's
+boundaries as AT-ANS-01, the side floor, the cut, and the gradient at the fit's end.
+
+```
+python3 sim/answer_bridging.py --quick           # two cells, seconds
+python3 sim/answer_bridging.py --out cells.csv   # 72 cells, about 85 CPU-minutes
+```
+
+Indicative results of the full grid (2026-11-11, pooled over 50 and 200 reviewers; 450 to
+1,600 majority-partisan questions per row, not confidence bounds), by `d`, the answers to
+divisive questions a reviewer has given — answers per reviewer times the divisive share.
+Accepted, in percent: the majority camp's partisan key, then a consensus question (`q` = 0.90).
+
+| majority | `d` | partisan: `d49` | `sb75` | `known75` | consensus: `d49` | `sb75` | `known75` |
+|---|---|---|---|---|---|---|---|
+| 60% | ≤ 1.2 | 18 | 15 | 7 | 91 | 70 | 90 |
+| 60% | 3.6 | 18 | 9 | 7 | 91 | 83 | 90 |
+| 60% | 7.2 | 18 | 5 | 7 | 91 | 87 | 90 |
+| 60% | 14.4 | 18 | 2 | 5 | 91 | 87 | 89 |
+| 70% | ≤ 1.2 | 35 | 21 | 9 | 91 | 69 | 88 |
+| 70% | 3.6 | 34 | 17 | 8 | 92 | 82 | 89 |
+| 70% | 7.2 | 33 | 10 | 10 | 90 | 83 | 88 |
+| 70% | 14.4 | 32 | 6 | 8 | 92 | 87 | 89 |
+| 80% | ≤ 1.2 | 53 | 35 | 13 | 91 | 67 | 81 |
+| 80% | 3.6 | 55 | 24 | 11 | 91 | 73 | 82 |
+| 80% | 7.2 | 58 | 19 | 15 | 91 | 79 | 82 |
+| 80% | 14.4 | 55 | 10 | 10 | 91 | 80 | 82 |
+
+Below about `d` = 2.4 the fitted axis does not separate the camps (correlation with the
+generated positions 0.07–0.37) and the score mostly refuses more of every kind. Not
+represented: reviewers who hide their side, shared tools or sources (`01` D45), more than two
+camps, a draw stratified on the axis, sides estimated only from earlier epochs.
+
 ### `bridging_irt_dif.py`
 
 End-to-end simulation over 10 civic questions, 200 reviewers (a 60/40 unbalanced
