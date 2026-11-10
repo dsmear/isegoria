@@ -71,9 +71,11 @@ Phase 2 targets an independently operated experimental P2P testnet (D55).
 Follow `10` §2: T88's contract is approved (`01` D57) and may be implemented in authorized
 increments; T79's contract is approved (`01` D60) and is implemented in `10` §2.3's four
 increments; it remains the final runtime integration (T19 does not count as one), followed
-by the independent-operator trial. Single-operator runs
-do not close the phase. Shared event formats, results, cuts and ledger must change together
-with their users. Do not restore legacy pilot gates or add automatic rounds through the
+by the independent-operator trial. Inside Milestone 2, T19 is the issuing committee only
+(`01` D61); its contract in `03` is proposed, not approved: do not implement it before the
+owner's approval. T89's fuzzing precedes gate 2 (`01` D62); no campaign runs without
+authorization. Single-operator runs do not close the phase. Shared event formats, results,
+cuts and ledger must change together with their users. Do not restore legacy pilot gates or add automatic rounds through the
 integration. D54 is the network decision previously called D44 here.
 
 Use `phase1-handoff.md` to resume. Task status belongs in `10-roadmap.md`, review

@@ -2110,3 +2110,45 @@ unchanged.
 the parameters are provisional and uncalibrated (D52, `14`); test credentials establish no
 real-person uniqueness. Until T86 produces roots for this family, nothing public commits to
 the answer review's outcomes.
+
+## D61 — T19 inside Milestone 2: the issuing committee, operated by the trial's members
+
+**Decided** by the owner; recorded 2026-11-10. Narrows what D55 brought into Phase 2 and
+settles the choices T19's contract needs first. The contract is *proposed*, not approved, in
+`03` §Committee setup for the trial (T19-P1–P6).
+
+- **Scope.** Inside Milestone 2, T19 is the issuing committee's distributed setup and
+  issuance (threshold BBS+): no dealer, no in-process exchange. The uniqueness committee's
+  (threshold OPRF) setup and transport stay in T19, open, outside Milestone 2: the trial has
+  no real enrollment (D55), so no anchor reaches an OPRF. `08` CS-2 stays as written, for
+  Milestone 3.
+- **Operators.** The trial's four consortium operators form the issuing committee, each
+  generating and keeping its own share. D60's party that is no member holds the single-key
+  test issuer before T19 only.
+- **Credentials.** Trial credentials are synthetic and declared so: issued for a written list
+  of participant slots, the requests and replies exchanged by hand, outside the network. No
+  real-person uniqueness (D55).
+
+**Limits.** No identity is verified in the trial, so invariant 6's separation is not
+exercised and is not decided here for a network with real enrollment (T20), where whoever
+authenticates stays distinct from whoever issues. `t` committee members can issue outside the
+list, fill the pool and steer the groups: the same coalition that signs a wrong cut (`04`
+T88-P3). No Byzantine tolerance is claimed (D57).
+
+**Scope.** Nothing built and no contract approved: T19, T79, T88 and Phase 2 stay open.
+D49–D53, D57–D60's other choices and the genesis's schema are unchanged.
+
+## D62 — Assurance of Phase 2's code: fuzzing before gate 2, mutation testing outside the milestone
+
+**Decided** by the owner; recorded 2026-11-10. Opens `10` T89, in two parts.
+
+- **Fuzzing, required before gate 2.** Every decoder of bytes that a node configured as in
+  the trial, or the participants' client, accepts from another machine gets a fuzz target,
+  run and recorded in `12` §4. This adds one requirement to Milestone 2 as the owner reduced
+  it on 2026-11-03: from gate 2 on, such bytes come from machines other operators control.
+- **Mutation testing, outside Milestone 2.** The files Phase 2 changed since `11` run 26 are
+  mutation-tested in blocks on the owner's machine, each survivor killed or justified.
+
+**Scope.** The decision opens the task and authorizes no run: each campaign is authorized
+when assigned. Fuzzing shows no panic and one encoding on the inputs it reached; it proves
+neither the decoders nor the protocols correct.

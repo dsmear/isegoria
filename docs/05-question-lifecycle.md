@@ -166,9 +166,10 @@ and its `CloseEpoch`.
   procedure before gate 2, its public key in the genesis. It establishes no real-person
   uniqueness (D55) and can mint nyms without limit, so it could fill the pool and steer the
   groups: a declared risk. Gate 1 runs every role under one operator and claims no
-  independence; gate 3 uses T19's committee key under a new genesis. `AnonymousCredential`
-  has a private test encoding (a file with mode 0600), `IssuerPublic` a public encoding with
-  a known-answer test (built with the genesis, `04` T88-P1).
+  independence; gate 3 uses T19's committee key under a new genesis (`01` D61; the
+  committee's contract is proposed in `03` §Committee setup for the trial).
+  `AnonymousCredential` has a private test encoding (a file with mode 0600), `IssuerPublic`
+  a public encoding with a known-answer test (built with the genesis, `04` T88-P1).
 
 **The closing cut, the beacon and the author's time.**
 - *Approved.* The cut closing epoch `e` is its commit and deposit checkpoint; reveals count

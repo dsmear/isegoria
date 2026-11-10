@@ -33,8 +33,10 @@ together. The work order and acceptance gates are in §2 below; no legacy pilot 
 or automatic review round is part of this integration. On 2026-11-03 the owner reduced
 Milestone 2 to D55's requirements — T79 on independently operated nodes, with T19, T88,
 D54's tiers (T77) and T85's private request/response path — and froze T84
-([2.4](#24--independent-operation)). D54 preserves the network decision previously
-numbered D44 on this branch.
+([2.4](#24--independent-operation)). On 2026-11-10 the owner narrowed T19 inside the milestone
+to the issuing committee, operated by the trial's members (`01` D61; its contract is proposed
+in `03`, not approved), and opened T89, whose fuzzing is required before gate 2 (`01` D62).
+D54 preserves the network decision previously numbered D44 on this branch.
 
 ## Phase 1 — Mathematics
 
@@ -272,7 +274,8 @@ are built; T80, T76 and T78 are implemented. Since the owner's reduction of 2026
 an assembly command; then T79 in four increments — (1) the answer-review state on signed
 cuts in `network` and `protocol`, (2) the node process with the hook, operator commands and state digest, (3) participants
 through blind relays, private reads, `isegoria-client` and the test issuer, (4) gate 1 end
-to end on one machine — then T19, then gates 2 and 3. T84 is frozen, and T17, T75, T84 and
+to end on one machine — then T19's issuing committee (D61; its contract in `03` awaits
+approval) and T89's fuzzing (D62), then gates 2 and 3. T84 is frozen, and T17, T75, T84 and
 T86's open parts stay open outside Milestone 2. T79's implementation remains the final
 runtime integration, T19's committee setup not counting as one (D60), followed by the
 Milestone 2 trial. T77 precedes exposing public objects through the DHT and shards;
@@ -292,8 +295,9 @@ T84 needs T86's tree shape.
 
 | Task | What it means (plain) | Refs | Done when | Size |
 |---|---|---|---|---|
-| T19 | **Distributed committee setup and transport**, brought forward from Phase 3. Real distributed key generation for both threshold committees, with independent randomness and authenticated messages between their operators; remove the trusted dealer and in-process message exchange | D55, CS-2 | operators generate and retain their own shares; the distributed committee operations agree with the specified threshold behavior, reject invalid messages and have a defined abort/restart procedure; no coordinator receives the complete secret | L |
+| T19 | **Distributed committee setup and transport**, brought forward from Phase 3. Real distributed key generation for both threshold committees, with independent randomness and authenticated messages between their operators; remove the trusted dealer and in-process message exchange. **Inside Milestone 2 (`01` D61, 2026-11-10): the issuing committee only**, operated by the trial's four members, its credentials synthetic, for a written list of slots, exchanged by hand; the uniqueness committee's setup stays open here, outside Milestone 2. **Contract proposed, not approved:** `03` §Committee setup for the trial, T19-P1–P6 (threshold, a ceremony before the genesis, signed and sealed messages, files carried by hand, one prepared signature per slot, abort and loss). Nothing built | D55, D61, CS-2 | operators generate and retain their own shares; the distributed committee operations agree with the specified threshold behavior, reject invalid messages and have a defined abort/restart procedure; no coordinator receives the complete secret; for Milestone 2, this for the issuing committee, whose key is the gate-3 genesis's | L |
 | T88 | **Independent-operator testnet and operating contract.** Specify shared bootstrap configuration and its authentication, membership and thresholds, locally generated operator keys, admission of nodes, and authorized key replacement/configuration changes with a defined continuity or restart procedure. Cover member, transport and relay keys. State fault and trust assumptions before the trial; the current Paxos-style cuts do not establish Byzantine tolerance. Include safe recovery after file loss or a stale peer, and document where progress must stop. This is the testnet prerequisite from T22; the full identity-key lifecycle remains there. **Contract approved** (`01` D57, recorded 2026-10-31) in `04` §Operating contract: T88-P1–P4 (initial configuration, keys, quorum and faults, recovery) and the trial's archive custody (out of the trial since 2026-11-03), with the trial's minimal procedure, the obstacles in the code and two increments for P4, which local tests do not complete. **A built (2026-10-31, D58):** `--new-identity` and the identity record of a tiered network's feeds, with a durable order before each feed's first signature and a durable stop after a detected loss, inconsistency or verified own entry; once stopped, no entry by publication, duty, gateway or start (AT-NET-36; in-process, loopback and controlled processes). **B built (2026-10-31, D59) and reviewed within its perimeter (2026-11-01):** each feed of a tiered node writes, at every start, only after sync rounds with two other members whose binding verified (the circle's granting), counted by member index, a round held through a lapsed binding or grant counting for nothing; an opening feed's entry is signed only after its check (AT-NET-37; in-process, loopback and controlled processes). **Duties' conflict stop built (2026-11-01, P3):** after a consortium conflict a member's duties make no object, also after a restart from its stored replica; publication and the gateway keep their rules (AT-NET-38; in-process and loopback). **Cut views and exclusions in the status built (2026-11-01, D57 step 4):** each collected cut reported with the view `collect_with` gives it on the node's current replica and its rule-6 exclusions, by members, tiered readers and nodes given the consortium, rebuilt from the stored replica at a restart; the export's inputs stay explicit (AT-NET-39; in-process, loopback and controlled processes). **Genesis schema approved (`01` D60):** T88-P1's, with the answer-review family and `AnswerConfig`, the issuer's public key and the relays' transport keys. **Genesis built (2026-11-03, P1):** `network::genesis`, one encoding strictly decoded, the network id its tagged hash; a tiered node's TOML names it and repeats its values, or the node does not start; `--genesis-digest` prints its digest, id and contents (AT-NET-40, AT-ID-09; in-process and controlled processes). **Not built, not verified:** a command assembling the document; no trial has run | D55, D54, T19, T22, T76, T80 | separate operators bootstrap without sharing private keys or a central runtime administrator; exercise restart, partition/rejoin, silent proposer, stale recovery peer, unauthorized configuration and conflicting signatures; record observed safety/progress limits and the approved recovery procedure; the evidence covers Milestone 2's three gates | L |
+| T89 | **Fuzzing and mutation testing of Phase 2's code** (`01` D62, 2026-11-10). `11`'s last run is 26 (T78, 2026-10-07) and no fuzz target has changed since T76 (the same day), so neither covers what Phase 2 built after them: `protocol/fuzz/event` reaches `NodeEvent` only. *Part 1, required before gate 2:* a fuzz target for every decoder of bytes that a node configured as in the trial, or the participants' client, accepts from another machine — the list drawn from the code at the task's start and recorded in `12`; at least `AnswerEvent`, the binding (`/isegoria/bind/1`), the relay's and the gateway's requests and replies with T79-P7's reads, the signed key configurations, and whatever a trial node still serves of discovery and archives, or those protocols off in the trial's configuration. *Part 2, outside Milestone 2:* `cargo mutants` in blocks on the owner's machine over the files Phase 2 changed in `network`, `p2p`, `node`, `protocol::answer_*` and `identity::credential`. Each campaign is authorized when assigned. Not started | D62, `docs/11`, `docs/12` §4, [Continuous work](#continuous-work) | part 1: each target committed with its run in `12` §4, every crash fixed with a regression test; part 2: a run of each block in `11`, every survivor killed or justified | M |
 
 **Milestone 2 — "the answer review on independently operated P2P nodes".**
 Close it only with a recorded trial against a pinned revision and configuration:
@@ -308,7 +312,8 @@ Close it only with a recorded trial against a pinned revision and configuration:
 
 All three gates use the same specified contracts and follow §2.3's critical path. The
 final trial must also demonstrate T77's access tiers and T85's private request/response
-path. Since the owner reduced this milestone to D55 (2026-11-03), T17's anchoring, T75's discovery, T84's
+path. Gate 2 starts only after T89's fuzzing (`01` D62); gate 3's T19 is the issuing
+committee (`01` D61). Since the owner reduced this milestone to D55 (2026-11-03), T17's anchoring, T75's discovery, T84's
 archive and T86's state proofs and fork path are not required to close it; what is built
 stays, with its tests, and their open parts remain open tasks outside it. T84 is frozen,
 with no further increment during Phase 2, and the trial exercises no archive (`01` D57).
@@ -339,7 +344,8 @@ honeypot is the mitigation.
 
 ### 3.2 · Distributed identity and cryptographic review
 
-Committee setup and transport (T19) are Phase 2 prerequisites (§2.4). Real-world
+The issuing committee's setup and transport (T19, `01` D61) are Phase 2 prerequisites
+(§2.4); the uniqueness committee's stay open in T19, outside Milestone 2. Real-world
 enrollment, the full identity-key lifecycle and external review remain here.
 
 | Task | What it means (plain) | Refs / decision | Size |
@@ -396,9 +402,9 @@ Not a phase; done alongside every task.
   T49–T55 are final only after it. T81 (done) needed nothing and touched no file of T25.
 - **Phase 1 → 2.** T87 supplies the closed offline answer-review contract and codecs.
   T79 specifies their distributed use without importing the legacy filters or rounds.
-- **Phase 2.** The execution order is in §2.3. T19 and T88 are prerequisites for the
-  independent-operator gate (§2.4); ordinary per-node keys alone do not replace
-  distributed setup of shared-key committees. T19 enables, but does not implement,
+- **Phase 2.** The execution order is in §2.3. T19's issuing committee (D61) and T88 are
+  prerequisites for the independent-operator gate (§2.4), T89's fuzzing for gate 2 (D62);
+  ordinary per-node keys alone do not replace distributed setup of shared-key committees. T19 enables, but does not implement,
   a future threshold-signature beacon.
 - **Phase 3.** T66 is the minimal form of T46's `Panel`. T58 builds on T33/T43 and
   draws replacements from the beacon (T37, done). T20 supersedes T11. T37's

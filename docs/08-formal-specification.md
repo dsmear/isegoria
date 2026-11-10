@@ -31,6 +31,8 @@ Archived paths in historical entries are mapped in
 with controlled runs as intermediate evidence. Existing network test statuses do not
 establish that milestone, Byzantine tolerance or distributed answer-review execution.
 T19, T79 and T88 remain open; G-22 describes the answer-review integration gap.
+Inside the milestone T19 is the issuing committee (`01` D61), and T89 opens the fuzzing and
+mutation testing no run has yet made of Phase 2's code (`01` D62).
 
 ## 0. How this document was produced, and what it did not do
 
