@@ -1075,7 +1075,7 @@ Its configuration is a regular UTF-8 TOML file of at most 1 MiB:
 |---|---|
 | `network_id` | the network's id, 64 hex digits; in a tiered network the one its genesis derives |
 | `genesis` | a tiered network: its genesis document (§Operating contract, T88-P1), required there |
-| `family`, `answer_config`, `issuer` | with `genesis`: `answer-review/v1`, then the document's `AnswerConfig` and issuer key in hex |
+| `family`, `answer_config`, `issuer` | with `genesis`: `answer-review/v1`, then the document's `AnswerConfig` and issuer key in hex, as `--genesis-digest` prints them (`answer_config_hex`, `issuer`) |
 | `data_dir` | the node's directory |
 | `listen`, `peers` | the multiaddresses it listens on and dials |
 | `writers` | the writer set, one public key each (hex) |
@@ -1085,7 +1085,7 @@ Its configuration is a regular UTF-8 TOML file of at most 1 MiB:
 | `consortium.hpke` | optional, tiered: the members' signed key configurations in member order, in hex (§Blind relays; `--announce` prints a member's), each with its member's HPKE key in the genesis |
 | `circle_key_file` | a member of a tiered network: its circle seed (hex), whose key must be its own in `consortium.circle` |
 | `hpke_key_file`, `relays` | a tiered member's gateway: its HPKE seed (hex), whose configuration must be its own in `consortium.hpke`, and the relays' transport keys it answers, the genesis's in any order |
-| `relay` | `true` for a tiered non-member that forwards persons' requests; needs every member's configuration |
+| `relay` | `true` for a tiered non-member that forwards persons' requests; needs every member's configuration and a stored `transport.key` that is one of the genesis's relays |
 | `member` | optional: `index`, `every_ms`, `patience`, `view_patience`, and `cuts_per_epoch` in a network without a genesis only, where it is required (`05` §Built in the node) |
 | `sync_every_ms`, `status_every_ms` | the periodic pull, and how often the status is written |
 | `archive_maintenance` | optional, tiered: explicit trusted archive jobs and their schedule (§Archive maintenance in a node process) |
@@ -1098,7 +1098,8 @@ in a node process); `requests/`, a tiered member's spool of its operator's closu
 executed ones in `requests/done/` (`isegoria-node --request`, `05` §Built in the node); `lock`, held by the running process (§Initial archive installation on
 a holder);
 `transport.key`, the seed of its libp2p key, made at the first
-start, so its peer id stays the same across restarts; and `status`, rewritten whole at each
+start (a tiered relay's must already exist, T88-P1), so its peer id stays the same across
+restarts; and `status`, rewritten whole at each
 period (a file written beside it, then renamed): whether each feed is caught up and, for a
 tiered node's feeds, the other members whose rounds its start check holds (`synced`,
 `circle_synced`, §Increments A and B), whether a member's duties halted at a conflict
@@ -1111,8 +1112,8 @@ digest after each closing cut, the cut its hook refused if any, and its executed
 configuration that does not hold — a bad key, a threshold outside `1..=n`, a member without
 a key, circle keys that are not one distinct key per member, `writers` other than the tiered
 set's keys, a tiered member without its own circle key, a circle key file outside one, a tiered
-configuration without its genesis or repeating a value other than the document's — refuses
-to start. The node dials its peers at the start and again whenever it has none, so a
+configuration without its genesis or repeating a value other than the document's, a relay
+whose transport key the document does not list — refuses to start. The node dials its peers at the start and again whenever it has none, so a
 node restarted later reaches the others, which dial no one.
 
 The collected cuts are kept, not collected again from number 0 at each look: a node extends
@@ -1181,8 +1182,10 @@ add no consensus rule at runtime, where §Cuts is unchanged. The answer review's
     tiered TOML without `genesis`. `--announce` signs only the genesis's HPKE key.
     `isegoria-node --genesis-digest <file>` prints `digest`, `network_id`, then the document
     line by line (`version`, `threshold`, `member <i> <consortium> <circle> <hpke>`, `family`,
-    `answer_config` with its parameters by name, `issuer`, `relay`), reading only that file and
-    writing nothing. Networks without tiers keep a free `network_id`.
+    `answer_config` with its parameters by name, `answer_config_hex <hex>`, `issuer`, `relay`),
+    reading only that file and writing nothing. `<hex>` is the document's `AnswerConfig`, its
+    96 bytes as 192 lowercase hex digits, the value a tiered TOML's `answer_config` repeats.
+    Networks without tiers keep a free `network_id`.
   - *Built (AT-NET-41):* `isegoria-node --genesis-assemble <genesis.toml> <genesis-file>`
     writes the canonical document from a TOML holding `threshold`, `family`
     (`answer-review/v1`), `issuer` (the key's 97 bytes in hex, as `--genesis-digest` prints
@@ -1199,8 +1202,15 @@ add no consensus rule at runtime, where §Cuts is unchanged. The answer review's
     through a staging directory beside it that it removes, and refuses an output that exists;
     it then prints what `--genesis-digest` prints for that file. It checks the count and
     threshold, not that they are the trial's `n = 4`, `t = 3`: each operator confirms that.
-    *Not built:* a check of a relay's own transport key against the document. Tested
-    in-process and on controlled processes.
+    Tested in-process and on controlled processes.
+  - *Built (AT-NET-42):* a tiered node with `relay = true` starts only if its
+    `data_dir/transport.key` exists and its public key is one of the document's `relays`.
+    Otherwise it refuses with `Differs("transport.key")` before any file is made, also when no
+    key is stored: one made at that start could not be the listed one. A stored key that is
+    malformed or not a regular file refuses as at any start. `--new-identity` makes the key
+    before the document exists: its `transport` line is the entry for `relays`, its directory
+    the relay's `data_dir`, the other secrets there unused. Tested in-process and on
+    controlled processes.
 - **T88-P2 — keys.** *Approved:* the separate keys already built stay — the consortium key
   (public feed), the circle key, the HPKE key and the transport key, each from its own
   secret; the earlier proposal to derive them all from the member's seed is withdrawn. Each

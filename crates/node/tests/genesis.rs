@@ -1,5 +1,5 @@
-//! A tiered node's genesis (`docs/04` §Operating contract, T88-P1, AT-NET-40): the document its
-//! TOML names, the repeated values compared with it, and the operators' digest command.
+//! A tiered node's genesis (`docs/04` §Operating contract, T88-P1, AT-NET-40, 42): the document
+//! its TOML names, the values and a relay's key compared with it, the operators' digest command.
 
 #[path = "support/genesis.rs"]
 mod genesis;
@@ -116,6 +116,12 @@ fn without(text: &str, prefixes: &[&str]) -> String {
 }
 
 const REPEATED: [&str; 4] = ["genesis =", "family =", "answer_config =", "issuer ="];
+
+/// A relay's configuration from member 0's `text`: every member's routes, no key of its own.
+fn relay_of(text: &str) -> String {
+    let kept = ["key_file", "circle_key_file", "hpke_key_file", "relays"];
+    "relay = true\n".to_string() + &without(text.split("\n[member]").next().unwrap(), &kept)
+}
 
 // A tiered node runs under the id its genesis derives, with the document's set (AT-NET-40).
 #[test]
@@ -411,6 +417,55 @@ fn a_member_announces_only_its_genesis_hpke_key() {
     assert_eq!(refused, differs("hpke_key_file"));
 }
 
+// A relay plans only on a stored key its genesis lists, refused by field, no file (AT-NET-42).
+#[test]
+fn a_relay_needs_a_transport_key_of_its_genesis() {
+    let g = trial();
+    let (root, _, text) = fixture("relay-key", &g);
+    let refused = differs("transport.key");
+    assert_eq!(planned(&root, &relay_of(&text)).map(|_| ()), refused);
+    let (data, path) = (root.join("data"), root.join("node.toml"));
+    let stored = data.join("transport.key");
+    std::fs::create_dir(&data).unwrap();
+    let run = || Config::load(&path).and_then(plan);
+    assert_eq!(run().map(|_| ()), refused);
+    assert_eq!(std::fs::read_dir(&data).unwrap().count(), 0);
+    std::fs::create_dir(&stored).unwrap();
+    let bounds = Err(ConfigError::Bounds("transport.key"));
+    assert_eq!(run().map(|_| ()), bounds);
+    std::fs::remove_dir(&stored).unwrap();
+    std::fs::write(&stored, "not a key").unwrap();
+    assert_eq!(run().map(|_| ()), Err(ConfigError::Hex("transport.key")));
+    for (name, seed) in [("other", 43), ("a member's", 1), ("a circle's", 11)] {
+        std::fs::write(&stored, hex(&[seed; 32])).unwrap();
+        assert_eq!(run().map(|_| ()), refused, "{name}");
+        assert_eq!(std::fs::read_dir(&data).unwrap().count(), 1, "{name}");
+        let kept = std::fs::read_to_string(&stored).unwrap();
+        assert_eq!(kept, hex(&[seed; 32]), "{name}");
+    }
+    for seed in [41, 42] {
+        std::fs::write(&stored, hex(&[seed; 32])).unwrap();
+        let relay = run().unwrap();
+        assert_eq!(relay.p2p.relay.map(|r| r.len()), Some(4));
+        let public = relay.transport.public().try_into_ed25519().unwrap();
+        assert_eq!(public.to_bytes(), key(seed));
+    }
+}
+
+// A genesis listing no relay refuses every relay (AT-NET-42).
+#[test]
+fn a_genesis_without_relays_admits_no_relay() {
+    let members = (0..4).map(|i| seeded(1 + i, 11 + i, 21 + i)).collect();
+    let g = genesis(3, members, vec![]);
+    let (root, _, text) = fixture("no-relays", &g);
+    let refused = differs("transport.key");
+    assert_eq!(planned(&root, &relay_of(&text)).map(|_| ()), refused);
+    std::fs::create_dir(root.join("data")).unwrap();
+    std::fs::write(root.join("data/transport.key"), hex(&[41; 32])).unwrap();
+    let stored = Config::load(&root.join("node.toml")).and_then(plan);
+    assert_eq!(stored.map(|_| ()), refused);
+}
+
 #[cfg(unix)]
 mod processes {
     use super::*;
@@ -455,6 +510,12 @@ mod processes {
         text += "family answer-review/v1\nanswer_config group 12 quorum 9 threshold 3/4 \
                  divided_weight 0.25 low 0.3 high 0.7 quotas 1 2 3 new_author 2 \
                  half_life_closings 45\n";
+        text += concat!(
+            "answer_config_hex ",
+            "0c00000000000000090000000000000003000000000000000400000000000000",
+            "000000000000d03f333333333333d33f666666666666e63f0100000000000000",
+            "0200000000000000030000000000000002000000000000002d00000000000000\n"
+        );
         text += &format!("issuer {}\n", hex(&g.issuer));
         for relay in &g.relays {
             text += &format!("relay {}\n", hex(relay));
@@ -535,5 +596,31 @@ mod processes {
             "{stderr}"
         );
         assert!(!root.join("data").exists());
+    }
+
+    // A relay process starts on its `--new-identity` key if listed, else exits 2 (AT-NET-42).
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_relay_process_starts_only_on_a_listed_key() {
+        let root = scratch("relay-process");
+        let (data, path) = (root.join("data"), root.join("genesis.bin"));
+        let config = root.join("relay.toml");
+        let own = node::new_identity(&data).unwrap().transport;
+        let members = (0..4).map(|i| seeded(1 + i, 11 + i, 21 + i)).collect();
+        let listed = genesis(3, members, vec![own, key(42)]);
+        write(&path, &listed);
+        std::fs::write(&config, relay_of(&member(&root, &listed, &path))).unwrap();
+        let mut running = Process::start(&config);
+        until(&data.join("status"), |s| !s.is_empty()).await;
+        running.terminate(std::time::Duration::from_secs(5)).await;
+        let other = trial();
+        write(&path, &other);
+        std::fs::write(&config, relay_of(&member(&root, &other, &path))).unwrap();
+        let before = tree(&data);
+        let mut refused = Process::start(&config);
+        let status = refused.exited(std::time::Duration::from_secs(20)).await;
+        assert_eq!(status.code(), Some(2));
+        let log = std::fs::read_to_string(config.with_extension("log")).unwrap();
+        assert!(log.contains("Differs(\"transport.key\")"), "{log}");
+        assert_eq!(tree(&data), before);
     }
 }

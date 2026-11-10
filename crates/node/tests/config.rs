@@ -420,7 +420,10 @@ fn at_net_24_relays_and_gateways_in_the_configuration() {
         planned("relay-with-a-feed", keyed),
         Err(ConfigError::Relays("relay"))
     );
-    let routed = plan(load("relay", relay).unwrap()).unwrap();
+    let config = load("relay", relay).unwrap();
+    std::fs::create_dir_all(&config.data_dir).unwrap();
+    std::fs::write(config.data_dir.join("transport.key"), hex(&[5; 32])).unwrap();
+    let routed = plan(config).unwrap();
     assert_eq!(routed.p2p.relay.map(|r| r.len()), Some(2));
     assert!(routed.p2p.gateway.is_none());
     let refused =

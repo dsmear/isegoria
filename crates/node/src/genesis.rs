@@ -2,11 +2,12 @@
 //! assembled or loaded whole, its family's parts validated, the TOML's values compared with it.
 
 use crate::archive::{read_bounded, MAX_CONFIG};
-use crate::{bytes_of, hex, keys, unhex, Config, ConfigError};
+use crate::{bytes_of, hex, keys, transport_public_key, unhex, Config, ConfigError};
 use identity::credential::IssuerPublic;
 use network::genesis::{Field, Genesis, GenesisError, GenesisMember, VERSION};
 use protocol::answer_path::AnswerConfig;
 use serde::Deserialize;
+use std::io::ErrorKind;
 use std::path::Path;
 
 /// The TOML's name for the event family, the answer review v1.
@@ -22,7 +23,7 @@ pub enum Error {
     /// or its issuer key is not one canonical encoding.
     AnswerConfig,
     Issuer,
-    /// The TOML value that does not repeat the document's.
+    /// The TOML value or own key file that does not repeat the document's.
     Differs(&'static str),
     /// The assembly input's field that does not hold (`member[1].circle`, `relays[0]`), and why.
     Input(String, GenesisError),
@@ -78,6 +79,7 @@ pub fn render(document: &Document) -> String {
     out += &format!("threshold {num}/{den} divided_weight {weight} low {low} high {high} ");
     out += &format!("quotas {} {} {} new_author {new} ", q[0], q[1], q[2]);
     out += &format!("half_life_closings {}\n", c.author.half_life_closings());
+    out += &format!("answer_config_hex {}\n", hex(&g.answer_config));
     out += &format!("issuer {}\n", hex(&g.issuer));
     for relay in &g.relays {
         out += &format!("relay {}\n", hex(relay));
@@ -121,6 +123,17 @@ pub(crate) fn compare(config: &Config, document: &Document) -> Result<(), Config
         check(relays == g.relays, "relays")?;
     }
     Ok(())
+}
+
+/// Refuses a relay unless `data_dir/transport.key` exists and its key is among the document's.
+pub(crate) fn compare_relay(config: &Config, document: &Document) -> Result<(), ConfigError> {
+    let own = match transport_public_key(config) {
+        Err(ConfigError::Read(ErrorKind::NotFound)) => None,
+        key => Some(key?),
+    };
+    own.filter(|key| document.genesis.relays.contains(key))
+        .map(|_| ())
+        .ok_or(refused(Error::Differs("transport.key")))
 }
 
 #[derive(Deserialize)]

@@ -520,6 +520,7 @@ fn blind_plan(
             && config.key_file.is_none()
             && routes.len() == tiers.consortium().keys().len() =>
         {
+            genesis::compare_relay(config, document)?;
             Some(routes.clone())
         }
         true => return Err(ConfigError::Relays("relay")),
