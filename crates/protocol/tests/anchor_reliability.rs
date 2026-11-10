@@ -24,7 +24,7 @@ fn sigmoid(z: f64) -> f64 {
     1.0 / (1.0 + (-z).exp())
 }
 
-/// The paper's null batch (`paper/scripts/common.py::dif_generate`, `n_biased = 0`).
+/// The archived paper's null batch (`scripts/common.py::dif_generate`, `n_biased = 0`).
 /// Returns (anchors, responses), both respondents × items.
 fn open(anchors: &[Vec<f64>]) -> Formats {
     Formats::open(anchors[0].len(), K)

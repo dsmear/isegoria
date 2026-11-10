@@ -18,7 +18,7 @@ fn normal(rng: &mut ChaCha8Rng) -> f64 {
     (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos()
 }
 
-/// The paper's mirror design (`paper/scripts/common.py::mirror_design`). Returns the
+/// The archived paper's mirror design (`scripts/common.py::mirror_design`). Returns the
 /// ratings and the leans.
 fn mirror_design(
     n: usize,

@@ -101,5 +101,5 @@ Parameters remain provisional and uncalibrated, and the decoder has not been fuz
 The earlier forecast-and-pilot path remains implemented with its own contracts in
 [02](02-scoring-engine.md) and [05](05-question-lifecycle.md). Its findings and simulations
 retain their original scopes. A2 remains unresolved there and is not required for the
-answer review. The [paper](../paper/README.md) is historical; the
+answer review. The [paper](../archive/phase1-forecast-pilot/paper/README.md) is archived; the
 [D47 inventory](21-d47-inventory.md) explains what was retained and archived.

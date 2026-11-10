@@ -1,5 +1,5 @@
 //! Differential oracles on random datasets (`docs/08` REPRO-003): the engine against the
-//! paper's NumPy/SciPy implementations (`paper/scripts/common.py`, `sim/oracle_bridging.py`,
+//! NumPy/SciPy implementations of the same models (`sim/oracle_bridging.py`,
 //! `sim/oracle_mixture.py`); self-skips without a sim `python3` (numpy/scipy).
 
 use rand::{Rng, SeedableRng};

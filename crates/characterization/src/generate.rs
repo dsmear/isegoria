@@ -387,7 +387,7 @@ pub struct Fixture {
     pub true_f: Vec<f64>,
 }
 
-/// The fixture items' leans (`paper/scripts/common.py::sim_levelA_dataset`).
+/// The fixture items' leans (the archived paper's `common.py::sim_levelA_dataset`).
 pub const FIXTURE_LEAN: [f64; 10] = [0.0, 0.0, 0.75, 0.05, 0.0, 0.0, 0.0, 0.80, -0.80, 0.30];
 
 const R_CSV: &str = include_str!("../../scoring/tests/fixtures/R.csv");

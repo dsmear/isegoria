@@ -120,6 +120,7 @@ through redirect pages left at those paths.
 | `sim/a2_probe.py`, `sim/a2_probe_reference.json`, `sim/test_a2_probe.py`, `sim/a2_tradeoff.py`, `sim/test_a2_tradeoff.py`, `sim/a2_size.py`, `sim/test_a2_size.py` | `archive/phase1-forecast-pilot/sim/…` | A2's oracle and readings of the probe's runs (`19` §§13.11–13.31) | Read the run directories of the A2 harness (§4); `test_a2_probe.py` reads the archived `a2-candidates-2e2572c` report, which keeps its relative path |
 | `verification/reports/a2-{probe-9511ce1, candidates-2e2572c, dtf-check-821f52d, ind-cal-7bbfddb, ind-val-185ec93, tradeoff-ccb8f05, size-b8c9dce, ind-cal6-2a01b81, ind-val6-6d57cac}/` | `archive/phase1-forecast-pilot/verification/reports/…` | The nine A2 runs' records, checks and readings | Their candidate commits; the owner's untracked run directories; the archived oracle |
 | The A2 and A12 sections of `sim/README.md` | `archive/phase1-forecast-pilot/sim/README.md` | Documentation of the scripts above, moved verbatim | `sim/README.md` keeps the rest and a pointer |
+| `paper/` (every file) | `archive/phase1-forecast-pilot/paper/` | The working paper on the previous design: Levels A and B and the forecast score (its §5, and Section 7's D33–D36). Kept in place at D47 for the dependency on the right; **moved on 2026-11-10**, once that dependency was removed | `scripts/common.py` was imported by `sim/oracle_bridging.py` and `sim/oracle_mixture.py`, which CI runs through `crates/scoring/tests/differential_oracle.rs`; each oracle now carries its fit, copied unchanged, and wrote the same bytes on the test's ten datasets before and after. The archived `common.py` is frozen |
 
 ## 4. Still needed as dependencies, kept in place
 
@@ -133,7 +134,6 @@ split a mixed document. These are **residual separations**: the separation is no
 | `protocol::cohort_snapshot` | B-b's snapshot, but `crates/protocol/tests/author_records.rs` checks C6's author records through it: part of C6's closure evidence (`825cabc`). |
 | `crates/protocol/tests/fixtures/a12_affine/` | Golden tables made by the archived exporter, read by `crates/protocol/tests/affine_weights.rs`, which tests current code. |
 | `crates/protocol/tests/{s2_synthetic_check.rs, s2/, a1_batch_composition.rs, a1_exploration_information.rs, absent_baseline.rs, a2_dtf_composition.rs}`, `crates/scoring/tests/dtf_composition.rs` | Their dossiers are archived, but they exercise current code (ledger, lifecycle, gates, pilot, DTF) as integration tests of their crates; they stay with it (§2 for those on the forecast path). |
-| `paper/` | Mixed: it analyses Levels A and B, which the code still implements, and the forecast score (§5, Section 7's D33–D36). `paper/scripts/common.py` is imported by `sim/oracle_bridging.py` and `sim/oracle_mixture.py`, which CI runs through `crates/scoring/tests/differential_oracle.rs`; its scripts write the data its LaTeX reads. Moving it would make an active test depend on the archive or split its reproducibility. |
 | `docs/16`, `docs/17`, `docs/19`, `docs/20` | Redirect pages to the archive, kept for the code comments that cite those numbers. |
 
 ## 5. Not settled here

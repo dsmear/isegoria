@@ -7,6 +7,6 @@ edition = "2021"
 publish = false
 
 [dependencies]
-scoring = { path = "../../../crates/scoring" }
+scoring = { path = "../../../../../crates/scoring" }
 
 [workspace]

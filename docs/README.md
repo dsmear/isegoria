@@ -42,7 +42,7 @@ and evidence; they are not additional acceptance gates for this path.
 - [Archive](../archive/phase1-forecast-pilot/README.md): retired dossiers, tools and results;
   documents 16, 17, 19 and 20 in this directory are redirects.
 - [Simulations](../sim/README.md): historical prototypes and scoped numerical oracles.
-- [Paper](../paper/README.md): analysis of the earlier forecast-and-pilot design,
+- [Paper](../archive/phase1-forecast-pilot/paper/README.md): archived analysis of the earlier forecast-and-pilot design,
   with distinct PDF and source versions; not a validation of the answer review.
 
 Historical results retain their hypotheses and scope. They are not measurements of the

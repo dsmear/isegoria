@@ -23,7 +23,7 @@ fn sigmoid(z: f64) -> f64 {
     1.0 / (1.0 + (-z).exp())
 }
 
-/// The paper's batch (`paper/scripts/common.py::dif_generate`): `n_anchor` clean anchors
+/// The archived paper's batch (`scripts/common.py::dif_generate`): `n_anchor` clean anchors
 /// and `K` trial items over a 2PL, the first `n_biased` trial items shifted by `δ·z` on a
 /// hidden axis `z = ±1`. Returns (anchors, responses), both respondents × items.
 fn batch(

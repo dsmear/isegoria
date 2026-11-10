@@ -6,7 +6,7 @@ Mechanism for Validating Test Items**, version 0.2, September 2026.
 This paper analyses the **earlier forecast-and-pilot design**: bridging, IRT/DIF,
 forecast-based reviewer reputation and coordination. It does not describe or validate
 the offline answer review adopted in D49–D53. For the current product, read the
-[overview](../docs/00-overview.md) and [lifecycle](../docs/05-question-lifecycle.md#the-answer-review-01-d49d52).
+[overview](../../../docs/00-overview.md) and [lifecycle](../../../docs/05-question-lifecycle.md#the-answer-review-01-d49d52).
 
 ## Versions and scope
 
@@ -17,14 +17,16 @@ the offline answer review adopted in D49–D53. For the current product, read th
 | `data/` and `scripts/` | Historical measurements and their generators, not answer-review validation. |
 
 Current finding states and conditional closures belong only in the
-[review register](../docs/15-phase1-review.md); task status belongs in the
-[roadmap](../docs/10-roadmap.md). Statements of planned work inside the historical paper
+[review register](../../../docs/15-phase1-review.md); task status belongs in the
+[roadmap](../../../docs/10-roadmap.md). Statements of planned work inside the historical paper
 refer to its snapshot, not today's backlog. Proofs and measurements retain their stated
 hypotheses and domains; none transfers automatically to the answer review.
 
-The directory stays in place because CI's differential oracles import
-`scripts/common.py`, and the paper's figures read `data/`. Dependencies are recorded in
-the [D47 inventory](../docs/21-d47-inventory.md#4-still-needed-as-dependencies-kept-in-place).
+Archived on 2026-11-10 with its data and scripts, unchanged but for the links out of the
+archive and the harness's path to `crates/scoring`. Nothing active imports it: CI's
+differential oracles carry their own copy of the two fits they need (`sim/oracle_bridging.py`,
+`sim/oracle_mixture.py`), and `scripts/common.py` here is frozen. The move is recorded in
+the [D47 inventory](../../../docs/21-d47-inventory.md#3-archived).
 
 ## Layout
 
@@ -63,11 +65,12 @@ python revisions_collusion.py     # Table 16, panel and beacon figures
 ```
 
 All randomness is seeded. `levelB_detector.py` builds `scripts/dif-harness`, a standalone Cargo
-package (its own workspace) that depends on `crates/scoring` by path.
+package (its own workspace) that depends on `crates/scoring` by path: it runs today's engine,
+not September's, so its counts are reproduced only on the paper's snapshot commit.
 
 ## Disclosure
 
 The analysis, experiments and text were prepared with the assistance of an AI system.
 A separate AI-assisted A–E review is tracked in
-[`docs/15`](../docs/15-phase1-review.md); its open findings are not an external
+[`docs/15`](../../../docs/15-phase1-review.md); its open findings are not an external
 certification under T26. Reviews, corrections and objections remain welcome.

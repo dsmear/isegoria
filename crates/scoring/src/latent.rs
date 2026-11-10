@@ -1,6 +1,6 @@
 //! Latent DIF, the target model of `docs/01` D37: a latent-class IRT mixture with the
 //! anchors inside the likelihood, θ integrated over a fixed grid and each item's guessing
-//! floor set by its format (D25; `paper/` §7.3, `docs/02` §B.1, §B.3, `docs/08` DIF-010).
+//! floor set by its format (D25; `docs/02` §B.1, §B.3, `docs/08` DIF-010; archived paper §7.3).
 
 use crate::dif::MIN_CLASS_SHARE;
 use crate::fmath::{cos, exp, ln, ln_1p};
