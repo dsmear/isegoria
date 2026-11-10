@@ -2182,3 +2182,31 @@ is bespoke and unreviewed (`10` T23).
 
 **Limits.** D61's: `t` members can issue outside the list; no real-person uniqueness; no
 robustness against a member that deviates, and no Byzantine tolerance (D57).
+
+## D64 — Choices left open by T79's second increment, T89's first part and T19's first step
+
+**Decided** by the owner; recorded 2026-11-10. Each settles a question the implementation
+returned; D49–D53, D57–D63's other choices are unchanged.
+
+- **State digest.** The digest leaves out the view a cut was signed in: a node applies a cut
+  in the view it first collected it in, so honest nodes could differ on it for one history.
+- **Who compares.** Gate 3 compares the members' digests only: non-members read no circle and
+  compute none.
+- **`patience` on closing cuts.** Unchanged for the trial. A closure takes `t` members
+  (T79-P5), but a proposer may still propose a closing cut without every beacon commit after
+  `patience`, leaving a late member out of that round; recorded as a limit of the trial.
+- **The request spool.** No restriction on what a spooled file holds: an operator already
+  holds its circle key, and a restriction would add a method to D60's hook.
+- **Discovery and archive protocols.** A trial node gets a configuration key turning off
+  Kademlia and the object and shard protocols. Not built; until then they stay on, with their
+  fuzz targets (`12` §4).
+- **D62's perimeter.** libp2p's own decoders are outside it: third-party code, relied on as
+  such.
+- **T19's rounds (D63).** The count stands: 11 library flights, 13 steps in sequence with P3's
+  id and P2's confirmation, none merged. Point 1 was confirmed (`03`, First step).
+- **T19's completeness.** The ceremony's tool checks every contribution and message set, the
+  library not doing so (`03` T19-P2).
+- **T19's base-OT generator.** Derived by hashing a fixed label, the same for every ceremony.
+
+**Scope.** T19's first step ran ahead of T79's increments at the owner's request; the rest of
+T19 still follows them unless the owner assigns it otherwise.

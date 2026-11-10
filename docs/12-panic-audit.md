@@ -210,7 +210,7 @@ first byte (the key id) and returns the gateway's reply unchanged, so it decodes
 
 Not covered, and why: libp2p's own decoders (Noise, Yamux, multistream-select, gossipsub's and
 Kademlia's protobuf messages) are a dependency's, reached by every node; part 1 targets none
-of them. The object and shard *replies* (`discovery::checked`, `archive::checked`) are read
+of them, and they are outside D62's perimeter (`01` D64). The object and shard *replies* (`discovery::checked`, `archive::checked`) are read
 only by `discovery::fetch`, `archive::fetch` and archive maintenance, which no trial node
 runs; the archive files of the offline tools (`SignedManifest`, `Segment`, the certificates)
 are outside the trial (`04` §Archives and holders in the trial). The node's own files are

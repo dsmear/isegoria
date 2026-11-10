@@ -289,7 +289,7 @@ members applies once, the second refused with its reason on every node; an event
 window is refused on every node. *Requirement:* a restarted node rebuilds the answer state
 as above, so one history gives the same draws, outcomes, records and quotas; this holds for
 `AnswerLedger` (AT-T79-9, AT-T79-12) and for a member's node (AT-T79-17). Nothing signs the
-derived state before T86's roots: until then gate 3 compares each node's *state digest* (D60),
+derived state before T86's roots: until then gate 3 compares each member's *state digest* (D60, D64),
 a tagged SHA-256 of a canonical encoding of the whole derived state, reported in its status at
 each closing cut.
 
@@ -361,7 +361,7 @@ left to the implementation:
   `out-of-sequence`, `unsigned`, `replica` or `cut`).
 - *The duties.* `MemberRole::duties_with` takes the hook: a proposer's `closes` is the hook's,
   and every signature the duties give, proposal or co-signature, in any view, needs `may_sign`,
-  which holds only once the ledger has applied the cut before it. `patience` is unchanged.
+  which holds only once the ledger has applied the cut before it. `patience` is unchanged for the trial (`01` D64).
 - *The digest in the status.* `digest <cut number> <hex>` for each closing cut applied, the
   ledger's digest right after it, in cut order; computed again from cut 0 at each start.
 - *Operators' commands.* `isegoria-node --request <node.toml> close-commits <q> | close <q> |

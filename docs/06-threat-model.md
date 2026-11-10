@@ -34,7 +34,7 @@ Answer-review checks and their execution/review provenance are recorded in
 [15](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21).
 The key-disclosure regression is AT-ANS-14. These checks establish the recorded contract
 properties, not error rates in a real reviewer population. Parameters remain provisional
-and uncalibrated; the decoder has not been fuzzed.
+and uncalibrated; the decoder has had only short smoke runs (`12` §4).
 
 ### Cost of bipartisan corruption
 
