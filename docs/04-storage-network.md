@@ -1115,6 +1115,9 @@ set's keys, a tiered member without its own circle key, a circle key file outsid
 configuration without its genesis or repeating a value other than the document's, a relay
 whose transport key the document does not list — refuses to start. The node dials its peers at the start and again whenever it has none, so a
 node restarted later reaches the others, which dial no one.
+A dial leaves from a new port, not the listening one (AT-NET-43): two nodes dialing each other at
+once from their listening ports would form one TCP connection with two Noise initiators, whose
+failure then blocks that address pair for TCP's TIME_WAIT.
 
 The collected cuts are kept, not collected again from number 0 at each look: a node extends
 them from the last one, counting the beacon's rounds as it goes (`p2p::member::Collector`).

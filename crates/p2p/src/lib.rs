@@ -15,6 +15,7 @@ pub mod tiered;
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, StreamExt};
 use libp2p::gossipsub::{self, IdentTopic, MessageAcceptance, MessageAuthenticity, ValidationMode};
 use libp2p::request_response::{self, OutboundRequestId, ProtocolSupport, ResponseChannel};
+use libp2p::swarm::dial_opts::DialOpts;
 use libp2p::swarm::{behaviour::toggle::Toggle, NetworkBehaviour, SwarmEvent};
 use libp2p::{identity, noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm};
 use member::{Collector, MemberRole, Progress};
@@ -1291,7 +1292,9 @@ impl Node {
                 }
             },
             Command::Dial(addr, tx) => {
-                let _ = tx.send(self.swarm.dial(addr).map_err(|e| e.to_string()));
+                let opts = DialOpts::unknown_peer_id().address(addr);
+                let dial = self.swarm.dial(opts.allocate_new_port().build());
+                let _ = tx.send(dial.map_err(|e| e.to_string()));
             }
             Command::Publish(feed, object, tx) => {
                 let _ = tx.send(self.publish(feed, object));
