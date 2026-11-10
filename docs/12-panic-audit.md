@@ -151,8 +151,8 @@ F1–F4 are worth reporting upstream.
 
 ## 4. Fuzz targets
 
-Thirteen `cargo fuzz` targets, in `crates/{network,identity,scoring,protocol}/fuzz/` (outside the
-workspace: libFuzzer needs nightly). Each README says how to run them. Besides "no panic,
+Twenty `cargo fuzz` targets, in `crates/{network,identity,scoring,protocol,p2p}/fuzz/` (outside
+the workspace: libFuzzer needs nightly). Each README says how to run them. Besides "no panic,
 no abort, bounded memory", each asserts a property of its entry point:
 
 | Target | Entry point | Also asserted |
@@ -170,11 +170,56 @@ no abort, bounded memory", each asserts a property of its entry point:
 | `identity/voprf_wire` | RFC 9497 messages decoded from arbitrary bytes, at the server and at the client | no decoded evaluation verifies without the server key |
 | `identity/nullifier_proof` | `nullifier::verify` of proofs decoded from arbitrary bytes or spliced into a genuine one | only the untouched genuine proof verifies, for its own role and context |
 | `scoring/bridging` (T62) | `bridging::fit`, `bridging::bridge_scores` on a `Ratings` assembled field by field: indices past `n`/`m`, any rating, any number of weights of any value | an error exactly when `Ratings::validate` refuses the input; a validated input always fits |
+| `protocol/answer_event` (T89) | `AnswerEvent::decode` on arbitrary bytes or a genuine join, deposit or reveal with a window overwritten, then `AnswerPath::apply` to a path holding one reviewer | one encoding |
+| `protocol/genesis` (T89) | `Genesis::decode`, then `AnswerConfig::decode` and `IssuerPublic::decode` on its parts, as `node::genesis::load` reads them; arbitrary bytes or a genuine document with a window overwritten | one encoding each; a decoded document yields its tiered set under its id |
+| `p2p/bind` (T89) | `Bind::decode` (`/isegoria/bind/1`, with `TransportBinding`) on arbitrary bytes or a genuine hello with a window overwritten, then `Tiers::access`; `transport_key` of arbitrary peer ids | one encoding; only the genuine binding, from its own transport key, grants the circle |
+| `p2p/key_config` (T89) | `KeyAnnouncement::decode`, `verify`, `hpke_key` on arbitrary bytes or a genuine signed configuration with a window overwritten | one encoding; only the genuine configuration verifies; `seal` succeeds exactly under a verified one |
+| `p2p/client_reply` (T89) | `Carried::decode` and `Sealed::open` on arbitrary relay replies, on any plaintext sealed in the request's context, and on every gateway answer | one encoding; a reply not sealed for the request never opens; a receipt names only the member's circle feed; an answer opens as the gateway sealed it |
+| `p2p/gateway` (T89) | the gateway's decapsulation of arbitrary relayed requests and its reading of arbitrary inner requests | an event sealed by `seal` opens and reads back as itself, and as another network's request elsewhere |
+| `p2p/serve` (T89) | object and shard requests through `ObjectCodec`, `ShardCodec` and the node's servers | a request reads exactly when well formed; only a held public object is served; an empty store serves nothing |
 
-One target reaches private code through `--cfg fuzzing` (set by cargo-fuzz):
-`ThresholdOprfOracle::fuzz_label_with_quorum`; normal builds do not contain it.
+Two crates expose private code under `--cfg fuzzing` (set by cargo-fuzz); normal builds do
+not contain it: `ThresholdOprfOracle::fuzz_label_with_quorum`, and `p2p::fuzz` (the gateway's
+opening and reading of a request, an answer's Binary HTTP, the object and shard servers).
 `identity/nullifier_proof` used a test encoding under the same flag until T73, and now
 fuzzes the wire format v1 (`NullifierProof::{encode, decode}`).
+
+**T89 part 1: the decoders a trial node or a participant's client accepts from another
+machine** (`01` D62), drawn from the code on `feat/phase2-runtime` `7cef417`
+(2026-11-10). A trial node is a tiered node (`04` §A node process), member or relay, run
+as `04` §The trial's procedure says, archiving outside it:
+
+| Decoder | Path | Read from another machine by | Target |
+|---|---|---|---|
+| sync messages: Summary, Have, Want, Entries (with `SignedEntry`) | `network::replica::Message::decode` | every node: `/isegoria/sync/1` requests and replies, gossip announcements | `network/replica` |
+| members' objects: cut signatures, beacon commits and reveals, view changes; cuts | `network::cut::{MemberObject, Cut}::decode` | every node collecting cuts from replicated entries | `network/cut` |
+| the binding exchange, and the peer's transport key | `p2p::tiered::Bind::decode` (`network::tier::TransportBinding::decode`), `tiered::transport_key` | every tiered node, on each connection | `p2p/bind` |
+| signed key configurations | `p2p::blind::KeyAnnouncement::{decode, verify}` (`ohttp::KeyConfig::decode`) | each operator's node TOML (`consortium.hpke`, made by `--announce` on the member's machine); the client | `p2p/key_config` |
+| a relay's reply, and the sealed answer in it | `blind::Carried::decode`, `blind::Sealed::open` (OHTTP decapsulation, `Answer::from_http`) | the participant's client | `p2p/client_reply` |
+| a relayed request, and its inner request | `blind::open_request` (OHTTP decapsulation), `blind::read_request` (Binary HTTP) | a member's gateway | `p2p/gateway` |
+| object and shard requests | `discovery::serve`, `archive::Store::serve`, through `ObjectCodec` and `ShardCodec` | every tiered node: both protocols are always on, and the archive store is empty in the trial | `p2p/serve` |
+| the genesis document, its answer configuration and issuer key | `network::genesis::Genesis::decode`, `AnswerConfig::decode`, `IssuerPublic::decode` (`node::genesis::load`) | every node and `--genesis-digest` | `protocol/genesis` |
+| answer-review events, and the nullifier proof in them | `protocol::answer_events::AnswerEvent::decode`, `NullifierProof::decode` | no node process yet: the hook and gateway admission (T79 increments 2–3) will read them | `protocol/answer_event`, `identity/nullifier_proof` |
+
+The genesis is read from a file, but it counts: one operator assembles it and the others
+decode it (`--genesis-digest`) before confirming it, the digest proving no origin (step 2 of
+the procedure), so its bytes come from another machine. `--genesis-assemble`'s TOML input
+is one operator's, its keys copied from what the others printed; it ends in the same
+`Genesis::decode`, and has no target of its own. A relay reads only a request's
+first byte (the key id) and returns the gateway's reply unchanged, so it decodes nothing.
+
+Not covered, and why: libp2p's own decoders (Noise, Yamux, multistream-select, gossipsub's and
+Kademlia's protobuf messages) are a dependency's, reached by every node; part 1 targets none
+of them, and they are outside D62's perimeter (`01` D64). The object and shard *replies* (`discovery::checked`, `archive::checked`) are read
+only by `discovery::fetch`, `archive::fetch` and archive maintenance, which no trial node
+runs; the archive files of the offline tools (`SignedManifest`, `Segment`, the certificates)
+are outside the trial (`04` §Archives and holders in the trial). The node's own files are
+written by itself (`network/store` covers its log and object store). **Still to cover**, once
+T79's increments 2–3 build them: the hook's application of collected cuts to
+`AnswerLedger` (increment 2); gateway admission, which will decode and check each
+`AnswerEvent` (`05` T79-P2, D60); T79-P7's read requests on `…/read`, their proofs and
+response keys, and the replies sealed to those keys, at the gateway and in `isegoria-client`;
+and the test issuer's messages if they cross machines (increment 3).
 
 **Runs recorded for this audit** (nightly `cargo-fuzz` 0.13.2, libFuzzer with
 AddressSanitizer, 4 cores, 2 GiB RSS limit):
@@ -198,6 +243,31 @@ AddressSanitizer, 4 cores, 2 GiB RSS limit):
 | `network/replica` (T18, 2026-09-27, 5 min) | — | 195 796 | 0 |
 | `network/cut` (T74, 2026-09-27; 5 min, then 5 min after the F11 fix) | 5 min to F11 | 66 374 | 1 (F11, fixed) |
 | `network/cut` (T74 step 2: members' objects and proposals, 5 min) | — | 40 445 | 0 |
+
+**T89 part 1's runs** (2026-11-10) are short smoke runs, the only kind the owner authorized on
+this machine: `-max_total_time=60` per target, `rustc 1.102.0-nightly (ac8310ba6 2026-11-09)`,
+`cargo-fuzz` 0.13.2, libFuzzer with AddressSanitizer, one process per target, 2 GiB RSS limit,
+from an empty corpus, on a machine shared with other builds. They show no panic on the inputs
+they reached and do not stand for a campaign (`01` D62); their counts are not comparable with
+the table above.
+
+| Target | Code | Duration | Executions | Crashes |
+|---|---|---:|---:|---:|
+| `p2p/bind` | `2c1bd3b` | 60 s | 534 600 | 0 |
+| `p2p/key_config` | `2c1bd3b` | 60 s | 129 049 | 0 |
+| `p2p/client_reply` | `2c1bd3b` | 60 s | 55 477 | 0 |
+| `p2p/gateway` | `2c1bd3b` | 60 s | 115 865 | 0 |
+| `p2p/serve` | `2c1bd3b` | 60 s | 1 358 840 | 0 |
+| `protocol/answer_event` | `2c1bd3b` | 60 s | 7 692 | 0 |
+| `protocol/genesis` | `2c1bd3b` | 60 s | 10 825 | 0 |
+| `protocol/genesis` (from that run's corpus) | `7cef417` | 60 s | 11 047 | 0 |
+| `network/cut` (its decoders changed with T76) | `2c1bd3b` | 60 s | 24 099 | 0 |
+| `network/replica` (likewise) | `2c1bd3b` | 60 s | 64 055 | 0 |
+
+Between `2c1bd3b` and `7cef417` only `network::genesis`, `node` and a test module of `identity`
+changed, so only `protocol/genesis` reaches changed code. `protocol/answer_event` and
+`protocol/genesis` run slowly, each execution verifying a proof or decompressing a key:
+libFuzzer's length limit reached only 6 and 33 bytes, so they exercised mostly the splices.
 
 `scoring/bridging` was added with T62 (2026-09-24) and has not been run yet: that session
 had no nightly toolchain. `scoring/tests/malformed_ratings.rs` covers the same entry points
@@ -233,6 +303,9 @@ entry points:
   messages decoded from arbitrary bytes.
 - `identity::nullifier::proptests::hostile_proof_bytes_never_verify` and the T42
   byte-flip properties in `credential` and `nullifier`.
+- T89's decoders: `p2p/tests/tiered_nodes.rs`, `p2p/tests/blind_relays.rs`,
+  `network/tests/genesis.rs`, `protocol/tests/answer_review.rs` and
+  `protocol/tests/answer_config_encoding.rs`.
 - One unit test per finding (§3).
 - `scoring/tests/malformed_ratings.rs` (T62): a `Ratings` with an out-of-range index, a
   wrong weight count, a non-finite rating, a non-finite or negative weight or a duplicate
@@ -248,7 +321,8 @@ entry points:
   whose validated types make the mismatches unrepresentable.
 - **Network codecs**: the node's own files are the first (T13, `network/store`, fuzzed).
   The node's events (T73, `protocol/event`) and nullifier proofs (`identity/nullifier_proof`)
-  followed, then the replication messages (T18, `network/replica`); T74 will add wire
+  followed, then the replication messages (T18, `network/replica`); §4's T89 list holds
+  what a trial node reads and what T79's increments will add. T74 will add wire
   formats for checkpoints, signatures, receipts, shards and OPRF partials; each needs
   a fuzz target of the same kind, and the `credential` sites marked "becomes external"
   above turn into errors when the committee goes remote.

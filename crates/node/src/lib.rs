@@ -1,6 +1,7 @@
 //! A node as an operating-system process (`docs/04` §A node process, `docs/10` T78): its
 //! configuration, its files, its status, and the loop that runs it until it is stopped.
 
+pub mod answer;
 pub mod archive;
 pub mod extract;
 pub mod genesis;
@@ -78,7 +79,8 @@ pub struct ConsortiumConfig {
 pub struct MemberConfig {
     pub index: usize,
     pub every_ms: u64,
-    pub cuts_per_epoch: u64,
+    /// A member of a network without a genesis only; the answer review's hook closes epochs.
+    pub cuts_per_epoch: Option<u64>,
     pub patience: u32,
     pub view_patience: u32,
 }
@@ -114,6 +116,10 @@ pub enum ConfigError {
     /// A relay or gateway setting that does not hold: the field.
     Relays(&'static str),
     Genesis(genesis::Error),
+    /// `cuts_per_epoch` set for a tiered member, or missing for a member of another network.
+    CutsPerEpoch,
+    /// An operator request that is not one `answer::event` reads.
+    Request,
 }
 
 impl Config {
@@ -341,10 +347,24 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
             index: m.index,
             consortium: Consortium::new(members.clone(), t),
             every: Duration::from_millis(m.every_ms),
-            cuts_per_epoch: m.cuts_per_epoch,
+            cuts_per_epoch: match (m.cuts_per_epoch, &tiers) {
+                (None, Some(_)) => u64::MAX,
+                (Some(cuts), None) => cuts,
+                _ => return Err(ConfigError::CutsPerEpoch),
+            },
             patience: m.patience,
             view_patience: m.view_patience,
         }),
+    };
+    let hook = match (&document, &member) {
+        (Some(document), Some(_)) => Some(p2p::hook::Hooked {
+            hook: Box::new(
+                answer::AnswerHook::new(document)
+                    .ok_or(ConfigError::Genesis(genesis::Error::AnswerConfig))?,
+            ),
+            spool: answer::spool(&config.data_dir),
+        }),
+        _ => None,
     };
     let own_circle = |index: usize| {
         let seed = circle_seed.ok_or(ConfigError::CircleKey)?;
@@ -388,6 +408,7 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
         relay,
         gateway,
         identity: Some(config.data_dir.join("identity")),
+        hook,
     };
     Ok(Plan {
         transport,
@@ -402,7 +423,7 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
 
 /// The tiered set and genesis a configuration declares, if any: the document's set, once the
 /// TOML's repeated values and `writers` match it (`docs/04` T88-P1).
-fn tiered(config: &Config) -> Result<Option<(Tiers, genesis::Document)>, ConfigError> {
+pub(crate) fn tiered(config: &Config) -> Result<Option<(Tiers, genesis::Document)>, ConfigError> {
     let circle = keys(&config.consortium.circle, "consortium.circle")?;
     let Some(path) = &config.genesis else {
         let repeated = [&config.family, &config.answer_config, &config.issuer];
@@ -499,6 +520,7 @@ fn blind_plan(
             && config.key_file.is_none()
             && routes.len() == tiers.consortium().keys().len() =>
         {
+            genesis::compare_relay(config, document)?;
             Some(routes.clone())
         }
         true => return Err(ConfigError::Relays("relay")),
@@ -541,7 +563,7 @@ pub fn announcement(config: &Config) -> Result<String, ConfigError> {
             tiers.consortium().threshold(),
         ),
         every: Duration::from_millis(m.every_ms),
-        cuts_per_epoch: m.cuts_per_epoch,
+        cuts_per_epoch: u64::MAX,
         patience: m.patience,
         view_patience: m.view_patience,
     };
@@ -582,7 +604,23 @@ pub fn render(status: &Status) -> String {
         let value = value.map_or("none".to_string(), |v| hex(&v));
         out += &format!("beacon {e} {value} [{}]\n", members(withheld));
     }
+    for (number, digest) in &status.digests {
+        out += &format!("digest {number} {}\n", hex(digest));
+    }
+    match &status.refused_cut {
+        None => out += "refused_cut none\n",
+        Some((number, reason)) => out += &format!("refused_cut {number} {reason}\n"),
+    }
+    for (name, seq) in &status.requests {
+        out += &format!("request {name} {seq}\n");
+    }
     out
+}
+
+/// A number as [`render`] writes it: decimal digits, no sign or leading zero.
+fn number(text: &str) -> Option<u64> {
+    let n: u64 = text.parse().ok()?;
+    (n.to_string() == text).then_some(n)
 }
 
 /// A collected cut's line: number, digest, view and exclusions (`docs/04` §The cuts' views
@@ -646,6 +684,17 @@ pub fn parse(text: &str) -> Option<Status> {
                 };
                 status.beacons.push((value, parse_members(w)?));
             }
+            ["digest", n, d] => {
+                let n = number(n)?;
+                (status.digests.last().is_none_or(|l| l.0 < n)).then_some(())?;
+                let digest = unhex(d, "digest").ok().filter(|v| hex(v) == d)?;
+                status.digests.push((n, digest));
+            }
+            ["refused_cut", "none"] => status.refused_cut = None,
+            ["refused_cut", n, reason] => {
+                status.refused_cut = Some((number(n)?, reason.to_string()));
+            }
+            ["request", name, seq] => status.requests.push((name.to_string(), number(seq)?)),
             _ => return None,
         }
     }

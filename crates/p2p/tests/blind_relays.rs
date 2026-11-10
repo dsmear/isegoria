@@ -145,6 +145,7 @@ fn member_config(i: usize, root: &Path) -> Config {
             admit: Box::new(|bytes| bytes.starts_with(b"synthetic-event")),
         }),
         identity: identity(i, root),
+        hook: None,
     }
 }
 
@@ -161,6 +162,7 @@ fn relay_config(own: Option<Own>) -> Config {
         relay: Some(announcements()),
         gateway: None,
         identity: None,
+        hook: None,
     }
 }
 

@@ -167,7 +167,6 @@ pub struct AnswerLedger {
     last: Option<Cut>,
     rounds: Rounds,
     requests: BTreeMap<Request, BTreeSet<usize>>,
-    view: u64,
     refused: Vec<(EntryId, Refusal)>,
 }
 
@@ -182,7 +181,6 @@ impl AnswerLedger {
             last: None,
             rounds: Rounds::new(),
             requests: BTreeMap::new(),
-            view: 0,
             refused: Vec::new(),
         })
     }
@@ -236,7 +234,6 @@ impl AnswerLedger {
             report.sealed = Some(sealed);
         }
         let last = self.last.replace(cut.clone());
-        self.view = view;
         let consortium = self.tiers.consortium();
         self.rounds.finish(consortium, network, cut, last.as_ref());
         let finished = last.filter(|l| l.closes).map(|l| l.epoch);
@@ -368,7 +365,7 @@ impl AnswerLedger {
     }
 
     /// The tagged SHA-256 of the network id, the path's state, the requests, the beacon rounds,
-    /// the last cut's number and view, and the refusals, in one canonical encoding (D60).
+    /// the last cut's number, and the refusals, in one canonical encoding (D60, D64).
     pub fn digest(&self) -> [u8; 32] {
         let mut state = Writer::new();
         self.path.write_state(&mut state);
@@ -388,7 +385,7 @@ impl AnswerLedger {
         self.rounds.write(&mut w);
         match &self.last {
             None => w.u8(0),
-            Some(cut) => w.u8(1).u64(cut.number).u64(self.view),
+            Some(cut) => w.u8(1).u64(cut.number),
         };
         w.u64(self.refused.len() as u64);
         for (id, refusal) in &self.refused {
@@ -485,7 +482,7 @@ mod tests {
         let commit = MemberObject::Commit(members[0].beacon_commit(round, 0).0);
         let c = l.tiers.consortium();
         l.rounds.count(c, network, &commit, &cut, None).unwrap();
-        (l.last, l.view) = (Some(cut), 1);
+        l.last = Some(cut);
         let duplicate = Refusal::Path(Refused::Duplicate { question: 0 });
         l.refused = vec![(id(1), Refusal::NotAnEvent), (id(2), duplicate)];
         l
@@ -516,7 +513,6 @@ mod tests {
             }),
             ("no cut", |l| l.last = None),
             ("the cut's number", |l| l.last.as_mut().unwrap().number += 1),
-            ("the view", |l| l.view = 2),
             ("a refused writer", |l| l.refused[0].0.writer[0] ^= 1),
             ("a refused seq", |l| l.refused[0].0.seq += 1),
             ("a refused hash", |l| l.refused[0].0.hash[0] ^= 1),

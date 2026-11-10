@@ -13,7 +13,7 @@ is the authority for review evidence and exclusions. D53 confirms pool membershi
 availability, drawing after the deposit epoch closes, and permanent unavailability when
 that epoch's pool contains fewer than 12 reviewers.
 
-Parameters are provisional and uncalibrated; the new decoder has not been fuzzed.
+Parameters are provisional and uncalibrated; the new decoder has had only short smoke runs (`12` §4).
 There is no certification of truth, whole-quiz fairness or D46's assessment objectives.
 The state and log contain keys in clear; the caller is trusted not to select the beacon
 for a desired panel. Read the [threat model](06-threat-model.md) before making stronger claims.

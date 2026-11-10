@@ -1,5 +1,5 @@
-//! `--genesis-assemble` (`docs/04` §Operating contract, T88-P1, AT-NET-41): the canonical genesis
-//! from the operators' printed keys and the network's parameters, written to one new file.
+//! `--genesis-assemble` (`docs/04` §Operating contract, T88-P1, AT-NET-41, 42): the canonical
+//! genesis from the operators' printed keys and the network's parameters, written to one new file.
 
 #[path = "support/genesis.rs"]
 mod genesis;
@@ -102,6 +102,23 @@ fn the_input_assembles_the_canonical_document() {
     std::fs::write(&config, reader(&root, &g, &path)).unwrap();
     let planned = Config::load(&config).and_then(plan).unwrap();
     assert_eq!(planned.p2p.writers.network_id(), g.id());
+}
+
+// The configuration's printed hex is the value a tiered TOML repeats (AT-NET-42).
+#[test]
+fn the_printed_answer_config_is_what_a_toml_repeats() {
+    let g = trial();
+    let root = scratch("printed-config");
+    let printed = render(&assembled(&root, &input(&g)).unwrap());
+    let mut lines = printed.lines();
+    let config = lines.find_map(|l| l.strip_prefix("answer_config_hex "));
+    let config = config.expect("the hex line");
+    let text = reader(&root, &g, &root.join("genesis.bin"));
+    let text = text.replace(&hex(&g.answer_config), config);
+    assert!(text.contains(&format!("answer_config = \"{config}\"\n")));
+    let path = root.join("reader.toml");
+    std::fs::write(&path, text).unwrap();
+    assert!(Config::load(&path).and_then(plan).is_ok());
 }
 
 // An existing output, a file or a directory, is refused and left as it was (AT-NET-41).

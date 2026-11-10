@@ -1,4 +1,4 @@
-# cargo-fuzz targets for the protocol decoders (T73). Outside the main workspace on
+# cargo-fuzz targets for the protocol decoders (T73, T89). Outside the main workspace on
 # purpose: fuzzing needs a nightly toolchain and libFuzzer. See README.md.
 [package]
 name = "protocol-fuzz"
@@ -12,6 +12,9 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
+curve25519-dalek = "4"
+identity = { path = "../../identity" }
+network = { path = "../../network" }
 protocol = { path = ".." }
 
 [workspace]
@@ -20,6 +23,20 @@ members = ["."]
 [[bin]]
 name = "event"
 path = "fuzz_targets/event.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "answer_event"
+path = "fuzz_targets/answer_event.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "genesis"
+path = "fuzz_targets/genesis.rs"
 test = false
 doc = false
 bench = false

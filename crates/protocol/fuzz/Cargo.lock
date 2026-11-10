@@ -845,6 +845,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 name = "network"
 version = "0.0.0"
 dependencies = [
+ "curve25519-dalek",
  "ed25519-dalek",
  "opentimestamps",
  "reed-solomon-erasure",
@@ -1027,7 +1028,9 @@ dependencies = [
 name = "protocol"
 version = "0.0.0"
 dependencies = [
+ "ed25519-dalek",
  "identity",
+ "libm",
  "network",
  "rand",
  "rand_chacha",
@@ -1039,7 +1042,10 @@ dependencies = [
 name = "protocol-fuzz"
 version = "0.0.0"
 dependencies = [
+ "curve25519-dalek",
+ "identity",
  "libfuzzer-sys",
+ "network",
  "protocol",
 ]
 

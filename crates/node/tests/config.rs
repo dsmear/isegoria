@@ -140,6 +140,9 @@ fn at_net_21_the_status_file_has_one_text() {
         synced: vec![1, 3],
         circle_synced: vec![2],
         duties_halted: true,
+        digests: vec![(1, [5; 32])],
+        refused_cut: None,
+        requests: vec![("1-close-epoch-0".to_string(), 0)],
     };
     let text = render(&status);
     assert_eq!(parse(&text), Some(status.clone()));
@@ -266,6 +269,7 @@ fn tiered(circle_key: &std::path::Path) -> impl Fn(String) -> String + '_ {
                 key(12)
             ),
         )
+        .replace("cuts_per_epoch = 2\n", "")
     }
 }
 
@@ -416,7 +420,10 @@ fn at_net_24_relays_and_gateways_in_the_configuration() {
         planned("relay-with-a-feed", keyed),
         Err(ConfigError::Relays("relay"))
     );
-    let routed = plan(load("relay", relay).unwrap()).unwrap();
+    let config = load("relay", relay).unwrap();
+    std::fs::create_dir_all(&config.data_dir).unwrap();
+    std::fs::write(config.data_dir.join("transport.key"), hex(&[5; 32])).unwrap();
+    let routed = plan(config).unwrap();
     assert_eq!(routed.p2p.relay.map(|r| r.len()), Some(2));
     assert!(routed.p2p.gateway.is_none());
     let refused =

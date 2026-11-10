@@ -108,7 +108,7 @@ T87 and Phase 1 are closed only in the offline path's perimeter (`15`, closure r
 - Deposits are deduplicated per authenticated author, not globally (AT-ANS-14).
   The key remains in clear in state and log; the caller is trusted not to select a
   beacon for a desired panel. Do not claim stronger confidentiality or randomness.
-- Parameters are provisional and uncalibrated; the decoder has not been fuzzed.
+- Parameters are provisional and uncalibrated; the decoder has had only short smoke runs (`12` §4).
   No truth, whole-quiz fairness or D46 assessment objective is certified. A2 remains
   unresolved in its own scope and is not required for this path (D52).
 - The legacy code keeps its contracts. Its proofs, tests and closures do not certify

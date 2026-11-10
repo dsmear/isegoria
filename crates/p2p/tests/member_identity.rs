@@ -86,6 +86,7 @@ fn config(i: usize, root: &Path, every: Duration) -> Config {
         relay: None,
         gateway: None,
         identity: Some(root.join("identity")),
+        hook: None,
     }
 }
 

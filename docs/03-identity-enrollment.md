@@ -278,6 +278,10 @@ member's contribution (`keygen_without_a_member_still_finishes`) and aggregates 
 shares without error: the tool checks completeness itself, as P2's confirmation and the
 holder's verification do.
 
+*Settled (`01` D64):* the ceremony runs the 13 steps in sequence, none merged; the tool refuses
+to continue without every member's contribution and every expected message; the base OT's
+generator is derived by hashing a fixed label, the same for every ceremony.
+
 **Out of scope.** The uniqueness committee, real enrollment (T20), selective-disclosure
 presentation, and a threshold-signature beacon, which needs a key and a contract of its own.
 

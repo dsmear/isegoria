@@ -1,6 +1,7 @@
 //! A consortium member's duties on its node (`docs/04` §Proposing and signing, §Changing view,
 //! §The beacon on cuts, T74, T76): what to commit, reveal, propose, co-sign or change view.
 
+use crate::hook::Hook;
 use ed25519_dalek::Signature;
 use network::beacon::BeaconOutcome;
 use network::beacon::RoundId;
@@ -70,6 +71,9 @@ fn context_of(consortium: &Consortium, network_id: [u8; 32]) -> Context {
     )
 }
 
+/// A collected cut, the view it was first collected in, and its signatures in that view.
+pub type Signed<'a> = (&'a Cut, u64, &'a [(usize, Signature)]);
+
 /// A consortium or network other than the one a collector was fixed to.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct OtherContext;
@@ -92,6 +96,7 @@ pub struct Collector {
     context: Option<Context>,
     cuts: Vec<Cut>,
     collected: Vec<CollectedCut>,
+    signed: Vec<(u64, Vec<(usize, Signature)>)>,
     rounds: Rounds,
     conflict: bool,
 }
@@ -145,8 +150,8 @@ impl Collector {
             let ready = collect_with(replica, consortium, network_id, number, &|c| {
                 rounds.excluded(c)
             });
-            let (cut, view) = match ready {
-                Collected::Ready(cut, view, _) => (cut, view),
+            let (cut, view, signatures) = match ready {
+                Collected::Ready(cut, view, signatures) => (cut, view, signatures),
                 Collected::Conflict(..) => {
                     self.conflict = true;
                     break;
@@ -174,12 +179,19 @@ impl Collector {
                 view,
                 excluded,
             });
+            self.signed.push((view, signatures));
             self.cuts.push(cut);
         }
     }
 
     pub fn cuts(&self) -> &[Cut] {
         &self.cuts
+    }
+
+    /// Cut `number`, with the view and the signatures it was first collected under.
+    pub fn signed(&self, number: usize) -> Option<Signed<'_>> {
+        let (view, signatures) = self.signed.get(number)?;
+        Some((self.cuts.get(number)?, *view, signatures))
     }
 
     /// Each collected cut's digest, view and exclusions, from number 0.
@@ -372,6 +384,19 @@ impl MemberRole {
         network_id: [u8; 32],
         progress: &mut Progress,
     ) -> Vec<MemberObject> {
+        self.duties_with(replica, network_id, progress, None)
+    }
+
+    /// As [`Self::duties`]; with a `hook` that has applied every collected cut, it decides
+    /// whether a cut closes its epoch and signs only what it may (`docs/05` T79-P3, P5).
+    pub fn duties_with(
+        &self,
+        replica: &Replica,
+        network_id: [u8; 32],
+        progress: &mut Progress,
+        hook: Option<&dyn Hook>,
+    ) -> Vec<MemberObject> {
+        let may_sign = |cut: &Cut| hook.is_none_or(|h| h.may_sign(cut));
         let c = &self.consortium;
         let Ok(cuts) = progress
             .collector
@@ -437,7 +462,7 @@ impl MemberRole {
         let members = 0..n;
         let fresh = |waited: &mut u32| {
             let in_epoch = cuts.iter().filter(|x| x.epoch == epoch).count() as u64;
-            let closes = in_epoch + 1 >= self.cuts_per_epoch;
+            let closes = hook.map_or(in_epoch + 1 >= self.cuts_per_epoch, |h| h.closes());
             let reveals =
                 closed.is_none_or(|e| members.clone().all(|m| !committed(m, e) || revealed(m, e)));
             let commits = !closes || members.clone().all(|m| committed(m, epoch));
@@ -461,7 +486,7 @@ impl MemberRole {
                     Err(_) => None,
                 },
             };
-            if let Some(cut) = cut {
+            if let Some(cut) = cut.filter(may_sign) {
                 let named = if view == 0 { Vec::new() } else { named };
                 out.push(sign_cut_in(
                     &self.member,
@@ -488,7 +513,7 @@ impl MemberRole {
         let top = views
             .into_iter()
             .filter_map(|v| proposal(replica, c, next, v).map(|cut| (v, cut)))
-            .rfind(|(v, cut)| should_sign_in(replica, c, me, last, cut, *v));
+            .rfind(|(v, cut)| should_sign_in(replica, c, me, last, cut, *v) && may_sign(cut));
         if let Some((v, cut)) = top {
             out.push(sign_cut_in(
                 &self.member,

@@ -112,8 +112,9 @@ contract leaves to the implementation:
 
 ## Distributed integration (T79) — approved contract (D60)
 
-**Status (2026-11-04): approved by the owner (`01` D60); the state on signed cuts is built
-(§Built on cuts), the node, participants and trial (`10` §2.3's increments 2–4) are not.**
+**Status (2026-11-10): approved by the owner (`01` D60); the state on signed cuts and a
+member's node running it are built (§Built on cuts, §Built in the node), participants and the
+trial (`10` §2.3's increments 3–4) are not.**
 *Approved* restates an earlier decision or a built network rule; *consequence* is what the
 current code forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision
 recorded in D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04`
@@ -219,8 +220,8 @@ and its `CloseEpoch`.
 **Closures: epochs, commits, rounds.**
 - *Approved.* Closures are explicit: none at a count of answers, by deadline or by retry, and
   nothing enters after one (D49).
-- *Consequence.* Today a proposer closes an epoch after `cuts_per_epoch` cuts, a setting local
-  to each proposer while the role rotates; co-signers check only that the epoch does not go
+- *Consequence.* Without the hook (§Built in the node) a proposer closes an epoch after
+  `cuts_per_epoch` cuts, a setting local to each proposer while the role rotates; co-signers check only that the epoch does not go
   back, never `closes` (`04` §Proposing and signing), so any proposer can close or skip an
   epoch at any cut, and `patience` has it propose a closing cut with beacon commits missing:
   one member's power over the deposit window and, through D53's rules, over permanent
@@ -287,8 +288,8 @@ entries it names; a signed entry received twice is one entry; a person's event l
 members applies once, the second refused with its reason on every node; an event after its
 window is refused on every node. *Requirement:* a restarted node rebuilds the answer state
 as above, so one history gives the same draws, outcomes, records and quotas; this holds for
-`AnswerLedger` (AT-T79-9, AT-T79-12), which no node process holds yet. Nothing signs the
-derived state before T86's roots: until then gate 3 compares each node's *state digest* (D60),
+`AnswerLedger` (AT-T79-9, AT-T79-12) and for a member's node (AT-T79-17). Nothing signs the
+derived state before T86's roots: until then gate 3 compares each member's *state digest* (D60, D64),
 a tagged SHA-256 of a canonical encoding of the whole derived state, reported in its status at
 each closing cut.
 
@@ -325,8 +326,9 @@ implementation:
   their values, every question with its round and closure, slots, author records; the indexes
   rebuilt from them left out), the requests counted, the beacon rounds (each open round's
   counted commits and reveals, each finished round's cut, epoch and outcome record — value,
-  revealers, withholders), the last cut's number and view, and every refusal with its entry and
-  reason in cut order (`AnswerLedger::refused`).
+  revealers, withholders), the last cut's number, and every refusal with its entry and reason in
+  cut order (`AnswerLedger::refused`); not the view a cut was signed in, which nodes can see
+  differently for one history (`01` D64).
 - *For the gateway (increment 3).* The ledger counts a `CloseCommits`, `Close` or
   `RequestCloseEpoch` on member `i`'s circle feed as `i`'s request, so the gateway must refuse
   those kinds from persons.
@@ -339,8 +341,43 @@ closing cut of `e` is offline `CloseEpoch { e, B }` at its end, `B` the value `e
 round `f` has a value, offline `Draw` of each pending question of the sealed epochs up to `f`
 still without one, in question order. *Evidence:* `protocol/tests/answer_on_cuts.rs` and
 `answer_on_cuts_model.rs`, the modules' unit tests, `p2p/tests/blind_relays.rs` (AT-T79-1–16,
-`08` §12). *Not built:* the hook, the request spool, the digest in the status, gateway admission,
-private reads, the client, the test issuer and the switch withholding reveals.
+`08` §12). *Not built:* gateway admission, private reads, the client, the test issuer and the
+switch withholding reveals (increments 3 and 4).
+
+**Built in the node (`10` T79, second increment, 2026-11-10).** `p2p::hook::Hook` is the hook:
+`apply`, `may_sign` and `closes` as above; `admit` and `read` are declared and refuse, the
+gateway still admitting nothing, until increment 3. `node::answer::AnswerHook` implements it over
+an `AnswerLedger` under the genesis's tiers, issuer and `AnswerConfig`. The choices the contract
+left to the implementation:
+- *Which nodes.* Every member of a tiered network (one with a genesis) runs the hook; its
+  `[member]` table sets no `cuts_per_epoch`, which a start refuses there (`CutsPerEpoch`), and
+  needs elsewhere. Relays and other non-members compute no answer state: they read no circle.
+- *Following the cuts.* `p2p::hook::Follower` applies each cut the node's collector holds, once,
+  in order from cut 0 at each start, in the view and with the signatures it was first collected
+  under (`member::Collector::signed`), before the duties look and at each status. A cut the
+  ledger refuses stops it there: nothing after it is applied, the duties produce nothing more,
+  the request spool included (`duties_halted`), and the cut stays in the replica and in the
+  status's cut lines as evidence, with `refused_cut <number> <reason>` (`checks`,
+  `out-of-sequence`, `unsigned`, `replica` or `cut`).
+- *The duties.* `MemberRole::duties_with` takes the hook: a proposer's `closes` is the hook's,
+  and every signature the duties give, proposal or co-signature, in any view, needs `may_sign`,
+  which holds only once the ledger has applied the cut before it. `patience` is unchanged for the trial (`01` D64).
+- *The digest in the status.* `digest <cut number> <hex>` for each closing cut applied, the
+  ledger's digest right after it, in cut order; computed again from cut 0 at each start.
+- *Operators' commands.* `isegoria-node --request <node.toml> close-commits <q> | close <q> |
+  close-epoch <e>` writes the event's encoding (`CloseCommits`, `Close`, `RequestCloseEpoch`) to
+  one file of `data_dir/requests/`, named `<20-digit nanoseconds>-<command>-<n>`, written under a
+  dot name then renamed; it refuses other words or numbers, a configuration that is no tiered
+  member's and a missing data directory, reads nothing of the running node, takes no lock, and
+  checks nothing of the state: the ledger decides whether a request counts (`WrongEpoch`,
+  `WrongRound`, `Repeated` are refusals in the state). The duties, once the member writes and its
+  circle feed caught up, log each file in name order on the circle feed — bytes the feed already
+  holds are not signed again — then move it to `requests/done/`. The status lists each executed
+  request as `request <name> <seq>`, its circle entry, rebuilt at a start from `done/`. The spool
+  reads files up to 4 KiB whose names start with no dot, and logs their bytes as they are.
+
+*Evidence:* `node/tests/answer_node.rs` (AT-T79-17–22, `08` §12), on loopback in process; the
+member processes of `node/tests/cut_export.rs` close epoch 0 by their operators' requests.
 
 ---
 
