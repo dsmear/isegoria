@@ -628,6 +628,9 @@ fn setup_base_ot<const KEY_SIZE: u16>(
 }
 
 #[cfg(test)]
+mod ceremony_spike;
+
+#[cfg(test)]
 mod tests {
     //! Properties needing the request's internals: blindness (the commitment hides the
     //! secret), soundness (a mismatched proof is refused); round-trip: `tests/bbs_credential.rs`.

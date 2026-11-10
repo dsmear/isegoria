@@ -255,6 +255,29 @@ that deviates is caught only where the library verifies its message; no robustne
 identifiable abort or Byzantine tolerance is claimed, and a member able to choose its
 contribution last can bias the key's distribution.
 
+*First step (spike, 2026-11-10):* the crates already pinned, default features:
+`secret_sharing_and_dkg` 0.16.0 (`frost_dkg`: Feldman VSS with a Schnorr proof of knowledge),
+`oblivious_transfer_protocols` 0.12.0 (`base_ot_multi_party_pairwise`), `bbs_plus` 0.25.0
+(`threshold`). In-process exchange of each message's bytes, unsigned and unsealed
+(`crates/identity/src/credential/ceremony_spike.rs`).
+*Key: confirmed.* Run over G2 with base `g2` of the crate's fixed parameters, the key
+generation among the four, threshold 3, yields a point that is the BBS+ verifying key as is:
+version byte ‖ compressed point is accepted by `IssuerPublic::decode` and re-encodes
+identically; the prepared signatures of members 1, 3, 4 issue credentials that verify, and
+whose nullifier proofs verify, under it and not under another key; two shares do not
+(`the_ceremonys_key_is_a_genesis_issuer_key`). *Rounds: counted; P2–P4 fix no number.* The
+library needs 11 flights between members: key generation 2 (contributions with proofs, then
+shares; 12 messages each), base OT 5 per pair in alternating directions (6 messages each),
+phase 1 2 and phase 2 2 among the three signers (6 and 3 messages each); the member outside
+the three sends nothing after base OT; issuance is one request and one share per signer per
+slot (`the_ceremony_takes_eleven_rounds_between_members`). P3's id, which needs each member's
+fresh value before the first signed message, and P2's confirmation add one step each: 13 in
+sequence. Only phase 2 needs the base OT's output, so key generation and phase 1 can ride its
+files: 7 library flights at the least. The library finishes a key generation that lacks a
+member's contribution (`keygen_without_a_member_still_finishes`) and aggregates fewer than `t`
+shares without error: the tool checks completeness itself, as P2's confirmation and the
+holder's verification do.
+
 **Out of scope.** The uniqueness committee, real enrollment (T20), selective-disclosure
 presentation, and a threshold-signature beacon, which needs a key and a contract of its own.
 
