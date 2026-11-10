@@ -1,0 +1,58 @@
+# cargo-fuzz targets for the p2p decoders (T89). Outside the main workspace on
+# purpose: fuzzing needs a nightly toolchain and libFuzzer. See README.md.
+[package]
+name = "p2p-fuzz"
+version = "0.0.0"
+edition = "2021"
+license = "EUPL-1.2"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+futures = "0.3"
+libp2p = { version = "0.56", default-features = false, features = ["ed25519", "request-response"] }
+ohttp = { version = "=0.8.0", default-features = false, features = ["client", "server", "rust-hpke"] }
+network = { path = "../../network" }
+p2p = { path = ".." }
+
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "bind"
+path = "fuzz_targets/bind.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "key_config"
+path = "fuzz_targets/key_config.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "client_reply"
+path = "fuzz_targets/client_reply.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "gateway"
+path = "fuzz_targets/gateway.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "serve"
+path = "fuzz_targets/serve.rs"
+test = false
+doc = false
+bench = false

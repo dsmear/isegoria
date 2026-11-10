@@ -30,3 +30,7 @@ hpke = { version = "=0.14.1", default-features = false, features = ["alloc", "ge
 hkdf = "=0.13.0"
 sha2 = "=0.11.0"
 aes-gcm = "=0.11.1"
+
+# `cfg(fuzzing)` is set by cargo-fuzz; it exposes the entry points `fuzz/` needs (T89).
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(fuzzing)"] }
