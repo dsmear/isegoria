@@ -83,6 +83,7 @@ fn config(i: usize, root: &Path) -> Config {
         gateway: None,
         identity: Some(record),
         hook: None,
+        discovery_and_archive: true,
     }
 }
 
@@ -94,6 +95,7 @@ fn reader_config() -> Config {
         member: None,
         identity: None,
         hook: None,
+        discovery_and_archive: true,
         ..config(0, &scratch("reader"))
     }
 }

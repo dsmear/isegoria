@@ -343,6 +343,38 @@ fn at_net_23_a_tiered_configuration() {
 }
 
 /// Members 0 and 1's signed key configurations, from HPKE seeds 21 and 22, in hex.
+/// AT-NET-44: absent the key leaves the protocols on, `false` turns them off; off with archive
+/// jobs, or the key not a boolean, refuses to start, and no shard installs.
+#[test]
+fn at_net_43_the_discovery_and_archive_key() {
+    let dir = scratch("protocols-key");
+    let own = dir.join("own");
+    std::fs::write(&own, hex(&[11; 32])).unwrap();
+    let off = |t: String| format!("discovery_and_archive = false\n{}", tiered(&own)(t));
+    let on = plan(load("protocols-absent", tiered(&own)).unwrap()).unwrap();
+    assert!(on.p2p.discovery_and_archive);
+    let planned_off = plan(load("protocols-off", off).unwrap()).unwrap();
+    assert!(!planned_off.p2p.discovery_and_archive);
+    let jobs = |t: String| {
+        off(t) + "\n[archive_maintenance]\ninterval_ms = 100\ndeadline_ms = 1000\njobs = []\n"
+    };
+    let refused = ConfigError::Archive("discovery_and_archive");
+    assert_eq!(planned("protocols-jobs", jobs), Err(refused));
+    let holder = load("protocols-install", jobs).unwrap();
+    assert!(matches!(
+        node::install::install(&holder, &dir),
+        Err(node::production::Error::Config(ConfigError::Archive(
+            "discovery_and_archive"
+        )))
+    ));
+    assert!(matches!(
+        planned("protocols-text", |t| format!(
+            "discovery_and_archive = \"no\"\n{t}"
+        )),
+        Err(ConfigError::Parse(_))
+    ));
+}
+
 fn hpke_line() -> String {
     let tiers = document().tiers().unwrap();
     let signed: Vec<String> = [0usize, 1]

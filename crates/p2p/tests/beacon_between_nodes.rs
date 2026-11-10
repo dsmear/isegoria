@@ -77,6 +77,7 @@ fn config_waiting(i: usize, role: bool, patience: u32, view_patience: u32) -> Co
         gateway: None,
         identity: None,
         hook: None,
+        discovery_and_archive: true,
     }
 }
 

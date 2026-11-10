@@ -157,6 +157,9 @@ pub struct Config {
     /// A member's protocol state and its operator's spool (`docs/05` §Where the state is
     /// computed); without one, a proposer closes epochs by `cuts_per_epoch`.
     pub hook: Option<hook::Hooked>,
+    /// Whether a tiered node runs Kademlia and the object and shard protocols, and opens its
+    /// shard store (`docs/04` §A node process). Ignored without tiers.
+    pub discovery_and_archive: bool,
 }
 
 /// What a node reports of itself (`docs/04` §A node process).
@@ -697,6 +700,7 @@ impl Handle {
         )?;
         let archive = tiered
             .as_ref()
+            .filter(|_| config.discovery_and_archive)
             .map(|t| {
                 archive::Store::open(
                     &t.tiers,
@@ -761,7 +765,10 @@ impl Handle {
             .or(config.consortium.as_ref())
             .map_or_else(Collector::default, |c| Collector::new(c, network_id));
         let progress = consortium.map_or_else(Progress::default, |c| Progress::new(c, network_id));
-        let discovery_network = tiered.as_ref().map(|t| t.tiers.network_id());
+        let discovery_network = tiered
+            .as_ref()
+            .filter(|_| config.discovery_and_archive)
+            .map(|t| t.tiers.network_id());
         let mut swarm = build_swarm(key, discovery_network).map_err(StartError::Transport)?;
         let topic = IdentTopic::new(topic(&config.writers.network_id()));
         swarm
@@ -801,7 +808,7 @@ impl Handle {
             _held: Box::new(held),
         };
         node.requests = node.executed();
-        if let Some(t) = &node.tiered {
+        if let (Some(t), Some(_)) = (&node.tiered, discovery_network) {
             for id in node.store.replica().ids().filter(|id| t.is_public(id)) {
                 if let Some((entry, _)) = node.store.replica().get(&id) {
                     node.advertisements.add(entry.entry.payload);
@@ -1105,7 +1112,8 @@ impl Node {
 
     /// Public identifiers on gossip; in a tiered network, circle ones to each bound peer.
     fn announce(&mut self, ids: &[EntryId]) {
-        if let Some(t) = &self.tiered {
+        let discovering = self.swarm.behaviour().kad.is_enabled();
+        if let Some(t) = self.tiered.as_ref().filter(|_| discovering) {
             for id in ids.iter().filter(|id| t.is_public(id)) {
                 if let Some((entry, _)) = self.store.replica().get(id) {
                     self.advertisements.add(entry.entry.payload);
