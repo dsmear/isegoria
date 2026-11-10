@@ -2198,8 +2198,8 @@ returned; D49–D53, D57–D63's other choices are unchanged.
 - **The request spool.** No restriction on what a spooled file holds: an operator already
   holds its circle key, and a restriction would add a method to D60's hook.
 - **Discovery and archive protocols.** A trial node gets a configuration key turning off
-  Kademlia and the object and shard protocols. Not built; until then they stay on, with their
-  fuzz targets (`12` §4).
+  Kademlia and the object and shard protocols. Built (`discovery_and_archive`, `04` §A node
+  process); on when the key is absent, and then with their fuzz targets (`12` §4).
 - **D62's perimeter.** libp2p's own decoders are outside it: third-party code, relied on as
   such.
 - **T19's rounds (D63).** The count stands: 11 library flights, 13 steps in sequence with P3's

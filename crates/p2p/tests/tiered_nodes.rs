@@ -125,6 +125,7 @@ fn member_config_every(i: usize, root: &std::path::Path, stored: bool, every: Du
         gateway: None,
         identity: identity(i, root),
         hook: None,
+        discovery_and_archive: true,
     }
 }
 
@@ -142,6 +143,7 @@ fn reader_config() -> Config {
         gateway: None,
         identity: None,
         hook: None,
+        discovery_and_archive: true,
     }
 }
 

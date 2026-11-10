@@ -146,6 +146,7 @@ fn member_config(i: usize, root: &Path) -> Config {
         }),
         identity: identity(i, root),
         hook: None,
+        discovery_and_archive: true,
     }
 }
 
@@ -163,6 +164,7 @@ fn relay_config(own: Option<Own>) -> Config {
         gateway: None,
         identity: None,
         hook: None,
+        discovery_and_archive: true,
     }
 }
 
@@ -197,13 +199,22 @@ struct Net {
 }
 
 async fn net(root: &Path, members: usize) -> Net {
-    let (m0, member0) = start(transport(0), member_config(0, &root.join("0"))).await;
+    net_with(root, members, true).await
+}
+
+/// As [`net`], every node's discovery and archive protocols on or off.
+async fn net_with(root: &Path, members: usize, on: bool) -> Net {
+    let set = |config| Config {
+        discovery_and_archive: on,
+        ..config
+    };
+    let (m0, member0) = start(transport(0), set(member_config(0, &root.join("0")))).await;
     let mut handles = vec![m0];
     let mut addresses = vec![member0.clone()];
     for i in 1..members {
         let (h, addr) = start(
             transport(i as u8),
-            member_config(i, &root.join(i.to_string())),
+            set(member_config(i, &root.join(i.to_string()))),
         )
         .await;
         for a in &addresses {
@@ -212,7 +223,7 @@ async fn net(root: &Path, members: usize) -> Net {
         addresses.push(addr);
         handles.push(h);
     }
-    let (relay, relay_addr) = start(transport(RELAY_SEED), relay_config(None)).await;
+    let (relay, relay_addr) = start(transport(RELAY_SEED), set(relay_config(None))).await;
     relay.dial(member0.clone()).await.unwrap();
     until("the relay holds member 0's binding", || async {
         relay.status().await.bound >= 1
@@ -407,6 +418,37 @@ async fn at_net_24_an_event_reaches_the_circle_feed_through_a_relay() {
         Ok(Answer::NotAdmitted)
     );
     assert_eq!(circle_len(&n.members[0], 0).await, 1);
+}
+
+/// AT-NET-44: with discovery and archives off, members bind and replicate, a relay carries.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_net_43_replication_binding_and_relays_with_the_protocols_off() {
+    let n = net_with(&scratch("protocols-off"), 3, false).await;
+    until("each member binds the other two", || async {
+        let mut bound = Vec::new();
+        for m in &n.members {
+            bound.push(m.status().await.bound);
+        }
+        bound.iter().all(|b| *b >= 2)
+    })
+    .await;
+    until("member 0's public feed catches up", || async {
+        n.members[0].caught_up().await
+    })
+    .await;
+    let public = n.members[0].publish(b"public".to_vec()).await.unwrap();
+    until("member 1 replicates the public entry", || async {
+        n.members[1].replica().await.contains(&public.id())
+    })
+    .await;
+    let event = b"synthetic-event-protocols-off".to_vec();
+    let Answer::Logged(id) = send(&n.relay_addr, 0, &event).await.unwrap() else {
+        panic!("not logged")
+    };
+    until("member 2 replicates the relayed event", || async {
+        n.members[2].replica().await.contains(&id)
+    })
+    .await;
 }
 
 /// AT-NET-24: one event, sealed twice and sent together, then again after a restart, is

@@ -87,6 +87,7 @@ fn config(i: usize, root: &Path, every: Duration) -> Config {
         gateway: None,
         identity: Some(root.join("identity")),
         hook: None,
+        discovery_and_archive: true,
     }
 }
 

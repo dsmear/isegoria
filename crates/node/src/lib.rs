@@ -55,6 +55,9 @@ pub struct Config {
     pub relay: bool,
     pub member: Option<MemberConfig>,
     pub archive_maintenance: Option<archive::Config>,
+    /// Whether a tiered node runs Kademlia and the object and shard protocols (`docs/04`).
+    #[serde(default = "default_discovery_and_archive")]
+    pub discovery_and_archive: bool,
     #[serde(default = "default_sync")]
     pub sync_every_ms: u64,
     #[serde(default = "default_status")]
@@ -83,6 +86,10 @@ pub struct MemberConfig {
     pub cuts_per_epoch: Option<u64>,
     pub patience: u32,
     pub view_patience: u32,
+}
+
+fn default_discovery_and_archive() -> bool {
+    true
 }
 
 fn default_sync() -> u64 {
@@ -387,7 +394,7 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
     let archive_maintenance = config
         .archive_maintenance
         .as_ref()
-        .map(|a| archive::plan(a, tiers_of(&config)?))
+        .map(|a| archive_plan(&config, a))
         .transpose()?;
     let listen = addresses(&config.listen)?;
     let peers = addresses(&config.peers)?;
@@ -409,6 +416,7 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
         gateway,
         identity: Some(config.data_dir.join("identity")),
         hook,
+        discovery_and_archive: config.discovery_and_archive,
     };
     Ok(Plan {
         transport,
@@ -445,6 +453,17 @@ pub(crate) fn tiered(config: &Config) -> Result<Option<(Tiers, genesis::Document
 
 fn tiers_of(config: &Config) -> Result<Option<Tiers>, ConfigError> {
     Ok(tiered(config)?.map(|(tiers, _)| tiers))
+}
+
+/// A configuration's archive jobs; refused with the protocols that carry their shards off.
+pub(crate) fn archive_plan(
+    config: &Config,
+    jobs: &archive::Config,
+) -> Result<archive::Plan, ConfigError> {
+    if !config.discovery_and_archive {
+        return Err(ConfigError::Archive("discovery_and_archive"));
+    }
+    archive::plan(jobs, tiers_of(config)?)
 }
 
 fn bytes_of(text: &str) -> Option<Vec<u8>> {

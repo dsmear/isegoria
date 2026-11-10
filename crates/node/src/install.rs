@@ -31,7 +31,7 @@ pub fn install(node: &crate::Config, bundle: &Path) -> Result<Outcome, Error> {
         .archive_maintenance
         .as_ref()
         .ok_or(Error::Invalid("archive_maintenance required"))?;
-    let plan = crate::archive::plan(jobs, crate::tiers_of(node)?)?;
+    let plan = crate::archive_plan(node, jobs)?;
     let text = read_bounded(&bundle.join("COMPLETE"), 128, "archive.bundle")?;
     let digest = configured(&text).ok_or(Error::Invalid("bundle marker"))?;
     let job = plan

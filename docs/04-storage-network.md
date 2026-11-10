@@ -1089,6 +1089,7 @@ Its configuration is a regular UTF-8 TOML file of at most 1 MiB:
 | `member` | optional: `index`, `every_ms`, `patience`, `view_patience`, and `cuts_per_epoch` in a network without a genesis only, where it is required (`05` §Built in the node) |
 | `sync_every_ms`, `status_every_ms` | the periodic pull, and how often the status is written |
 | `archive_maintenance` | optional, tiered: explicit trusted archive jobs and their schedule (§Archive maintenance in a node process) |
+| `discovery_and_archive` | optional, `true` when absent. `false` on a tiered node runs no Kademlia and no object or shard protocol and opens no shard store: it neither serves nor advertises objects or shards, and installs none, while replication, the binding and blind relays are unchanged (AT-NET-44). The trial exercises no archive, so a trial node can set it (`01` D64). A node without tiers runs none of them either way |
 
 Under `data_dir`: `own/`, the writer's feed (§A node's own disk), and `circle/`, a tiered
 member's circle feed; `replica/`, its replica on disk (§A replica on disk), with a tiered
@@ -1113,8 +1114,12 @@ configuration that does not hold — a bad key, a threshold outside `1..=n`, a m
 a key, circle keys that are not one distinct key per member, `writers` other than the tiered
 set's keys, a tiered member without its own circle key, a circle key file outside one, a tiered
 configuration without its genesis or repeating a value other than the document's, a relay
-whose transport key the document does not list — refuses to start. The node dials its peers at the start and again whenever it has none, so a
+whose transport key the document does not list, archive jobs with `discovery_and_archive`
+false — refuses to start. The node dials its peers at the start and again whenever it has none, so a
 node restarted later reaches the others, which dial no one.
+A dial leaves from a new port, not the listening one (AT-NET-43): two nodes dialing each other at
+once from their listening ports would form one TCP connection with two Noise initiators, whose
+failure then blocks that address pair for TCP's TIME_WAIT.
 
 The collected cuts are kept, not collected again from number 0 at each look: a node extends
 them from the last one, counting the beacon's rounds as it goes (`p2p::member::Collector`).

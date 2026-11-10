@@ -197,7 +197,7 @@ as `04` §The trial's procedure says, archiving outside it:
 | signed key configurations | `p2p::blind::KeyAnnouncement::{decode, verify}` (`ohttp::KeyConfig::decode`) | each operator's node TOML (`consortium.hpke`, made by `--announce` on the member's machine); the client | `p2p/key_config` |
 | a relay's reply, and the sealed answer in it | `blind::Carried::decode`, `blind::Sealed::open` (OHTTP decapsulation, `Answer::from_http`) | the participant's client | `p2p/client_reply` |
 | a relayed request, and its inner request | `blind::open_request` (OHTTP decapsulation), `blind::read_request` (Binary HTTP) | a member's gateway | `p2p/gateway` |
-| object and shard requests | `discovery::serve`, `archive::Store::serve`, through `ObjectCodec` and `ShardCodec` | every tiered node: both protocols are always on, and the archive store is empty in the trial | `p2p/serve` |
+| object and shard requests | `discovery::serve`, `archive::Store::serve`, through `ObjectCodec` and `ShardCodec` | a tiered node, unless `discovery_and_archive = false` turns both protocols and Kademlia off (`04` §A node process, built per `01` D64), as a trial node can; the archive store is empty in the trial | `p2p/serve` |
 | the genesis document, its answer configuration and issuer key | `network::genesis::Genesis::decode`, `AnswerConfig::decode`, `IssuerPublic::decode` (`node::genesis::load`) | every node and `--genesis-digest` | `protocol/genesis` |
 | answer-review events, and the nullifier proof in them | `protocol::answer_events::AnswerEvent::decode`, `NullifierProof::decode` | no node process yet: the hook and gateway admission (T79 increments 2–3) will read them | `protocol/answer_event`, `identity/nullifier_proof` |
 
@@ -208,8 +208,8 @@ is one operator's, its keys copied from what the others printed; it ends in the 
 `Genesis::decode`, and has no target of its own. A relay reads only a request's
 first byte (the key id) and returns the gateway's reply unchanged, so it decodes nothing.
 
-Not covered, and why: libp2p's own decoders (Noise, Yamux, multistream-select, gossipsub's and
-Kademlia's protobuf messages) are a dependency's, reached by every node; part 1 targets none
+Not covered, and why: libp2p's own decoders (Noise, Yamux, multistream-select, gossipsub's and,
+with the protocols on, Kademlia's protobuf messages) are a dependency's, reached by every node; part 1 targets none
 of them, and they are outside D62's perimeter (`01` D64). The object and shard *replies* (`discovery::checked`, `archive::checked`) are read
 only by `discovery::fetch`, `archive::fetch` and archive maintenance, which no trial node
 runs; the archive files of the offline tools (`SignedManifest`, `Segment`, the certificates)

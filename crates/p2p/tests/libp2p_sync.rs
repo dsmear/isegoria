@@ -2,6 +2,7 @@
 //! real nodes on loopback TCP converge on the same signed set.
 
 use libp2p::identity::Keypair;
+use libp2p::multiaddr::Protocol;
 use libp2p::Multiaddr;
 use network::cid::cid;
 use network::log::TransparencyLog;
@@ -62,6 +63,7 @@ async fn node_stored(
         gateway: None,
         identity: None,
         hook: None,
+        discovery_and_archive: true,
     };
     let handle = Handle::spawn(Keypair::generate_ed25519(), config).expect("a node starts");
     let addr = handle
@@ -247,6 +249,7 @@ async fn at_net_14_only_writers_publish() {
         gateway: None,
         identity: None,
         hook: None,
+        discovery_and_archive: true,
     };
     let outsider = Handle::spawn(Keypair::generate_ed25519(), config);
     assert!(matches!(outsider.err(), Some(StartError::NotAWriter)));
@@ -343,4 +346,21 @@ async fn at_net_15_a_stored_replica_survives_a_restart() {
     let (b, _) = node_stored(None, every, Some(store)).await;
     assert_eq!(b.peers().await, 0);
     assert_eq!(b.replica().await.digest(), digest);
+}
+
+// A dial leaves from a port other than the one the node listens on (AT-NET-43).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_dial_does_not_leave_from_the_listening_port() {
+    let (handle, addr) = node(None).await;
+    let listening = addr.iter().find_map(|p| match p {
+        Protocol::Tcp(port) => Some(port),
+        _ => None,
+    });
+    let target = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = target.local_addr().unwrap().port();
+    let dialed = format!("/ip4/127.0.0.1/tcp/{port}").parse().unwrap();
+    handle.dial(dialed).await.unwrap();
+    let accepted = tokio::time::timeout(Duration::from_secs(10), target.accept());
+    let (_, from) = accepted.await.unwrap().unwrap();
+    assert_ne!(Some(from.port()), listening);
 }

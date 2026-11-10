@@ -35,6 +35,7 @@ fn config(tiered: bool) -> Config {
         gateway: None,
         identity: None,
         hook: None,
+        discovery_and_archive: true,
     }
 }
 fn entry(seed: u8, object: &[u8]) -> SignedEntry {
@@ -120,7 +121,7 @@ use futures::StreamExt;
 use libp2p::kad::{self, store::MemoryStore, RecordKey};
 use libp2p::request_response::{self, ProtocolSupport};
 use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
-use libp2p::{noise, tcp, yamux, Multiaddr, PeerId};
+use libp2p::{noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -638,4 +639,95 @@ async fn offline_provider_fallback() {
     .await
     .unwrap();
     assert_eq!(found.provider, live.peer);
+}
+
+/// Whether `addr` refuses `protocol` at negotiation, as a node not running it does.
+async fn unsupported(addr: Multiaddr, protocol: StreamProtocol) -> bool {
+    let mut swarm = libp2p::SwarmBuilder::with_existing_identity(Keypair::generate_ed25519())
+        .with_tokio()
+        .with_tcp(
+            tcp::Config::default(),
+            noise::Config::new,
+            yamux::Config::default,
+        )
+        .unwrap()
+        .with_behaviour(|_| {
+            request_response::Behaviour::<discovery::ObjectCodec>::new(
+                [(protocol, ProtocolSupport::Full)],
+                request_response::Config::default().with_request_timeout(Duration::from_secs(3)),
+            )
+        })
+        .unwrap()
+        .build();
+    swarm.dial(addr).unwrap();
+    tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            match swarm.select_next_some().await {
+                SwarmEvent::ConnectionEstablished { peer_id, .. } => {
+                    swarm.behaviour_mut().send_request(&peer_id, vec![1; 33]);
+                }
+                SwarmEvent::Behaviour(request_response::Event::Message { .. }) => return false,
+                SwarmEvent::Behaviour(request_response::Event::OutboundFailure {
+                    error, ..
+                }) => {
+                    return matches!(
+                        error,
+                        request_response::OutboundFailure::UnsupportedProtocols
+                    )
+                }
+                _ => {}
+            }
+        }
+    })
+    .await
+    .unwrap()
+}
+
+/// AT-NET-44: a node with the key off advertises nothing and negotiates none of the three
+/// protocols, where a node with it on does both.
+#[tokio::test]
+async fn at_net_43_protocols_off_neither_serve_nor_advertise() {
+    let bootstrap = fixture(20, NET, None, vec![], None, false).await;
+    let start = |seed, on, object: &'static [u8]| {
+        let addr = bootstrap.addr.clone();
+        async move {
+            let config = Config {
+                discovery_and_archive: on,
+                ..config(true)
+            };
+            let node = Handle::spawn(key(seed), config).unwrap();
+            let listening = node
+                .listen("/ip4/127.0.0.1/tcp/0".parse().unwrap())
+                .await
+                .unwrap();
+            node.insert(entry(1, object), object.to_vec())
+                .await
+                .unwrap();
+            node.dial(addr).await.unwrap();
+            (node, listening)
+        }
+    };
+    let (_on, on_addr) = start(21, true, b"advertised object").await;
+    let (_off, off_addr) = start(22, false, b"kept object").await;
+    let advertised = |object: &[u8]| {
+        let held = bootstrap.advertised.lock().unwrap();
+        held.contains_key(&cid(object).0.to_vec())
+    };
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !advertised(b"advertised object") {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .unwrap();
+    tokio::time::sleep(Duration::from_millis(600)).await;
+    assert!(!advertised(b"kept object"));
+    for protocol in [
+        discovery::kad_protocol(&NET),
+        discovery::object_protocol(&NET),
+        p2p::archive::protocol(&NET),
+    ] {
+        assert!(!unsupported(on_addr.clone(), protocol.clone()).await);
+        assert!(unsupported(off_addr.clone(), protocol).await);
+    }
 }

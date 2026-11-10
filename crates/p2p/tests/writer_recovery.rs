@@ -55,6 +55,7 @@ async fn node_with(own: Option<&Path>, identity: Option<PathBuf>) -> (Handle, Mu
         gateway: None,
         identity,
         hook: None,
+        discovery_and_archive: true,
     };
     let handle = Handle::spawn(Keypair::generate_ed25519(), config).expect("a node starts");
     let addr = handle

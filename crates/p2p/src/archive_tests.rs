@@ -124,6 +124,7 @@ impl Fixture {
             gateway: None,
             identity: None,
             hook: None,
+            discovery_and_archive: true,
         }
     }
 }
@@ -1598,4 +1599,50 @@ fn held_value_outlives_an_accepted_installation() {
         handle.finished().await;
         assert_eq!(*seen.lock().unwrap(), Some(true));
     });
+}
+
+// With the key off, shards on disk are neither served nor advertised, none installs (AT-NET-44).
+#[tokio::test]
+async fn protocols_off_leave_held_shards_unserved() {
+    let f = Fixture::new();
+    let (segment, signed, _) = f.archive();
+    let dir = Temp::new();
+    let key = identity::Keypair::generate_ed25519();
+    let node = crate::Handle::spawn(key.clone(), f.config(Some(dir.0.clone()))).unwrap();
+    node.install_archive(&f.context(), &signed, &segment, &[0, 1, 2])
+        .await
+        .unwrap();
+    drop(node);
+    tokio::task::yield_now().await;
+    let bootstrap = discovery_fixture(115, NET, None, vec![], None).await;
+    let config = crate::Config {
+        discovery_and_archive: false,
+        ..f.config(Some(dir.0.clone()))
+    };
+    let node = crate::Handle::spawn(key, config).unwrap();
+    let address = node
+        .listen("/ip4/127.0.0.1/tcp/0".parse().unwrap())
+        .await
+        .unwrap();
+    node.dial(bootstrap.address.clone()).await.unwrap();
+    assert_eq!(
+        node.install_archive(&f.context(), &signed, &segment, &[3])
+            .await,
+        Err(InstallError::Configuration)
+    );
+    tokio::time::sleep(Duration::from_millis(600)).await;
+    assert!(bootstrap.advertised.lock().unwrap().is_empty());
+    let holders = [0, 1, 2]
+        .into_iter()
+        .map(|index| Holder {
+            index,
+            peer: node.peer_id(),
+            address: address.clone(),
+        })
+        .collect();
+    assert!(
+        fetch(&f.context(), &signed, holders, Duration::from_secs(3))
+            .await
+            .is_err()
+    );
 }
