@@ -270,12 +270,14 @@ and the cuts' views and exclusions in the status are built. T77 is done for tier
 networks (2026-10-22, reviewed on loopback evidence); T85's channel is done and reviewed,
 T85 staying open for T79. T86's state-tree primitives and T75's public object discovery
 are built; T80, T76 and T78 are implemented. Since the owner's reduction of 2026-11-03
-(§2.4) the critical path is T88's canonical configuration (its schema in D60), built but for
-an assembly command; then T79 in four increments — (1) the answer-review state on signed
-cuts in `network` and `protocol`, (2) the node process with the hook, operator commands and state digest, (3) participants
+(§2.4) the critical path is T88's canonical configuration (its schema in D60), built with its
+assembly command and the check of a relay's own transport key; then T79 in four increments —
+(1) the answer-review state on signed cuts in `network` and `protocol`, (2) the node process
+with the hook, operator commands and state digest (1 and 2 built), (3) participants
 through blind relays, private reads, `isegoria-client` and the test issuer, (4) gate 1 end
 to end on one machine — then T19's issuing committee (D61; contract approved, D63, in
-`03`) and T89's fuzzing (D62), then gates 2 and 3. T84 is frozen, and T17, T75, T84 and
+`03`) and T89's fuzzing (D62; targets for today's decoders committed with smoke runs, `12` §4,
+the rest to follow T79's increments 2–3), then gates 2 and 3. T84 is frozen, and T17, T75, T84 and
 T86's open parts stay open outside Milestone 2. T79's implementation remains the final
 runtime integration, T19's committee setup not counting as one (D60), followed by the
 Milestone 2 trial. T77 precedes exposing public objects through the DHT and shards;
