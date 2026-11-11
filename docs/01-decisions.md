@@ -2210,3 +2210,15 @@ returned; D49–D53, D57–D63's other choices are unchanged.
 
 **Scope.** T19's first step ran ahead of T79's increments at the owner's request; the rest of
 T19 still follows them unless the owner assigns it otherwise.
+
+## D65 — The test issuer is provisional; the person's side moves into the client
+
+**Decided** by the owner; recorded 2026-11-11. Settles two questions the test issuer's
+implementation returned (`05` *Credentials before T19*); D60's declared risk is unchanged.
+
+- **Provisional.** The single-key test issuer keeps D60's unlimited issuance, with no record of
+  slots answered, as a temporary arrangement for tests only, replaced by T19's committee
+  (T19-P5's once-per-slot record). Its tool and documentation say so wherever it appears.
+- **The person's side.** A person's issuance commands (`--request`, `--finalize`) move from
+  `isegoria-test-issuer` into `isegoria-client` when the client is built; the issuer keeps
+  only its own commands.

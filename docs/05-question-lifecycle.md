@@ -115,8 +115,8 @@ contract leaves to the implementation:
 **Status (2026-11-11): approved by the owner (`01` D60); the state on signed cuts, a
 member's node running it and the protocol side of participants — gateway admission, private
 reads and their inner seal — are built (§Built on cuts, §Built in the node, §Built for
-participants); their wiring in `p2p` and `node`, the client, the test issuer and the trial
-(`10` §2.3's increments 3–4) are not.**
+participants), with the provisional test issuer (D65); their wiring in `p2p` and `node`, the
+client and the trial (`10` §2.3's increments 3–4) are not.**
 *Approved* restates an earlier decision or a built network rule; *consequence* is what the
 current code forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision
 recorded in D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04`
@@ -173,6 +173,9 @@ and its `CloseEpoch`.
   committee's contract, approved in D63, is `03` §Committee setup for the trial).
   `AnonymousCredential` has a private test encoding (a file with mode 0600), `IssuerPublic`
   a public encoding with a known-answer test (built with the genesis, `04` T88-P1).
+  *Provisional (owner, `01` D65):* the test issuer and its unlimited issuance are a temporary
+  arrangement for tests, replaced by T19's committee; the tool says so on every run, and the
+  person's commands (`--request`, `--finalize`) move into `isegoria-client` when it is built.
   *Built (`10` T79, increment 3, 2026-11-11):* `isegoria-test-issuer`, a crate of its own
   (`crates/test-issuer`) so that no node links the issuer's secret key; `isegoria-node` has no
   issuer command. The issuer runs `--new-key <issuer.key>`: a fresh 32-byte seed, 64 hex

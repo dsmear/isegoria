@@ -6,6 +6,9 @@ use std::path::Path;
 use std::process::ExitCode;
 use test_issuer::{finalize, hex, issue, issuer_from_hex, new_key, request, Error};
 
+const PROVISIONAL: &str = "isegoria-test-issuer: provisional, for tests only; \
+    no uniqueness, no limit on issuance (docs/05, docs/01 D65)";
+
 const USAGE: &str = "usage: isegoria-test-issuer --new-key <issuer.key>\n\
     --issue <issuer.key> <request-file> <reply-file>\n\
     --request <issuer-hex> <slot> <pending-file> <request-file>\n\
@@ -46,6 +49,7 @@ fn run(args: &[OsString]) -> Option<Result<String, Error>> {
 
 fn main() -> ExitCode {
     let args: Vec<OsString> = std::env::args_os().skip(1).collect();
+    eprintln!("{PROVISIONAL}");
     match run(&args) {
         Some(Ok(output)) => {
             print!("{output}");
