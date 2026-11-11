@@ -549,6 +549,9 @@ fn at_t79_50_gate_1_on_one_machine() {
         assert!(s.beacons[0].1.is_empty() && healthy(s));
     }
     g.snapshot("epoch-0-closed");
+    let all = [0, 1, 2, 3];
+    let phase = |q: &'static str| move |s: &Status| s.state.iter().any(|l| l == q);
+    g.members("the draw applied", &all, phase("question 0 committing"));
     let mut drawn = Vec::new();
     for &k in &reviewers {
         let out = g.read(k, k % N, &["reviewer", "0"]).unwrap();
@@ -663,6 +666,7 @@ fn at_t79_50_gate_1_on_one_machine() {
         line.starts_with("question 0 closed accepted observation success 1 1 "),
         "AT-T79-55: {line}"
     );
+    g.members("the outcome applied", &all, phase("question 0 closed"));
     for (n, &k) in drawn.iter().enumerate() {
         let out = g.read(k, n % N, &["reviewer", "0"]).unwrap();
         assert_eq!(fact(&out, "phase"), Some("closed"), "AT-T79-55");
