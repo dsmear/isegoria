@@ -2265,7 +2265,7 @@ returned; D49–D53, D60's other choices and T19-P1–P4 are unchanged.
 ## D68 — The reviews' findings and the trial's evidence (T79 increment 4, T19)
 
 **Decided** by the owner; recorded 2026-11-11, after two independent reviews of increments
-2–3 and T19's tool (`15`-style findings, fixed with failing tests first, `10` T79 and T19).
+2–3 and T19's tool, whose findings were fixed with failing tests first (`10` T79 and T19).
 
 - **The ceremony's commitments (T19-P2/P3).** The confirmation carries, from each member, a
   digest of every member's key-generation and phase-1 commitments as it received them;

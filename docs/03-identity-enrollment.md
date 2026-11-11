@@ -255,7 +255,8 @@ among themselves for the slots no member has answered, and a slot already answer
 spent. *Rectified (`01` D66):* a lost share suspends the trial as a compromised one does, with
 no re-preparation. A compromised share suspends the trial; continuing is a new ceremony and a new
 genesis (`04` T88-P2). No refresh, resharing or rotation: T22. A member
-that deviates is caught only where the library verifies its message; no robustness,
+that deviates is caught only where the library verifies its message (*rectified, `01` D68:*
+also where the confirmations' echo of every member's commitments differs); no robustness,
 identifiable abort or Byzantine tolerance is claimed, and a member able to choose its
 contribution last can bias the key's distribution.
 
