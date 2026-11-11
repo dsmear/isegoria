@@ -188,7 +188,7 @@ of its entry point:
 | `identity/ceremony_state` (T89, *new*) | `Party::decode` of arbitrary bytes or a genuine state at any flight with a window overwritten | one encoding |
 | `identity/ceremony_issuance` (T89, *new*) | `SlotRequest::decode` answered by every prepared member; `SignatureShare::decode` combined with the genuine shares | one encoding each; only a genuine request is answered, by a signer, with its recorded share; the genuine shares combine |
 | `ceremony/message` (T89, *new*) | `ceremony::message::open` by its recipient of arbitrary bytes or a genuine message with a window overwritten | a genuine message opens to its header and payload; no other bytes open |
-| `p2p/gateway_read` (T89, *new*) | the gateway's answer to an opened request on `…/read` and `…/event` (`blind::respond`: `read_request`, then the hook's `read` or `admit`, the Binary HTTP answer), with a fake hook, on arbitrary inner requests, requests crafted from expected and arbitrary method, scheme and path parts, events and reads sealed by `seal` and `seal_read`, and arbitrary relayed requests | only this network's POST reaches the hook, once, with its body; a read is answered 200 with the hook's reply or 403, an event 403, or 503 once admitted (logging not reached), another network's request 421, anything else 400; the client opens each answer as the hook gave it |
+| `p2p/gateway_read` (T89, *new*) | the gateway's answer to an opened request on `…/read` and `…/event` (`blind::respond`: `read_request`, then the hook's `read` or `admit`, the Binary HTTP answer), with a fake hook, on arbitrary inner requests, requests crafted from expected and arbitrary method, scheme and path parts, events and reads sealed by `seal` and `seal_read`, and arbitrary relayed requests | only this network's POST reaches the hook, once, with its body; a read is answered 200 with the hook's reply or 403, an event 403, or 503 once admitted (logging not reached), another network's request (its id in lower-case hex, as `event_path` writes it) 421, anything else 400, this network's id in upper case among them; the client opens each answer as the hook gave it |
 | `p2p/client_read` (T89, *new*) | `Carried::decode` and `Sealed::open_read` on arbitrary relay replies, on any plaintext sealed in the read's context, on every gateway answer and on sealed replies | one encoding; a reply not sealed for the read never opens; a read never opens to a receipt; a reply opens as sealed, or as too large beyond `MAX_REPLY`; an event's reply never opens as a read's |
 | `client/read_reply` (T89, *new*) | `client::read::Opener::open` of a status, a reviewer's and an author's read: arbitrary sealed bytes, arbitrary or genuine replies with a window overwritten sealed to the read's key; `read::render` of what opens | a reply opens only under its own read's key, exactly when it decodes as a reply of that read's kind; it prints one line per fact |
 | `client/listed` (T89, *new*) | `client::event::{announcement, relay}` of arbitrary text, or a member's configuration in hex or the listed relay's address with a window overwritten | a member's own configuration and the listed relay's address are taken; nothing else but a member's signed configuration with its genesis key, or an address ending in the listed relay's peer id |
@@ -344,6 +344,14 @@ the changed code (`cb9260a`, 60 s each, no crash): `identity/ceremony_flight` 58
 | `client/read_reply` | `0e3b847` | 60 s | 56 931 | 0 |
 | `client/listed` | `0e3b847` | 60 s | 801 657 | 0 |
 | `identity/ceremony_combine` | `0e3b847` | 60 s | 20 499 | 0 |
+
+Two hex spellings accepted were noted in T89's fuzzing work, neither a crash, and fixed after
+these runs, each with its failing test first:
+
+- *The gateway's path.* `blind::read_request` took any 64 hex digits for a network's id, so this
+  network's own id in upper case was answered 421 as another network's, and `p2p/gateway_read`
+  asserted that. Only the 64 lower-case digits `event_path` and `read_path` write now name a
+  network; any other spelling is 400, and the target asserts so (AT-NET-46).
 
 `scoring/bridging` was added with T62 (2026-09-24) and has not been run yet: that session
 had no nightly toolchain. `scoring/tests/malformed_ratings.rs` covers the same entry points

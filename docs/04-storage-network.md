@@ -694,7 +694,9 @@ event was applied or refused and when a reviewer was drawn, for a question of wh
   `/isegoria/ohttp/gateway/1` (relay → member), so an HTTP carrier could replace them with
   the cryptography unchanged. Inside, a Binary HTTP request (RFC 9292, known length)
   `POST isegoria:///isegoria/v1/<network id in hex>/event` whose body is the event, or
-  `…/read` whose body is a read request (`05` T79-P7), and a Binary HTTP response: RFC 9458's
+  `…/read` whose body is a read request (`05` T79-P7), the id its 64 lower-case hex digits
+  (`blind::event_path`, `read_path`; any other spelling names no network, AT-NET-46),
+  and a Binary HTTP response: RFC 9458's
   labels, no bespoke HPKE composition (a read's reply inside it is `05`'s bespoke inner seal). A person uses a new
   libp2p key for each request, so its transport key links nothing; its address still can.
 - **T85-P2 — the dependencies.** `ohttp` 0.8.0 and `bhttp` 0.8.0, pinned with `=`, from
@@ -734,7 +736,7 @@ event was applied or refused and when a reviewer was drawn, for a question of wh
     is not a listed relay, a key id no member's or not the gateway's, a request that does
     not decapsulate, no connection to the member. Nothing is logged.
   - *Sealed answers*: 200 with a receipt; 421 a path naming another network; 400 not this
-    request; 403 bytes the admission check refuses; 503 "retry later" while the member's
+    request (this network's id in upper case among them); 403 bytes the admission check refuses; 503 "retry later" while the member's
     circle feed is not caught up; 500 a write that failed (to a read, a reply past the limit). Admission is a predicate the
     embedding supplies — `p2p` keeps no protocol state, and which events it admits is T79.
     To a read: 200 whose body is the reply sealed to the request's response key, 403 a read
@@ -807,8 +809,9 @@ seals and sealing its answer so the reference path opens it. Appendix A's illust
 `Content-Length` values (78, 38) differ from its hex (80 and 35 bytes), the second reported
 as erratum 7781; `bhttp` writes the empty sections RFC 9292 lets the example's reply omit.
 Tests: `p2p/tests/blind_relays.rs` and `node/tests/config.rs` (AT-NET-24); before the node
-handled the two roles, the seven path tests failed. Not built: any limit on a relay's volume
-and a run across machines; the read path has had fuzz smoke runs only (`12` §4); untiered
+handled the two roles, the seven path tests failed. The path's id in canonical hex only:
+`p2p::blind`'s unit test (AT-NET-46). Not built: any limit on a relay's volume and a run across
+machines; the read path has had fuzz smoke runs only (`12` §4); untiered
 networks keep relays as writers.
 
 ### The state tree and the fork (T86)

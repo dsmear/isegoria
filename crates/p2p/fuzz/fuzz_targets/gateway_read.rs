@@ -140,7 +140,7 @@ fn status(response: &[u8]) -> (u16, Vec<u8>) {
     (code, m.content().to_vec())
 }
 
-/// Whether `path` names an event or a read on some network, as 64 hex digits.
+/// Whether `path` names an event or a read on some network, as 64 lower-case hex digits.
 fn some_network(path: &[u8]) -> bool {
     let Some(rest) = path.strip_prefix(b"/isegoria/v1/") else {
         return false;
@@ -148,7 +148,7 @@ fn some_network(path: &[u8]) -> bool {
     let id = rest
         .strip_suffix(b"/event")
         .or_else(|| rest.strip_suffix(b"/read"));
-    id.is_some_and(|id| id.len() == 64 && id.iter().all(u8::is_ascii_hexdigit))
+    id.is_some_and(|id| id.len() == 64 && id.iter().all(|b| b"0123456789abcdef".contains(b)))
 }
 
 /// The answer to opened `inner` checked against the request it parses as: the hook is called
@@ -333,9 +333,9 @@ fuzz_target!(|input: (bool, Option<Vec<u8>>, Input)| {
             let ours = match &network {
                 Network::Ours => Some(true),
                 Network::Other(id) => Some(*id == NET),
-                Network::OursUpper => Some(false),
-                Network::Raw(_) => None,
+                Network::OursUpper | Network::Raw(_) => None,
             };
+            let upper = matches!(network, Network::OursUpper);
             let (method, scheme, path) = crafted(method, scheme, prefix, network, suffix);
             let mut m = Message::request(method, scheme, Vec::new(), path);
             m.write_content(&body);
@@ -347,6 +347,7 @@ fuzz_target!(|input: (bool, Option<Vec<u8>>, Input)| {
             match (canonical, ours) {
                 (true, Some(true)) => assert!(!fake.calls.borrow().is_empty(), "ours unheard"),
                 (true, Some(false)) => assert_eq!(code, 421, "another network's not 421"),
+                (true, None) if upper => assert_eq!(code, 400, "our id in upper case not 400"),
                 _ => {}
             }
         }
