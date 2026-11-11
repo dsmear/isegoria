@@ -1,0 +1,28 @@
+[package]
+name = "client"
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "A participant's tool: its credential by files, its events and read requests sealed to a member through a listed relay. See docs/05 §Distributed integration, §Built for participants."
+
+# A crate of its own, so a person's secrets stay out of members' processes (docs/01 D60).
+[[bin]]
+name = "isegoria-client"
+path = "src/main.rs"
+
+[dependencies]
+identity = { path = "../identity" }
+network = { path = "../network" }
+protocol = { path = "../protocol" }
+p2p = { path = "../p2p" }
+# A relay's peer id from the genesis's transport key (docs/04 T85-P4).
+libp2p = { version = "0.56", default-features = false, features = ["ed25519"] }
+tokio = { version = "1", features = ["rt", "time", "net"] }
+getrandom = "0.2"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+
+# The issuer's side of the flows the tests run by files (docs/05, credentials before T19).
+[dev-dependencies]
+test-issuer = { path = "../test-issuer" }
