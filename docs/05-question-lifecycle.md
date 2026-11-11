@@ -114,10 +114,9 @@ contract leaves to the implementation:
 
 **Status (2026-11-11): approved by the owner (`01` D60); the state on signed cuts, a
 member's node running it and the protocol side of participants — gateway admission, private
-reads and their inner seal — are built (§Built on cuts, §Built in the node, §Built for
-participants), with the provisional test issuer (D65), and the participant's client but for
-sending reads (§Built for participants); their wiring in `p2p` and `node` and the trial (`10`
-§2.3's increments 3–4) are not.**
+reads and their inner seal — are built and wired into the member's gateway (§Built on cuts,
+§Built in the node, §Built for participants), with the provisional test issuer (D65) and the
+participant's client (§Built for participants); the trial (`10` §2.3's increment 4) is not.**
 *Approved* restates an earlier decision or a built network rule; *consequence* is what the
 current code forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision
 recorded in D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04`
@@ -370,14 +369,15 @@ closing cut of `e` is offline `CloseEpoch { e, B }` at its end, `B` the value `e
 round `f` has a value, offline `Draw` of each pending question of the sealed epochs up to `f`
 still without one, in question order. *Evidence:* `protocol/tests/answer_on_cuts.rs` and
 `answer_on_cuts_model.rs`, the modules' unit tests, `p2p/tests/blind_relays.rs` (AT-T79-1–16,
-`08` §12). *Not built:* the wiring of gateway admission and private reads, built on the protocol side
-with the client (§Built for participants); the test issuer is built
-(*Credentials before T19*, above).
+`08` §12). Gateway admission and private reads are built and wired into the member's gateway,
+and the client sends both (§Built for participants); the test issuer is built (*Credentials
+before T19*, above). *Not built:* gate 1 end to end (increment 4).
 
 **Built in the node (`10` T79, second increment, 2026-11-10).** `p2p::hook::Hook` is the hook:
-`apply`, `may_sign` and `closes` as above; `admit` and `read` are declared and refuse, the
-gateway still admitting nothing, until increment 3. `node::answer::AnswerHook` implements it over
-an `AnswerLedger` under the genesis's tiers, issuer and `AnswerConfig`. The choices the contract
+`apply`, `may_sign` and `closes` as above; `admit(event)` and `read(replica, request)`, which
+refuse by default, are the gateway's (§Built for participants, *In the gateway*).
+`node::answer::AnswerHook` implements it over an `AnswerLedger` under the genesis's tiers, issuer
+and `AnswerConfig`. The choices the contract
 left to the implementation:
 - *Which nodes.* Every member of a tiered network (one with a genesis) runs the hook; its
   `[member]` table sets no `cuts_per_epoch`, which a start refuses there (`CutsPerEpoch`), and
@@ -421,9 +421,10 @@ left to the implementation:
 process; the member processes of `node/tests/cut_export.rs` close epoch 0 by their operators'
 requests.
 
-**Built for participants (`10` T79, third increment, protocol side, 2026-11-11).** What a
-member computes for a person, in `protocol`, for the hook's `admit` and `read` to call; nothing
-in `p2p` or `node` calls it yet. The choices the contract left to the implementation:
+**Built for participants (`10` T79, third increment, 2026-11-11).** What a member computes for
+a person, in `protocol`, and its wiring: `AnswerHook::admit` is `answer_gateway::admit` under the
+genesis's network id and issuer, `AnswerHook::read` is `answer_read::answer` over the ledger and
+the node's replica. The choices the contract left to the implementation:
 - *Gateway admission.* `answer_gateway::admit(bytes, network id, issuer)`, without state: the
   decoding (else `NotAnEvent`); `CloseCommits`, `Close` and `RequestCloseEpoch` are
   `MemberOnly`, `Draw` and `CloseEpoch` `Derived`; a deposit past `MAX_QUESTION` is `TooLarge`,
@@ -473,10 +474,22 @@ in `p2p` or `node` calls it yet. The choices the contract left to the implementa
   independent RFC 9180 implementation (Python, standard library only) that reproduces A.1.1.
 - *Limits.* The author's reply lists every question of its author, 36 bytes each when closed
   with an observation, with no cursor: within `MAX_REPLY` up to about 1,700 questions.
+- *In the gateway* (`04` §Blind relays). A hooked member's gateway admits a person's event on
+  `…/event` by `Hook::admit` in place of its own admission, then logs it as before and answers
+  with its receipt `(writer, seq, hash)`; refused bytes get 403 and are not logged. A read is
+  posted on `…/read` (`blind::read_path`, `blind::seal_read`): the gateway applies the cuts its
+  collector holds, hands the request's bytes to `Hook::read` with its replica, logs nothing, and
+  answers 200 whose body is the hook's sealed reply; where the hook gives none — a request that
+  does not decode or whose proof fails — it answers 403, the refusal an event gets, so a failed
+  proof and an undecodable request look alike. `Sealed::open_read` gives the client a
+  `blind::ReadAnswer`: the sealed reply, or the answer without one. A node without a hook
+  answers every read 403. Relays forward reads as events, unchanged, by key id.
 
 *Evidence:* `protocol/tests/answer_participants.rs` (AT-T79-23–28), the unit tests of
-`answer_seal` (AT-T79-29) and `answer_ledger` (AT-T79-15, AT-T79-28); not yet run (the owner
-runs them with the other branches).
+`answer_seal` (AT-T79-29) and `answer_ledger` (AT-T79-15, AT-T79-28); the wiring in
+`node/tests/answer_node.rs` (AT-T79-34–37, AT-T79-41) and `p2p/tests/blind_relays.rs`
+(AT-T79-38–40), on loopback in process; not yet run (the owner runs them with the other
+branches).
 
 **The client (`10` T79, third increment, 2026-11-11).** `isegoria-client`, a crate of its own
 (`crates/client`, D60), so a person's secrets stay out of members' processes; it reads only the

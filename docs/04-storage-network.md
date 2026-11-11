@@ -653,7 +653,9 @@ node's replica).
 **Status (2026-10-22).** The first increment, the transport channel, is built on T85-P1–P5
 at the owner's instruction, P5 as stated below, and reviewed (§As built). Which messages a person sends —
 the events, the read requests, their replies — is `05` T79-P2 and T79-P7, approved in `01`
-D60 and not built; T85 as a whole stays open with them.
+D60; a member's gateway admits the events and answers the reads through its hook (2026-11-11,
+`05` §Built for participants, *In the gateway*), not yet tested or reviewed, and persons have no
+client yet: T85 as a whole stays open with them.
 
 *Decided (D54, `10` T85).* A person sends each event sealed to one member's key through a
 relay, as Oblivious HTTP (RFC 9458) over HPKE (RFC 9180): the relay sees where a message
@@ -668,13 +670,15 @@ operators other than the members.
 §4.3) and sends it to a relay; the relay forwards the bytes unchanged to the member that key
 names and returns its encapsulated response unchanged (§4.4); the member decapsulates,
 checks the request, logs the event on its circle feed (`Handle::publish_circle`) and answers
-with the entry or an error. The event then replicates and is cut like any circle entry.
+with the entry or an error. The event then replicates and is cut like any circle entry. A read
+request takes the same path to `…/read`; the member answers it from its state and logs nothing
+(`05` T79-P7).
 
 | | sees | does not see |
 |---|---|---|
-| person | its event and the reply; the relay's address; the key configurations | — |
-| relay | the person's IP address, port and transport key; times and sizes; the member, by the key id in the clear header; the gateway's errors in the clear | the event, the reply, any nym |
-| member | the event, the nym proofs in it, the reply; the relay's address and key; times and sizes | the person's address |
+| person | its event or read and the reply; the relay's address; the key configurations | — |
+| relay | the person's IP address, port and transport key; times and sizes; the member, by the key id in the clear header; the gateway's errors in the clear | the event or read, its path, the reply, any nym |
+| member | the event or read, the nym proofs in it, the reply; the relay's address and key; times and sizes | the person's address |
 | others on the path | encrypted flows, sizes and times | content |
 | anyone, from the public cut marks | that a member's circle feed grew in a cut | which person or event |
 
@@ -685,8 +689,9 @@ growth. Batching (`10` T28) and PRIV-003 would blur it; neither is built.
   on two libp2p request-response protocols, `/isegoria/ohttp/relay/1` (person → relay) and
   `/isegoria/ohttp/gateway/1` (relay → member), so an HTTP carrier could replace them with
   the cryptography unchanged. Inside, a Binary HTTP request (RFC 9292, known length)
-  `POST isegoria:///isegoria/v1/<network id in hex>/event` whose body is the event, and a
-  Binary HTTP response: RFC 9458's labels, no bespoke HPKE composition. A person uses a new
+  `POST isegoria:///isegoria/v1/<network id in hex>/event` whose body is the event, or
+  `…/read` whose body is a read request (`05` T79-P7), and a Binary HTTP response: RFC 9458's
+  labels, no bespoke HPKE composition (a read's reply inside it is `05`'s bespoke inner seal). A person uses a new
   libp2p key for each request, so its transport key links nothing; its address still can.
 - **T85-P2 — the dependencies.** `ohttp` 0.8.0 and `bhttp` 0.8.0, pinned with `=`, from
   github.com/martinthomson/ohttp (Martin Thomson co-authored RFC 9458), MIT or Apache-2.0,
@@ -725,6 +730,9 @@ growth. Batching (`10` T28) and PRIV-003 would blur it; neither is built.
     request; 403 bytes the admission check refuses; 503 "retry later" while the member's
     circle feed is not caught up; 500 a write that failed. Admission is a predicate the
     embedding supplies — `p2p` keeps no protocol state, and which events it admits is T79.
+    To a read: 200 whose body is the reply sealed to the request's response key, 403 a read
+    with no reply (it does not decode, or its proof fails: `05` §Built for participants), 421
+    and 400 as above; nothing is logged.
   - *The receipt* names the circle entry `(writer, seq, hash)` that logged the bytes, signed
     by the member and held in its replica; bytes in its log alone get none. It attests that
     registration only: not that the protocol applied or accepted the event,
@@ -767,9 +775,19 @@ publishes them there. The codec refuses a request or reply beyond its limit as i
 reads it, and an empty reply is a failed exchange. In `node`: `consortium.hpke`,
 `hpke_key_file`, `relays`, `relay`, and `isegoria-node --announce <config>` printing a member's
 signed key configuration. **What a node process can do:** forward as a relay, and terminate
-the channel as a member, answering every event "not admitted" and logging nothing — no
-admission rule exists before T79, and the legacy events are not admitted in its place.
-Persons have no client program: `seal` and `submit` are a library.
+the channel as a member; a member of a network with a genesis admits a person's answer-review
+events and answers its reads through its hook (*As wired*, below); the legacy events are not
+admitted. Persons have no client program: `seal`, `seal_read` and `submit` are a library.
+
+**As wired (2026-11-11, `10` T79's third increment).** `blind::read_path` and
+`blind::seal_read` beside `event_path` and `seal`; `Sealed::open_read` gives a `ReadAnswer`,
+the sealed reply or an answer without one, and `Sealed::open` refuses a read's reply. A
+gateway whose node runs a hook (`p2p::hook::Hook`) admits by `Hook::admit` in place of its own
+`Admission`, and answers a read on `…/read` with `Hook::read`'s bytes after applying the cuts
+collected so far, logging nothing; `node`'s own `Admission` refuses everything. Relays are
+unchanged: they forward by key id and never see the path. The protocol side and the choices
+are `05` §Built for participants (*In the gateway*). Tests: AT-T79-34–41 (`08` §12), written
+and compiled, not yet run.
 
 Three tests check the OHTTP the channel uses against a reference HPKE path, the `hpke`
 crate driven directly and only in tests (RFC 9458 §4.3–4.4): Appendix A exactly, through
@@ -781,9 +799,9 @@ seals and sealing its answer so the reference path opens it. Appendix A's illust
 `Content-Length` values (78, 38) differ from its hex (80 and 35 bytes), the second reported
 as erratum 7781; `bhttp` writes the empty sections RFC 9292 lets the example's reply omit.
 Tests: `p2p/tests/blind_relays.rs` and `node/tests/config.rs` (AT-NET-24); before the node
-handled the two roles, the seven path tests failed. Not built: read requests and private
-replies (T79-P7), the answer review's events (T79), any limit on a relay's volume, fuzzing of
-the new decoders, and a run across machines; untiered networks keep relays as writers.
+handled the two roles, the seven path tests failed. Not built: the participants' client, any
+limit on a relay's volume, fuzzing of the read path, and a run across machines; untiered
+networks keep relays as writers.
 
 ### The state tree and the fork (T86)
 
@@ -1058,8 +1076,8 @@ for the members collecting cuts (`network::rounds`).
 
 Public CID lookup without a full replica is specified in §Public object discovery (T75);
 circle objects are never offered through it (§Who reads). A member's node runs the answer
-review on the cuts it collects (`05` §Built in the node, `10` T79); persons reach it only with
-T79's third increment. Its contract, approved in `01` D60, is `05` §Distributed integration, its
+review on the cuts it collects (`05` §Built in the node, `10` T79); persons reach it through
+its gateway (§Blind relays, *As wired*), with no client yet. Its contract, approved in `01` D60, is `05` §Distributed integration, its
 state on cuts `protocol::answer_ledger`. In code:
 `network::replica`, `network::cut`, `protocol::ledger`, the `p2p` crate.
 
