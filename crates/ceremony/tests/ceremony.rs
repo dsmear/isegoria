@@ -261,10 +261,38 @@ fn at_id_18_a_refused_message_aborts_the_member() {
         matches!(refused, Error::Refused(Some(_), Refusal::Payload(_))),
         "{refused:?}"
     );
+}
+
+// A later step's file waits for that step; another file of an earlier step aborts (AT-ID-26).
+#[test]
+fn at_id_26_a_later_steps_file_waits_for_its_step() {
+    let c = Committee::new("later", &SLOTS);
+    c.run("a", 2);
     c.step_one("a", 3, 1).unwrap();
-    let ahead = c.dir("a", 1).join("out").join("03-1-0.msg");
-    let step = Error::Refused(Some(ahead.clone()), Refusal::Step(3));
-    assert_eq!(case("step", ahead), step);
+    let (dir, ahead) = (c.dir("a", 0), c.dir("a", 1).join("out").join("03-1-0.msg"));
+    let mut files = c.inbox("a", 2, 0);
+    files.insert(0, ahead.clone());
+    let report = ceremony::step(&dir, &c.identities[0], &files).unwrap();
+    assert_eq!((report.step, &report.later), (3, &vec![ahead.clone()]));
+    assert!(report
+        .render()
+        .contains(&format!("later {}\n", ahead.display())));
+    assert_eq!(ceremony::status(&dir).unwrap().phase, "running");
+    for i in [2, 3] {
+        c.step_one("a", 3, i).unwrap();
+    }
+    let inbox = c.inbox("a", 3, 0);
+    assert!(inbox.contains(&ahead));
+    let four = ceremony::step(&dir, &c.identities[0], &inbox).unwrap();
+    assert_eq!((four.step, four.later), (4, vec![]));
+    let earlier = forged(&c, &c.inbox("a", 2, 0)[0], 1, 0, |p| p[0] ^= 1);
+    let earlier = write(&c.root, "earlier", &earlier);
+    let refused = ceremony::step(&dir, &c.identities[0], &[earlier.clone()]);
+    assert_eq!(
+        refused,
+        Err(Error::Refused(Some(earlier), Refusal::Step(2)))
+    );
+    assert_eq!(ceremony::status(&dir).unwrap().phase, "aborted");
 }
 
 // A step lacking a message changes nothing; repeated and taken files are skipped (AT-ID-19).

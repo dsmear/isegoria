@@ -78,7 +78,7 @@ pub enum Error {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Refusal {
     Message(MessageError),
-    /// Of another ceremony, or of a step other than the one this step takes.
+    /// Of another ceremony, or of an earlier step and not the file it took.
     Id,
     Step(u8),
     /// A second, different message from one sender in one step, or one the step does not take.
@@ -352,12 +352,14 @@ pub struct Report {
     pub step: u8,
     pub id: Option<[u8; 32]>,
     pub sent: Vec<PathBuf>,
+    /// The files given for a later step, left unread for it.
+    pub later: Vec<PathBuf>,
     pub issuer: Option<Vec<u8>>,
 }
 
 impl Report {
-    /// `step <n>`, `ceremony <id>` once known, a `sent <file>` line per file, then after the last
-    /// step `done` and `issuer <hex>`, the value `--genesis-assemble` takes.
+    /// `step <n>`, `ceremony <id>` once known, a `sent <file>` then a `later <file>` line per file,
+    /// then after the last step `done` and `issuer <hex>`, the value `--genesis-assemble` takes.
     pub fn render(&self) -> String {
         let mut out = format!("step {}\n", self.step);
         if let Some(id) = self.id {
@@ -365,6 +367,9 @@ impl Report {
         }
         for path in &self.sent {
             out += &format!("sent {}\n", path.display());
+        }
+        for path in &self.later {
+            out += &format!("later {}\n", path.display());
         }
         if let Some(issuer) = &self.issuer {
             out += &format!("done\nissuer {}\n", hex(issuer));
@@ -469,6 +474,7 @@ pub fn init(procedure: &Path, identity: &Path, dir: &Path) -> Result<Report, Err
         step: 1,
         id: None,
         sent,
+        later: Vec::new(),
         issuer: None,
     })
 }
@@ -498,7 +504,7 @@ pub fn step(dir: &Path, identity: &Path, files: &[PathBuf]) -> Result<Report, Er
     };
     let members = state.procedure.consortium_keys();
     let (mut received, mut paths, mut digests) = (BTreeMap::new(), BTreeMap::new(), Vec::new());
-    let mut taken = 0;
+    let (mut taken, mut later) = (0, Vec::new());
     for path in files {
         let bytes = read_bounded(path, "message", MAX_FILE)?;
         let digest: [u8; 32] = Sha256::digest(&bytes).into();
@@ -515,8 +521,16 @@ pub fn step(dir: &Path, identity: &Path, files: &[PathBuf]) -> Result<Report, Er
             Err(e) => return refused(state, Refusal::Message(e)),
         };
         let sender = u16::from(header.sender);
-        if header.id != id {
+        let ahead = header.step > flight;
+        if header.id != id && !(ahead && flight == 1) {
             return refused(state, Refusal::Id);
+        }
+        if ahead && !setup.sends(header.step, sender, me) {
+            return refused(state, Refusal::Unexpected(header.sender));
+        }
+        if ahead {
+            later.push(path.clone());
+            continue;
         }
         if header.step != flight {
             return refused(state, Refusal::Step(header.step));
@@ -535,6 +549,7 @@ pub fn step(dir: &Path, identity: &Path, files: &[PathBuf]) -> Result<Report, Er
             step: flight,
             id: state.id,
             sent: rewritten,
+            later,
             issuer: None,
         });
     }
@@ -639,6 +654,7 @@ pub fn step(dir: &Path, identity: &Path, files: &[PathBuf]) -> Result<Report, Er
         step: state.step,
         id: next.id,
         sent,
+        later,
         issuer,
     })
 }

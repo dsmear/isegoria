@@ -286,7 +286,7 @@ holder's verification do.
 to continue without every member's contribution and every expected message; the base OT's
 generator is derived by hashing a fixed label, the same for every ceremony.
 
-*Built (2026-11-11; tests AT-ID-15–25 written, not yet run).* One member's side is
+*Built (2026-11-11; tests AT-ID-15–26 written, not yet run).* One member's side is
 `identity::credential::ceremony`, **bespoke** and unreviewed: `Setup` (members, threshold,
 named signers, slots), and `Party::advance`, which takes flight `k − 1`'s payloads by sender
 and gives flight `k`'s (2 to 12; at 13 it finishes the prepared signatures). A missing payload
@@ -305,7 +305,8 @@ The tool is `isegoria-ceremony` (crate `ceremony`), exit code 0 or 2:
   the new directory (`0700`) and its fresh value (32 bytes of system randomness), and writes it
   to every other member.
 - `step <ceremony-dir> <identity-dir> [<message-file>...]` — steps 2 to 14: takes the previous
-  step's messages to this member and writes this step's; step 14 takes the confirmations and
+  step's messages to this member and writes this step's, printing `step`, `ceremony`, a `sent`
+  line per file written and a `later` line per file left for a later step; step 14 takes the confirmations and
   prints `done` and `issuer <hex>`, the 97 bytes `--genesis-assemble` takes (`04` T88-P1).
 - `status <ceremony-dir>` — `member`, `phase` (`running`, `done`, `aborted`), `next` and
   `expects` (the members whose messages the next step needs), `ceremony`, `issuer`, a signer's
@@ -336,8 +337,11 @@ bytes), the commitment, the proof's `t` and its response; a share is version 1, 
 library's share; each object is an 8-byte length and its compressed arkworks encoding. A slot's
 label is its number's 4 bytes, little-endian, then 28 zero bytes.
 
-*Behaviour.* A file byte-identical to one already taken is skipped. One that fails its decoding,
-seal, signature, recipient, sender, id or step, a second message from one sender, the library's
+*Behaviour.* A file byte-identical to one already taken is skipped. A file of a later step, from a
+member that sends this member a message in that step, is left unread and reported (`later
+<file>`), to be given again at its step: D57's reordering does not abort (at step 2 its id, not yet
+known, is checked at its step). One that fails its decoding, seal, signature, recipient, sender,
+id or step (an earlier step's, not the file taken there), a second message from one sender, the library's
 check, or a confirmation unlike the member's own aborts: the state keeps `aborted`, the party
 with its share dropped, and every later command is refused. A step lacking a message reports the
 members missing and changes nothing. A step keeps its messages, sealed, in the state it saves
