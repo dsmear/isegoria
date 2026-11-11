@@ -322,6 +322,13 @@ in every tiered member; `request` for `--request`, an operator's closure request
 Maintenance shutdown awaits the active pass. Depends on `p2p` and `network`, on `protocol` for
 the genesis and the answer review's state (T79, second increment), on `identity` for the genesis.
 
+`isegoria-test-issuer` (`crates/test-issuer`, `docs/05` §Distributed integration, credentials
+before T19): the provisional single-key test issuer and, until `isegoria-client` takes it, a
+person's side of its blind issuance by files (D65); a crate apart so no node links the issuer
+key. `isegoria-ceremony` (`crates/ceremony`, `docs/03` §Committee setup for the trial, T19):
+the issuing committee's ceremony tool, one step per invocation over files carried by hand;
+`identity::credential::ceremony` holds one member's flights and issuance per slot.
+
 ## `characterization` — the characterization harness
 
 Not part of a node: nothing depends on it. It runs the seeded simulation studies of
@@ -471,8 +478,8 @@ cargo clippy --workspace --all-targets
 | Blind relays | **Channel real, loopback-tested, reviewed** — signed key configurations, relay and gateway over libp2p with Oblivious HTTP, receipts of the circle entry, duplicates answered once (T85, first increment) | admission and private reads with T79; no event admitted by a node process yet |
 | Who may read the replicated set | **Real for tiered networks, loopback-tested** — the binding on each connection, every message filtered by verified access, a member's two feeds, a public reader on an `Observer` (T77, reviewed on loopback evidence; no multi-operator run); **none without tiers** — a node serves its whole set to any peer, against D17 | D54: three tiers, two feeds per member, the circle served only to member-bound transport keys (T77); blind relays (T85); a state tree keyed by nym (T86) |
 | A node process | **Real** — `isegoria-node` from a TOML configuration, its files resumed on restart, its status on a period (T78) | participants' events and reads (T79 increments 3–4) |
-| Answer review between nodes | **In member nodes, loopback-tested** — `protocol::answer_ledger` run by `node::answer::AnswerHook`, closures by `--request`, the state digest in the status (T79 increments 1–2); the legacy ledger decodes `NodeEvent` | participants through blind relays (T79 increments 3–4, `docs/05`) |
-| Independent operator setup and trial | **Not established** — current process tests run under one operator; threshold committee messages and setup are local | the issuing committee's distributed setup (T19, contract approved, D63); T88's operating contract, approved (D57): increments A and B, the duties' conflict stop, the cuts' views, the genesis and its assembly command are built (D58–D60), the trial is not; Phase 2 gates (`docs/10`, D55) |
+| Answer review between nodes | **In member nodes, loopback-tested** — `protocol::answer_ledger` run by `node::answer::AnswerHook`, closures by `--request`, the state digest in the status (T79 increments 1–2); gateway admission, private reads and their inner seal in `protocol::{answer_gateway, answer_read, answer_seal}`, not wired; the legacy ledger decodes `NodeEvent` | their wiring and the client (T79 increments 3–4, `docs/05`) |
+| Independent operator setup and trial | **Not established** — current process tests run under one operator; the issuing committee's ceremony tool is built (T19, D63; `isegoria-ceremony`, tested on one machine) | the participant's side of committee issuance and the lost-share re-preparation (T19); T88's operating contract, approved (D57): increments A and B, the duties' conflict stop, the cuts' views, the genesis and its assembly command are built (D58–D60), the trial is not; Phase 2 gates (`docs/10`, D55) |
 | A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80); in a tiered network a detected loss, inconsistency or verified own entry stops the member durably instead (D58, AT-NET-36), and each feed writes, at every start, only after rounds with two other verified members (D59, AT-NET-37) | without tiers, first-peer recovery can miss a longer feed elsewhere; with them, history held only by members not consulted stays undetected |
 | Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from explicit or discovered holders, plus configured periodic process maintenance and manual cut export and extraction from a stopped replica, preparation/reproduction/co-signing and holder installation tools, tested on loopback and controlled processes | Automatic extraction/production, remote provisioning, roster coordination, repair orchestration and independent operators (T84) |
 

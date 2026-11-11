@@ -274,9 +274,11 @@ are built; T80, T76 and T78 are implemented. Since the owner's reduction of 2026
 assembly command and the check of a relay's own transport key; then T79 in four increments —
 (1) the answer-review state on signed cuts in `network` and `protocol`, (2) the node process
 with the hook, operator commands and state digest (1 and 2 built), (3) participants
-through blind relays, private reads, `isegoria-client` and the test issuer, (4) gate 1 end
+through blind relays, private reads, `isegoria-client` and the test issuer (its protocol side
+and the provisional test issuer built, D65; the wiring and the client not), (4) gate 1 end
 to end on one machine — then T19's issuing committee (D61; contract approved, D63, in
-`03`) and T89's fuzzing (D62; targets for today's decoders committed with smoke runs, `12` §4,
+`03`; its ceremony tool and member-side issuance built ahead, assigned by the owner on
+2026-11-11, the participant's side waiting for `isegoria-client`) and T89's fuzzing (D62; targets for today's decoders committed with smoke runs, `12` §4,
 the rest to follow T79's increments 2–3), then gates 2 and 3. T84 is frozen, and T17, T75, T84 and
 T86's open parts stay open outside Milestone 2. T79's implementation remains the final
 runtime integration, T19's committee setup not counting as one (D60), followed by the
