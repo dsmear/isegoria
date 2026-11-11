@@ -550,7 +550,8 @@ it (`Unverified` otherwise). No command asks for or writes a name or an attribut
   `0`–`255`, `none` or `dont-know`. The commitment file (0600) is `isegoria/client/commit/v1` ‖
   the question (8 bytes, little-endian) ‖ the answer's code (2) ‖ the nonce (32), 67 bytes.
 - *Sending.* `--send <genesis> <announcement-hex> <relay> <event>`: the announcement is a
-  member's signed key configuration as `isegoria-node --announce` prints it, verified under the
+  member's signed key configuration as `isegoria-node --announce` prints it (lower-case hex
+  digit pairs and nothing else: no upper case, sign or whitespace, AT-NET-47), verified under the
   genesis's tiers and carrying that member's HPKE key in the genesis; the relay is a multiaddress
   ending in `/p2p/` and the peer id of a transport key the genesis lists; the event is admitted as
   above, then `p2p::blind::seal` and `submit` from a new transport key; a receipt prints `logged
@@ -569,7 +570,7 @@ it (`Unverified` otherwise). No command asks for or writes a name or an attribut
   is the sealed reply, any other answer the error `NoReply` with it.
 
 *Evidence:* `client/tests/` (`credentials.rs`, `events.rs`, `reads.rs`) and `test-issuer/tests/
-files.rs` (AT-T79-42–49, `08` §12); run and passing in the full suite (2026-11-11, macOS). Through a running relay and gateways on
+files.rs` (AT-T79-42–49, AT-NET-47, `08` §12); run and passing in the full suite (2026-11-11, macOS). Through a running relay and gateways on
 loopback: §Gate 1 on one machine.
 
 **Gate 1 on one machine (`10` T79, increment 4, 2026-11-11).** `trial/tests/gate1.rs` runs

@@ -47,14 +47,19 @@ pub fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// The bytes [`hex`] writes as `text`, and `None` for any other text.
 pub(crate) fn unhex(text: &str) -> Option<Vec<u8>> {
-    let text = text.trim();
-    if text.len() % 2 != 0 || !text.is_ascii() {
-        return None;
-    }
-    (0..text.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&text[i..i + 2], 16).ok())
+    let digit = |c: &u8| match c {
+        b'0'..=b'9' => Some(c - b'0'),
+        b'a'..=b'f' => Some(c - b'a' + 10),
+        _ => None,
+    };
+    let pairs = text.as_bytes().chunks(2);
+    pairs
+        .map(|p| match p {
+            [high, low] => Some((digit(high)? << 4) | digit(low)?),
+            _ => None,
+        })
         .collect()
 }
 

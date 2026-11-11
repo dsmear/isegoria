@@ -10,7 +10,7 @@ the list of decoders, is recorded in `docs/12-panic-audit.md` §4. Both targets 
 | Target | Entry point | Asserted besides "no panic, no abort" |
 |---|---|---|
 | `read_reply` | `read::Opener::open` of a status, a reviewer's and an author's read: arbitrary sealed bytes, arbitrary or genuine replies with a window overwritten sealed to the read's key; `read::render` of what opens | a reply opens only under its own read's key, exactly when it decodes as a reply of that read's kind; it prints one line per fact |
-| `listed` | `event::announcement` and `event::relay` of arbitrary text, or a member's configuration in hex or the listed relay's address with a window overwritten | a member's own configuration and the listed relay's address are taken; nothing else but a member's signed configuration with its genesis key, or an address ending in the listed relay's peer id |
+| `listed` | `event::announcement` and `event::relay` of arbitrary text, or a member's configuration in hex or the listed relay's address with a window overwritten | a member's own configuration and the listed relay's address are taken; nothing else but a member's signed configuration with its genesis key, spelled as `hex` prints it, or an address ending in the listed relay's peer id |
 
 ## Running
 
