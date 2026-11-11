@@ -20,7 +20,7 @@ use p2p::blind::{
     seal, submit, Answer, Carried, ClientError, Gateway, GatewayKey, KeyAnnouncement, Refusal,
     GATEWAY_PROTOCOL, MAX_REPLY, MAX_REQUEST, RELAY_PROTOCOL,
 };
-use p2p::member::MemberRole;
+use p2p::member::{Faults, MemberRole};
 use p2p::record::{read, Found, Record, State, Stop};
 use p2p::{read_limited, Config, Handle, Own, PublishError, StartError};
 use protocol::answer_ledger::{fits, MAX_QUESTION};
@@ -135,6 +135,7 @@ fn member_config(i: usize, root: &Path) -> Config {
             cuts_per_epoch: 2,
             patience: 10,
             view_patience: 20,
+            faults: Faults::default(),
         }),
         consortium: None,
         tiers: Some(tiers()),

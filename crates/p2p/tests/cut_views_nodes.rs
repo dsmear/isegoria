@@ -10,7 +10,7 @@ use network::cut::{collect_with, Collected, MemberObject};
 use network::log::TransparencyLog;
 use network::replica::{DurableReplica, FeedWriter, Replica};
 use network::tier::Tiers;
-use p2p::member::{CollectedCut, MemberRole};
+use p2p::member::{CollectedCut, Faults, MemberRole};
 use p2p::{Config, Handle, Own};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -73,6 +73,7 @@ fn config(i: usize, root: &Path) -> Config {
             cuts_per_epoch: 3,
             patience: 3,
             view_patience: 6,
+            faults: Faults::default(),
         }),
         consortium: None,
         tiers: Some(tiers()),

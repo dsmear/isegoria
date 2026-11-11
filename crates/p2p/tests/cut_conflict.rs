@@ -9,7 +9,7 @@ use network::cut::{sign_cut, Cut};
 use network::log::TransparencyLog;
 use network::replica::{DurableReplica, FeedWriter, Replica, SignedEntry};
 use network::tier::{Tier, Tiers};
-use p2p::member::{collected, MemberRole};
+use p2p::member::{collected, Faults, MemberRole};
 use p2p::record::Stop;
 use p2p::{Config, Handle, Own};
 use std::path::{Path, PathBuf};
@@ -76,6 +76,7 @@ fn config(i: usize, root: &Path) -> Config {
             cuts_per_epoch: 1000,
             patience: 2,
             view_patience: 3,
+            faults: Faults::default(),
         }),
         consortium: None,
         tiers: Some(tiers()),

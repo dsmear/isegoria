@@ -344,9 +344,8 @@ closing cut of `e` is offline `CloseEpoch { e, B }` at its end, `B` the value `e
 round `f` has a value, offline `Draw` of each pending question of the sealed epochs up to `f`
 still without one, in question order. *Evidence:* `protocol/tests/answer_on_cuts.rs` and
 `answer_on_cuts_model.rs`, the modules' unit tests, `p2p/tests/blind_relays.rs` (AT-T79-1–16,
-`08` §12). *Not built:* the client, the test issuer and the switch withholding reveals
-(increments 3 and 4); gateway admission and private reads are built on the protocol side
-(§Built for participants), not wired.
+`08` §12). *Not built:* the client and the test issuer (increments 3 and 4); gateway admission
+and private reads are built on the protocol side (§Built for participants), not wired.
 
 **Built in the node (`10` T79, second increment, 2026-11-10).** `p2p::hook::Hook` is the hook:
 `apply`, `may_sign` and `closes` as above; `admit` and `read` are declared and refuse, the
@@ -382,9 +381,18 @@ left to the implementation:
   as `request <name> <seq>`, its circle entry — the `k`-th executed file with given bytes the
   `k`-th entry holding them — rebuilt at a start from `done/`. The spool
   reads files up to 4 KiB whose names start with no dot, and logs their bytes as they are.
+- *Withheld reveals, test builds only* (T79-P4's switch). `MemberRole::faults`, a
+  `p2p::member::Faults`, is empty by default; `Faults::withholding_reveals(epochs)` exists only
+  with `p2p`'s cargo feature `fault-injection`, which only `node`'s dev-dependency enables — as
+  `network`'s feature of that name (`04` §A node's own disk), so a `cargo build` or release of
+  `isegoria-node` lacks it. A member so set still commits and signs as before and publishes no
+  reveal of those epochs. No configuration key, flag or variable sets it: `node::plan` leaves it
+  empty and a `[member]` table naming one is refused, so no trial configuration withholds, even
+  in a test build. Tests set it on the role a node's configuration planned, in process.
 
-*Evidence:* `node/tests/answer_node.rs` (AT-T79-17–22, `08` §12), on loopback in process; the
-member processes of `node/tests/cut_export.rs` close epoch 0 by their operators' requests.
+*Evidence:* `node/tests/answer_node.rs` (AT-T79-17–22, AT-T79-30–32, `08` §12), on loopback in
+process; the member processes of `node/tests/cut_export.rs` close epoch 0 by their operators'
+requests.
 
 **Built for participants (`10` T79, third increment, protocol side, 2026-11-11).** What a
 member computes for a person, in `protocol`, for the hook's `admit` and `read` to call; nothing

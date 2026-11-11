@@ -9,7 +9,7 @@ use network::consortium::{Consortium, Member};
 use network::cut::{collect_with, Collected, MemberObject};
 use network::log::TransparencyLog;
 use network::replica::{FeedWriter, Replica, WriterSet};
-use p2p::member::{collected, MemberRole};
+use p2p::member::{collected, Faults, MemberRole};
 use p2p::{Config, Handle, Own, StartError};
 use protocol::ledger::Ledger;
 use std::path::PathBuf;
@@ -69,6 +69,7 @@ fn config_waiting(i: usize, role: bool, patience: u32, view_patience: u32) -> Co
             cuts_per_epoch: 2,
             patience,
             view_patience,
+            faults: Faults::default(),
         }),
         consortium: (!role).then(consortium),
         circle: None,
