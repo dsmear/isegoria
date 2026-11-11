@@ -150,7 +150,8 @@ pub struct Config {
     pub tiers: Option<Tiers>,
     /// A tiered relay's routes (`docs/04` §Blind relays): the members' key configurations.
     pub relay: Option<Vec<blind::KeyAnnouncement>>,
-    /// A tiered member's gateway (`docs/04` §Blind relays).
+    /// A tiered member's gateway (`docs/04` §Blind relays); with a hook, the hook admits its
+    /// events and answers its reads.
     pub gateway: Option<blind::Gateway>,
     /// The record governing a tiered node's feeds; without one they write nothing (`docs/04`
     /// §Increments A and B). Ignored without tiers.
@@ -1603,8 +1604,7 @@ impl Node {
         let carried = match opened {
             Err(refusal) => blind::Carried::Refused(refusal),
             Ok((inner, response)) => {
-                let answer = self.answer(&inner);
-                match answer.to_http().and_then(|b| response.encapsulate(&b).ok()) {
+                match (self.respond(&inner)).and_then(|b| response.encapsulate(&b).ok()) {
                     Some(sealed) => blind::Carried::Sealed(sealed),
                     None => blind::Carried::Refused(blind::Refusal::Undecryptable),
                 }
@@ -1617,14 +1617,24 @@ impl Node {
             .send_response(channel, carried.encode());
     }
 
-    /// What a gateway does with an opened request: bytes already on its circle feed answered
-    /// with their entry, other admitted bytes logged there once the feed caught up.
-    fn answer(&mut self, inner: &[u8]) -> blind::Answer {
-        let event = match blind::read_request(inner, &self.network_id) {
-            Ok(event) => event,
-            Err(answer) => return answer,
+    /// The Binary HTTP response to an opened request: a read's from the hook, an event's below.
+    fn respond(&mut self, inner: &[u8]) -> Option<Vec<u8>> {
+        match blind::read_request(inner, &self.network_id) {
+            Ok((blind::Posted::Read, request)) => self.read(&request).to_http(),
+            Ok((blind::Posted::Event, event)) => self.answer(event).to_http(),
+            Err(answer) => answer.to_http(),
+        }
+    }
+
+    /// What a gateway does with an event: bytes already on its circle feed answered with their
+    /// entry, other admitted bytes logged there once the feed caught up; a hook's admission
+    /// replaces the gateway's.
+    fn answer(&mut self, event: Vec<u8>) -> blind::Answer {
+        let admitted = match &self.hooked {
+            Some(h) => h.hook.admit(&event),
+            None => self.gateway.as_ref().is_some_and(|g| (g.admit)(&event)),
         };
-        if !self.gateway.as_ref().is_some_and(|g| (g.admit)(&event)) {
+        if !admitted {
             return blind::Answer::NotAdmitted;
         }
         if !self.circle_caught_up {
@@ -1650,6 +1660,18 @@ impl Node {
             Ok(signed) => blind::Answer::Logged(signed.id()),
             Err(PublishError::NotCaughtUp) => blind::Answer::RetryLater,
             Err(_) => blind::Answer::Failed,
+        }
+    }
+
+    /// A read's sealed reply from the hook, after the cuts collected so far; logs nothing, and
+    /// answers "not admitted" without a hook or where the hook refuses (`docs/05` T79-P7).
+    fn read(&mut self, request: &[u8]) -> blind::ReadAnswer {
+        self.follow();
+        let sealed =
+            (self.hooked.as_ref()).and_then(|h| h.hook.read(self.store.replica(), request));
+        match sealed {
+            Some(sealed) => blind::ReadAnswer::Reply(sealed),
+            None => blind::ReadAnswer::Answer(blind::Answer::NotAdmitted),
         }
     }
 

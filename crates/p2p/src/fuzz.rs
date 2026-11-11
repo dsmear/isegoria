@@ -11,8 +11,9 @@ pub fn gateway_open(key: &GatewayKey, request: &[u8]) -> Result<Vec<u8>, Refusal
     blind::open_request(key, request).map(|(inner, _)| inner)
 }
 
+/// An inner request's body, an event's or a read's, or the gateway's answer refusing it.
 pub fn gateway_read(inner: &[u8], network_id: &[u8; 32]) -> Result<Vec<u8>, Answer> {
-    blind::read_request(inner, network_id)
+    blind::read_request(inner, network_id).map(|(_, body)| body)
 }
 
 /// The Binary HTTP response a gateway seals for `answer`.

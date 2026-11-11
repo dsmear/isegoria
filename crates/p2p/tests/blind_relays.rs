@@ -3,6 +3,7 @@
 
 use aes_gcm::aead::{Aead as _, KeyInit};
 use bhttp::{Message as Http, Mode};
+use ed25519_dalek::Signature;
 use futures::{AsyncWriteExt, StreamExt};
 use hpke::Deserializable;
 use libp2p::identity::Keypair;
@@ -11,15 +12,17 @@ use libp2p::swarm::{NetworkBehaviour, SwarmEvent};
 use libp2p::{noise, tcp, yamux, Multiaddr, PeerId, StreamProtocol};
 use network::cid::cid;
 use network::consortium::{Consortium, Member};
+use network::cut::Cut;
 use network::log::{Entry, TransparencyLog};
 use network::replica::{EntryId, FeedWriter, Refused, Replica};
 use network::store::faults::{self, Fault, On};
 use network::store::{DurableLog, ObjectStore};
 use network::tier::{Tier, Tiers};
 use p2p::blind::{
-    seal, submit, Answer, Carried, ClientError, Gateway, GatewayKey, KeyAnnouncement, Refusal,
-    GATEWAY_PROTOCOL, MAX_REPLY, MAX_REQUEST, RELAY_PROTOCOL,
+    read_path, seal, seal_read, submit, Answer, Carried, ClientError, Gateway, GatewayKey,
+    KeyAnnouncement, ReadAnswer, Refusal, GATEWAY_PROTOCOL, MAX_REPLY, MAX_REQUEST, RELAY_PROTOCOL,
 };
+use p2p::hook::{Hook, Hooked};
 use p2p::member::{Faults, MemberRole};
 use p2p::record::{read, Found, Record, State, Stop};
 use p2p::{read_limited, Config, Handle, Own, PublishError, StartError};
@@ -205,11 +208,28 @@ async fn net(root: &Path, members: usize) -> Net {
 
 /// As [`net`], every node's discovery and archive protocols on or off.
 async fn net_with(root: &Path, members: usize, on: bool) -> Net {
+    net_of(root, members, on, None).await
+}
+
+/// As [`net`], member 0 running a [`FakeHook`].
+async fn hooked_net(root: &Path, members: usize) -> Net {
+    let hooked = Hooked {
+        hook: Box::new(FakeHook),
+        spool: root.join("spool"),
+    };
+    net_of(root, members, true, Some(hooked)).await
+}
+
+async fn net_of(root: &Path, members: usize, on: bool, hook: Option<Hooked>) -> Net {
     let set = |config| Config {
         discovery_and_archive: on,
         ..config
     };
-    let (m0, member0) = start(transport(0), set(member_config(0, &root.join("0")))).await;
+    let config0 = Config {
+        hook,
+        ..set(member_config(0, &root.join("0")))
+    };
+    let (m0, member0) = start(transport(0), config0).await;
     let mut handles = vec![m0];
     let mut addresses = vec![member0.clone()];
     for i in 1..members {
@@ -253,6 +273,49 @@ async fn send(relay: &Multiaddr, to: usize, event: &[u8]) -> Result<Answer, Clie
     let sealed = seal(&tiers(), &announcements()[to], event)?;
     let reply = submit(relay.clone(), sealed.request.clone()).await?;
     sealed.open(&reply)
+}
+
+/// As [`send`], for a read request to member 0.
+async fn send_read(relay: &Multiaddr, request: &[u8]) -> Result<ReadAnswer, ClientError> {
+    let sealed = seal_read(&tiers(), &announcements()[0], request)?;
+    let reply = submit(relay.clone(), sealed.request.clone()).await?;
+    sealed.open_read(&reply)
+}
+
+/// A hook admitting only bytes starting `hooked-event`, answering a read starting `read` with
+/// [`REPLY`] then its bytes, refusing other reads; it applies every cut and closes none.
+struct FakeHook;
+
+const REPLY: &[u8] = b"fake-sealed-reply:";
+
+impl Hook for FakeHook {
+    fn apply(
+        &mut self,
+        _: &Replica,
+        _: &Cut,
+        _: u64,
+        _: &[(usize, Signature)],
+    ) -> Result<Option<[u8; 32]>, String> {
+        Ok(None)
+    }
+
+    fn may_sign(&self, _: &Cut) -> bool {
+        true
+    }
+
+    fn closes(&self) -> bool {
+        false
+    }
+
+    fn admit(&self, event: &[u8]) -> bool {
+        event.starts_with(b"hooked-event")
+    }
+
+    fn read(&self, _: &Replica, request: &[u8]) -> Option<Vec<u8>> {
+        request
+            .starts_with(b"read")
+            .then(|| [REPLY, request].concat())
+    }
 }
 
 /// AT-NET-24: RFC 9458 Appendix A: HPKE open, exported secret, response key, nonce and reply.
@@ -1410,4 +1473,150 @@ async fn at_net_37_an_opening_event_is_resumed_once() {
     assert_eq!(circle_len(&n.members[0], 0).await, 1);
     assert_eq!(record_of(&root).states[1], State::Written);
     assert_eq!(circle_files(&root), files);
+}
+
+/// The Binary HTTP request `seal_read` encapsulates for `request` on this file's network.
+fn read_request_bytes(request: &[u8]) -> Vec<u8> {
+    let path = read_path(&NET);
+    let mut m = Http::request(b"POST".to_vec(), b"isegoria".to_vec(), Vec::new(), path);
+    m.write_content(request);
+    let mut out = Vec::new();
+    m.write_bhttp(Mode::KnownLength, &mut out).unwrap();
+    out
+}
+
+/// AT-T79-40: `seal_read` posts on the read path, as the reference HPKE path opens it; to a read
+/// a 200's body is the sealed reply, a 403 a refusal; `open` takes no reply, `open_read` no event.
+#[test]
+fn at_t79_40_a_read_is_sealed_and_opened_as_a_read() {
+    use hpke::{Deserializable, Kem as _};
+    let hex_net: String = "2c".repeat(32);
+    let path = format!("/isegoria/v1/{hex_net}/read").into_bytes();
+    assert_eq!(read_path(&NET), path);
+    let (sk, _) = ReferenceKem::derive_keypair(&[HPKE_SEEDS[0]; 32]);
+    let request = b"read-from-the-reference".to_vec();
+    let answered = |status: u16, body: &[u8]| {
+        let sealed = seal_read(&tiers(), &announcements()[0], &request).unwrap();
+        let r = sealed.request.clone();
+        let (header, enc, ct) = (&r[..7], &r[7..39], &r[39..]);
+        let encapped = <ReferenceKem as hpke::Kem>::EncappedKey::from_bytes(enc).unwrap();
+        let mut receiver = hpke::setup_receiver::<ReferenceAead, ReferenceKdf, ReferenceKem>(
+            &hpke::OpModeR::Base,
+            &sk,
+            &encapped,
+            &request_info(header),
+        )
+        .unwrap();
+        assert_eq!(
+            receiver.open(ct, &[]).unwrap(),
+            read_request_bytes(&request)
+        );
+        let mut secret = [0u8; 16];
+        receiver
+            .export(b"message/bhttp response", &mut secret)
+            .unwrap();
+        let nonce = [3u8; 16];
+        let (aead, iv) = reply_keys(&secret, enc, &nonce);
+        let mut answer = Http::response(bhttp::StatusCode::try_from(status).unwrap());
+        answer.write_content(body);
+        let mut plain = Vec::new();
+        answer.write_bhttp(Mode::KnownLength, &mut plain).unwrap();
+        let ciphertext = aead.encrypt(&nonce12(&iv), &plain[..]).unwrap();
+        (sealed, Carried::Sealed([&nonce[..], &ciphertext].concat()))
+    };
+    let reply = b"a reply sealed to its response key".to_vec();
+    let (sealed, carried) = answered(200, &reply);
+    assert_eq!(
+        sealed.open_read(&carried),
+        Ok(ReadAnswer::Reply(reply.clone()))
+    );
+    let receipt = [&circle_key(0)[..], &0u64.to_le_bytes(), &[9; 32]].concat();
+    let (sealed, carried) = answered(200, &receipt);
+    assert_eq!(sealed.open_read(&carried), Ok(ReadAnswer::Reply(receipt)));
+    let (sealed, carried) = answered(403, &[]);
+    assert_eq!(
+        sealed.open_read(&carried),
+        Ok(ReadAnswer::Answer(Answer::NotAdmitted))
+    );
+    let (sealed, carried) = answered(200, &reply);
+    assert_eq!(sealed.open(&carried), Err(ClientError::Malformed));
+    let event = seal(&tiers(), &announcements()[0], b"synthetic-event").unwrap();
+    assert_eq!(
+        event.open_read(&Carried::Sealed(vec![0; 64])),
+        Err(ClientError::Malformed)
+    );
+}
+
+/// AT-T79-38: a read through a relay reaches the gateway's hook and returns its sealed bytes; an
+/// instrumented relay sees neither the request, its path nor the reply; nothing is logged.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_38_a_read_through_a_relay_reaches_the_hook_unseen() {
+    let n = hooked_net(&scratch("read-unseen"), 1).await;
+    let spy = Spy::start(transport(SPY_SEED), n.member0.clone(), Tamper::None).await;
+    let request = b"read-secret-request".to_vec();
+    let reply = [REPLY, &request].concat();
+    let replied = Ok(ReadAnswer::Reply(reply.clone()));
+    assert_eq!(send_read(&spy.addr, &request).await, replied);
+    assert_eq!(send_read(&n.relay_addr, &request).await, replied);
+    let seen = spy.seen.lock().unwrap().clone();
+    assert_eq!(seen.len(), 2);
+    let path = read_path(&NET);
+    for bytes in &seen {
+        for secret in [&request[..], &path[..], b"/read", REPLY, &reply[..]] {
+            assert!(!contains(bytes, secret));
+        }
+    }
+    assert!(n
+        .relay
+        .replica()
+        .await
+        .ids()
+        .all(|i| i.writer != circle_key(0)));
+    assert_eq!(circle_len(&n.members[0], 0).await, 0);
+}
+
+/// AT-T79-39: a hooked gateway admits events by its hook, not its own admission; a read the hook
+/// refuses, or with no hook, gets "not admitted", another network's read path 421; none logged.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_39_the_hook_admits_events_and_refuses_reads() {
+    let n = hooked_net(&scratch("hook-admits"), 3).await;
+    assert_eq!(
+        send(&n.relay_addr, 0, b"synthetic-event-own-admission").await,
+        Ok(Answer::NotAdmitted)
+    );
+    assert_eq!(circle_len(&n.members[0], 0).await, 0);
+    let event = b"hooked-event-admitted".to_vec();
+    let Ok(Answer::Logged(id)) = send(&n.relay_addr, 0, &event).await else {
+        panic!("a receipt")
+    };
+    assert_eq!(id.writer, circle_key(0));
+    let held = n.members[0].replica().await;
+    assert_eq!(held.get(&id).map(|(_, o)| o.to_vec()), Some(event));
+    let refused = Ok(ReadAnswer::Answer(Answer::NotAdmitted));
+    assert_eq!(send_read(&n.relay_addr, b"not a read").await, refused);
+    let mut m = Http::request(
+        b"POST".to_vec(),
+        b"isegoria".to_vec(),
+        Vec::new(),
+        read_path(&[45; 32]),
+    );
+    m.write_content(b"read-elsewhere");
+    let mut inner = Vec::new();
+    m.write_bhttp(Mode::KnownLength, &mut inner).unwrap();
+    let client = ohttp::ClientRequest::from_encoded_config(&announcements()[0].config).unwrap();
+    let (request, response) = client.encapsulate(&inner).unwrap();
+    let Ok(Carried::Sealed(reply)) = submit(n.relay_addr.clone(), request).await else {
+        panic!("a sealed reply")
+    };
+    let plain = response.decapsulate(&reply).unwrap();
+    let status = Http::read_bhttp(&mut std::io::Cursor::new(&plain[..])).unwrap();
+    assert_eq!(status.control().status().map(|s| s.code()), Some(421));
+    assert_eq!(circle_len(&n.members[0], 0).await, 1);
+
+    let plain = net(&scratch("read-without-a-hook"), 1).await;
+    assert_eq!(
+        send_read(&plain.relay_addr, b"read-anything").await,
+        refused
+    );
+    assert_eq!(circle_len(&plain.members[0], 0).await, 0);
 }

@@ -29,13 +29,15 @@ pub trait Hook: Send {
     /// Whether the cut after the last one applied closes its epoch.
     fn closes(&self) -> bool;
 
-    /// Whether a gateway logs `event`; nothing before `docs/10` T79's third increment.
+    /// Whether the member's gateway logs a person's `event` (`docs/05` *Gateway admission*); by
+    /// default nothing.
     fn admit(&self, _event: &[u8]) -> bool {
         false
     }
 
-    /// The reply to a read request; none before `docs/10` T79's third increment.
-    fn read(&self, _request: &[u8]) -> Option<Vec<u8>> {
+    /// The sealed reply to a person's read `request`, from the cuts applied and the node's
+    /// `replica`; `None` is a refusal, the default (`docs/05` T79-P7).
+    fn read(&self, _replica: &Replica, _request: &[u8]) -> Option<Vec<u8>> {
         None
     }
 }
