@@ -1,5 +1,5 @@
-//! Blind relays (`docs/04` §Blind relays, `docs/10` T85): a person's event sealed to a member's
-//! key with Oblivious HTTP, carried over libp2p through a relay, logged on the circle feed.
+//! Blind relays (`docs/04` §Blind relays, `docs/10` T85): a person's event or read sealed to a
+//! member's key with Oblivious HTTP, carried over libp2p through a relay to the member's gateway.
 
 use crate::{read_limited, write_all};
 use bhttp::{Message as Http, Mode, StatusCode};
@@ -119,7 +119,8 @@ pub fn public_key(ikm: &[u8; 32]) -> Option<[u8; 32]> {
     config.encode().ok()?.get(3..35)?.try_into().ok()
 }
 
-/// A gateway's admission check, supplied by its embedding: which bytes it would log.
+/// A gateway's admission check, supplied by its embedding: which bytes it would log; a node
+/// with a hook admits by the hook's instead (`docs/04` §Blind relays).
 pub type Admission = Box<dyn Fn(&[u8]) -> bool + Send>;
 
 /// A member node's gateway: its key, the relays' transport keys it answers, its admission.
@@ -188,6 +189,29 @@ pub enum Answer {
     Failed,
 }
 
+/// What a gateway answers a read: the reply its hook sealed to the request's response key
+/// (`docs/05` T79-P7), or an answer without one (`NotAdmitted` for a read it refuses).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ReadAnswer {
+    Reply(Vec<u8>),
+    Answer(Answer),
+}
+
+impl ReadAnswer {
+    /// A reply is a 200 whose body is the sealed reply; any other answer as an event's.
+    pub(crate) fn to_http(&self) -> Option<Vec<u8>> {
+        let sealed = match self {
+            ReadAnswer::Answer(answer) => return answer.to_http(),
+            ReadAnswer::Reply(sealed) => sealed,
+        };
+        let mut m = Http::response(StatusCode::OK);
+        m.write_content(sealed);
+        let mut out = Vec::new();
+        m.write_bhttp(Mode::KnownLength, &mut out).ok()?;
+        Some(out)
+    }
+}
+
 impl Answer {
     fn status(self) -> u16 {
         match self {
@@ -214,9 +238,11 @@ impl Answer {
         Some(out)
     }
 
-    fn from_http(bytes: &[u8]) -> Option<Self> {
+    /// As [`Self::to_http`] writes it; to a read, a 200 is its reply.
+    fn from_http(bytes: &[u8], posted: Posted) -> Option<ReadAnswer> {
         let m = Http::read_bhttp(&mut Cursor::new(bytes)).ok()?;
         let answer = match m.control().status()?.code() {
+            200 if posted == Posted::Read => return Some(ReadAnswer::Reply(m.content().to_vec())),
             200 => {
                 let b = m.content();
                 (b.len() == 72).then_some(())?;
@@ -233,30 +259,65 @@ impl Answer {
             500 => Answer::Failed,
             _ => return None,
         };
-        Some(answer)
+        Some(ReadAnswer::Answer(answer))
+    }
+}
+
+/// What a person posts: an event to log, or a read request to answer (`docs/05` T79-P7).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Posted {
+    Event,
+    Read,
+}
+
+impl Posted {
+    const ALL: [Posted; 2] = [Posted::Event, Posted::Read];
+
+    fn suffix(self) -> &'static [u8] {
+        match self {
+            Posted::Event => b"/event",
+            Posted::Read => b"/read",
+        }
+    }
+
+    fn path(self, network_id: &[u8; 32]) -> Vec<u8> {
+        let hex: String = network_id.iter().map(|b| format!("{b:02x}")).collect();
+        [format!("/isegoria/v1/{hex}").as_bytes(), self.suffix()].concat()
     }
 }
 
 /// The path a person's event is posted to on network `network_id`.
 pub fn event_path(network_id: &[u8; 32]) -> Vec<u8> {
-    let hex: String = network_id.iter().map(|b| format!("{b:02x}")).collect();
-    format!("/isegoria/v1/{hex}/event").into_bytes()
+    Posted::Event.path(network_id)
 }
 
-/// What an inner request asks: the event's bytes for this network, or why it is not that.
-pub(crate) fn read_request(bytes: &[u8], network_id: &[u8; 32]) -> Result<Vec<u8>, Answer> {
+/// The path a person's read request is posted to on network `network_id`, beside the event's.
+pub fn read_path(network_id: &[u8; 32]) -> Vec<u8> {
+    Posted::Read.path(network_id)
+}
+
+/// What an inner request asks: an event or a read for this network, with its bytes, or why it
+/// is not that.
+pub(crate) fn read_request(
+    bytes: &[u8],
+    network_id: &[u8; 32],
+) -> Result<(Posted, Vec<u8>), Answer> {
     let m = Http::read_bhttp(&mut Cursor::new(bytes)).map_err(|_| Answer::NotThisRequest)?;
     let c = m.control();
     if c.method() != Some(b"POST") || c.scheme() != Some(b"isegoria") {
         return Err(Answer::NotThisRequest);
     }
     let path = c.path().ok_or(Answer::NotThisRequest)?;
-    if path == event_path(network_id) {
-        return Ok(m.content().to_vec());
+    if let Some(posted) = Posted::ALL.into_iter().find(|p| path == p.path(network_id)) {
+        return Ok((posted, m.content().to_vec()));
     }
     let other = path
         .strip_prefix(b"/isegoria/v1/")
-        .and_then(|p| p.strip_suffix(b"/event"))
+        .and_then(|p| {
+            Posted::ALL
+                .into_iter()
+                .find_map(|k| p.strip_suffix(k.suffix()))
+        })
         .is_some_and(|hex| hex.len() == 64 && hex.iter().all(u8::is_ascii_hexdigit));
     Err(if other {
         Answer::OtherNetwork
@@ -292,16 +353,35 @@ pub enum ClientError {
     Malformed,
 }
 
-/// A person's sealed event, and what it needs to open the reply.
+/// A person's sealed event or read request, and what it needs to open the reply.
 pub struct Sealed {
     pub request: Vec<u8>,
     response: ClientResponse,
     circle: [u8; 32],
+    posted: Posted,
 }
 
 /// Seals `event` to `key` once `key` verifies under `tiers`, the configuration the client
 /// already holds; never on a relay's word.
 pub fn seal(tiers: &Tiers, key: &KeyAnnouncement, event: &[u8]) -> Result<Sealed, ClientError> {
+    sealed(tiers, key, Posted::Event, event)
+}
+
+/// As [`seal`], for a read request posted on [`read_path`]; [`Sealed::open_read`] opens its reply.
+pub fn seal_read(
+    tiers: &Tiers,
+    key: &KeyAnnouncement,
+    request: &[u8],
+) -> Result<Sealed, ClientError> {
+    sealed(tiers, key, Posted::Read, request)
+}
+
+fn sealed(
+    tiers: &Tiers,
+    key: &KeyAnnouncement,
+    posted: Posted,
+    body: &[u8],
+) -> Result<Sealed, ClientError> {
     let circle = tiers.key(key.member, Tier::Circle);
     let circle = circle
         .filter(|_| key.verify(tiers))
@@ -310,9 +390,9 @@ pub fn seal(tiers: &Tiers, key: &KeyAnnouncement, event: &[u8]) -> Result<Sealed
         b"POST".to_vec(),
         b"isegoria".to_vec(),
         Vec::new(),
-        event_path(&tiers.network_id()),
+        posted.path(&tiers.network_id()),
     );
-    m.write_content(event);
+    m.write_content(body);
     let mut inner = Vec::new();
     m.write_bhttp(Mode::KnownLength, &mut inner)
         .map_err(|_| ClientError::Seal)?;
@@ -325,12 +405,37 @@ pub fn seal(tiers: &Tiers, key: &KeyAnnouncement, event: &[u8]) -> Result<Sealed
         request,
         response,
         circle,
+        posted,
     })
 }
 
 impl Sealed {
-    /// The gateway's answer, once the reply opens in this request's context.
+    /// The gateway's answer to an event, once the reply opens in this request's context; a
+    /// read's reply is [`Self::open_read`]'s.
     pub fn open(self, carried: &Carried) -> Result<Answer, ClientError> {
+        let circle = self.circle;
+        match self.opened(carried)? {
+            ReadAnswer::Answer(Answer::Logged(id)) if id.writer != circle => {
+                Err(ClientError::Malformed)
+            }
+            ReadAnswer::Answer(answer) => Ok(answer),
+            ReadAnswer::Reply(_) => Err(ClientError::Malformed),
+        }
+    }
+
+    /// The gateway's answer to a read sealed by [`seal_read`], once it opens in this request's
+    /// context: the sealed reply, or an answer without one; never a receipt.
+    pub fn open_read(self, carried: &Carried) -> Result<ReadAnswer, ClientError> {
+        if self.posted != Posted::Read {
+            return Err(ClientError::Malformed);
+        }
+        match self.opened(carried)? {
+            ReadAnswer::Answer(Answer::Logged(_)) => Err(ClientError::Malformed),
+            answer => Ok(answer),
+        }
+    }
+
+    fn opened(self, carried: &Carried) -> Result<ReadAnswer, ClientError> {
         let sealed = match carried {
             Carried::Refused(r) => return Err(ClientError::Refused(*r)),
             Carried::Sealed(bytes) if bytes.len() > MAX_REPLY => return Err(ClientError::TooLarge),
@@ -340,11 +445,7 @@ impl Sealed {
             .response
             .decapsulate(sealed)
             .map_err(|_| ClientError::Open)?;
-        match Answer::from_http(&plain) {
-            Some(Answer::Logged(id)) if id.writer != self.circle => Err(ClientError::Malformed),
-            Some(answer) => Ok(answer),
-            None => Err(ClientError::Malformed),
-        }
+        Answer::from_http(&plain, self.posted).ok_or(ClientError::Malformed)
     }
 }
 

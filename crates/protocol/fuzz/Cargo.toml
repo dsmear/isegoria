@@ -40,3 +40,24 @@ path = "fuzz_targets/genesis.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "answer_gateway"
+path = "fuzz_targets/answer_gateway.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "answer_read"
+path = "fuzz_targets/answer_read.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "answer_seal"
+path = "fuzz_targets/answer_seal.rs"
+test = false
+doc = false
+bench = false

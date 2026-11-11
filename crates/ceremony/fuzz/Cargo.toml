@@ -1,0 +1,26 @@
+# cargo-fuzz targets for the ceremony tool's decoders (T89). Outside the main workspace on
+# purpose: fuzzing needs a nightly toolchain and libFuzzer. See README.md.
+[package]
+name = "ceremony-fuzz"
+version = "0.0.0"
+edition = "2021"
+license = "EUPL-1.2"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+ed25519-dalek = "2"
+ceremony = { path = ".." }
+
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "message"
+path = "fuzz_targets/message.rs"
+test = false
+doc = false
+bench = false

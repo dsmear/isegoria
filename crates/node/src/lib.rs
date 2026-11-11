@@ -517,8 +517,8 @@ fn gateway_key(tiers: &Tiers, role: &MemberRole, path: &Path) -> Result<GatewayK
         .ok_or(ConfigError::Relays("hpke_key_file"))
 }
 
-/// The relay's routes and the member's gateway a configuration asks for; the gateway admits
-/// nothing, since no admission rule exists before `docs/10` T79.
+/// The relay's routes and the member's gateway a configuration asks for; the gateway's own
+/// admission refuses everything, a member's hook admitting and reading in its place.
 fn blind_plan(
     config: &Config,
     tiered: Option<(&Tiers, &genesis::Document)>,

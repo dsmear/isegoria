@@ -7,23 +7,28 @@ mod genesis;
 use identity::credential::{AnonymousCredential, Credential, Issuer};
 use identity::enrollment::Label;
 use identity::nullifier::prove;
-use identity::nym::Role;
+use identity::nym::{Nym, Role};
 use libp2p::Multiaddr;
 use network::beacon::RoundId;
 use network::cid::cid;
 use network::consortium::{Consortium, Member};
 use network::cut::{sign_cut, Cut, MemberObject};
 use network::log::TransparencyLog;
-use network::replica::{FeedWriter, Replica, SignedEntry};
+use network::replica::{EntryId, FeedWriter, Replica, SignedEntry};
+use network::tier::Tiers;
 use node::answer::AnswerHook;
 use node::{hex, ConfigError};
+use p2p::blind::{self, seal, seal_read, submit, GatewayKey, KeyAnnouncement, ReadAnswer};
 use p2p::hook::{executed, pending, Follower, Hook};
 use p2p::member::{CollectedCut, Collector, Faults, MemberRole, Progress};
 use p2p::{Handle, Status};
-use protocol::answer::Question;
+use protocol::answer::{commit_answer, Question};
 use protocol::answer_events::AnswerEvent;
+use protocol::answer_gateway;
 use protocol::answer_ledger::{AnswerLedger, Refusal};
-use protocol::answer_path::{network_context, Refused, Round, POOL_CONTEXT};
+use protocol::answer_path::{commit_context, network_context, Refused, Round, POOL_CONTEXT};
+use protocol::answer_read::{reply, EventStatus, Logged, Read, ReadRequest, Reply};
+use protocol::answer_seal::ResponseKey;
 use protocol::deposit::deposit_context;
 use protocol::lottery;
 use protocol::randomness::{Beacon, ANSWER_DRAW};
@@ -54,6 +59,22 @@ fn transport_seed(i: usize) -> [u8; 32] {
     [31 + i as u8; 32]
 }
 
+fn hpke_seed(i: usize) -> [u8; 32] {
+    [21 + i as u8; 32]
+}
+
+const RELAY_SEED: [u8; 32] = [41; 32];
+
+fn relay_transport() -> libp2p::identity::Keypair {
+    libp2p::identity::Keypair::ed25519_from_bytes(RELAY_SEED).unwrap()
+}
+
+/// The relay's transport key, as a gateway's `relays` and the genesis list it.
+fn relay_key() -> [u8; 32] {
+    let public = relay_transport().public();
+    public.try_into_ed25519().unwrap().to_bytes()
+}
+
 fn port() -> u16 {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     listener.local_addr().unwrap().port()
@@ -82,11 +103,20 @@ impl Fixture {
     }
 
     fn with(name: &str, t: usize) -> Fixture {
+        Fixture::build(name, t, vec![])
+    }
+
+    /// As [`Self::new`], the genesis listing the relay of [`relay_key`].
+    fn gatewayed(name: &str) -> Fixture {
+        Fixture::build(name, T, vec![relay_key()])
+    }
+
+    fn build(name: &str, t: usize, relays: Vec<[u8; 32]>) -> Fixture {
         let root = scratch(name);
         let members = (0..N)
             .map(|i| genesis::seeded(1 + i as u8, 11 + i as u8, 21 + i as u8))
             .collect();
-        let g = genesis::genesis(t, members, vec![]);
+        let g = genesis::genesis(t, members, relays);
         genesis::write(&root.join("genesis.bin"), &g);
         for i in 0..N {
             let dir = root.join(format!("m{i}"));
@@ -94,6 +124,7 @@ impl Fixture {
             for (name, seed) in [
                 ("member.key", member_seed(i)),
                 ("circle.key", circle_seed(i)),
+                ("hpke.key", hpke_seed(i)),
                 ("transport.key", transport_seed(i)),
             ] {
                 std::fs::write(dir.join(name), hex(&seed)).unwrap();
@@ -182,7 +213,95 @@ impl Fixture {
 
     /// As [`Self::start`], its duties injecting `faults`.
     async fn start_with(&self, i: usize, faults: Faults) -> Handle {
-        let mut plan = node::plan(self.config(i)).unwrap();
+        self.start_planned(self.config(i), faults).await
+    }
+
+    /// The members' signed key configurations, in member order.
+    fn announcements(&self) -> Vec<KeyAnnouncement> {
+        let tiers = self.genesis.tiers().unwrap();
+        (0..N)
+            .map(|i| {
+                let member = Member::from_seed(member_seed(i));
+                let key = GatewayKey::new(&tiers, &member, i, &hpke_seed(i)).unwrap();
+                key.announcement().clone()
+            })
+            .collect()
+    }
+
+    /// Member 0's configuration with its gateway, answering the relay of [`relay_key`].
+    fn gateway_config(&self) -> node::Config {
+        let quoted: Vec<String> = (self.announcements().iter())
+            .map(|a| format!("\"{}\"", hex(&a.encode())))
+            .collect();
+        let gateway = format!(
+            "hpke_key_file = \"{}\"\nrelays = [\"{}\"]\n[consortium]\nhpke = [{}]\n",
+            self.dir(0).join("hpke.key").display(),
+            hex(&relay_key()),
+            quoted.join(",")
+        );
+        let text = self.text(0, "").replacen("[consortium]\n", &gateway, 1);
+        let path = self.root.join("m0-gateway.toml");
+        std::fs::write(&path, text).unwrap();
+        node::Config::load(&path).unwrap()
+    }
+
+    /// The three members, member 0 with its gateway, and a relay bound to member 0; member 0's
+    /// circle feed caught up.
+    async fn relayed(&self) -> Relayed {
+        let mut nodes = vec![
+            self.start_planned(self.gateway_config(), Faults::default())
+                .await,
+        ];
+        for i in 1..N {
+            nodes.push(self.start(i).await);
+        }
+        for (i, node) in nodes.iter().enumerate() {
+            self.dial(node, i).await;
+        }
+        for (i, node) in nodes.iter().enumerate() {
+            self.until(node, i, |s| {
+                s.caught_up && s.circle_caught_up && s.cuts.len() >= 2
+            })
+            .await;
+        }
+        let tiers = self.genesis.tiers().unwrap();
+        let config = p2p::Config {
+            writers: tiers.writers().clone(),
+            sync_every: Duration::from_millis(100),
+            own: None,
+            circle: None,
+            store: None,
+            member: None,
+            consortium: None,
+            tiers: Some(self.genesis.tiers().unwrap()),
+            relay: Some(self.announcements()),
+            gateway: None,
+            identity: None,
+            hook: None,
+            discovery_and_archive: true,
+        };
+        let relay = Handle::spawn(relay_transport(), config).unwrap();
+        let relay_addr = relay
+            .listen("/ip4/127.0.0.1/tcp/0".parse().unwrap())
+            .await
+            .unwrap();
+        relay.dial(self.address(0)).await.unwrap();
+        until(&relay, "the relay holds member 0's binding", |s| {
+            s.bound >= 1
+        })
+        .await;
+        Relayed {
+            nodes,
+            relay,
+            relay_addr,
+            tiers,
+            key: self.announcements()[0].clone(),
+        }
+    }
+
+    /// A member's node planned from `config`, its duties injecting `faults`, listening.
+    async fn start_planned(&self, config: node::Config, faults: Faults) -> Handle {
+        let mut plan = node::plan(config).unwrap();
         assert!(plan.p2p.hook.is_some(), "a tiered member runs the hook");
         plan.p2p.member.as_mut().unwrap().faults = faults;
         let handle = Handle::spawn(plan.transport, plan.p2p).unwrap();
@@ -981,4 +1100,335 @@ async fn at_t79_32_a_withholder_is_excluded_and_its_requests_count() {
     for node in nodes {
         node.finished().await;
     }
+}
+
+/// The member nodes, member 0 with its gateway, and a relay in front of it.
+struct Relayed {
+    nodes: Vec<Handle>,
+    relay: Handle,
+    relay_addr: Multiaddr,
+    tiers: Tiers,
+    key: KeyAnnouncement,
+}
+
+impl Relayed {
+    /// Member 0's answer to a person's `event` sent through the relay.
+    async fn send(&self, event: &[u8]) -> blind::Answer {
+        let sealed = seal(&self.tiers, &self.key, event).unwrap();
+        let carried = submit(self.relay_addr.clone(), sealed.request.clone());
+        sealed.open(&carried.await.unwrap()).unwrap()
+    }
+
+    /// Member 0's answer to a person's read `request` sent through the relay.
+    async fn read(&self, request: &[u8]) -> ReadAnswer {
+        let sealed = seal_read(&self.tiers, &self.key, request).unwrap();
+        let carried = submit(self.relay_addr.clone(), sealed.request.clone());
+        sealed.open_read(&carried.await.unwrap()).unwrap()
+    }
+
+    /// The circle entry member 0 logs `event` in, as its receipt names it.
+    async fn logged(&self, event: &[u8]) -> EntryId {
+        match self.send(event).await {
+            blind::Answer::Logged(id) if id.writer == genesis::key(11) => id,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    /// The circle entries member 0's replica holds, of every member.
+    async fn circles(&self) -> Vec<EntryId> {
+        let circle: Vec<[u8; 32]> = (0..N).map(|i| genesis::key(11 + i as u8)).collect();
+        let replica = self.nodes[0].replica().await;
+        let mut ids: Vec<EntryId> = (replica.ids())
+            .filter(|id| circle.contains(&id.writer))
+            .collect();
+        ids.sort_by_key(|id| (id.writer, id.seq));
+        ids
+    }
+
+    async fn finished(self) {
+        self.relay.finished().await;
+        for node in self.nodes {
+            node.finished().await;
+        }
+    }
+}
+
+fn judge(p: &Person) -> Nym {
+    prove(&p.cred, &issuer().public(), Role::Judge, b"nym").id()
+}
+
+fn commit(
+    net: &[u8; 32],
+    p: &Person,
+    answer: protocol::answer::Answer,
+    nonce: [u8; 32],
+) -> Vec<u8> {
+    let commitment = commit_answer(answer, &nonce, judge(p), 0);
+    let ctx = network_context(net, &commit_context(0, &commitment));
+    AnswerEvent::Commit {
+        question: 0,
+        commitment,
+        proof: prove(&p.cred, &issuer().public(), Role::Judge, &ctx),
+    }
+    .encode()
+}
+
+/// Until question 0's round in member 0's ledger holds `ok`.
+async fn until_round(f: &Fixture, r: &Relayed, ok: impl Fn(&Round) -> bool) {
+    until_ledger(f, &r.nodes[0], |l| {
+        l.state().entry(0).is_some_and(|e| ok(&e.round))
+    })
+    .await;
+}
+
+// A person's joins, deposit, commits and reveals sent through a relay are logged on member 0's
+// circle feed with a receipt and applied by the cuts, none refused (AT-T79-34).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_34_persons_events_through_a_relay_reach_the_ledger() {
+    let f = Fixture::gatewayed("relayed-events");
+    let net = f.net();
+    let r = f.relayed().await;
+    let issuer = issuer();
+    let people: Vec<Person> = (100..112).map(|s| person(&issuer, s)).collect();
+    let mut sent: Vec<Vec<u8>> = people.iter().map(|p| join(&net, p)).collect();
+    sent.push(deposit(&net, &person(&issuer, 1)));
+    let mut receipts = Vec::new();
+    for event in &sent {
+        receipts.push(r.logged(event).await);
+    }
+    until_ledger(&f, &r.nodes[0], |l| {
+        l.state().pool().len() == 12 && l.state().questions() == 1
+    })
+    .await;
+    request(&f, 0, ["close-epoch", "0"]);
+    request(&f, 1, ["close-epoch", "0"]);
+    until_round(&f, &r, |round| matches!(round, Round::Committing { .. })).await;
+
+    let answer = protocol::answer::Answer::Alternative(0);
+    let reviewers = &people[..2];
+    let counted = |l: &AnswerLedger, revealed: bool| {
+        reviewers.iter().all(|p| {
+            l.review(&judge(p), 0)
+                .is_some_and(|(q, v)| q == 0 && v.committed && v.revealed == revealed)
+        })
+    };
+    for (k, p) in reviewers.iter().enumerate() {
+        let event = commit(&net, p, answer, [k as u8 + 1; 32]);
+        receipts.push(r.logged(&event).await);
+        sent.push(event);
+    }
+    until_ledger(&f, &r.nodes[0], |l| counted(l, false)).await;
+    request(&f, 0, ["close-commits", "0"]);
+    request(&f, 1, ["close-commits", "0"]);
+    until_round(&f, &r, |round| matches!(round, Round::Revealing { .. })).await;
+    for (k, p) in reviewers.iter().enumerate() {
+        let event = AnswerEvent::Reveal {
+            question: 0,
+            reviewer: judge(p),
+            answer,
+            nonce: [k as u8 + 1; 32],
+        }
+        .encode();
+        receipts.push(r.logged(&event).await);
+        sent.push(event);
+    }
+    until_ledger(&f, &r.nodes[0], |l| counted(l, true)).await;
+
+    let replica = r.nodes[0].replica().await;
+    let (_, hook) = replayed(&f, &replica);
+    for (id, event) in receipts.iter().zip(&sent) {
+        assert_eq!(
+            replica.get(id).map(|(_, b)| b.to_vec()),
+            Some(event.clone())
+        );
+        let refusal = hook.ledger().refused().iter().find(|(e, _)| e == id);
+        assert!(refusal.is_none(), "{refusal:?}");
+    }
+    r.finished().await;
+}
+
+// Members' requests, derived kinds and events no proof in this network admits are answered
+// "not admitted" through the relay and not logged; a proved join is (AT-T79-35).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_35_member_only_derived_and_unproven_events_are_not_logged() {
+    let f = Fixture::gatewayed("relayed-refused");
+    let net = f.net();
+    let r = f.relayed().await;
+    let p = person(&issuer(), 100);
+    let other_issuer = Issuer::new([78; 32]);
+    let other = person(&other_issuer, 100);
+    let proved = |cred: &AnonymousCredential, by: &Issuer, ctx: &[u8]| {
+        let proof = prove(cred, &by.public(), Role::Judge, ctx);
+        AnswerEvent::JoinPool { proof }.encode()
+    };
+    let refused = [
+        AnswerEvent::CloseCommits { question: 0 }.encode(),
+        AnswerEvent::Close { question: 0 }.encode(),
+        AnswerEvent::RequestCloseEpoch { epoch: 0 }.encode(),
+        AnswerEvent::Draw { question: 0 }.encode(),
+        AnswerEvent::CloseEpoch {
+            epoch: 0,
+            beacon: [7; 32],
+        }
+        .encode(),
+        proved(&p.cred, &issuer(), &network_context(&[9; 32], POOL_CONTEXT)),
+        proved(&p.cred, &issuer(), POOL_CONTEXT),
+        proved(
+            &other.cred,
+            &other_issuer,
+            &network_context(&net, POOL_CONTEXT),
+        ),
+        b"not an event".to_vec(),
+    ];
+    for event in &refused {
+        assert_eq!(r.send(event).await, blind::Answer::NotAdmitted);
+    }
+    let admitted = join(&net, &p);
+    let id = r.logged(&admitted).await;
+    let replica = r.nodes[0].replica().await;
+    assert_eq!(circle_objects(&f, &replica, 0), vec![admitted]);
+    assert_eq!(id.seq, 0);
+    r.finished().await;
+}
+
+// A read through the relay gets a reply only its response key opens: the status of a join the
+// cuts applied, a reviewer's and an author's reads; reads log nothing (AT-T79-36).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_36_a_read_through_a_relay_opens_only_with_its_key() {
+    let f = Fixture::gatewayed("relayed-read");
+    let net = f.net();
+    let r = f.relayed().await;
+    let p = person(&issuer(), 100);
+    let event = join(&net, &p);
+    let id = r.logged(&event).await;
+    until_ledger(&f, &r.nodes[0], |l| l.state().pool().len() == 1).await;
+    let before = r.circles().await;
+    let pk = issuer().public();
+    let reads = [
+        (Read::Status { event: cid(&event) }, Role::Judge),
+        (Read::Reviewer { from: 0 }, Role::Judge),
+        (Read::Author, Role::Propose),
+    ];
+    let mut replies = Vec::new();
+    for (k, (read, role)) in reads.into_iter().enumerate() {
+        let key = ResponseKey::derive(&[50 + k as u8; 32]);
+        let request = ReadRequest::new(read, key.public(), &p.cred, role, &pk, &net);
+        let ReadAnswer::Reply(sealed) = r.read(&request.encode()).await else {
+            panic!("a reply")
+        };
+        assert_eq!(ResponseKey::derive(&[60; 32]).open(&sealed), None);
+        let opened = key.open(&sealed).expect("its response key opens it");
+        replies.push(Reply::decode(&opened).expect("a reply"));
+    }
+    let applied = Logged {
+        writer: id.writer,
+        seq: id.seq,
+        status: EventStatus::Applied { question: None },
+    };
+    assert_eq!(replies[0], Reply::Status(vec![applied]));
+    assert_eq!(replies[1], Reply::Reviewer(None));
+    assert!(matches!(&replies[2], Reply::Author(a) if a.questions.is_empty()));
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    assert_eq!(r.circles().await, before, "reads log nothing");
+    r.finished().await;
+}
+
+// A read whose proof fails — another response key, role, network or issuer — or that is no read
+// gets the gateway's refusal, "not admitted", and logs nothing; a proved one a reply (AT-T79-37).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_37_a_read_with_a_bad_proof_gets_the_refusal() {
+    let f = Fixture::gatewayed("relayed-bad-read");
+    let net = f.net();
+    let r = f.relayed().await;
+    let p = person(&issuer(), 100);
+    let other_issuer = Issuer::new([78; 32]);
+    let other = person(&other_issuer, 100);
+    let pk = issuer().public();
+    let key = ResponseKey::derive(&[5; 32]).public();
+    let mut swapped = ReadRequest::new(Read::Author, key, &p.cred, Role::Propose, &pk, &net);
+    swapped.response_key = ResponseKey::derive(&[6; 32]).public();
+    let unproven = |cred: &AnonymousCredential, role: Role, by: &Issuer, read, n: &[u8; 32]| {
+        ReadRequest::new(read, key, cred, role, &by.public(), n).encode()
+    };
+    let issuer = issuer();
+    let bad = [
+        swapped.encode(),
+        unproven(&p.cred, Role::Judge, &issuer, Read::Author, &net),
+        unproven(
+            &p.cred,
+            Role::Propose,
+            &issuer,
+            Read::Reviewer { from: 0 },
+            &net,
+        ),
+        unproven(&p.cred, Role::Propose, &issuer, Read::Author, &[9; 32]),
+        unproven(
+            &other.cred,
+            Role::Propose,
+            &other_issuer,
+            Read::Author,
+            &net,
+        ),
+        b"not a read request".to_vec(),
+    ];
+    let before = r.circles().await;
+    for request in &bad {
+        let answer = r.read(request).await;
+        assert_eq!(answer, ReadAnswer::Answer(blind::Answer::NotAdmitted));
+    }
+    let good = unproven(&p.cred, Role::Propose, &issuer, Read::Author, &net);
+    assert!(matches!(r.read(&good).await, ReadAnswer::Reply(_)));
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    assert_eq!(r.circles().await, before, "reads log nothing");
+    r.finished().await;
+}
+
+// The hook admits what `answer_gateway::admit` admits and seals `answer_read::reply` to a read's
+// key, over the cuts applied; a read whose proof fails gets none (AT-T79-41).
+#[test]
+fn at_t79_41_the_hook_admits_and_reads_as_the_protocol() {
+    let f = Fixture::new("hook-reads");
+    let net = f.net();
+    let p = person(&issuer(), 100);
+    let event = join(&net, &p);
+    let mut feeds = Feeds::new(&f);
+    let entry = feeds.entry(circle_seed(0), event.clone()).id();
+    let cut0 = Cut::next(&feeds.replica, None, 0, false);
+    feeds.sign(&f, &cut0, &[0, 1]);
+    let mut hook = f.hook();
+    assert_eq!(followed(&f, &feeds.replica, &mut hook).applied(), 1);
+    let elsewhere = network_context(&[9; 32], POOL_CONTEXT);
+    let elsewhere = AnswerEvent::JoinPool {
+        proof: prove(&p.cred, &issuer().public(), Role::Judge, &elsewhere),
+    };
+    let cases = [
+        (event.clone(), true),
+        (deposit(&net, &p), true),
+        (elsewhere.encode(), false),
+        (AnswerEvent::CloseCommits { question: 0 }.encode(), false),
+        (AnswerEvent::Draw { question: 0 }.encode(), false),
+        (b"not an event".to_vec(), false),
+    ];
+    for (bytes, admitted) in cases {
+        assert_eq!(hook.admit(&bytes), admitted);
+        let protocol = answer_gateway::admit(&bytes, &net, &issuer().public());
+        assert_eq!(protocol.is_ok(), admitted);
+    }
+    let key = ResponseKey::derive(&[5; 32]);
+    let read = Read::Status { event: cid(&event) };
+    let pk = issuer().public();
+    let mut request = ReadRequest::new(read, key.public(), &p.cred, Role::Judge, &pk, &net);
+    let sealed = hook
+        .read(&feeds.replica, &request.encode())
+        .expect("a reply");
+    let opened = Reply::decode(&key.open(&sealed).unwrap());
+    assert_eq!(opened, reply(hook.ledger(), &feeds.replica, &request));
+    let applied = Logged {
+        writer: entry.writer,
+        seq: entry.seq,
+        status: EventStatus::Applied { question: None },
+    };
+    assert_eq!(opened, Some(Reply::Status(vec![applied])));
+    request.response_key = ResponseKey::derive(&[6; 32]).public();
+    assert_eq!(hook.read(&feeds.replica, &request.encode()), None);
 }

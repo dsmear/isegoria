@@ -151,9 +151,11 @@ F1–F4 are worth reporting upstream.
 
 ## 4. Fuzz targets
 
-Twenty `cargo fuzz` targets, in `crates/{network,identity,scoring,protocol,p2p}/fuzz/` (outside
-the workspace: libFuzzer needs nightly). Each README says how to run them. Besides "no panic,
-no abort, bounded memory", each asserts a property of its entry point:
+Twenty-eight `cargo fuzz` targets, in `crates/{network,identity,scoring,protocol,p2p,ceremony}/fuzz/`
+(outside the workspace: libFuzzer needs nightly); the eight marked *new* have had only their
+first smoke runs (2026-11-11, below). Each
+README says how to run them. Besides "no panic, no abort, bounded memory", each asserts a property
+of its entry point:
 
 | Target | Entry point | Also asserted |
 |---|---|---|
@@ -177,6 +179,14 @@ no abort, bounded memory", each asserts a property of its entry point:
 | `p2p/client_reply` (T89) | `Carried::decode` and `Sealed::open` on arbitrary relay replies, on any plaintext sealed in the request's context, and on every gateway answer | one encoding; a reply not sealed for the request never opens; a receipt names only the member's circle feed; an answer opens as the gateway sealed it |
 | `p2p/gateway` (T89) | the gateway's decapsulation of arbitrary relayed requests and its reading of arbitrary inner requests | an event sealed by `seal` opens and reads back as itself, and as another network's request elsewhere |
 | `p2p/serve` (T89) | object and shard requests through `ObjectCodec`, `ShardCodec` and the node's servers | a request reads exactly when well formed; only a held public object is served; an empty store serves nothing |
+| `protocol/answer_gateway` (T89, *new*) | `answer_gateway::admit` of arbitrary bytes or a genuine join, deposit, commit or reveal with a window overwritten | a genuine event is admitted; a join, deposit or commit only as a genuine one; never a member's or derived event |
+| `protocol/answer_read` (T89, *new*) | `ReadRequest::decode`, `Reply::decode` and `answer_read::answer` over an empty ledger, on arbitrary bytes or a genuine request or reply with a window overwritten | one encoding each; a genuine request is answered; an answer only for a genuine request's kind, response key and proof, opening under that key to a reply |
+| `protocol/answer_seal` (T89, *new*) | `ResponseKey::open` of arbitrary bytes or a genuine seal with a window overwritten; `seal` to an arbitrary response key | only the untouched genuine seal opens, to its reply; a seal is its reply plus `OVERHEAD` |
+| `identity/credential_wire` (T89, *new*) | `AnonymousCredential`, `IssuanceRequest`, `BlindSignature`, `PendingIssuance` decoded from arbitrary bytes or a genuine one with a window overwritten | one encoding each; only the genuine credential verifies, the genuine request is issued, the genuine reply and pending state finalize |
+| `identity/ceremony_flight` (T89, *new*) | `credential::ceremony::Party::advance` at every flight of every member of one ceremony (4 members, `t = 3`), one sender's payload arbitrary or genuine with a window overwritten, or an extra sender | the genuine flight is taken; an extra sender is refused by name; a state reached re-decodes as itself |
+| `identity/ceremony_state` (T89, *new*) | `Party::decode` of arbitrary bytes or a genuine state at any flight with a window overwritten | one encoding |
+| `identity/ceremony_issuance` (T89, *new*) | `SlotRequest::decode` answered by every prepared member; `SignatureShare::decode` combined with the genuine shares | one encoding each; only a genuine request is answered, by a signer, with its recorded share; the genuine shares combine |
+| `ceremony/message` (T89, *new*) | `ceremony::message::open` by its recipient of arbitrary bytes or a genuine message with a window overwritten | a genuine message opens to its header and payload; no other bytes open |
 
 Two crates expose private code under `--cfg fuzzing` (set by cargo-fuzz); normal builds do
 not contain it: `ThresholdOprfOracle::fuzz_label_with_quorum`, and `p2p::fuzz` (the gateway's
@@ -186,8 +196,9 @@ fuzzes the wire format v1 (`NullifierProof::{encode, decode}`).
 
 **T89 part 1: the decoders a trial node or a participant's client accepts from another
 machine** (`01` D62), drawn from the code on `feat/phase2-runtime` `7cef417`
-(2026-11-10). A trial node is a tiered node (`04` §A node process), member or relay, run
-as `04` §The trial's procedure says, archiving outside it:
+(2026-11-10), then on `8e88939` (2026-11-11: T79's increment 3 so far, and T19). A trial node is
+a tiered node (`04` §A node process), member or relay, run as `04` §The trial's procedure says,
+archiving outside it:
 
 | Decoder | Path | Read from another machine by | Target |
 |---|---|---|---|
@@ -199,7 +210,13 @@ as `04` §The trial's procedure says, archiving outside it:
 | a relayed request, and its inner request | `blind::open_request` (OHTTP decapsulation), `blind::read_request` (Binary HTTP) | a member's gateway | `p2p/gateway` |
 | object and shard requests | `discovery::serve`, `archive::Store::serve`, through `ObjectCodec` and `ShardCodec` | a tiered node, unless `discovery_and_archive = false` turns both protocols and Kademlia off (`04` §A node process, built per `01` D64), as a trial node can; the archive store is empty in the trial | `p2p/serve` |
 | the genesis document, its answer configuration and issuer key | `network::genesis::Genesis::decode`, `AnswerConfig::decode`, `IssuerPublic::decode` (`node::genesis::load`) | every node and `--genesis-digest` | `protocol/genesis` |
-| answer-review events, and the nullifier proof in them | `protocol::answer_events::AnswerEvent::decode`, `NullifierProof::decode` | no node process yet: the hook and gateway admission (T79 increments 2–3) will read them | `protocol/answer_event`, `identity/nullifier_proof` |
+| answer-review events, and the nullifier proof in them | `protocol::answer_events::AnswerEvent::decode`, `NullifierProof::decode` | a member's node, applying each collected cut (the hook, `node::answer`) | `protocol/answer_event`, `identity/nullifier_proof` |
+| a person's event, before it is logged | `protocol::answer_gateway::admit` (`AnswerEvent::decode`, the proof's check) | a member's gateway, once the node passes it as the gateway's admission: on `8e88939` the gateway admits nothing (`node::blind_plan`) | `protocol/answer_gateway` (*new*) |
+| read requests, the replies, and their inner seal | `protocol::answer_read::{ReadRequest, Reply}::decode`, `answer_read::answer`; `answer_seal::seal` to the request's key, `ResponseKey::open` | a member's gateway on `…/read`, and the client, once both are wired: on `8e88939` neither calls them | `protocol/answer_read`, `protocol/answer_seal` (*new*) |
+| the credential's private encodings | `identity::credential::{IssuanceRequest, BlindSignature, PendingIssuance, AnonymousCredential}::decode` | the test issuer (a request), the person (its reply), each by files from the other's machine (`isegoria-test-issuer`, `05` §Distributed integration); the pending state and the credential are the person's own files | `identity/credential_wire` (*new*) |
+| ceremony messages, and the payloads in them | `ceremony::message::open` (the header's decoding, the seal, the signature), then `credential::ceremony::Party::advance` (each payload one strict arkworks object) | each committee member's `isegoria-ceremony step`, from the other members' files (`03` T19-P3, P4) | `ceremony/message`, `identity/ceremony_flight` (*new*) |
+| a member's ceremony state | `credential::ceremony::Party::decode` | the member's own state file, written by the tool itself | `identity/ceremony_state` (*new*) |
+| slot requests and signature shares | `credential::ceremony::{SlotRequest, SignatureShare}::decode` | a signer's `isegoria-ceremony answer` (a participant's request); the participant (each signer's share), whose side is not built | `identity/ceremony_issuance` (*new*) |
 
 The genesis is read from a file, but it counts: one operator assembles it and the others
 decode it (`--genesis-digest`) before confirming it, the digest proving no origin (step 2 of
@@ -207,6 +224,13 @@ the procedure), so its bytes come from another machine. `--genesis-assemble`'s T
 is one operator's, its keys copied from what the others printed; it ends in the same
 `Genesis::decode`, and has no target of its own. A relay reads only a request's
 first byte (the key id) and returns the gateway's reply unchanged, so it decodes nothing.
+The ceremony's procedure TOML has no target: `03` T19-P4's tool takes only messages from other
+machines; the procedure is each operator's input, its keys copied from what the others printed, as
+`--genesis-assemble`'s, and a procedure differing from the others' changes the opening digest and
+the id, so their messages are refused. The ceremony tool's own state file (`State::decode`, with
+`Procedure::decode` in it) and a signer's `answered/<slot>` records are its own files, written by
+itself; only the `Party` inside the state has a target. The ceremony tool and the test issuer are
+neither a trial node nor the client; they are listed because their files cross machines.
 
 Not covered, and why: libp2p's own decoders (Noise, Yamux, multistream-select, gossipsub's and,
 with the protocols on, Kademlia's protobuf messages) are a dependency's, reached by every node; part 1 targets none
@@ -214,12 +238,15 @@ of them, and they are outside D62's perimeter (`01` D64). The object and shard *
 only by `discovery::fetch`, `archive::fetch` and archive maintenance, which no trial node
 runs; the archive files of the offline tools (`SignedManifest`, `Segment`, the certificates)
 are outside the trial (`04` §Archives and holders in the trial). The node's own files are
-written by itself (`network/store` covers its log and object store). **Still to cover**, once
-T79's increments 2–3 build them: the hook's application of collected cuts to
-`AnswerLedger` (increment 2); gateway admission, which will decode and check each
-`AnswerEvent` (`05` T79-P2, D60); T79-P7's read requests on `…/read`, their proofs and
-response keys, and the replies sealed to those keys, at the gateway and in `isegoria-client`;
-and the test issuer's messages if they cross machines (increment 3).
+written by itself (`network/store` covers its log and object store). **Still to cover**: the
+hook's application of collected cuts to `AnswerLedger` (`AnswerLedger::apply_in_view` over
+hostile replicated entries; its decoders have targets, the application has none); the gateway's
+wiring of admission and of `…/read` (the node's admission closure calling `admit`, and in `p2p`
+a Binary HTTP path for reads reaching `answer_read::answer`); and `isegoria-client`'s files and
+readings (its credential, request and share files, the shares' combination, the read replies);
+each once the work in progress builds it.
+The targets marked *new* above had their first smoke runs on 2026-11-11, authorized by the owner
+(`01` D62, D67), recorded below.
 
 **Runs recorded for this audit** (nightly `cargo-fuzz` 0.13.2, libFuzzer with
 AddressSanitizer, 4 cores, 2 GiB RSS limit):
@@ -269,6 +296,25 @@ changed, so only `protocol/genesis` reaches changed code. `protocol/answer_event
 `protocol/genesis` run slowly, each execution verifying a proof or decompressing a key:
 libFuzzer's length limit reached only 6 and 33 bytes, so they exercised mostly the splices.
 
+**Increment 3's and T19's runs** (2026-11-11) are smoke runs of the same kind (`01` D67):
+`-max_total_time=60` per target, the same toolchain, `cargo-fuzz` and sanitizer, from an empty
+corpus, on the combined code of `10` T79's increment 3 and T19's tool. No target crashed.
+
+| Target | Code | Duration | Executions | Crashes |
+|---|---|---:|---:|---:|
+| `protocol/answer_gateway` | `1e9d2f1` | 60 s | 8 875 | 0 |
+| `protocol/answer_read` | `1e9d2f1` | 60 s | 8 217 | 0 |
+| `protocol/answer_seal` | `1e9d2f1` | 60 s | 74 880 | 0 |
+| `identity/credential_wire` | `1e9d2f1` | 60 s | 12 807 | 0 |
+| `identity/ceremony_flight` | `1e9d2f1` | 60 s | 1 353 | 0 |
+| `identity/ceremony_state` | `1e9d2f1` | 60 s | 10 754 | 0 |
+| `identity/ceremony_issuance` | `1e9d2f1` | 60 s | 3 608 | 0 |
+| `ceremony/message` | `1e9d2f1` | 60 s | 241 212 | 0 |
+
+`identity/ceremony_flight` and `identity/ceremony_issuance` run one ceremony at start and a
+library flight or proof per execution, so their counts are low; a campaign belongs on the
+owner's machine.
+
 `scoring/bridging` was added with T62 (2026-09-24) and has not been run yet: that session
 had no nightly toolchain. `scoring/tests/malformed_ratings.rs` covers the same entry points
 on every push (§5).
@@ -304,8 +350,10 @@ entry points:
 - `identity::nullifier::proptests::hostile_proof_bytes_never_verify` and the T42
   byte-flip properties in `credential` and `nullifier`.
 - T89's decoders: `p2p/tests/tiered_nodes.rs`, `p2p/tests/blind_relays.rs`,
-  `network/tests/genesis.rs`, `protocol/tests/answer_review.rs` and
-  `protocol/tests/answer_config_encoding.rs`.
+  `network/tests/genesis.rs`, `protocol/tests/answer_review.rs`,
+  `protocol/tests/answer_config_encoding.rs` and `protocol/tests/answer_participants.rs`; the
+  credential's encodings and the ceremony: `identity`'s `credential` and `credential::ceremony`
+  unit tests, `ceremony/tests/formats.rs` and `test-issuer/tests/`.
 - One unit test per finding (§3).
 - `scoring/tests/malformed_ratings.rs` (T62): a `Ratings` with an out-of-range index, a
   wrong weight count, a non-finite rating, a non-finite or negative weight or a duplicate

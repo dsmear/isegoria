@@ -1,10 +1,7 @@
-//! The single-key test issuer before T19 and a person's side of its blind issuance, by files
-//! carried by hand (`docs/05` §Distributed integration, credentials before T19).
+//! The single-key test issuer before T19, provisional (`docs/01` D65): its key and its side of
+//! blind issuance, by files carried by hand (`docs/05` §Distributed integration).
 
-use identity::credential::{
-    AnonymousCredential, BlindSignature, Credential, IssuanceError, IssuanceRequest, Issuer,
-    IssuerPublic, PendingIssuance,
-};
+use identity::credential::{IssuanceError, IssuanceRequest, Issuer, IssuerPublic};
 use identity::enrollment::Label;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
@@ -19,11 +16,9 @@ pub enum Error {
     /// The request's label is no slot's.
     NotASlot,
     Issuance(IssuanceError),
-    /// The finished credential does not verify under the issuer key given.
-    Unverified,
 }
 
-/// The bound on a file read here: the largest, a request, is 220 bytes.
+/// The bound on a file read here: a request is 220 bytes.
 const MAX_FILE: u64 = 1024;
 
 /// A slot's label: the slot number in 8 little-endian bytes, then 24 zero bytes.
@@ -146,60 +141,4 @@ pub fn issue(key: &Path, request: &Path, reply: &Path) -> Result<u64, Error> {
     let signature = issuer.issue(&request).map_err(Error::Issuance)?;
     write_new(reply, &signature.encode(), false, "reply")?;
     Ok(slot)
-}
-
-/// A person's side: a fresh secret's request for `slot` into `request`, its state into
-/// `pending`, a 0600 file; both must be new, and neither is left if one cannot be made.
-pub fn request(
-    issuer: &IssuerPublic,
-    slot: u64,
-    pending: &Path,
-    request: &Path,
-) -> Result<(), Error> {
-    let holder = Credential::from_secret(random()?);
-    let (message, state) = holder.request_issuance(&slot_label(slot), issuer);
-    let state_file = create(pending, true, "pending")?;
-    let message_file = create(request, false, "request").inspect_err(|_| {
-        let _ = fs::remove_file(pending);
-    })?;
-    fill(state_file, pending, &state.encode(), "pending")
-        .and_then(|()| fill(message_file, request, &message.encode(), "request"))
-        .inspect_err(|_| {
-            let _ = fs::remove_file(pending);
-            let _ = fs::remove_file(request);
-        })
-}
-
-/// A person's side: the credential from `pending` and `reply` into `credential`, a new 0600
-/// file, only if it verifies under `issuer`.
-pub fn finalize(
-    issuer: &IssuerPublic,
-    pending: &Path,
-    reply: &Path,
-    credential: &Path,
-) -> Result<(), Error> {
-    let state = decoded(
-        &read(pending, "pending")?,
-        PendingIssuance::decode,
-        "pending",
-    )?;
-    let signature = decoded(&read(reply, "reply")?, BlindSignature::decode, "reply")?;
-    let finished = state.finalize(signature);
-    if !finished.verify(issuer) {
-        return Err(Error::Unverified);
-    }
-    write_new(credential, &finished.encode(), true, "credential")
-}
-
-/// A person's credential file, decoded strictly and verified under `issuer`.
-pub fn read_credential(path: &Path, issuer: &IssuerPublic) -> Result<AnonymousCredential, Error> {
-    let credential = decoded(
-        &read(path, "credential")?,
-        AnonymousCredential::decode,
-        "credential",
-    )?;
-    match credential.verify(issuer) {
-        true => Ok(credential),
-        false => Err(Error::Unverified),
-    }
 }
