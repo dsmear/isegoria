@@ -883,6 +883,51 @@ fn at_t79_61_a_request_is_spooled_whole() {
     assert_eq!(listed, names, "only the requests, nothing staged");
 }
 
+// The spool reads only names of `--request`'s form, in the spool and in `done/`; a space, a
+// newline, a dot or another form leaves a file in place unread; the status reads back (AT-T79-63).
+#[test]
+fn at_t79_63_the_spool_reads_only_request_names() {
+    let f = Fixture::new("spool-names");
+    let spool = f.dir(0).join("requests");
+    let args: Vec<String> = ["close-epoch", "0"].iter().map(|a| a.to_string()).collect();
+    let name = node::answer::request(&f.config(0), &args).unwrap();
+    let bytes = AnswerEvent::RequestCloseEpoch { epoch: 0 }.encode();
+    let others = [
+        "a b",
+        "00000000000000000001-close-epoch-0\ndigest 0 00",
+        "00000000000000000001-close epoch-0",
+        ".00000000000000000001-close-epoch-0",
+        "0000000000000000001-close-epoch-0",
+        "00000000000000000001-Close-epoch-0",
+        "00000000000000000001-",
+        "00000000000000000001_close-epoch-0",
+    ];
+    for other in others {
+        std::fs::write(spool.join(other), &bytes).unwrap();
+    }
+    let names = |found: Vec<(String, Vec<u8>)>| -> Vec<String> {
+        found.into_iter().map(|(n, _)| n).collect()
+    };
+    assert_eq!(names(pending(&spool).unwrap()), [name.clone()]);
+    for other in others {
+        assert_eq!(
+            std::fs::read(spool.join(other)).unwrap(),
+            bytes,
+            "{other:?}"
+        );
+    }
+    std::fs::create_dir_all(spool.join("done")).unwrap();
+    std::fs::write(spool.join("done").join("a b"), &bytes).unwrap();
+    p2p::hook::done(&spool, &name).unwrap();
+    let moved = names(executed(&spool).unwrap());
+    assert_eq!(moved, [name.clone()]);
+    let status = Status {
+        requests: moved.into_iter().map(|n| (n, 3)).collect(),
+        ..Status::default()
+    };
+    assert_eq!(node::parse(&node::render(&status)), Some(status));
+}
+
 // A tiered member runs the hook and configures no `cuts_per_epoch`; a member of a network
 // without a genesis needs one (AT-T79-22).
 #[test]

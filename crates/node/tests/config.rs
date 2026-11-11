@@ -142,7 +142,7 @@ fn at_net_21_the_status_file_has_one_text() {
         duties_halted: true,
         digests: vec![(1, [5; 32])],
         refused_cut: None,
-        requests: vec![("1-close-epoch-0".to_string(), 0)],
+        requests: vec![("00000000000000000001-close-epoch-0".to_string(), 0)],
     };
     let text = render(&status);
     assert_eq!(parse(&text), Some(status.clone()));
@@ -158,6 +158,7 @@ fn at_net_21_the_status_file_has_one_text() {
         text.replace("bound 2", "bound -2"),
         text.replace("own-entry circle", "own-entry elsewhere"),
         text.replace("stopped own-entry circle", "stopped"),
+        text.replace("request 00000000000000000001-", "request 1-"),
         text.clone() + "spare line\n",
     ] {
         assert_eq!(parse(&bad), None, "{bad}");

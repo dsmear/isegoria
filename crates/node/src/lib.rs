@@ -715,7 +715,9 @@ pub fn parse(text: &str) -> Option<Status> {
             ["refused_cut", n, reason] => {
                 status.refused_cut = Some((number(n)?, reason.to_string()));
             }
-            ["request", name, seq] => status.requests.push((name.to_string(), number(seq)?)),
+            ["request", name, seq] if p2p::hook::request_name(name) => {
+                status.requests.push((name.to_string(), number(seq)?));
+            }
             _ => return None,
         }
     }

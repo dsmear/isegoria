@@ -409,7 +409,11 @@ left to the implementation:
   before a stop that left it unmoved, is not (AT-T79-33). The status lists each executed request
   as `request <name> <seq>`, its circle entry — the `k`-th executed file with given bytes the
   `k`-th entry holding them — rebuilt at a start from `done/`. The spool
-  reads files up to 4 KiB whose names start with no dot, and logs their bytes as they are.
+  reads only regular files up to 4 KiB whose names have `--request`'s form — 20 digits, `-`, then
+  1 to 64 lowercase ASCII letters, digits and `-` (`p2p::hook::request_name`), in `requests/` and
+  in `done/` alike — and logs their bytes as they are; any other file, a dot name included, is
+  left in place unread, and the status's parser refuses another name, so a `request` line always
+  reads back (AT-T79-63).
 - *Withheld reveals, test builds only* (T79-P4's switch). `MemberRole::faults`, a
   `p2p::member::Faults`, is empty by default; `Faults::withholding_reveals(epochs)` exists only
   with `p2p`'s cargo feature `fault-injection`, which only `node`'s dev-dependency enables — as
