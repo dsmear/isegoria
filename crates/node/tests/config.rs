@@ -143,6 +143,7 @@ fn at_net_21_the_status_file_has_one_text() {
         digests: vec![(1, [5; 32])],
         refused_cut: None,
         requests: vec![("00000000000000000001-close-epoch-0".to_string(), 0)],
+        state: vec!["epoch 1".to_string(), "request_state 0 counted".to_string()],
     };
     let text = render(&status);
     assert_eq!(parse(&text), Some(status.clone()));

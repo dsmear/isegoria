@@ -1129,8 +1129,9 @@ tiered node's feeds, the other members whose rounds its start check holds (`sync
 the equivocations its replica holds, whether the consortium equivocated, each collected
 cut from number 0 with its digest, view and exclusions (§The cuts' views and exclusions in
 the status), each finished round's value and withholders, and for a tiered member the state
-digest after each closing cut, the cut its hook refused if any, and its executed requests
-(`05` §Built in the node). A
+digest after each closing cut, the cut its hook refused if any, its executed requests and,
+from its hook, the open epoch, each question's phase and each executed request's outcome,
+circle data kept in the member's own file (`05` §Built in the node, *The state in the status*). A
 configuration that does not hold — a bad key, a threshold outside `1..=n`, a member without
 a key, circle keys that are not one distinct key per member, `writers` other than the tiered
 set's keys, a tiered member without its own circle key, a circle key file outside one, a tiered

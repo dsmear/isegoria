@@ -928,6 +928,117 @@ fn at_t79_63_the_spool_reads_only_request_names() {
     assert_eq!(node::parse(&node::render(&status)), Some(status));
 }
 
+// The hook's status lines: the open epoch, each question's phase, and whether each executed
+// request counted, was refused and why, or waits for a cut; they read back (AT-T79-64).
+#[test]
+fn at_t79_64_the_hook_reports_the_answer_state() {
+    let f = Fixture::new("state-lines");
+    let mut feeds = Feeds::new(&f);
+    feeds.entry(circle_seed(0), deposit(&f.net(), &person(&issuer(), 1)));
+    let close = AnswerEvent::RequestCloseEpoch { epoch: 0 }.encode();
+    let requests = [
+        AnswerEvent::CloseCommits { question: 0 }.encode(),
+        close.clone(),
+        close,
+    ];
+    let mut ids: Vec<EntryId> = (requests.into_iter())
+        .map(|r| feeds.entry(circle_seed(0), r).id())
+        .collect();
+    let cut0 = Cut::next(&feeds.replica, None, 0, false);
+    feeds.sign(&f, &cut0, &[0, 1]);
+    let later = AnswerEvent::Close { question: 0 }.encode();
+    ids.push(feeds.entry(circle_seed(0), later).id());
+    let mut hook = f.hook();
+    assert!(followed(&f, &feeds.replica, &mut hook).refused().is_none());
+    let lines = hook.status(&feeds.replica, &ids);
+    let expected = [
+        "epoch 0".to_string(),
+        "question 0 pending".to_string(),
+        format!("request_state {} refused wrong-round", ids[0].seq),
+        format!("request_state {} counted", ids[1].seq),
+        format!("request_state {} refused repeated", ids[2].seq),
+        format!("request_state {} pending", ids[3].seq),
+    ];
+    assert_eq!(lines, expected);
+    assert!(f.hook().status(&feeds.replica, &[]) == ["epoch 0"]);
+    let status = Status {
+        requests: vec![(
+            "00000000000000000001-close-commits-0".to_string(),
+            ids[0].seq,
+        )],
+        state: lines,
+        ..Status::default()
+    };
+    let text = node::render(&status);
+    assert_eq!(node::parse(&text), Some(status));
+    for bad in [
+        "epoch 01",
+        "epoch",
+        "question 0 drafting",
+        "question zero pending",
+        "request_state 1 refused",
+        "request_state 1 refused Wrong",
+        "request_state 1 refused wrong round",
+        "request_state 1 applied",
+        "request_state -1 counted",
+    ] {
+        assert_eq!(node::parse(&format!("{text}{bad}\n")), None, "{bad}");
+    }
+}
+
+// A running member's status lists the open epoch, its question's phase and each executed
+// request's outcome, refused with its reason or counted, and reads back (AT-T79-65).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_65_a_members_status_shows_the_answer_state() {
+    let f = Fixture::new("state-status");
+    let mut nodes = Vec::new();
+    for i in 0..N {
+        nodes.push(f.start(i).await);
+    }
+    for (i, node) in nodes.iter().enumerate() {
+        f.dial(node, i).await;
+    }
+    for (i, node) in nodes.iter().enumerate() {
+        f.until(node, i, |s| {
+            s.caught_up && s.circle_caught_up && s.cuts.len() >= 2
+        })
+        .await;
+    }
+    let event = deposit(&f.net(), &person(&issuer(), 1));
+    nodes[0].publish_circle(event).await.unwrap();
+    f.until(&nodes[0], 0, |s| {
+        s.state.iter().any(|l| l == "question 0 pending")
+    })
+    .await;
+    request(&f, 0, ["close-commits", "0"]);
+    request(&f, 0, ["close-epoch", "0"]);
+    request(&f, 1, ["close-epoch", "0"]);
+    let outcome = |s: &Status, kind: &str| {
+        let (_, seq) = s.requests.iter().find(|r| r.0.ends_with(kind))?;
+        let prefix = format!("request_state {seq} ");
+        s.state
+            .iter()
+            .find_map(|l| l.strip_prefix(&prefix).map(str::to_string))
+    };
+    let status = f
+        .until(&nodes[0], 0, |s| {
+            s.state.iter().any(|l| l == "epoch 1")
+                && s.state.iter().any(|l| l == "question 0 unavailable")
+                && outcome(s, "close-epoch-0").as_deref() == Some("counted")
+                && outcome(s, "close-commits-0").is_some_and(|o| o != "pending")
+        })
+        .await;
+    assert_eq!(
+        outcome(&status, "close-commits-0").as_deref(),
+        Some("refused wrong-round")
+    );
+    assert_eq!(status.state[0], "epoch 1");
+    assert_eq!(node::parse(&node::render(&status)), Some(status.clone()));
+    for node in nodes {
+        node.finished().await;
+    }
+}
+
 // A tiered member runs the hook and configures no `cuts_per_epoch`; a member of a network
 // without a genesis needs one (AT-T79-22).
 #[test]

@@ -199,6 +199,8 @@ pub struct Status {
     pub refused_cut: Option<(u64, String)>,
     /// The operator's requests logged on the circle feed, by name, with their entry's `seq`.
     pub requests: Vec<(String, u64)>,
+    /// The hook's lines on its state and on `requests`, circle data (`docs/05` §Built in the node).
+    pub state: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -995,7 +997,27 @@ impl Node {
             digests: self.follower.digests().to_vec(),
             refused_cut: self.follower.refused().cloned(),
             requests: self.requests.clone(),
+            state: self.hook_status(),
         }
+    }
+
+    /// The hook's status lines, given the circle entries of the executed requests in order.
+    fn hook_status(&self) -> Vec<String> {
+        let (Some(h), Some(w)) = (&self.hooked, &self.circle) else {
+            return Vec::new();
+        };
+        let writer = w.writer.public().to_bytes();
+        let entries = w.log.log().entries();
+        let id = |seq: u64| {
+            let e = entries.iter().find(|e| e.seq == seq)?;
+            Some(EntryId {
+                writer,
+                seq,
+                hash: e.hash,
+            })
+        };
+        let ids: Vec<EntryId> = self.requests.iter().filter_map(|r| id(r.1)).collect();
+        h.hook.status(self.store.replica(), &ids)
     }
 
     /// Applies to the hook the cuts collected since it last looked.

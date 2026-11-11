@@ -4,7 +4,7 @@
 use crate::member::Collector;
 use ed25519_dalek::Signature;
 use network::cut::Cut;
-use network::replica::Replica;
+use network::replica::{EntryId, Replica};
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
@@ -29,8 +29,7 @@ pub trait Hook: Send {
     /// Whether the cut after the last one applied closes its epoch.
     fn closes(&self) -> bool;
 
-    /// Whether the member's gateway logs a person's `event` (`docs/05` *Gateway admission*); by
-    /// default nothing.
+    /// Whether the gateway logs a person's `event` (`docs/05` *Gateway admission*); default no.
     fn admit(&self, _event: &[u8]) -> bool {
         false
     }
@@ -39,6 +38,11 @@ pub trait Hook: Send {
     /// `replica`; `None` is a refusal, the default (`docs/05` T79-P7).
     fn read(&self, _replica: &Replica, _request: &[u8]) -> Option<Vec<u8>> {
         None
+    }
+
+    /// The status's lines on the state and on `requests`, the executed requests' entries.
+    fn status(&self, _replica: &Replica, _requests: &[EntryId]) -> Vec<String> {
+        Vec::new()
     }
 }
 

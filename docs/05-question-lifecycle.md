@@ -306,7 +306,10 @@ and its `CloseEpoch`.
 **Where the state is computed (D60).** `p2p` keeps no protocol state and does not depend on
 `protocol`: one hook trait in `p2p`, implemented in `node`, applies a collected cut, says
 whether to sign a proposal after the last cut (`may_sign`) and whether a cut closes its epoch
-(`closes`), admits a gateway's bytes (`admit`) and answers a read (`read`). The answer state
+(`closes`), admits a gateway's bytes (`admit`), answers a read (`read`) and gives the member's
+status its lines on the state (`status`, added by the owner's decision of 2026-11-11 so that
+an operator sees the answer-review state; §Built in the node, *The state in the status*). The
+answer state
 is rebuilt at each start from the replica and the signed cuts (`04` §A replica on disk), and
 not persisted.
 
@@ -414,6 +417,18 @@ left to the implementation:
   in `done/` alike — and logs their bytes as they are; any other file, a dot name included, is
   left in place unread, and the status's parser refuses another name, so a `request` line always
   reads back (AT-T79-63).
+- *The state in the status* (owner, 2026-11-11). `Hook::status(replica, requests)` gives the
+  status lines on the state, `requests` being the circle entries of the executed requests in the
+  status's order; `p2p` writes them unread into `Status::state`, and `node` renders them after
+  the `request` lines and parses only the lines `answer::status_line` accepts, a strict round
+  trip. `AnswerHook`'s lines, as of the cuts applied: `epoch <e>`, the open epoch; `question <q>
+  <phase>` for each question in number order, the phase its round holds in the ledger —
+  `pending`, `unavailable`, `committing`, `revealing` or `closed`; and for each executed request
+  `request_state <seq> pending` (no cut applied counts its entry), `counted` (applied, counted
+  towards its closure, or the closure it completed) or `refused <reason>`, the ledger's refusal
+  in kebab case without its details (`wrong-round`, `repeated`, `wrong-epoch`, …;
+  `wrong-event-epoch` for a path's own). They are circle data: the status stays the member's own
+  file, and none of these lines enters shared evidence (AT-T79-64, AT-T79-65).
 - *Withheld reveals, test builds only* (T79-P4's switch). `MemberRole::faults`, a
   `p2p::member::Faults`, is empty by default; `Faults::withholding_reveals(epochs)` exists only
   with `p2p`'s cargo feature `fault-injection`, which only `node`'s dev-dependency enables — as

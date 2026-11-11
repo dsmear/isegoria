@@ -635,6 +635,10 @@ pub fn render(status: &Status) -> String {
     for (name, seq) in &status.requests {
         out += &format!("request {name} {seq}\n");
     }
+    for line in &status.state {
+        out += line;
+        out.push('\n');
+    }
     out
 }
 
@@ -718,6 +722,7 @@ pub fn parse(text: &str) -> Option<Status> {
             ["request", name, seq] if p2p::hook::request_name(name) => {
                 status.requests.push((name.to_string(), number(seq)?));
             }
+            _ if answer::status_line(line) => status.state.push(line.to_string()),
             _ => return None,
         }
     }
