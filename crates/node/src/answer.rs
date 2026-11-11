@@ -1,5 +1,6 @@
 //! The answer review in a member's node (`docs/05` §Where the state is computed, `docs/01`
-//! D60): the hook applying each collected cut to a ledger, and the operators' closure requests.
+//! D60): the hook applying each collected cut to a ledger, admitting and answering persons for
+//! the gateway, and the operators' closure requests.
 
 use crate::genesis::Document;
 use crate::{tiered, Config, ConfigError};
@@ -9,6 +10,7 @@ use network::replica::Replica;
 use p2p::hook::Hook;
 use protocol::answer_events::AnswerEvent;
 use protocol::answer_ledger::{AnswerLedger, AnswerLedgerError};
+use protocol::{answer_gateway, answer_read};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -62,6 +64,15 @@ impl Hook for AnswerHook {
 
     fn closes(&self) -> bool {
         self.ledger.next().is_some_and(|next| next.closes)
+    }
+
+    fn admit(&self, event: &[u8]) -> bool {
+        let network = self.ledger.tiers().network_id();
+        answer_gateway::admit(event, &network, self.ledger.issuer()).is_ok()
+    }
+
+    fn read(&self, replica: &Replica, request: &[u8]) -> Option<Vec<u8>> {
+        answer_read::answer(&self.ledger, replica, request)
     }
 }
 
