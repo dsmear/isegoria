@@ -1,0 +1,43 @@
+[package]
+name = "trial"
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+description = "Milestone 2's gate 1 on one machine: the node, the client and the test issuer as processes, every step through their commands. Not part of a node. See docs/05 §Gate 1 on one machine."
+
+# The three tools' own sources, built again as this package's binaries: an integration test
+# sees only its own package's (`CARGO_BIN_EXE_*`), and no tool gains a dependency.
+[[bin]]
+name = "trial-node"
+path = "../node/src/main.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "trial-client"
+path = "../client/src/main.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "trial-test-issuer"
+path = "../test-issuer/src/main.rs"
+test = false
+doc = false
+
+# What the three `main.rs` name, with the features they use.
+[dependencies]
+node = { path = "../node" }
+client = { path = "../client" }
+test-issuer = { path = "../test-issuer" }
+p2p = { path = "../p2p" }
+identity = { path = "../identity" }
+network = { path = "../network" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "signal", "net"] }
+
+[dev-dependencies]
+protocol = { path = "../protocol" }
+# A relay's peer id from its printed transport key.
+libp2p = { version = "0.56", default-features = false, features = ["ed25519"] }

@@ -4302,6 +4302,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "trial"
+version = "0.0.0"
+dependencies = [
+ "client",
+ "identity",
+ "libp2p",
+ "network",
+ "node",
+ "p2p",
+ "protocol",
+ "test-issuer",
+ "tokio",
+]
+
+[[package]]
 name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

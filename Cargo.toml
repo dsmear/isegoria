@@ -11,6 +11,7 @@ members = [
     "crates/characterization",
     "crates/test-issuer",
     "crates/client",
+    "crates/trial",
 ]
 
 [workspace.package]
