@@ -173,6 +173,27 @@ and its `CloseEpoch`.
   committee's contract, approved in D63, is `03` §Committee setup for the trial).
   `AnonymousCredential` has a private test encoding (a file with mode 0600), `IssuerPublic`
   a public encoding with a known-answer test (built with the genesis, `04` T88-P1).
+  *Built (`10` T79, increment 3, 2026-11-11):* `isegoria-test-issuer`, a crate of its own
+  (`crates/test-issuer`) so that no node links the issuer's secret key; `isegoria-node` has no
+  issuer command. The issuer runs `--new-key <issuer.key>`: a fresh 32-byte seed, 64 hex
+  digits, in a new 0600 file, and the key printed as `issuer <hex>`, the form
+  `--genesis-assemble`'s `issuer` takes. A person runs `--request <issuer-hex> <slot> <pending>
+  <request>`: a fresh secret, its blind request for the slot, and the state that finishes it in
+  a new 0600 file; the issuer runs `--issue <issuer.key> <request> <reply>`, which checks the
+  request's proof and prints the slot; the person runs `--finalize <issuer-hex> <pending>
+  <reply> <credential>`, which writes the credential to a new 0600 file only if it verifies
+  under the key. The files are carried by hand; no command writes over an existing file; the
+  pending file holds the secret too and stays private. A slot is an opaque number, its label
+  the number in 8 little-endian bytes then 24 zero bytes, never a name or an attribute of a
+  person (invariant 1): the issuer learns the slot and nothing of the secret. It signs every
+  valid request, the same slot's again too: no uniqueness and no limit, the declared risk
+  above. Each file is one strict encoding, its kind's tag then fixed fields, points compressed
+  and scalars little-endian, decoded only as itself (`identity::credential`): the credential
+  `isegoria/credential/v1` ‖ signature (`A`, `e`, `s`) ‖ secret ‖ label scalar, 198 bytes;
+  the request `isegoria/issuance/request/v1` ‖ commitment ‖ label ‖ `t` ‖ the proof's two
+  responses, 220; the reply `isegoria/issuance/reply/v1` ‖ signature, 138; the pending state
+  `isegoria/issuance/pending/v1` ‖ secret ‖ blinding ‖ label scalar, 124. Tests: AT-ID-10–14
+  (`08` §12).
 
 **The closing cut, the beacon and the author's time.**
 - *Approved.* The cut closing epoch `e` is its commit and deposit checkpoint; reveals count
@@ -344,8 +365,9 @@ closing cut of `e` is offline `CloseEpoch { e, B }` at its end, `B` the value `e
 round `f` has a value, offline `Draw` of each pending question of the sealed epochs up to `f`
 still without one, in question order. *Evidence:* `protocol/tests/answer_on_cuts.rs` and
 `answer_on_cuts_model.rs`, the modules' unit tests, `p2p/tests/blind_relays.rs` (AT-T79-1–16,
-`08` §12). *Not built:* the client and the test issuer (increments 3 and 4); gateway admission
-and private reads are built on the protocol side (§Built for participants), not wired.
+`08` §12). *Not built:* the client (increments 3 and 4); gateway admission and private reads
+are built on the protocol side (§Built for participants), not wired; the test issuer is built
+(*Credentials before T19*, above).
 
 **Built in the node (`10` T79, second increment, 2026-11-10).** `p2p::hook::Hook` is the hook:
 `apply`, `may_sign` and `closes` as above; `admit` and `read` are declared and refuse, the

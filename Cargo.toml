@@ -8,6 +8,7 @@ members = [
     "crates/p2p",
     "crates/node",
     "crates/characterization",
+    "crates/test-issuer",
 ]
 
 [workspace.package]

@@ -189,7 +189,8 @@ committee's setup stays open in T19, outside Milestone 2.
   seed, and `issue` runs the first `t` members' three phases in one process: the dealer holds
   the whole key, no message has an encoding and nothing authenticates a sender. It has no
   once-per-label check (`Issuer::issue_once` only), and `IssuanceRequest` and `BlindSignature`
-  have no encoding. The aggregate key already has `IssuerPublic`'s shape and the genesis's
+  have only the test issuer's tagged encodings, unsigned (`05` §Distributed integration,
+  credentials before T19). The aggregate key already has `IssuerPublic`'s shape and the genesis's
   encoding (AT-ID-09), so the genesis's schema does not change.
 - *Consequence.* The genesis holds the issuer key and the network id derives from it (`04`
   T88-P1): the key exists before the network, so the setup cannot run over that network's
