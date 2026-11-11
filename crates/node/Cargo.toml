@@ -27,5 +27,6 @@ toml = "0.8"
 libc = "0.2"
 
 [dev-dependencies]
+p2p = { path = "../p2p", features = ["fault-injection"] }
 curve25519-dalek = "4"
 sha2 = "0.10"

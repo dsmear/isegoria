@@ -19,6 +19,8 @@ libm = "0.2"
 rand = "0.8"
 rand_chacha = "0.3"
 sha2 = "0.10"
+# The inner seal of T79-P7's read replies: the `hpke` that `ohttp` pins in `p2p` (docs/05).
+hpke = { version = "=0.14.1", default-features = false, features = ["alloc", "getrandom", "x25519", "aes"] }
 
 [dev-dependencies]
 proptest = "1"

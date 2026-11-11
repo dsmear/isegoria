@@ -31,6 +31,10 @@ hkdf = "=0.13.0"
 sha2 = "=0.11.0"
 aes-gcm = "=0.11.1"
 
+# Test builds only, through node's dev-dependency: `member::Faults` withholds chosen reveals.
+[features]
+fault-injection = []
+
 # `cfg(fuzzing)` is set by cargo-fuzz; it exposes the entry points `fuzz/` needs (T89).
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(fuzzing)"] }

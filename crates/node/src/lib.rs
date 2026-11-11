@@ -15,7 +15,7 @@ use network::consortium::{Consortium, Member};
 use network::replica::{FeedWriter, WriterSet};
 use network::tier::Tiers;
 use p2p::blind::{Gateway, GatewayKey, KeyAnnouncement};
-use p2p::member::{CollectedCut, MemberRole};
+use p2p::member::{CollectedCut, Faults, MemberRole};
 use p2p::record::Stop;
 use p2p::{Config as P2p, Handle, Own, StartError, Status};
 use serde::Deserialize;
@@ -361,6 +361,7 @@ pub fn plan(config: Config) -> Result<Plan, ConfigError> {
             },
             patience: m.patience,
             view_patience: m.view_patience,
+            faults: Faults::default(),
         }),
     };
     let hook = match (&document, &member) {
@@ -585,6 +586,7 @@ pub fn announcement(config: &Config) -> Result<String, ConfigError> {
         cuts_per_epoch: u64::MAX,
         patience: m.patience,
         view_patience: m.view_patience,
+        faults: Faults::default(),
     };
     let path = config
         .hpke_key_file

@@ -6,7 +6,7 @@ use network::consortium::{Consortium, Member};
 use network::cut::{collect, Collected};
 use network::log::TransparencyLog;
 use network::replica::{FeedWriter, Replica, WriterSet};
-use p2p::member::{collected, MemberRole, Progress};
+use p2p::member::{collected, Faults, MemberRole, Progress};
 use proptest::prelude::*;
 use std::time::Duration;
 
@@ -72,6 +72,7 @@ impl Model {
                     cuts_per_epoch,
                     patience: 2,
                     view_patience: 4,
+                    faults: Faults::default(),
                 })
                 .collect(),
             writers,

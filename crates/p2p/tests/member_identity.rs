@@ -10,7 +10,7 @@ use network::replica::{FeedWriter, Replica, SignedEntry};
 use network::store::faults::{self, Fault, On};
 use network::store::{read_objects, DurableLog, ObjectStore};
 use network::tier::{Tier, Tiers};
-use p2p::member::MemberRole;
+use p2p::member::{Faults, MemberRole};
 use p2p::record::{read, Found, Record, State, Stop};
 use p2p::{Config, Handle, Own, PublishError, StartError};
 use std::path::{Path, PathBuf};
@@ -80,6 +80,7 @@ fn config(i: usize, root: &Path, every: Duration) -> Config {
             cuts_per_epoch: 2,
             patience: 10,
             view_patience: 20,
+            faults: Faults::default(),
         }),
         consortium: None,
         tiers: Some(tiers()),

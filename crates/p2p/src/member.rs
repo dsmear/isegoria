@@ -30,6 +30,24 @@ pub struct MemberRole {
     pub patience: u32,
     /// The looks without the cut collected before the member changes view; above `patience`.
     pub view_patience: u32,
+    pub faults: Faults,
+}
+
+/// Faults a member's duties inject for tests (`docs/05` §Built in the node): none by default;
+/// only a build with the feature `fault-injection` can set one.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Faults {
+    withheld: BTreeSet<u64>,
+}
+
+impl Faults {
+    /// The member's reveals of `epochs` withheld, its commits and signatures unchanged.
+    #[cfg(feature = "fault-injection")]
+    pub fn withholding_reveals(epochs: impl IntoIterator<Item = u64>) -> Self {
+        Faults {
+            withheld: epochs.into_iter().collect(),
+        }
+    }
 }
 
 /// A member's looks at the cut it works on, reset when the cut or its view changes, and the
@@ -435,7 +453,9 @@ impl MemberRole {
             out.push(MemberObject::Commit(commit));
         }
         let closed = last.filter(|l| l.closes).map(|l| l.epoch);
-        if let Some(e) = closed.filter(|e| committed(me, *e) && !revealed(me, *e)) {
+        let withholds = |e: &u64| self.faults.withheld.contains(e);
+        let due = |e: &u64| committed(me, *e) && !revealed(me, *e) && !withholds(e);
+        if let Some(e) = closed.filter(due) {
             let (_, reveal) = self.member.beacon_commit(self.round(network_id, e), me);
             out.push(MemberObject::Reveal { epoch: e, reveal });
         }

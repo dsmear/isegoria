@@ -7,7 +7,7 @@ use network::consortium::{Consortium, Member};
 use network::cut::{sign_cut, Cut, MemberObject};
 use network::log::TransparencyLog;
 use network::replica::{FeedWriter, Replica, WriterSet};
-use p2p::member::{collected, Collector, MemberRole, Progress};
+use p2p::member::{collected, Collector, Faults, MemberRole, Progress};
 use std::time::Duration;
 
 const NET: [u8; 32] = [2; 32];
@@ -38,6 +38,7 @@ fn viewing(index: usize, cuts_per_epoch: u64, patience: u32) -> MemberRole {
         cuts_per_epoch,
         patience,
         view_patience: 3,
+        faults: Faults::default(),
     }
 }
 

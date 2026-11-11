@@ -1,5 +1,5 @@
 //! A member's node running the answer review (`docs/05` §Where the state is computed, `docs/01`
-//! D60, `docs/10` T79's second increment): the hook, the operators' requests, the state digest.
+//! D60, `docs/10` T79): the hook, the operators' requests, the state digest, withheld reveals.
 
 #[path = "support/genesis.rs"]
 mod genesis;
@@ -9,6 +9,7 @@ use identity::enrollment::Label;
 use identity::nullifier::prove;
 use identity::nym::Role;
 use libp2p::Multiaddr;
+use network::beacon::RoundId;
 use network::cid::cid;
 use network::consortium::{Consortium, Member};
 use network::cut::{sign_cut, Cut, MemberObject};
@@ -17,13 +18,15 @@ use network::replica::{FeedWriter, Replica, SignedEntry};
 use node::answer::AnswerHook;
 use node::{hex, ConfigError};
 use p2p::hook::{executed, pending, Follower, Hook};
-use p2p::member::{CollectedCut, Collector, MemberRole, Progress};
+use p2p::member::{CollectedCut, Collector, Faults, MemberRole, Progress};
 use p2p::{Handle, Status};
 use protocol::answer::Question;
 use protocol::answer_events::AnswerEvent;
 use protocol::answer_ledger::{AnswerLedger, Refusal};
 use protocol::answer_path::{network_context, Refused, Round, POOL_CONTEXT};
 use protocol::deposit::deposit_context;
+use protocol::lottery;
+use protocol::randomness::{Beacon, ANSWER_DRAW};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
@@ -64,20 +67,26 @@ fn list(keys: impl IntoIterator<Item = [u8; 32]>) -> String {
     format!("[{}]", quoted.join(","))
 }
 
-/// Three members, two signing, under the test issuer; each member's files in `root/m<i>`.
+/// Three members, `t` signing (two by default), under the test issuer; each member's files in
+/// `root/m<i>`.
 struct Fixture {
     root: PathBuf,
     genesis: network::genesis::Genesis,
     ports: Vec<u16>,
+    t: usize,
 }
 
 impl Fixture {
     fn new(name: &str) -> Fixture {
+        Fixture::with(name, T)
+    }
+
+    fn with(name: &str, t: usize) -> Fixture {
         let root = scratch(name);
         let members = (0..N)
             .map(|i| genesis::seeded(1 + i as u8, 11 + i as u8, 21 + i as u8))
             .collect();
-        let g = genesis::genesis(T, members, vec![]);
+        let g = genesis::genesis(t, members, vec![]);
         genesis::write(&root.join("genesis.bin"), &g);
         for i in 0..N {
             let dir = root.join(format!("m{i}"));
@@ -97,6 +106,7 @@ impl Fixture {
             root,
             genesis: g,
             ports,
+            t,
         }
     }
 
@@ -131,7 +141,7 @@ impl Fixture {
             + &format!(
                 "network_id = \"{}\"\ndata_dir = \"{}\"\nlisten = [\"/ip4/127.0.0.1/tcp/{}\"]\n\
                  peers = [{}]\nwriters = {}\nkey_file = \"{}\"\ncircle_key_file = \"{}\"\n\
-                 sync_every_ms = 100\n[consortium]\nmembers = {}\nthreshold = {T}\ncircle = {}\n\
+                 sync_every_ms = 100\n[consortium]\nmembers = {}\nthreshold = {}\ncircle = {}\n\
                  [member]\nindex = {i}\nevery_ms = 100\npatience = 10\nview_patience = 20\n{member}",
                 hex(&g.id()),
                 dir.display(),
@@ -141,6 +151,7 @@ impl Fixture {
                 dir.join("member.key").display(),
                 dir.join("circle.key").display(),
                 list(consortium.clone()),
+                self.t,
                 list(circle.clone()),
             )
     }
@@ -161,13 +172,19 @@ impl Fixture {
 
     fn consortium(&self) -> Consortium {
         let tiers = self.genesis.tiers().unwrap();
-        Consortium::new(tiers.consortium().keys().to_vec(), T)
+        Consortium::new(tiers.consortium().keys().to_vec(), self.t)
     }
 
     /// Member `i`'s node, planned from its TOML, listening.
     async fn start(&self, i: usize) -> Handle {
-        let plan = node::plan(self.config(i)).unwrap();
+        self.start_with(i, Faults::default()).await
+    }
+
+    /// As [`Self::start`], its duties injecting `faults`.
+    async fn start_with(&self, i: usize, faults: Faults) -> Handle {
+        let mut plan = node::plan(self.config(i)).unwrap();
         assert!(plan.p2p.hook.is_some(), "a tiered member runs the hook");
+        plan.p2p.member.as_mut().unwrap().faults = faults;
         let handle = Handle::spawn(plan.transport, plan.p2p).unwrap();
         for addr in plan.listen {
             handle.listen(addr).await.unwrap();
@@ -388,6 +405,65 @@ async fn at_t79_17_a_restarted_member_rebuilds_the_same_digests() {
     }
 }
 
+// A request repeated by its operator is logged again; one left pending after it was logged is
+// not, and a restart keeps each request's entry (AT-T79-33).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_33_a_repeated_request_is_logged_again() {
+    let mut f = Fixture::new("repeat");
+    let mut nodes = Vec::new();
+    for i in 0..N {
+        nodes.push(f.start(i).await);
+    }
+    for (i, node) in nodes.iter().enumerate() {
+        f.dial(node, i).await;
+    }
+    let started = |s: &Status| s.caught_up && s.circle_caught_up;
+    f.until(&nodes[0], 0, started).await;
+    let close = AnswerEvent::CloseCommits { question: 0 }.encode();
+    let args: Vec<String> = ["close-commits", "0"]
+        .iter()
+        .map(|a| a.to_string())
+        .collect();
+    for _ in 0..2 {
+        node::answer::request(&f.config(0), &args).unwrap();
+    }
+    let both = f.until(&nodes[0], 0, |s| s.requests.len() == 2).await;
+    assert_ne!(both.requests[0].1, both.requests[1].1, "two entries");
+    let replica = nodes[0].replica().await;
+    let count = |f: &Fixture, r: &Replica| {
+        circle_objects(f, r, 0)
+            .iter()
+            .filter(|o| **o == close)
+            .count()
+    };
+    assert_eq!(count(&f, &replica), 2);
+
+    nodes.remove(0).finished().await;
+    let spool = f.dir(0).join("requests");
+    let (last, _) = executed(&spool).unwrap().pop().unwrap();
+    std::fs::rename(spool.join("done").join(&last), spool.join(&last)).unwrap();
+    f.ports[0] = port();
+    let restarted = f.start(0).await;
+    f.dial(&restarted, 0).await;
+    let after = f
+        .until(&restarted, 0, |s| started(s) && s.requests.len() == 2)
+        .await;
+    assert!(pending(&spool).unwrap().is_empty());
+    assert_eq!(
+        after.requests, both.requests,
+        "the pending one maps to its entry"
+    );
+    assert_eq!(
+        count(&f, &restarted.replica().await),
+        2,
+        "nothing logged again"
+    );
+    restarted.finished().await;
+    for node in nodes {
+        node.finished().await;
+    }
+}
+
 /// A replica of the fixture's network and each writer's log, for the members' duties.
 struct Feeds {
     replica: Replica,
@@ -434,6 +510,7 @@ fn role(f: &Fixture, index: usize) -> MemberRole {
         cuts_per_epoch: 1,
         patience: 0,
         view_patience: 1000,
+        faults: Faults::default(),
     }
 }
 
@@ -668,4 +745,240 @@ fn at_t79_22_the_hook_replaces_cuts_per_epoch() {
     let config = node::Config::load(&path).unwrap();
     assert!(matches!(node::plan(config), Err(ConfigError::CutsPerEpoch)));
     assert!(node::plan(f.config(0)).unwrap().p2p.hook.is_some());
+}
+
+// A member's duties withhold its reveals of the epochs its faults name and are otherwise the
+// same; a planned member has none, and no configuration key sets one (AT-T79-30).
+#[test]
+fn at_t79_30_the_switch_withholds_reveals_only() {
+    let f = Fixture::new("switch");
+    let mut feeds = Feeds::new(&f);
+    let round = RoundId {
+        network_id: f.net(),
+        member_set_hash: f.consortium().member_set_hash(),
+        epoch: 0,
+    };
+    let (commit, _) = Member::from_seed(member_seed(2)).beacon_commit(round, 2);
+    feeds.entry(member_seed(2), MemberObject::Commit(commit).encode());
+    let cut0 = Cut::next(&feeds.replica, None, 0, true);
+    feeds.sign(&f, &cut0, &[0, 1]);
+    let duties = |faults: Faults| {
+        let me = MemberRole {
+            faults,
+            ..role(&f, 2)
+        };
+        let mut progress = Progress::new(&f.consortium(), f.net());
+        me.duties(&feeds.replica, f.net(), &mut progress)
+    };
+    let is_reveal = |o: &MemberObject| matches!(o, MemberObject::Reveal { epoch: 0, .. });
+    let honest = duties(Faults::default());
+    assert!(honest.iter().any(is_reveal));
+    let kept: Vec<MemberObject> = honest.iter().filter(|o| !is_reveal(o)).cloned().collect();
+    assert!(kept.iter().any(|o| matches!(o, MemberObject::Commit(_))));
+    assert_eq!(duties(Faults::withholding_reveals([0])), kept);
+    assert_eq!(duties(Faults::withholding_reveals([1])), honest);
+
+    let planned = node::plan(f.config(2)).unwrap().p2p.member.unwrap();
+    assert_eq!(planned.faults, Faults::default());
+    let path = f.root.join("faulty.toml");
+    for key in ["faults = [0]", "withhold_reveals = [0]"] {
+        std::fs::write(&path, f.text(2, &format!("{key}\n"))).unwrap();
+        let refused = node::Config::load(&path);
+        assert!(matches!(refused, Err(ConfigError::Parse(_))), "{key}");
+    }
+}
+
+fn request(f: &Fixture, i: usize, args: [&str; 2]) {
+    let args: Vec<String> = args.iter().map(|a| a.to_string()).collect();
+    node::answer::request(&f.config(i), &args).unwrap();
+}
+
+/// The ledger `handle`'s replica gives, replayed from cut 0.
+async fn ledger(f: &Fixture, handle: &Handle) -> AnswerHook {
+    replayed(f, &handle.replica().await).1
+}
+
+/// Until the ledger of `handle`'s replica holds `ok`.
+async fn until_ledger(f: &Fixture, handle: &Handle, ok: impl Fn(&AnswerLedger) -> bool) {
+    let end = Instant::now() + Duration::from_secs(40);
+    while !ok(ledger(f, handle).await.ledger()) {
+        assert!(Instant::now() < end, "the ledger");
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+}
+
+/// Why `ledger` refused the entry of member `i`'s circle feed holding `event`.
+fn refused(ledger: &AnswerLedger, replica: &Replica, i: usize, event: &AnswerEvent) -> Refusal {
+    let bytes = event.encode();
+    let circle = genesis::key(11 + i as u8);
+    let found = ledger.refused().iter().find(|(id, _)| {
+        id.writer == circle && replica.get(id).is_some_and(|(_, b)| b[..] == bytes[..])
+    });
+    found.map(|r| r.1).expect("a refusal")
+}
+
+/// Question 0's group in `ledger`, checked to be the one epoch 0's pool draws under round
+/// `epoch`'s value (`docs/05` T79-P3).
+fn drawn_under(ledger: &AnswerLedger, epoch: u64) -> Vec<identity::nym::Nym> {
+    let state = ledger.state();
+    let Round::Committing { group, .. } = &state.entry(0).unwrap().round else {
+        panic!("{:?}", state.entry(0).unwrap().round);
+    };
+    let beacon = Beacon::from_outcome(ledger.beacon(epoch).unwrap()).unwrap();
+    let size = state.config().rule.group() as usize;
+    let seed = beacon.seed(ANSWER_DRAW, 0);
+    assert_eq!(*group, lottery::admit(&state.pool()[..12], size, seed, 0));
+    group.clone()
+}
+
+/// Three members under threshold `t`, member 2 withholding its reveals of epoch 0; twelve
+/// reviewers join and a question is deposited, then members `0..t` request closing epoch 0.
+async fn withheld(name: &str, t: usize) -> (Fixture, Vec<Handle>, Vec<Status>) {
+    let f = Fixture::with(name, t);
+    let net = f.net();
+    let mut nodes = Vec::new();
+    for i in 0..N {
+        let faults = match i {
+            2 => Faults::withholding_reveals([0]),
+            _ => Faults::default(),
+        };
+        nodes.push(f.start_with(i, faults).await);
+    }
+    for (i, node) in nodes.iter().enumerate() {
+        f.dial(node, i).await;
+    }
+    for (i, node) in nodes.iter().enumerate() {
+        f.until(node, i, |s| {
+            s.caught_up && s.circle_caught_up && s.cuts.len() >= 2
+        })
+        .await;
+    }
+    let issuer = issuer();
+    let mut events: Vec<Vec<u8>> = (100..112)
+        .map(|s| join(&net, &person(&issuer, s)))
+        .collect();
+    events.push(deposit(&net, &person(&issuer, 1)));
+    for event in events {
+        nodes[0].publish_circle(event).await.unwrap();
+    }
+    until_ledger(&f, &nodes[0], |l| {
+        l.state().pool().len() == 12 && l.state().questions() == 1
+    })
+    .await;
+    for i in 0..t {
+        request(&f, i, ["close-epoch", "0"]);
+    }
+    let mut statuses = Vec::new();
+    for (i, node) in nodes.iter().enumerate() {
+        statuses.push(f.until(node, i, |s| !s.beacons.is_empty()).await);
+    }
+    (f, nodes, statuses)
+}
+
+// With fewer than `t` reveals round 0 has no value and excludes no one; its question stays
+// pending, a closure of it refused, until round 1's value draws it; members agree (AT-T79-31).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_31_a_withheld_beacon_waits_for_the_next_value() {
+    let (f, nodes, statuses) = withheld("no-beacon", N).await;
+    for s in &statuses {
+        assert_eq!(s.beacons[0], (None, vec![2]), "{}", node::render(s));
+        assert_eq!(s.digests[0], statuses[0].digests[0]);
+    }
+    let hook = ledger(&f, &nodes[0]).await;
+    let state = hook.ledger().state();
+    assert_eq!(state.entry(0).unwrap().round, Round::Pending);
+    assert_eq!((state.epoch(), state.pool().len()), (1, 12));
+
+    request(&f, 0, ["close-commits", "0"]);
+    for i in 0..N {
+        request(&f, i, ["close-epoch", "1"]);
+    }
+    let mut after = Vec::new();
+    for (i, node) in nodes.iter().enumerate() {
+        after.push(f.until(node, i, |s| s.beacons.len() >= 2).await);
+    }
+    let mut groups = Vec::new();
+    for (s, node) in after.iter().zip(&nodes) {
+        assert!(s.beacons[1].0.is_some() && s.beacons[1].1.is_empty());
+        assert_eq!(s.beacons[..2], after[0].beacons[..2]);
+        assert_eq!(s.digests[..2], after[0].digests[..2]);
+        assert!(
+            s.cuts.iter().all(|c| c.excluded.is_empty()),
+            "no one is excluded"
+        );
+        assert!(s.refused_cut.is_none() && !s.duties_halted);
+        let replica = node.replica().await;
+        let (_, hook) = replayed(&f, &replica);
+        groups.push(drawn_under(hook.ledger(), 1));
+        let close = AnswerEvent::CloseCommits { question: 0 };
+        let refusal = refused(hook.ledger(), &replica, 0, &close);
+        assert_eq!(refusal, Refusal::Path(Refused::WrongRound));
+    }
+    assert!(groups.iter().all(|g| *g == groups[0]));
+    for node in nodes {
+        node.finished().await;
+    }
+}
+
+// With `t` reveals round 0 has a value that draws the question, and its withholder's signature
+// counts in no cut of epoch 1 after it, while its closure request does (AT-T79-32).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_32_a_withholder_is_excluded_and_its_requests_count() {
+    let (f, nodes, statuses) = withheld("withholder", T).await;
+    let value = statuses[0].beacons[0].0.expect("round 0's value");
+    for s in &statuses {
+        assert_eq!(s.beacons[0], (Some(value), vec![2]), "{}", node::render(s));
+        assert_eq!(s.digests[0], statuses[0].digests[0]);
+    }
+    let finished = statuses[0].digests[0].0 as usize + 1;
+
+    request(&f, 1, ["close-epoch", "2"]);
+    until_ledger(&f, &nodes[1], |l| {
+        l.refused().iter().any(|r| r.1 == Refusal::WrongEpoch)
+    })
+    .await;
+    request(&f, 2, ["close-epoch", "1"]);
+    request(&f, 0, ["close-epoch", "1"]);
+    let mut after = Vec::new();
+    for (i, node) in nodes.iter().enumerate() {
+        after.push(
+            f.until(node, i, |s| {
+                s.digests.len() >= 2 && s.cuts.len() > s.digests[1].0 as usize + 2
+            })
+            .await,
+        );
+    }
+    let closing = after[0].digests[1].0 as usize;
+    let early = AnswerEvent::RequestCloseEpoch { epoch: 2 };
+    let mut groups = Vec::new();
+    for (s, node) in after.iter().zip(&nodes) {
+        assert_eq!(s.digests[..2], after[0].digests[..2], "{}", node::render(s));
+        assert_eq!(s.beacons[..2], after[0].beacons[..2]);
+        assert!(s.beacons[1].0.is_some() && s.beacons[1].1.is_empty());
+        for (k, cut) in s.cuts.iter().enumerate() {
+            let excluded = if k > finished && k <= closing {
+                vec![2]
+            } else {
+                vec![]
+            };
+            assert_eq!(cut.excluded, excluded, "cut {k}");
+        }
+        let replica = node.replica().await;
+        let (_, hook) = replayed(&f, &replica);
+        groups.push(drawn_under(hook.ledger(), 0));
+        assert_eq!(hook.ledger().state().epoch(), 2);
+        assert_eq!(
+            refused(hook.ledger(), &replica, 1, &early),
+            Refusal::WrongEpoch
+        );
+    }
+    assert!(groups.iter().all(|g| *g == groups[0]));
+    assert_eq!(
+        after[2].requests.len(),
+        1,
+        "the withholder's request is logged"
+    );
+    for node in nodes {
+        node.finished().await;
+    }
 }

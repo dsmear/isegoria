@@ -112,9 +112,11 @@ contract leaves to the implementation:
 
 ## Distributed integration (T79) — approved contract (D60)
 
-**Status (2026-11-10): approved by the owner (`01` D60); the state on signed cuts and a
-member's node running it are built (§Built on cuts, §Built in the node), participants and the
-trial (`10` §2.3's increments 3–4) are not.**
+**Status (2026-11-11): approved by the owner (`01` D60); the state on signed cuts, a
+member's node running it and the protocol side of participants — gateway admission, private
+reads and their inner seal — are built (§Built on cuts, §Built in the node, §Built for
+participants), with the provisional test issuer (D65); their wiring in `p2p` and `node`, the
+client and the trial (`10` §2.3's increments 3–4) are not.**
 *Approved* restates an earlier decision or a built network rule; *consequence* is what the
 current code forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision
 recorded in D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04`
@@ -171,6 +173,30 @@ and its `CloseEpoch`.
   committee's contract, approved in D63, is `03` §Committee setup for the trial).
   `AnonymousCredential` has a private test encoding (a file with mode 0600), `IssuerPublic`
   a public encoding with a known-answer test (built with the genesis, `04` T88-P1).
+  *Provisional (owner, `01` D65):* the test issuer and its unlimited issuance are a temporary
+  arrangement for tests, replaced by T19's committee; the tool says so on every run, and the
+  person's commands (`--request`, `--finalize`) move into `isegoria-client` when it is built.
+  *Built (`10` T79, increment 3, 2026-11-11):* `isegoria-test-issuer`, a crate of its own
+  (`crates/test-issuer`) so that no node links the issuer's secret key; `isegoria-node` has no
+  issuer command. The issuer runs `--new-key <issuer.key>`: a fresh 32-byte seed, 64 hex
+  digits, in a new 0600 file, and the key printed as `issuer <hex>`, the form
+  `--genesis-assemble`'s `issuer` takes. A person runs `--request <issuer-hex> <slot> <pending>
+  <request>`: a fresh secret, its blind request for the slot, and the state that finishes it in
+  a new 0600 file; the issuer runs `--issue <issuer.key> <request> <reply>`, which checks the
+  request's proof and prints the slot; the person runs `--finalize <issuer-hex> <pending>
+  <reply> <credential>`, which writes the credential to a new 0600 file only if it verifies
+  under the key. The files are carried by hand; no command writes over an existing file; the
+  pending file holds the secret too and stays private. A slot is an opaque number, its label
+  the number in 8 little-endian bytes then 24 zero bytes, never a name or an attribute of a
+  person (invariant 1): the issuer learns the slot and nothing of the secret. It signs every
+  valid request, the same slot's again too: no uniqueness and no limit, the declared risk
+  above. Each file is one strict encoding, its kind's tag then fixed fields, points compressed
+  and scalars little-endian, decoded only as itself (`identity::credential`): the credential
+  `isegoria/credential/v1` ‖ signature (`A`, `e`, `s`) ‖ secret ‖ label scalar, 198 bytes;
+  the request `isegoria/issuance/request/v1` ‖ commitment ‖ label ‖ `t` ‖ the proof's two
+  responses, 220; the reply `isegoria/issuance/reply/v1` ‖ signature, 138; the pending state
+  `isegoria/issuance/pending/v1` ‖ secret ‖ blinding ‖ label scalar, 124. Tests: AT-ID-10–14
+  (`08` §12).
 
 **The closing cut, the beacon and the author's time.**
 - *Approved.* The cut closing epoch `e` is its commit and deposit checkpoint; reveals count
@@ -269,7 +295,7 @@ and its `CloseEpoch`.
   request proved under the nym the event names, a refusal's reason being circle data; to a
   reviewer (`Judge`), each question whose group holds its nym, one per reply, by number and
   view — never the key, content id, group or others' answers — and whether its own commit and
-  reveal counted; to an author (`Propose`), its questions' rounds, verdicts and observations,
+  reveal counted, and (*rectified, `01` D66*) its question's phase; to an author (`Propose`), its questions' rounds, verdicts and observations,
   its `C_a` and quota. The tally stays in the circle. Retries are safe: the state refuses a
   repeated join, deposit, commit or reveal whichever member logs it, and reads change nothing.
   Author and reviewer use separate requests and response keys (invariant 4).
@@ -326,12 +352,13 @@ implementation:
   their values, every question with its round and closure, slots, author records; the indexes
   rebuilt from them left out), the requests counted, the beacon rounds (each open round's
   counted commits and reveals, each finished round's cut, epoch and outcome record — value,
-  revealers, withholders), the last cut's number, and every refusal with its entry and reason in
-  cut order (`AnswerLedger::refused`); not the view a cut was signed in, which nodes can see
-  differently for one history (`01` D64).
+  revealers, withholders), the last cut's number, every refusal with its entry and reason in
+  cut order (`AnswerLedger::refused`), and the reviews (each drawn reviewer's question with
+  whether its commit and its reveal counted, §Built for participants); not the view a cut was
+  signed in, which nodes can see differently for one history (`01` D64).
 - *For the gateway (increment 3).* The ledger counts a `CloseCommits`, `Close` or
   `RequestCloseEpoch` on member `i`'s circle feed as `i`'s request, so the gateway must refuse
-  those kinds from persons.
+  those kinds from persons; `answer_gateway::admit` does (§Built for participants).
 
 *The mapping to the offline path*, which the differential test checks: each entry a cut applies
 is the same offline event at the same point — a person's event with its offline proof, the
@@ -341,8 +368,9 @@ closing cut of `e` is offline `CloseEpoch { e, B }` at its end, `B` the value `e
 round `f` has a value, offline `Draw` of each pending question of the sealed epochs up to `f`
 still without one, in question order. *Evidence:* `protocol/tests/answer_on_cuts.rs` and
 `answer_on_cuts_model.rs`, the modules' unit tests, `p2p/tests/blind_relays.rs` (AT-T79-1–16,
-`08` §12). *Not built:* gateway admission, private reads, the client, the test issuer and the
-switch withholding reveals (increments 3 and 4).
+`08` §12). *Not built:* the client (increments 3 and 4); gateway admission and private reads
+are built on the protocol side (§Built for participants), not wired; the test issuer is built
+(*Credentials before T19*, above).
 
 **Built in the node (`10` T79, second increment, 2026-11-10).** `p2p::hook::Hook` is the hook:
 `apply`, `may_sign` and `closes` as above; `admit` and `read` are declared and refuse, the
@@ -371,13 +399,82 @@ left to the implementation:
   member's and a missing data directory, reads nothing of the running node, takes no lock, and
   checks nothing of the state: the ledger decides whether a request counts (`WrongEpoch`,
   `WrongRound`, `Repeated` are refusals in the state). The duties, once the member writes and its
-  circle feed caught up, log each file in name order on the circle feed — bytes the feed already
-  holds are not signed again — then move it to `requests/done/`. The status lists each executed
-  request as `request <name> <seq>`, its circle entry, rebuilt at a start from `done/`. The spool
+  circle feed caught up, log each file in name order on the circle feed, then move it to
+  `requests/done/`. A request repeated by its operator is logged again, as a refused one may
+  need to be; a pending file whose bytes the feed holds once more than `done/` does, logged
+  before a stop that left it unmoved, is not (AT-T79-33). The status lists each executed request
+  as `request <name> <seq>`, its circle entry — the `k`-th executed file with given bytes the
+  `k`-th entry holding them — rebuilt at a start from `done/`. The spool
   reads files up to 4 KiB whose names start with no dot, and logs their bytes as they are.
+- *Withheld reveals, test builds only* (T79-P4's switch). `MemberRole::faults`, a
+  `p2p::member::Faults`, is empty by default; `Faults::withholding_reveals(epochs)` exists only
+  with `p2p`'s cargo feature `fault-injection`, which only `node`'s dev-dependency enables — as
+  `network`'s feature of that name (`04` §A node's own disk), so a `cargo build` or release of
+  `isegoria-node` lacks it. A member so set still commits and signs as before and publishes no
+  reveal of those epochs. No configuration key, flag or variable sets it: `node::plan` leaves it
+  empty and a `[member]` table naming one is refused, so no trial configuration withholds, even
+  in a test build. Tests set it on the role a node's configuration planned, in process.
 
-*Evidence:* `node/tests/answer_node.rs` (AT-T79-17–22, `08` §12), on loopback in process; the
-member processes of `node/tests/cut_export.rs` close epoch 0 by their operators' requests.
+*Evidence:* `node/tests/answer_node.rs` (AT-T79-17–22, AT-T79-30–32, `08` §12), on loopback in
+process; the member processes of `node/tests/cut_export.rs` close epoch 0 by their operators'
+requests.
+
+**Built for participants (`10` T79, third increment, protocol side, 2026-11-11).** What a
+member computes for a person, in `protocol`, for the hook's `admit` and `read` to call; nothing
+in `p2p` or `node` calls it yet. The choices the contract left to the implementation:
+- *Gateway admission.* `answer_gateway::admit(bytes, network id, issuer)`, without state: the
+  decoding (else `NotAnEvent`); `CloseCommits`, `Close` and `RequestCloseEpoch` are
+  `MemberOnly`, `Draw` and `CloseEpoch` `Derived`; a deposit past `MAX_QUESTION` is `TooLarge`,
+  then `Question::check` (`Malformed`); then the proof of a join, deposit or commit under its role
+  in the prefixed context (`Unproven`); a `Reveal` is admitted once it decodes. Epochs, the pool,
+  groups and repeats are the state's, in cut order.
+- *Read requests.* `answer_read::ReadRequest`: version 1, the kind — 1 an event's status, 2 a
+  reviewer's question, 3 an author's records —, the response key (an X25519 public key, 32
+  bytes), the kind's body, then the proof as a field. A status names the event by the content id
+  of its bytes, the payload of the circle entries holding it; a reviewer's read names the question
+  number to start from; an author's names nothing. The proof's context is
+  `network_context(network id, "isegoria/answer-read/v1" ‖ kind ‖ response key)`: the body is not
+  bound, so a proof copied with another body still yields replies only to its sender. A status is
+  proved under the role of the nym its event names (`Judge` for a join, commit or reveal,
+  `Propose` for a deposit), a reviewer's read under `Judge`, an author's under `Propose`; a
+  request whose proof fails gets no reply (`answer_read::reply` gives `None`).
+- *An event's status.* Every circle entry whose payload is that content id, in entry order,
+  each `(writer, seq)` with `Pending` (no cut applied counts it), `Applied` (a deposit with its
+  question's number, as a duplicate's refusal names it) or `Refused` with the ledger's reason, in
+  the digest's encoding. No entry at all for bytes no circle entry holds, for an event naming
+  another nym or role, or for a member's request: one answer for each, so the reply is no oracle.
+- *A reviewer's question.* The first question numbered from the request's on whose drawn group
+  holds the nym: its number and view (the bytes AT-T79-13 bounds), whether its commit and its
+  reveal counted, and that question's phase (`01` D66) — `ReviewPhase` 0 commits open, 1 reveals
+  open, 2 closed, from its round in the path, without verdict or counts; none past the last. A
+  closed round keeps neither group nor commits, so the ledger records, for each drawn reviewer
+  and question, whether its commit and its reveal counted (`AnswerLedger::review`), in the state
+  digest; nothing about the others, the content id or the key.
+- *An author's records.* `C_a` (its binary64 bits) and the quota in the open epoch, then each of
+  its questions by number with its phase only — pending, unavailable, committing, revealing, or
+  closed with its verdict and observation: no group, pool size, count or answer.
+- *Replies.* `answer_read::Reply`: version 1, the kind it answers, its body; counts as 8 bytes,
+  flags 0 or 1, the quota within 32 bits, verdicts 0–3, a reviewer's phase 0–2 as one byte after
+  its two flags, at most 256 alternatives; a strict decoder for the client.
+  `answer_read::answer(ledger, replica, bytes)` decodes a request, computes its reply and seals
+  it: the hook's `read`, which needs the replica for a status. Reads change nothing and log
+  nothing; a status scans the replica's circle entries.
+- *The inner seal* (**bespoke**, `docs/CLAUDE.md`). `answer_seal`: RFC 9180 base mode, single shot,
+  DHKEM(X25519, HKDF-SHA256), HKDF-SHA256, AES-128-GCM — the suite of the gateways' OHTTP keys —
+  with `info` `isegoria/answer-review/read-reply/v1` and an empty `aad`; the sealed reply is
+  `enc` (32 bytes), then the ciphertext and its tag, 48 bytes beyond the reply.
+  `ResponseKey::generate` makes a fresh pair, `derive` RFC 9180's `DeriveKeyPair`, `open` opens;
+  `seal(response key, reply)` refuses a key the KEM refuses. It uses `hpke` 0.14.1, the version
+  `ohttp` 0.8.0 pins, now a dependency of `protocol`: `node` and the client both depend on
+  `protocol`, and `p2p` carries the sealed bytes inside the OHTTP reply without depending on it
+  (D60). Its known answers: RFC 9180 A.1.1, and the reply seal's own vector, computed with an
+  independent RFC 9180 implementation (Python, standard library only) that reproduces A.1.1.
+- *Limits.* The author's reply lists every question of its author, 36 bytes each when closed
+  with an observation, with no cursor: within `MAX_REPLY` up to about 1,700 questions.
+
+*Evidence:* `protocol/tests/answer_participants.rs` (AT-T79-23–28), the unit tests of
+`answer_seal` (AT-T79-29) and `answer_ledger` (AT-T79-15, AT-T79-28); not yet run (the owner
+runs them with the other branches).
 
 ---
 

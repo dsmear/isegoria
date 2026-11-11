@@ -13,7 +13,7 @@ use network::cut::MemberObject;
 use network::log::TransparencyLog;
 use network::replica::{EntryId, FeedWriter, Message, Replica, SignedEntry, Summary};
 use network::tier::{Tier, Tiers, TransportBinding};
-use p2p::member::MemberRole;
+use p2p::member::{Faults, MemberRole};
 use p2p::record::Stop;
 use p2p::tiered::Bind;
 use p2p::{
@@ -118,6 +118,7 @@ fn member_config_every(i: usize, root: &std::path::Path, stored: bool, every: Du
             cuts_per_epoch: 2,
             patience: 10,
             view_patience: 20,
+            faults: Faults::default(),
         }),
         consortium: None,
         tiers: Some(tiers()),

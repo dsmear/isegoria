@@ -1010,37 +1010,49 @@ impl Node {
             .follow(&mut *hooked.hook, &self.collector, replica);
     }
 
-    /// The `seq` of the circle feed's entry holding `object`, if logged.
-    fn logged(&self, object: &[u8]) -> Option<u64> {
+    /// The `seq`s of the circle feed's entries holding `object`, in order.
+    fn logged(&self, object: &[u8]) -> Vec<u64> {
         let payload = network::cid::cid(object);
-        let log = self.circle.as_ref()?.log.log();
-        log.entries()
+        let Some(circle) = &self.circle else {
+            return Vec::new();
+        };
+        let entries = circle.log.log().entries();
+        entries
             .iter()
-            .find(|e| e.payload == payload)
+            .filter(|e| e.payload == payload)
             .map(|e| e.seq)
+            .collect()
     }
 
-    /// The spool's executed requests the circle feed holds, as the status lists them.
+    /// The spool's executed requests the circle feed holds, as the status lists them: the
+    /// `k`-th executed file with given bytes is the `k`-th entry holding them.
     fn executed(&self) -> Vec<(String, u64)> {
         let Some(h) = &self.hooked else {
             return Vec::new();
         };
-        let done = hook::executed(&h.spool).unwrap_or_default();
-        let logged = done
-            .into_iter()
-            .map(|(name, b)| Some((name, self.logged(&b)?)));
-        logged.flatten().collect()
+        let mut used: HashMap<Vec<u8>, usize> = HashMap::new();
+        let mut out = Vec::new();
+        for (name, object) in hook::executed(&h.spool).unwrap_or_default() {
+            let k = used.entry(object.clone()).or_default();
+            if let Some(&seq) = self.logged(&object).get(*k) {
+                out.push((name, seq));
+            }
+            *k += 1;
+        }
+        out
     }
 
-    /// Logs each spooled request on the circle feed once, then moves it to `done/`; an object
-    /// already logged is not signed again.
+    /// Logs each spooled request on the circle feed, then moves it to `done/`: a request is
+    /// logged again when repeated, not when its entry is already there but its file was not moved.
     fn spool(&mut self) {
         let Some(dir) = self.hooked.as_ref().map(|h| h.spool.clone()) else {
             return;
         };
         for (name, object) in hook::pending(&dir).unwrap_or_default() {
-            let seq = match self.logged(&object) {
-                Some(seq) => seq,
+            let done = hook::executed(&dir).unwrap_or_default();
+            let moved = done.iter().filter(|(_, b)| *b == object).count();
+            let seq = match self.logged(&object).get(moved) {
+                Some(&seq) => seq,
                 None => match self.publish(Feed::Circle, object) {
                     Ok(signed) => signed.id().seq,
                     Err(_) => return,

@@ -2210,3 +2210,38 @@ returned; D49–D53, D57–D63's other choices are unchanged.
 
 **Scope.** T19's first step ran ahead of T79's increments at the owner's request; the rest of
 T19 still follows them unless the owner assigns it otherwise.
+
+## D65 — The test issuer is provisional; the person's side moves into the client
+
+**Decided** by the owner; recorded 2026-11-11. Settles two questions the test issuer's
+implementation returned (`05` *Credentials before T19*); D60's declared risk is unchanged.
+
+- **Provisional.** The single-key test issuer keeps D60's unlimited issuance, with no record of
+  slots answered, as a temporary arrangement for tests only, replaced by T19's committee
+  (T19-P5's once-per-slot record). Its tool and documentation say so wherever it appears.
+- **The person's side.** A person's issuance commands (`--request`, `--finalize`) move from
+  `isegoria-test-issuer` into `isegoria-client` when the client is built; the issuer keeps
+  only its own commands.
+
+## D66 — Choices left open by T79's increment 3 and T19's ceremony tool
+
+**Decided** by the owner; recorded 2026-11-11. Each settles a question the implementation
+returned; D49–D53, D60's other choices and T19-P1–P4 are unchanged.
+
+- **A reviewer's counted commit and reveal.** The ledger keeps, for each drawn reviewer and
+  question, whether its commit and its reveal counted, also after the closure, and the state
+  digest covers them (`05` §Built for participants).
+- **An applied deposit's number.** The status reply to an author's applied deposit names its
+  question's number, to that author only (T79-P7).
+- **The reviewer's phase.** A reviewer's reply also states its question's phase — commits
+  open, reveals open, or closed — of that question only (T79-P7, rectified).
+- **A lost share (T19-P6, rectified).** A lost share suspends the trial as a compromised one
+  does: continuing is a new ceremony and a new genesis. There is no re-preparation among the
+  members left.
+- **A repeated request (T19-P5, rectified).** A request byte-identical to one a member already
+  answered for that slot gets the same share again, kept with the record; any other request
+  for an answered slot is refused. No slot yields a second credential.
+- **Confirmed as built.** The ceremony's first message is signed and sealed, bound to the
+  opening digest since the id does not exist yet; the signers stay outside the id and are
+  carried by the confirmation; the withheld-reveal tests run member nodes in process on
+  loopback, the fault settable in no trial build.
