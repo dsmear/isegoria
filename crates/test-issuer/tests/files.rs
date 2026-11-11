@@ -1,14 +1,17 @@
-//! `isegoria-test-issuer` as a process: the issuer's key, issuance to a person by files, what
-//! is refused (`docs/05` §Distributed integration, credentials before T19, AT-ID-12–14).
+//! `isegoria-test-issuer` as a process: the issuer's key, its side of issuance by files, what is
+//! refused, and a person's commands gone to the client (`docs/05` credentials before T19, D65).
 
-use identity::credential::{AnonymousCredential, Credential, IssuanceRequest, Issuer};
+use identity::credential::{
+    AnonymousCredential, BlindSignature, Credential, IssuanceRequest, Issuer, IssuerPublic,
+    PendingIssuance,
+};
 use identity::enrollment::Label;
 use identity::nullifier;
 use identity::nym::Role;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
-use test_issuer::{hex, issuer_from_hex, read_credential, slot_label, slot_of};
+use test_issuer::{hex, issuer_from_hex, slot_label, slot_of};
 
 fn scratch(name: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
@@ -61,38 +64,41 @@ fn new_key(dir: &Path, name: &str) -> (PathBuf, String) {
     (key, hex.to_string())
 }
 
-/// A person's request for `slot`: the pending state and the request files.
-fn request(dir: &Path, issuer: &str, slot: u64, name: &str) -> (PathBuf, PathBuf) {
-    let (pending, message) = (
-        dir.join(format!("{name}.pending")),
-        dir.join(format!("{name}.req")),
-    );
-    let slot = slot.to_string();
-    let out = succeeded(&tool(&[&"--request", &issuer, &slot, &pending, &message]));
-    assert_eq!(out, format!("slot {slot}\n"));
-    (pending, message)
+fn fresh() -> [u8; 32] {
+    let mut secret = [0; 32];
+    getrandom::getrandom(&mut secret).unwrap();
+    secret
 }
 
-/// The whole flow for `slot`: the issuer's reply and the person's credential file.
-fn obtain(dir: &Path, key: &Path, issuer: &str, slot: u64, name: &str) -> PathBuf {
-    let (pending, message) = request(dir, issuer, slot, name);
+/// A person's request for `slot` under `issuer`, made in process: its file and the pending state.
+fn request(dir: &Path, issuer: &str, slot: u64, name: &str) -> (PathBuf, PendingIssuance) {
+    let issuer = issuer_from_hex(issuer).unwrap();
+    let (message, pending) =
+        Credential::from_secret(fresh()).request_issuance(&slot_label(slot), &issuer);
+    let path = dir.join(format!("{name}.req"));
+    fs::write(&path, message.encode()).unwrap();
+    (path, pending)
+}
+
+/// The person's credential from its pending state and the issuer's reply file.
+fn finalize(pending: PendingIssuance, reply: &Path) -> AnonymousCredential {
+    let signature = BlindSignature::decode(&fs::read(reply).unwrap()).expect("a reply");
+    pending.finalize(signature)
+}
+
+/// The whole flow for `slot`: the issuer's reply by files and the person's credential.
+fn obtain(dir: &Path, key: &Path, issuer: &str, slot: u64, name: &str) -> AnonymousCredential {
+    let (message, pending) = request(dir, issuer, slot, name);
     let reply = dir.join(format!("{name}.reply"));
     assert_eq!(
         succeeded(&tool(&[&"--issue", &key, &message, &reply])),
         format!("slot {slot}\n")
     );
-    let credential = dir.join(format!("{name}.credential"));
-    assert_eq!(
-        succeeded(&tool(&[
-            &"--finalize",
-            &issuer,
-            &pending,
-            &reply,
-            &credential
-        ])),
-        ""
-    );
-    credential
+    finalize(pending, &reply)
+}
+
+fn public(issuer: &str) -> IssuerPublic {
+    issuer_from_hex(issuer).unwrap()
 }
 
 // The issuer's seed is in a new 0600 file, its key printed as the genesis takes it (AT-ID-12).
@@ -130,13 +136,12 @@ fn a_new_key_never_replaces_a_file() {
     refused(&tool(&[&"--new-key", &dir.join("a"), &dir.join("b")]));
 }
 
-// A person obtains by files a 0600 credential that verifies and proves under the key (AT-ID-13).
+// A slot's request by file gets a reply that makes a credential proving under the key (AT-ID-13).
 #[test]
-fn a_person_obtains_a_credential_by_files() {
+fn the_issuer_answers_a_request_by_files() {
     let dir = scratch("flow");
     let (key, issuer) = new_key(&dir, "issuer.key");
-    let (pending, message) = request(&dir, &issuer, 7, "person");
-    assert!(private(&pending));
+    let (message, pending) = request(&dir, &issuer, 7, "person");
     let sent = IssuanceRequest::decode(&fs::read(&message).unwrap()).expect("a request");
     assert_eq!(sent.label(), &slot_label(7));
     let reply = dir.join("person.reply");
@@ -144,28 +149,13 @@ fn a_person_obtains_a_credential_by_files() {
         succeeded(&tool(&[&"--issue", &key, &message, &reply])),
         "slot 7\n"
     );
-    let credential = dir.join("person.credential");
-    assert_eq!(
-        succeeded(&tool(&[
-            &"--finalize",
-            &issuer,
-            &pending,
-            &reply,
-            &credential
-        ])),
-        ""
-    );
-    assert!(private(&credential));
-    let public = issuer_from_hex(&issuer).unwrap();
-    let held = read_credential(&credential, &public).expect("a valid credential");
-    let bytes = fs::read(&credential).unwrap();
-    assert_eq!(AnonymousCredential::decode(&bytes).unwrap().encode(), bytes);
-    let proof = nullifier::prove(&held, &public, Role::Respond, b"context");
-    assert!(nullifier::verify(&proof, &public, b"context"));
+    let held = finalize(pending, &reply);
+    assert!(held.verify(&public(&issuer)));
+    let proof = nullifier::prove(&held, &public(&issuer), Role::Respond, b"context");
+    assert!(nullifier::verify(&proof, &public(&issuer), b"context"));
     let (_, stranger) = new_key(&dir, "stranger.key");
-    let stranger = issuer_from_hex(&stranger).unwrap();
-    assert!(read_credential(&credential, &stranger).is_err());
-    assert!(!nullifier::verify(&proof, &stranger, b"context"));
+    assert!(!held.verify(&public(&stranger)));
+    assert!(!nullifier::verify(&proof, &public(&stranger), b"context"));
 }
 
 // A slot's label is its number in 8 little-endian bytes, then zeros, and nothing else (AT-ID-13).
@@ -183,24 +173,17 @@ fn a_slot_is_an_opaque_number() {
     assert_eq!(slot_of(&wider), None);
 }
 
-// No command writes over an existing file, and a refused request leaves no file (AT-ID-13).
+// The issuer's reply never replaces a file, which stays as it was (AT-ID-13).
 #[test]
-fn no_output_replaces_a_file() {
+fn no_reply_replaces_a_file() {
     let dir = scratch("exists");
     let (key, issuer) = new_key(&dir, "issuer.key");
     let kept = dir.join("kept");
     fs::write(&kept, "kept").unwrap();
-    let fresh = dir.join("fresh");
-    refused(&tool(&[&"--request", &issuer, &"1", &kept, &fresh]));
-    assert!(!fresh.exists());
-    refused(&tool(&[&"--request", &issuer, &"1", &fresh, &kept]));
-    assert!(!fresh.exists(), "the pending file is not left behind");
-    let (pending, message) = request(&dir, &issuer, 1, "person");
+    let (message, _) = request(&dir, &issuer, 1, "person");
     refused(&tool(&[&"--issue", &key, &message, &kept]));
-    let reply = dir.join("person.reply");
-    succeeded(&tool(&[&"--issue", &key, &message, &reply]));
-    refused(&tool(&[&"--finalize", &issuer, &pending, &reply, &kept]));
     assert_eq!(fs::read_to_string(&kept).unwrap(), "kept");
+    succeeded(&tool(&[&"--issue", &key, &message, &dir.join("reply")]));
 }
 
 // The issuer signs any slot's valid request again and again: no uniqueness, no limit (AT-ID-14).
@@ -208,12 +191,11 @@ fn no_output_replaces_a_file() {
 fn the_test_issuer_mints_without_limit() {
     let dir = scratch("unlimited");
     let (key, issuer) = new_key(&dir, "issuer.key");
-    let public = issuer_from_hex(&issuer).unwrap();
     let ids: Vec<_> = (0..3)
         .map(|n| {
-            let credential = obtain(&dir, &key, &issuer, 7, &format!("copy{n}"));
-            let held = read_credential(&credential, &public).unwrap();
-            nullifier::prove(&held, &public, Role::Judge, b"context").id()
+            let held = obtain(&dir, &key, &issuer, 7, &format!("copy{n}"));
+            assert!(held.verify(&public(&issuer)));
+            nullifier::prove(&held, &public(&issuer), Role::Judge, b"context").id()
         })
         .collect();
     assert!(ids[0] != ids[1] && ids[1] != ids[2] && ids[0] != ids[2]);
@@ -224,33 +206,40 @@ fn the_test_issuer_mints_without_limit() {
 fn the_issuer_signs_only_a_slots_valid_request() {
     let dir = scratch("issuer-refuses");
     let (key, issuer) = new_key(&dir, "issuer.key");
-    let public = issuer_from_hex(&issuer).unwrap();
     let reply = dir.join("reply");
-    let (message, _) = Credential::from_secret([3; 32]).request_issuance(&Label([4; 32]), &public);
+    let (message, _) =
+        Credential::from_secret([3; 32]).request_issuance(&Label([4; 32]), &public(&issuer));
     let not_a_slot = dir.join("not-a-slot.req");
     fs::write(&not_a_slot, message.encode()).unwrap();
     refused(&tool(&[&"--issue", &key, &not_a_slot, &reply]));
-    let (pending, message) = request(&dir, &issuer, 2, "person");
+    let (message, pending) = request(&dir, &issuer, 2, "person");
     let mut altered = fs::read(&message).unwrap();
     let last = altered.len() - 1;
     altered[last] ^= 1;
     let altered_path = dir.join("altered.req");
     fs::write(&altered_path, altered).unwrap();
     refused(&tool(&[&"--issue", &key, &altered_path, &reply]));
-    refused(&tool(&[&"--issue", &key, &pending, &reply]));
-    refused(&tool(&[&"--issue", &pending, &message, &reply]));
+    let pending_path = dir.join("person.pending");
+    fs::write(&pending_path, pending.encode()).unwrap();
+    refused(&tool(&[&"--issue", &key, &pending_path, &reply]));
+    refused(&tool(&[&"--issue", &pending_path, &message, &reply]));
     assert!(!reply.exists());
 }
 
-// A reply from another issuer, or the wrong key at the end, yields no credential (AT-ID-14).
+// A person's `--request` and `--finalize` are no issuer command: nothing written (AT-T79-43).
 #[test]
-fn the_person_keeps_only_a_credential_that_verifies() {
-    let dir = scratch("person-refuses");
-    let (_, issuer) = new_key(&dir, "issuer.key");
-    let (other_key, other) = new_key(&dir, "other.key");
-    let (pending, message) = request(&dir, &issuer, 3, "person");
-    let reply = dir.join("other.reply");
-    succeeded(&tool(&[&"--issue", &other_key, &message, &reply]));
+fn at_t79_43_a_persons_commands_left_the_issuer() {
+    let dir = scratch("moved");
+    let (key, issuer) = new_key(&dir, "issuer.key");
+    let (pending, message) = (dir.join("p"), dir.join("r"));
+    let out = tool(&[&"--request", &issuer, &"1", &pending, &message]);
+    refused(&out);
+    assert!(String::from_utf8_lossy(&out.stderr).contains("isegoria-client"));
+    assert!(!pending.exists() && !message.exists());
+    let (sent, state) = request(&dir, &issuer, 1, "person");
+    let reply = dir.join("person.reply");
+    succeeded(&tool(&[&"--issue", &key, &sent, &reply]));
+    fs::write(&pending, state.encode()).unwrap();
     let credential = dir.join("person.credential");
     refused(&tool(&[
         &"--finalize",
@@ -260,26 +249,4 @@ fn the_person_keeps_only_a_credential_that_verifies() {
         &credential,
     ]));
     assert!(!credential.exists());
-    refused(&tool(&[
-        &"--finalize",
-        &"00",
-        &pending,
-        &reply,
-        &credential,
-    ]));
-    refused(&tool(&[
-        &"--finalize",
-        &other,
-        &message,
-        &reply,
-        &credential,
-    ]));
-    refused(&tool(&[
-        &"--request",
-        &issuer,
-        &"slot",
-        &dir.join("p"),
-        &dir.join("r"),
-    ]));
-    assert!(!credential.exists() && !dir.join("p").exists());
 }
