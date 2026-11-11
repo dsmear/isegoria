@@ -1,0 +1,38 @@
+# cargo-fuzz targets for what `isegoria-client` reads from other machines (T89). Outside the
+# main workspace on purpose: fuzzing needs a nightly toolchain and libFuzzer. See README.md.
+[package]
+name = "client-fuzz"
+version = "0.0.0"
+edition = "2021"
+license = "EUPL-1.2"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+libp2p = { version = "0.56", default-features = false, features = ["ed25519"] }
+client = { path = ".." }
+identity = { path = "../../identity" }
+network = { path = "../../network" }
+p2p = { path = "../../p2p" }
+protocol = { path = "../../protocol" }
+
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "read_reply"
+path = "fuzz_targets/read_reply.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "listed"
+path = "fuzz_targets/listed.rs"
+test = false
+doc = false
+bench = false

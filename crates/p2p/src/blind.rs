@@ -1,6 +1,7 @@
 //! Blind relays (`docs/04` §Blind relays, `docs/10` T85): a person's event or read sealed to a
 //! member's key with Oblivious HTTP, carried over libp2p through a relay to the member's gateway.
 
+use crate::hook::Hook;
 use crate::{read_limited, write_all};
 use bhttp::{Message as Http, Mode, StatusCode};
 use ed25519_dalek::Signature;
@@ -10,7 +11,7 @@ use libp2p::swarm::SwarmEvent;
 use libp2p::{identity, noise, tcp, yamux, Multiaddr, StreamProtocol};
 use network::codec::{Reader, Writer};
 use network::consortium::Member;
-use network::replica::EntryId;
+use network::replica::{EntryId, Replica};
 use network::tier::{Tier, Tiers};
 use ohttp::hpke::{Aead, Kdf, Kem};
 use ohttp::{ClientRequest, ClientResponse, KeyConfig, Server, SymmetricSuite};
@@ -337,6 +338,46 @@ pub(crate) fn open_request(
     key.server
         .decapsulate(request)
         .map_err(|_| Refusal::Undecryptable)
+}
+
+/// What a gateway answers an opened request's body: a read, or an event.
+pub(crate) trait Respond {
+    fn read_answer(&mut self, request: &[u8]) -> ReadAnswer;
+    fn event_answer(&mut self, event: Vec<u8>) -> Answer;
+}
+
+/// The Binary HTTP response to opened request `inner` on network `network_id`.
+pub(crate) fn respond(
+    inner: &[u8],
+    network_id: &[u8; 32],
+    to: &mut impl Respond,
+) -> Option<Vec<u8>> {
+    match read_request(inner, network_id) {
+        Ok((Posted::Read, request)) => to.read_answer(&request).to_http(),
+        Ok((Posted::Event, event)) => to.event_answer(event).to_http(),
+        Err(answer) => answer.to_http(),
+    }
+}
+
+/// A gateway's answer to read `request` by `hook`: its sealed reply, or "not admitted" without
+/// a hook or where it refuses (`docs/05` T79-P7).
+pub(crate) fn read_answer(
+    hook: Option<&dyn Hook>,
+    replica: &Replica,
+    request: &[u8],
+) -> ReadAnswer {
+    match hook.and_then(|h| h.read(replica, request)) {
+        Some(sealed) => ReadAnswer::Reply(sealed),
+        None => ReadAnswer::Answer(Answer::NotAdmitted),
+    }
+}
+
+/// What a gateway carries back: `reply` sealed in its request's context, else a refusal.
+pub(crate) fn carried(response: ohttp::ServerResponse, reply: Option<Vec<u8>>) -> Carried {
+    match reply.and_then(|b| response.encapsulate(&b).ok()) {
+        Some(sealed) => Carried::Sealed(sealed),
+        None => Carried::Refused(Refusal::Undecryptable),
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -1603,12 +1603,7 @@ impl Node {
         };
         let carried = match opened {
             Err(refusal) => blind::Carried::Refused(refusal),
-            Ok((inner, response)) => {
-                match (self.respond(&inner)).and_then(|b| response.encapsulate(&b).ok()) {
-                    Some(sealed) => blind::Carried::Sealed(sealed),
-                    None => blind::Carried::Refused(blind::Refusal::Undecryptable),
-                }
-            }
+            Ok((inner, response)) => blind::carried(response, self.respond(&inner)),
         };
         let _ = self
             .swarm
@@ -1619,11 +1614,8 @@ impl Node {
 
     /// The Binary HTTP response to an opened request: a read's from the hook, an event's below.
     fn respond(&mut self, inner: &[u8]) -> Option<Vec<u8>> {
-        match blind::read_request(inner, &self.network_id) {
-            Ok((blind::Posted::Read, request)) => self.read(&request).to_http(),
-            Ok((blind::Posted::Event, event)) => self.answer(event).to_http(),
-            Err(answer) => answer.to_http(),
-        }
+        let network_id = self.network_id;
+        blind::respond(inner, &network_id, self)
     }
 
     /// What a gateway does with an event: bytes already on its circle feed answered with their
@@ -1667,12 +1659,8 @@ impl Node {
     /// answers "not admitted" without a hook or where the hook refuses (`docs/05` T79-P7).
     fn read(&mut self, request: &[u8]) -> blind::ReadAnswer {
         self.follow();
-        let sealed =
-            (self.hooked.as_ref()).and_then(|h| h.hook.read(self.store.replica(), request));
-        match sealed {
-            Some(sealed) => blind::ReadAnswer::Reply(sealed),
-            None => blind::ReadAnswer::Answer(blind::Answer::NotAdmitted),
-        }
+        let hook = self.hooked.as_ref().map(|h| &*h.hook);
+        blind::read_answer(hook, self.store.replica(), request)
     }
 
     /// The receipt of an event its circle log already holds as `id`: only once the replica
@@ -1842,6 +1830,16 @@ fn new_port(addr: Multiaddr) -> DialOpts {
 enum Store {
     Memory(Replica),
     Disk(DurableReplica),
+}
+
+impl blind::Respond for Node {
+    fn read_answer(&mut self, request: &[u8]) -> blind::ReadAnswer {
+        self.read(request)
+    }
+
+    fn event_answer(&mut self, event: Vec<u8>) -> blind::Answer {
+        self.answer(event)
+    }
 }
 
 impl Store {

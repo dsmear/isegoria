@@ -151,9 +151,10 @@ F1–F4 are worth reporting upstream.
 
 ## 4. Fuzz targets
 
-Twenty-eight `cargo fuzz` targets, in `crates/{network,identity,scoring,protocol,p2p,ceremony}/fuzz/`
-(outside the workspace: libFuzzer needs nightly); the eight marked *new* have had only their
-first smoke runs (2026-11-11, below). Each
+Thirty-three `cargo fuzz` targets, in
+`crates/{network,identity,scoring,protocol,p2p,ceremony,client}/fuzz/` (outside the workspace:
+libFuzzer needs nightly); the eight marked *new* have had only their first smoke runs (2026-11-11,
+below), and the five marked *new, not yet run* have had none. Each
 README says how to run them. Besides "no panic, no abort, bounded memory", each asserts a property
 of its entry point:
 
@@ -187,16 +188,23 @@ of its entry point:
 | `identity/ceremony_state` (T89, *new*) | `Party::decode` of arbitrary bytes or a genuine state at any flight with a window overwritten | one encoding |
 | `identity/ceremony_issuance` (T89, *new*) | `SlotRequest::decode` answered by every prepared member; `SignatureShare::decode` combined with the genuine shares | one encoding each; only a genuine request is answered, by a signer, with its recorded share; the genuine shares combine |
 | `ceremony/message` (T89, *new*) | `ceremony::message::open` by its recipient of arbitrary bytes or a genuine message with a window overwritten | a genuine message opens to its header and payload; no other bytes open |
+| `p2p/gateway_read` (T89, *new, not yet run*) | the gateway's answer to an opened request on `…/read` and `…/event` (`blind::respond`: `read_request`, then the hook's `read` or `admit`, the Binary HTTP answer), with a fake hook, on arbitrary inner requests, requests crafted from expected and arbitrary method, scheme and path parts, events and reads sealed by `seal` and `seal_read`, and arbitrary relayed requests | only this network's POST reaches the hook, once, with its body; a read is answered 200 with the hook's reply or 403, an event 403, or 503 once admitted (logging not reached), another network's request 421, anything else 400; the client opens each answer as the hook gave it |
+| `p2p/client_read` (T89, *new, not yet run*) | `Carried::decode` and `Sealed::open_read` on arbitrary relay replies, on any plaintext sealed in the read's context, on every gateway answer and on sealed replies | one encoding; a reply not sealed for the read never opens; a read never opens to a receipt; a reply opens as sealed, or as too large beyond `MAX_REPLY`; an event's reply never opens as a read's |
+| `client/read_reply` (T89, *new, not yet run*) | `client::read::Opener::open` of a status, a reviewer's and an author's read: arbitrary sealed bytes, arbitrary or genuine replies with a window overwritten sealed to the read's key; `read::render` of what opens | a reply opens only under its own read's key, exactly when it decodes as a reply of that read's kind; it prints one line per fact |
+| `client/listed` (T89, *new, not yet run*) | `client::event::{announcement, relay}` of arbitrary text, or a member's configuration in hex or the listed relay's address with a window overwritten | a member's own configuration and the listed relay's address are taken; nothing else but a member's signed configuration with its genesis key, or an address ending in the listed relay's peer id |
+| `identity/ceremony_combine` (T89, *new, not yet run*) | `credential::ceremony::combine`, as `isegoria-client --combine` calls it, of up to eight shares decoded from genuine shares of either slot, genuine ones with a window overwritten, or arbitrary bytes, for either slot's pending state | the genuine set combines in any order; a repeated, partial or other slot's set of genuine shares does not; a combined credential verifies and is the genuine one |
 
 Two crates expose private code under `--cfg fuzzing` (set by cargo-fuzz); normal builds do
 not contain it: `ThresholdOprfOracle::fuzz_label_with_quorum`, and `p2p::fuzz` (the gateway's
-opening and reading of a request, an answer's Binary HTTP, the object and shard servers).
+opening and reading of a request, its answer to an opened request with a given hook, an answer's
+and a read answer's Binary HTTP, the object and shard servers).
 `identity/nullifier_proof` used a test encoding under the same flag until T73, and now
 fuzzes the wire format v1 (`NullifierProof::{encode, decode}`).
 
 **T89 part 1: the decoders a trial node or a participant's client accepts from another
 machine** (`01` D62), drawn from the code on `feat/phase2-runtime` `7cef417`
-(2026-11-10), then on `8e88939` (2026-11-11: T79's increment 3 so far, and T19). A trial node is
+(2026-11-10), then on `8e88939` (2026-11-11: T79's increment 3 so far, and T19), then on
+`f40c37a` (2026-11-11: increment 3's admission and `…/read` wired, the client built). A trial node is
 a tiered node (`04` §A node process), member or relay, run as `04` §The trial's procedure says,
 archiving outside it:
 
@@ -206,17 +214,19 @@ archiving outside it:
 | members' objects: cut signatures, beacon commits and reveals, view changes; cuts | `network::cut::{MemberObject, Cut}::decode` | every node collecting cuts from replicated entries | `network/cut` |
 | the binding exchange, and the peer's transport key | `p2p::tiered::Bind::decode` (`network::tier::TransportBinding::decode`), `tiered::transport_key` | every tiered node, on each connection | `p2p/bind` |
 | signed key configurations | `p2p::blind::KeyAnnouncement::{decode, verify}` (`ohttp::KeyConfig::decode`) | each operator's node TOML (`consortium.hpke`, made by `--announce` on the member's machine); the client | `p2p/key_config` |
-| a relay's reply, and the sealed answer in it | `blind::Carried::decode`, `blind::Sealed::open` (OHTTP decapsulation, `Answer::from_http`) | the participant's client | `p2p/client_reply` |
+| a member's key configuration in hex, and a relay's address, as their operators print them | `client::event::announcement` (the hex, `KeyAnnouncement::{decode, verify}`, the genesis's HPKE key), `client::event::relay` (`Multiaddr`'s parsing, the genesis's relay keys) | the client's `--send` and `--read` | `p2p/key_config`, `client/listed` (*new, not yet run*) |
+| a relay's reply, and the sealed answer in it | `blind::Carried::decode`, `blind::Sealed::open` and, for a read, `Sealed::open_read` (OHTTP decapsulation, `Answer::from_http`) | the participant's client | `p2p/client_reply`, `p2p/client_read` (*new, not yet run*) |
 | a relayed request, and its inner request | `blind::open_request` (OHTTP decapsulation), `blind::read_request` (Binary HTTP) | a member's gateway | `p2p/gateway` |
+| an opened request's body on `…/read` or `…/event`, and the answer to it | `blind::respond` (`read_request`'s path, then the hook's `read` through `blind::read_answer`, or its `admit`; `ReadAnswer::to_http`, `Answer::to_http`) | a member's gateway, its node's hook reading and admitting (`node::answer::AnswerHook`) | `p2p/gateway_read` (*new, not yet run*), with a fake hook; what the node's hook calls has the two targets below |
 | object and shard requests | `discovery::serve`, `archive::Store::serve`, through `ObjectCodec` and `ShardCodec` | a tiered node, unless `discovery_and_archive = false` turns both protocols and Kademlia off (`04` §A node process, built per `01` D64), as a trial node can; the archive store is empty in the trial | `p2p/serve` |
-| the genesis document, its answer configuration and issuer key | `network::genesis::Genesis::decode`, `AnswerConfig::decode`, `IssuerPublic::decode` (`node::genesis::load`) | every node and `--genesis-digest` | `protocol/genesis` |
+| the genesis document, its answer configuration and issuer key | `network::genesis::Genesis::decode`, `AnswerConfig::decode`, `IssuerPublic::decode` (`node::genesis::load`; the client's `Network::decode`, the same decoders) | every node, `--genesis-digest`, and the client | `protocol/genesis` |
 | answer-review events, and the nullifier proof in them | `protocol::answer_events::AnswerEvent::decode`, `NullifierProof::decode` | a member's node, applying each collected cut (the hook, `node::answer`) | `protocol/answer_event`, `identity/nullifier_proof` |
-| a person's event, before it is logged | `protocol::answer_gateway::admit` (`AnswerEvent::decode`, the proof's check) | a member's gateway, once the node passes it as the gateway's admission: on `8e88939` the gateway admits nothing (`node::blind_plan`) | `protocol/answer_gateway` (*new*) |
-| read requests, the replies, and their inner seal | `protocol::answer_read::{ReadRequest, Reply}::decode`, `answer_read::answer`; `answer_seal::seal` to the request's key, `ResponseKey::open` | a member's gateway on `…/read`, and the client, once both are wired: on `8e88939` neither calls them | `protocol/answer_read`, `protocol/answer_seal` (*new*) |
-| the credential's private encodings | `identity::credential::{IssuanceRequest, BlindSignature, PendingIssuance, AnonymousCredential}::decode` | the test issuer (a request), the person (its reply), each by files from the other's machine (`isegoria-test-issuer`, `05` §Distributed integration); the pending state and the credential are the person's own files | `identity/credential_wire` (*new*) |
+| a person's event, before it is logged | `protocol::answer_gateway::admit` (`AnswerEvent::decode`, the proof's check) | a member's gateway, through its node's hook (`AnswerHook::admit`) | `protocol/answer_gateway` (*new*) |
+| read requests, the replies, and their inner seal | `protocol::answer_read::{ReadRequest, Reply}::decode`, `answer_read::answer`; `answer_seal::seal` to the request's key, `ResponseKey::open` | a member's gateway on `…/read`, through its node's hook (`AnswerHook::read`); the client, opening the reply (`client::read::Opener::open`, then `read::render`) | `protocol/answer_read`, `protocol/answer_seal` (*new*), `client/read_reply` (*new, not yet run*) |
+| the credential's private encodings | `identity::credential::{IssuanceRequest, BlindSignature, PendingIssuance, AnonymousCredential}::decode` | the test issuer (a request), the person (its reply: `isegoria-client --finalize`, `BlindSignature::decode`, then the finalization and its check), each by files from the other's machine (`isegoria-test-issuer`, `05` §Distributed integration); the pending state and the credential are the person's own files | `identity/credential_wire` (*new*) |
 | ceremony messages, and the payloads in them | `ceremony::message::open` (the header's decoding, the seal, the signature), then `credential::ceremony::Party::advance` (each payload one strict arkworks object) | each committee member's `isegoria-ceremony step`, from the other members' files (`03` T19-P3, P4) | `ceremony/message`, `identity/ceremony_flight` (*new*) |
 | a member's ceremony state | `credential::ceremony::Party::decode` | the member's own state file, written by the tool itself | `identity/ceremony_state` (*new*) |
-| slot requests and signature shares | `credential::ceremony::{SlotRequest, SignatureShare}::decode` | a signer's `isegoria-ceremony answer` (a participant's request); the participant (each signer's share), whose side is not built | `identity/ceremony_issuance` (*new*) |
+| slot requests and signature shares | `credential::ceremony::{SlotRequest, SignatureShare}::decode` | a signer's `isegoria-ceremony answer` (a participant's request); the participant's `isegoria-client --combine` (each signer's share, then `ceremony::combine` of the shares given) | `identity/ceremony_issuance` (*new*), `identity/ceremony_combine` (*new, not yet run*) |
 
 The genesis is read from a file, but it counts: one operator assembles it and the others
 decode it (`--genesis-digest`) before confirming it, the digest proving no origin (step 2 of
@@ -231,6 +241,10 @@ the id, so their messages are refused. The ceremony tool's own state file (`Stat
 `Procedure::decode` in it) and a signer's `answered/<slot>` records are its own files, written by
 itself; only the `Party` inside the state has a target. The ceremony tool and the test issuer are
 neither a trial node nor the client; they are listed because their files cross machines.
+`isegoria-client`'s other files are the person's own, from no other machine: the pending state,
+the credential and the commitment it writes itself, the event files it writes (`--send` and
+`--read status` read them back, checked by `answer_gateway::admit` before sealing), and the
+author's question TOML; the decoders of the first two have targets all the same.
 
 Not covered, and why: libp2p's own decoders (Noise, Yamux, multistream-select, gossipsub's and,
 with the protocols on, Kademlia's protobuf messages) are a dependency's, reached by every node; part 1 targets none
@@ -240,13 +254,14 @@ runs; the archive files of the offline tools (`SignedManifest`, `Segment`, the c
 are outside the trial (`04` §Archives and holders in the trial). The node's own files are
 written by itself (`network/store` covers its log and object store). **Still to cover**: the
 hook's application of collected cuts to `AnswerLedger` (`AnswerLedger::apply_in_view` over
-hostile replicated entries; its decoders have targets, the application has none); the gateway's
-wiring of admission and of `…/read` (the node's admission closure calling `admit`, and in `p2p`
-a Binary HTTP path for reads reaching `answer_read::answer`); and `isegoria-client`'s files and
-readings (its credential, request and share files, the shares' combination, the read replies);
-each once the work in progress builds it.
+hostile replicated entries; its decoders have targets, the application has none). The gateway
+with the node's own hook is covered in parts: `p2p/gateway_read` up to a fake hook, and the
+node's hook's calls by `protocol/answer_gateway` and `protocol/answer_read`; no target reaches an
+admitted event's logging on the circle feed (the running node's `answer` in `p2p`), whose bytes
+are only hashed and published.
 The targets marked *new* above had their first smoke runs on 2026-11-11, authorized by the owner
-(`01` D62, D67), recorded below.
+(`01` D62, D67), recorded below; those marked *new, not yet run* (2026-11-11, on `f40c37a`) have
+had none.
 
 **Runs recorded for this audit** (nightly `cargo-fuzz` 0.13.2, libFuzzer with
 AddressSanitizer, 4 cores, 2 GiB RSS limit):

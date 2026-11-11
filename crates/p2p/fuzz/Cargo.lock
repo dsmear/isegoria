@@ -2434,6 +2434,8 @@ name = "p2p-fuzz"
 version = "0.0.0"
 dependencies = [
  "arbitrary",
+ "bhttp",
+ "ed25519-dalek",
  "futures",
  "libfuzzer-sys",
  "libp2p",
