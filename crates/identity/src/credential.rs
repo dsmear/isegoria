@@ -44,6 +44,47 @@ const MSG_COUNT: u32 = 2;
 const IDX_SECRET: usize = 0;
 const IDX_LABEL: usize = 1;
 
+/// The tags opening the private test encodings (`docs/05` §Distributed integration,
+/// credentials before T19): one per kind, so no kind's bytes decode as another's.
+const CREDENTIAL_TAG: &[u8] = b"isegoria/credential/v1";
+const REQUEST_TAG: &[u8] = b"isegoria/issuance/request/v1";
+const REPLY_TAG: &[u8] = b"isegoria/issuance/reply/v1";
+const PENDING_TAG: &[u8] = b"isegoria/issuance/pending/v1";
+
+fn put(bytes: &mut Vec<u8>, item: &impl CanonicalSerialize) {
+    item.serialize_compressed(bytes)
+        .expect("serializing into memory cannot fail");
+}
+
+/// `Some` only for `tag` followed by exactly what `read` takes, re-encoding as `bytes`.
+fn strict<T>(
+    bytes: &[u8],
+    tag: &[u8],
+    read: impl FnOnce(&mut &[u8]) -> Result<T, SerializationError>,
+    encode: impl FnOnce(&T) -> Vec<u8>,
+) -> Option<T> {
+    let mut rest = bytes.strip_prefix(tag)?;
+    let value = read(&mut rest).ok()?;
+    (rest.is_empty() && encode(&value) == bytes).then_some(value)
+}
+
+fn scalar(r: &mut &[u8]) -> Result<Fr, SerializationError> {
+    Fr::deserialize_compressed(r)
+}
+
+fn point(r: &mut &[u8]) -> Result<G1Affine, SerializationError> {
+    G1Affine::deserialize_compressed(r)
+}
+
+fn label_bytes(r: &mut &[u8]) -> Result<Label, SerializationError> {
+    let all: &[u8] = r;
+    let (label, rest) = all
+        .split_first_chunk::<32>()
+        .ok_or(SerializationError::InvalidData)?;
+    *r = rest;
+    Ok(Label(*label))
+}
+
 /// The root secret a node holds; the three role nyms derive from it and it never leaves the holder.
 #[derive(Clone)]
 pub struct Credential {
@@ -167,9 +208,57 @@ pub struct IssuanceRequest {
     response: SchnorrResponse<G1Affine>,
 }
 
+impl IssuanceRequest {
+    /// The one value of the request the issuer learns.
+    pub fn label(&self) -> &Label {
+        &self.label
+    }
+
+    /// The tag, the compressed commitment, the label, the compressed `t` and the response's
+    /// two scalars (`docs/05` §Distributed integration, credentials before T19).
+    pub fn encode(&self) -> Vec<u8> {
+        let mut bytes = REQUEST_TAG.to_vec();
+        put(&mut bytes, &self.commitment);
+        bytes.extend_from_slice(&self.label.0);
+        put(&mut bytes, &self.t);
+        for s in &self.response.0 {
+            put(&mut bytes, s);
+        }
+        bytes
+    }
+
+    /// `None` unless `bytes` are exactly one request's encoding; `issue` checks its proof.
+    pub fn decode(bytes: &[u8]) -> Option<Self> {
+        let read = |r: &mut &[u8]| {
+            Ok(IssuanceRequest {
+                commitment: point(r)?,
+                label: label_bytes(r)?,
+                t: point(r)?,
+                response: SchnorrResponse(vec![scalar(r)?, scalar(r)?]),
+            })
+        };
+        strict(bytes, REQUEST_TAG, read, Self::encode)
+    }
+}
+
 /// A blind signature from the issuer, still tied to the holder's blinding factor.
 #[derive(Clone, Debug)]
 pub struct BlindSignature(SignatureG1<E>);
+
+impl BlindSignature {
+    /// The tag and the compressed signature (`docs/05` §Distributed integration).
+    pub fn encode(&self) -> Vec<u8> {
+        let mut bytes = REPLY_TAG.to_vec();
+        put(&mut bytes, &self.0);
+        bytes
+    }
+
+    /// `None` unless `bytes` are exactly one reply's encoding.
+    pub fn decode(bytes: &[u8]) -> Option<Self> {
+        let read = |r: &mut &[u8]| SignatureG1::deserialize_compressed(r).map(BlindSignature);
+        strict(bytes, REPLY_TAG, read, Self::encode)
+    }
+}
 
 /// Holder-side state kept between requesting and finalising issuance.
 #[derive(Clone)]
@@ -187,6 +276,27 @@ impl fmt::Debug for PendingIssuance {
 }
 
 impl PendingIssuance {
+    /// Private, holding the secret: the tag, the secret, the blinding and the label scalar.
+    pub fn encode(&self) -> Vec<u8> {
+        let mut bytes = PENDING_TAG.to_vec();
+        for s in [&self.secret, &self.blinding, &self.label_scalar] {
+            put(&mut bytes, s);
+        }
+        bytes
+    }
+
+    /// `None` unless `bytes` are exactly one pending issuance's encoding.
+    pub fn decode(bytes: &[u8]) -> Option<Self> {
+        let read = |r: &mut &[u8]| {
+            Ok(PendingIssuance {
+                secret: scalar(r)?,
+                blinding: scalar(r)?,
+                label_scalar: scalar(r)?,
+            })
+        };
+        strict(bytes, PENDING_TAG, read, Self::encode)
+    }
+
     pub fn finalize(self, blind: BlindSignature) -> AnonymousCredential {
         AnonymousCredential {
             signature: blind.0.unblind(&self.blinding),
@@ -213,6 +323,28 @@ impl fmt::Debug for AnonymousCredential {
 }
 
 impl AnonymousCredential {
+    /// The private test encoding, for a 0600 file only: the tag, the compressed signature, the
+    /// secret and the label scalar (`docs/05` §Distributed integration, credentials before T19).
+    pub fn encode(&self) -> Vec<u8> {
+        let mut bytes = CREDENTIAL_TAG.to_vec();
+        put(&mut bytes, &self.signature);
+        put(&mut bytes, &self.secret);
+        put(&mut bytes, &self.label_scalar);
+        bytes
+    }
+
+    /// `None` unless `bytes` are exactly one credential's encoding; it may still not verify.
+    pub fn decode(bytes: &[u8]) -> Option<Self> {
+        let read = |r: &mut &[u8]| {
+            Ok(AnonymousCredential {
+                signature: SignatureG1::deserialize_compressed(&mut *r)?,
+                secret: scalar(r)?,
+                label_scalar: scalar(r)?,
+            })
+        };
+        strict(bytes, CREDENTIAL_TAG, read, Self::encode)
+    }
+
     /// Holder-derived per-role key for state re-salting (`docs/04` T86-P3).
     pub fn state_salt_key(&self, role: Role) -> [u8; 32] {
         state_salt_key(&self.secret, role)
@@ -640,6 +772,86 @@ mod tests {
         Label([byte; 32])
     }
 
+    fn hex(bytes: &[u8]) -> String {
+        bytes.iter().map(|b| format!("{b:02x}")).collect()
+    }
+
+    const G1: &str = concat!(
+        "97f1d3a73197d7942695638c4fa9ac0fc3688c4f",
+        "9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb",
+    );
+
+    fn small(n: u8) -> String {
+        format!("{n:02x}{}", "00".repeat(31))
+    }
+
+    fn signature() -> SignatureG1<E> {
+        use ark_ec::AffineRepr;
+        SignatureG1 {
+            A: G1Affine::generator(),
+            e: Fr::from(2u64),
+            s: Fr::from(3u64),
+        }
+    }
+
+    // The credential's private encoding is the known tag, A, e, s, secret, label (AT-ID-10).
+    #[test]
+    fn the_credentials_known_encoding() {
+        let credential = AnonymousCredential {
+            signature: signature(),
+            secret: Fr::from(5u64),
+            label_scalar: Fr::from(7u64),
+        };
+        let tag = "697365676f7269612f63726564656e7469616c2f7631";
+        let known = [tag, G1, &small(2), &small(3), &small(5), &small(7)].concat();
+        assert_eq!(hex(&credential.encode()), known);
+        assert_eq!(credential.encode().len(), 22 + 48 + 4 * 32);
+        let decoded = AnonymousCredential::decode(&credential.encode()).unwrap();
+        assert_eq!(decoded.signature, credential.signature);
+        assert_eq!(
+            (decoded.secret, decoded.label_scalar),
+            (Fr::from(5u64), Fr::from(7u64))
+        );
+    }
+
+    // The request, reply and pending state have known encodings, each decoding back (AT-ID-11).
+    #[test]
+    fn the_messages_known_encodings() {
+        use ark_ec::AffineRepr;
+        let request = IssuanceRequest {
+            commitment: G1Affine::generator(),
+            label: label(9),
+            t: G1Affine::generator(),
+            response: SchnorrResponse(vec![Fr::from(4u64), Fr::from(6u64)]),
+        };
+        let tag = "697365676f7269612f69737375616e63652f726571756573742f7631";
+        let known = [tag, G1, &"09".repeat(32), G1, &small(4), &small(6)].concat();
+        assert_eq!(hex(&request.encode()), known);
+        let decoded = IssuanceRequest::decode(&request.encode()).unwrap();
+        assert_eq!(decoded.encode(), request.encode());
+        assert_eq!(decoded.label(), &label(9));
+
+        let reply = BlindSignature(signature());
+        let tag = "697365676f7269612f69737375616e63652f7265706c792f7631";
+        let known = [tag, G1, &small(2), &small(3)].concat();
+        assert_eq!(hex(&reply.encode()), known);
+        assert_eq!(BlindSignature::decode(&reply.encode()).unwrap().0, reply.0);
+
+        let pending = PendingIssuance {
+            blinding: Fr::from(8u64),
+            secret: Fr::from(5u64),
+            label_scalar: Fr::from(7u64),
+        };
+        let tag = "697365676f7269612f69737375616e63652f70656e64696e672f7631";
+        let known = [tag, &small(5), &small(8), &small(7)].concat();
+        assert_eq!(hex(&pending.encode()), known);
+        let decoded = PendingIssuance::decode(&pending.encode()).unwrap();
+        assert_eq!(
+            (decoded.secret, decoded.blinding, decoded.label_scalar),
+            (pending.secret, pending.blinding, pending.label_scalar)
+        );
+    }
+
     #[test]
     fn the_commitment_hides_the_secret() {
         let issuer = Issuer::new([1u8; 32]).public();
@@ -686,33 +898,10 @@ mod tests {
 
 #[cfg(test)]
 mod proptests {
-    //! Property tests over arbitrary secrets, labels and single-byte corruptions on the
-    //! byte-level encoding (signature ‖ secret ‖ label scalar), not part of the public API.
+    //! Property tests over arbitrary secrets, labels and single-byte corruptions of the
+    //! credential's private encoding ([`AnonymousCredential::encode`]).
     use super::*;
-    use ark_serialize::CanonicalDeserialize;
     use proptest::prelude::*;
-
-    /// Canonical encoding of everything `verify` consumes.
-    fn encode(cred: &AnonymousCredential) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        cred.signature.serialize_compressed(&mut bytes).unwrap();
-        cred.secret.serialize_compressed(&mut bytes).unwrap();
-        cred.label_scalar.serialize_compressed(&mut bytes).unwrap();
-        bytes
-    }
-
-    /// Decode with full validation; `None` when the bytes are not a well-formed
-    /// credential (off-curve point, non-canonical scalar, trailing bytes).
-    fn decode(mut bytes: &[u8]) -> Option<AnonymousCredential> {
-        let signature = SignatureG1::<E>::deserialize_compressed(&mut bytes).ok()?;
-        let secret = Fr::deserialize_compressed(&mut bytes).ok()?;
-        let label_scalar = Fr::deserialize_compressed(&mut bytes).ok()?;
-        bytes.is_empty().then_some(AnonymousCredential {
-            signature,
-            secret,
-            label_scalar,
-        })
-    }
 
     fn issued(seed: [u8; 32], secret: [u8; 32], label: [u8; 32]) -> (Issuer, AnonymousCredential) {
         let issuer = Issuer::new(seed);
@@ -735,7 +924,7 @@ mod proptests {
         ) {
             let (issuer, cred) = issued(seed, secret, label);
             prop_assert!(cred.verify(&issuer.public()));
-            let decoded = decode(&encode(&cred)).expect("canonical encoding decodes");
+            let decoded = AnonymousCredential::decode(&cred.encode()).expect("canonical encoding decodes");
             prop_assert!(decoded.verify(&issuer.public()));
         }
 
@@ -750,10 +939,10 @@ mod proptests {
             mask in 1u8..,
         ) {
             let (issuer, cred) = issued([1u8; 32], secret, label);
-            let mut bytes = encode(&cred);
+            let mut bytes = cred.encode();
             let i = at.index(bytes.len());
             bytes[i] ^= mask;
-            if let Some(tampered) = decode(&bytes) {
+            if let Some(tampered) = AnonymousCredential::decode(&bytes) {
                 prop_assert!(!tampered.verify(&issuer.public()), "byte {i} ^ {mask:#04x} accepted");
             }
         }
