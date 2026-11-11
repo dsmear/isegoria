@@ -243,7 +243,8 @@ the label is listed and that it has answered no request for that slot — record
 before its share leaves — and returns its share; the participant combines three shares and
 verifies the credential under the genesis's issuer key. A prepared signature serves one
 request, never two: a second request for a slot is refused, also after a restart, and a lost
-record of the slots answered ends that member's issuance. The ceremony's id fixes the
+record of the slots answered ends that member's issuance. *Rectified (`01` D66):* a request
+byte-identical to the one answered gets the same share again, kept with the record. The ceremony's id fixes the
 list: a slot outside it is another ceremony, so the list carries the spares the trial needs.
 
 **T19-P6 — abort, loss and compromise** (approved). The faults are D57's: crashes, delays,
@@ -251,7 +252,8 @@ lost and repeated files. Any refusal, a different public key or list, or the ope
 decision aborts; nothing of an aborted ceremony is reused — new id, new randomness, new
 shares. A lost share is not recovered: the three members left prepare signatures again
 among themselves for the slots no member has answered, and a slot already answered stays
-spent. A compromised share suspends the trial; continuing is a new ceremony and a new
+spent. *Rectified (`01` D66):* a lost share suspends the trial as a compromised one does, with
+no re-preparation. A compromised share suspends the trial; continuing is a new ceremony and a new
 genesis (`04` T88-P2). No refresh, resharing or rotation: T22. A member
 that deviates is caught only where the library verifies its message; no robustness,
 identifiable abort or Byzantine tolerance is claimed, and a member able to choose its

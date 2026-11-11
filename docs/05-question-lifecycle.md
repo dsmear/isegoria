@@ -295,7 +295,7 @@ and its `CloseEpoch`.
   request proved under the nym the event names, a refusal's reason being circle data; to a
   reviewer (`Judge`), each question whose group holds its nym, one per reply, by number and
   view — never the key, content id, group or others' answers — and whether its own commit and
-  reveal counted; to an author (`Propose`), its questions' rounds, verdicts and observations,
+  reveal counted, and (*rectified, `01` D66*) its question's phase; to an author (`Propose`), its questions' rounds, verdicts and observations,
   its `C_a` and quota. The tally stays in the circle. Retries are safe: the state refuses a
   repeated join, deposit, commit or reveal whichever member logs it, and reads change nothing.
   Author and reviewer use separate requests and response keys (invariant 4).
