@@ -520,8 +520,7 @@ the node's replica. The choices the contract left to the implementation:
 *Evidence:* `protocol/tests/answer_participants.rs` (AT-T79-23–28), the unit tests of
 `answer_seal` (AT-T79-29) and `answer_ledger` (AT-T79-15, AT-T79-28); the wiring in
 `node/tests/answer_node.rs` (AT-T79-34–37, AT-T79-41) and `p2p/tests/blind_relays.rs`
-(AT-T79-38–40), on loopback in process; not yet run (the owner runs them with the other
-branches).
+(AT-T79-38–40), on loopback in process; run and passing in the full suite (2026-11-11, macOS).
 
 **The client (`10` T79, third increment, 2026-11-11).** `isegoria-client`, a crate of its own
 (`crates/client`, D60), so a person's secrets stay out of members' processes; it reads only the
@@ -570,7 +569,7 @@ it (`Unverified` otherwise). No command asks for or writes a name or an attribut
   is the sealed reply, any other answer the error `NoReply` with it.
 
 *Evidence:* `client/tests/` (`credentials.rs`, `events.rs`, `reads.rs`) and `test-issuer/tests/
-files.rs` (AT-T79-42–49, `08` §12); not yet run. Through a running relay and gateways on
+files.rs` (AT-T79-42–49, `08` §12); run and passing in the full suite (2026-11-11, macOS). Through a running relay and gateways on
 loopback: §Gate 1 on one machine.
 
 **Gate 1 on one machine (`10` T79, increment 4, 2026-11-11).** `trial/tests/gate1.rs` runs

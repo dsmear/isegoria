@@ -795,7 +795,7 @@ gateway whose node runs a hook (`p2p::hook::Hook`) admits by `Hook::admit` in pl
 its last period, collecting none and logging nothing; `node`'s own `Admission` refuses everything. Relays are
 unchanged: they forward by key id and never see the path. The protocol side and the choices
 are `05` §Built for participants (*In the gateway*). Tests: AT-T79-34–41 (`08` §12), written
-and compiled, not yet run.
+and compiled, run and passing in the full suite (2026-11-11, macOS).
 
 Three tests check the OHTTP the channel uses against a reference HPKE path, the `hpke`
 crate driven directly and only in tests (RFC 9458 §4.3–4.4): Appendix A exactly, through
