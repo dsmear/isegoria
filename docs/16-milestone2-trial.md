@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | The record of each Milestone 2 gate run against a pinned revision and configuration (`10` Milestone 2): what ran, on what, what it showed and what it did not. |
 | **Scope** | Records only. The procedure is `04` §The trial's procedure; gate 1's test is `05` §Gate 1 on one machine; decisions are in `01` (D55, D57, D60–D68). |
-| **Status** | Gate 1 recorded and passed (2026-11-11). Gates 2 and 3 not run. |
+| **Status** | Gate 1 recorded and passed, and accepted by the owner (dsmear, in chat, 2026-11-11). Gates 2 and 3 not run. |
 
 Each record keeps the shared evidence beside it in `evidence/milestone2/`, holding no secret and
 no circle content (`04` §The trial's procedure, step 11; `01` D68). Private evidence stays with
