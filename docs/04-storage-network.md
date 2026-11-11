@@ -1115,8 +1115,9 @@ a key, circle keys that are not one distinct key per member, `writers` other tha
 set's keys, a tiered member without its own circle key, a circle key file outside one, a tiered
 configuration without its genesis or repeating a value other than the document's, a relay
 whose transport key the document does not list, archive jobs with `discovery_and_archive`
-false — refuses to start. The node dials its peers at the start and again whenever it has none, so a
-node restarted later reaches the others, which dial no one.
+false — refuses to start. The node dials its peers at the start and, on each status period,
+any address where no dial of its own is pending or open (AT-NET-45), so a peer that started
+later or lost its link is reached even if it dials no one.
 A dial leaves from a new port, not the listening one (AT-NET-43): two nodes dialing each other at
 once from their listening ports would form one TCP connection with two Noise initiators, whose
 failure then blocks that address pair for TCP's TIME_WAIT.

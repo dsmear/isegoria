@@ -727,14 +727,8 @@ pub fn write_status(path: &Path, status: &Status) -> io::Result<()> {
     std::fs::rename(next, path)
 }
 
-async fn dial(handle: &Handle, peers: &[Multiaddr]) {
-    for addr in peers {
-        let _ = handle.dial(addr.clone()).await;
-    }
-}
-
-/// Runs the node until `stop` completes: listens, dials its peers, dials them again
-/// whenever it has none, and writes its status on each period. Returns once the node's task
+/// Runs the node until `stop` completes: listens, dials its peers, and on each period dials
+/// those it holds no connection to and writes its status. Returns once the node's task
 /// has ended; that task holds the data directory's lock, even if this future is dropped.
 pub async fn run(plan: Plan, stop: impl Future<Output = ()>) -> Result<(), StartError> {
     let lock = lock(&plan.status.with_file_name("lock"))
@@ -752,8 +746,8 @@ pub async fn run(plan: Plan, stop: impl Future<Output = ()>) -> Result<(), Start
             let bound = handle.listen(addr).await.map_err(StartError::Transport)?;
             eprintln!("listening on {bound}/p2p/{}", handle.peer_id());
         }
-        dial(&handle, &plan.peers).await;
         let monitor = handle.monitor();
+        monitor.connect(&plan.peers).await;
         let (stop_archive, stopped_archive) = tokio::sync::oneshot::channel();
         let (reports, mut latest) = tokio::sync::watch::channel(None);
         let jobs = plan.archive_maintenance.as_ref().map(archive::Plan::jobs);
@@ -788,11 +782,7 @@ pub async fn run(plan: Plan, stop: impl Future<Output = ()>) -> Result<(), Start
                     if let Err(e) = write_status(&plan.status, &status) {
                         eprintln!("status not written: {e}");
                     }
-                    if status.peers == 0 {
-                        for address in &plan.peers {
-                            let _ = monitor.dial(address.clone()).await;
-                        }
-                    }
+                    monitor.connect(&plan.peers).await;
                 }
             }
         };
