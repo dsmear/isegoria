@@ -116,7 +116,8 @@ contract leaves to the implementation:
 member's node running it and the protocol side of participants — gateway admission, private
 reads and their inner seal — are built and wired into the member's gateway (§Built on cuts,
 §Built in the node, §Built for participants), with the provisional test issuer (D65) and the
-participant's client (§Built for participants); the trial (`10` §2.3's increment 4) is not.**
+participant's client (§Built for participants); gate 1 runs end to end as processes on one
+machine (`10` §2.3's increment 4, §Gate 1 on one machine), not yet as the recorded trial.**
 *Approved* restates an earlier decision or a built network rule; *consequence* is what the
 current code forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision
 recorded in D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04`
@@ -374,7 +375,7 @@ still without one, in question order. *Evidence:* `protocol/tests/answer_on_cuts
 `answer_on_cuts_model.rs`, the modules' unit tests, `p2p/tests/blind_relays.rs` (AT-T79-1–16,
 `08` §12). Gateway admission and private reads are built and wired into the member's gateway,
 and the client sends both (§Built for participants); the test issuer is built (*Credentials
-before T19*, above). *Not built:* gate 1 end to end (increment 4).
+before T19*, above). Gate 1 end to end, increment 4, runs as processes (§Gate 1 on one machine).
 
 **Built in the node (`10` T79, second increment, 2026-11-10).** `p2p::hook::Hook` is the hook:
 `apply`, `may_sign` and `closes` as above; `admit(event)` and `read(replica, request)`, which
@@ -566,8 +567,60 @@ it (`Unverified` otherwise). No command asks for or writes a name or an attribut
   is the sealed reply, any other answer the error `NoReply` with it.
 
 *Evidence:* `client/tests/` (`credentials.rs`, `events.rs`, `reads.rs`) and `test-issuer/tests/
-files.rs` (AT-T79-42–49, `08` §12); not yet run. Not over a relay on loopback: no test sends an
-event or a read through a running relay and gateway.
+files.rs` (AT-T79-42–49, `08` §12); not yet run. Through a running relay and gateways on
+loopback: §Gate 1 on one machine.
+
+**Gate 1 on one machine (`10` T79, increment 4, 2026-11-11).** `trial/tests/gate1.rs` runs
+Milestone 2's gate 1 (`10` §2.4) under one operator on loopback, every step a command of the
+binaries, nothing in process (AT-T79-50–59, `08` §12):
+1. `isegoria-node --new-identity` for four members and a relay, the test issuer's `--new-key`,
+   `--genesis-assemble` (`n = 4`, `t = 3`, the relay listed) and `--genesis-digest`; each
+   member's TOML, its `--announce`, then every TOML with `consortium.hpke`; the four members and
+   the relay started from their TOMLs, until each member is caught up on both feeds and the
+   relay bound to all four.
+2. Fourteen slots, 0–13, issued by `isegoria-client --request`, `isegoria-test-issuer --issue`
+   and `--finalize`.
+3. Thirteen `--join`s and one author's `--deposit` in epoch 0, each `--send` through the relay to
+   the members' gateways in turn, each event's `--read status` until it is applied; one join
+   sent again to a second member. `--request close-epoch 0` on members 0–2; once every member
+   reports the closing cut's digest and round 0's value, each joined reviewer's `--read reviewer
+   0`. The twelve drawn commit — ten the key, one another alternative, one "don't know" —
+   while member 3 is stopped (SIGTERM), and `close-commits 0` goes to members 0–2; member 3 is
+   started again; the reveals go through members 1–3, `close 0` to members 1–3; the author's
+   `--read author` shows the outcome; `close-epoch 1` goes to members 0, 1 and 3; the author's
+   reputation and quota are read again in epoch 2.
+
+The checks: the digest and network id printed by assembly and by `--genesis-digest` agree;
+each event applied, the repeated join's second entry `AlreadyInPool`; 12 of the pool's 13
+drawn, each seeing the question's view without its key; every commit and reveal counted, the
+round `accepted` with its observation (success, weight 1), each reviewer's phase `closed`; the
+author's quota 2 as a new author in epoch 1, then its `C_a` higher and its quota the band of it
+(D51) in epoch 2; at each closing cut every member's state digest the same, its cuts the same,
+no refused cut, halt, equivocation or conflict; while member 3 is stopped, its status file
+unchanged and the other three cutting and closing the commits; started again, member 3's
+digests the ones it had and the others'.
+
+*Choices the contract leaves to the run, the smallest taken.* The binaries: crate `trial` builds
+the three tools' own `main.rs` as `trial-node`, `trial-client` and `trial-test-issuer`, since an
+integration test sees only its own package's binaries; same sources, no tool gains a dependency,
+no node links the issuer's key. Timing: `every_ms`, `sync_every_ms` and `status_every_ms` 100,
+`patience` 10, `view_patience` 20, the in-process tests' values; ports picked free at the start;
+each wait at most 90 s. `discovery_and_archive = false` (D64). The members dial each other, the
+relay dials the members. Fourteen credentials, one author and one question, not D60's sizing for
+the trial (about 16, over 3–4 epochs). A `--send` refused on the channel or answered "retry
+later" is sent again, as T79-P7 allows.
+
+*Evidence.* The test prints its directory, `target/tmp/gate1/run-<pid>/evidence/`: every node's
+status file at each stage (`NN-<stage>/m<i>.status`, `relay.status`), the transcript of every
+command with its output, the run's directory written `$RUN`, and the nodes' logs; checked to
+hold none of the run's secret seeds. It holds the reviewers' printed views of the question,
+circle data the trial's shared evidence leaves out (`04` §The trial's procedure, 7).
+*Running it.* `scripts/gate1.sh`, that is `cargo test -p trial --test gate1 -- --nocapture`;
+part of `cargo test --workspace`. 2026-11-11, on this machine: 3 runs of 3 passed, 16–18 s
+each, no command refused.
+*Limits.* One operator, one machine, loopback: no independence (D60), no delay, partition or
+duplicate injected beyond the repeated join, one stop by SIGTERM; test credentials (D60). It is
+not the recorded gate-1 trial against a pinned revision and configuration (`10` §2.4).
 
 ---
 
