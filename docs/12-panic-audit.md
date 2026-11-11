@@ -333,8 +333,9 @@ owner's machine.
 for the five targets T89's third step added: `-max_total_time=60` each, the same toolchain,
 `cargo-fuzz` and sanitizer, from an empty corpus, on the combined code of `10` T79's increment
 4 and the reviews' fixes. No target crashed. The ceremony's four targets above ran on
-`1e9d2f1`, before AT-ID-25–29 changed its state, confirmation and procedure; they have not run
-on the changed code.
+`1e9d2f1`, before AT-ID-25–29 changed its state, confirmation and procedure, and ran again on
+the changed code (`cb9260a`, 60 s each, no crash): `identity/ceremony_flight` 585 executions,
+`identity/ceremony_state` 11 130, `identity/ceremony_issuance` 4 079, `ceremony/message` 150 166.
 
 | Target | Code | Duration | Executions | Crashes |
 |---|---|---:|---:|---:|
