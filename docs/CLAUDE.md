@@ -78,9 +78,10 @@ authorization. Single-operator runs do not close the phase. Shared event formats
 cuts and ledger must change together with their users. Do not restore legacy pilot gates or add automatic rounds through the
 integration. D54 is the network decision previously called D44 here.
 
-Use `phase1-handoff.md` to resume. Task status belongs in `10-roadmap.md`, review
-findings and evidence in `15-phase1-review.md`, parameter procedures in
-`14-parameter-register.md`, and measurement provenance in `13-characterization.md`.
+Use `phase1-handoff.md` to resume. Task status belongs in `10-roadmap.md`, Milestone 2's gate
+records in `16-milestone2-trial.md`, review findings and evidence in `15-phase1-review.md`,
+parameter procedures in `14-parameter-register.md`, and measurement provenance in
+`13-characterization.md`.
 Do not reopen or extend a closure without a concrete finding. Historical measurements
 retain their model and version scope.
 

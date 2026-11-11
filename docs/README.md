@@ -18,6 +18,7 @@ and evidence; they are not additional acceptance gates for this path.
 | [14 — Parameters](14-parameter-register.md) | Provisional values, calibration status and procedures by mechanism |
 | [15 — Review](15-phase1-review.md) | Findings, evidence and closure scopes |
 | [10 — Roadmap](10-roadmap.md) | Task status; completion is qualified by perimeter |
+| [16 — Milestone 2 trial](16-milestone2-trial.md) | Records of the Milestone 2 gates against a pinned revision, with their shared evidence |
 | [Handoff](phase1-handoff.md) | Resume work without duplicating the specification |
 | [Agent instructions](CLAUDE.md) | Invariants and working rules |
 | [Glossary](99-glossary.md) | Terms used by current and earlier mechanisms |
