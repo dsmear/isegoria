@@ -615,7 +615,7 @@ later" is sent again, as T79-P7 allows.
 
 *Evidence (owner, 2026-11-11: in two directories).* The test prints the directory
 `target/tmp/gate1/run-<pid>/evidence/`. `shared/` holds only what the trial's shared evidence
-may (`04` §The trial's procedure, 7): `revision.txt`, the commit under test and whether tracked
+may (`04` §The trial's procedure, 11): `revision.txt`, the commit under test and whether tracked
 files differ from it; the genesis document and what `--genesis-digest` prints of it; and at each
 stage every node's public status lines (`NN-<stage>/m<i>.status`, `relay.status`) — feeds caught
 up, peers, bindings, equivocations, conflict, halts, stops, syncs, cuts, beacons, state digests

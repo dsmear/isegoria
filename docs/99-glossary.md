@@ -207,8 +207,8 @@ knows **where** it comes from but cannot read it; the recipient reads it but see
 intermediary as its sender. Standardized as Oblivious HTTP (RFC 9458), over HPKE (RFC 9180).
 
 The channel separates addresses from event contents, assuming the relay and member do
-not collude. It is built and tested on loopback; a node process admits no event through
-it before T79 (D54, T85; [04](04-storage-network.md)).
+not collude. It is built and tested on loopback; a member's node admits persons' answer-review
+events and answers their private reads through it (D54, T85, T79; [04](04-storage-network.md)).
 
 ## Content-addressed storage
 

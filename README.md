@@ -66,8 +66,9 @@ a civic quiz containing only tax questions would leave much of civic life out.
   outcomes and updating authors' proposal limits. This first stage has been
   implemented and checked; its numerical settings remain experimental.
 - **In development:** connecting that process across computers, towards a small
-  experimental network run by independent operators. Network components exist,
-  but the complete review process does not yet run between those computers.
+  experimental network run by independent operators. Network components exist, and
+  the complete review process runs as separate programs on one computer, not yet
+  between computers.
 - **Not yet available:** a public quiz service, automatic assembly of balanced
   quizzes, or a validated measure of what respondents know. This is a research
   prototype, not a system ready for everyday use.

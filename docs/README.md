@@ -11,7 +11,7 @@ and evidence; they are not additional acceptance gates for this path.
 | Document | Responsibility |
 |---|---|
 | [00 — Overview](00-overview.md) | Plain-language explanation and principles |
-| [01 — Decisions](01-decisions.md) | Owner decisions and their chronology; D45–D53 govern the current direction, D54–D63 the Phase 2 network and trial |
+| [01 — Decisions](01-decisions.md) | Owner decisions and their chronology; D45–D53 govern the current direction, D54–D68 the Phase 2 network and trial |
 | [05 — Lifecycle](05-question-lifecycle.md) | Answer-review contract first, separate forecast-and-pilot contract afterwards |
 | [02 — Scoring](02-scoring-engine.md) | Author-index mathematics (§C.1); retained earlier engine and its scoped guarantees |
 | [06 — Threat model](06-threat-model.md) | Current protections, assumptions and accepted risks |
@@ -32,7 +32,7 @@ and evidence; they are not additional acceptance gates for this path.
 | [07 — Assurance](07-verification-and-assurance.md) | Verification methodology |
 | [08 — Audit](08-formal-specification.md) | Dated audit and remediation records, including the added answer-review matrix |
 | [11 — Mutation testing](11-mutation-testing.md) | Scoped test-quality evidence |
-| [12 — Panic audit](12-panic-audit.md) | Scoped panic and fuzzing evidence; not a fuzzing claim for the new decoder |
+| [12 — Panic audit](12-panic-audit.md) | Scoped panic and fuzzing evidence; Phase 2's decoders have had smoke runs only, no campaign |
 
 ## Earlier design and research
 

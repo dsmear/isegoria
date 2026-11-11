@@ -86,16 +86,19 @@ Using performance to assign political weight or authority needs a separate justi
 
 ## Phase 2 network boundary
 
-The node process handles replication, cuts and the beacon, not the answer-review
-lifecycle. Configured with tiers, it serves a peer outside the circle the public tier
-only, its binding checked against the peer's authenticated transport key (T77, tested on
-loopback); without tiers it still serves its whole set to any connected peer. The blind
-relay channel exists (T85's first increment, tested on loopback) but a node process admits
-no event through it before T79; the state tree's primitives exist (T86's first increment,
-synthetic records) but no node produces or reads a tree, and relays still write in a
-network without tiers: run such a network only among machines its operator
-controls. Draft and panel privacy, unlinkability by network address and the private fork
-path are design obligations, not protections the runtime already provides.
+The node process handles replication, cuts and the beacon; a tiered member also runs the
+answer review on the signed cuts (T79, `05` §Built in the node). Configured with tiers, it
+serves a peer outside the circle the public tier only, its binding checked against the
+peer's authenticated transport key (T77, tested on loopback); without tiers it still
+serves its whole set to any connected peer. The blind relay channel exists (T85's first
+increment, tested on loopback), and a member's gateway admits persons' answer-review
+events and answers their private reads through it (T79's third increment), run end to end
+only under one operator on one machine (`05` §Gate 1 on one machine); the state tree's
+primitives exist (T86's first increment, synthetic records) but no node produces or reads
+a tree, and relays still write in a network without tiers: run such a network only among
+machines its operator controls. Draft and panel privacy, unlinkability by network address
+and the private fork path are design obligations, not protections the runtime already
+provides.
 
 D55 targets independently operated experimental nodes; independent administration
 does not make the present cut protocol Byzantine-tolerant. Its agreement argument
@@ -116,7 +119,7 @@ Whoever issues credentials can fill the reviewers' pool and steer the groups: be
 single-key test issuer alone (`01` D60), at gate 3 any `t` members of the issuing committee
 (`01` D61, D63).
 
-Decisions are in [01, D54–D63](01-decisions.md). Network contracts and residual limits
+Decisions are in [01, D54–D68](01-decisions.md). Network contracts and residual limits
 are in [04](04-storage-network.md); the integration contract, approved in D60, in
 [05](05-question-lifecycle.md#distributed-integration-t79--approved-contract-d60).
 [10 §2](10-roadmap.md#phase-2--p2p-network) defines the planned trial; its evidence
