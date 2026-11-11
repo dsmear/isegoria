@@ -109,6 +109,7 @@ pub fn request(config: &Config, args: &[String]) -> Result<String, ConfigError> 
     let dir = spool(&config.data_dir);
     if !dir.is_dir() {
         std::fs::create_dir(&dir).map_err(read)?;
+        crate::sync_dir(&config.data_dir).map_err(read)?;
     }
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -118,8 +119,6 @@ pub fn request(config: &Config, args: &[String]) -> Result<String, ConfigError> 
         .map(|i| format!("{:020}-{label}", nanos + i))
         .find(|name| !dir.join(name).exists() && !dir.join("done").join(name).exists())
         .ok_or(ConfigError::Request)?;
-    let staged = dir.join(format!(".{name}"));
-    std::fs::write(&staged, event.encode()).map_err(read)?;
-    std::fs::rename(&staged, dir.join(&name)).map_err(read)?;
+    crate::production::publish_file(&dir.join(&name), &event.encode()).map_err(read)?;
     Ok(name)
 }

@@ -854,6 +854,35 @@ fn at_t79_21_the_request_flag() {
     }
 }
 
+// A spooled request appears whole under its own name, nothing staged left in the spool; its
+// syncs before the name appears are not observable in process (AT-T79-61).
+#[test]
+fn at_t79_61_a_request_is_spooled_whole() {
+    let f = Fixture::new("spooled-whole");
+    let config = f.config(0);
+    let spool = f.dir(0).join("requests");
+    let mut names = Vec::new();
+    for (args, event) in [
+        (
+            ["close-epoch", "0"],
+            AnswerEvent::RequestCloseEpoch { epoch: 0 },
+        ),
+        (["close", "3"], AnswerEvent::Close { question: 3 }),
+    ] {
+        let args: Vec<String> = args.iter().map(|a| a.to_string()).collect();
+        let name = node::answer::request(&config, &args).unwrap();
+        assert_eq!(std::fs::read(spool.join(&name)).unwrap(), event.encode());
+        names.push(name);
+    }
+    let mut listed: Vec<String> = std::fs::read_dir(&spool)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .collect();
+    listed.sort();
+    names.sort();
+    assert_eq!(listed, names, "only the requests, nothing staged");
+}
+
 // A tiered member runs the hook and configures no `cuts_per_epoch`; a member of a network
 // without a genesis needs one (AT-T79-22).
 #[test]

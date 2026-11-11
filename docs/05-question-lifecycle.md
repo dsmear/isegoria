@@ -396,8 +396,10 @@ left to the implementation:
   ledger's digest right after it, in cut order; computed again from cut 0 at each start.
 - *Operators' commands.* `isegoria-node --request <node.toml> close-commits <q> | close <q> |
   close-epoch <e>` writes the event's encoding (`CloseCommits`, `Close`, `RequestCloseEpoch`) to
-  one file of `data_dir/requests/`, named `<20-digit nanoseconds>-<command>-<n>`, written under a
-  dot name then renamed; it refuses other words or numbers, a configuration that is no tiered
+  one file of `data_dir/requests/`, named `<20-digit nanoseconds>-<command>-<n>`, written and
+  synced in a dot-named stage beside it, then linked under its name and the directory synced, as
+  the archive's outputs are (`production::publish_file`; a new spool directory is synced into
+  `data_dir` first); it refuses other words or numbers, a configuration that is no tiered
   member's and a missing data directory, reads nothing of the running node, takes no lock, and
   checks nothing of the state: the ledger decides whether a request counts (`WrongEpoch`,
   `WrongRound`, `Repeated` are refusals in the state). The duties, once the member writes and its
