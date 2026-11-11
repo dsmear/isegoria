@@ -1,4 +1,4 @@
-# cargo-fuzz targets for the identity decoders (T44). Outside the main workspace on
+# cargo-fuzz targets for the identity decoders (T44, T89). Outside the main workspace on
 # purpose: fuzzing needs a nightly toolchain and libFuzzer. See README.md.
 [package]
 name = "identity-fuzz"
@@ -44,6 +44,34 @@ bench = false
 [[bin]]
 name = "nullifier_proof"
 path = "fuzz_targets/nullifier_proof.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "credential_wire"
+path = "fuzz_targets/credential_wire.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ceremony_flight"
+path = "fuzz_targets/ceremony_flight.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ceremony_state"
+path = "fuzz_targets/ceremony_state.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ceremony_issuance"
+path = "fuzz_targets/ceremony_issuance.rs"
 test = false
 doc = false
 bench = false
