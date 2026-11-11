@@ -428,11 +428,24 @@ impl MemberRole {
         }
         let last = cuts.last();
         let epoch = last.map_or(0, |l| l.epoch + u64::from(l.closes));
-        let objects: Vec<(usize, MemberObject)> = member_objects(replica, c)
-            .map(|(_, o)| (o.member(), o))
+        let fed: Vec<u64> = c
+            .keys()
+            .iter()
+            .map(|k| replica.feed(k.as_bytes()).len() as u64)
             .collect();
+        let objects: Vec<(usize, bool, MemberObject)> = member_objects(replica, c)
+            .map(|(id, o)| {
+                (
+                    o.member(),
+                    fed.get(o.member()).is_some_and(|n| id.seq < *n),
+                    o,
+                )
+            })
+            .collect();
+        // A beacon message counts as held only on its writer's unbroken feed, where a cut can
+        // count it.
         let has = |who: usize, f: &dyn Fn(&MemberObject) -> bool| {
-            objects.iter().any(|(m, o)| *m == who && f(o))
+            objects.iter().any(|(m, on, o)| *m == who && *on && f(o))
         };
         let committed = |who: usize, e: u64| {
             has(
@@ -522,7 +535,7 @@ impl MemberRole {
         }
         let mut views: Vec<u64> = objects
             .iter()
-            .filter_map(|(_, o)| match o {
+            .filter_map(|(_, _, o)| match o {
                 MemberObject::CutSignature { cut, view: v, .. } if cut.number == next => Some(*v),
                 _ => None,
             })

@@ -396,6 +396,9 @@ left to the implementation:
 - *The duties.* `MemberRole::duties_with` takes the hook: a proposer's `closes` is the hook's,
   and every signature the duties give, proposal or co-signature, in any view, needs `may_sign`,
   which holds only once the ledger has applied the cut before it. `patience` is unchanged for the trial (`01` D64).
+  A proposer waiting for commits or reveals counts one only on its writer's unbroken feed, the
+  part a cut can count: one held past a missing entry is still awaited (AT-NET-17,
+  `member_duties.rs`).
 - *The digest in the status.* `digest <cut number> <hex>` for each closing cut applied, the
   ledger's digest right after it, in cut order; computed again from cut 0 at each start.
 - *Operators' commands.* `isegoria-node --request <node.toml> close-commits <q> | close <q> |
