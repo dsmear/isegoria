@@ -151,10 +151,10 @@ F1–F4 are worth reporting upstream.
 
 ## 4. Fuzz targets
 
-Thirty-three `cargo fuzz` targets, in
+Thirty-four `cargo fuzz` targets, in
 `crates/{network,identity,scoring,protocol,p2p,ceremony,client}/fuzz/` (outside the workspace:
 libFuzzer needs nightly); the eight marked *new* have had only their first smoke runs (2026-11-11,
-below), as have the five of the read path (likewise). Each
+below), as have the five of the read path and `protocol/answer_cuts` (likewise). Each
 README says how to run them. Besides "no panic, no abort, bounded memory", each asserts a property
 of its entry point:
 
@@ -193,6 +193,7 @@ of its entry point:
 | `client/read_reply` (T89, *new*) | `client::read::Opener::open` of a status, a reviewer's and an author's read: arbitrary sealed bytes, arbitrary or genuine replies with a window overwritten sealed to the read's key; `read::render` of what opens | a reply opens only under its own read's key, exactly when it decodes as a reply of that read's kind; it prints one line per fact |
 | `client/listed` (T89, *new*) | `client::event::{announcement, relay}` of arbitrary text, or a member's configuration in hex or the listed relay's address with a window overwritten | a member's own configuration and the listed relay's address are taken; nothing else but a member's signed configuration with its genesis key, spelled as `hex` prints it, or an address ending in the listed relay's peer id |
 | `identity/ceremony_combine` (T89, *new*) | `credential::ceremony::combine`, as `isegoria-client --combine` calls it, of up to eight shares decoded from genuine shares of either slot, genuine ones with a window overwritten, or arbitrary bytes, for either slot's pending state | the genuine set combines in any order; a repeated, partial or other slot's set of genuine shares does not; a combined credential verifies and is the genuine one |
+| `protocol/answer_cuts` (T89, *new*) | `AnswerLedger::apply_in_view`, as `node::answer::AnswerHook::apply` calls it, over four members' feeds (`t = 3`): genuine joins, deposits, commits, reveals, closure requests and beacon objects of two questions and three epochs, a deposit past `MAX_QUESTION`, the same with a window overwritten, and arbitrary objects, on any member's public or circle feed or a second branch of it; cuts as `Cut::next` proposes them or with the number, epoch, closing flag or a mark altered, or a mark moved to a shorter chain or the other branch of a feed, signed by any members in the view or the next, with a signature altered, repeated or put under another member's index; from the start or after a prefix of one question's genuine review | a cut is refused as out of sequence, else as unsigned (fewer than `t` valid signatures of members the ledger does not exclude), else by the members' checks, else by `added`, and a refused cut leaves the digest, the last cut and the refusals as they were; the proposal as `Cut::next` made it, signed by `t`, applies; the next cut's number and epoch are the cuts and the closing cuts applied; an applied cut reports the entries `added` names, in order, and its seal; a member object counts only on its member's public feed, an event only on a circle feed and never a derived one; every refusal is recorded; a fresh ledger given the applied cuts again, over the replica as it ended, has the same digest, state and refusals |
 
 Two crates expose private code under `--cfg fuzzing` (set by cargo-fuzz); normal builds do
 not contain it: `ThresholdOprfOracle::fuzz_label_with_quorum`, and `p2p::fuzz` (the gateway's
@@ -220,7 +221,7 @@ archiving outside it:
 | an opened request's body on `…/read` or `…/event`, and the answer to it | `blind::respond` (`read_request`'s path, then the hook's `read` through `blind::read_answer`, or its `admit`; `ReadAnswer::to_http`, `Answer::to_http`) | a member's gateway, its node's hook reading and admitting (`node::answer::AnswerHook`) | `p2p/gateway_read` (*new*), with a fake hook; what the node's hook calls has the two targets below |
 | object and shard requests | `discovery::serve`, `archive::Store::serve`, through `ObjectCodec` and `ShardCodec` | a tiered node, unless `discovery_and_archive = false` turns both protocols and Kademlia off (`04` §A node process, built per `01` D64), as a trial node can; the archive store is empty in the trial | `p2p/serve` |
 | the genesis document, its answer configuration and issuer key | `network::genesis::Genesis::decode`, `AnswerConfig::decode`, `IssuerPublic::decode` (`node::genesis::load`; the client's `Network::decode`, the same decoders) | every node, `--genesis-digest`, and the client | `protocol/genesis` |
-| answer-review events, and the nullifier proof in them | `protocol::answer_events::AnswerEvent::decode`, `NullifierProof::decode` | a member's node, applying each collected cut (the hook, `node::answer`) | `protocol/answer_event`, `identity/nullifier_proof` |
+| answer-review events, and the nullifier proof in them | `protocol::answer_events::AnswerEvent::decode`, `NullifierProof::decode` | a member's node, applying each collected cut (the hook, `node::answer`) | `protocol/answer_event`, `identity/nullifier_proof`; their application to the ledger, `protocol/answer_cuts` |
 | a person's event, before it is logged | `protocol::answer_gateway::admit` (`AnswerEvent::decode`, the proof's check) | a member's gateway, through its node's hook (`AnswerHook::admit`) | `protocol/answer_gateway` (*new*) |
 | read requests, the replies, and their inner seal | `protocol::answer_read::{ReadRequest, Reply}::decode`, `answer_read::answer`; `answer_seal::seal` to the request's key, `ResponseKey::open` | a member's gateway on `…/read`, through its node's hook (`AnswerHook::read`); the client, opening the reply (`client::read::Opener::open`, then `read::render`) | `protocol/answer_read`, `protocol/answer_seal` (*new*), `client/read_reply` (*new*) |
 | the credential's private encodings | `identity::credential::{IssuanceRequest, BlindSignature, PendingIssuance, AnonymousCredential}::decode` | the test issuer (a request), the person (its reply: `isegoria-client --finalize`, `BlindSignature::decode`, then the finalization and its check), each by files from the other's machine (`isegoria-test-issuer`, `05` §Distributed integration); the pending state and the credential are the person's own files | `identity/credential_wire` (*new*) |
@@ -252,9 +253,10 @@ of them, and they are outside D62's perimeter (`01` D64). The object and shard *
 only by `discovery::fetch`, `archive::fetch` and archive maintenance, which no trial node
 runs; the archive files of the offline tools (`SignedManifest`, `Segment`, the certificates)
 are outside the trial (`04` §Archives and holders in the trial). The node's own files are
-written by itself (`network/store` covers its log and object store). **Still to cover**: the
-hook's application of collected cuts to `AnswerLedger` (`AnswerLedger::apply_in_view` over
-hostile replicated entries; its decoders have targets, the application has none). The gateway
+written by itself (`network/store` covers its log and object store). The hook's application
+of collected cuts to `AnswerLedger` has `protocol/answer_cuts` (2026-11-11): it calls
+`AnswerLedger::apply_in_view` as `node::answer::AnswerHook::apply` does, without `node`'s hook
+or `p2p`'s collector around it. The gateway
 with the node's own hook is covered in parts: `p2p/gateway_read` up to a fake hook, and the
 node's hook's calls by `protocol/answer_gateway` and `protocol/answer_read`; no target reaches an
 admitted event's logging on the circle feed (the running node's `answer` in `p2p`), whose bytes
@@ -344,6 +346,18 @@ the changed code (`cb9260a`, 60 s each, no crash): `identity/ceremony_flight` 58
 | `client/read_reply` | `0e3b847` | 60 s | 56 931 | 0 |
 | `client/listed` | `0e3b847` | 60 s | 801 657 | 0 |
 | `identity/ceremony_combine` | `0e3b847` | 60 s | 20 499 | 0 |
+
+**The cuts' application's run** (2026-11-11) is a smoke run of the same kind, authorized by the
+owner, on another machine than the runs above: `-max_total_time=60`, Linux on x86_64,
+`rustc 1.101.0-nightly (8d1a76430 2026-10-06)`, `cargo-fuzz` 0.13.2, libFuzzer with
+AddressSanitizer, one process, 2 GiB RSS limit, from an empty corpus. No crash.
+
+| Target | Code | Duration | Executions | Crashes |
+|---|---|---:|---:|---:|
+| `protocol/answer_cuts` | `2e67808` | 60 s | 446 | 0 |
+
+An execution verifies every proof it applies twice, the replay included, and a run starts with
+one whole review, so the count is low; a campaign belongs on the owner's machine.
 
 Two hex spellings accepted were noted in T89's fuzzing work, neither a crash, and fixed after
 these runs, each with its failing test first:

@@ -13,6 +13,7 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 curve25519-dalek = "4"
+ed25519-dalek = "2"
 identity = { path = "../../identity" }
 network = { path = "../../network" }
 protocol = { path = ".." }
@@ -58,6 +59,13 @@ bench = false
 [[bin]]
 name = "answer_seal"
 path = "fuzz_targets/answer_seal.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "answer_cuts"
+path = "fuzz_targets/answer_cuts.rs"
 test = false
 doc = false
 bench = false
