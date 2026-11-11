@@ -611,7 +611,10 @@ no node links the issuer's key. Timing: `every_ms`, `sync_every_ms` and `status_
 each wait at most 90 s. `discovery_and_archive = false` (D64). The members dial each other, the
 relay dials the members. Fourteen credentials, one author and one question, not D60's sizing for
 the trial (about 16, over 3–4 epochs). A `--send` refused on the channel or answered "retry
-later" is sent again, as T79-P7 allows.
+later" is sent again, as T79-P7 allows. A read answers from the cuts its member applied at its
+last period (§Built for participants, *In the gateway*), so before the reviewers' reads after the
+draw and after the closure the run waits until every member's status shows `question 0
+committing`, then `question 0 closed`.
 
 *Evidence (owner, 2026-11-11: in two directories).* The test prints the directory
 `target/tmp/gate1/run-<pid>/evidence/`. `shared/` holds only what the trial's shared evidence
