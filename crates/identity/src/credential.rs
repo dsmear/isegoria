@@ -759,6 +759,8 @@ fn setup_base_ot<const KEY_SIZE: u16>(
     base_ots.into_iter().map(|b| b.finish()).collect()
 }
 
+pub mod ceremony;
+
 #[cfg(test)]
 mod ceremony_spike;
 
