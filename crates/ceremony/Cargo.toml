@@ -1,0 +1,32 @@
+[package]
+name = "ceremony"
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "The issuing committee's ceremony tool, apart from the node process: files carried by hand, one step per invocation. See docs/03 §Committee setup for the trial."
+
+[[bin]]
+name = "isegoria-ceremony"
+path = "src/main.rs"
+
+[dependencies]
+identity = { path = "../identity" }
+# The encoding and tagged hash the other formats use (docs/04 §Events and replay).
+network = { path = "../network" }
+ed25519-dalek = "2"
+# X25519 keys checked for low order, as the genesis's (docs/04 T88-P1).
+curve25519-dalek = "4"
+# RFC 9180 base mode, the suite of the members' OHTTP keys (docs/03 T19-P3).
+hpke = { version = "=0.14.1", default-features = false, features = ["alloc", "getrandom", "x25519", "aes"] }
+getrandom = "0.2"
+sha2 = "0.10"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+# `--new-identity`'s key files and `--genesis-assemble`, the tool's inputs and output's user.
+[dev-dependencies]
+node = { path = "../node" }
