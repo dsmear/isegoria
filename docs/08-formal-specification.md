@@ -1396,6 +1396,7 @@ and the scoped composed/numerical integration evidence are specified only in `16
 | AT-T79-20 ✓ | the digest in the status (D60) | digests, a refused cut and requests rendered; altered lines | read back as written; malformed or unordered lines refused — `answer_node.rs`, `config.rs` | G-22 |
 | AT-T79-21 ✓ | operators' closure commands (T79-P5, D60) | `close-commits`, `close` and `close-epoch` spooled; other words, numbers and arities; a configuration with no member, one without its data directory; the `--request` flag | each file holds its event's encoding; the rest refused, writing nothing; the flag prints the name or exits 2 — `answer_node.rs` | G-22 |
 | AT-T79-22 ✓ | closures by requests only (T79-P5) | a proposer with `cuts_per_epoch` 1 and the hook; two members' requests in cut 1; a tiered `[member]` setting `cuts_per_epoch` | cut 0 not closing (closing without the hook), cut 2 closing; the configuration refused `CutsPerEpoch` — `answer_node.rs` | G-22 |
+| AT-T79-33 ✓ | a repeated operator request (T79-P5, D60) | `close-commits 0` spooled twice by one member; then one executed file moved back to the spool before a restart | two circle entries, two distinct `seq`s in the status; after the restart nothing logged again and the same requests listed — `answer_node.rs`, in-process on loopback | G-22 |
 
 ---
 

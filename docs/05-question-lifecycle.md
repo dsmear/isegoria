@@ -371,9 +371,12 @@ left to the implementation:
   member's and a missing data directory, reads nothing of the running node, takes no lock, and
   checks nothing of the state: the ledger decides whether a request counts (`WrongEpoch`,
   `WrongRound`, `Repeated` are refusals in the state). The duties, once the member writes and its
-  circle feed caught up, log each file in name order on the circle feed — bytes the feed already
-  holds are not signed again — then move it to `requests/done/`. The status lists each executed
-  request as `request <name> <seq>`, its circle entry, rebuilt at a start from `done/`. The spool
+  circle feed caught up, log each file in name order on the circle feed, then move it to
+  `requests/done/`. A request repeated by its operator is logged again, as a refused one may
+  need to be; a pending file whose bytes the feed holds once more than `done/` does, logged
+  before a stop that left it unmoved, is not (AT-T79-33). The status lists each executed request
+  as `request <name> <seq>`, its circle entry — the `k`-th executed file with given bytes the
+  `k`-th entry holding them — rebuilt at a start from `done/`. The spool
   reads files up to 4 KiB whose names start with no dot, and logs their bytes as they are.
 
 *Evidence:* `node/tests/answer_node.rs` (AT-T79-17–22, `08` §12), on loopback in process; the
