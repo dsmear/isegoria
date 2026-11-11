@@ -345,7 +345,7 @@ fn at_id_20_a_different_confirmation_aborts() {
         refused,
         Error::Refused(Some(other), Refusal::Confirmation(1))
     );
-    let list = forged(&c, &inbox[1], 2, 0, |p| *p.last_mut().unwrap() ^= 1);
+    let list = forged(&c, &inbox[1], 2, 0, |p| p[97 + 32 + 3] ^= 1);
     let list = write(&c.root, "list", &list);
     let copy2 = c.root.join("copy2");
     copy_dir(&c.dir("a", 0), &copy2);
@@ -405,6 +405,27 @@ fn at_id_25_a_step_run_again_writes_the_same_files() {
     let incomplete = ceremony::step(&c.dir("b", 0), &c.identities[0], &[]);
     assert_eq!(incomplete, Err(Error::Incomplete(vec![1, 2, 3])));
     assert_eq!(std::fs::read(opened).unwrap(), bytes);
+}
+
+// A confirmation echoing other commitments aborts the member that takes it (AT-ID-28).
+#[test]
+fn at_id_28_a_confirmation_echoing_other_commitments_aborts() {
+    let c = Committee::new("echo", &SLOTS);
+    c.run("a", FINISH - 1);
+    let inbox = c.inbox("a", FINISH - 1, 0);
+    for (at, from, file) in [(140, 1, 0), (140, 2, 1), (170, 3, 2)] {
+        let copy = c.root.join(format!("copy-{at}-{from}"));
+        copy_dir(&c.dir("a", 0), &copy);
+        let other = forged(&c, &inbox[file], from, 0, |p| p[at] ^= 1);
+        let other = write(&c.root, &format!("other-{at}-{from}"), &other);
+        let mut files = inbox.clone();
+        files[file] = other.clone();
+        let refused = ceremony::step(&copy, &c.identities[0], &files).unwrap_err();
+        let why = Refusal::Confirmation(from as u8);
+        assert_eq!(refused, Error::Refused(Some(other), why));
+    }
+    let reports = c.step_all("a", FINISH);
+    assert!(reports.iter().all(|r| r.issuer.is_some()));
 }
 
 // An aborted member runs nothing more and holds no party; a new ceremony has a new id (AT-ID-23).

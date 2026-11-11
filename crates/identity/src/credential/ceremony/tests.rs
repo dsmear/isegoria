@@ -1,4 +1,5 @@
 use super::*;
+use ark_ec::CurveGroup;
 
 const N: u16 = 4;
 const T: u16 = 3;
@@ -177,6 +178,42 @@ fn at_id_27_a_contribution_of_another_degree_is_refused() {
             "{len}"
         );
     }
+}
+
+// Other commitments sent to one member pass the library but not the echoes (AT-ID-28).
+#[test]
+fn at_id_28_an_equivocated_contribution_shows_in_the_echoes() {
+    let honest = prepared();
+    for q in &honest {
+        assert!((0..N).all(|j| q.agrees(j, &honest[usize::from(j)].echo())));
+    }
+    let mut p = parties(ID);
+    let (mut inbox, _) = run_to(&mut p, 2);
+    let delta = Fr::from(7u64);
+    let mut msg: Round1Msg<G2Affine> = strict(&inbox[&0][&3]).unwrap();
+    msg.comm_coeffs.0[1] = (params().g2 * delta + msg.comm_coeffs.0[1]).into_affine();
+    inbox.get_mut(&0).unwrap().insert(3, encoded(&msg));
+    flight(&mut p, &mut inbox);
+    let mut share: Share<Fr> = strict(&inbox[&0][&3]).unwrap();
+    share.share += delta;
+    inbox.get_mut(&0).unwrap().insert(3, encoded(&share));
+    for _ in 4..=FLIGHTS {
+        flight(&mut p, &mut inbox);
+    }
+    let issuer = p[0].issuer().unwrap().encode();
+    assert!(p
+        .iter()
+        .all(|q| q.is_prepared() && q.issuer().unwrap().encode() == issuer));
+    assert_eq!(issue(&p, &SIGNERS, 5).unwrap_err(), CombineError::Signature);
+    for j in 1..N {
+        assert!(!p[0].agrees(j, &p[usize::from(j)].echo()));
+        assert!(!p[usize::from(j)].agrees(0, &p[0].echo()));
+    }
+    assert!(p[2].agrees(3, &p[3].echo()) && p[1].agrees(2, &p[2].echo()));
+    let mut other = p[3].echo();
+    assert_eq!((other.len(), p[1].echo().len()), (64, 32));
+    other[40] ^= 1;
+    assert!(!p[2].agrees(3, &other) && p[1].agrees(3, &other));
 }
 
 // The state has one encoding: truncations, a trailing byte, another version refused (AT-ID-19).

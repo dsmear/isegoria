@@ -286,7 +286,7 @@ holder's verification do.
 to continue without every member's contribution and every expected message; the base OT's
 generator is derived by hashing a fixed label, the same for every ceremony.
 
-*Built (2026-11-11; tests AT-ID-15–27 written, not yet run).* One member's side is
+*Built (2026-11-11; tests AT-ID-15–28 written, not yet run).* One member's side is
 `identity::credential::ceremony`, **bespoke** and unreviewed: `Setup` (members, threshold,
 named signers, slots), and `Party::advance`, which takes flight `k − 1`'s payloads by sender
 and gives flight `k`'s (2 to 12; at 13 it finishes the prepared signatures). A missing payload
@@ -334,7 +334,12 @@ over the count (8 bytes) and the slots (4 each); the id under `isegoria/ceremony
 and `n` (8 bytes each), each member's consortium then HPKE key, the slots' digest and each
 member's fresh value; step 1's messages carry, in the id's place, the same fields but the fresh
 values under `isegoria/ceremony/opening/v1`. The confirmation (step 13) is the issuer key's 97
-bytes, the slots' digest, the signers' count and indices. A request is version 1, the slot (4
+bytes, the slots' digest, the signers' count and indices, then the echo: the key generation's
+digest and, from a signer, phase 1's. Each is SHA-256 over the tag's length (8 bytes), the tag,
+and the compressed arkworks encoding of a map from participant id (member index + 1) to what
+that member committed to, as this member received it, its own included: under
+`isegoria/ceremony/echo/keygen/v1` every member's coefficient commitments (flight 2), under
+`isegoria/ceremony/echo/phase1/v1` every signer's coin-toss commitments of phase 1 (flight 9). A request is version 1, the slot (4
 bytes), the commitment, the proof's `t` and its response; a share is version 1, the slot, the
 library's share; each object is an 8-byte length and its compressed arkworks encoding. A slot's
 label is its number's 4 bytes, little-endian, then 28 zero bytes.
@@ -344,7 +349,8 @@ member that sends this member a message in that step, is left unread and reporte
 <file>`), to be given again at its step: D57's reordering does not abort (at step 2 its id, not yet
 known, is checked at its step). One that fails its decoding, seal, signature, recipient, sender,
 id or step (an earlier step's, not the file taken there), a second message from one sender, the library's
-check, or a confirmation unlike the member's own aborts: the state keeps `aborted`, the party
+check, or a confirmation unlike the member's own — its echo too, phase 1's compared only between
+two signers — aborts: the state keeps `aborted`, the party
 with its share dropped, and every later command is refused. A step lacking a message reports the
 members missing and changes nothing. A step keeps its messages, sealed, in the state it saves
 before writing any of them to `out/`; every `step` first writes those of the previous step that
@@ -372,7 +378,15 @@ confirmation carries them, so two members that name different signers do not fin
 request is given the recorded share's bytes, not a share computed again. Non-signers run steps
 10 to 12 with no message, so every member counts the same steps. A step's outputs are made
 reproducible by keeping its sealed messages, not a seed for its randomness: a seed would also
-serve other inputs given to the step again.
+serve other inputs given to the step again. The echo closes a gap the libraries leave, a
+**bespoke** check: `frost_dkg` (FROST's Figure 1) and phase 1's coin toss assume each member's
+commitments broadcast, but the tool sends them point to point, so a member could keep its
+`C_0` (its proof still verifying) and send one member other coefficient commitments with a
+matching share — every check passes and every member confirms the same key, while the signers
+hold an inconsistent sharing (a combination fails with `Signature`, and the member knows the
+offset). Each member confirming what it received, and finishing only on every confirmation's
+equal echo, makes the point-to-point sends an echo broadcast; the pairwise messages (the
+shares, the base OT, phase 1's zero sharing, phase 2) need none.
 
 *Built (2026-11-11, tests AT-T79-42 and AT-T79-44 written, not yet run).* The participant's side
 in `isegoria-client` (`05` §Built for participants): `--slot-request` writes its fresh secret's

@@ -423,7 +423,8 @@ fn write_outbox(dir: &Path, state: &State) -> Result<Vec<PathBuf>, Error> {
     Ok(sent)
 }
 
-/// The confirmation (step 13): the issuer key's 97 bytes, the slots' digest, the signers.
+/// The confirmation (step 13): the issuer key's 97 bytes, the slots' digest, the signers, then
+/// the party's echo.
 fn confirmation(party: &Party, procedure: &Procedure) -> Result<Vec<u8>, Error> {
     let mut out = party.issuer().ok_or(Error::Internal)?.encode();
     out.extend_from_slice(&procedure.slots_digest());
@@ -431,7 +432,16 @@ fn confirmation(party: &Party, procedure: &Procedure) -> Result<Vec<u8>, Error> 
     for &s in &procedure.signers {
         out.push(u8::try_from(s).map_err(|_| Error::Internal)?);
     }
+    out.extend_from_slice(&party.echo());
     Ok(out)
+}
+
+/// Whether member `j`'s confirmation `theirs` matches `own`, this member's, echo included.
+fn confirms(party: &Party, own: &[u8], j: u16, theirs: &[u8]) -> bool {
+    let common = own.len() - party.echo().len();
+    theirs.len() >= common
+        && theirs[..common] == own[..common]
+        && party.agrees(j, &theirs[common..])
 }
 
 /// Step 1: a new directory `dir` for the member whose keys are in `identity`, its fresh value
@@ -614,7 +624,8 @@ pub fn step(dir: &Path, identity: &Path, files: &[PathBuf]) -> Result<Report, Er
         FINISH => {
             let party = state.party.as_ref().ok_or(Error::State)?;
             let own = confirmation(party, &state.procedure)?;
-            if let Some((&j, _)) = received.iter().find(|(_, payload)| **payload != own) {
+            let differs = |(&j, theirs): &(&u16, &Vec<u8>)| !confirms(party, &own, j, theirs);
+            if let Some((&j, _)) = received.iter().find(differs) {
                 let file = paths.get(&j).map(PathBuf::as_path);
                 return Err(refuse(dir, state, file, Refusal::Confirmation(j as u8)));
             }
