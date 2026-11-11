@@ -477,13 +477,18 @@ the node's replica. The choices the contract left to the implementation:
 - *In the gateway* (`04` §Blind relays). A hooked member's gateway admits a person's event on
   `…/event` by `Hook::admit` in place of its own admission, then logs it as before and answers
   with its receipt `(writer, seq, hash)`; refused bytes get 403 and are not logged. A read is
-  posted on `…/read` (`blind::read_path`, `blind::seal_read`): the gateway applies the cuts its
-  collector holds, hands the request's bytes to `Hook::read` with its replica, logs nothing, and
-  answers 200 whose body is the hook's sealed reply; where the hook gives none — a request that
+  posted on `…/read` (`blind::read_path`, `blind::seal_read`): the gateway hands the request's
+  bytes to `Hook::read` with its replica, logs nothing, and answers 200 whose body is the hook's
+  sealed reply; where the hook gives none — a request that
   does not decode or whose proof fails — it answers 403, the refusal an event gets, so a failed
   proof and an undecodable request look alike. `Sealed::open_read` gives the client a
   `blind::ReadAnswer`: the sealed reply, or the answer without one. A node without a hook
-  answers every read 403. Relays forward reads as events, unchanged, by key id.
+  answers every read 403. Relays forward reads as events, unchanged, by key id. A read collects
+  and applies no cut: it reflects the cuts the node applied at its last period, at its duties'
+  tick or its status (*Following the cuts*, §Built in the node), so a cut collected since is
+  answered after the next one (AT-T79-60). *Residual:* OHTTP has no replay guard (`04` T85-P5),
+  so a replayed valid read still costs its gateway one proof verification and, for a status, a
+  scan of the replica's circle entries.
 
 *Evidence:* `protocol/tests/answer_participants.rs` (AT-T79-23–28), the unit tests of
 `answer_seal` (AT-T79-29) and `answer_ledger` (AT-T79-15, AT-T79-28); the wiring in

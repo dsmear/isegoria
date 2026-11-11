@@ -221,15 +221,20 @@ async fn hooked_net(root: &Path, members: usize) -> Net {
 }
 
 async fn net_of(root: &Path, members: usize, on: bool, hook: Option<Hooked>) -> Net {
+    let config0 = Config {
+        hook,
+        ..member_config(0, &root.join("0"))
+    };
+    net_from(root, members, on, config0).await
+}
+
+/// As [`net_of`], member 0 started from `config0`.
+async fn net_from(root: &Path, members: usize, on: bool, config0: Config) -> Net {
     let set = |config| Config {
         discovery_and_archive: on,
         ..config
     };
-    let config0 = Config {
-        hook,
-        ..set(member_config(0, &root.join("0")))
-    };
-    let (m0, member0) = start(transport(0), config0).await;
+    let (m0, member0) = start(transport(0), set(config0)).await;
     let mut handles = vec![m0];
     let mut addresses = vec![member0.clone()];
     for i in 1..members {
@@ -1619,4 +1624,77 @@ async fn at_t79_39_the_hook_admits_events_and_refuses_reads() {
         refused
     );
     assert_eq!(circle_len(&plain.members[0], 0).await, 0);
+}
+
+/// A hook counting the cuts it applied, replying to every read with that count.
+struct Counting(Arc<AtomicU64>);
+
+impl Hook for Counting {
+    fn apply(
+        &mut self,
+        _: &Replica,
+        _: &Cut,
+        _: u64,
+        _: &[(usize, Signature)],
+    ) -> Result<Option<[u8; 32]>, String> {
+        self.0.fetch_add(1, Ordering::SeqCst);
+        Ok(None)
+    }
+
+    fn may_sign(&self, _: &Cut) -> bool {
+        true
+    }
+
+    fn closes(&self) -> bool {
+        false
+    }
+
+    fn read(&self, _: &Replica, _: &[u8]) -> Option<Vec<u8>> {
+        Some(self.0.load(Ordering::SeqCst).to_le_bytes().to_vec())
+    }
+}
+
+/// AT-T79-60: a read applies no cut: it answers from the cuts its gateway applied at its last
+/// period, and after a new cut from that cut once a period has passed.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_60_a_read_answers_from_the_last_period() {
+    for every in [Duration::from_secs(3600), Duration::from_millis(150)] {
+        let root = scratch("read-period");
+        let applied = Arc::new(AtomicU64::new(0));
+        let mut config0 = member_config(0, &root.join("0"));
+        config0.hook = Some(Hooked {
+            hook: Box::new(Counting(applied.clone())),
+            spool: root.join("spool"),
+        });
+        config0.member.as_mut().unwrap().every = every;
+        let n = net_from(&root, 3, true, config0).await;
+        let consortium = Consortium::new(members().iter().map(|m| m.public()).collect(), 2);
+        let held = || async {
+            let replica = n.members[0].replica().await;
+            p2p::member::collected(&replica, &consortium, NET).len() as u64
+        };
+        let count = |answer: Result<ReadAnswer, ClientError>| match answer {
+            Ok(ReadAnswer::Reply(bytes)) => u64::from_le_bytes(bytes.try_into().unwrap()),
+            other => panic!("a count: {other:?}"),
+        };
+        let before = applied.load(Ordering::SeqCst);
+        until("a cut past those applied", || async {
+            held().await > before
+        })
+        .await;
+        let target = held().await;
+        if every > Duration::from_secs(60) {
+            assert_eq!(count(send_read(&n.relay_addr, b"count").await), before);
+            assert_eq!(
+                applied.load(Ordering::SeqCst),
+                before,
+                "the read applied a cut"
+            );
+        } else {
+            until("a read reflects the new cut", || async {
+                count(send_read(&n.relay_addr, b"count").await) >= target
+            })
+            .await;
+        }
+    }
 }

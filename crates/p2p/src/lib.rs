@@ -1655,10 +1655,10 @@ impl Node {
         }
     }
 
-    /// A read's sealed reply from the hook, after the cuts collected so far; logs nothing, and
-    /// answers "not admitted" without a hook or where the hook refuses (`docs/05` T79-P7).
-    fn read(&mut self, request: &[u8]) -> blind::ReadAnswer {
-        self.follow();
+    /// A read's sealed reply from the hook, as of the cuts applied at the last period: it collects
+    /// none, logs nothing, and answers "not admitted" without a hook or where the hook refuses
+    /// (`docs/05` T79-P7, *In the gateway*).
+    fn read(&self, request: &[u8]) -> blind::ReadAnswer {
         let hook = self.hooked.as_ref().map(|h| &*h.hook);
         blind::read_answer(hook, self.store.replica(), request)
     }

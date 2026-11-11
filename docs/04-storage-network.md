@@ -783,8 +783,8 @@ admitted. Persons have no client program: `seal`, `seal_read` and `submit` are a
 `blind::seal_read` beside `event_path` and `seal`; `Sealed::open_read` gives a `ReadAnswer`,
 the sealed reply or an answer without one, and `Sealed::open` refuses a read's reply. A
 gateway whose node runs a hook (`p2p::hook::Hook`) admits by `Hook::admit` in place of its own
-`Admission`, and answers a read on `…/read` with `Hook::read`'s bytes after applying the cuts
-collected so far, logging nothing; `node`'s own `Admission` refuses everything. Relays are
+`Admission`, and answers a read on `…/read` with `Hook::read`'s bytes as of the cuts its node applied at
+its last period, collecting none and logging nothing; `node`'s own `Admission` refuses everything. Relays are
 unchanged: they forward by key id and never see the path. The protocol side and the choices
 are `05` §Built for participants (*In the gateway*). Tests: AT-T79-34–41 (`08` §12), written
 and compiled, not yet run.
