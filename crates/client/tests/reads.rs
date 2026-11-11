@@ -255,9 +255,9 @@ fn at_t79_49_a_reply_opens_only_under_its_key() {
     );
 }
 
-// Sending a read is not wired yet: the client says so and prints nothing (AT-T79-49).
+// A read with no relay listening fails on the channel and prints nothing (AT-T79-49).
 #[test]
-fn at_t79_49_the_read_path_is_not_wired_yet() {
+fn at_t79_49_a_read_without_its_relay_fails() {
     let dir = scratch("unwired");
     let (genesis, net, credential, held) = person(&dir);
     let key = announcement(&net, 0);
@@ -271,7 +271,7 @@ fn at_t79_49_the_read_path_is_not_wired_yet() {
         .build()
         .unwrap();
     let got = runtime.block_on(read::read(&net, &held, &key, relay, &Ask::Author));
-    assert_eq!(got, Err(Error::Unwired("read path not wired yet")));
+    assert!(matches!(got, Err(Error::Channel(_))), "{got:?}");
     let (text, address) = (
         hex(&key.encode()),
         format!("/ip4/127.0.0.1/tcp/4001/p2p/{}", relay_peer()),
@@ -284,7 +284,7 @@ fn at_t79_49_the_read_path_is_not_wired_yet() {
         &address,
         &"author",
     ]));
-    assert!(err.contains("read path not wired yet"), "{err}");
+    assert!(err.contains("Channel"), "{err}");
     let err = refused(&tool(&[
         &"--read",
         &genesis,
@@ -294,7 +294,7 @@ fn at_t79_49_the_read_path_is_not_wired_yet() {
         &"reviewer",
         &"0",
     ]));
-    assert!(err.contains("read path not wired yet"), "{err}");
+    assert!(err.contains("Channel"), "{err}");
     let event_file = dir.join("join.event");
     fs::write(&event_file, event::join(&net, &held).unwrap()).unwrap();
     let err = refused(&tool(&[
@@ -306,7 +306,7 @@ fn at_t79_49_the_read_path_is_not_wired_yet() {
         &"status",
         &event_file,
     ]));
-    assert!(err.contains("read path not wired yet"), "{err}");
+    assert!(err.contains("Channel"), "{err}");
     let err = refused(&tool(&[
         &"--read",
         &genesis,

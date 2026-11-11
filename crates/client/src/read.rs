@@ -6,7 +6,7 @@ use identity::credential::AnonymousCredential;
 use identity::nym::Role;
 use libp2p::Multiaddr;
 use network::cid::cid;
-use p2p::blind::KeyAnnouncement;
+use p2p::blind::{seal_read, submit, KeyAnnouncement, ReadAnswer};
 use protocol::answer_events::AnswerEvent;
 use protocol::answer_read::{
     Assigned, Authored, EventStatus, Phase, Read, ReadRequest, Reply, ReviewPhase,
@@ -85,16 +85,22 @@ impl Opener {
     }
 }
 
-/// NOT WIRED: the read's sealed reply, `request` sealed to `key` and sent through `relay`; it
-/// waits for `p2p::blind::{read_path, seal_read}` (`docs/05` T79-P7) and refuses until then.
+/// The read's sealed reply: `request` sealed to `key` on `…/read` and sent through `relay`;
+/// `NoReply` with the gateway's other answer (`docs/05` T79-P7).
 pub async fn send_read(
     net: &Network,
     key: &KeyAnnouncement,
     relay: Multiaddr,
     request: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    let _ = (net, key, relay, request);
-    Err(Error::Unwired("read path not wired yet"))
+    let sealed = seal_read(&net.tiers, key, request).map_err(Error::Channel)?;
+    let carried = submit(relay, sealed.request.clone())
+        .await
+        .map_err(Error::Channel)?;
+    match sealed.open_read(&carried).map_err(Error::Channel)? {
+        ReadAnswer::Reply(bytes) => Ok(bytes),
+        ReadAnswer::Answer(answer) => Err(Error::NoReply(answer)),
+    }
 }
 
 /// One read: its request sent through `relay` to `key`'s member, and the reply opened.

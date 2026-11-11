@@ -34,7 +34,8 @@ pub enum Error {
     NotLogged(Answer),
     /// The sealed reply does not open under the request's key, or answers another read.
     Reply,
-    Unwired(&'static str),
+    /// The gateway answered the read with no reply (a refused proof, another network).
+    NoReply(Answer),
 }
 
 /// The bound on a credential, issuance or commit file: the largest is a few hundred bytes.

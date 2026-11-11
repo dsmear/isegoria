@@ -533,9 +533,9 @@ it (`Unverified` otherwise). No command asks for or writes a name or an attribut
   pending | applied [question <q>] | refused <reason>`; `question none` or `question`, `phase`,
   `committed`, `revealed`, `context`, `stem`, `alternative` lines, texts quoted and escaped;
   `reputation`, `quota`, then `question <q> <phase>` with a closed question's verdict and
-  observation). *Not wired:* sending a read needs `p2p::blind::{read_path, seal_read}`, not on
-  this branch; `client::read::send_read`, the one function that seals and submits a read, refuses
-  with "read path not wired yet" until they are combined.
+  observation). `client::read::send_read` seals the request on `…/read` (`p2p::blind::seal_read`),
+  submits it through the relay and opens the gateway's answer (`Sealed::open_read`): a 200's body
+  is the sealed reply, any other answer the error `NoReply` with it.
 
 *Evidence:* `client/tests/` (`credentials.rs`, `events.rs`, `reads.rs`) and `test-issuer/tests/
 files.rs` (AT-T79-42–49, `08` §12); not yet run. Not over a relay on loopback: no test sends an
