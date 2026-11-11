@@ -70,13 +70,15 @@ pub enum Error {
     Answer(AnswerError),
     /// The share's output file already exists.
     Exists,
+    /// This step's message file exists already: the state is older than `out/`; nothing changed.
+    Written(PathBuf),
 }
 
 /// Why a message or a step aborts the ceremony (`docs/03` T19-P3, P6).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Refusal {
     Message(MessageError),
-    /// Of another ceremony, or of a step other than the one this step takes.
+    /// Of another ceremony, or of an earlier step and not the file it took.
     Id,
     Step(u8),
     /// A second, different message from one sender in one step, or one the step does not take.
@@ -105,6 +107,8 @@ struct State {
     id: Option<[u8; 32]>,
     party: Option<Party>,
     accepted: Vec<[u8; 32]>,
+    /// The previous step's sealed messages by recipient, kept until the next step.
+    outbox: Vec<(u8, Vec<u8>)>,
 }
 
 impl State {
@@ -124,6 +128,10 @@ impl State {
         w.u64(self.accepted.len() as u64);
         for digest in &self.accepted {
             w.fixed(digest);
+        }
+        w.u64(self.outbox.len() as u64);
+        for (to, bytes) in &self.outbox {
+            w.u8(*to).field(bytes);
         }
         w.finish()
     }
@@ -155,7 +163,17 @@ impl State {
         for _ in 0..r.u64().ok()?.min(bytes.len() as u64) {
             accepted.push(r.fixed().ok()?);
         }
+        let mut outbox = Vec::new();
+        for _ in 0..r.u64().ok()?.min(bytes.len() as u64) {
+            outbox.push((r.u8().ok()?, r.field().ok()?.to_vec()));
+        }
         r.finish().ok()?;
+        let to: Vec<u16> = outbox.iter().map(|(j, _)| u16::from(*j)).collect();
+        let sent = match (phase, procedure.setup()) {
+            (Phase::Aborted, _) => to.is_empty(),
+            (_, Some(s)) => s.recipients(step.saturating_sub(1), u16::from(me)) == to,
+            (_, None) => false,
+        };
         let held = party.as_ref().map(|p| (p.me(), p.id(), p.next()));
         let consistent = usize::from(me) < procedure.members.len()
             && match (phase, held) {
@@ -165,7 +183,8 @@ impl State {
                 (Phase::Done, Some(h)) => step == FINISH + 1 && h.2 == FINISH,
                 _ => false,
             }
-            && held.is_none_or(|(m, i, _)| u8::try_from(m) == Ok(me) && Some(i) == id);
+            && held.is_none_or(|(m, i, _)| u8::try_from(m) == Ok(me) && Some(i) == id)
+            && sent;
         let state = State {
             phase,
             me,
@@ -175,6 +194,7 @@ impl State {
             id,
             party,
             accepted,
+            outbox,
         };
         (consistent && state.encode() == bytes).then_some(state)
     }
@@ -319,6 +339,7 @@ fn load(dir: &Path) -> Result<State, Error> {
 fn refuse(dir: &Path, mut state: State, file: Option<&Path>, why: Refusal) -> Error {
     state.phase = Phase::Aborted;
     state.party = None;
+    state.outbox.clear();
     match save(dir, &state) {
         Ok(()) => Error::Refused(file.map(Path::to_path_buf), why),
         Err(e) => e,
@@ -331,12 +352,14 @@ pub struct Report {
     pub step: u8,
     pub id: Option<[u8; 32]>,
     pub sent: Vec<PathBuf>,
+    /// The files given for a later step, left unread for it.
+    pub later: Vec<PathBuf>,
     pub issuer: Option<Vec<u8>>,
 }
 
 impl Report {
-    /// `step <n>`, `ceremony <id>` once known, a `sent <file>` line per file, then after the last
-    /// step `done` and `issuer <hex>`, the value `--genesis-assemble` takes.
+    /// `step <n>`, `ceremony <id>` once known, a `sent <file>` then a `later <file>` line per file,
+    /// then after the last step `done` and `issuer <hex>`, the value `--genesis-assemble` takes.
     pub fn render(&self) -> String {
         let mut out = format!("step {}\n", self.step);
         if let Some(id) = self.id {
@@ -345,6 +368,9 @@ impl Report {
         for path in &self.sent {
             out += &format!("sent {}\n", path.display());
         }
+        for path in &self.later {
+            out += &format!("later {}\n", path.display());
+        }
         if let Some(issuer) = &self.issuer {
             out += &format!("done\nissuer {}\n", hex(issuer));
         }
@@ -352,16 +378,19 @@ impl Report {
     }
 }
 
-fn send(
-    dir: &Path,
+fn message_name(step: u8, from: u8, to: u8) -> String {
+    format!("{step:02}-{from}-{to}.msg")
+}
+
+/// Step `step`'s payloads, each signed and sealed to its recipient, as `out/` holds them.
+fn seal(
     state: &State,
     keys: &MemberKeys,
     step: u8,
     id: [u8; 32],
     outgoing: &[(u16, Vec<u8>)],
-) -> Result<Vec<PathBuf>, Error> {
-    let out = dir.join(OUT);
-    let mut sent = Vec::new();
+) -> Result<Vec<(u8, Vec<u8>)>, Error> {
+    let mut sealed = Vec::new();
     for (to, payload) in outgoing {
         let to = u8::try_from(*to).map_err(|_| Error::Internal)?;
         let header = Header {
@@ -375,14 +404,27 @@ fn send(
         let bytes = bytes.ok_or(Error::Procedure(ProcedureError::Key(format!(
             "member[{to}].hpke"
         ))))?;
-        let name = format!("{step:02}-{}-{to}.msg", state.me);
-        replace(&out, &name, &bytes).map_err(io("message"))?;
+        sealed.push((to, bytes));
+    }
+    Ok(sealed)
+}
+
+/// Writes the files of the state's outbox that `out/` lacks; every one's path, in order.
+fn write_outbox(dir: &Path, state: &State) -> Result<Vec<PathBuf>, Error> {
+    let (out, step) = (dir.join(OUT), state.step.saturating_sub(1));
+    let mut sent = Vec::new();
+    for (to, bytes) in &state.outbox {
+        let name = message_name(step, state.me, *to);
+        if out.join(&name).symlink_metadata().is_err() {
+            replace(&out, &name, bytes).map_err(io("message"))?;
+        }
         sent.push(out.join(name));
     }
     Ok(sent)
 }
 
-/// The confirmation (step 13): the issuer key's 97 bytes, the slots' digest, the signers.
+/// The confirmation (step 13): the issuer key's 97 bytes, the slots' digest, the signers, then
+/// the party's echo.
 fn confirmation(party: &Party, procedure: &Procedure) -> Result<Vec<u8>, Error> {
     let mut out = party.issuer().ok_or(Error::Internal)?.encode();
     out.extend_from_slice(&procedure.slots_digest());
@@ -390,7 +432,16 @@ fn confirmation(party: &Party, procedure: &Procedure) -> Result<Vec<u8>, Error> 
     for &s in &procedure.signers {
         out.push(u8::try_from(s).map_err(|_| Error::Internal)?);
     }
+    out.extend_from_slice(&party.echo());
     Ok(out)
+}
+
+/// Whether member `j`'s confirmation `theirs` matches `own`, this member's, echo included.
+fn confirms(party: &Party, own: &[u8], j: u16, theirs: &[u8]) -> bool {
+    let common = own.len() - party.echo().len();
+    theirs.len() >= common
+        && theirs[..common] == own[..common]
+        && party.agrees(j, &theirs[common..])
 }
 
 /// Step 1: a new directory `dir` for the member whose keys are in `identity`, its fresh value
@@ -412,7 +463,7 @@ pub fn init(procedure: &Path, identity: &Path, dir: &Path) -> Result<Report, Err
         .map(|j| (j, fresh.to_vec()))
         .collect();
     let opening = procedure.opening();
-    let state = State {
+    let mut state = State {
         phase: Phase::Running,
         me,
         step: 2,
@@ -421,9 +472,11 @@ pub fn init(procedure: &Path, identity: &Path, dir: &Path) -> Result<Report, Err
         id: None,
         party: None,
         accepted: Vec::new(),
+        outbox: Vec::new(),
     };
-    let sent = send(dir, &state, &keys, 1, opening, &outgoing)?;
+    state.outbox = seal(&state, &keys, 1, opening, &outgoing)?;
     save(dir, &state)?;
+    let sent = write_outbox(dir, &state)?;
     if let Some(parent) = dir.parent().filter(|p| !p.as_os_str().is_empty()) {
         sync_dir(parent).map_err(io("ceremony directory"))?;
     }
@@ -431,12 +484,14 @@ pub fn init(procedure: &Path, identity: &Path, dir: &Path) -> Result<Report, Err
         step: 1,
         id: None,
         sent,
+        later: Vec::new(),
         issuer: None,
     })
 }
 
 /// Steps 2 to 14: takes the previous step's messages from `files`, each to this member, and
-/// writes this step's into `out/`; a byte-identical file already taken is skipped.
+/// writes this step's into `out/`; a byte-identical file already taken is skipped. Given only
+/// those, it reports the previous step again, its files rewritten where `out/` lacks them.
 pub fn step(dir: &Path, identity: &Path, files: &[PathBuf]) -> Result<Report, Error> {
     let _lock = lock(dir)?;
     let state = load(dir)?;
@@ -450,6 +505,7 @@ pub fn step(dir: &Path, identity: &Path, files: &[PathBuf]) -> Result<Report, Er
         return Err(Error::NotMember);
     }
     let setup = state.procedure.setup().ok_or(Error::State)?;
+    let rewritten = write_outbox(dir, &state)?;
     let me = u16::from(state.me);
     let flight = state.step - 1;
     let id = match flight {
@@ -458,10 +514,15 @@ pub fn step(dir: &Path, identity: &Path, files: &[PathBuf]) -> Result<Report, Er
     };
     let members = state.procedure.consortium_keys();
     let (mut received, mut paths, mut digests) = (BTreeMap::new(), BTreeMap::new(), Vec::new());
+    let (mut taken, mut later) = (0, Vec::new());
     for path in files {
         let bytes = read_bounded(path, "message", MAX_FILE)?;
         let digest: [u8; 32] = Sha256::digest(&bytes).into();
-        if state.accepted.contains(&digest) || digests.contains(&digest) {
+        if state.accepted.contains(&digest) {
+            taken += 1;
+            continue;
+        }
+        if digests.contains(&digest) {
             continue;
         }
         let refused = |state, why| Err(refuse(dir, state, Some(path), why));
@@ -470,8 +531,16 @@ pub fn step(dir: &Path, identity: &Path, files: &[PathBuf]) -> Result<Report, Er
             Err(e) => return refused(state, Refusal::Message(e)),
         };
         let sender = u16::from(header.sender);
-        if header.id != id {
+        let ahead = header.step > flight;
+        if header.id != id && !(ahead && flight == 1) {
             return refused(state, Refusal::Id);
+        }
+        if ahead && !setup.sends(header.step, sender, me) {
+            return refused(state, Refusal::Unexpected(header.sender));
+        }
+        if ahead {
+            later.push(path.clone());
+            continue;
         }
         if header.step != flight {
             return refused(state, Refusal::Step(header.step));
@@ -484,6 +553,15 @@ pub fn step(dir: &Path, identity: &Path, files: &[PathBuf]) -> Result<Report, Er
         }
         paths.insert(sender, path.clone());
         digests.push(digest);
+    }
+    if !files.is_empty() && taken == files.len() {
+        return Ok(Report {
+            step: flight,
+            id: state.id,
+            sent: rewritten,
+            later,
+            issuer: None,
+        });
     }
     let senders = setup.senders(flight, me).into_iter();
     let missing: Vec<u8> = senders
@@ -546,7 +624,8 @@ pub fn step(dir: &Path, identity: &Path, files: &[PathBuf]) -> Result<Report, Er
         FINISH => {
             let party = state.party.as_ref().ok_or(Error::State)?;
             let own = confirmation(party, &state.procedure)?;
-            if let Some((&j, _)) = received.iter().find(|(_, payload)| **payload != own) {
+            let differs = |(&j, theirs): &(&u16, &Vec<u8>)| !confirms(party, &own, j, theirs);
+            if let Some((&j, _)) = received.iter().find(differs) {
                 let file = paths.get(&j).map(PathBuf::as_path);
                 return Err(refuse(dir, state, file, Refusal::Confirmation(j as u8)));
             }
@@ -564,21 +643,29 @@ pub fn step(dir: &Path, identity: &Path, files: &[PathBuf]) -> Result<Report, Er
         }
         _ => return Err(Error::State),
     };
-    let sent = send(
-        dir,
+    let outbox = seal(
         &next,
         &keys,
         state.step,
         next.id.ok_or(Error::State)?,
         &outgoing,
     )?;
+    for (to, _) in &outbox {
+        let path = dir.join(OUT).join(message_name(state.step, state.me, *to));
+        if path.symlink_metadata().is_ok() {
+            return Err(Error::Written(path));
+        }
+    }
     next.step += 1;
     next.accepted.extend(digests);
+    next.outbox = outbox;
     save(dir, &next)?;
+    let sent = write_outbox(dir, &next)?;
     Ok(Report {
         step: state.step,
         id: next.id,
         sent,
+        later,
         issuer,
     })
 }
@@ -716,5 +803,6 @@ pub fn abort(dir: &Path) -> Result<(), Error> {
     let mut state = load(dir)?;
     state.phase = Phase::Aborted;
     state.party = None;
+    state.outbox.clear();
     save(dir, &state)
 }

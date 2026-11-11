@@ -215,6 +215,8 @@ impl Drop for Stage {
     }
 }
 
+/// Writes new file `output` whole: synced in a dot-named stage beside it, then linked under its
+/// name and the directory synced; an existing `output` is an error and is kept.
 pub(crate) fn publish_file(output: &Path, bytes: &[u8]) -> io::Result<()> {
     let stage = Stage::new(output)?;
     stage.write("file", bytes)?;

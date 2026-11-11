@@ -6,10 +6,11 @@ use crate::genesis::Document;
 use crate::{tiered, Config, ConfigError};
 use ed25519_dalek::Signature;
 use network::cut::Cut;
-use network::replica::Replica;
+use network::replica::{EntryId, Replica};
 use p2p::hook::Hook;
 use protocol::answer_events::AnswerEvent;
-use protocol::answer_ledger::{AnswerLedger, AnswerLedgerError};
+use protocol::answer_ledger::{AnswerLedger, AnswerLedgerError, Refusal};
+use protocol::answer_path::{Refused, Round};
 use protocol::{answer_gateway, answer_read};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -74,6 +75,92 @@ impl Hook for AnswerHook {
     fn read(&self, replica: &Replica, request: &[u8]) -> Option<Vec<u8>> {
         answer_read::answer(&self.ledger, replica, request)
     }
+
+    fn status(&self, replica: &Replica, requests: &[EntryId]) -> Vec<String> {
+        let path = self.ledger.state();
+        let mut lines = vec![format!("epoch {}", path.epoch())];
+        for q in 0..path.questions() {
+            if let Some(entry) = path.entry(q) {
+                lines.push(format!("question {q} {}", phase(&entry.round)));
+            }
+        }
+        for id in requests {
+            let refused = self.ledger.refused().iter().find(|(r, _)| r == id);
+            let outcome = match refused {
+                _ if !answer_read::counted(&self.ledger, replica, id) => "pending".to_string(),
+                Some((_, refusal)) => format!("refused {}", refusal_name(refusal)),
+                None => "counted".to_string(),
+            };
+            lines.push(format!("request_state {} {outcome}", id.seq));
+        }
+        lines
+    }
+}
+
+const PHASES: [&str; 5] = [
+    "pending",
+    "unavailable",
+    "committing",
+    "revealing",
+    "closed",
+];
+
+/// A question's round in the status.
+fn phase(round: &Round) -> &'static str {
+    PHASES[match round {
+        Round::Pending => 0,
+        Round::Unavailable { .. } => 1,
+        Round::Committing { .. } => 2,
+        Round::Revealing { .. } => 3,
+        Round::Closed(_) => 4,
+    }]
+}
+
+/// A refused entry's reason in the status, without its details.
+fn refusal_name(refusal: &Refusal) -> &'static str {
+    match refusal {
+        Refusal::NotAnEvent => "not-an-event",
+        Refusal::NotAuthorized => "not-authorized",
+        Refusal::PublicFeed => "public-feed",
+        Refusal::Derived => "derived",
+        Refusal::WrongEpoch => "wrong-epoch",
+        Refusal::Repeated => "repeated",
+        Refusal::TooLarge => "too-large",
+        Refusal::OutOfWindow => "out-of-window",
+        Refusal::Beacon(_) => "beacon",
+        Refusal::Path(refused) => match refused {
+            Refused::WrongEpoch => "wrong-event-epoch",
+            Refused::Malformed(_) => "malformed",
+            Refused::Unproven(_) => "unproven",
+            Refused::AlreadyInPool => "already-in-pool",
+            Refused::Duplicate { .. } => "duplicate",
+            Refused::OverQuota { .. } => "over-quota",
+            Refused::UnknownQuestion => "unknown-question",
+            Refused::BeaconPending => "beacon-pending",
+            Refused::WrongRound => "wrong-round",
+            Refused::NotDrawn => "not-drawn",
+            Refused::AlreadyCommitted => "already-committed",
+            Refused::NoCommit => "no-commit",
+            Refused::AlreadyRevealed => "already-revealed",
+            Refused::RevealMismatch => "reveal-mismatch",
+            Refused::AnswerOutOfRange => "answer-out-of-range",
+            Refused::Overflow => "overflow",
+            Refused::NetworkOnly => "network-only",
+        },
+    }
+}
+
+/// Whether `line` is one of the status lines [`AnswerHook`] writes (`docs/05` §Built in the node).
+pub fn status_line(line: &str) -> bool {
+    let n = |t: &str| t.parse::<u64>().is_ok_and(|v| v.to_string() == t);
+    let word = |t: &str| !t.is_empty() && t.bytes().all(|b| b.is_ascii_lowercase() || b == b'-');
+    match line.split(' ').collect::<Vec<_>>()[..] {
+        ["epoch", e] => n(e),
+        ["question", q, phase] => n(q) && PHASES.contains(&phase),
+        ["request_state", seq, "pending" | "counted"] => n(seq),
+        ["request_state", seq, "refused", reason] => n(seq) && word(reason),
+        _ => false,
+    }
 }
 
 /// The event an operator command names: `close-commits <question>`, `close <question>` or
@@ -109,6 +196,7 @@ pub fn request(config: &Config, args: &[String]) -> Result<String, ConfigError> 
     let dir = spool(&config.data_dir);
     if !dir.is_dir() {
         std::fs::create_dir(&dir).map_err(read)?;
+        crate::sync_dir(&config.data_dir).map_err(read)?;
     }
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -118,8 +206,6 @@ pub fn request(config: &Config, args: &[String]) -> Result<String, ConfigError> 
         .map(|i| format!("{:020}-{label}", nanos + i))
         .find(|name| !dir.join(name).exists() && !dir.join("done").join(name).exists())
         .ok_or(ConfigError::Request)?;
-    let staged = dir.join(format!(".{name}"));
-    std::fs::write(&staged, event.encode()).map_err(read)?;
-    std::fs::rename(&staged, dir.join(&name)).map_err(read)?;
+    crate::production::publish_file(&dir.join(&name), &event.encode()).map_err(read)?;
     Ok(name)
 }

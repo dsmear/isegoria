@@ -854,6 +854,191 @@ fn at_t79_21_the_request_flag() {
     }
 }
 
+// A spooled request appears whole under its own name, nothing staged left in the spool; its
+// syncs before the name appears are not observable in process (AT-T79-61).
+#[test]
+fn at_t79_61_a_request_is_spooled_whole() {
+    let f = Fixture::new("spooled-whole");
+    let config = f.config(0);
+    let spool = f.dir(0).join("requests");
+    let mut names = Vec::new();
+    for (args, event) in [
+        (
+            ["close-epoch", "0"],
+            AnswerEvent::RequestCloseEpoch { epoch: 0 },
+        ),
+        (["close", "3"], AnswerEvent::Close { question: 3 }),
+    ] {
+        let args: Vec<String> = args.iter().map(|a| a.to_string()).collect();
+        let name = node::answer::request(&config, &args).unwrap();
+        assert_eq!(std::fs::read(spool.join(&name)).unwrap(), event.encode());
+        names.push(name);
+    }
+    let mut listed: Vec<String> = std::fs::read_dir(&spool)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .collect();
+    listed.sort();
+    names.sort();
+    assert_eq!(listed, names, "only the requests, nothing staged");
+}
+
+// The spool reads only names of `--request`'s form, in the spool and in `done/`; a space, a
+// newline, a dot or another form leaves a file in place unread; the status reads back (AT-T79-63).
+#[test]
+fn at_t79_63_the_spool_reads_only_request_names() {
+    let f = Fixture::new("spool-names");
+    let spool = f.dir(0).join("requests");
+    let args: Vec<String> = ["close-epoch", "0"].iter().map(|a| a.to_string()).collect();
+    let name = node::answer::request(&f.config(0), &args).unwrap();
+    let bytes = AnswerEvent::RequestCloseEpoch { epoch: 0 }.encode();
+    let others = [
+        "a b",
+        "00000000000000000001-close-epoch-0\ndigest 0 00",
+        "00000000000000000001-close epoch-0",
+        ".00000000000000000001-close-epoch-0",
+        "0000000000000000001-close-epoch-0",
+        "00000000000000000001-Close-epoch-0",
+        "00000000000000000001-",
+        "00000000000000000001_close-epoch-0",
+    ];
+    for other in others {
+        std::fs::write(spool.join(other), &bytes).unwrap();
+    }
+    let names = |found: Vec<(String, Vec<u8>)>| -> Vec<String> {
+        found.into_iter().map(|(n, _)| n).collect()
+    };
+    assert_eq!(names(pending(&spool).unwrap()), [name.clone()]);
+    for other in others {
+        assert_eq!(
+            std::fs::read(spool.join(other)).unwrap(),
+            bytes,
+            "{other:?}"
+        );
+    }
+    std::fs::create_dir_all(spool.join("done")).unwrap();
+    std::fs::write(spool.join("done").join("a b"), &bytes).unwrap();
+    p2p::hook::done(&spool, &name).unwrap();
+    let moved = names(executed(&spool).unwrap());
+    assert_eq!(moved, [name.clone()]);
+    let status = Status {
+        requests: moved.into_iter().map(|n| (n, 3)).collect(),
+        ..Status::default()
+    };
+    assert_eq!(node::parse(&node::render(&status)), Some(status));
+}
+
+// The hook's status lines: the open epoch, each question's phase, and whether each executed
+// request counted, was refused and why, or waits for a cut; they read back (AT-T79-64).
+#[test]
+fn at_t79_64_the_hook_reports_the_answer_state() {
+    let f = Fixture::new("state-lines");
+    let mut feeds = Feeds::new(&f);
+    feeds.entry(circle_seed(0), deposit(&f.net(), &person(&issuer(), 1)));
+    let close = AnswerEvent::RequestCloseEpoch { epoch: 0 }.encode();
+    let requests = [
+        AnswerEvent::CloseCommits { question: 0 }.encode(),
+        close.clone(),
+        close,
+    ];
+    let mut ids: Vec<EntryId> = (requests.into_iter())
+        .map(|r| feeds.entry(circle_seed(0), r).id())
+        .collect();
+    let cut0 = Cut::next(&feeds.replica, None, 0, false);
+    feeds.sign(&f, &cut0, &[0, 1]);
+    let later = AnswerEvent::Close { question: 0 }.encode();
+    ids.push(feeds.entry(circle_seed(0), later).id());
+    let mut hook = f.hook();
+    assert!(followed(&f, &feeds.replica, &mut hook).refused().is_none());
+    let lines = hook.status(&feeds.replica, &ids);
+    let expected = [
+        "epoch 0".to_string(),
+        "question 0 pending".to_string(),
+        format!("request_state {} refused wrong-round", ids[0].seq),
+        format!("request_state {} counted", ids[1].seq),
+        format!("request_state {} refused repeated", ids[2].seq),
+        format!("request_state {} pending", ids[3].seq),
+    ];
+    assert_eq!(lines, expected);
+    assert!(f.hook().status(&feeds.replica, &[]) == ["epoch 0"]);
+    let status = Status {
+        requests: vec![(
+            "00000000000000000001-close-commits-0".to_string(),
+            ids[0].seq,
+        )],
+        state: lines,
+        ..Status::default()
+    };
+    let text = node::render(&status);
+    assert_eq!(node::parse(&text), Some(status));
+    for bad in [
+        "epoch 01",
+        "epoch",
+        "question 0 drafting",
+        "question zero pending",
+        "request_state 1 refused",
+        "request_state 1 refused Wrong",
+        "request_state 1 refused wrong round",
+        "request_state 1 applied",
+        "request_state -1 counted",
+    ] {
+        assert_eq!(node::parse(&format!("{text}{bad}\n")), None, "{bad}");
+    }
+}
+
+// A running member's status lists the open epoch, its question's phase and each executed
+// request's outcome, refused with its reason or counted, and reads back (AT-T79-65).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_65_a_members_status_shows_the_answer_state() {
+    let f = Fixture::new("state-status");
+    let mut nodes = Vec::new();
+    for i in 0..N {
+        nodes.push(f.start(i).await);
+    }
+    for (i, node) in nodes.iter().enumerate() {
+        f.dial(node, i).await;
+    }
+    for (i, node) in nodes.iter().enumerate() {
+        f.until(node, i, |s| {
+            s.caught_up && s.circle_caught_up && s.cuts.len() >= 2
+        })
+        .await;
+    }
+    let event = deposit(&f.net(), &person(&issuer(), 1));
+    nodes[0].publish_circle(event).await.unwrap();
+    f.until(&nodes[0], 0, |s| {
+        s.state.iter().any(|l| l == "question 0 pending")
+    })
+    .await;
+    request(&f, 0, ["close-commits", "0"]);
+    request(&f, 0, ["close-epoch", "0"]);
+    request(&f, 1, ["close-epoch", "0"]);
+    let outcome = |s: &Status, kind: &str| {
+        let (_, seq) = s.requests.iter().find(|r| r.0.ends_with(kind))?;
+        let prefix = format!("request_state {seq} ");
+        s.state
+            .iter()
+            .find_map(|l| l.strip_prefix(&prefix).map(str::to_string))
+    };
+    let status = f
+        .until(&nodes[0], 0, |s| {
+            s.state.iter().any(|l| l == "epoch 1")
+                && s.state.iter().any(|l| l == "question 0 unavailable")
+                && outcome(s, "close-epoch-0").as_deref() == Some("counted")
+                && outcome(s, "close-commits-0").is_some_and(|o| o != "pending")
+        })
+        .await;
+    assert_eq!(
+        outcome(&status, "close-commits-0").as_deref(),
+        Some("refused wrong-round")
+    );
+    assert_eq!(status.state[0], "epoch 1");
+    assert_eq!(node::parse(&node::render(&status)), Some(status.clone()));
+    for node in nodes {
+        node.finished().await;
+    }
+}
+
 // A tiered member runs the hook and configures no `cuts_per_epoch`; a member of a network
 // without a genesis needs one (AT-T79-22).
 #[test]

@@ -16,6 +16,7 @@ use oblivious_transfer_protocols::ot_based_multiplication::batch_mul_multi_party
 };
 use secret_sharing_and_dkg::common::{PublicKeyBase, Share};
 use secret_sharing_and_dkg::frost_dkg::{Round1Msg, Round1State, Round2State};
+use sha2::Digest as _;
 
 mod issuance;
 
@@ -27,6 +28,8 @@ const STATE_VERSION: u8 = 1;
 const SALT: usize = 256;
 const BASE_OT_LABEL: &[u8] = b"isegoria/ceremony/base-ot/v1";
 const GADGET_LABEL: &[u8] = b"isegoria/bbs+/gadget/v1";
+const KEYGEN_ECHO: &[u8] = b"isegoria/ceremony/echo/keygen/v1";
+const PHASE1_ECHO: &[u8] = b"isegoria/ceremony/echo/phase1/v1";
 
 type Commit = Phase1<Fr, SALT>;
 type Mul = Phase2<Fr, KAPPA, STAT>;
@@ -64,6 +67,15 @@ fn strict<T: CanonicalSerialize + CanonicalDeserialize>(bytes: &[u8]) -> Option<
     let mut rest = bytes;
     let value = T::deserialize_compressed(&mut rest).ok()?;
     (rest.is_empty() && encoded(&value) == bytes).then_some(value)
+}
+
+/// SHA-256 over the tag's length (8 bytes), the tag, then `value`'s compressed encoding.
+fn echo_digest<T: CanonicalSerialize>(tag: &[u8], value: &T) -> [u8; 32] {
+    let mut h = Sha256::new();
+    h.update((tag.len() as u64).to_le_bytes());
+    h.update(tag);
+    h.update(encoded(value));
+    h.finalize().into()
 }
 
 fn put<T: CanonicalSerialize>(out: &mut Vec<u8>, value: &T) {
@@ -220,7 +232,7 @@ enum Stage {
     Contributed(Round1State<G2Affine>),
     Shared(Round2State<G2Affine>),
     Ot(KeyShare, Ot),
-    Signing(KeyShare, BaseOTOutput, Commit),
+    Signing(KeyShare, BaseOTOutput, Commit, Commitments),
     Multiplying(KeyShare, BaseOTOutput, Phase1Output<Fr>, Mul),
     Waiting(KeyShare, BaseOTOutput),
     Prepared(KeyShare, BaseOTOutput, Option<Prepared>),
@@ -235,6 +247,8 @@ pub struct Party {
     id: [u8; 32],
     next: u8,
     stage: Stage,
+    /// What the libraries assume broadcast, as received: key generation's digest, phase 1's.
+    echo: Vec<[u8; 32]>,
 }
 
 impl fmt::Debug for Party {
@@ -259,6 +273,7 @@ impl Party {
             id,
             next: 2,
             stage: Stage::Start,
+            echo: Vec::new(),
         })
     }
 
@@ -283,7 +298,7 @@ impl Party {
     pub fn issuer(&self) -> Option<IssuerPublic> {
         match &self.stage {
             Stage::Ot(k, _)
-            | Stage::Signing(k, _, _)
+            | Stage::Signing(k, _, _, _)
             | Stage::Multiplying(k, _, _, _)
             | Stage::Waiting(k, _)
             | Stage::Prepared(k, _, _) => issuer_of(&k.key),
@@ -293,6 +308,22 @@ impl Party {
 
     pub fn is_prepared(&self) -> bool {
         matches!(self.stage, Stage::Prepared(..))
+    }
+
+    /// The echo the confirmation carries (`docs/03`, *Files*): key generation's digest, then a
+    /// signer's phase-1 digest, 32 bytes each, once the flights computing them are taken.
+    pub fn echo(&self) -> Vec<u8> {
+        self.echo.concat()
+    }
+
+    /// Whether `theirs`, member `j`'s echo, is this member's: key generation's digest, and phase
+    /// 1's where both members sign; a non-signer's echo holds 32 bytes, a signer's 64.
+    pub fn agrees(&self, j: u16, theirs: &[u8]) -> bool {
+        let signer = self.setup.is_signer(j);
+        let both = signer && self.setup.is_signer(self.me);
+        theirs.len() == 32 * (1 + usize::from(signer))
+            && self.echo.first().is_some_and(|k| theirs[..32] == k[..])
+            && (!both || self.echo.get(1).is_some_and(|p| theirs[32..] == p[..]))
     }
 
     /// Takes the payloads of flight `next − 1`, by sender, and returns the party after flight
@@ -311,7 +342,8 @@ impl Party {
         if let Some(&j) = incoming.keys().find(|j| !from.contains(j)) {
             return Err(Refusal::Unexpected(j));
         }
-        let (stage, out) = self.flight(incoming)?;
+        let mut echo = self.echo.clone();
+        let (stage, out) = self.flight(incoming, &mut echo)?;
         let to = self.setup.recipients(self.next, self.me);
         let sent: Vec<u16> = out.iter().map(|(j, _)| *j).collect();
         if self.next < FLIGHTS && sent != to {
@@ -320,12 +352,17 @@ impl Party {
         let party = Party {
             next: self.next + 1,
             stage,
+            echo,
             ..self.clone()
         };
         Ok((party, out))
     }
 
-    fn flight(&self, incoming: &BTreeMap<u16, Vec<u8>>) -> Result<(Stage, Outgoing), Refusal> {
+    fn flight(
+        &self,
+        incoming: &BTreeMap<u16, Vec<u8>>,
+        echo: &mut Vec<[u8; 32]>,
+    ) -> Result<(Stage, Outgoing), Refusal> {
         let s = &self.setup;
         let (me, t, n) = (pid(self.me), s.threshold, s.members);
         let g2 = params().g2;
@@ -346,7 +383,7 @@ impl Party {
             }
             (3, Stage::Contributed(mut state)) => {
                 each(incoming, |j, msg: Round1Msg<G2Affine>| {
-                    if msg.sender_id != pid(j) {
+                    if msg.sender_id != pid(j) || msg.comm_coeffs.0.len() != usize::from(t) {
                         return Err(());
                     }
                     state
@@ -356,6 +393,7 @@ impl Party {
                 if state.coeff_comms.len() != usize::from(n) {
                     return Err(Refusal::Internal);
                 }
+                echo.push(echo_digest(KEYGEN_ECHO, &state.coeff_comms));
                 let (next, shares) = state.finish().map_err(internal)?;
                 for &j in &to {
                     let share = shares.0.get(usize::from(j)).filter(|x| x.id == pid(j));
@@ -450,24 +488,30 @@ impl Party {
                         let zero = zero.get(&pid(j)).ok_or(Refusal::Internal)?;
                         out.push((j, encoded(&(comm.clone(), zero.clone()))));
                     }
-                    Stage::Signing(k, base, commit)
+                    Stage::Signing(k, base, commit, comm)
                 }
             }
-            (10, Stage::Signing(k, base, mut commit)) => {
+            (10, Stage::Signing(k, base, mut commit, own)) => {
                 each(incoming, |j, (comm, zero): (Commitments, Commitments)| {
                     commit
                         .receive_commitment(pid(j), comm, zero)
                         .map_err(|_| ())
                 })?;
+                let mut all = commit.commitment_protocol.other_commitments.clone();
+                all.insert(me, own.clone());
+                if all.len() != usize::from(t) {
+                    return Err(Refusal::Internal);
+                }
+                echo.push(echo_digest(PHASE1_ECHO, &all));
                 for &j in &to {
                     let shares = commit.get_comm_shares_and_salts();
                     let zero = commit
                         .get_comm_shares_and_salts_for_zero_sharing_protocol_with_other(&pid(j));
                     out.push((j, encoded(&(shares, zero))));
                 }
-                Stage::Signing(k, base, commit)
+                Stage::Signing(k, base, commit, own)
             }
-            (11, Stage::Signing(k, base, mut commit)) => {
+            (11, Stage::Signing(k, base, mut commit, _)) => {
                 each(incoming, |j, (shares, zero): (Reveal, Reveal)| {
                     commit
                         .receive_shares::<Blake2b512>(pid(j), shares, zero)
@@ -525,7 +569,8 @@ impl Party {
         Ok((stage, out))
     }
 
-    /// Version 1, the next flight, the member, the id, the setup, then the stage's objects.
+    /// Version 1, the next flight, the member, the id, the setup, the stage's objects, then the
+    /// echo's count (1 byte) and digests.
     pub fn encode(&self) -> Vec<u8> {
         let s = &self.setup;
         let mut out = vec![STATE_VERSION, self.next];
@@ -554,11 +599,12 @@ impl Party {
                 key(&mut out, k);
                 put(&mut out, ot);
             }
-            Stage::Signing(k, base, commit) => {
+            Stage::Signing(k, base, commit, own) => {
                 out.push(4);
                 key(&mut out, k);
                 put(&mut out, base);
                 put(&mut out, commit);
+                put(&mut out, own);
             }
             Stage::Multiplying(k, base, phase1, mul) => {
                 out.push(5);
@@ -580,6 +626,10 @@ impl Party {
                     put(&mut out, prepared);
                 }
             }
+        }
+        out.push(self.echo.len() as u8);
+        for digest in &self.echo {
+            out.extend_from_slice(digest);
         }
         out
     }
@@ -607,7 +657,7 @@ impl Party {
             (1, 3) => Stage::Contributed(r.take()?),
             (2, 4) => Stage::Shared(r.take()?),
             (3, 5..=9) => Stage::Ot(key(&mut r)?, r.take()?),
-            (4, 10 | 11) if signer => Stage::Signing(key(&mut r)?, r.take()?, r.take()?),
+            (4, 10 | 11) if signer => Stage::Signing(key(&mut r)?, r.take()?, r.take()?, r.take()?),
             (5, 12 | 13) if signer => {
                 Stage::Multiplying(key(&mut r)?, r.take()?, r.take()?, r.take()?)
             }
@@ -616,8 +666,21 @@ impl Party {
             (8, 14) if signer => Stage::Prepared(key(&mut r)?, r.take()?, Some(r.take()?)),
             _ => return None,
         };
+        let held = usize::from(next >= 4) + usize::from(signer && next >= 11);
+        let mut echo = Vec::new();
+        for _ in 0..r.u8()? {
+            echo.push(r.bytes(32)?.try_into().ok()?);
+        }
         r.end()?;
-        let party = Party::new(setup, me, id).map(|p| Party { next, stage, ..p })?;
+        if echo.len() != held {
+            return None;
+        }
+        let party = Party::new(setup, me, id).map(|p| Party {
+            next,
+            stage,
+            echo,
+            ..p
+        })?;
         (party.encode() == bytes).then_some(party)
     }
 

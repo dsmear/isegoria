@@ -23,6 +23,7 @@ threshold 3) when a target starts; the stable tests of the same entry points are
 | `ceremony_flight` (T89) | `ceremony::Party::advance` at every flight of every member, one sender's payload arbitrary or genuine with a window overwritten, or an extra sender | the genuine flight is taken; an extra sender is refused as `Unexpected` by name; a state reached re-decodes as itself |
 | `ceremony_state` (T89) | `ceremony::Party::decode` of arbitrary bytes or a genuine state at any flight with a window overwritten | one encoding |
 | `ceremony_issuance` (T89) | `SlotRequest::decode` answered by every prepared member, `SignatureShare::decode` combined with the other genuine shares | one encoding each; only a genuine request is answered, by a signer, with its recorded share; the genuine shares combine; a combined credential verifies |
+| `ceremony_combine` (T89) | `ceremony::combine`, as `isegoria-client --combine` calls it, of up to eight shares decoded from genuine shares of either slot, genuine ones with a window overwritten, or arbitrary bytes, for either slot's pending state | the genuine set combines in any order; a repeated, partial or other slot's set of genuine shares does not; a combined credential verifies and is the genuine one |
 
 ## Running
 

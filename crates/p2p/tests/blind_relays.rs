@@ -221,15 +221,20 @@ async fn hooked_net(root: &Path, members: usize) -> Net {
 }
 
 async fn net_of(root: &Path, members: usize, on: bool, hook: Option<Hooked>) -> Net {
+    let config0 = Config {
+        hook,
+        ..member_config(0, &root.join("0"))
+    };
+    net_from(root, members, on, config0).await
+}
+
+/// As [`net_of`], member 0 started from `config0`.
+async fn net_from(root: &Path, members: usize, on: bool, config0: Config) -> Net {
     let set = |config| Config {
         discovery_and_archive: on,
         ..config
     };
-    let config0 = Config {
-        hook,
-        ..set(member_config(0, &root.join("0")))
-    };
-    let (m0, member0) = start(transport(0), config0).await;
+    let (m0, member0) = start(transport(0), set(config0)).await;
     let mut handles = vec![m0];
     let mut addresses = vec![member0.clone()];
     for i in 1..members {
@@ -283,7 +288,8 @@ async fn send_read(relay: &Multiaddr, request: &[u8]) -> Result<ReadAnswer, Clie
 }
 
 /// A hook admitting only bytes starting `hooked-event`, answering a read starting `read` with
-/// [`REPLY`] then its bytes, refusing other reads; it applies every cut and closes none.
+/// [`REPLY`] then its bytes, `size:` and 8 bytes with that many, refusing other reads; it applies
+/// every cut and closes none.
 struct FakeHook;
 
 const REPLY: &[u8] = b"fake-sealed-reply:";
@@ -312,6 +318,9 @@ impl Hook for FakeHook {
     }
 
     fn read(&self, _: &Replica, request: &[u8]) -> Option<Vec<u8>> {
+        if let Some(len) = request.strip_prefix(b"size:") {
+            return Some(vec![7; u64::from_le_bytes(len.try_into().ok()?) as usize]);
+        }
         request
             .starts_with(b"read")
             .then(|| [REPLY, request].concat())
@@ -1619,4 +1628,114 @@ async fn at_t79_39_the_hook_admits_events_and_refuses_reads() {
         refused
     );
     assert_eq!(circle_len(&plain.members[0], 0).await, 0);
+}
+
+/// A hook counting the cuts it applied, replying to every read with that count.
+struct Counting(Arc<AtomicU64>);
+
+impl Hook for Counting {
+    fn apply(
+        &mut self,
+        _: &Replica,
+        _: &Cut,
+        _: u64,
+        _: &[(usize, Signature)],
+    ) -> Result<Option<[u8; 32]>, String> {
+        self.0.fetch_add(1, Ordering::SeqCst);
+        Ok(None)
+    }
+
+    fn may_sign(&self, _: &Cut) -> bool {
+        true
+    }
+
+    fn closes(&self) -> bool {
+        false
+    }
+
+    fn read(&self, _: &Replica, _: &[u8]) -> Option<Vec<u8>> {
+        Some(self.0.load(Ordering::SeqCst).to_le_bytes().to_vec())
+    }
+}
+
+/// AT-T79-60: a read applies no cut: it answers from the cuts its gateway applied at its last
+/// period, and after a new cut from that cut once a period has passed.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_60_a_read_answers_from_the_last_period() {
+    for every in [Duration::from_secs(3600), Duration::from_millis(150)] {
+        let root = scratch("read-period");
+        let applied = Arc::new(AtomicU64::new(0));
+        let mut config0 = member_config(0, &root.join("0"));
+        config0.hook = Some(Hooked {
+            hook: Box::new(Counting(applied.clone())),
+            spool: root.join("spool"),
+        });
+        config0.member.as_mut().unwrap().every = every;
+        let n = net_from(&root, 3, true, config0).await;
+        let consortium = Consortium::new(members().iter().map(|m| m.public()).collect(), 2);
+        let held = || async {
+            let replica = n.members[0].replica().await;
+            p2p::member::collected(&replica, &consortium, NET).len() as u64
+        };
+        let count = |answer: Result<ReadAnswer, ClientError>| match answer {
+            Ok(ReadAnswer::Reply(bytes)) => u64::from_le_bytes(bytes.try_into().unwrap()),
+            other => panic!("a count: {other:?}"),
+        };
+        let before = applied.load(Ordering::SeqCst);
+        until("a cut past those applied", || async {
+            held().await > before
+        })
+        .await;
+        let target = held().await;
+        if every > Duration::from_secs(60) {
+            assert_eq!(count(send_read(&n.relay_addr, b"count").await), before);
+            assert_eq!(
+                applied.load(Ordering::SeqCst),
+                before,
+                "the read applied a cut"
+            );
+        } else {
+            until("a read reflects the new cut", || async {
+                count(send_read(&n.relay_addr, b"count").await) >= target
+            })
+            .await;
+        }
+    }
+}
+
+/// AT-T79-62: a reply whose encapsulation would pass MAX_REPLY bytes is not sent: the gateway
+/// answers a sealed 500, which the client opens as "failed"; one of exactly MAX_REPLY passes.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_62_an_oversized_reply_is_answered_failed() {
+    let n = hooked_net(&scratch("oversized-read"), 1).await;
+    let suite =
+        ohttp::SymmetricSuite::new(ohttp::hpke::Kdf::HkdfSha256, ohttp::hpke::Aead::Aes128Gcm);
+    let kem = ohttp::hpke::Kem::X25519Sha256;
+    let config = ohttp::KeyConfig::derive(0, kem, vec![suite], &[HPKE_SEEDS[0]; 32]).unwrap();
+    let server = ohttp::Server::new(config).unwrap();
+    let probe = seal_read(&tiers(), &announcements()[0], b"probe").unwrap();
+    let (_, response) = server.decapsulate(&probe.request).unwrap();
+    let overhead = response.encapsulate(&[]).unwrap().len();
+    let framed = |len: usize| {
+        let mut m = Http::response(bhttp::StatusCode::OK);
+        m.write_content(vec![7; len]);
+        let mut out = Vec::new();
+        m.write_bhttp(Mode::KnownLength, &mut out).unwrap();
+        out.len()
+    };
+    let fit = MAX_REPLY - overhead - (framed(MAX_REPLY) - MAX_REPLY);
+    assert_eq!(framed(fit) + overhead, MAX_REPLY);
+    let sized = |len: usize| [&b"size:"[..], &(len as u64).to_le_bytes()].concat();
+    assert_eq!(
+        send_read(&n.relay_addr, &sized(fit)).await,
+        Ok(ReadAnswer::Reply(vec![7; fit]))
+    );
+    for len in [fit + 1, MAX_REPLY, 4 * MAX_REPLY] {
+        assert_eq!(
+            send_read(&n.relay_addr, &sized(len)).await,
+            Ok(ReadAnswer::Answer(Answer::Failed)),
+            "{len}"
+        );
+    }
+    assert_eq!(circle_len(&n.members[0], 0).await, 0);
 }

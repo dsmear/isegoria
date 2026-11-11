@@ -116,7 +116,8 @@ contract leaves to the implementation:
 member's node running it and the protocol side of participants — gateway admission, private
 reads and their inner seal — are built and wired into the member's gateway (§Built on cuts,
 §Built in the node, §Built for participants), with the provisional test issuer (D65) and the
-participant's client (§Built for participants); the trial (`10` §2.3's increment 4) is not.**
+participant's client (§Built for participants); gate 1 runs end to end as processes on one
+machine (`10` §2.3's increment 4, §Gate 1 on one machine), not yet as the recorded trial.**
 *Approved* restates an earlier decision or a built network rule; *consequence* is what the
 current code forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision
 recorded in D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04`
@@ -306,7 +307,10 @@ and its `CloseEpoch`.
 **Where the state is computed (D60).** `p2p` keeps no protocol state and does not depend on
 `protocol`: one hook trait in `p2p`, implemented in `node`, applies a collected cut, says
 whether to sign a proposal after the last cut (`may_sign`) and whether a cut closes its epoch
-(`closes`), admits a gateway's bytes (`admit`) and answers a read (`read`). The answer state
+(`closes`), admits a gateway's bytes (`admit`), answers a read (`read`) and gives the member's
+status its lines on the state (`status`, added by the owner's decision of 2026-11-11 so that
+an operator sees the answer-review state; §Built in the node, *The state in the status*). The
+answer state
 is rebuilt at each start from the replica and the signed cuts (`04` §A replica on disk), and
 not persisted.
 
@@ -371,7 +375,7 @@ still without one, in question order. *Evidence:* `protocol/tests/answer_on_cuts
 `answer_on_cuts_model.rs`, the modules' unit tests, `p2p/tests/blind_relays.rs` (AT-T79-1–16,
 `08` §12). Gateway admission and private reads are built and wired into the member's gateway,
 and the client sends both (§Built for participants); the test issuer is built (*Credentials
-before T19*, above). *Not built:* gate 1 end to end (increment 4).
+before T19*, above). Gate 1 end to end, increment 4, runs as processes (§Gate 1 on one machine).
 
 **Built in the node (`10` T79, second increment, 2026-11-10).** `p2p::hook::Hook` is the hook:
 `apply`, `may_sign` and `closes` as above; `admit(event)` and `read(replica, request)`, which
@@ -392,12 +396,17 @@ left to the implementation:
 - *The duties.* `MemberRole::duties_with` takes the hook: a proposer's `closes` is the hook's,
   and every signature the duties give, proposal or co-signature, in any view, needs `may_sign`,
   which holds only once the ledger has applied the cut before it. `patience` is unchanged for the trial (`01` D64).
+  A proposer waiting for commits or reveals counts one only on its writer's unbroken feed, the
+  part a cut can count: one held past a missing entry is still awaited (AT-NET-17,
+  `member_duties.rs`).
 - *The digest in the status.* `digest <cut number> <hex>` for each closing cut applied, the
   ledger's digest right after it, in cut order; computed again from cut 0 at each start.
 - *Operators' commands.* `isegoria-node --request <node.toml> close-commits <q> | close <q> |
   close-epoch <e>` writes the event's encoding (`CloseCommits`, `Close`, `RequestCloseEpoch`) to
-  one file of `data_dir/requests/`, named `<20-digit nanoseconds>-<command>-<n>`, written under a
-  dot name then renamed; it refuses other words or numbers, a configuration that is no tiered
+  one file of `data_dir/requests/`, named `<20-digit nanoseconds>-<command>-<n>`, written and
+  synced in a dot-named stage beside it, then linked under its name and the directory synced, as
+  the archive's outputs are (`production::publish_file`; a new spool directory is synced into
+  `data_dir` first); it refuses other words or numbers, a configuration that is no tiered
   member's and a missing data directory, reads nothing of the running node, takes no lock, and
   checks nothing of the state: the ledger decides whether a request counts (`WrongEpoch`,
   `WrongRound`, `Repeated` are refusals in the state). The duties, once the member writes and its
@@ -407,7 +416,23 @@ left to the implementation:
   before a stop that left it unmoved, is not (AT-T79-33). The status lists each executed request
   as `request <name> <seq>`, its circle entry — the `k`-th executed file with given bytes the
   `k`-th entry holding them — rebuilt at a start from `done/`. The spool
-  reads files up to 4 KiB whose names start with no dot, and logs their bytes as they are.
+  reads only regular files up to 4 KiB whose names have `--request`'s form — 20 digits, `-`, then
+  1 to 64 lowercase ASCII letters, digits and `-` (`p2p::hook::request_name`), in `requests/` and
+  in `done/` alike — and logs their bytes as they are; any other file, a dot name included, is
+  left in place unread, and the status's parser refuses another name, so a `request` line always
+  reads back (AT-T79-63).
+- *The state in the status* (owner, 2026-11-11). `Hook::status(replica, requests)` gives the
+  status lines on the state, `requests` being the circle entries of the executed requests in the
+  status's order; `p2p` writes them unread into `Status::state`, and `node` renders them after
+  the `request` lines and parses only the lines `answer::status_line` accepts, a strict round
+  trip. `AnswerHook`'s lines, as of the cuts applied: `epoch <e>`, the open epoch; `question <q>
+  <phase>` for each question in number order, the phase its round holds in the ledger —
+  `pending`, `unavailable`, `committing`, `revealing` or `closed`; and for each executed request
+  `request_state <seq> pending` (no cut applied counts its entry), `counted` (applied, counted
+  towards its closure, or the closure it completed) or `refused <reason>`, the ledger's refusal
+  in kebab case without its details (`wrong-round`, `repeated`, `wrong-epoch`, …;
+  `wrong-event-epoch` for a path's own). They are circle data: the status stays the member's own
+  file, and none of these lines enters shared evidence (AT-T79-64, AT-T79-65).
 - *Withheld reveals, test builds only* (T79-P4's switch). `MemberRole::faults`, a
   `p2p::member::Faults`, is empty by default; `Faults::withholding_reveals(epochs)` exists only
   with `p2p`'s cargo feature `fault-injection`, which only `node`'s dev-dependency enables — as
@@ -473,17 +498,24 @@ the node's replica. The choices the contract left to the implementation:
   (D60). Its known answers: RFC 9180 A.1.1, and the reply seal's own vector, computed with an
   independent RFC 9180 implementation (Python, standard library only) that reproduces A.1.1.
 - *Limits.* The author's reply lists every question of its author, 36 bytes each when closed
-  with an observation, with no cursor: within `MAX_REPLY` up to about 1,700 questions.
+  with an observation, with no cursor: within `MAX_REPLY` up to about 1,700 questions; past
+  the limit the gateway sends no reply but a sealed 500, which the client reports as `NoReply`
+  with `Failed` (`04` T85-P5).
 - *In the gateway* (`04` §Blind relays). A hooked member's gateway admits a person's event on
   `…/event` by `Hook::admit` in place of its own admission, then logs it as before and answers
   with its receipt `(writer, seq, hash)`; refused bytes get 403 and are not logged. A read is
-  posted on `…/read` (`blind::read_path`, `blind::seal_read`): the gateway applies the cuts its
-  collector holds, hands the request's bytes to `Hook::read` with its replica, logs nothing, and
-  answers 200 whose body is the hook's sealed reply; where the hook gives none — a request that
+  posted on `…/read` (`blind::read_path`, `blind::seal_read`): the gateway hands the request's
+  bytes to `Hook::read` with its replica, logs nothing, and answers 200 whose body is the hook's
+  sealed reply; where the hook gives none — a request that
   does not decode or whose proof fails — it answers 403, the refusal an event gets, so a failed
   proof and an undecodable request look alike. `Sealed::open_read` gives the client a
   `blind::ReadAnswer`: the sealed reply, or the answer without one. A node without a hook
-  answers every read 403. Relays forward reads as events, unchanged, by key id.
+  answers every read 403. Relays forward reads as events, unchanged, by key id. A read collects
+  and applies no cut: it reflects the cuts the node applied at its last period, at its duties'
+  tick or its status (*Following the cuts*, §Built in the node), so a cut collected since is
+  answered after the next one (AT-T79-60). *Residual:* OHTTP has no replay guard (`04` T85-P5),
+  so a replayed valid read still costs its gateway one proof verification and, for a status, a
+  scan of the replica's circle entries.
 
 *Evidence:* `protocol/tests/answer_participants.rs` (AT-T79-23–28), the unit tests of
 `answer_seal` (AT-T79-29) and `answer_ledger` (AT-T79-15, AT-T79-28); the wiring in
@@ -538,8 +570,67 @@ it (`Unverified` otherwise). No command asks for or writes a name or an attribut
   is the sealed reply, any other answer the error `NoReply` with it.
 
 *Evidence:* `client/tests/` (`credentials.rs`, `events.rs`, `reads.rs`) and `test-issuer/tests/
-files.rs` (AT-T79-42–49, `08` §12); not yet run. Not over a relay on loopback: no test sends an
-event or a read through a running relay and gateway.
+files.rs` (AT-T79-42–49, `08` §12); not yet run. Through a running relay and gateways on
+loopback: §Gate 1 on one machine.
+
+**Gate 1 on one machine (`10` T79, increment 4, 2026-11-11).** `trial/tests/gate1.rs` runs
+Milestone 2's gate 1 (`10` §2.4) under one operator on loopback, every step a command of the
+binaries, nothing in process (AT-T79-50–59, `08` §12):
+1. `isegoria-node --new-identity` for four members and a relay, the test issuer's `--new-key`,
+   `--genesis-assemble` (`n = 4`, `t = 3`, the relay listed) and `--genesis-digest`; each
+   member's TOML, its `--announce`, then every TOML with `consortium.hpke`; the four members and
+   the relay started from their TOMLs, until each member is caught up on both feeds and the
+   relay bound to all four.
+2. Fourteen slots, 0–13, issued by `isegoria-client --request`, `isegoria-test-issuer --issue`
+   and `--finalize`.
+3. Thirteen `--join`s and one author's `--deposit` in epoch 0, each `--send` through the relay to
+   the members' gateways in turn, each event's `--read status` until it is applied; one join
+   sent again to a second member. `--request close-epoch 0` on members 0–2; once every member
+   reports the closing cut's digest and round 0's value, each joined reviewer's `--read reviewer
+   0`. The twelve drawn commit — ten the key, one another alternative, one "don't know" —
+   while member 3 is stopped (SIGTERM), and `close-commits 0` goes to members 0–2; member 3 is
+   started again; the reveals go through members 1–3, `close 0` to members 1–3; the author's
+   `--read author` shows the outcome; `close-epoch 1` goes to members 0, 1 and 3; the author's
+   reputation and quota are read again in epoch 2.
+
+The checks: the digest and network id printed by assembly and by `--genesis-digest` agree;
+each event applied, the repeated join's second entry `AlreadyInPool`; 12 of the pool's 13
+drawn, each seeing the question's view without its key; every commit and reveal counted, the
+round `accepted` with its observation (success, weight 1), each reviewer's phase `closed`; the
+author's quota 2 as a new author in epoch 1, then its `C_a` higher and its quota the band of it
+(D51) in epoch 2; at each closing cut every member's state digest the same, its cuts the same,
+no refused cut, halt, equivocation or conflict; while member 3 is stopped, its status file
+unchanged and the other three cutting and closing the commits; started again, member 3's
+digests the ones it had and the others'.
+
+*Choices the contract leaves to the run, the smallest taken.* The binaries: crate `trial` builds
+the three tools' own `main.rs` as `trial-node`, `trial-client` and `trial-test-issuer`, since an
+integration test sees only its own package's binaries; same sources, no tool gains a dependency,
+no node links the issuer's key. Timing: `every_ms`, `sync_every_ms` and `status_every_ms` 100,
+`patience` 10, `view_patience` 20, the in-process tests' values; ports picked free at the start;
+each wait at most 90 s. `discovery_and_archive = false` (D64). The members dial each other, the
+relay dials the members. Fourteen credentials, one author and one question, not D60's sizing for
+the trial (about 16, over 3–4 epochs). A `--send` refused on the channel or answered "retry
+later" is sent again, as T79-P7 allows.
+
+*Evidence (owner, 2026-11-11: in two directories).* The test prints the directory
+`target/tmp/gate1/run-<pid>/evidence/`. `shared/` holds only what the trial's shared evidence
+may (`04` §The trial's procedure, 7): `revision.txt`, the commit under test and whether tracked
+files differ from it; the genesis document and what `--genesis-digest` prints of it; and at each
+stage every node's public status lines (`NN-<stage>/m<i>.status`, `relay.status`) — feeds caught
+up, peers, bindings, equivocations, conflict, halts, stops, syncs, cuts, beacons, state digests
+and a refused cut, but no executed request, a circle entry. `private/` holds everything else:
+every status file whole, the transcript of every command with its output (the run's directory
+written `$RUN`), reads and reviewers' views included, and the nodes' logs. The test checks that
+no file of either holds a secret seed of the run's identities or of the issuer, and that no file
+of `shared/` holds the question's context, stem or alternatives (the key among them), an event's
+content id, or a line the client prints for an event or a read.
+*Running it.* `scripts/gate1.sh`, that is `cargo test -p trial --test gate1 -- --nocapture`;
+part of `cargo test --workspace` (owner, 2026-11-11). 2026-11-11, on this machine: 5 runs of 5
+passed, 16–18 s each, no command refused — 3 before the evidence was split, 2 after.
+*Limits.* One operator, one machine, loopback: no independence (D60), no delay, partition or
+duplicate injected beyond the repeated join, one stop by SIGTERM; test credentials (D60). It is
+not the recorded gate-1 trial against a pinned revision and configuration (`10` §2.4).
 
 ---
 

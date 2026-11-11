@@ -199,6 +199,8 @@ pub struct Status {
     pub refused_cut: Option<(u64, String)>,
     /// The operator's requests logged on the circle feed, by name, with their entry's `seq`.
     pub requests: Vec<(String, u64)>,
+    /// The hook's lines on its state and on `requests`, circle data (`docs/05` §Built in the node).
+    pub state: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -995,7 +997,27 @@ impl Node {
             digests: self.follower.digests().to_vec(),
             refused_cut: self.follower.refused().cloned(),
             requests: self.requests.clone(),
+            state: self.hook_status(),
         }
+    }
+
+    /// The hook's status lines, given the circle entries of the executed requests in order.
+    fn hook_status(&self) -> Vec<String> {
+        let (Some(h), Some(w)) = (&self.hooked, &self.circle) else {
+            return Vec::new();
+        };
+        let writer = w.writer.public().to_bytes();
+        let entries = w.log.log().entries();
+        let id = |seq: u64| {
+            let e = entries.iter().find(|e| e.seq == seq)?;
+            Some(EntryId {
+                writer,
+                seq,
+                hash: e.hash,
+            })
+        };
+        let ids: Vec<EntryId> = self.requests.iter().filter_map(|r| id(r.1)).collect();
+        h.hook.status(self.store.replica(), &ids)
     }
 
     /// Applies to the hook the cuts collected since it last looked.
@@ -1603,12 +1625,7 @@ impl Node {
         };
         let carried = match opened {
             Err(refusal) => blind::Carried::Refused(refusal),
-            Ok((inner, response)) => {
-                match (self.respond(&inner)).and_then(|b| response.encapsulate(&b).ok()) {
-                    Some(sealed) => blind::Carried::Sealed(sealed),
-                    None => blind::Carried::Refused(blind::Refusal::Undecryptable),
-                }
-            }
+            Ok((inner, response)) => blind::carried(response, self.respond(&inner)),
         };
         let _ = self
             .swarm
@@ -1619,11 +1636,8 @@ impl Node {
 
     /// The Binary HTTP response to an opened request: a read's from the hook, an event's below.
     fn respond(&mut self, inner: &[u8]) -> Option<Vec<u8>> {
-        match blind::read_request(inner, &self.network_id) {
-            Ok((blind::Posted::Read, request)) => self.read(&request).to_http(),
-            Ok((blind::Posted::Event, event)) => self.answer(event).to_http(),
-            Err(answer) => answer.to_http(),
-        }
+        let network_id = self.network_id;
+        blind::respond(inner, &network_id, self)
     }
 
     /// What a gateway does with an event: bytes already on its circle feed answered with their
@@ -1663,16 +1677,12 @@ impl Node {
         }
     }
 
-    /// A read's sealed reply from the hook, after the cuts collected so far; logs nothing, and
-    /// answers "not admitted" without a hook or where the hook refuses (`docs/05` T79-P7).
-    fn read(&mut self, request: &[u8]) -> blind::ReadAnswer {
-        self.follow();
-        let sealed =
-            (self.hooked.as_ref()).and_then(|h| h.hook.read(self.store.replica(), request));
-        match sealed {
-            Some(sealed) => blind::ReadAnswer::Reply(sealed),
-            None => blind::ReadAnswer::Answer(blind::Answer::NotAdmitted),
-        }
+    /// A read's sealed reply from the hook, as of the cuts applied at the last period: it collects
+    /// none, logs nothing, and answers "not admitted" without a hook or where the hook refuses
+    /// (`docs/05` T79-P7, *In the gateway*).
+    fn read(&self, request: &[u8]) -> blind::ReadAnswer {
+        let hook = self.hooked.as_ref().map(|h| &*h.hook);
+        blind::read_answer(hook, self.store.replica(), request)
     }
 
     /// The receipt of an event its circle log already holds as `id`: only once the replica
@@ -1842,6 +1852,16 @@ fn new_port(addr: Multiaddr) -> DialOpts {
 enum Store {
     Memory(Replica),
     Disk(DurableReplica),
+}
+
+impl blind::Respond for Node {
+    fn read_answer(&mut self, request: &[u8]) -> blind::ReadAnswer {
+        self.read(request)
+    }
+
+    fn event_answer(&mut self, event: Vec<u8>) -> blind::Answer {
+        self.answer(event)
+    }
 }
 
 impl Store {

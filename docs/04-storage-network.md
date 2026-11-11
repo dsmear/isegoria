@@ -683,7 +683,10 @@ request takes the same path to `…/read`; the member answers it from its state 
 | anyone, from the public cut marks | that a member's circle feed grew in a cut | which person or event |
 
 The last line is D54's residual: timing links a request a relay saw to a circle feed's
-growth. Batching (`10` T28) and PRIV-003 would blur it; neither is built.
+growth. Batching (`10` T28) and PRIV-003 would blur it; neither is built. A second residual,
+accepted for the trial (`01` D68): replies are not padded and a gateway answers a replayed
+read afresh, so a relay that replays a captured read learns, by the reply's size, when an
+event was applied or refused and when a reviewer was drawn, for a question of what size.
 
 - **T85-P1 — the carrier.** RFC 9458's encapsulated request and response, byte for byte,
   on two libp2p request-response protocols, `/isegoria/ohttp/relay/1` (person → relay) and
@@ -722,13 +725,16 @@ growth. Batching (`10` T28) and PRIV-003 would blur it; neither is built.
     encapsulation alone: a reply's `Carried` envelope adds 10 bytes (version, kind, the
     field's length), read with it. A longer one is refused as it is read, before more is
     held, by relay, gateway and client alike; the client refuses an oversized sealed reply
-    however it received it.
+    however it received it. A gateway sends none: where a read's reply would encapsulate past
+    the limit (OHTTP adds 32 bytes under this suite), it answers 500 sealed in the request's
+    context in its place (AT-T79-62), not a refusal in the clear, so the relay learns nothing
+    of it.
   - *Refusals in the clear* (the relay's or the gateway's, forwarded unchanged): a peer that
     is not a listed relay, a key id no member's or not the gateway's, a request that does
     not decapsulate, no connection to the member. Nothing is logged.
   - *Sealed answers*: 200 with a receipt; 421 a path naming another network; 400 not this
     request; 403 bytes the admission check refuses; 503 "retry later" while the member's
-    circle feed is not caught up; 500 a write that failed. Admission is a predicate the
+    circle feed is not caught up; 500 a write that failed (to a read, a reply past the limit). Admission is a predicate the
     embedding supplies — `p2p` keeps no protocol state, and which events it admits is T79.
     To a read: 200 whose body is the reply sealed to the request's response key, 403 a read
     with no reply (it does not decode, or its proof fails: `05` §Built for participants), 421
@@ -777,14 +783,15 @@ reads it, and an empty reply is a failed exchange. In `node`: `consortium.hpke`,
 signed key configuration. **What a node process can do:** forward as a relay, and terminate
 the channel as a member; a member of a network with a genesis admits a person's answer-review
 events and answers its reads through its hook (*As wired*, below); the legacy events are not
-admitted. Persons have no client program: `seal`, `seal_read` and `submit` are a library.
+admitted. Persons use `isegoria-client` (`05` §Built for participants), on `seal`, `seal_read`
+and `submit`.
 
 **As wired (2026-11-11, `10` T79's third increment).** `blind::read_path` and
 `blind::seal_read` beside `event_path` and `seal`; `Sealed::open_read` gives a `ReadAnswer`,
 the sealed reply or an answer without one, and `Sealed::open` refuses a read's reply. A
 gateway whose node runs a hook (`p2p::hook::Hook`) admits by `Hook::admit` in place of its own
-`Admission`, and answers a read on `…/read` with `Hook::read`'s bytes after applying the cuts
-collected so far, logging nothing; `node`'s own `Admission` refuses everything. Relays are
+`Admission`, and answers a read on `…/read` with `Hook::read`'s bytes as of the cuts its node applied at
+its last period, collecting none and logging nothing; `node`'s own `Admission` refuses everything. Relays are
 unchanged: they forward by key id and never see the path. The protocol side and the choices
 are `05` §Built for participants (*In the gateway*). Tests: AT-T79-34–41 (`08` §12), written
 and compiled, not yet run.
@@ -1077,7 +1084,7 @@ for the members collecting cuts (`network::rounds`).
 Public CID lookup without a full replica is specified in §Public object discovery (T75);
 circle objects are never offered through it (§Who reads). A member's node runs the answer
 review on the cuts it collects (`05` §Built in the node, `10` T79); persons reach it through
-its gateway (§Blind relays, *As wired*), with no client yet. Its contract, approved in `01` D60, is `05` §Distributed integration, its
+its gateway (§Blind relays, *As wired*) with `isegoria-client`. Its contract, approved in `01` D60, is `05` §Distributed integration, its
 state on cuts `protocol::answer_ledger`. In code:
 `network::replica`, `network::cut`, `protocol::ledger`, the `p2p` crate.
 
@@ -1126,8 +1133,9 @@ tiered node's feeds, the other members whose rounds its start check holds (`sync
 the equivocations its replica holds, whether the consortium equivocated, each collected
 cut from number 0 with its digest, view and exclusions (§The cuts' views and exclusions in
 the status), each finished round's value and withholders, and for a tiered member the state
-digest after each closing cut, the cut its hook refused if any, and its executed requests
-(`05` §Built in the node). A
+digest after each closing cut, the cut its hook refused if any, its executed requests and,
+from its hook, the open epoch, each question's phase and each executed request's outcome,
+circle data kept in the member's own file (`05` §Built in the node, *The state in the status*). A
 configuration that does not hold — a bad key, a threshold outside `1..=n`, a member without
 a key, circle keys that are not one distinct key per member, `writers` other than the tiered
 set's keys, a tiered member without its own circle key, a circle key file outside one, a tiered
@@ -1302,53 +1310,130 @@ holder loss or repair — and T84 is frozen during Phase 2 (`10` Milestone 2). T
 
 ### The trial's procedure
 
-The minimal written procedure. Steps marked *(needs code)* wait on §Obstacles in the code;
-each operator runs its own machine and keeps its own secrets throughout. The answer review's
-steps are not written yet: `01` D60 has them added with T79 — the test issuer and issuance,
-the non-member relays, participants' credentials and client with the trial's sizing, the
-operators' closure commands, the comparison of state digests and a round without a beacon. The
-closure commands and the digests in the status are built (`05` §Built in the node).
+The minimal written procedure; each operator runs its own machine and keeps its own secrets
+throughout. Besides the four members' operators it has at least one relay operator who is no
+member, the test issuer's holder — a party that is no member, *to be named here before gate 2*
+(`05` *Credentials before T19*) — and participants: D60's sizing, at least 13 reviewers who
+join the pool (D49's group is 12) and 3 authors outside it, reviewers' credentials held by
+parties with no access to member data, scripted participants declared synthetic (`01` D60).
+The answer review's side is `05` §Distributed integration. Gates 1 and 2 run steps 1–11
+with the test issuer, gate 1 every role under one operator (`05` *Credentials before T19*);
+gate 3 replaces the issuer (step 12).
 
 1. **Preparation.** Each operator pins the agreed revision, generates its member's secrets
    locally (`--new-identity`), keeps a backup under its own control, and sends the others
-   only the public keys it printed and its addresses.
+   only the public keys it printed and its addresses. Each relay operator runs
+   `--new-identity` for its relay's data directory and sends its `transport` line: a relay's
+   key exists before the genesis that lists it (T88-P1, AT-NET-42). The issuer's holder runs
+   `isegoria-test-issuer --new-key <issuer.key>` and sends its `issuer` line. The operators
+   fix the slot list, 0 to 19: 16 for the participants and four spares.
 2. **Configuration confirmation.** One operator assembles the canonical configuration from
-   the printed keys and the agreed parameters (`--genesis-assemble`, T88-P1) and sends the
-   file to the others. Each operator checks its own keys and index,
+   the printed keys, the issuer key, the relays' keys and the agreed parameters
+   (`--genesis-assemble`, T88-P1) and sends the file to the others, relay operators and the
+   issuer's holder included. Each operator checks its own keys and index,
    `n = 4`, `t = 3` and the version, computes the digest and the network id itself
    (`--genesis-digest`), and confirms them to every other operator over a channel it
-   authenticates on its own: the digest proves no origin. The four confirmations go into the
-   evidence. Only then does each sign its key configuration (`--announce`), exchange it and
-   write its node's TOML, naming the document and repeating its values.
+   authenticates on its own: the digest proves no origin. A relay operator checks its `relay`
+   line, the issuer's holder the `issuer` line. The four confirmations go into the
+   evidence. Only then does each member's operator sign its key configuration (`--announce`),
+   exchange it and write its node's TOML, naming the document and repeating its values; a
+   relay's TOML adds `relay = true` and every member's configuration (§A node process).
 3. **First start.** Each member starts from empty files under its new identity and writes
    nothing before sync rounds with two other verified members. Record each
-   status: `bound`, `caught_up`, `circle_caught_up` and the first cuts.
-4. **Archiving — outside the trial** (owner, 2026-11-03; §Archives and holders in the trial).
+   status: `bound`, `caught_up`, `circle_caught_up` and the first cuts. Relays start too,
+   only on the key the genesis lists (`--transport-public-key` prints it). Each relay
+   operator gives the participants its address, ending in the `/p2p/<peer id>` its node
+   prints at the start (`listening on …`), and the members' operators their `--announce`
+   lines.
+4. **Credentials.** A participant takes one listed slot and runs `isegoria-client --request
+   <genesis> <slot> <pending> <request>`, carries the request file by hand to the issuer's
+   holder, who runs `isegoria-test-issuer --issue <issuer.key> <request> <reply>` and returns
+   the reply, then runs `--finalize <genesis> <pending> <reply> <credential>`. The pending
+   and credential files never leave the participant. The tool keeps no record and signs any
+   valid request, a slot's again too (`01` D65): answering each listed slot once is the
+   holder's conduct, not a check, and it records the slots it answered.
+5. **Epochs and closures.** Reviewers join (`--join`), authors deposit (`--deposit`) in the
+   open epoch, which the operators announce from the `epoch <e>` line of their status.
+   Each event goes through a relay to one member (`--send`, receipt `logged <writer> <seq>
+   <hash>`) and is followed with `--read … status <event>`; reviewers find their questions
+   with `--read … reviewer <from>`, commit (`--commit`) while its `phase` is `commits-open`
+   and reveal (`--reveal`) while `reveals-open`; authors follow theirs with `--read …
+   author`. Operators close with `isegoria-node --request <node.toml> close-epoch <e>`,
+   `close-commits <q>` and `close <q>`, a closure taking effect at the third member's request
+   in cut order (T79-P5). The procedure, not code, decides when: a written schedule, agreed
+   with the configuration and kept in the evidence, sets each epoch's deposit window ending in
+   `close-epoch` and each drawn question's commit and reveal windows ending in
+   `close-commits` and `close`, over at least 3–4 epochs (D60). Each operator issues its
+   own command when the schedule says, never on a count of answers (D49); one who declines
+   stalls the closure visibly, and that is recorded. Questions are numbered from 0 by
+   accepted deposit in cut order; a request for a question not in the phase it closes is
+   refused by the state, not counted, and is issued again in its next window. A member's
+   status lists each executed request (`request <name> <seq>`), its outcome (`request_state
+   <seq> pending | counted | refused <reason>`) and each question's phase (`question <q>
+   <phase>`): circle data, its operator's own (`05` §Built in the node, *The state in the
+   status*).
+6. **State digests.** After each closing cut a member's status adds `digest <cut> <hex>`.
+   The members' operators compare their four lines for each closing cut and record them;
+   relays compute none (`01` D64). A difference, or a member's `refused_cut <n> <reason>`
+   in place of `refused_cut none` (its duties halted, `05` §Built in the node), stops the
+   trial as a conflict does (step 10).
+7. **A round without a beacon.** A round has no value when fewer than `t` reveals count in
+   the cut after its epoch's closing cut: the status shows `beacon <e> none
+   [<withholders>]`. The trial cannot cause one: reveals are automatic, and the switch withholding them exists in test
+   builds only, set by no configuration (`05` T79-P4, §Built in the node). If one occurs,
+   operators record its line and issue nothing for it — no retry, deadline or extra closure
+   — and record that it excluded no one (rule 7), that the sealed epoch's questions stay
+   pending (`question <q> pending` in their authors' reads) until the next round with a
+   value draws them (T79-P4), and that the digests still agree. A closing cut proposed after
+   `patience` without a late member's commit leaves it out of that round (`01` D64):
+   recorded too.
+8. **Archiving — outside the trial** (owner, 2026-11-03; §Archives and holders in the trial).
    No node is stopped to export or extract, and no archive is prepared, installed, rebuilt
    or repaired.
-5. **Stop and restart.** One member at a time: it writes nothing before the required sync
+9. **Stop and restart.** One member at a time: it writes nothing before the required sync
    while the other three progress. Two members down stop progress until one
    returns.
-6. **Faults.** Delay, drop and duplicate messages; partition 3–1 (the three progress) and
-   2–2 (neither side does), then rejoin. A node given another configuration must not start:
-   a TOML repeating other values than its genesis, or its network id, refuses the start. A
-   detected loss or inconsistency stops a member's writes durably (§Increments A and B). An
-   operator who restores a member's directory or keys from a backup or any copy does not
-   resume that identity's writes, and records the restoration; an undetected restoration is
-   a residual. A conflict, an equivocation or a compromised key stops the trial: every
-   operator keeps its data directories as they are, no branch is chosen, and any
-   continuation is a new configuration.
-7. **Evidence.** Shared evidence holds no secret and no circle content, only what verifies
-   the outcomes: the pinned revision, the configuration document, its digest and the four
-   confirmations; each node's status over time; public entries,
-   conflicting signed cuts and public-feed equivocations; the faults injected and when; the
-   restorations operators know of; and a table of the safety and progress observed against
-   P3's assumptions, with the beacon's and recovery's limits. A log is shared once its
-   operator has checked it for secrets. Full copies of a data directory hold private keys
-   and circle data: each operator keeps its own, as they were at every stop, and does not
-   share them. Public marks show which head each cut took for a circle feed; they do not by
-   themselves show every private fork. A circle branch no cut marked stays in the circle,
-   where the members, who read it, can check the signed entries.
+10. **Faults.** Delay, drop and duplicate messages; partition 3–1 (the three progress) and
+    2–2 (neither side does), then rejoin. A node given another configuration must not start:
+    a TOML repeating other values than its genesis, or its network id, refuses the start. A
+    detected loss or inconsistency stops a member's writes durably (§Increments A and B). An
+    operator who restores a member's directory or keys from a backup or any copy does not
+    resume that identity's writes, and records the restoration; an undetected restoration is
+    a residual. A conflict, an equivocation or a compromised key stops the trial: every
+    operator keeps its data directories as they are, no branch is chosen, and any
+    continuation is a new configuration.
+11. **Evidence.** Shared evidence holds no secret and no circle content, only what verifies
+    the outcomes: the pinned revision, the configuration document, its digest and the four
+    confirmations; the slot list, the slots answered and the closures' schedule; each node's
+    public status lines over time — feeds caught up, peers, bindings, syncs, cuts, `beacon`,
+    `digest` and `refused_cut` — never its `epoch`, `question`, `request` or `request_state`
+    lines, which are circle data (as gate 1's `evidence/shared/` keeps, `05` §Gate 1 on one
+    machine); for gate 3, beside the digests, each operator's signed statement that its node
+    shows the question's expected outcome, the author's record and next quota (`01` D68),
+    the outcomes themselves staying in the circle; public entries,
+    conflicting signed cuts and public-feed equivocations; the faults injected and when; the
+    restorations operators know of; and a table of the safety and progress observed against
+    P3's assumptions, with the beacon's and recovery's limits. A log is shared once its
+    operator has checked it for secrets. Full copies of a data directory hold private keys
+    and circle data: each operator keeps its own, as they were at every stop, and does not
+    share them. Public marks show which head each cut took for a circle feed; they do not by
+    themselves show every private fork. A circle branch no cut marked stays in the circle,
+    where the members, who read it, can check the signed entries. A participant's files and
+    its reads' outputs are secrets or circle data (T79-P6): each participant keeps its own.
+12. **Gate 3: the committee.** Gate 3 runs steps 1–11 again under a new genesis whose
+    issuer is the issuing committee (`03` §Committee setup for the trial); the test issuer
+    takes no part. After step 1, the four operators write the ceremony's procedure TOML
+    (`threshold`, the three `signers`, the `slots`, each `[[member]]`'s printed `consortium`
+    and `hpke` keys) and each runs
+    `isegoria-ceremony init <procedure.toml> <identity-dir> <ceremony-dir>`, then `step
+    <ceremony-dir> <identity-dir> <message-file>...` through step 14, carrying the files each
+    `sent` line names; step 14 prints `issuer <hex>`, the value step 2 assembles. In step 4 a
+    participant runs `isegoria-client --slot-request <genesis> <slot> <pending> <request>`,
+    each signer answers that request with `isegoria-ceremony answer <ceremony-dir> <request>
+    <share>`, and the participant runs `--combine <genesis> <pending> <credential>
+    <share>...`. A refusal or the operators' decision aborts (`isegoria-ceremony abort`); a
+    lost or compromised share suspends the trial (T19-P6). Each member's `isegoria-ceremony
+    status` goes into the evidence.
 
 ### Obstacles in the code
 
@@ -1661,8 +1746,8 @@ exclusions it is collected under (§Collected cut export), and the status report
 7. **Not established.** The status is one replica's local view when it was written: no
    certificate, no evidence that operators agree, and no proof that the exclusions are the
    beacon history other members hold. A node missing a signature reports a higher view, or
-   the cut not yet. Comparing nodes' statuses stays the procedure's (step 7); the trial makes
-   no export (step 4).
+   the cut not yet. Comparing nodes' statuses stays the procedure's (step 11); the trial makes
+   no export (step 8).
 
 *Proposed, not built.* `--archive-export-cut` could also check `excluded` against its own
 replica's beacon history, the rule-6 set a collection from number 0 gives the cut, and refuse

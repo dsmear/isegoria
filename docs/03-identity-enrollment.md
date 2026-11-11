@@ -255,7 +255,8 @@ among themselves for the slots no member has answered, and a slot already answer
 spent. *Rectified (`01` D66):* a lost share suspends the trial as a compromised one does, with
 no re-preparation. A compromised share suspends the trial; continuing is a new ceremony and a new
 genesis (`04` T88-P2). No refresh, resharing or rotation: T22. A member
-that deviates is caught only where the library verifies its message; no robustness,
+that deviates is caught only where the library verifies its message (*rectified, `01` D68:*
+also where the confirmations' echo of every member's commitments differs); no robustness,
 identifiable abort or Byzantine tolerance is claimed, and a member able to choose its
 contribution last can bias the key's distribution.
 
@@ -286,7 +287,7 @@ holder's verification do.
 to continue without every member's contribution and every expected message; the base OT's
 generator is derived by hashing a fixed label, the same for every ceremony.
 
-*Built (2026-11-11; tests AT-ID-15–24 written, not yet run).* One member's side is
+*Built (2026-11-11; tests AT-ID-15–29 written, not yet run).* One member's side is
 `identity::credential::ceremony`, **bespoke** and unreviewed: `Setup` (members, threshold,
 named signers, slots), and `Party::advance`, which takes flight `k − 1`'s payloads by sender
 and gives flight `k`'s (2 to 12; at 13 it finishes the prepared signatures). A missing payload
@@ -297,7 +298,9 @@ state has one encoding. Key generation is `frost_dkg` over G2 with the ceremony'
 proof's context, the base OT's generator hashes `isegoria/ceremony/base-ot/v1` (D64), phase 1's
 protocol id is the ceremony's id. The completeness the library does not check is checked here:
 every contribution and every share before the key, every pair's five OT messages, each signer's
-phase outputs at the list's length. `SlotRequest`, `Party::answer` and `combine` are issuance.
+phase outputs at the list's length. A contribution must commit to exactly `t` coefficients
+before the library sees it: its degree check computes the count less one, which underflows on
+none. `SlotRequest`, `Party::answer` and `combine` are issuance.
 The tool is `isegoria-ceremony` (crate `ceremony`), exit code 0 or 2:
 
 - `init <procedure.toml> <identity-dir> <ceremony-dir>` — step 1: reads `member.key` and
@@ -305,7 +308,8 @@ The tool is `isegoria-ceremony` (crate `ceremony`), exit code 0 or 2:
   the new directory (`0700`) and its fresh value (32 bytes of system randomness), and writes it
   to every other member.
 - `step <ceremony-dir> <identity-dir> [<message-file>...]` — steps 2 to 14: takes the previous
-  step's messages to this member and writes this step's; step 14 takes the confirmations and
+  step's messages to this member and writes this step's, printing `step`, `ceremony`, a `sent`
+  line per file written and a `later` line per file left for a later step; step 14 takes the confirmations and
   prints `done` and `issuer <hex>`, the 97 bytes `--genesis-assemble` takes (`04` T88-P1).
 - `status <ceremony-dir>` — `member`, `phase` (`running`, `done`, `aborted`), `next` and
   `expects` (the members whose messages the next step needs), `ceremony`, `issuer`, a signer's
@@ -313,12 +317,13 @@ The tool is `isegoria-ceremony` (crate `ceremony`), exit code 0 or 2:
 - `answer <ceremony-dir> <request-file> <share-file>` — a signer's share for one request (P5).
 - `abort <ceremony-dir>` — the operators' decision (P6).
 
-*Files.* The procedure TOML holds `threshold`, `signers` (member indices from 0 in genesis
-order, increasing), `slots` (an increasing list of numbers below `2^32`) and one `[[member]]`
+*Files.* The procedure TOML holds `ceremony` (a number below `2^63` the operators agree for this
+ceremony of the committee, required; a ceremony after an abort takes a new one), `threshold`,
+`signers` (member indices from 0 in genesis order, increasing), `slots` (an increasing list of numbers below `2^32`) and one `[[member]]`
 per member, in genesis order, with the `consortium` and `hpke` keys its `--new-identity`
 printed; a key that is not valid or is repeated is refused by its field, and so is a shape
 `Setup` refuses. The ceremony directory holds `state` (`0600`, replaced whole through
-`state.new`), `lock`, `out/NN-i-j.msg` (step `NN` from member `i` to `j`, `0600`) and, for a
+`state.new`, holding the last step's sealed messages), `lock`, `out/NN-i-j.msg` (step `NN` from member `i` to `j`, `0600`) and, for a
 signer once the ceremony is done, `answered/<slot>` (`0600`, the request's SHA-256 then the
 share answered, in its encoding below). A message is the header — version 1, the id, the step,
 the sender's and the recipient's indices, 36 bytes — the encapsulated key (32), then as a
@@ -327,21 +332,35 @@ by the sender's consortium key over the tagged SHA-256 under `isegoria/ceremony/
 the header and the payload, checked strictly; the seal is RFC 9180 base mode with the members'
 OHTTP suite (X25519-HKDF-SHA256, HKDF-SHA256, AES-128-GCM), info `isegoria/ceremony/seal/v1`,
 the header as associated data. The slots' digest is tagged under `isegoria/ceremony/slots/v1`
-over the count (8 bytes) and the slots (4 each); the id under `isegoria/ceremony/id/v1` over `t`
-and `n` (8 bytes each), each member's consortium then HPKE key, the slots' digest and each
+over the count (8 bytes) and the slots (4 each); the id under `isegoria/ceremony/id/v1` over the
+ceremony's number, `t` and `n` (8 bytes each), each member's consortium then HPKE key, the slots' digest and each
 member's fresh value; step 1's messages carry, in the id's place, the same fields but the fresh
 values under `isegoria/ceremony/opening/v1`. The confirmation (step 13) is the issuer key's 97
-bytes, the slots' digest, the signers' count and indices. A request is version 1, the slot (4
+bytes, the slots' digest, the signers' count and indices, then the echo: the key generation's
+digest and, from a signer, phase 1's. Each is SHA-256 over the tag's length (8 bytes), the tag,
+and the compressed arkworks encoding of a map from participant id (member index + 1) to what
+that member committed to, as this member received it, its own included: under
+`isegoria/ceremony/echo/keygen/v1` every member's coefficient commitments (flight 2), under
+`isegoria/ceremony/echo/phase1/v1` every signer's coin-toss commitments of phase 1 (flight 9). A request is version 1, the slot (4
 bytes), the commitment, the proof's `t` and its response; a share is version 1, the slot, the
 library's share; each object is an 8-byte length and its compressed arkworks encoding. A slot's
 label is its number's 4 bytes, little-endian, then 28 zero bytes.
 
-*Behaviour.* A file byte-identical to one already taken is skipped. One that fails its decoding,
-seal, signature, recipient, sender, id or step, a second message from one sender, the library's
-check, or a confirmation unlike the member's own aborts: the state keeps `aborted`, the party
+*Behaviour.* A file byte-identical to one already taken is skipped. A file of a later step, from a
+member that sends this member a message in that step, is left unread and reported (`later
+<file>`), to be given again at its step: D57's reordering does not abort (at step 2 its id, not yet
+known, is checked at its step). One that fails its decoding, seal, signature, recipient, sender,
+id or step (an earlier step's, not the file taken there), a second message from one sender, the library's
+check, or a confirmation unlike the member's own — its echo too, phase 1's compared only between
+two signers — aborts: the state keeps `aborted`, the party
 with its share dropped, and every later command is refused. A step lacking a message reports the
-members missing and changes nothing. A step writes its messages before its state: interrupted
-before the state, it runs again with fresh randomness, the earlier files not yet sent. `answer`
+members missing and changes nothing. A step keeps its messages, sealed, in the state it saves
+before writing any of them to `out/`; every `step` first writes those of the previous step that
+`out/` lacks, and a step given only files already taken reports the previous step again with the
+same files. Interrupted before its state, a step has written nothing and runs again; after it,
+its files are the bytes kept: no message of a step is drawn twice (`Mul::init` on one base OT
+output is single-use). A step whose file exists in `out/` already — a state older than the
+directory's files — is refused (`Written`) with nothing changed. `answer`
 refuses before the ceremony is done, for a non-signer, without `answered/` (a lost record ends
 that member's issuance), for an output that exists, a request that does not decode, a slot
 recorded for another request, a slot not listed or a proof that fails — none of these spends the
@@ -355,11 +374,23 @@ new genesis. An advisory lock serializes invocations on one directory. Tests: `i
 `processes.rs`), with `--new-identity`'s directories and `--genesis-assemble` (`08` §12).
 
 *Choices left to the implementation, taken here.* Step 1's messages are signed and sealed as the
-others, bound to the opening digest, the id not existing yet. Every message is sealed to its
+others, bound to the opening digest, the id not existing yet; the ceremony's number, in the
+opening and the id, refuses an aborted ceremony's step-1 file in the next one, which the
+committee's fields alone would take and whose wrong id would then be blamed on an honest member. Every message is sealed to its
 recipient, the public ones included. The signers are not in the id, which P3 fixes; the
 confirmation carries them, so two members that name different signers do not finish. A repeated
 request is given the recorded share's bytes, not a share computed again. Non-signers run steps
-10 to 12 with no message, so every member counts the same steps.
+10 to 12 with no message, so every member counts the same steps. A step's outputs are made
+reproducible by keeping its sealed messages, not a seed for its randomness: a seed would also
+serve other inputs given to the step again. The echo closes a gap the libraries leave, a
+**bespoke** check: `frost_dkg` (FROST's Figure 1) and phase 1's coin toss assume each member's
+commitments broadcast, but the tool sends them point to point, so a member could keep its
+`C_0` (its proof still verifying) and send one member other coefficient commitments with a
+matching share — every check passes and every member confirms the same key, while the signers
+hold an inconsistent sharing (a combination fails with `Signature`, and the member knows the
+offset). Each member confirming what it received, and finishing only on every confirmation's
+equal echo, makes the point-to-point sends an echo broadcast; the pairwise messages (the
+shares, the base OT, phase 1's zero sharing, phase 2) need none.
 
 *Built (2026-11-11, tests AT-T79-42 and AT-T79-44 written, not yet run).* The participant's side
 in `isegoria-client` (`05` §Built for participants): `--slot-request` writes its fresh secret's

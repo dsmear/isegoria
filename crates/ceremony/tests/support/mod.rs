@@ -25,7 +25,7 @@ pub struct Committee {
 pub fn procedure_text(printed: &[node::NewIdentity], slots: &[u32]) -> String {
     let list: Vec<String> = slots.iter().map(u32::to_string).collect();
     let mut text = format!(
-        "threshold = 3\nsigners = [0, 2, 3]\nslots = [{}]\n",
+        "ceremony = 1\nthreshold = 3\nsigners = [0, 2, 3]\nslots = [{}]\n",
         list.join(", ")
     );
     for p in printed {

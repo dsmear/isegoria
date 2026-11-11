@@ -1,4 +1,4 @@
-//! The ceremony over files, in-process (`docs/03` T19-P2–P6; AT-ID-17–23): four members'
+//! The ceremony over files, in-process (`docs/03` T19-P2–P6; AT-ID-17–29): four members'
 //! directories, their messages carried from each `out/` to the others, then issuance per slot.
 
 mod support;
@@ -261,10 +261,38 @@ fn at_id_18_a_refused_message_aborts_the_member() {
         matches!(refused, Error::Refused(Some(_), Refusal::Payload(_))),
         "{refused:?}"
     );
+}
+
+// A later step's file waits for that step; another file of an earlier step aborts (AT-ID-26).
+#[test]
+fn at_id_26_a_later_steps_file_waits_for_its_step() {
+    let c = Committee::new("later", &SLOTS);
+    c.run("a", 2);
     c.step_one("a", 3, 1).unwrap();
-    let ahead = c.dir("a", 1).join("out").join("03-1-0.msg");
-    let step = Error::Refused(Some(ahead.clone()), Refusal::Step(3));
-    assert_eq!(case("step", ahead), step);
+    let (dir, ahead) = (c.dir("a", 0), c.dir("a", 1).join("out").join("03-1-0.msg"));
+    let mut files = c.inbox("a", 2, 0);
+    files.insert(0, ahead.clone());
+    let report = ceremony::step(&dir, &c.identities[0], &files).unwrap();
+    assert_eq!((report.step, &report.later), (3, &vec![ahead.clone()]));
+    assert!(report
+        .render()
+        .contains(&format!("later {}\n", ahead.display())));
+    assert_eq!(ceremony::status(&dir).unwrap().phase, "running");
+    for i in [2, 3] {
+        c.step_one("a", 3, i).unwrap();
+    }
+    let inbox = c.inbox("a", 3, 0);
+    assert!(inbox.contains(&ahead));
+    let four = ceremony::step(&dir, &c.identities[0], &inbox).unwrap();
+    assert_eq!((four.step, four.later), (4, vec![]));
+    let earlier = forged(&c, &c.inbox("a", 2, 0)[0], 1, 0, |p| p[0] ^= 1);
+    let earlier = write(&c.root, "earlier", &earlier);
+    let refused = ceremony::step(&dir, &c.identities[0], &[earlier.clone()]);
+    assert_eq!(
+        refused,
+        Err(Error::Refused(Some(earlier), Refusal::Step(2)))
+    );
+    assert_eq!(ceremony::status(&dir).unwrap().phase, "aborted");
 }
 
 // A step lacking a message changes nothing; repeated and taken files are skipped (AT-ID-19).
@@ -317,7 +345,7 @@ fn at_id_20_a_different_confirmation_aborts() {
         refused,
         Error::Refused(Some(other), Refusal::Confirmation(1))
     );
-    let list = forged(&c, &inbox[1], 2, 0, |p| *p.last_mut().unwrap() ^= 1);
+    let list = forged(&c, &inbox[1], 2, 0, |p| p[97 + 32 + 3] ^= 1);
     let list = write(&c.root, "list", &list);
     let copy2 = c.root.join("copy2");
     copy_dir(&c.dir("a", 0), &copy2);
@@ -329,6 +357,102 @@ fn at_id_20_a_different_confirmation_aborts() {
     );
     let reports = c.step_all("a", FINISH);
     assert!(reports.iter().all(|r| r.issuer.is_some()));
+}
+
+// A step run again after losing its files writes the same bytes; an older state refuses (AT-ID-25).
+#[test]
+fn at_id_25_a_step_run_again_writes_the_same_files() {
+    let c = Committee::new("again", &SLOTS);
+    c.run("a", 10);
+    let (dir, older) = (c.dir("a", 0), c.root.join("older"));
+    copy_dir(&dir, &older);
+    let first = c.step_one("a", 11, 0).unwrap();
+    assert_eq!(first.sent.len(), 2);
+    let sent: Vec<Vec<u8>> = first
+        .sent
+        .iter()
+        .map(|f| std::fs::read(f).unwrap())
+        .collect();
+    let state = std::fs::read(dir.join("state")).unwrap();
+    for file in &first.sent {
+        std::fs::remove_file(file).unwrap();
+    }
+    assert_eq!(c.step_one("a", 11, 0).unwrap(), first);
+    let again: Vec<Vec<u8>> = first
+        .sent
+        .iter()
+        .map(|f| std::fs::read(f).unwrap())
+        .collect();
+    assert_eq!(again, sent);
+    assert_eq!(std::fs::read(dir.join("state")).unwrap(), state);
+    for file in &first.sent {
+        std::fs::copy(file, older.join("out").join(file.file_name().unwrap())).unwrap();
+    }
+    let before = std::fs::read(older.join("state")).unwrap();
+    let refused = ceremony::step(&older, &c.identities[0], &c.inbox("a", 10, 0));
+    assert_eq!(
+        refused,
+        Err(Error::Written(older.join("out").join("11-0-2.msg")))
+    );
+    assert_eq!(std::fs::read(older.join("state")).unwrap(), before);
+    let kept: Vec<Vec<u8>> = ["11-0-2.msg", "11-0-3.msg"]
+        .map(|n| std::fs::read(older.join("out").join(n)).unwrap())
+        .to_vec();
+    assert_eq!(kept, sent);
+    let opened = &c.init("b")[0].sent[0];
+    let bytes = std::fs::read(opened).unwrap();
+    std::fs::remove_file(opened).unwrap();
+    let incomplete = ceremony::step(&c.dir("b", 0), &c.identities[0], &[]);
+    assert_eq!(incomplete, Err(Error::Incomplete(vec![1, 2, 3])));
+    assert_eq!(std::fs::read(opened).unwrap(), bytes);
+}
+
+// A confirmation echoing other commitments aborts the member that takes it (AT-ID-28).
+#[test]
+fn at_id_28_a_confirmation_echoing_other_commitments_aborts() {
+    let c = Committee::new("echo", &SLOTS);
+    c.run("a", FINISH - 1);
+    let inbox = c.inbox("a", FINISH - 1, 0);
+    for (at, from, file) in [(140, 1, 0), (140, 2, 1), (170, 3, 2)] {
+        let copy = c.root.join(format!("copy-{at}-{from}"));
+        copy_dir(&c.dir("a", 0), &copy);
+        let other = forged(&c, &inbox[file], from, 0, |p| p[at] ^= 1);
+        let other = write(&c.root, &format!("other-{at}-{from}"), &other);
+        let mut files = inbox.clone();
+        files[file] = other.clone();
+        let refused = ceremony::step(&copy, &c.identities[0], &files).unwrap_err();
+        let why = Refusal::Confirmation(from as u8);
+        assert_eq!(refused, Error::Refused(Some(other), why));
+    }
+    let reports = c.step_all("a", FINISH);
+    assert!(reports.iter().all(|r| r.issuer.is_some()));
+}
+
+// A step-1 file of an aborted ceremony is refused by a new ceremony's number (AT-ID-29).
+#[test]
+fn at_id_29_a_step_one_file_of_an_earlier_ceremony_is_refused() {
+    let c = Committee::new("number", &SLOTS);
+    c.init("a");
+    ceremony::abort(&c.dir("a", 1)).unwrap();
+    let text = std::fs::read_to_string(&c.procedure).unwrap();
+    let next = write(
+        &c.root,
+        "next.toml",
+        text.replacen("ceremony = 1", "ceremony = 2", 1).as_bytes(),
+    );
+    std::fs::create_dir_all(c.root.join("b")).unwrap();
+    for i in 0..4 {
+        ceremony::init(&next, &c.identities[i], &c.dir("b", i)).unwrap();
+    }
+    let stale = c.inbox("a", 1, 1)[0].clone();
+    assert!(stale.ends_with("01-0-1.msg"));
+    let mut files = c.inbox("b", 1, 1);
+    files.retain(|f| !f.ends_with("01-0-1.msg"));
+    files.push(stale.clone());
+    let refused = ceremony::step(&c.dir("b", 1), &c.identities[1], &files).unwrap_err();
+    assert_eq!(refused, Error::Refused(Some(stale), Refusal::Id));
+    let honest = ceremony::step(&c.dir("b", 2), &c.identities[2], &c.inbox("b", 1, 2));
+    assert_eq!(honest.unwrap().step, 2);
 }
 
 // An aborted member runs nothing more and holds no party; a new ceremony has a new id (AT-ID-23).

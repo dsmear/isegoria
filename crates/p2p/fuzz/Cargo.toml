@@ -16,6 +16,8 @@ arbitrary = { version = "1", features = ["derive"] }
 futures = "0.3"
 libp2p = { version = "0.56", default-features = false, features = ["ed25519", "request-response"] }
 ohttp = { version = "=0.8.0", default-features = false, features = ["client", "server", "rust-hpke"] }
+bhttp = { version = "=0.8.0", default-features = false }
+ed25519-dalek = "2"
 network = { path = "../../network" }
 p2p = { path = ".." }
 
@@ -53,6 +55,20 @@ bench = false
 [[bin]]
 name = "serve"
 path = "fuzz_targets/serve.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "gateway_read"
+path = "fuzz_targets/gateway_read.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "client_read"
+path = "fuzz_targets/client_read.rs"
 test = false
 doc = false
 bench = false

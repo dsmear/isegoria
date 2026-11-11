@@ -4,7 +4,7 @@
 use crate::member::Collector;
 use ed25519_dalek::Signature;
 use network::cut::Cut;
-use network::replica::Replica;
+use network::replica::{EntryId, Replica};
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
@@ -29,8 +29,7 @@ pub trait Hook: Send {
     /// Whether the cut after the last one applied closes its epoch.
     fn closes(&self) -> bool;
 
-    /// Whether the member's gateway logs a person's `event` (`docs/05` *Gateway admission*); by
-    /// default nothing.
+    /// Whether the gateway logs a person's `event` (`docs/05` *Gateway admission*); default no.
     fn admit(&self, _event: &[u8]) -> bool {
         false
     }
@@ -40,6 +39,11 @@ pub trait Hook: Send {
     fn read(&self, _replica: &Replica, _request: &[u8]) -> Option<Vec<u8>> {
         None
     }
+
+    /// The status's lines on the state and on `requests`, the executed requests' entries.
+    fn status(&self, _replica: &Replica, _requests: &[EntryId]) -> Vec<String> {
+        Vec::new()
+    }
 }
 
 /// A member's hook and the directory its operator's requests are spooled in.
@@ -48,8 +52,7 @@ pub struct Hooked {
     pub spool: PathBuf,
 }
 
-/// How far a hook has followed a node's collected cuts: the digests it reported, by cut number,
-/// and the cut it refused, after which it applies nothing more.
+/// How far a hook followed the collected cuts: its digests by cut number, the cut it refused.
 #[derive(Clone, Debug, Default)]
 pub struct Follower {
     applied: usize,
@@ -88,7 +91,16 @@ impl Follower {
     }
 }
 
-/// The requests waiting in `spool`, by name: regular files whose name starts with no `.`.
+/// A spooled request's name: 20 digits, `-`, then 1 to 64 of `a-z0-9-` (`docs/05` T79-P5).
+pub fn request_name(name: &str) -> bool {
+    let b = name.as_bytes();
+    let words = |w: &[u8]| (1..=64).contains(&w.len()) && w.iter().all(|c| WORD.contains(c));
+    b.len() > 21 && b[..20].iter().all(u8::is_ascii_digit) && b[20] == b'-' && words(&b[21..])
+}
+
+const WORD: &[u8] = b"abcdefghijklmnopqrstuvwxyz0123456789-";
+
+/// The requests in `spool` by name: regular files with a [`request_name`]; others stay unread.
 pub fn pending(spool: &Path) -> io::Result<Vec<(String, Vec<u8>)>> {
     let mut out = Vec::new();
     let entries = match std::fs::read_dir(spool) {
@@ -101,7 +113,7 @@ pub fn pending(spool: &Path) -> io::Result<Vec<(String, Vec<u8>)>> {
         let Some(name) = entry.file_name().to_str().map(str::to_string) else {
             continue;
         };
-        if name.starts_with('.') || !entry.file_type()?.is_file() {
+        if !request_name(&name) || !entry.file_type()?.is_file() {
             continue;
         }
         let mut bytes = Vec::new();

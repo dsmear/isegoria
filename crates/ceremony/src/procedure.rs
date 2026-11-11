@@ -21,6 +21,8 @@ pub struct Keys {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Procedure {
+    /// The operators' number for this ceremony of the committee, a new one after an abort.
+    pub ceremony: u64,
     pub threshold: u16,
     pub members: Vec<Keys>,
     pub signers: Vec<u16>,
@@ -40,6 +42,7 @@ pub enum ProcedureError {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Text {
+    ceremony: u64,
     threshold: u16,
     signers: Vec<u16>,
     slots: Vec<u32>,
@@ -68,8 +71,8 @@ fn x25519(bytes: &[u8; 32]) -> bool {
 }
 
 impl Procedure {
-    /// The procedure a TOML describes: `threshold`, `signers` (member indices), `slots` and one
-    /// `[[member]]` per member in genesis order with its `consortium` and `hpke` keys in hex.
+    /// The procedure a TOML describes: `ceremony`, `threshold`, `signers` (member indices),
+    /// `slots`, one `[[member]]` per member in genesis order with its `consortium` and `hpke` hex.
     pub fn parse(text: &str) -> Result<Self, ProcedureError> {
         let t: Text = toml::from_str(text).map_err(|e| ProcedureError::Parse(e.to_string()))?;
         let mut members = Vec::new();
@@ -83,6 +86,7 @@ impl Procedure {
             });
         }
         let procedure = Procedure {
+            ceremony: t.ceremony,
             threshold: t.threshold,
             members,
             signers: t.signers,
@@ -136,6 +140,7 @@ impl Procedure {
 
     fn committee(&self) -> Vec<Vec<u8>> {
         let mut fields = vec![
+            self.ceremony.to_le_bytes().to_vec(),
             u64::from(self.threshold).to_le_bytes().to_vec(),
             (self.members.len() as u64).to_le_bytes().to_vec(),
         ];
@@ -155,8 +160,8 @@ impl Procedure {
         tagged("isegoria/ceremony/opening/v1", &refs)
     }
 
-    /// The ceremony's id (`docs/03` T19-P3), under `isegoria/ceremony/id/v1`: `t` and `n` (8 bytes
-    /// each), each member's consortium then HPKE key, the slots' digest, each fresh value.
+    /// The ceremony's id (`docs/03` T19-P3), under `isegoria/ceremony/id/v1`: the number, `t`, `n`
+    /// (8 bytes each), each member's consortium then HPKE key, the slots' digest, each fresh value.
     pub fn id(&self, fresh: &[[u8; 32]]) -> [u8; 32] {
         let mut fields = self.committee();
         fields.extend(fresh.iter().map(|f| f.to_vec()));
@@ -167,6 +172,7 @@ impl Procedure {
     pub fn encode(&self) -> Vec<u8> {
         let mut w = Writer::new();
         w.u8(VERSION)
+            .u64(self.ceremony)
             .u64(u64::from(self.threshold))
             .u64(self.members.len() as u64);
         for m in &self.members {
@@ -189,6 +195,7 @@ impl Procedure {
         if r.u8().ok()? != VERSION {
             return None;
         }
+        let ceremony = r.u64().ok()?;
         let threshold = u16::try_from(r.u64().ok()?).ok()?;
         let mut members = Vec::new();
         for _ in 0..r.u64().ok()?.min(256) {
@@ -207,6 +214,7 @@ impl Procedure {
         }
         r.finish().ok()?;
         let procedure = Procedure {
+            ceremony,
             threshold,
             members,
             signers,

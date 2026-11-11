@@ -6,7 +6,7 @@ use network::cid::cid;
 use network::consortium::{Consortium, Member};
 use network::cut::{sign_cut, Cut, MemberObject};
 use network::log::TransparencyLog;
-use network::replica::{FeedWriter, Replica, WriterSet};
+use network::replica::{FeedWriter, Replica, SignedEntry, WriterSet};
 use p2p::member::{collected, Collector, Faults, MemberRole, Progress};
 use std::time::Duration;
 
@@ -63,11 +63,15 @@ impl Net {
     }
 
     fn publish(&mut self, m: usize, object: &MemberObject) {
+        let (entry, bytes) = self.held_back(m, object);
+        self.replica.insert(entry, bytes).unwrap();
+    }
+
+    /// Member `m`'s entry for `object`, appended to its feed but not in the replica yet.
+    fn held_back(&mut self, m: usize, object: &MemberObject) -> (SignedEntry, Vec<u8>) {
         let bytes = object.encode();
         let entry = self.logs[m].append(cid(&bytes)).clone();
-        self.replica
-            .insert(self.writers[m].sign(&entry), bytes)
-            .unwrap();
+        (self.writers[m].sign(&entry), bytes)
     }
 
     fn commit(&mut self, m: usize, epoch: u64) {
@@ -169,6 +173,31 @@ fn at_net_17_the_reveal_cut_waits_for_the_committed_reveals() {
     let out = net.run(&me, &mut waited);
     let cut = proposal(&out).expect("every committed member revealed");
     assert_eq!((cut.number, cut.epoch, cut.closes), (1, 1, false));
+}
+
+/// AT-NET-17: a reveal held past a gap in its writer's feed is waited for until a cut counts it.
+#[test]
+fn at_net_17_a_reveal_past_a_gap_is_waited_for() {
+    let mut net = Net::new();
+    net.commit(0, 0);
+    net.commit(1, 0);
+    let cut0 = Cut::next(&net.replica, None, 0, true);
+    net.sign(&cut0, &[0, 1]);
+    let (commit, _) = members()[0].beacon_commit(round(1), 0);
+    let (entry, bytes) = net.held_back(0, &MemberObject::Commit(commit));
+    net.reveal(0, 0);
+    let me = role(1, 2, 5);
+    let mut waited = Progress::default();
+    net.run(&me, &mut waited);
+    let out = net.run(&me, &mut waited);
+    assert!(proposal(&out).is_none(), "member 0's reveal is past a gap");
+    net.replica.insert(entry, bytes).unwrap();
+    let out = net.run(&me, &mut waited);
+    let cut = proposal(&out).expect("member 0's feed is whole").clone();
+    net.sign(&cut, &[0]);
+    let mut collector = Collector::new(&consortium(), NET);
+    collector.update(&net.replica, &consortium(), NET).unwrap();
+    assert_eq!(collector.beacons()[0].withheld(), &[] as &[usize]);
 }
 
 /// AT-NET-17: a proposer gives up waiting after `patience` looks and proposes anyway.

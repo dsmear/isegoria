@@ -75,3 +75,10 @@ path = "fuzz_targets/ceremony_issuance.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "ceremony_combine"
+path = "fuzz_targets/ceremony_combine.rs"
+test = false
+doc = false
+bench = false

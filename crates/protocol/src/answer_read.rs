@@ -463,7 +463,7 @@ fn entry_status(
 }
 
 /// Whether the last cut applied counts entry `id`: on its writer's marked chain.
-fn counted(ledger: &AnswerLedger, replica: &Replica, id: &EntryId) -> bool {
+pub fn counted(ledger: &AnswerLedger, replica: &Replica, id: &EntryId) -> bool {
     let Some(mark) = (ledger.last().into_iter())
         .flat_map(|cut| &cut.marks)
         .find(|m| m.writer == id.writer && id.seq < m.len)
