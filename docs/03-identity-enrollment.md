@@ -286,7 +286,7 @@ holder's verification do.
 to continue without every member's contribution and every expected message; the base OT's
 generator is derived by hashing a fixed label, the same for every ceremony.
 
-*Built (2026-11-11; tests AT-ID-15–28 written, not yet run).* One member's side is
+*Built (2026-11-11; tests AT-ID-15–29 written, not yet run).* One member's side is
 `identity::credential::ceremony`, **bespoke** and unreviewed: `Setup` (members, threshold,
 named signers, slots), and `Party::advance`, which takes flight `k − 1`'s payloads by sender
 and gives flight `k`'s (2 to 12; at 13 it finishes the prepared signatures). A missing payload
@@ -316,8 +316,9 @@ The tool is `isegoria-ceremony` (crate `ceremony`), exit code 0 or 2:
 - `answer <ceremony-dir> <request-file> <share-file>` — a signer's share for one request (P5).
 - `abort <ceremony-dir>` — the operators' decision (P6).
 
-*Files.* The procedure TOML holds `threshold`, `signers` (member indices from 0 in genesis
-order, increasing), `slots` (an increasing list of numbers below `2^32`) and one `[[member]]`
+*Files.* The procedure TOML holds `ceremony` (a number below `2^63` the operators agree for this
+ceremony of the committee, required; a ceremony after an abort takes a new one), `threshold`,
+`signers` (member indices from 0 in genesis order, increasing), `slots` (an increasing list of numbers below `2^32`) and one `[[member]]`
 per member, in genesis order, with the `consortium` and `hpke` keys its `--new-identity`
 printed; a key that is not valid or is repeated is refused by its field, and so is a shape
 `Setup` refuses. The ceremony directory holds `state` (`0600`, replaced whole through
@@ -330,8 +331,8 @@ by the sender's consortium key over the tagged SHA-256 under `isegoria/ceremony/
 the header and the payload, checked strictly; the seal is RFC 9180 base mode with the members'
 OHTTP suite (X25519-HKDF-SHA256, HKDF-SHA256, AES-128-GCM), info `isegoria/ceremony/seal/v1`,
 the header as associated data. The slots' digest is tagged under `isegoria/ceremony/slots/v1`
-over the count (8 bytes) and the slots (4 each); the id under `isegoria/ceremony/id/v1` over `t`
-and `n` (8 bytes each), each member's consortium then HPKE key, the slots' digest and each
+over the count (8 bytes) and the slots (4 each); the id under `isegoria/ceremony/id/v1` over the
+ceremony's number, `t` and `n` (8 bytes each), each member's consortium then HPKE key, the slots' digest and each
 member's fresh value; step 1's messages carry, in the id's place, the same fields but the fresh
 values under `isegoria/ceremony/opening/v1`. The confirmation (step 13) is the issuer key's 97
 bytes, the slots' digest, the signers' count and indices, then the echo: the key generation's
@@ -372,7 +373,9 @@ new genesis. An advisory lock serializes invocations on one directory. Tests: `i
 `processes.rs`), with `--new-identity`'s directories and `--genesis-assemble` (`08` §12).
 
 *Choices left to the implementation, taken here.* Step 1's messages are signed and sealed as the
-others, bound to the opening digest, the id not existing yet. Every message is sealed to its
+others, bound to the opening digest, the id not existing yet; the ceremony's number, in the
+opening and the id, refuses an aborted ceremony's step-1 file in the next one, which the
+committee's fields alone would take and whose wrong id would then be blamed on an honest member. Every message is sealed to its
 recipient, the public ones included. The signers are not in the id, which P3 fixes; the
 confirmation carries them, so two members that name different signers do not finish. A repeated
 request is given the recorded share's bytes, not a share computed again. Non-signers run steps

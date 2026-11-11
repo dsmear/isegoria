@@ -1,4 +1,4 @@
-//! The ceremony over files, in-process (`docs/03` T19-P2–P6; AT-ID-17–23): four members'
+//! The ceremony over files, in-process (`docs/03` T19-P2–P6; AT-ID-17–29): four members'
 //! directories, their messages carried from each `out/` to the others, then issuance per slot.
 
 mod support;
@@ -426,6 +426,33 @@ fn at_id_28_a_confirmation_echoing_other_commitments_aborts() {
     }
     let reports = c.step_all("a", FINISH);
     assert!(reports.iter().all(|r| r.issuer.is_some()));
+}
+
+// A step-1 file of an aborted ceremony is refused by a new ceremony's number (AT-ID-29).
+#[test]
+fn at_id_29_a_step_one_file_of_an_earlier_ceremony_is_refused() {
+    let c = Committee::new("number", &SLOTS);
+    c.init("a");
+    ceremony::abort(&c.dir("a", 1)).unwrap();
+    let text = std::fs::read_to_string(&c.procedure).unwrap();
+    let next = write(
+        &c.root,
+        "next.toml",
+        text.replacen("ceremony = 1", "ceremony = 2", 1).as_bytes(),
+    );
+    std::fs::create_dir_all(c.root.join("b")).unwrap();
+    for i in 0..4 {
+        ceremony::init(&next, &c.identities[i], &c.dir("b", i)).unwrap();
+    }
+    let stale = c.inbox("a", 1, 1)[0].clone();
+    assert!(stale.ends_with("01-0-1.msg"));
+    let mut files = c.inbox("b", 1, 1);
+    files.retain(|f| !f.ends_with("01-0-1.msg"));
+    files.push(stale.clone());
+    let refused = ceremony::step(&c.dir("b", 1), &c.identities[1], &files).unwrap_err();
+    assert_eq!(refused, Error::Refused(Some(stale), Refusal::Id));
+    let honest = ceremony::step(&c.dir("b", 2), &c.identities[2], &c.inbox("b", 1, 2));
+    assert_eq!(honest.unwrap().step, 2);
 }
 
 // An aborted member runs nothing more and holds no party; a new ceremony has a new id (AT-ID-23).

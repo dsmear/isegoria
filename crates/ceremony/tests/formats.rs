@@ -15,6 +15,7 @@ type Kem = hpke::kem::X25519HkdfSha256;
 
 fn fixed() -> Procedure {
     Procedure {
+        ceremony: 1,
         threshold: 3,
         members: (0..4)
             .map(|i| Keys {
@@ -55,15 +56,15 @@ fn at_id_15_the_id_matches_its_known_answer() {
     );
     assert_eq!(
         hex(&p.opening()),
-        "042359976b239e46c9862a941afd5172aeeb4c6124b4799c3ca235767ca2756a"
+        "fbbc293afb91b1b2ecddb293064a9a767221234bfc0f665fe81fda0765bd86f7"
     );
     assert_eq!(
         hex(&p.id(&fresh())),
-        "2a4440e9378f18e0c61822d26646684b0ed7fbb173c18385794bb11626a13f69"
+        "5613de9635335645bb75ee992dcbff6140a9568ed406be8030aff838f5096e9e"
     );
 }
 
-// The id changes with each key, their order, the threshold, the slots, each fresh value (AT-ID-15).
+// The id changes with the number, each key, key order, threshold, slots, fresh value (AT-ID-15).
 #[test]
 fn at_id_15_the_id_binds_every_input() {
     let p = fixed();
@@ -79,6 +80,9 @@ fn at_id_15_the_id_binds_every_input() {
             assert!(ids.insert(id));
         }
     }
+    let mut q = p.clone();
+    q.ceremony = 2;
+    assert!(ids.insert(q.id(&fresh())) && ids.insert(q.opening()));
     let mut q = p.clone();
     q.members.swap(0, 1);
     assert!(ids.insert(q.id(&fresh())));
@@ -125,6 +129,11 @@ fn at_id_15_the_procedure_refuses_what_does_not_hold() {
         ("slots = [1, 2]", "slots = []"),
     ] {
         assert_eq!(refused(from, to), Err(ProcedureError::Setup), "{to}");
+    }
+    assert_eq!(p.ceremony, 1);
+    for number in ["", "ceremony = -1\n", "ceremony = \"1\"\n"] {
+        let other = Procedure::parse(&good.replacen("ceremony = 1\n", number, 1));
+        assert!(matches!(other, Err(ProcedureError::Parse(_))), "{number}");
     }
     let circle = format!("consortium = \"{c0}\"\ncircle = \"{c0}\"");
     let with_circle = refused(&format!("consortium = \"{c0}\""), &circle);
