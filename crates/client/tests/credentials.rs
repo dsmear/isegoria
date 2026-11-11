@@ -5,7 +5,7 @@ mod support;
 
 use client::credential::{read_credential, slot_label};
 use client::event::Commitment;
-use client::{hex, Error};
+use client::Error;
 use identity::credential::ceremony::{self, Party, Setup, SignatureShare, SlotRequest, FLIGHTS};
 use identity::credential::{AnonymousCredential, IssuanceRequest, IssuerPublic};
 use identity::nullifier;
@@ -16,15 +16,16 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use support::*;
 
-/// The test issuer's new key in `dir` (its own command's function) and its hex.
-fn issuer_key(dir: &Path, name: &str) -> (PathBuf, IssuerPublic, String) {
+/// The test issuer's new key in `dir` (its own command's function) and a genesis naming it.
+fn issuer_key(dir: &Path, name: &str) -> (PathBuf, IssuerPublic, PathBuf) {
     let key = dir.join(name);
     let public = test_issuer::new_key(&key).unwrap();
-    let printed = hex(&public.encode());
-    (key, public, printed)
+    let genesis = dir.join(format!("{name}.genesis"));
+    fs::write(&genesis, support::genesis(&public).encode()).unwrap();
+    (key, public, genesis)
 }
 
-fn request(dir: &Path, issuer: &str, slot: &str, name: &str) -> (PathBuf, PathBuf) {
+fn request(dir: &Path, issuer: &Path, slot: &str, name: &str) -> (PathBuf, PathBuf) {
     let (pending, message) = (
         dir.join(format!("{name}.pending")),
         dir.join(format!("{name}.req")),
@@ -56,7 +57,7 @@ fn at_t79_43_a_credential_from_the_test_issuer_by_files() {
     assert_eq!(AnonymousCredential::decode(&bytes).unwrap().encode(), bytes);
     let proof = nullifier::prove(&held, &public, Role::Judge, b"context");
     assert!(nullifier::verify(&proof, &public, b"context"));
-    let (_, stranger, stranger_hex) = issuer_key(&dir, "stranger.key");
+    let (_, stranger, stranger_genesis) = issuer_key(&dir, "stranger.key");
     assert_eq!(
         read_credential(&credential, &stranger).unwrap_err(),
         Error::Unverified
@@ -64,7 +65,7 @@ fn at_t79_43_a_credential_from_the_test_issuer_by_files() {
     let other = dir.join("other.credential");
     let err = refused(&tool(&[
         &"--finalize",
-        &stranger_hex,
+        &stranger_genesis,
         &pending,
         &reply,
         &other,

@@ -58,13 +58,6 @@ pub(crate) fn unhex(text: &str) -> Option<Vec<u8>> {
         .collect()
 }
 
-/// An issuer key in hex, as `--new-key` and the ceremony print it (`docs/04` T88-P1).
-pub fn issuer_from_hex(text: &str) -> Result<IssuerPublic, Error> {
-    unhex(text)
-        .and_then(|bytes| IssuerPublic::decode(&bytes))
-        .ok_or(Error::Malformed("issuer"))
-}
-
 pub(crate) fn random() -> Result<[u8; 32], Error> {
     let mut seed = [0u8; 32];
     getrandom::getrandom(&mut seed).map_err(|_| Error::Io("randomness", io::ErrorKind::Other))?;

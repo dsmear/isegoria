@@ -2245,3 +2245,19 @@ returned; D49–D53, D60's other choices and T19-P1–P4 are unchanged.
   opening digest since the id does not exist yet; the signers stay outside the id and are
   carried by the confirmation; the withheld-reveal tests run member nodes in process on
   loopback, the fault settable in no trial build.
+
+## D67 — Choices left open by T79's increment 3 in the gateway and the client
+
+**Decided** by the owner; recorded 2026-11-11. D60's other choices and T79-P7 are unchanged.
+
+- **A read's answer.** A read the gateway answers is a 200 whose body is the sealed reply; a
+  read with no reply — an undecodable request or a failed proof — gets the 403 a refused event
+  gets (`04` §Blind relays, *As wired*).
+- **The issuer key.** Every client command takes the issuer key from the genesis document,
+  the test issuer's `--request` and `--finalize` as the committee's `--slot-request` and
+  `--combine` (D65).
+- **Combining shares.** `--combine` takes any number of share files and relies on the
+  credential's verification under the genesis's key to refuse a wrong count.
+- **Fuzzing.** The eight targets added for increment 3 and T19 run as smoke runs of at most
+  60 seconds each on this machine (D62), recorded in `12` §4; longer campaigns stay on the
+  owner's machine.

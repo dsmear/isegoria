@@ -181,10 +181,10 @@ and its `CloseEpoch`.
   (`crates/test-issuer`) so that no node links the issuer's secret key; `isegoria-node` has no
   issuer command. The issuer runs `--new-key <issuer.key>`: a fresh 32-byte seed, 64 hex
   digits, in a new 0600 file, and the key printed as `issuer <hex>`, the form
-  `--genesis-assemble`'s `issuer` takes. A person runs `isegoria-client --request <issuer-hex>
-  <slot> <pending> <request>`: a fresh secret, its blind request for the slot, and the state that finishes it in
+  `--genesis-assemble`'s `issuer` takes. A person runs `isegoria-client --request <genesis>
+  <slot> <pending> <request>` (the issuer key read from the genesis, `01` D67): a fresh secret, its blind request for the slot, and the state that finishes it in
   a new 0600 file; the issuer runs `--issue <issuer.key> <request> <reply>`, which checks the
-  request's proof and prints the slot; the person runs `isegoria-client --finalize <issuer-hex>
+  request's proof and prints the slot; the person runs `isegoria-client --finalize <genesis>
   <pending> <reply> <credential>`, which writes the credential to a new 0600 file only if it verifies
   under the key. The files are carried by hand; no command writes over an existing file; the
   pending file holds the secret too and stays private. A slot is an opaque number, its label

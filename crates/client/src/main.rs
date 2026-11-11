@@ -4,14 +4,14 @@
 use client::credential::{combine, finalize, read_credential, request, slot_request};
 use client::event::{self, Commitment};
 use client::read::{self, Ask};
-use client::{hex, issuer_from_hex, Error, Network, Output};
+use client::{hex, Error, Network, Output};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 const USAGE: &str = "usage: isegoria-client\n\
-    --request <issuer-hex> <slot> <pending-file> <request-file>\n\
-    --finalize <issuer-hex> <pending-file> <reply-file> <credential-file>\n\
+    --request <genesis> <slot> <pending-file> <request-file>\n\
+    --finalize <genesis> <pending-file> <reply-file> <credential-file>\n\
     --slot-request <genesis> <slot> <pending-file> <request-file>\n\
     --combine <genesis> <pending-file> <credential-file> <share-file>...\n\
     --join <genesis> <credential-file> <event-file>\n\
@@ -60,14 +60,14 @@ fn written(id: network::cid::Cid) -> String {
 
 fn credentials(flag: &str, rest: &[OsString]) -> Option<Result<String, Error>> {
     Some(match (flag, rest) {
-        ("--request", [issuer, slot, pending, message]) => (|| {
-            let (issuer, slot) = (issuer_from_hex(text(issuer)?)?, number(slot, "slot")?);
-            request(&issuer, slot, &path(pending), &path(message))?;
+        ("--request", [genesis, slot, pending, message]) => (|| {
+            let (net, slot) = (Network::load(&path(genesis))?, number(slot, "slot")?);
+            request(&net.issuer, slot, &path(pending), &path(message))?;
             Ok(format!("slot {slot}\n"))
         })(),
-        ("--finalize", [issuer, pending, reply, credential]) => (|| {
-            let issuer = issuer_from_hex(text(issuer)?)?;
-            finalize(&issuer, &path(pending), &path(reply), &path(credential))?;
+        ("--finalize", [genesis, pending, reply, credential]) => (|| {
+            let net = Network::load(&path(genesis))?;
+            finalize(&net.issuer, &path(pending), &path(reply), &path(credential))?;
             Ok(String::new())
         })(),
         ("--slot-request", [genesis, slot, pending, message]) => (|| {
