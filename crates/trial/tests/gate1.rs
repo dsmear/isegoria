@@ -58,8 +58,57 @@ struct Keys {
     transport: String,
 }
 
-/// One gate-1 run: its files under `root`, its evidence under `root/evidence`, the processes
-/// killed when it ends however it ends.
+const CONTEXT: &str = "gate 1, a synthetic question";
+const STEM: &str = "Which of these numbers is even?";
+const ALTERNATIVES: [&str; 3] = ["two, synthetic", "three, synthetic", "five, synthetic"];
+
+/// The first words of the lines the client prints for events and reads.
+const PRINTED: [&str; 14] = [
+    "entries ",
+    "entry ",
+    "question ",
+    "phase ",
+    "committed ",
+    "revealed ",
+    "context ",
+    "stem ",
+    "alternative ",
+    "reputation ",
+    "quota ",
+    "event ",
+    "logged ",
+    "request ",
+];
+
+/// The status lines the trial's shared evidence may hold: public facts and digests.
+const PUBLIC: [&str; 14] = [
+    "caught_up",
+    "circle_caught_up",
+    "peers",
+    "bound",
+    "equivocations",
+    "conflict",
+    "duties_halted",
+    "stopped",
+    "synced",
+    "circle_synced",
+    "cut",
+    "beacon",
+    "digest",
+    "refused_cut",
+];
+
+fn public_lines(status: &str) -> String {
+    let public = |l: &&str| PUBLIC.contains(&l.split(' ').next().unwrap_or_default());
+    status
+        .lines()
+        .filter(public)
+        .map(|l| format!("{l}\n"))
+        .collect()
+}
+
+/// One gate-1 run: its files under `root`, its evidence under `root/evidence/shared` and
+/// `root/evidence/private`, the processes killed when it ends however it ends.
 struct Gate {
     root: PathBuf,
     evidence: PathBuf,
@@ -80,7 +129,9 @@ impl Gate {
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(root.join("persons")).unwrap();
         let evidence = root.join("evidence");
-        fs::create_dir_all(&evidence).unwrap();
+        for part in ["shared", "private"] {
+            fs::create_dir_all(evidence.join(part)).unwrap();
+        }
         Gate {
             root,
             evidence,
@@ -116,10 +167,18 @@ impl Gate {
         self.path(&format!("persons/p{k}/{file}"))
     }
 
+    fn shared(&self) -> PathBuf {
+        self.evidence.join("shared")
+    }
+
+    fn private(&self) -> PathBuf {
+        self.evidence.join("private")
+    }
+
     fn log(&self, text: &str) {
         let text = text.replace(&self.root.display().to_string(), "$RUN");
         let mut file = (OpenOptions::new().create(true).append(true))
-            .open(self.evidence.join("transcript.txt"))
+            .open(self.private().join("transcript.txt"))
             .unwrap();
         file.write_all(text.as_bytes()).unwrap();
     }
@@ -155,19 +214,22 @@ impl Gate {
         (0..N).map(|i| self.status(i).expect("a status")).collect()
     }
 
-    /// Copies every node's status file into the evidence, under the stage's name.
+    /// Copies every node's status file into the private evidence and its public lines into the
+    /// shared one, under the stage's name.
     fn snapshot(&mut self, name: &str) {
         self.stage += 1;
-        let dir = self.evidence.join(format!("{:02}-{name}", self.stage));
-        fs::create_dir_all(&dir).unwrap();
+        let stage = format!("{:02}-{name}", self.stage);
+        let (private, shared) = (self.private().join(&stage), self.shared().join(&stage));
+        fs::create_dir_all(&private).unwrap();
+        fs::create_dir_all(&shared).unwrap();
         for i in 0..=N {
-            let name = if i == RELAY {
-                "relay".into()
-            } else {
-                format!("m{i}")
+            let name = match i {
+                RELAY => "relay.status".to_string(),
+                _ => format!("m{i}.status"),
             };
             let text = fs::read_to_string(self.dir(i).join("status")).unwrap_or_default();
-            fs::write(dir.join(format!("{name}.status")), text).unwrap();
+            fs::write(shared.join(&name), public_lines(&text)).unwrap();
+            fs::write(private.join(&name), text).unwrap();
         }
     }
 
@@ -226,7 +288,7 @@ impl Gate {
     }
 
     /// The lines every node's TOML shares: the genesis's values, the writers, the consortium.
-    fn shared(&self, data_dir: &Path) -> String {
+    fn common(&self, data_dir: &Path) -> String {
         let members: Vec<String> = self.keys[..N]
             .iter()
             .map(|k| k.consortium.clone())
@@ -260,7 +322,7 @@ impl Gate {
             dir.join("circle.key").display(),
             dir.join("hpke.key").display(),
             self.keys[RELAY].transport
-        ) + &self.shared(&dir)
+        ) + &self.common(&dir)
             + &format!(
                 "[member]\nindex = {i}\nevery_ms = 100\npatience = 10\nview_patience = 20\n"
             );
@@ -273,7 +335,7 @@ impl Gate {
             "listen = [\"{}\"]\npeers = {}\nrelay = true\n",
             self.listen(RELAY),
             quoted(&peers)
-        ) + &self.shared(&self.dir(RELAY));
+        ) + &self.common(&self.dir(RELAY));
         fs::write(self.config(RELAY), text).unwrap();
     }
 
@@ -343,7 +405,7 @@ fn healthy(s: &Status) -> bool {
 }
 
 // Gate 1: identities, genesis, issuance, a question through the review over the relay, digests,
-// a restart, a duplicate, evidence free of secrets (AT-T79-50–59).
+// a restart, a duplicate, the evidence split into shared and private (AT-T79-50–59).
 #[test]
 fn at_t79_50_gate_1_on_one_machine() {
     let started = Instant::now();
@@ -391,6 +453,9 @@ fn at_t79_50_gate_1_on_one_machine() {
         N
     );
     assert!(assembled.contains(&format!("relay {}\n", g.keys[RELAY].transport)));
+    fs::copy(&genesis, g.shared().join("genesis.bin")).unwrap();
+    fs::write(g.shared().join("genesis-digest.txt"), &assembled).unwrap();
+    fs::write(g.shared().join("revision.txt"), revision()).unwrap();
     g.lines = format!(
         "network_id = \"{}\"\ngenesis = \"{genesis}\"\nfamily = \"answer-review/v1\"\n\
          answer_config = \"{}\"\nissuer = \"{}\"\n",
@@ -441,8 +506,10 @@ fn at_t79_50_gate_1_on_one_machine() {
     }
     g.send(1, "join", 2);
     let question = g.person(0, "question.toml");
-    let text = "context = \"gate 1, synthetic\"\nstem = \"Which number is even?\"\n\
-                alternatives = [\"2\", \"3\", \"5\"]\nkey = 0\n";
+    let text = format!(
+        "context = \"{CONTEXT}\"\nstem = \"{STEM}\"\nalternatives = {}\nkey = 0\n",
+        quoted(&ALTERNATIVES.map(String::from))
+    );
     fs::write(&question, text).unwrap();
     let (cred, event) = (g.person(0, "credential"), g.person(0, "deposit"));
     g.ok(
@@ -492,7 +559,7 @@ fn at_t79_50_gate_1_on_one_machine() {
         }
         if drawn.last() == Some(&k) {
             assert_eq!(fact(&out, "phase"), Some("commits-open"), "AT-T79-54");
-            assert_eq!(fact(&out, "stem"), Some("\"Which number is even?\""));
+            assert_eq!(fact(&out, "stem"), Some(format!("{STEM:?}").as_str()));
             assert_eq!(
                 out.lines()
                     .filter(|l| l.starts_with("alternative "))
@@ -634,7 +701,7 @@ fn at_t79_50_gate_1_on_one_machine() {
     for i in 0..=N {
         g.stop(i);
         let log = g.root.join(format!("node-{i}.log"));
-        fs::copy(&log, g.evidence.join(format!("node-{i}.log"))).unwrap();
+        fs::copy(&log, g.private().join(format!("node-{i}.log"))).unwrap();
     }
     g.snapshot("stopped");
     let mut secrets = vec![fs::read_to_string(g.root.join("issuer/issuer.key")).unwrap()];
@@ -643,18 +710,58 @@ fn at_t79_50_gate_1_on_one_machine() {
             secrets.push(fs::read_to_string(g.dir(i).join(file)).unwrap());
         }
     }
+    let secrets: Vec<String> = secrets.iter().map(|s| s.trim().to_string()).collect();
     for entry in walk(&g.evidence) {
-        let text = fs::read_to_string(&entry).unwrap();
-        for secret in &secrets {
-            assert!(
-                !text.contains(secret.trim()),
-                "AT-T79-59: {}",
-                entry.display()
-            );
-        }
+        let text = String::from_utf8_lossy(&fs::read(&entry).unwrap()).into_owned();
+        let leaked = secrets.iter().find(|s| text.contains(s.as_str()));
+        assert!(leaked.is_none(), "AT-T79-59: {}", entry.display());
+    }
+    let transcript = fs::read_to_string(g.private().join("transcript.txt")).unwrap();
+    let events = transcript.lines().filter_map(|l| l.strip_prefix("event "));
+    let mut circle: Vec<String> = [CONTEXT, STEM].map(String::from).to_vec();
+    circle.extend(ALTERNATIVES.map(String::from));
+    circle.extend(events.map(String::from));
+    let last = g.shared().join(format!("{:02}-stopped/m0.status", g.stage));
+    let last = fs::read_to_string(last).unwrap();
+    assert_eq!(last.lines().filter(|l| l.starts_with("digest ")).count(), 2);
+    for entry in walk(&g.shared()) {
+        let text = String::from_utf8_lossy(&fs::read(&entry).unwrap()).into_owned();
+        let found = circle.iter().find(|c| text.contains(c.as_str()));
+        assert!(
+            found.is_none(),
+            "AT-T79-59: {found:?} in {}",
+            entry.display()
+        );
+        let read = text
+            .lines()
+            .find(|l| PRINTED.iter().any(|p| l.starts_with(p)));
+        assert!(read.is_none(), "AT-T79-59: {read:?} in {}", entry.display());
     }
     g.log(&format!("gate 1 done in {:?}\n", started.elapsed()));
     println!("gate 1 evidence: {}", g.evidence.display());
+}
+
+/// The revision under test: the commit and whether tracked files differ from it.
+fn revision() -> String {
+    let git = |args: &[&str]| {
+        let out = Command::new("git")
+            .arg("-C")
+            .arg(env!("CARGO_MANIFEST_DIR"))
+            .args(args)
+            .output()
+            .ok()?;
+        out.status
+            .success()
+            .then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())
+    };
+    let commit = git(&["rev-parse", "HEAD"]).unwrap_or_else(|| "unknown".into());
+    let dirty = git(&["status", "--porcelain", "--untracked-files=no"]);
+    let state = match dirty.as_deref() {
+        Some("") => "clean",
+        Some(_) => "modified",
+        None => "unknown",
+    };
+    format!("revision {commit}\ntracked_files {state}\n")
 }
 
 fn walk(dir: &Path) -> Vec<PathBuf> {

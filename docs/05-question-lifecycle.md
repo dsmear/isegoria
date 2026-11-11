@@ -610,14 +610,21 @@ relay dials the members. Fourteen credentials, one author and one question, not 
 the trial (about 16, over 3–4 epochs). A `--send` refused on the channel or answered "retry
 later" is sent again, as T79-P7 allows.
 
-*Evidence.* The test prints its directory, `target/tmp/gate1/run-<pid>/evidence/`: every node's
-status file at each stage (`NN-<stage>/m<i>.status`, `relay.status`), the transcript of every
-command with its output, the run's directory written `$RUN`, and the nodes' logs; checked to
-hold none of the run's secret seeds. It holds the reviewers' printed views of the question,
-circle data the trial's shared evidence leaves out (`04` §The trial's procedure, 7).
+*Evidence (owner, 2026-11-11: in two directories).* The test prints the directory
+`target/tmp/gate1/run-<pid>/evidence/`. `shared/` holds only what the trial's shared evidence
+may (`04` §The trial's procedure, 7): `revision.txt`, the commit under test and whether tracked
+files differ from it; the genesis document and what `--genesis-digest` prints of it; and at each
+stage every node's public status lines (`NN-<stage>/m<i>.status`, `relay.status`) — feeds caught
+up, peers, bindings, equivocations, conflict, halts, stops, syncs, cuts, beacons, state digests
+and a refused cut, but no executed request, a circle entry. `private/` holds everything else:
+every status file whole, the transcript of every command with its output (the run's directory
+written `$RUN`), reads and reviewers' views included, and the nodes' logs. The test checks that
+no file of either holds a secret seed of the run's identities or of the issuer, and that no file
+of `shared/` holds the question's context, stem or alternatives (the key among them), an event's
+content id, or a line the client prints for an event or a read.
 *Running it.* `scripts/gate1.sh`, that is `cargo test -p trial --test gate1 -- --nocapture`;
-part of `cargo test --workspace`. 2026-11-11, on this machine: 3 runs of 3 passed, 16–18 s
-each, no command refused.
+part of `cargo test --workspace` (owner, 2026-11-11). 2026-11-11, on this machine: 5 runs of 5
+passed, 16–18 s each, no command refused — 3 before the evidence was split, 2 after.
 *Limits.* One operator, one machine, loopback: no independence (D60), no delay, partition or
 duplicate injected beyond the repeated join, one stop by SIGTERM; test credentials (D60). It is
 not the recorded gate-1 trial against a pinned revision and configuration (`10` §2.4).
