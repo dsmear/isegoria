@@ -286,7 +286,7 @@ holder's verification do.
 to continue without every member's contribution and every expected message; the base OT's
 generator is derived by hashing a fixed label, the same for every ceremony.
 
-*Built (2026-11-11; tests AT-ID-15–26 written, not yet run).* One member's side is
+*Built (2026-11-11; tests AT-ID-15–27 written, not yet run).* One member's side is
 `identity::credential::ceremony`, **bespoke** and unreviewed: `Setup` (members, threshold,
 named signers, slots), and `Party::advance`, which takes flight `k − 1`'s payloads by sender
 and gives flight `k`'s (2 to 12; at 13 it finishes the prepared signatures). A missing payload
@@ -297,7 +297,9 @@ state has one encoding. Key generation is `frost_dkg` over G2 with the ceremony'
 proof's context, the base OT's generator hashes `isegoria/ceremony/base-ot/v1` (D64), phase 1's
 protocol id is the ceremony's id. The completeness the library does not check is checked here:
 every contribution and every share before the key, every pair's five OT messages, each signer's
-phase outputs at the list's length. `SlotRequest`, `Party::answer` and `combine` are issuance.
+phase outputs at the list's length. A contribution must commit to exactly `t` coefficients
+before the library sees it: its degree check computes the count less one, which underflows on
+none. `SlotRequest`, `Party::answer` and `combine` are issuance.
 The tool is `isegoria-ceremony` (crate `ceremony`), exit code 0 or 2:
 
 - `init <procedure.toml> <identity-dir> <ceremony-dir>` — step 1: reads `member.key` and

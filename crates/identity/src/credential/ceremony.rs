@@ -346,7 +346,7 @@ impl Party {
             }
             (3, Stage::Contributed(mut state)) => {
                 each(incoming, |j, msg: Round1Msg<G2Affine>| {
-                    if msg.sender_id != pid(j) {
+                    if msg.sender_id != pid(j) || msg.comm_coeffs.0.len() != usize::from(t) {
                         return Err(());
                     }
                     state

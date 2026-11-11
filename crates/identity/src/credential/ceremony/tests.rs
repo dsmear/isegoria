@@ -161,6 +161,24 @@ fn at_id_18_a_later_payload_that_fails_is_refused() {
     }
 }
 
+// A contribution committing to no coefficient, or not to `t`, is refused, never a panic (AT-ID-27).
+#[test]
+fn at_id_27_a_contribution_of_another_degree_is_refused() {
+    let mut p = parties(ID);
+    let (inbox, _) = run_to(&mut p, 2);
+    for len in [0, 1, usize::from(T) - 1, usize::from(T) + 1] {
+        let mut bad = inbox[&0].clone();
+        let mut msg: Round1Msg<G2Affine> = strict(&bad[&1]).unwrap();
+        msg.comm_coeffs.0.resize(len, msg.comm_coeffs.0[0]);
+        bad.insert(1, encoded(&msg));
+        assert_eq!(
+            p[0].advance(&bad).unwrap_err(),
+            Refusal::Library(1),
+            "{len}"
+        );
+    }
+}
+
 // The state has one encoding: truncations, a trailing byte, another version refused (AT-ID-19).
 #[test]
 fn at_id_19_the_state_decodes_strictly() {
