@@ -152,7 +152,8 @@ F1–F4 are worth reporting upstream.
 ## 4. Fuzz targets
 
 Twenty-eight `cargo fuzz` targets, in `crates/{network,identity,scoring,protocol,p2p,ceremony}/fuzz/`
-(outside the workspace: libFuzzer needs nightly); the eight marked *new* have not been run. Each
+(outside the workspace: libFuzzer needs nightly); the eight marked *new* have had only their
+first smoke runs (2026-11-11, below). Each
 README says how to run them. Besides "no panic, no abort, bounded memory", each asserts a property
 of its entry point:
 
@@ -244,8 +245,8 @@ wiring of admission and of `…/read` (the node's admission closure calling `adm
 a Binary HTTP path for reads reaching `answer_read::answer`); and `isegoria-client`'s files and
 readings (its credential, request and share files, the shares' combination, the read replies);
 each once the work in progress builds it.
-The targets marked *new* above have not been run: their first runs need the owner's authorization
-(`01` D62).
+The targets marked *new* above had their first smoke runs on 2026-11-11, authorized by the owner
+(`01` D62, D67), recorded below.
 
 **Runs recorded for this audit** (nightly `cargo-fuzz` 0.13.2, libFuzzer with
 AddressSanitizer, 4 cores, 2 GiB RSS limit):
@@ -294,6 +295,25 @@ Between `2c1bd3b` and `7cef417` only `network::genesis`, `node` and a test modul
 changed, so only `protocol/genesis` reaches changed code. `protocol/answer_event` and
 `protocol/genesis` run slowly, each execution verifying a proof or decompressing a key:
 libFuzzer's length limit reached only 6 and 33 bytes, so they exercised mostly the splices.
+
+**Increment 3's and T19's runs** (2026-11-11) are smoke runs of the same kind (`01` D67):
+`-max_total_time=60` per target, the same toolchain, `cargo-fuzz` and sanitizer, from an empty
+corpus, on the combined code of `10` T79's increment 3 and T19's tool. No target crashed.
+
+| Target | Code | Duration | Executions | Crashes |
+|---|---|---:|---:|---:|
+| `protocol/answer_gateway` | `1e9d2f1` | 60 s | 8 875 | 0 |
+| `protocol/answer_read` | `1e9d2f1` | 60 s | 8 217 | 0 |
+| `protocol/answer_seal` | `1e9d2f1` | 60 s | 74 880 | 0 |
+| `identity/credential_wire` | `1e9d2f1` | 60 s | 12 807 | 0 |
+| `identity/ceremony_flight` | `1e9d2f1` | 60 s | 1 353 | 0 |
+| `identity/ceremony_state` | `1e9d2f1` | 60 s | 10 754 | 0 |
+| `identity/ceremony_issuance` | `1e9d2f1` | 60 s | 3 608 | 0 |
+| `ceremony/message` | `1e9d2f1` | 60 s | 241 212 | 0 |
+
+`identity/ceremony_flight` and `identity/ceremony_issuance` run one ceremony at start and a
+library flight or proof per execution, so their counts are low; a campaign belongs on the
+owner's machine.
 
 `scoring/bridging` was added with T62 (2026-09-24) and has not been run yet: that session
 had no nightly toolchain. `scoring/tests/malformed_ratings.rs` covers the same entry points
