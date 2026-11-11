@@ -25,6 +25,9 @@ pub const MAX_REQUEST: usize = 1 << 20;
 pub const MAX_REPLY: usize = 64 << 10;
 /// The `Carried` envelope around a sealed reply: version, kind and the field's length.
 const ENVELOPE: usize = 10;
+/// What OHTTP adds to a reply under [`SUITE`]: the response nonce, `max(Nn, Nk)` = 16 bytes,
+/// and the AEAD tag, 16 (RFC 9458 §4.4).
+pub(crate) const SEAL_OVERHEAD: usize = 32;
 const CONFIG_LEN: usize = 41;
 const SUITE: [u8; 6] = [0, 4, 0, 1, 0, 1];
 
@@ -372,8 +375,13 @@ pub(crate) fn read_answer(
     }
 }
 
-/// What a gateway carries back: `reply` sealed in its request's context, else a refusal.
+/// What a gateway carries back: `reply` sealed in its request's context, a sealed 500 in place of
+/// one whose encapsulation would pass [`MAX_REPLY`] (`docs/04` T85-P5), else a refusal.
 pub(crate) fn carried(response: ohttp::ServerResponse, reply: Option<Vec<u8>>) -> Carried {
+    let reply = match reply {
+        Some(b) if b.len() + SEAL_OVERHEAD > MAX_REPLY => Answer::Failed.to_http(),
+        fits => fits,
+    };
     match reply.and_then(|b| response.encapsulate(&b).ok()) {
         Some(sealed) => Carried::Sealed(sealed),
         None => Carried::Refused(Refusal::Undecryptable),

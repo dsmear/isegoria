@@ -475,7 +475,9 @@ the node's replica. The choices the contract left to the implementation:
   (D60). Its known answers: RFC 9180 A.1.1, and the reply seal's own vector, computed with an
   independent RFC 9180 implementation (Python, standard library only) that reproduces A.1.1.
 - *Limits.* The author's reply lists every question of its author, 36 bytes each when closed
-  with an observation, with no cursor: within `MAX_REPLY` up to about 1,700 questions.
+  with an observation, with no cursor: within `MAX_REPLY` up to about 1,700 questions; past
+  the limit the gateway sends no reply but a sealed 500, which the client reports as `NoReply`
+  with `Failed` (`04` T85-P5).
 - *In the gateway* (`04` §Blind relays). A hooked member's gateway admits a person's event on
   `…/event` by `Hook::admit` in place of its own admission, then logs it as before and answers
   with its receipt `(writer, seq, hash)`; refused bytes get 403 and are not logged. A read is

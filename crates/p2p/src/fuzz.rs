@@ -22,6 +22,9 @@ pub fn answer_http(answer: Answer) -> Option<Vec<u8>> {
     answer.to_http()
 }
 
+/// What OHTTP adds to a gateway's reply when it seals it.
+pub const SEAL_OVERHEAD: usize = blind::SEAL_OVERHEAD;
+
 /// The Binary HTTP response a gateway seals for a read's `answer`.
 pub fn read_answer_http(answer: &ReadAnswer) -> Option<Vec<u8>> {
     answer.to_http()

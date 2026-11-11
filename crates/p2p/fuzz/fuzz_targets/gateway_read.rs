@@ -1,6 +1,6 @@
-//! A member gateway's answer to opened requests on `…/read` and `…/event` (`docs/04` §Blind
-//! relays, `docs/05` T79-P7) with a fake hook: arbitrary, crafted and client-sealed requests. No
-//! panic; only this network's POST reaches the hook, with its body; each answer as the hook gave.
+//! A gateway's answer to opened requests on `…/read` and `…/event` (`docs/04` §Blind relays) with
+//! a fake hook: arbitrary, crafted and client-sealed requests. No panic; only this network's POST
+//! reaches the hook, with its body; each answer as the hook gave, a 500 past `MAX_REPLY`.
 #![no_main]
 
 use arbitrary::Arbitrary;
@@ -12,10 +12,9 @@ use network::cut::Cut;
 use network::replica::{FeedWriter, Replica};
 use network::tier::Tiers;
 use p2p::blind::{
-    event_path, read_path, seal, seal_read, Answer, Carried, ClientError, GatewayKey, ReadAnswer,
-    MAX_REPLY,
+    event_path, read_path, seal, seal_read, Answer, Carried, GatewayKey, ReadAnswer, MAX_REPLY,
 };
-use p2p::fuzz::{gateway_answer, gateway_respond};
+use p2p::fuzz::{gateway_answer, gateway_respond, read_answer_http, SEAL_OVERHEAD};
 use p2p::hook::Hook;
 use std::cell::RefCell;
 use std::io::Cursor;
@@ -252,9 +251,16 @@ fn sealed(read: bool, body: &[u8], fake: &Fake) {
             [Call::Read(body.to_vec())],
             "a sealed read not given as sent"
         );
-        let too_large = matches!(&carried, Carried::Sealed(b) if b.len() > MAX_REPLY);
+        assert!(
+            matches!(&carried, Carried::Sealed(b) if b.len() <= MAX_REPLY),
+            "a read's answer not sealed within MAX_REPLY"
+        );
+        let too_large = |reply: &[u8]| {
+            let http = read_answer_http(&ReadAnswer::Reply(reply.to_vec())).expect("it encodes");
+            http.len() + SEAL_OVERHEAD > MAX_REPLY
+        };
         let expected = match &fake.reply {
-            _ if too_large => Err(ClientError::TooLarge),
+            Some(reply) if too_large(reply) => Ok(ReadAnswer::Answer(Answer::Failed)),
             Some(reply) => Ok(ReadAnswer::Reply(reply.clone())),
             None => Ok(ReadAnswer::Answer(Answer::NotAdmitted)),
         };

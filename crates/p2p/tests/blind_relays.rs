@@ -288,7 +288,8 @@ async fn send_read(relay: &Multiaddr, request: &[u8]) -> Result<ReadAnswer, Clie
 }
 
 /// A hook admitting only bytes starting `hooked-event`, answering a read starting `read` with
-/// [`REPLY`] then its bytes, refusing other reads; it applies every cut and closes none.
+/// [`REPLY`] then its bytes, `size:` and 8 bytes with that many, refusing other reads; it applies
+/// every cut and closes none.
 struct FakeHook;
 
 const REPLY: &[u8] = b"fake-sealed-reply:";
@@ -317,6 +318,9 @@ impl Hook for FakeHook {
     }
 
     fn read(&self, _: &Replica, request: &[u8]) -> Option<Vec<u8>> {
+        if let Some(len) = request.strip_prefix(b"size:") {
+            return Some(vec![7; u64::from_le_bytes(len.try_into().ok()?) as usize]);
+        }
         request
             .starts_with(b"read")
             .then(|| [REPLY, request].concat())
@@ -1697,4 +1701,41 @@ async fn at_t79_60_a_read_answers_from_the_last_period() {
             .await;
         }
     }
+}
+
+/// AT-T79-62: a reply whose encapsulation would pass MAX_REPLY bytes is not sent: the gateway
+/// answers a sealed 500, which the client opens as "failed"; one of exactly MAX_REPLY passes.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_62_an_oversized_reply_is_answered_failed() {
+    let n = hooked_net(&scratch("oversized-read"), 1).await;
+    let suite =
+        ohttp::SymmetricSuite::new(ohttp::hpke::Kdf::HkdfSha256, ohttp::hpke::Aead::Aes128Gcm);
+    let kem = ohttp::hpke::Kem::X25519Sha256;
+    let config = ohttp::KeyConfig::derive(0, kem, vec![suite], &[HPKE_SEEDS[0]; 32]).unwrap();
+    let server = ohttp::Server::new(config).unwrap();
+    let probe = seal_read(&tiers(), &announcements()[0], b"probe").unwrap();
+    let (_, response) = server.decapsulate(&probe.request).unwrap();
+    let overhead = response.encapsulate(&[]).unwrap().len();
+    let framed = |len: usize| {
+        let mut m = Http::response(bhttp::StatusCode::OK);
+        m.write_content(vec![7; len]);
+        let mut out = Vec::new();
+        m.write_bhttp(Mode::KnownLength, &mut out).unwrap();
+        out.len()
+    };
+    let fit = MAX_REPLY - overhead - (framed(MAX_REPLY) - MAX_REPLY);
+    assert_eq!(framed(fit) + overhead, MAX_REPLY);
+    let sized = |len: usize| [&b"size:"[..], &(len as u64).to_le_bytes()].concat();
+    assert_eq!(
+        send_read(&n.relay_addr, &sized(fit)).await,
+        Ok(ReadAnswer::Reply(vec![7; fit]))
+    );
+    for len in [fit + 1, MAX_REPLY, 4 * MAX_REPLY] {
+        assert_eq!(
+            send_read(&n.relay_addr, &sized(len)).await,
+            Ok(ReadAnswer::Answer(Answer::Failed)),
+            "{len}"
+        );
+    }
+    assert_eq!(circle_len(&n.members[0], 0).await, 0);
 }

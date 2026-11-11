@@ -722,13 +722,16 @@ growth. Batching (`10` T28) and PRIV-003 would blur it; neither is built.
     encapsulation alone: a reply's `Carried` envelope adds 10 bytes (version, kind, the
     field's length), read with it. A longer one is refused as it is read, before more is
     held, by relay, gateway and client alike; the client refuses an oversized sealed reply
-    however it received it.
+    however it received it. A gateway sends none: where a read's reply would encapsulate past
+    the limit (OHTTP adds 32 bytes under this suite), it answers 500 sealed in the request's
+    context in its place (AT-T79-62), not a refusal in the clear, so the relay learns nothing
+    of it.
   - *Refusals in the clear* (the relay's or the gateway's, forwarded unchanged): a peer that
     is not a listed relay, a key id no member's or not the gateway's, a request that does
     not decapsulate, no connection to the member. Nothing is logged.
   - *Sealed answers*: 200 with a receipt; 421 a path naming another network; 400 not this
     request; 403 bytes the admission check refuses; 503 "retry later" while the member's
-    circle feed is not caught up; 500 a write that failed. Admission is a predicate the
+    circle feed is not caught up; 500 a write that failed (to a read, a reply past the limit). Admission is a predicate the
     embedding supplies — `p2p` keeps no protocol state, and which events it admits is T79.
     To a read: 200 whose body is the reply sealed to the request's response key, 403 a read
     with no reply (it does not decode, or its proof fails: `05` §Built for participants), 421
