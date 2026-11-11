@@ -1494,23 +1494,32 @@ async fn at_t79_36_a_read_through_a_relay_opens_only_with_its_key() {
         (Read::Reviewer { from: 0 }, Role::Judge),
         (Read::Author, Role::Propose),
     ];
+    let applied = Reply::Status(vec![Logged {
+        writer: id.writer,
+        seq: id.seq,
+        status: EventStatus::Applied { question: None },
+    }]);
     let mut replies = Vec::new();
     for (k, (read, role)) in reads.into_iter().enumerate() {
         let key = ResponseKey::derive(&[50 + k as u8; 32]);
         let request = ReadRequest::new(read, key.public(), &p.cred, role, &pk, &net);
-        let ReadAnswer::Reply(sealed) = r.read(&request.encode()).await else {
-            panic!("a reply")
+        let end = Instant::now() + Duration::from_secs(40);
+        let reply = loop {
+            let ReadAnswer::Reply(sealed) = r.read(&request.encode()).await else {
+                panic!("a reply")
+            };
+            assert_eq!(ResponseKey::derive(&[60; 32]).open(&sealed), None);
+            let opened = key.open(&sealed).expect("its response key opens it");
+            let reply = Reply::decode(&opened).expect("a reply");
+            // Member 0 answers from the state it applied, which may trail its replica.
+            if k > 0 || reply == applied || Instant::now() > end {
+                break reply;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
         };
-        assert_eq!(ResponseKey::derive(&[60; 32]).open(&sealed), None);
-        let opened = key.open(&sealed).expect("its response key opens it");
-        replies.push(Reply::decode(&opened).expect("a reply"));
+        replies.push(reply);
     }
-    let applied = Logged {
-        writer: id.writer,
-        seq: id.seq,
-        status: EventStatus::Applied { question: None },
-    };
-    assert_eq!(replies[0], Reply::Status(vec![applied]));
+    assert_eq!(replies[0], applied);
     assert_eq!(replies[1], Reply::Reviewer(None));
     assert!(matches!(&replies[2], Reply::Author(a) if a.questions.is_empty()));
     tokio::time::sleep(Duration::from_millis(500)).await;
