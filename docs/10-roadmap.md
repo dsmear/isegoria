@@ -309,7 +309,8 @@ T84 needs T86's tree shape.
 Close it only with a recorded trial against a pinned revision and configuration:
 
 1. **Controlled processes:** persistence, replication, cuts and beacon agree; restarts
-   preserve the accepted history. Existing T78 evidence covers part of this gate only.
+   preserve the accepted history. *Recorded and passed on `a842b90` (2026-11-11, `16` §Gate 1),
+   pending the owner's acceptance.*
 2. **Separate machines and networks:** exercise delays, duplicate delivery, disconnection
    and partition/rejoin; state the quorum and network conditions for progress.
 3. **Independent operators:** each controls its keys and nodes (T19, T88); T79 processes

@@ -1,0 +1,13 @@
+caught_up true
+circle_caught_up true
+peers 4
+bound 3
+equivocations 0
+conflict false
+duties_halted false
+stopped none
+synced [1,3]
+circle_synced [1,3]
+cut 0 137f0f3bde032a8b828ab663d25791ae9308e6e0feab0fda6e064b962774edab 0 []
+cut 1 d4226b670999ce34d0cf7073946270d12ab26f5e109b5e0909261f5163bc8f7f 0 []
+refused_cut none
