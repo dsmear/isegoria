@@ -115,8 +115,9 @@ contract leaves to the implementation:
 **Status (2026-11-11): approved by the owner (`01` D60); the state on signed cuts, a
 member's node running it and the protocol side of participants — gateway admission, private
 reads and their inner seal — are built (§Built on cuts, §Built in the node, §Built for
-participants), with the provisional test issuer (D65); their wiring in `p2p` and `node`, the
-client and the trial (`10` §2.3's increments 3–4) are not.**
+participants), with the provisional test issuer (D65), and the participant's client but for
+sending reads (§Built for participants); their wiring in `p2p` and `node` and the trial (`10`
+§2.3's increments 3–4) are not.**
 *Approved* restates an earlier decision or a built network rule; *consequence* is what the
 current code forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision
 recorded in D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04`
@@ -175,16 +176,17 @@ and its `CloseEpoch`.
   a public encoding with a known-answer test (built with the genesis, `04` T88-P1).
   *Provisional (owner, `01` D65):* the test issuer and its unlimited issuance are a temporary
   arrangement for tests, replaced by T19's committee; the tool says so on every run, and the
-  person's commands (`--request`, `--finalize`) move into `isegoria-client` when it is built.
+  person's commands (`--request`, `--finalize`) are `isegoria-client`'s (§Built for
+  participants).
   *Built (`10` T79, increment 3, 2026-11-11):* `isegoria-test-issuer`, a crate of its own
   (`crates/test-issuer`) so that no node links the issuer's secret key; `isegoria-node` has no
   issuer command. The issuer runs `--new-key <issuer.key>`: a fresh 32-byte seed, 64 hex
   digits, in a new 0600 file, and the key printed as `issuer <hex>`, the form
-  `--genesis-assemble`'s `issuer` takes. A person runs `--request <issuer-hex> <slot> <pending>
-  <request>`: a fresh secret, its blind request for the slot, and the state that finishes it in
+  `--genesis-assemble`'s `issuer` takes. A person runs `isegoria-client --request <issuer-hex>
+  <slot> <pending> <request>`: a fresh secret, its blind request for the slot, and the state that finishes it in
   a new 0600 file; the issuer runs `--issue <issuer.key> <request> <reply>`, which checks the
-  request's proof and prints the slot; the person runs `--finalize <issuer-hex> <pending>
-  <reply> <credential>`, which writes the credential to a new 0600 file only if it verifies
+  request's proof and prints the slot; the person runs `isegoria-client --finalize <issuer-hex>
+  <pending> <reply> <credential>`, which writes the credential to a new 0600 file only if it verifies
   under the key. The files are carried by hand; no command writes over an existing file; the
   pending file holds the secret too and stays private. A slot is an opaque number, its label
   the number in 8 little-endian bytes then 24 zero bytes, never a name or an attribute of a
@@ -195,8 +197,8 @@ and its `CloseEpoch`.
   `isegoria/credential/v1` ‖ signature (`A`, `e`, `s`) ‖ secret ‖ label scalar, 198 bytes;
   the request `isegoria/issuance/request/v1` ‖ commitment ‖ label ‖ `t` ‖ the proof's two
   responses, 220; the reply `isegoria/issuance/reply/v1` ‖ signature, 138; the pending state
-  `isegoria/issuance/pending/v1` ‖ secret ‖ blinding ‖ label scalar, 124. Tests: AT-ID-10–14
-  (`08` §12).
+  `isegoria/issuance/pending/v1` ‖ secret ‖ blinding ‖ label scalar, 124. Tests: AT-ID-10–14,
+  AT-T79-42–43 (`08` §12).
 
 **The closing cut, the beacon and the author's time.**
 - *Approved.* The cut closing epoch `e` is its commit and deposit checkpoint; reveals count
@@ -368,8 +370,8 @@ closing cut of `e` is offline `CloseEpoch { e, B }` at its end, `B` the value `e
 round `f` has a value, offline `Draw` of each pending question of the sealed epochs up to `f`
 still without one, in question order. *Evidence:* `protocol/tests/answer_on_cuts.rs` and
 `answer_on_cuts_model.rs`, the modules' unit tests, `p2p/tests/blind_relays.rs` (AT-T79-1–16,
-`08` §12). *Not built:* the client (increments 3 and 4); gateway admission and private reads
-are built on the protocol side (§Built for participants), not wired; the test issuer is built
+`08` §12). *Not built:* the wiring of gateway admission and private reads, built on the protocol side
+with the client (§Built for participants); the test issuer is built
 (*Credentials before T19*, above).
 
 **Built in the node (`10` T79, second increment, 2026-11-10).** `p2p::hook::Hook` is the hook:
@@ -475,6 +477,56 @@ in `p2p` or `node` calls it yet. The choices the contract left to the implementa
 *Evidence:* `protocol/tests/answer_participants.rs` (AT-T79-23–28), the unit tests of
 `answer_seal` (AT-T79-29) and `answer_ledger` (AT-T79-15, AT-T79-28); not yet run (the owner
 runs them with the other branches).
+
+**The client (`10` T79, third increment, 2026-11-11).** `isegoria-client`, a crate of its own
+(`crates/client`, D60), so a person's secrets stay out of members' processes; it reads only the
+files named on its command line and prints to standard output, exit code 0 or 2. Every file it
+writes is new (never over an existing one, and of two outputs neither is left when one cannot be
+made), 0600 where it holds a secret or a person's event; every file it reads is bounded and
+strictly decoded as its kind alone. It takes the genesis document (`04` T88-P1) and checks it as
+a node does — the family, D49–D51's `AnswerConfig`, the issuer key, the tiers — and every
+credential is decoded and verified under the genesis's issuer key before any proof is built from
+it (`Unverified` otherwise). No command asks for or writes a name or an attribute of a person.
+- *Credentials.* `--request` and `--finalize` (*Credentials before T19*, above), and the
+  committee's participant side (`03` T19-P5): `--slot-request <genesis> <slot> <pending>
+  <request>` writes a fresh secret's `SlotRequest` for a listed slot (below `2^32`), the one file
+  the three signers answer, and its `PendingIssuance` in the pending file's encoding above;
+  `--combine <genesis> <pending> <credential> <share>...` combines the signers'
+  `SignatureShare` files with `ceremony::combine` and writes the credential only once it verifies
+  under the genesis's issuer key (`Combine(Shares | Slot | Signature)` otherwise).
+- *Events.* `--join <genesis> <credential> <event>`, `--deposit <genesis> <credential> <epoch>
+  <question.toml> <event>`, `--commit <genesis> <credential> <question> <answer> <commitment>
+  <event>` and `--reveal <genesis> <credential> <commitment> <event>` build a `JoinPool`
+  (`Judge`), a `Deposit` (`Propose`), a `Commit` (`Judge`, a fresh 32-byte nonce) and the
+  `Reveal` that opens it, each proof in the network-prefixed context (T79-P1), the reveal's nym
+  the `Judge` proof's id; each is checked with `answer_gateway::admit` before it is written, so a
+  deposit malformed or past `MAX_QUESTION` writes nothing, and each prints `event <content id in
+  hex>`. A question's file is TOML with exactly `context`, `stem`, `alternatives` (strings, their
+  UTF-8 bytes) and `key` (the stated alternative's index). An answer is an alternative's index
+  `0`–`255`, `none` or `dont-know`. The commitment file (0600) is `isegoria/client/commit/v1` ‖
+  the question (8 bytes, little-endian) ‖ the answer's code (2) ‖ the nonce (32), 67 bytes.
+- *Sending.* `--send <genesis> <announcement-hex> <relay> <event>`: the announcement is a
+  member's signed key configuration as `isegoria-node --announce` prints it, verified under the
+  genesis's tiers and carrying that member's HPKE key in the genesis; the relay is a multiaddress
+  ending in `/p2p/` and the peer id of a transport key the genesis lists; the event is admitted as
+  above, then `p2p::blind::seal` and `submit` from a new transport key; a receipt prints `logged
+  <writer> <seq> <hash>` in hex, any other answer exits 2 as `NotLogged`.
+- *Reads.* `--read <genesis> <credential> <announcement-hex> <relay> status <event> | reviewer
+  <from> | author` builds one `answer_read::ReadRequest` with a fresh `answer_seal::ResponseKey`,
+  proved under the event's role for a status (`Judge` for a join, commit or reveal, `Propose` for
+  a deposit), `Judge` for a reviewer's read, `Propose` for an author's: each request its own key,
+  the two roles never in one request (invariant 4). The reply opens only under that key and only
+  as a reply of the read's kind; it prints one fact per line (`entries`, `entry <writer> <seq>
+  pending | applied [question <q>] | refused <reason>`; `question none` or `question`, `phase`,
+  `committed`, `revealed`, `context`, `stem`, `alternative` lines, texts quoted and escaped;
+  `reputation`, `quota`, then `question <q> <phase>` with a closed question's verdict and
+  observation). *Not wired:* sending a read needs `p2p::blind::{read_path, seal_read}`, not on
+  this branch; `client::read::send_read`, the one function that seals and submits a read, refuses
+  with "read path not wired yet" until they are combined.
+
+*Evidence:* `client/tests/` (`credentials.rs`, `events.rs`, `reads.rs`) and `test-issuer/tests/
+files.rs` (AT-T79-42–49, `08` §12); not yet run. Not over a relay on loopback: no test sends an
+event or a read through a running relay and gateway.
 
 ---
 

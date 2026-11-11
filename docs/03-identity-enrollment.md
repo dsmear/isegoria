@@ -177,8 +177,8 @@ checks are specified in [05](05-question-lifecycle.md#the-answer-review-01-d49d5
 
 ## Committee setup for the trial (T19) — approved contract (D63)
 
-**Status (2026-11-11): approved (`01` D63), rectified (D66); built but the participant's side
-(below, *Built*), its tests not yet run, unreviewed.**
+**Status (2026-11-11): approved (`01` D63), rectified (D66); built, the participant's side in
+`isegoria-client` included (below, *Built*), its tests not yet run, unreviewed.**
 *Decided* restates `01` D61 or an earlier decision; *consequence* is what the current code
 forces; each **T19-Pn** is a choice D63 approves. Only the issuing committee is in scope (D61); the uniqueness
 committee's setup stays open in T19, outside Milestone 2.
@@ -361,9 +361,11 @@ confirmation carries them, so two members that name different signers do not fin
 request is given the recorded share's bytes, not a share computed again. Non-signers run steps
 10 to 12 with no message, so every member counts the same steps.
 
-*Not built.* The participant's side in `isegoria-client` (`10` T79, increment 3): its secret,
-the request's file, the three shares' combination and the credential's file; the library's
-functions exist. *Residuals:* a payload the library decodes but mishandles could end the process
+*Built (2026-11-11, tests AT-T79-42 and AT-T79-44 written, not yet run).* The participant's side
+in `isegoria-client` (`05` §Built for participants): `--slot-request` writes its fresh secret's
+request for a listed slot and its pending state (0600), `--combine` the three signers' shares
+into the credential file (0600) once it verifies under the genesis's issuer key; no output over
+an existing file. *Residuals:* a payload the library decodes but mishandles could end the process
 with no state written (T89's fuzzing, D62); a restored copy of a member's directory erases its
 later answers, as `04`'s identity record.
 
