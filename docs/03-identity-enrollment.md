@@ -177,8 +177,8 @@ checks are specified in [05](05-question-lifecycle.md#the-answer-review-01-d49d5
 
 ## Committee setup for the trial (T19) — approved contract (D63)
 
-**Status (2026-11-11): approved (`01` D63); built but the participant's side and the
-re-preparation after a loss (below, *Built*), its tests not yet run, unreviewed.**
+**Status (2026-11-11): approved (`01` D63), rectified (D66); built but the participant's side
+(below, *Built*), its tests not yet run, unreviewed.**
 *Decided* restates `01` D61 or an earlier decision; *consequence* is what the current code
 forces; each **T19-Pn** is a choice D63 approves. Only the issuing committee is in scope (D61); the uniqueness
 committee's setup stays open in T19, outside Milestone 2.
@@ -319,50 +319,53 @@ per member, in genesis order, with the `consortium` and `hpke` keys its `--new-i
 printed; a key that is not valid or is repeated is refused by its field, and so is a shape
 `Setup` refuses. The ceremony directory holds `state` (`0600`, replaced whole through
 `state.new`), `lock`, `out/NN-i-j.msg` (step `NN` from member `i` to `j`, `0600`) and, for a
-signer once the ceremony is done, `answered/<slot>` (`0600`, the request's SHA-256). A message
-is the header — version 1, the id, the step, the sender's and the recipient's indices, 36
-bytes — the encapsulated key (32), then as a length-prefixed field the seal of the signature
-(64) and the payload. The signature is Ed25519 by the sender's consortium key over the tagged
-SHA-256 under `isegoria/ceremony/message/v1` of the header and the payload, checked strictly;
-the seal is RFC 9180 base mode with the members' OHTTP suite (X25519-HKDF-SHA256, HKDF-SHA256,
-AES-128-GCM), info `isegoria/ceremony/seal/v1`, the header as associated data. The slots'
-digest is tagged under `isegoria/ceremony/slots/v1` over the count (8 bytes) and the slots (4
-each); the id under `isegoria/ceremony/id/v1` over `t` and `n` (8 bytes each), each member's
-consortium then HPKE key, the slots' digest and each member's fresh value; step 1's messages
-carry, in the id's place, the same fields but the fresh values under
-`isegoria/ceremony/opening/v1`. The confirmation (step 13) is the issuer key's 97 bytes, the
-slots' digest, the signers' count and indices. A request is version 1, the slot (4 bytes), the
-commitment, the proof's `t` and its response; a share is version 1, the slot, the library's
-share; each object is an 8-byte length and its compressed arkworks encoding. A slot's label
-is its number's 4 bytes, little-endian, then 28 zero bytes.
+signer once the ceremony is done, `answered/<slot>` (`0600`, the request's SHA-256 then the
+share answered, in its encoding below). A message is the header — version 1, the id, the step,
+the sender's and the recipient's indices, 36 bytes — the encapsulated key (32), then as a
+length-prefixed field the seal of the signature (64) and the payload. The signature is Ed25519
+by the sender's consortium key over the tagged SHA-256 under `isegoria/ceremony/message/v1` of
+the header and the payload, checked strictly; the seal is RFC 9180 base mode with the members'
+OHTTP suite (X25519-HKDF-SHA256, HKDF-SHA256, AES-128-GCM), info `isegoria/ceremony/seal/v1`,
+the header as associated data. The slots' digest is tagged under `isegoria/ceremony/slots/v1`
+over the count (8 bytes) and the slots (4 each); the id under `isegoria/ceremony/id/v1` over `t`
+and `n` (8 bytes each), each member's consortium then HPKE key, the slots' digest and each
+member's fresh value; step 1's messages carry, in the id's place, the same fields but the fresh
+values under `isegoria/ceremony/opening/v1`. The confirmation (step 13) is the issuer key's 97
+bytes, the slots' digest, the signers' count and indices. A request is version 1, the slot (4
+bytes), the commitment, the proof's `t` and its response; a share is version 1, the slot, the
+library's share; each object is an 8-byte length and its compressed arkworks encoding. A slot's
+label is its number's 4 bytes, little-endian, then 28 zero bytes.
 
-*Behaviour.* A file byte-identical to one already taken is skipped. One that fails its
-decoding, seal, signature, recipient, sender, id or step, a second message from one sender, the
-library's check, or a confirmation unlike the member's own aborts: the state keeps `aborted`,
-the party with its share dropped, and every later command is refused. A step lacking a
-message reports the members missing and changes nothing. A step writes its messages before its
-state: interrupted before the state, it runs again with fresh randomness, the earlier files
-not yet sent. `answer` refuses before the ceremony is done, for a non-signer, without
-`answered/` (a lost record ends that member's issuance), for an output that exists, a request
-that does not decode, a slot recorded, a slot not listed or a proof that fails — none of these
-spends the slot; it creates `answered/<slot>`, synced with its directory, before it writes the
-share. An advisory lock serializes invocations on one directory. Tests: `identity`'s
+*Behaviour.* A file byte-identical to one already taken is skipped. One that fails its decoding,
+seal, signature, recipient, sender, id or step, a second message from one sender, the library's
+check, or a confirmation unlike the member's own aborts: the state keeps `aborted`, the party
+with its share dropped, and every later command is refused. A step lacking a message reports the
+members missing and changes nothing. A step writes its messages before its state: interrupted
+before the state, it runs again with fresh randomness, the earlier files not yet sent. `answer`
+refuses before the ceremony is done, for a non-signer, without `answered/` (a lost record ends
+that member's issuance), for an output that exists, a request that does not decode, a slot
+recorded for another request, a slot not listed or a proof that fails — none of these spends the
+slot; it creates `answered/<slot>` with the share, synced with its directory, before it writes
+the share. A request whose SHA-256 is the recorded one gets the recorded share again, also after
+a restart; a record not holding this member's share for that slot is refused (`Io("record")`).
+No slot yields a second distinct share. A lost share, like a compromised one, suspends the trial
+(P6): the tool prepares nothing again, and continuing is a new ceremony, under a new id, and a
+new genesis. An advisory lock serializes invocations on one directory. Tests: `identity`'s
 `credential::ceremony` unit tests, `ceremony/tests/` (`formats.rs`, `ceremony.rs`,
 `processes.rs`), with `--new-identity`'s directories and `--genesis-assemble` (`08` §12).
 
-*Choices left to the implementation, taken here.* Step 1's messages are signed and sealed as
-the others, bound to the opening digest, the id not existing yet. Every message is sealed to its
+*Choices left to the implementation, taken here.* Step 1's messages are signed and sealed as the
+others, bound to the opening digest, the id not existing yet. Every message is sealed to its
 recipient, the public ones included. The signers are not in the id, which P3 fixes; the
-confirmation carries them, so two members that name different signers do not finish. A second
-request for an answered slot is refused even when byte-identical to the first, whose share is
-not kept. Non-signers run steps 10 to 12 with no message, so every member counts the same steps.
+confirmation carries them, so two members that name different signers do not finish. A repeated
+request is given the recorded share's bytes, not a share computed again. Non-signers run steps
+10 to 12 with no message, so every member counts the same steps.
 
 *Not built.* The participant's side in `isegoria-client` (`10` T79, increment 3): its secret,
 the request's file, the three shares' combination and the credential's file; the library's
-functions exist. The re-preparation after a lost share (P6), whose messages need an id and a
-slot list of their own: a choice for the owner. *Residuals:* a payload the library decodes but
-mishandles could end the process with no state written (T89's fuzzing, D62); a restored copy of
-a member's directory erases its later answers, as `04`'s identity record.
+functions exist. *Residuals:* a payload the library decodes but mishandles could end the process
+with no state written (T89's fuzzing, D62); a restored copy of a member's directory erases its
+later answers, as `04`'s identity record.
 
 **Out of scope.** The uniqueness committee, real enrollment (T20), selective-disclosure
 presentation, and a threshold-signature beacon, which needs a key and a contract of its own.

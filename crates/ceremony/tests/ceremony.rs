@@ -7,6 +7,7 @@ use ceremony::message::{self, Header, MessageError};
 use ceremony::{Error, Refusal, FINISH};
 use identity::credential::ceremony::{combine, AnswerError, SignatureShare, SlotRequest};
 use identity::credential::{Credential, IssuerPublic};
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use support::*;
 
@@ -124,7 +125,7 @@ fn at_id_22_the_participant_combines_the_three_shares() {
     assert!(combine(pending, &shares[..2], &key).is_err());
 }
 
-// A slot is answered once, durably, also by a later invocation; refusals spend nothing (AT-ID-21).
+// A slot yields one share, durably: the same request gets it again, any other none (AT-ID-21).
 #[test]
 fn at_id_21_a_slot_is_answered_once() {
     let c = Committee::new("once", &SLOTS);
@@ -135,21 +136,20 @@ fn at_id_21_a_slot_is_answered_once() {
     let second = request(&c.root, "second", 2, 1, &key);
     let share = |n: &str| c.root.join(n);
     assert_eq!(ceremony::answer(&signer, &first, &share("s1")), Ok(1));
-    assert_eq!(
-        ceremony::answer(&signer, &first, &share("s2")),
-        Err(Error::AlreadyAnswered(1))
-    );
+    let sent = std::fs::read(share("s1")).unwrap();
+    assert_eq!(ceremony::answer(&signer, &first, &share("s2")), Ok(1));
+    assert_eq!(std::fs::read(share("s2")).unwrap(), sent);
     assert_eq!(
         ceremony::answer(&signer, &second, &share("s3")),
         Err(Error::AlreadyAnswered(1))
     );
-    assert_eq!(
-        std::fs::read(signer.join("answered").join("1"))
-            .unwrap()
-            .len(),
-        32
-    );
-    assert!(!share("s2").exists() && !share("s3").exists());
+    let entry = signer.join("answered").join("1");
+    let kept = std::fs::read(&entry).unwrap();
+    let digest = Sha256::digest(std::fs::read(&first).unwrap());
+    assert_eq!((&kept[..32], &kept[32..]), (&digest[..], &sent[..]));
+    #[cfg(unix)]
+    assert_eq!(mode(&entry), 0o600);
+    assert!(!share("s3").exists());
     assert_eq!(ceremony::answer(&other, &second, &share("s4")), Ok(1));
     let outside = request(&c.root, "outside", 3, 7, &key);
     let refused = Err(Error::Answer(AnswerError::NotListed));
@@ -176,6 +176,17 @@ fn at_id_21_a_slot_is_answered_once() {
         Err(Error::NotSigner)
     );
     assert_eq!(ceremony::status(&signer).unwrap().answered, Some(2));
+    std::fs::remove_file(share("s1")).unwrap();
+    assert_eq!(ceremony::answer(&signer, &first, &share("s1")), Ok(1));
+    assert_eq!(std::fs::read(share("s1")).unwrap(), sent);
+    let refused = Err(Error::AlreadyAnswered(1));
+    assert_eq!(ceremony::answer(&signer, &second, &share("s3")), refused);
+    let mut truncated = kept.clone();
+    truncated.pop();
+    std::fs::write(&entry, truncated).unwrap();
+    let broken = Err(Error::Io("record", std::io::ErrorKind::InvalidData));
+    assert_eq!(ceremony::answer(&signer, &first, &share("s11")), broken);
+    assert!(!share("s11").exists());
     std::fs::rename(signer.join("answered"), c.root.join("moved")).unwrap();
     let two = request(&c.root, "two", 6, 2, &key);
     assert_eq!(

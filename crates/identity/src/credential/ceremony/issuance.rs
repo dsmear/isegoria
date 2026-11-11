@@ -113,8 +113,8 @@ pub enum AnswerError {
 }
 
 impl Party {
-    /// This member's share for `request`'s slot from its prepared signature; the caller records
-    /// the slot as answered before the share leaves (`docs/03` T19-P5).
+    /// This member's share for `request`'s slot from its prepared signature, the same for the same
+    /// request; the caller records the slot and the share before it leaves (`docs/03` T19-P5).
     pub fn answer(&self, request: &SlotRequest) -> Result<SignatureShare, AnswerError> {
         let (phase1, phase2) = self.prepared().ok_or(AnswerError::NotPrepared)?;
         let index = self

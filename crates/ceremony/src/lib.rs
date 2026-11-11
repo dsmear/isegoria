@@ -6,7 +6,9 @@ pub mod message;
 pub mod procedure;
 
 use ed25519_dalek::SigningKey;
-use identity::credential::ceremony::{AnswerError, Party, Refusal as Flight, SlotRequest, FLIGHTS};
+use identity::credential::ceremony::{
+    AnswerError, Party, Refusal as Flight, SignatureShare, SlotRequest, FLIGHTS,
+};
 use message::{Header, HpkeSecret, MessageError};
 use network::codec::{Reader, Writer};
 use procedure::{Keys, Procedure, ProcedureError};
@@ -649,7 +651,8 @@ pub fn status(dir: &Path) -> Result<Summary, Error> {
 }
 
 /// Issuance (`docs/03` T19-P5): this signer's share for the request in `request`, written to
-/// `share`, a new file, after the slot is recorded as answered in `answered/<slot>`.
+/// `share`, a new file, after `answered/<slot>` records the request's SHA-256 and the share; a
+/// byte-identical request gets the recorded share again, any other for that slot none.
 pub fn answer(dir: &Path, request: &Path, share: &Path) -> Result<u32, Error> {
     let _lock = lock(dir)?;
     let state = load(dir)?;
@@ -672,22 +675,38 @@ pub fn answer(dir: &Path, request: &Path, share: &Path) -> Result<u32, Error> {
     let bytes = read_bounded(request, "request", MAX_INPUT)?;
     let request = SlotRequest::decode(&bytes).ok_or(Error::Request)?;
     let slot = request.slot();
+    let digest: [u8; 32] = Sha256::digest(&bytes).into();
     let entry = record.join(slot.to_string());
     if entry.symlink_metadata().is_ok() {
-        return Err(Error::AlreadyAnswered(slot));
+        let kept = read_bounded(&entry, "record", MAX_INPUT)?;
+        let value = recorded(&kept, &digest, slot, state.me)?;
+        write_new(share, value).map_err(io("share"))?;
+        return Ok(slot);
     }
     let party = state.party.as_ref().ok_or(Error::State)?;
-    let value = party.answer(&request).map_err(Error::Answer)?;
-    let digest: [u8; 32] = Sha256::digest(&bytes).into();
-    match write_new(&entry, &digest) {
+    let value = party.answer(&request).map_err(Error::Answer)?.encode();
+    let kept = [&digest[..], &value].concat();
+    match write_new(&entry, &kept) {
         Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
             return Err(Error::AlreadyAnswered(slot))
         }
         written => written.map_err(io("record"))?,
     }
     sync_dir(&record).map_err(io("record"))?;
-    write_new(share, &value.encode()).map_err(io("share"))?;
+    write_new(share, &value).map_err(io("share"))?;
     Ok(slot)
+}
+
+/// The share `kept`, a slot's record, holds for the request of SHA-256 `digest`; a record
+/// whose share does not decode as member `me`'s for `slot` is `Io("record", InvalidData)`.
+fn recorded<'a>(kept: &'a [u8], digest: &[u8; 32], slot: u32, me: u8) -> Result<&'a [u8], Error> {
+    let Some(value) = kept.strip_prefix(&digest[..]) else {
+        return Err(Error::AlreadyAnswered(slot));
+    };
+    match SignatureShare::decode(value) {
+        Some(s) if s.slot() == slot && s.member() == u16::from(me) => Ok(value),
+        _ => Err(Error::Io("record", io::ErrorKind::InvalidData)),
+    }
 }
 
 /// The operators' decision (`docs/03` T19-P6): the ceremony ends for this member, its share

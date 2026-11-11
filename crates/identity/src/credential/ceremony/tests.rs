@@ -178,7 +178,7 @@ fn at_id_19_the_state_decodes_strictly() {
     assert!(format!("{:?}", p[1]).starts_with("Party"));
 }
 
-// Only a signer answers, only a listed slot, only with a valid proof (AT-ID-21).
+// Only a signer, a listed slot, a proof; a request gets one share, also restarted (AT-ID-21).
 #[test]
 fn at_id_21_a_member_answers_only_a_listed_slot_with_a_proof() {
     let p = prepared();
@@ -196,7 +196,11 @@ fn at_id_21_a_member_answers_only_a_listed_slot_with_a_proof() {
     bytes[1..5].copy_from_slice(&5u32.to_le_bytes());
     let relabelled = SlotRequest::decode(&bytes).unwrap();
     assert_eq!(p[0].answer(&relabelled).unwrap_err(), AnswerError::Proof);
-    assert!(p[0].answer(&listed).is_ok());
+    let share = p[0].answer(&listed).unwrap().encode();
+    let restarted = Party::decode(&p[0].encode()).unwrap();
+    assert_eq!(restarted.answer(&listed).unwrap().encode(), share);
+    let (again, _) = SlotRequest::new(&holder, 9, &issuer);
+    assert_ne!(restarted.answer(&again).unwrap().encode(), share);
 }
 
 // Shares combine only from distinct members of one slot, the request's (AT-ID-22).

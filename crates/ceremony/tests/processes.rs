@@ -76,10 +76,20 @@ fn at_id_24_the_tool_runs_the_ceremony_as_processes() {
     let share = c.root.join("share");
     let answered = tool(args(&[&"answer", &c.dir("p", 0), &path, &share]));
     assert!(text(&answered).starts_with("answered 2\n"), "{answered:?}");
+    let again = c.root.join("again");
+    let twice = tool(args(&[&"answer", &c.dir("p", 0), &path, &again]));
+    assert!(text(&twice).starts_with("answered 2\n"), "{twice:?}");
+    assert_eq!(
+        std::fs::read(&again).unwrap(),
+        std::fs::read(&share).unwrap()
+    );
+    let (request, _) = SlotRequest::new(&Credential::from_secret([2; 32]), 2, &key);
+    let path = c.root.join("another");
+    std::fs::write(&path, request.encode()).unwrap();
     let other = c.root.join("other");
-    let twice = tool(args(&[&"answer", &c.dir("p", 0), &path, &other]));
-    assert_eq!(twice.status.code(), Some(2));
-    assert!(String::from_utf8_lossy(&twice.stderr).contains("AlreadyAnswered(2)"));
+    let refused = tool(args(&[&"answer", &c.dir("p", 0), &path, &other]));
+    assert_eq!(refused.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("AlreadyAnswered(2)"));
     let aborted = tool(args(&[&"abort", &c.dir("p", 1)]));
     assert_eq!(text(&aborted), "aborted\n");
     let status = tool(args(&[&"status", &c.dir("p", 1)]));
