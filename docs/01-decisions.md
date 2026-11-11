@@ -2261,3 +2261,28 @@ returned; D49–D53, D60's other choices and T19-P1–P4 are unchanged.
 - **Fuzzing.** The eight targets added for increment 3 and T19 run as smoke runs of at most
   60 seconds each on this machine (D62), recorded in `12` §4; longer campaigns stay on the
   owner's machine.
+
+## D68 — The reviews' findings and the trial's evidence (T79 increment 4, T19)
+
+**Decided** by the owner; recorded 2026-11-11, after two independent reviews of increments
+2–3 and T19's tool (`15`-style findings, fixed with failing tests first, `10` T79 and T19).
+
+- **The ceremony's commitments (T19-P2/P3).** The confirmation carries, from each member, a
+  digest of every member's key-generation and phase-1 commitments as it received them;
+  finishing requires them equal. It closes the gap left by point-to-point delivery of what
+  the libraries assume broadcast (one member sending different commitments to different
+  members), a check the contract's "caught only where the library verifies" left out.
+- **A ceremony's number (T19-P3).** The ceremony's procedure carries a number the operators
+  agree, bound into the opening digest and the id; a new ceremony after an abort takes a new
+  one, so no message of an earlier ceremony is accepted.
+- **Reply sizes.** Replies stay unpadded for the trial; what a relay learns by replaying a
+  read is a residual (`04` §Blind relays).
+- **The operator's view.** A member's status shows the open epoch, each question's phase and
+  each executed request's outcome, through one method added to D60's hook; circle data, never
+  in shared evidence.
+- **The trial's evidence.** Shared evidence keeps each node's public status lines only. Gate 3
+  shows the question's outcome by the members' equal state digests and each operator's signed
+  statement that its node shows the expected outcome, author record and quota; the outcomes
+  stay in the circle (T79-P6). A digest difference stops the trial as a conflict does; the
+  slot list has 20 slots (16 participants, 4 spares); closures follow a written schedule.
+- **Gate 1 in CI.** Gate 1's process test runs in CI's default run.

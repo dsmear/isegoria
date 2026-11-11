@@ -683,7 +683,10 @@ request takes the same path to `…/read`; the member answers it from its state 
 | anyone, from the public cut marks | that a member's circle feed grew in a cut | which person or event |
 
 The last line is D54's residual: timing links a request a relay saw to a circle feed's
-growth. Batching (`10` T28) and PRIV-003 would blur it; neither is built.
+growth. Batching (`10` T28) and PRIV-003 would blur it; neither is built. A second residual,
+accepted for the trial (`01` D68): replies are not padded and a gateway answers a replayed
+read afresh, so a relay that replays a captured read learns, by the reply's size, when an
+event was applied or refused and when a reviewer was drawn, for a question of what size.
 
 - **T85-P1 — the carrier.** RFC 9458's encapsulated request and response, byte for byte,
   on two libp2p request-response protocols, `/isegoria/ohttp/relay/1` (person → relay) and
@@ -780,7 +783,8 @@ reads it, and an empty reply is a failed exchange. In `node`: `consortium.hpke`,
 signed key configuration. **What a node process can do:** forward as a relay, and terminate
 the channel as a member; a member of a network with a genesis admits a person's answer-review
 events and answers its reads through its hook (*As wired*, below); the legacy events are not
-admitted. Persons have no client program: `seal`, `seal_read` and `submit` are a library.
+admitted. Persons use `isegoria-client` (`05` §Built for participants), on `seal`, `seal_read`
+and `submit`.
 
 **As wired (2026-11-11, `10` T79's third increment).** `blind::read_path` and
 `blind::seal_read` beside `event_path` and `seal`; `Sealed::open_read` gives a `ReadAnswer`,
@@ -1080,7 +1084,7 @@ for the members collecting cuts (`network::rounds`).
 Public CID lookup without a full replica is specified in §Public object discovery (T75);
 circle objects are never offered through it (§Who reads). A member's node runs the answer
 review on the cuts it collects (`05` §Built in the node, `10` T79); persons reach it through
-its gateway (§Blind relays, *As wired*), with no client yet. Its contract, approved in `01` D60, is `05` §Distributed integration, its
+its gateway (§Blind relays, *As wired*) with `isegoria-client`. Its contract, approved in `01` D60, is `05` §Distributed integration, its
 state on cuts `protocol::answer_ledger`. In code:
 `network::replica`, `network::cut`, `protocol::ledger`, the `p2p` crate.
 
@@ -1349,7 +1353,7 @@ gate 3 replaces the issuer (step 12).
    valid request, a slot's again too (`01` D65): answering each listed slot once is the
    holder's conduct, not a check, and it records the slots it answered.
 5. **Epochs and closures.** Reviewers join (`--join`), authors deposit (`--deposit`) in the
-   open epoch, which the operators announce: the number of `digest` lines in their status.
+   open epoch, which the operators announce from the `epoch <e>` line of their status.
    Each event goes through a relay to one member (`--send`, receipt `logged <writer> <seq>
    <hash>`) and is followed with `--read … status <event>`; reviewers find their questions
    with `--read … reviewer <from>`, commit (`--commit`) while its `phase` is `commits-open`
@@ -1363,8 +1367,11 @@ gate 3 replaces the issuer (step 12).
    own command when the schedule says, never on a count of answers (D49); one who declines
    stalls the closure visibly, and that is recorded. Questions are numbered from 0 by
    accepted deposit in cut order; a request for a question not in the phase it closes is
-   refused by the state, not counted, and is issued again in its next window. The status
-   lists each executed request (`request <name> <seq>`).
+   refused by the state, not counted, and is issued again in its next window. A member's
+   status lists each executed request (`request <name> <seq>`), its outcome (`request_state
+   <seq> pending | counted | refused <reason>`) and each question's phase (`question <q>
+   <phase>`): circle data, its operator's own (`05` §Built in the node, *The state in the
+   status*).
 6. **State digests.** After each closing cut a member's status adds `digest <cut> <hex>`.
    The members' operators compare their four lines for each closing cut and record them;
    relays compute none (`01` D64). A difference, or a member's `refused_cut <n> <reason>`
@@ -1398,7 +1405,12 @@ gate 3 replaces the issuer (step 12).
 11. **Evidence.** Shared evidence holds no secret and no circle content, only what verifies
     the outcomes: the pinned revision, the configuration document, its digest and the four
     confirmations; the slot list, the slots answered and the closures' schedule; each node's
-    status over time, its `digest`, `beacon` and `request` lines included; public entries,
+    public status lines over time — feeds caught up, peers, bindings, syncs, cuts, `beacon`,
+    `digest` and `refused_cut` — never its `epoch`, `question`, `request` or `request_state`
+    lines, which are circle data (as gate 1's `evidence/shared/` keeps, `05` §Gate 1 on one
+    machine); for gate 3, beside the digests, each operator's signed statement that its node
+    shows the question's expected outcome, the author's record and next quota (`01` D68),
+    the outcomes themselves staying in the circle; public entries,
     conflicting signed cuts and public-feed equivocations; the faults injected and when; the
     restorations operators know of; and a table of the safety and progress observed against
     P3's assumptions, with the beacon's and recovery's limits. A log is shared once its
