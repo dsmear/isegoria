@@ -1,13 +1,15 @@
 //! The answer review on signed cuts (`docs/05` §Distributed integration, `docs/01` D60, T79):
 //! one event family per network, its derived steps at each cut's end, the members' checks.
 
-use crate::answer::Question;
+use crate::admission::Unproven;
+use crate::answer::{Malformed, Question};
 use crate::answer_events::AnswerEvent;
 use crate::answer_path::{AnswerConfig, AnswerPath, Applied, Refused, Round};
 use ed25519_dalek::Signature;
 use identity::credential::IssuerPublic;
+use identity::nym::Nym;
 use network::beacon::{BeaconOutcome, RoundError};
-use network::codec::Writer;
+use network::codec::{Reader, Writer};
 use network::cut::{added, Cut, CutError, MemberObject};
 use network::hash::tagged;
 use network::replica::{EntryId, Replica};
@@ -160,6 +162,13 @@ enum Request {
     Epoch(u64),
 }
 
+/// A drawn reviewer's question: whether its commit and its reveal counted (`docs/05` T79-P7).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Review {
+    pub committed: bool,
+    pub revealed: bool,
+}
+
 pub struct AnswerLedger {
     tiers: Tiers,
     issuer: IssuerPublic,
@@ -168,6 +177,7 @@ pub struct AnswerLedger {
     rounds: Rounds,
     requests: BTreeMap<Request, BTreeSet<usize>>,
     refused: Vec<(EntryId, Refusal)>,
+    reviews: BTreeMap<(Nym, u64), Review>,
 }
 
 impl AnswerLedger {
@@ -182,6 +192,7 @@ impl AnswerLedger {
             rounds: Rounds::new(),
             requests: BTreeMap::new(),
             refused: Vec::new(),
+            reviews: BTreeMap::new(),
         })
     }
 
@@ -241,6 +252,13 @@ impl AnswerLedger {
         if let Some((round, value)) = value {
             (report.valued, report.drawn) = self.path.assign(round, value);
         }
+        for (q, drawn) in &report.drawn {
+            if let Applied::Drawn { group } = drawn {
+                for nym in group {
+                    self.reviews.insert((*nym, *q), Review::default());
+                }
+            }
+        }
         Ok(report)
     }
 
@@ -287,9 +305,32 @@ impl AnswerLedger {
                 })
             }
             AnswerEvent::Deposit { question, .. } if !fits(question) => Err(Refusal::TooLarge),
-            _ => (self.path.apply(&event, &self.issuer))
-                .map(Accepted::Applied)
-                .map_err(Refusal::Path),
+            _ => {
+                let applied = (self.path.apply(&event, &self.issuer)).map_err(Refusal::Path)?;
+                self.reviewed(&event, &applied);
+                Ok(Accepted::Applied(applied))
+            }
+        }
+    }
+
+    fn reviewed(&mut self, event: &AnswerEvent, applied: &Applied) {
+        let (key, revealed) = match (event, applied) {
+            (AnswerEvent::Commit { question, .. }, Applied::Committed(nym)) => {
+                ((*nym, *question), false)
+            }
+            (
+                AnswerEvent::Reveal {
+                    question, reviewer, ..
+                },
+                Applied::Revealed,
+            ) => ((*reviewer, *question), true),
+            _ => return,
+        };
+        let review = self.reviews.entry(key).or_default();
+        if revealed {
+            review.revealed = true;
+        } else {
+            review.committed = true;
         }
     }
 
@@ -346,6 +387,22 @@ impl AnswerLedger {
         &self.path
     }
 
+    pub fn tiers(&self) -> &Tiers {
+        &self.tiers
+    }
+
+    pub fn issuer(&self) -> &IssuerPublic {
+        &self.issuer
+    }
+
+    /// The first question numbered from `from` whose drawn group holds `reviewer`, and its review.
+    pub fn review(&self, reviewer: &Nym, from: u64) -> Option<(u64, Review)> {
+        let mut range = self
+            .reviews
+            .range((*reviewer, from)..=(*reviewer, u64::MAX));
+        range.next().map(|((_, q), r)| (*q, *r))
+    }
+
     pub fn last(&self) -> Option<&Cut> {
         self.last.as_ref()
     }
@@ -365,7 +422,7 @@ impl AnswerLedger {
     }
 
     /// The tagged SHA-256 of the network id, the path's state, the requests, the beacon rounds,
-    /// the last cut's number, and the refusals, in one canonical encoding (D60, D64).
+    /// the last cut's number, the refusals and the reviews, in one canonical encoding (D60, D64).
     pub fn digest(&self) -> [u8; 32] {
         let mut state = Writer::new();
         self.path.write_state(&mut state);
@@ -392,12 +449,95 @@ impl AnswerLedger {
             w.fixed(&id.writer).u64(id.seq).fixed(&id.hash);
             write_refusal(&mut w, refusal);
         }
+        w.u64(self.reviews.len() as u64);
+        for ((nym, q), r) in &self.reviews {
+            w.fixed(&nym.0).u64(*q);
+            w.u8(r.committed.into()).u8(r.revealed.into());
+        }
         let network = self.tiers.network_id();
         tagged(DIGEST, &[&network, &state.finish(), &w.finish()])
     }
 }
 
-fn write_refusal(w: &mut Writer, refusal: &Refusal) {
+const ROUND_ERRORS: [RoundError; 12] = [
+    RoundError::WrongNetwork,
+    RoundError::WrongMemberSet,
+    RoundError::WrongEpoch,
+    RoundError::NotAMember,
+    RoundError::BadSignature,
+    RoundError::DuplicateCommit,
+    RoundError::CommitsClosed,
+    RoundError::RevealsNotOpen,
+    RoundError::NoCommit,
+    RoundError::RevealMismatch,
+    RoundError::AlreadyRevealed,
+    RoundError::OutOfPhase,
+];
+
+const MALFORMED: [Malformed; 7] = [
+    Malformed::EmptyContext,
+    Malformed::EmptyStem,
+    Malformed::TooFewAlternatives,
+    Malformed::TooManyAlternatives,
+    Malformed::EmptyAlternative,
+    Malformed::RepeatedAlternative,
+    Malformed::KeyOutOfRange,
+];
+
+const UNPROVEN: [Unproven; 2] = [Unproven::BadProof, Unproven::WrongRole];
+
+/// The refusal [`write_refusal`] wrote, its codes and details read strictly.
+pub(crate) fn read_refusal(r: &mut Reader) -> Option<Refusal> {
+    let (code, detail) = (r.u8().ok()?, r.u64().ok()?);
+    let plain = |refusal| (detail == 0).then_some(refusal);
+    match code {
+        0 => plain(Refusal::NotAnEvent),
+        1 => plain(Refusal::NotAuthorized),
+        2 => plain(Refusal::PublicFeed),
+        3 => plain(Refusal::Derived),
+        4 => plain(Refusal::WrongEpoch),
+        5 => plain(Refusal::Repeated),
+        6 => plain(Refusal::TooLarge),
+        7 => plain(Refusal::OutOfWindow),
+        8 => Some(Refusal::Beacon(*ROUND_ERRORS.get(index(detail)?)?)),
+        9 if detail == 0 => read_refused(r).map(Refusal::Path),
+        _ => None,
+    }
+}
+
+fn index(detail: u64) -> Option<usize> {
+    usize::try_from(detail).ok()
+}
+
+fn read_refused(r: &mut Reader) -> Option<Refused> {
+    let (code, detail) = (r.u8().ok()?, r.u64().ok()?);
+    let plain = |refused| (detail == 0).then_some(refused);
+    match code {
+        0 => plain(Refused::WrongEpoch),
+        1 => Some(Refused::Malformed(*MALFORMED.get(index(detail)?)?)),
+        2 => Some(Refused::Unproven(*UNPROVEN.get(index(detail)?)?)),
+        3 => plain(Refused::AlreadyInPool),
+        4 => Some(Refused::Duplicate { question: detail }),
+        5 => Some(Refused::OverQuota {
+            quota: u32::try_from(detail).ok()?,
+        }),
+        6 => plain(Refused::UnknownQuestion),
+        7 => plain(Refused::BeaconPending),
+        8 => plain(Refused::WrongRound),
+        9 => plain(Refused::NotDrawn),
+        10 => plain(Refused::AlreadyCommitted),
+        11 => plain(Refused::NoCommit),
+        12 => plain(Refused::AlreadyRevealed),
+        13 => plain(Refused::RevealMismatch),
+        14 => plain(Refused::AnswerOutOfRange),
+        15 => plain(Refused::Overflow),
+        16 => plain(Refused::NetworkOnly),
+        _ => None,
+    }
+}
+
+/// A refusal's codes and details: the digest's encoding, and a status reply's (`docs/05` T79-P7).
+pub(crate) fn write_refusal(w: &mut Writer, refusal: &Refusal) {
     let (code, detail) = match refusal {
         Refusal::NotAnEvent => (0, 0),
         Refusal::NotAuthorized => (1, 0),
@@ -485,7 +625,16 @@ mod tests {
         l.last = Some(cut);
         let duplicate = Refusal::Path(Refused::Duplicate { question: 0 });
         l.refused = vec![(id(1), Refusal::NotAnEvent), (id(2), duplicate)];
+        let committed = Review {
+            committed: true,
+            revealed: false,
+        };
+        l.reviews.insert((Nym([5; 32]), 0), committed);
         l
+    }
+
+    fn reviewed(l: &mut AnswerLedger) -> &mut Review {
+        l.reviews.get_mut(&(Nym([5; 32]), 0)).unwrap()
     }
 
     fn rekey(l: &mut AnswerLedger, from: Request, to: Request) {
@@ -528,6 +677,19 @@ mod tests {
             ("the path", |l| {
                 l.path.seal().unwrap();
             }),
+            ("a commit counted", |l| reviewed(l).committed = false),
+            ("a reveal counted", |l| reviewed(l).revealed = true),
+            ("a review's reviewer", |l| {
+                let r = l.reviews.remove(&(Nym([5; 32]), 0)).unwrap();
+                l.reviews.insert((Nym([6; 32]), 0), r);
+            }),
+            ("a review's question", |l| {
+                let r = l.reviews.remove(&(Nym([5; 32]), 0)).unwrap();
+                l.reviews.insert((Nym([5; 32]), 1), r);
+            }),
+            ("a review more", |l| {
+                l.reviews.insert((Nym([5; 32]), 1), Review::default());
+            }),
         ];
         let reference = ledger(NET).digest();
         assert_eq!(ledger(NET).digest(), reference);
@@ -539,9 +701,64 @@ mod tests {
         assert_ne!(ledger([9; 32]).digest(), reference);
     }
 
+    fn encoded(r: &Refusal) -> Vec<u8> {
+        let mut w = Writer::new();
+        write_refusal(&mut w, r);
+        w.finish()
+    }
+
     // AT-T79-15: each refusal, with each detail it carries, encodes apart from every other.
     #[test]
     fn every_refusal_encodes_apart() {
+        let all = refusals();
+        let encoded: BTreeSet<Vec<u8>> = all.iter().map(encoded).collect();
+        assert_eq!(encoded.len(), all.len());
+    }
+
+    // AT-T79-28: every refusal reads back from its encoding; other codes, details and lengths fail.
+    #[test]
+    fn every_refusal_reads_back() {
+        let mut all = refusals();
+        all.push(Refusal::Path(Refused::OverQuota { quota: u32::MAX }));
+        all.push(Refusal::Path(Refused::Duplicate { question: u64::MAX }));
+        for refusal in all {
+            let bytes = encoded(&refusal);
+            let mut r = Reader::new(&bytes);
+            assert_eq!(read_refusal(&mut r), Some(refusal));
+            assert!(r.finish().is_ok());
+            assert_eq!(
+                read_refusal(&mut Reader::new(&bytes[..bytes.len() - 1])),
+                None
+            );
+        }
+        let path = |code: u8, detail: u64| {
+            [
+                vec![9],
+                vec![0; 8],
+                vec![code],
+                detail.to_le_bytes().to_vec(),
+            ]
+            .concat()
+        };
+        let hostile = [
+            [vec![0], 1u64.to_le_bytes().to_vec()].concat(),
+            [vec![7], 1u64.to_le_bytes().to_vec()].concat(),
+            [vec![8], 12u64.to_le_bytes().to_vec()].concat(),
+            [vec![9], 1u64.to_le_bytes().to_vec()].concat(),
+            [vec![10], 0u64.to_le_bytes().to_vec()].concat(),
+            path(0, 1),
+            path(1, 7),
+            path(2, 2),
+            path(5, u64::from(u32::MAX) + 1),
+            path(16, 1),
+            path(17, 0),
+        ];
+        for bytes in hostile {
+            assert_eq!(read_refusal(&mut Reader::new(&bytes)), None, "{bytes:?}");
+        }
+    }
+
+    fn refusals() -> Vec<Refusal> {
         use Refused as R;
         let mut path = vec![R::WrongEpoch, R::AlreadyInPool, R::UnknownQuestion];
         path.extend([
@@ -588,13 +805,6 @@ mod tests {
         all.extend([Refusal::TooLarge, Refusal::OutOfWindow]);
         all.extend(beacon.map(Refusal::Beacon));
         all.extend(path.into_iter().map(Refusal::Path));
-        let encoded: BTreeSet<Vec<u8>> = (all.iter())
-            .map(|r| {
-                let mut w = Writer::new();
-                write_refusal(&mut w, r);
-                w.finish()
-            })
-            .collect();
-        assert_eq!(encoded.len(), all.len());
+        all
     }
 }

@@ -3202,6 +3202,7 @@ name = "protocol"
 version = "0.0.0"
 dependencies = [
  "ed25519-dalek",
+ "hpke",
  "identity",
  "libm",
  "network",

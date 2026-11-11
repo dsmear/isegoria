@@ -577,6 +577,11 @@ impl AnswerPath {
         self.entries.len() as u64
     }
 
+    /// The number of `author`'s deposit of `content`, if accepted.
+    pub fn deposited(&self, author: &Nym, content: &Cid) -> Option<u64> {
+        self.contents.get(&(*author, *content)).copied()
+    }
+
     pub fn entry(&self, question: u64) -> Option<&Entry> {
         usize::try_from(question)
             .ok()
