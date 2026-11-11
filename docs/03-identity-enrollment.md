@@ -286,7 +286,7 @@ holder's verification do.
 to continue without every member's contribution and every expected message; the base OT's
 generator is derived by hashing a fixed label, the same for every ceremony.
 
-*Built (2026-11-11; tests AT-ID-15–24 written, not yet run).* One member's side is
+*Built (2026-11-11; tests AT-ID-15–25 written, not yet run).* One member's side is
 `identity::credential::ceremony`, **bespoke** and unreviewed: `Setup` (members, threshold,
 named signers, slots), and `Party::advance`, which takes flight `k − 1`'s payloads by sender
 and gives flight `k`'s (2 to 12; at 13 it finishes the prepared signatures). A missing payload
@@ -318,7 +318,7 @@ order, increasing), `slots` (an increasing list of numbers below `2^32`) and one
 per member, in genesis order, with the `consortium` and `hpke` keys its `--new-identity`
 printed; a key that is not valid or is repeated is refused by its field, and so is a shape
 `Setup` refuses. The ceremony directory holds `state` (`0600`, replaced whole through
-`state.new`), `lock`, `out/NN-i-j.msg` (step `NN` from member `i` to `j`, `0600`) and, for a
+`state.new`, holding the last step's sealed messages), `lock`, `out/NN-i-j.msg` (step `NN` from member `i` to `j`, `0600`) and, for a
 signer once the ceremony is done, `answered/<slot>` (`0600`, the request's SHA-256 then the
 share answered, in its encoding below). A message is the header — version 1, the id, the step,
 the sender's and the recipient's indices, 36 bytes — the encapsulated key (32), then as a
@@ -340,8 +340,13 @@ label is its number's 4 bytes, little-endian, then 28 zero bytes.
 seal, signature, recipient, sender, id or step, a second message from one sender, the library's
 check, or a confirmation unlike the member's own aborts: the state keeps `aborted`, the party
 with its share dropped, and every later command is refused. A step lacking a message reports the
-members missing and changes nothing. A step writes its messages before its state: interrupted
-before the state, it runs again with fresh randomness, the earlier files not yet sent. `answer`
+members missing and changes nothing. A step keeps its messages, sealed, in the state it saves
+before writing any of them to `out/`; every `step` first writes those of the previous step that
+`out/` lacks, and a step given only files already taken reports the previous step again with the
+same files. Interrupted before its state, a step has written nothing and runs again; after it,
+its files are the bytes kept: no message of a step is drawn twice (`Mul::init` on one base OT
+output is single-use). A step whose file exists in `out/` already — a state older than the
+directory's files — is refused (`Written`) with nothing changed. `answer`
 refuses before the ceremony is done, for a non-signer, without `answered/` (a lost record ends
 that member's issuance), for an output that exists, a request that does not decode, a slot
 recorded for another request, a slot not listed or a proof that fails — none of these spends the
@@ -359,7 +364,9 @@ others, bound to the opening digest, the id not existing yet. Every message is s
 recipient, the public ones included. The signers are not in the id, which P3 fixes; the
 confirmation carries them, so two members that name different signers do not finish. A repeated
 request is given the recorded share's bytes, not a share computed again. Non-signers run steps
-10 to 12 with no message, so every member counts the same steps.
+10 to 12 with no message, so every member counts the same steps. A step's outputs are made
+reproducible by keeping its sealed messages, not a seed for its randomness: a seed would also
+serve other inputs given to the step again.
 
 *Built (2026-11-11, tests AT-T79-42 and AT-T79-44 written, not yet run).* The participant's side
 in `isegoria-client` (`05` §Built for participants): `--slot-request` writes its fresh secret's

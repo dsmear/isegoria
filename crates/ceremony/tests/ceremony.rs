@@ -331,6 +331,54 @@ fn at_id_20_a_different_confirmation_aborts() {
     assert!(reports.iter().all(|r| r.issuer.is_some()));
 }
 
+// A step run again after losing its files writes the same bytes; an older state refuses (AT-ID-25).
+#[test]
+fn at_id_25_a_step_run_again_writes_the_same_files() {
+    let c = Committee::new("again", &SLOTS);
+    c.run("a", 10);
+    let (dir, older) = (c.dir("a", 0), c.root.join("older"));
+    copy_dir(&dir, &older);
+    let first = c.step_one("a", 11, 0).unwrap();
+    assert_eq!(first.sent.len(), 2);
+    let sent: Vec<Vec<u8>> = first
+        .sent
+        .iter()
+        .map(|f| std::fs::read(f).unwrap())
+        .collect();
+    let state = std::fs::read(dir.join("state")).unwrap();
+    for file in &first.sent {
+        std::fs::remove_file(file).unwrap();
+    }
+    assert_eq!(c.step_one("a", 11, 0).unwrap(), first);
+    let again: Vec<Vec<u8>> = first
+        .sent
+        .iter()
+        .map(|f| std::fs::read(f).unwrap())
+        .collect();
+    assert_eq!(again, sent);
+    assert_eq!(std::fs::read(dir.join("state")).unwrap(), state);
+    for file in &first.sent {
+        std::fs::copy(file, older.join("out").join(file.file_name().unwrap())).unwrap();
+    }
+    let before = std::fs::read(older.join("state")).unwrap();
+    let refused = ceremony::step(&older, &c.identities[0], &c.inbox("a", 10, 0));
+    assert_eq!(
+        refused,
+        Err(Error::Written(older.join("out").join("11-0-2.msg")))
+    );
+    assert_eq!(std::fs::read(older.join("state")).unwrap(), before);
+    let kept: Vec<Vec<u8>> = ["11-0-2.msg", "11-0-3.msg"]
+        .map(|n| std::fs::read(older.join("out").join(n)).unwrap())
+        .to_vec();
+    assert_eq!(kept, sent);
+    let opened = &c.init("b")[0].sent[0];
+    let bytes = std::fs::read(opened).unwrap();
+    std::fs::remove_file(opened).unwrap();
+    let incomplete = ceremony::step(&c.dir("b", 0), &c.identities[0], &[]);
+    assert_eq!(incomplete, Err(Error::Incomplete(vec![1, 2, 3])));
+    assert_eq!(std::fs::read(opened).unwrap(), bytes);
+}
+
 // An aborted member runs nothing more and holds no party; a new ceremony has a new id (AT-ID-23).
 #[test]
 fn at_id_23_an_aborted_ceremony_is_not_reused() {
