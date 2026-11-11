@@ -40,6 +40,8 @@ and evidence; they are not additional acceptance gates for this path.
 - [13 — Characterization](13-characterization.md): study inputs, versions and measurements.
 - [18 — A3](18-a3-latent-shape-design.md): the closed latent-histogram correction.
 - [21 — D47 inventory](21-d47-inventory.md): retained material, dependencies and archive map.
+- [22 — Feasibility survey](22-phase1-feasibility-survey.md): what the literature says of the
+  archived paper's objectives and of the answer review's margin; informative, not reviewed.
 - [Archive](../archive/phase1-forecast-pilot/README.md): retired dossiers, tools and results;
   documents 16, 17, 19 and 20 in this directory are redirects.
 - [Simulations](../sim/README.md): historical prototypes and scoped numerical oracles.

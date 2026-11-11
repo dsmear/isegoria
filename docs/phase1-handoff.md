@@ -57,6 +57,10 @@ The previous design's suspended work and remaining findings are recorded in
 [15](15-phase1-review.md), [10](10-roadmap.md) and the
 [D47 inventory](21-d47-inventory.md). No experiments are authorized by this note.
 
+Before proposing reviewer weights, peer prediction, coordination discounts or a label-free
+whole-test guarantee as improvements, read the [feasibility survey](22-phase1-feasibility-survey.md)
+(2026-11-11): informative, not reviewed, and it decides nothing.
+
 ## 6. Essential reading to resume
 
 Read [00](00-overview.md), [CLAUDE](CLAUDE.md), D49–D53 in [01](01-decisions.md), the
