@@ -312,7 +312,9 @@ Close it only with a recorded trial against a pinned revision and configuration:
    preserve the accepted history. *Recorded and passed on `a842b90` (2026-11-11, `16` §Gate 1),
    accepted by the owner (dsmear, in chat, 2026-11-11).*
 2. **Separate machines and networks:** exercise delays, duplicate delivery, disconnection
-   and partition/rejoin; state the quorum and network conditions for progress.
+   and partition/rejoin; state the quorum and network conditions for progress. *Delay, partition
+   and rejoin, a kill and a cut relay rehearsed on one machine in network namespaces
+   (2026-11-11, `05` §Gate 2's rehearsal): not the gate.*
 3. **Independent operators:** each controls its keys and nodes (T19, T88); T79 processes
    a question through outcome, author reputation and next-epoch quotas, with members
    checking derived transitions. No central runtime administrator supplies results.

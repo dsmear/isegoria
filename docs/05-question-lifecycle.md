@@ -635,6 +635,49 @@ passed, 16–18 s each, no command refused — 3 before the evidence was split, 
 duplicate injected beyond the repeated join, one stop by SIGTERM; test credentials (D60). It is
 not the recorded gate-1 trial against a pinned revision and configuration (`10` §2.4).
 
+**Gate 2's rehearsal on one machine (2026-11-11).** `trial/tests/gate2_rehearsal.rs` runs
+gate 1's processes with each node in a Linux network namespace of its own (`n0`–`n3` the members,
+`n4` the relay, the persons' commands in `n5`; addresses `10.77.0.10`–`.15`), joined by veth pairs
+on a bridge, and injects network faults of `04` §The trial's procedure, step 10: delay, two
+partitions with their rejoins, a killed member, the relay cut off (AT-T79-66–70, `08` §12). It rehearses gate 2 and is not gate 2: one machine, one kernel and clock, one operator
+holding every key (`10` §2.4).
+1. Every namespace's link has `netem delay 30ms 10ms loss 1% duplicate 1%` from before the first
+   start to the end. Setup, credentials, thirteen joins, one of them sent again to a second
+   member, a deposit and `close-epoch 0` run as in gate 1.
+2. *3–1.* Member 3's link moves to a second bridge. The twelve drawn commit through members 0–2,
+   which take `close-commits 0`; member 3's history is the one it had two seconds after the
+   split. Its link returns and it catches up.
+3. *2–2.* Members 2 and 3 move to the second bridge. A reveal sent to member 0 gets its receipt;
+   six seconds later it still reads pending, and no cut was made in the last four of them. The
+   links return, cuts resume, the reveal is applied.
+4. *A crash.* Member 2 is killed (SIGKILL); the other eleven reveals go through members 0, 1 and
+   3; member 2 is started again and rebuilds. `faults.txt` has both times.
+5. *The relay cut off.* The relay's link goes down, a read fails, the link comes up and a read
+   answers. `close 0` goes to members 1–3 and `close-epoch 1` to members 0, 1 and 3.
+
+The checks: under netem every member's digest and round value agree after epoch 0, the repeated
+join's second entry is `AlreadyInPool` and 12 of 13 are drawn (AT-T79-66); with member 3 apart the three close the commits, and member 3's history
+stays shorter, as it was two seconds after the split (AT-T79-67); with two on each side the longest history gains no cut
+over four seconds, two seconds after the split, no member reports a conflict, an equivocation, a
+refused cut, halted duties or a stop, and the pending reveal is applied after the rejoin
+(AT-T79-68); the killed member's digests after its restart are those it had (AT-T79-69); the
+read through the cut relay fails on the channel's transport; the question closes `accepted`, and at the end the four members hold the same two digests and the
+same cuts (AT-T79-70, AT-T79-66). The evidence is gate 1's, split and checked as AT-T79-59, in `target/tmp/gate2-rehearsal/
+run-<pid>/evidence/`, with `shared/faults.txt`: each fault, its command and its time in the run.
+*Running it.* `scripts/gate2-rehearsal.sh`: it builds the test, then runs it inside `unshare
+--user --map-root-user --net --mount`, where the test makes the namespaces with `ip` and `tc`.
+Linux with unprivileged user namespaces, `iproute2` and the `sch_netem` module loaded; no root.
+The test is `#[ignore]`d, so `cargo test --workspace` and CI do not run it.
+2026-11-11, Linux on x86_64: 3 runs of 3 passed, 115–126 s each, the 3–1 partition lasting
+24 s, the 2–2 one 7 s, member 2 down 11–17 s and the relay cut off 10 s; the first run of all
+stopped at the 2–2 partition on the test's first check, which counted a member behind
+collecting earlier cuts as progress.
+*Limits.* The nodes speak TCP, which resends a lost segment and drops a duplicate one: netem's
+loss and duplication reach a node as delay, never as a lost or repeated message; the only
+repeated message of the run is the join sent to two members, as in gate 1 (AT-T79-53). No clock
+difference, no disk fault, no NAT or changed MTU; one partition of each kind, of the lengths
+above; the crash is a SIGKILL between writes the test does not place. Timing as gate 1's.
+
 ---
 
 ## Previous forecast-and-pilot path

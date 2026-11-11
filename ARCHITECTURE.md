@@ -332,7 +332,8 @@ the issuing committee's ceremony tool, one step per invocation over files carrie
 `identity::credential::ceremony` holds one member's flights and issuance per slot. `trial`
 (`crates/trial`, `docs/05` §Gate 1 on one machine): no code of its own; it builds the node's,
 the client's and the test issuer's own `main.rs` as `trial-node`, `trial-client` and
-`trial-test-issuer`, so that its test, gate 1, runs them as processes (`scripts/gate1.sh`).
+`trial-test-issuer`, so that its tests run them as processes: gate 1 (`scripts/gate1.sh`) and
+gate 2's rehearsal in network namespaces (`scripts/gate2-rehearsal.sh`, `docs/05`).
 
 ## `characterization` — the characterization harness
 

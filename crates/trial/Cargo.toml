@@ -5,7 +5,7 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 publish = false
-description = "Milestone 2's gate 1 on one machine: the node, the client and the test issuer as processes, every step through their commands. Not part of a node. See docs/05 §Gate 1 on one machine."
+description = "Milestone 2's gate 1 on one machine and gate 2's rehearsal in network namespaces: the node, the client and the test issuer as processes, every step through their commands. Not part of a node. See docs/05 §Gate 1 on one machine and §Gate 2's rehearsal on one machine."
 
 # The three tools' own sources, built again as this package's binaries: an integration test
 # sees only its own package's (`CARGO_BIN_EXE_*`), and no tool gains a dependency.

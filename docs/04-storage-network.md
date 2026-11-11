@@ -1441,6 +1441,30 @@ gate 3 replaces the issuer (step 12).
     lost or compromised share suspends the trial (T19-P6). Each member's `isegoria-ceremony
     status` goes into the evidence.
 
+### Gate 2's checklist
+
+What a gate-2 run on separate machines and networks does and records beyond steps 1–11
+(`10` §2.4); the rehearsal on one machine (`05` §Gate 2's rehearsal) runs them in network
+namespaces, one disconnection of a member apart, and does not replace it.
+
+- *Before.* T89 part 1's targets run (`12` §4, `01` D62); the test issuer's holder named
+  (above; still open); one machine per member and for the relay, the participants' commands on
+  another, on at least two networks; the revision pinned; the faults' schedule written and kept
+  with the closures' schedule.
+- *Faults, each with its time and command in the shared evidence.* Delay and loss on the
+  machines' links, with their values; one member disconnected and back; a 3–1 partition and a
+  2–2 partition, each with its rejoin; one member's process killed and started again; the relay
+  unreachable and back; one event sent to two members.
+- *Recorded for each fault.* Every node's public status lines before, during and after it;
+  whether cuts were made while it lasted; how long the rejoined or restarted member took to
+  reach the others' cuts; each closing cut's four digests; any `conflict`, `equivocations`,
+  `refused_cut`, `duties_halted` or `stopped` line other than its healthy value.
+- *Expected, to state in the record.* Cuts are made exactly while three members reach each
+  other (T88-P3): with one apart the three progress and it does not, with two on each side
+  nobody does; after a rejoin or a restart every member holds the same cuts and digests; a
+  person's event logged during a 2–2 partition stays pending until the rejoin. The record
+  states the delays and the partitions' lengths the run exercised, and claims none beyond them.
+
 ### Obstacles in the code
 
 Increments A and B removed the automatic resumption after a loss, the missing start modes,
