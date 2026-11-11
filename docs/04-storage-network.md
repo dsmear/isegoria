@@ -654,8 +654,9 @@ node's replica).
 at the owner's instruction, P5 as stated below, and reviewed (§As built). Which messages a person sends —
 the events, the read requests, their replies — is `05` T79-P2 and T79-P7, approved in `01`
 D60; a member's gateway admits the events and answers the reads through its hook (2026-11-11,
-`05` §Built for participants, *In the gateway*), not yet tested or reviewed, and persons have no
-client yet: T85 as a whole stays open with them.
+`05` §Built for participants, *In the gateway*), not reviewed; persons send both with
+`isegoria-client`, through a relay end to end only in gate 1's process test on one machine (`05`
+§Gate 1 on one machine): T85 as a whole stays open with T79.
 
 *Decided (D54, `10` T85).* A person sends each event sealed to one member's key through a
 relay, as Oblivious HTTP (RFC 9458) over HPKE (RFC 9180): the relay sees where a message
@@ -693,7 +694,9 @@ event was applied or refused and when a reviewer was drawn, for a question of wh
   `/isegoria/ohttp/gateway/1` (relay → member), so an HTTP carrier could replace them with
   the cryptography unchanged. Inside, a Binary HTTP request (RFC 9292, known length)
   `POST isegoria:///isegoria/v1/<network id in hex>/event` whose body is the event, or
-  `…/read` whose body is a read request (`05` T79-P7), and a Binary HTTP response: RFC 9458's
+  `…/read` whose body is a read request (`05` T79-P7), the id its 64 lower-case hex digits
+  (`blind::event_path`, `read_path`; any other spelling names no network, AT-NET-46),
+  and a Binary HTTP response: RFC 9458's
   labels, no bespoke HPKE composition (a read's reply inside it is `05`'s bespoke inner seal). A person uses a new
   libp2p key for each request, so its transport key links nothing; its address still can.
 - **T85-P2 — the dependencies.** `ohttp` 0.8.0 and `bhttp` 0.8.0, pinned with `=`, from
@@ -733,7 +736,7 @@ event was applied or refused and when a reviewer was drawn, for a question of wh
     is not a listed relay, a key id no member's or not the gateway's, a request that does
     not decapsulate, no connection to the member. Nothing is logged.
   - *Sealed answers*: 200 with a receipt; 421 a path naming another network; 400 not this
-    request; 403 bytes the admission check refuses; 503 "retry later" while the member's
+    request (this network's id in upper case among them); 403 bytes the admission check refuses; 503 "retry later" while the member's
     circle feed is not caught up; 500 a write that failed (to a read, a reply past the limit). Admission is a predicate the
     embedding supplies — `p2p` keeps no protocol state, and which events it admits is T79.
     To a read: 200 whose body is the reply sealed to the request's response key, 403 a read
@@ -794,7 +797,7 @@ gateway whose node runs a hook (`p2p::hook::Hook`) admits by `Hook::admit` in pl
 its last period, collecting none and logging nothing; `node`'s own `Admission` refuses everything. Relays are
 unchanged: they forward by key id and never see the path. The protocol side and the choices
 are `05` §Built for participants (*In the gateway*). Tests: AT-T79-34–41 (`08` §12), written
-and compiled, not yet run.
+and compiled, run and passing in the full suite (2026-11-11, macOS).
 
 Three tests check the OHTTP the channel uses against a reference HPKE path, the `hpke`
 crate driven directly and only in tests (RFC 9458 §4.3–4.4): Appendix A exactly, through
@@ -806,8 +809,9 @@ seals and sealing its answer so the reference path opens it. Appendix A's illust
 `Content-Length` values (78, 38) differ from its hex (80 and 35 bytes), the second reported
 as erratum 7781; `bhttp` writes the empty sections RFC 9292 lets the example's reply omit.
 Tests: `p2p/tests/blind_relays.rs` and `node/tests/config.rs` (AT-NET-24); before the node
-handled the two roles, the seven path tests failed. Not built: the participants' client, any
-limit on a relay's volume, fuzzing of the read path, and a run across machines; untiered
+handled the two roles, the seven path tests failed. The path's id in canonical hex only:
+`p2p::blind`'s unit test (AT-NET-46). Not built: any limit on a relay's volume and a run across
+machines; the read path has had fuzz smoke runs only (`12` §4); untiered
 networks keep relays as writers.
 
 ### The state tree and the fork (T86)
@@ -1162,11 +1166,13 @@ trial's archive custody below, which the trial no longer exercises (owner, 2026-
 T88-P1's schema in `01` D60 (2026-11-03).
 *Built* names what the code does today, *not built* what the approved rules still need
 (§Obstacles in the code). Nothing here is *verified*: no independent-operator trial has run.
-T88, T84 (frozen) and Phase 2 stay open; T79's contract is approved (D60), its state on
-signed cuts and a member's node running it built (`05` §Built on cuts, §Built in the node), and
-T19 and `10` §2's gates remain required. The operators' confirmations set up the trial; they
-add no consensus rule at runtime, where §Cuts is unchanged. The answer review's side is `05`
-§Distributed integration (T79-P1–P7, approved in D60).
+T88, T84 (frozen) and Phase 2 stay open; T79's contract is approved (D60), its state on signed
+cuts, a member's node running it and the participants' path built (`05` §Built on cuts,
+§Built in the node, §Built for participants), gate 1 run as a process test on one machine
+(`05` §Gate 1 on one machine), and T19 and `10` §2's gates remain required. The operators'
+confirmations set up the trial; they add no consensus rule at runtime, where §Cuts is
+unchanged. The answer review's side is `05` §Distributed integration (T79-P1–P7, approved in
+D60).
 
 - **T88-P1 — the initial configuration (genesis).** *Approved:* the four operators each
   verify and confirm the same canonical configuration before the first start. Its digest
@@ -1458,8 +1464,9 @@ What remains:
 6. **Archives.** Extraction needs the member stopped; nothing compares contexts, rosters or
    parameters between operators. Since the trial exercises no archive (2026-11-03), this no
    longer blocks it.
-7. **Evidence.** Process tests run under one operator on loopback; nothing collects a
-   trial's evidence.
+7. **Evidence.** Gate 1's process test collects its run's evidence on one machine under one
+   operator, split into shared and private parts (`05` §Gate 1 on one machine); nothing collects
+   a multi-operator trial's evidence.
 
 ### Increments A and B
 

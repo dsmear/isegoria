@@ -520,8 +520,7 @@ the node's replica. The choices the contract left to the implementation:
 *Evidence:* `protocol/tests/answer_participants.rs` (AT-T79-23–28), the unit tests of
 `answer_seal` (AT-T79-29) and `answer_ledger` (AT-T79-15, AT-T79-28); the wiring in
 `node/tests/answer_node.rs` (AT-T79-34–37, AT-T79-41) and `p2p/tests/blind_relays.rs`
-(AT-T79-38–40), on loopback in process; not yet run (the owner runs them with the other
-branches).
+(AT-T79-38–40), on loopback in process; run and passing in the full suite (2026-11-11, macOS).
 
 **The client (`10` T79, third increment, 2026-11-11).** `isegoria-client`, a crate of its own
 (`crates/client`, D60), so a person's secrets stay out of members' processes; it reads only the
@@ -551,7 +550,8 @@ it (`Unverified` otherwise). No command asks for or writes a name or an attribut
   `0`–`255`, `none` or `dont-know`. The commitment file (0600) is `isegoria/client/commit/v1` ‖
   the question (8 bytes, little-endian) ‖ the answer's code (2) ‖ the nonce (32), 67 bytes.
 - *Sending.* `--send <genesis> <announcement-hex> <relay> <event>`: the announcement is a
-  member's signed key configuration as `isegoria-node --announce` prints it, verified under the
+  member's signed key configuration as `isegoria-node --announce` prints it (lower-case hex
+  digit pairs and nothing else: no upper case, sign or whitespace, AT-NET-47), verified under the
   genesis's tiers and carrying that member's HPKE key in the genesis; the relay is a multiaddress
   ending in `/p2p/` and the peer id of a transport key the genesis lists; the event is admitted as
   above, then `p2p::blind::seal` and `submit` from a new transport key; a receipt prints `logged
@@ -570,7 +570,7 @@ it (`Unverified` otherwise). No command asks for or writes a name or an attribut
   is the sealed reply, any other answer the error `NoReply` with it.
 
 *Evidence:* `client/tests/` (`credentials.rs`, `events.rs`, `reads.rs`) and `test-issuer/tests/
-files.rs` (AT-T79-42–49, `08` §12); not yet run. Through a running relay and gateways on
+files.rs` (AT-T79-42–49, AT-NET-47, `08` §12); run and passing in the full suite (2026-11-11, macOS). Through a running relay and gateways on
 loopback: §Gate 1 on one machine.
 
 **Gate 1 on one machine (`10` T79, increment 4, 2026-11-11).** `trial/tests/gate1.rs` runs
@@ -615,7 +615,7 @@ later" is sent again, as T79-P7 allows.
 
 *Evidence (owner, 2026-11-11: in two directories).* The test prints the directory
 `target/tmp/gate1/run-<pid>/evidence/`. `shared/` holds only what the trial's shared evidence
-may (`04` §The trial's procedure, 7): `revision.txt`, the commit under test and whether tracked
+may (`04` §The trial's procedure, 11): `revision.txt`, the commit under test and whether tracked
 files differ from it; the genesis document and what `--genesis-digest` prints of it; and at each
 stage every node's public status lines (`NN-<stage>/m<i>.status`, `relay.status`) — feeds caught
 up, peers, bindings, equivocations, conflict, halts, stops, syncs, cuts, beacons, state digests

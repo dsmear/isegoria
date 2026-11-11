@@ -401,3 +401,31 @@ fn at_t79_47_what_is_checked_before_sending() {
     ]));
     assert!(err.contains("Unlisted(\"announcement\")"), "{err}");
 }
+
+// A key configuration is read in lower-case hex digit pairs alone, no other spelling (AT-NET-47).
+#[test]
+fn at_net_47_an_announcement_in_lower_case_hex_only() {
+    let net = Network::decode(&support::genesis(&test_issuer().public()).encode()).unwrap();
+    let key = announcement(&net, 2);
+    let text = hex(&key.encode());
+    assert_eq!(event::announcement(&net, &text), Ok(key));
+    let letter = text.find(|c: char| c.is_ascii_lowercase()).unwrap();
+    let mut one_upper = text.clone();
+    one_upper[letter..=letter].make_ascii_uppercase();
+    assert!(text.starts_with("01"));
+    for spelling in [
+        text.to_uppercase(),
+        one_upper,
+        format!("+1{}", &text[2..]),
+        format!("-1{}", &text[2..]),
+        format!(" 1{}", &text[2..]),
+        format!("{text}\n"),
+        format!(" {text}"),
+        format!("{text}0"),
+        text[..text.len() - 2].to_string(),
+        String::new(),
+    ] {
+        let taken = event::announcement(&net, &spelling);
+        assert_eq!(taken, Err(Error::Malformed("announcement")), "{spelling:?}");
+    }
+}

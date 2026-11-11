@@ -301,7 +301,7 @@ pub fn read_path(network_id: &[u8; 32]) -> Vec<u8> {
 }
 
 /// What an inner request asks: an event or a read for this network, with its bytes, or why it
-/// is not that.
+/// is not that; a network is named only by its id's 64 lower-case hex digits.
 pub(crate) fn read_request(
     bytes: &[u8],
     network_id: &[u8; 32],
@@ -322,7 +322,7 @@ pub(crate) fn read_request(
                 .into_iter()
                 .find_map(|k| p.strip_suffix(k.suffix()))
         })
-        .is_some_and(|hex| hex.len() == 64 && hex.iter().all(u8::is_ascii_hexdigit));
+        .is_some_and(|hex| hex.len() == 64 && hex.iter().all(|b| b"0123456789abcdef".contains(b)));
     Err(if other {
         Answer::OtherNetwork
     } else {
@@ -604,5 +604,52 @@ pub async fn submit(relay: Multiaddr, request: Vec<u8>) -> Result<Carried, Clien
                 _ => {}
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const NET: [u8; 32] = [0xab; 32];
+
+    fn posted(path: Vec<u8>) -> Result<(Posted, Vec<u8>), Answer> {
+        let mut m = Http::request(b"POST".to_vec(), b"isegoria".to_vec(), Vec::new(), path);
+        m.write_content(b"body");
+        let mut inner = Vec::new();
+        m.write_bhttp(Mode::KnownLength, &mut inner).unwrap();
+        read_request(&inner, &NET)
+    }
+
+    fn on(id: &str, suffix: &str) -> Vec<u8> {
+        format!("/isegoria/v1/{id}{suffix}").into_bytes()
+    }
+
+    // Only a canonical lower-case id names a network; any other spelling is 400 (AT-NET-46).
+    #[test]
+    fn at_net_46_the_path_names_a_network_in_canonical_hex_only() {
+        let ours = "ab".repeat(32);
+        let other = "cd".repeat(32);
+        for (suffix, kind) in [("/event", Posted::Event), ("/read", Posted::Read)] {
+            assert_eq!(posted(on(&ours, suffix)), Ok((kind, b"body".to_vec())));
+            assert_eq!(posted(on(&other, suffix)), Err(Answer::OtherNetwork));
+            for id in [
+                ours.to_uppercase(),
+                format!("A{}", &ours[1..]),
+                format!("{}B", &ours[..63]),
+                other.to_uppercase(),
+                format!("+{}", &other[1..]),
+                format!(" {}", &other[1..]),
+                format!("{}g", &other[..63]),
+                format!("{other}0"),
+                other[1..].to_string(),
+            ] {
+                let answer = posted(on(&id, suffix));
+                assert_eq!(answer, Err(Answer::NotThisRequest), "{id}");
+            }
+        }
+        let event = Ok((Posted::Event, b"body".to_vec()));
+        assert_eq!(posted(event_path(&NET)), event);
+        assert_eq!(posted(read_path(&[0xcd; 32])), Err(Answer::OtherNetwork));
     }
 }

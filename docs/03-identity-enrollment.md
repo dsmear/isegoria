@@ -178,7 +178,8 @@ checks are specified in [05](05-question-lifecycle.md#the-answer-review-01-d49d5
 ## Committee setup for the trial (T19) — approved contract (D63)
 
 **Status (2026-11-11): approved (`01` D63), rectified (D66); built, the participant's side in
-`isegoria-client` included (below, *Built*), its tests not yet run, unreviewed.**
+`isegoria-client` included (below, *Built*), its tests run and passing in the full suite (2026-11-11, macOS); the tool reviewed once, its findings fixed (`01` D68), the
+composition bespoke and unaudited (`10` T23).**
 *Decided* restates `01` D61 or an earlier decision; *consequence* is what the current code
 forces; each **T19-Pn** is a choice D63 approves. Only the issuing committee is in scope (D61); the uniqueness
 committee's setup stays open in T19, outside Milestone 2.
@@ -287,7 +288,7 @@ holder's verification do.
 to continue without every member's contribution and every expected message; the base OT's
 generator is derived by hashing a fixed label, the same for every ceremony.
 
-*Built (2026-11-11; tests AT-ID-15–29 written, not yet run).* One member's side is
+*Built (2026-11-11; tests AT-ID-15–29 written first, run and passing in the full suite (2026-11-11, macOS)).* One member's side is
 `identity::credential::ceremony`, **bespoke** and unreviewed: `Setup` (members, threshold,
 named signers, slots), and `Party::advance`, which takes flight `k − 1`'s payloads by sender
 and gives flight `k`'s (2 to 12; at 13 it finishes the prepared signatures). A missing payload
@@ -392,7 +393,7 @@ offset). Each member confirming what it received, and finishing only on every co
 equal echo, makes the point-to-point sends an echo broadcast; the pairwise messages (the
 shares, the base OT, phase 1's zero sharing, phase 2) need none.
 
-*Built (2026-11-11, tests AT-T79-42 and AT-T79-44 written, not yet run).* The participant's side
+*Built (2026-11-11, tests AT-T79-42 and AT-T79-44 written first, run and passing in the full suite (2026-11-11, macOS)).* The participant's side
 in `isegoria-client` (`05` §Built for participants): `--slot-request` writes its fresh secret's
 request for a listed slot and its pending state (0600), `--combine` the three signers' shares
 into the credential file (0600) once it verifies under the genesis's issuer key; no output over

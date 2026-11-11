@@ -1,6 +1,6 @@
 //! The key configuration and relay address a person copies from other operators (`isegoria-client
 //! --send`, `--read`): arbitrary text, or a genuine one with a window overwritten. No panic; only
-//! a member's own signed configuration with its genesis key, and only a listed relay, are taken.
+//! a member's own signed configuration with its genesis key, as printed, and a listed relay taken.
 #![no_main]
 
 #[path = "../common/network.rs"]
@@ -80,6 +80,7 @@ fuzz_target!(|input: Input| {
                     f.announcements.contains(&genuine),
                     "another configuration taken"
                 );
+                assert_eq!(text, genuine, "another spelling of a configuration taken");
             }
         }
         Input::Relay(splice, text) => {
