@@ -388,6 +388,65 @@ async fn at_t79_17_a_restarted_member_rebuilds_the_same_digests() {
     }
 }
 
+// A request repeated by its operator is logged again; one left pending after it was logged is
+// not, and a restart keeps each request's entry (AT-T79-33).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn at_t79_33_a_repeated_request_is_logged_again() {
+    let mut f = Fixture::new("repeat");
+    let mut nodes = Vec::new();
+    for i in 0..N {
+        nodes.push(f.start(i).await);
+    }
+    for (i, node) in nodes.iter().enumerate() {
+        f.dial(node, i).await;
+    }
+    let started = |s: &Status| s.caught_up && s.circle_caught_up;
+    f.until(&nodes[0], 0, started).await;
+    let close = AnswerEvent::CloseCommits { question: 0 }.encode();
+    let args: Vec<String> = ["close-commits", "0"]
+        .iter()
+        .map(|a| a.to_string())
+        .collect();
+    for _ in 0..2 {
+        node::answer::request(&f.config(0), &args).unwrap();
+    }
+    let both = f.until(&nodes[0], 0, |s| s.requests.len() == 2).await;
+    assert_ne!(both.requests[0].1, both.requests[1].1, "two entries");
+    let replica = nodes[0].replica().await;
+    let count = |f: &Fixture, r: &Replica| {
+        circle_objects(f, r, 0)
+            .iter()
+            .filter(|o| **o == close)
+            .count()
+    };
+    assert_eq!(count(&f, &replica), 2);
+
+    nodes.remove(0).finished().await;
+    let spool = f.dir(0).join("requests");
+    let (last, _) = executed(&spool).unwrap().pop().unwrap();
+    std::fs::rename(spool.join("done").join(&last), spool.join(&last)).unwrap();
+    f.ports[0] = port();
+    let restarted = f.start(0).await;
+    f.dial(&restarted, 0).await;
+    let after = f
+        .until(&restarted, 0, |s| started(s) && s.requests.len() == 2)
+        .await;
+    assert!(pending(&spool).unwrap().is_empty());
+    assert_eq!(
+        after.requests, both.requests,
+        "the pending one maps to its entry"
+    );
+    assert_eq!(
+        count(&f, &restarted.replica().await),
+        2,
+        "nothing logged again"
+    );
+    restarted.finished().await;
+    for node in nodes {
+        node.finished().await;
+    }
+}
+
 /// A replica of the fixture's network and each writer's log, for the members' duties.
 struct Feeds {
     replica: Replica,
