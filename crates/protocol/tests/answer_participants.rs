@@ -19,7 +19,7 @@ use protocol::answer_ledger::{Refusal, MAX_QUESTION};
 use protocol::answer_path::{network_context, Refused, Round, POOL_CONTEXT};
 use protocol::answer_read::{
     answer, read_context, reply, Assigned, Authored, EventStatus, Logged, Phase, Read, ReadRequest,
-    Reply,
+    Reply, ReviewPhase,
 };
 use protocol::answer_rule::Verdict;
 use protocol::answer_seal::{ResponseKey, OVERHEAD};
@@ -354,7 +354,7 @@ fn group(net: &Net, q: u64) -> Vec<identity::nym::Nym> {
     }
 }
 
-fn view(q: u64, committed: bool, revealed: bool) -> Assigned {
+fn view(q: u64, committed: bool, revealed: bool, phase: ReviewPhase) -> Assigned {
     let question = question(["q0", "q1"][q as usize]);
     Assigned {
         question: q,
@@ -363,14 +363,20 @@ fn view(q: u64, committed: bool, revealed: bool) -> Assigned {
         alternatives: question.alternatives,
         committed,
         revealed,
+        phase,
     }
 }
 
 /// AT-T79-26: a reviewer reads each question whose group holds it, one per reply from a number,
-/// by number and view, whether its commit and reveal counted, after the closure too; the reply is
-/// the same whatever the key and the others' commits and answers.
+/// by number and view, whether its commit and reveal counted, that question's phase, after the
+/// closure too; the reply is the same whatever the key and the others' commits and answers.
 #[test]
 fn at_t79_26_a_reviewers_questions() {
+    let (open, reveals, closed) = (
+        ReviewPhase::CommitsOpen,
+        ReviewPhase::RevealsOpen,
+        ReviewPhase::Closed,
+    );
     let (mut net, pool, _) = drawn(0);
     let groups = [group(&net, 0), group(&net, 1)];
     let mut reads = Vec::new();
@@ -378,12 +384,12 @@ fn at_t79_26_a_reviewers_questions() {
         let held: Vec<u64> = (0..2)
             .filter(|&q| groups[q as usize].contains(&p.judge))
             .collect();
-        let first = held.first().map(|&q| view(q, false, false));
+        let first = held.first().map(|&q| view(q, false, false, open));
         assert_eq!(reviewer(&net, p, 0), first);
         let next = held
             .iter()
             .find(|&&q| q >= 1)
-            .map(|&q| view(q, false, false));
+            .map(|&q| view(q, false, false, open));
         assert_eq!(reviewer(&net, p, 1), next);
         assert_eq!(reviewer(&net, p, 2), None);
         let req = request(&net, Read::Reviewer { from: 0 }, p, Role::Judge);
@@ -412,22 +418,26 @@ fn at_t79_26_a_reviewers_questions() {
     }
     net.cut();
     assert_eq!(reviewer(&net, x, 0), before);
-    assert_eq!(reviewer(&net, y, 0), Some(view(0, true, false)));
+    assert_eq!(reviewer(&net, y, 0), Some(view(0, true, false, open)));
     net.log(0, &commit(&net.issuer, x, 0, answer, [9; 32], Some(&NET)));
     net.cut();
-    assert_eq!(reviewer(&net, x, 0), Some(view(0, true, false)));
+    assert_eq!(reviewer(&net, x, 0), Some(view(0, true, false, open)));
     net.request(0..T, &AnswerEvent::CloseCommits { question: 0 });
     net.cut();
+    assert_eq!(reviewer(&net, x, 0), Some(view(0, true, false, reveals)));
     net.log(1, &reveal(y, 0, answer, [0; 32]));
     net.log(1, &reveal(x, 0, answer, [9; 32]));
     net.cut();
-    assert_eq!(reviewer(&net, x, 0), Some(view(0, true, true)));
-    assert_eq!(reviewer(&net, z, 0), Some(view(0, true, false)));
+    assert_eq!(reviewer(&net, x, 0), Some(view(0, true, true, reveals)));
+    assert_eq!(reviewer(&net, z, 0), Some(view(0, true, false, reveals)));
     net.request(0..T, &AnswerEvent::Close { question: 0 });
     net.cut();
     assert!(net.ledger.state().closure(0).is_some());
-    assert_eq!(reviewer(&net, x, 0), Some(view(0, true, true)));
-    assert_eq!(reviewer(&net, z, 0), Some(view(0, true, false)));
+    assert_eq!(reviewer(&net, x, 0), Some(view(0, true, true, closed)));
+    assert_eq!(reviewer(&net, z, 0), Some(view(0, true, false, closed)));
+    for p in pool.iter().filter(|p| groups[1].contains(&p.judge)) {
+        assert_eq!(reviewer(&net, p, 1), Some(view(1, false, false, open)));
+    }
 
     let mut most = question("most");
     most.context.clear();
@@ -448,6 +458,7 @@ fn at_t79_26_a_reviewers_questions() {
         alternatives: most.alternatives,
         committed: true,
         revealed: true,
+        phase: closed,
     }));
     assert!(biggest.encode().len() + OVERHEAD <= view_len.finish().len() + 1024);
 }
@@ -570,7 +581,7 @@ fn replies() -> Vec<Reply> {
         Reply::Status(logged),
         Reply::Status(Vec::new()),
         Reply::Reviewer(None),
-        Reply::Reviewer(Some(view(1, true, false))),
+        Reply::Reviewer(Some(view(1, true, false, ReviewPhase::RevealsOpen))),
         Reply::Author(Authored {
             reputation: 0.4,
             quota: u32::MAX,
@@ -581,11 +592,13 @@ fn replies() -> Vec<Reply> {
             quota: 2,
             questions: Vec::new(),
         }),
+        Reply::Reviewer(Some(view(0, false, false, ReviewPhase::CommitsOpen))),
+        Reply::Reviewer(Some(view(0, true, true, ReviewPhase::Closed))),
     ]
 }
 
 /// AT-T79-28: each reply kind has one encoding: re-encoded alike; truncated, extended,
-/// re-versioned, of another kind, or with an out-of-range code, count, flag or quota, refused.
+/// re-versioned, of another kind, or with an out-of-range code, count, flag, phase, quota, refused.
 #[test]
 fn at_t79_28_reply_encodings() {
     for r in replies() {
@@ -604,8 +617,12 @@ fn at_t79_28_reply_encodings() {
         }
     }
     let assigned = replies()[3].encode();
+    let (revealed, stage) = (assigned.len() - 2, assigned.len() - 1);
+    assert_eq!((assigned[revealed], assigned[stage]), (0, 1));
     let mut flag = assigned.clone();
-    *flag.last_mut().unwrap() = 2;
+    flag[revealed] = 2;
+    let mut review_phase = assigned.clone();
+    review_phase[stage] = 3;
     let mut count = assigned.clone();
     let at = 3 + 8 + 8 + b"civic education, 2026".len() + 8 + 2;
     count[at..at + 8].copy_from_slice(&257u64.to_le_bytes());
@@ -623,7 +640,20 @@ fn at_t79_28_reply_encodings() {
     verdict[closed + 1] = 4;
     let mut code = replies()[0].encode();
     code[2 + 8 + 32 + 8] = 3;
-    for bytes in [flag, count, option, quota, phase, verdict, code] {
+    for (at, phase) in [(6, 0), (3, 1), (7, 2)] {
+        assert_eq!(*replies()[at].encode().last().unwrap(), phase);
+    }
+    let bytes = [
+        flag,
+        review_phase,
+        count,
+        option,
+        quota,
+        phase,
+        verdict,
+        code,
+    ];
+    for bytes in bytes {
         assert_eq!(Reply::decode(&bytes), None);
     }
 }

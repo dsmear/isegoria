@@ -133,7 +133,8 @@ pub struct Logged {
     pub status: EventStatus,
 }
 
-/// A reviewer's question by number and view, and whether its commit and its reveal counted.
+/// A reviewer's question by number and view, whether its commit and its reveal counted, and its
+/// phase.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Assigned {
     pub question: u64,
@@ -142,7 +143,22 @@ pub struct Assigned {
     pub alternatives: Vec<Vec<u8>>,
     pub committed: bool,
     pub revealed: bool,
+    pub phase: ReviewPhase,
 }
+
+/// A drawn question's round as its reviewers read it (`docs/01` D66): no verdict, count or key.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ReviewPhase {
+    CommitsOpen,
+    RevealsOpen,
+    Closed,
+}
+
+const REVIEW_PHASES: [ReviewPhase; 3] = [
+    ReviewPhase::CommitsOpen,
+    ReviewPhase::RevealsOpen,
+    ReviewPhase::Closed,
+];
 
 /// A question's round as its author reads it: no group, commit or answer.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -220,6 +236,7 @@ impl Reply {
                     w.field(alternative);
                 }
                 w.u8(a.committed.into()).u8(a.revealed.into());
+                w.u8(a.phase as u8);
             }
             Reply::Author(a) => {
                 w.u8(3).u64(a.reputation.to_bits()).u64(u64::from(a.quota));
@@ -306,6 +323,7 @@ fn read_assigned(r: &mut Reader) -> Option<Assigned> {
         alternatives,
         committed: read_bool(r)?,
         revealed: read_bool(r)?,
+        phase: *REVIEW_PHASES.get(usize::from(r.u8().ok()?))?,
     })
 }
 
@@ -459,7 +477,14 @@ fn counted(ledger: &AnswerLedger, replica: &Replica, id: &EntryId) -> bool {
 
 fn assigned(ledger: &AnswerLedger, reviewer: &Nym, from: u64) -> Option<Assigned> {
     let (question, review) = ledger.review(reviewer, from)?;
-    let view = ledger.state().view(question)?;
+    let path = ledger.state();
+    let view = path.view(question)?;
+    let phase = match path.entry(question)?.round {
+        Round::Committing { .. } => ReviewPhase::CommitsOpen,
+        Round::Revealing { .. } => ReviewPhase::RevealsOpen,
+        Round::Closed(_) => ReviewPhase::Closed,
+        Round::Pending | Round::Unavailable { .. } => return None,
+    };
     Some(Assigned {
         question,
         context: view.context.to_vec(),
@@ -467,6 +492,7 @@ fn assigned(ledger: &AnswerLedger, reviewer: &Nym, from: u64) -> Option<Assigned
         alternatives: view.alternatives.to_vec(),
         committed: review.committed,
         revealed: review.revealed,
+        phase,
     })
 }
 

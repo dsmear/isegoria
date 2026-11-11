@@ -445,18 +445,20 @@ in `p2p` or `node` calls it yet. The choices the contract left to the implementa
   another nym or role, or for a member's request: one answer for each, so the reply is no oracle.
 - *A reviewer's question.* The first question numbered from the request's on whose drawn group
   holds the nym: its number and view (the bytes AT-T79-13 bounds), whether its commit and its
-  reveal counted; none past the last. A closed round keeps neither group nor commits, so the
-  ledger records, for each drawn reviewer and question, whether its commit and its reveal counted
-  (`AnswerLedger::review`), in the state digest; nothing about the round's phase, the others or
-  the key.
+  reveal counted, and that question's phase (`01` D66) — `ReviewPhase` 0 commits open, 1 reveals
+  open, 2 closed, from its round in the path, without verdict or counts; none past the last. A
+  closed round keeps neither group nor commits, so the ledger records, for each drawn reviewer
+  and question, whether its commit and its reveal counted (`AnswerLedger::review`), in the state
+  digest; nothing about the others, the content id or the key.
 - *An author's records.* `C_a` (its binary64 bits) and the quota in the open epoch, then each of
   its questions by number with its phase only — pending, unavailable, committing, revealing, or
   closed with its verdict and observation: no group, pool size, count or answer.
 - *Replies.* `answer_read::Reply`: version 1, the kind it answers, its body; counts as 8 bytes,
-  flags 0 or 1, the quota within 32 bits, verdicts 0–3, at most 256 alternatives; a strict
-  decoder for the client. `answer_read::answer(ledger, replica, bytes)` decodes a request,
-  computes its reply and seals it: the hook's `read`, which needs the replica for a status. Reads
-  change nothing and log nothing; a status scans the replica's circle entries.
+  flags 0 or 1, the quota within 32 bits, verdicts 0–3, a reviewer's phase 0–2 as one byte after
+  its two flags, at most 256 alternatives; a strict decoder for the client.
+  `answer_read::answer(ledger, replica, bytes)` decodes a request, computes its reply and seals
+  it: the hook's `read`, which needs the replica for a status. Reads change nothing and log
+  nothing; a status scans the replica's circle entries.
 - *The inner seal* (**bespoke**, `docs/CLAUDE.md`). `answer_seal`: RFC 9180 base mode, single shot,
   DHKEM(X25519, HKDF-SHA256), HKDF-SHA256, AES-128-GCM — the suite of the gateways' OHTTP keys —
   with `info` `isegoria/answer-review/read-reply/v1` and an empty `aad`; the sealed reply is
