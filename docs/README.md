@@ -42,6 +42,8 @@ and evidence; they are not additional acceptance gates for this path.
 - [21 — D47 inventory](21-d47-inventory.md): retained material, dependencies and archive map.
 - [22 — Feasibility survey](22-phase1-feasibility-survey.md): what the literature says of the
   archived paper's objectives and of the answer review's margin; informative, not reviewed.
+- [23 — Gate 2 runbook](23-gate2-runbook.md): what each of the owner's four machines does in
+  Milestone 2's gate 2; written, not run.
 - [Archive](../archive/phase1-forecast-pilot/README.md): retired dossiers, tools and results;
   documents 16, 17, 19 and 20 in this directory are redirects.
 - [Simulations](../sim/README.md): historical prototypes and scoped numerical oracles.
