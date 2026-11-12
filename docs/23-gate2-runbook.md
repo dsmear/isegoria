@@ -70,9 +70,9 @@ operator.
    `isegoria-client` and `isegoria-test-issuer` (`.exe` on Windows).
 2. Run `cargo test -p node -p client -p test-issuer -p p2p` and write the result, with every
    failing test's name and message, in `preliminary.txt`. A failure is reported, not fixed.
-3. The private network: the operator installs and signs in to it (Tailscale, or WireGuard); the
-   session writes the machine's address in `address.txt` and, once all four are there, pings
-   the other three.
+3. The private network is Tailscale (owner, 2026-11-12): the operator installs it and signs the
+   machine in to his tailnet; the session writes `tailscale ip -4` in `address.txt` and, once
+   all four are there, pings the other three. On Linux the interface is `tailscale0`.
 4. Allow inbound TCP on the listening ports. Windows, in an elevated PowerShell:
    `netsh advfirewall firewall add rule name="isegoria-node" dir=in action=allow protocol=TCP localport=4001`.
 5. Choose a run directory outside the repository and the exchange, `RUN` below. In a TOML file
@@ -178,7 +178,7 @@ stage of that name.
 
 | # | Who | What | Expected |
 |---|---|---|---|
-| 1 | `L` | *Delay.* `sudo tc qdisc add dev <vpn interface> root netem delay 30ms 10ms loss 1%`, kept to the end; noted in `faults.txt` | `tc qdisc show` lists it |
+| 1 | `L` | *Delay.* `sudo tc qdisc add dev tailscale0 root netem delay 30ms 10ms loss 1%`, kept to the end; noted in `faults.txt` | `tc qdisc show` lists it |
 | 2 | `M` | `gate2-participants.sh join` — thirteen joins, the second person's sent to two members | each `applied`; `p1 join` shows two entries, one `AlreadyInPool` |
 | 3 | `M` | `gate2-participants.sh deposit 0 0` | `applied question 0` |
 | 4 | 0, 1, 2 | `--request … close-epoch 0` | every member's status gains a `digest` line and `beacon 0 <value> []`; the four digests equal ▣ `02-epoch-0-closed` |
@@ -187,11 +187,11 @@ stage of that name.
 | 7 | `M` | `gate2-participants.sh commit 0 0 1 2` | each commit `applied` |
 | 8 | 0, 1, 2 | `--request … close-commits 0` | members 0–2 show `question 0 revealing`; member 3's `cut` lines do not grow ▣ `03-partition-3-1` |
 | 9 | `W2` | *Rejoin.* `tailscale up`; noted | member 3 reaches the others' cuts and `question 0 revealing`; note how long it took ▣ `04-rejoined-3-1` |
-| 10 | operator | *2–2.* In the private network's access rules, allow `A_L`↔`A_M` and `A_W1`↔`A_W2` only; noted with its UTC time | `L` cannot ping `A_W1` or `A_W2`; `M` neither |
+| 10 | operator | *2–2.* In the tailnet's access controls, replace the policy's `acls` with the two rules below; noted with its UTC time | `L` cannot ping `A_W1` or `A_W2`; `M` neither |
 | 11 | `M` | `gate2-participants.sh reveal first 0` | a `logged` receipt |
 | 12 | all | wait 30 s, then compare each member's last `cut` line over the next 30 s | no member gains a cut made after the split |
 | 13 | `M` | `gate2-participants.sh pending 0` | the reveal's entry `pending` ▣ `05-partition-2-2` |
-| 14 | operator | *Rejoin.* Restore the access rules; noted | cuts resume on all four ▣ `06-rejoined-2-2` |
+| 14 | operator | *Rejoin.* Restore the saved policy; noted | cuts resume on all four ▣ `06-rejoined-2-2` |
 | 15 | `W1` | *Crash.* `taskkill /F /IM isegoria-node.exe` (member 2); noted | the process is gone |
 | 16 | `M` | `gate2-participants.sh reveal 0 1 3` | every reveal `applied`, the first one too |
 | 17 | `W1` | start member 2 again; noted | it shows `caught_up true`, `circle_caught_up true`, the digest it had and the others' cuts ▣ `07-member-2-restarted` |
@@ -201,9 +201,20 @@ stage of that name.
 | 21 | 1, 2, 3 | `--request … close 0` | every member shows `question 0 closed` |
 | 22 | `M` | `gate2-participants.sh author 3` | `question 0 closed accepted observation success 1 1 …` |
 | 23 | 0, 1, 3 | `--request … close-epoch 1` | a second `digest` line and `beacon 1 <value> []` on each; the four equal ▣ `08-epoch-1-closed` |
-| 24 | all | stop every node (SIGTERM; Ctrl-C on Windows); `L`: `sudo tc qdisc del dev <vpn interface> root` | ▣ `09-stopped` |
+| 24 | all | stop every node (SIGTERM; Ctrl-C on Windows); `L`: `sudo tc qdisc del dev tailscale0 root` | ▣ `09-stopped` |
 
-If Windows cannot run the commands of lines 6, 9 and 15 as written, the session reports it and
+Line 10's rules, the operator saving the policy he had before them; the four addresses are the
+machines' own, each rule letting one side talk only within itself:
+
+```json
+"acls": [
+  {"action": "accept", "src": ["<A_L>", "<A_M>"],   "dst": ["<A_L>:*", "<A_M>:*"]},
+  {"action": "accept", "src": ["<A_W1>", "<A_W2>"], "dst": ["<A_W1>:*", "<A_W2>:*"]}
+]
+```
+
+The pings of line 10 are the check that the rules took effect; if they still answer, the
+partition did not happen and the run waits. If Windows cannot run the commands of lines 6, 9 and 15 as written, the session reports it and
 the operator decides; nothing is improvised. With four machines the 3–1 partition is also the
 checklist's one member disconnected and back. A step that does not give its expected result
 stops the run (rule 4): the record then says where and why, and it is not a passed gate.
@@ -235,6 +246,6 @@ identity and that no evidence file holds the question's text or a line starting 
 `16-milestone2-trial.md` gets gate 2's record from the exchange: the revision, the configuration
 and its digest, the machines and systems, the faults with their times and lengths, what each
 showed against `04` §Gate 2's checklist, and what it did not show — one operator, the relay and
-the participants sharing members' machines, the private network every packet crossed, delay
+the participants sharing members' machines, the tailnet every packet crossed, delay
 injected on one machine only, the native-Windows limits above, synthetic participants, one
 question, the test issuer (D65). The owner accepts or refuses the record.
