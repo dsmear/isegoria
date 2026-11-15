@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | Record, for later reference, what the published research says about the four objectives of the [archived paper](../archive/phase1-forecast-pilot/paper/README.md) — bridging, latent-class DIF with a whole-test guarantee, a proper reviewer reputation used as weight, resistance to coordinated blocs — and whether the [answer review](05-question-lifecycle.md#the-answer-review-01-d49d52) that replaced them leaves known room for improvement. |
 | **Status** | **Informative, not normative (2026-11-11).** It decides nothing, closes or reopens no finding of [`15`](15-phase1-review.md), changes no contract or parameter and authorizes no experiment. It has had no design review. |
-| **Method** | A literature survey run on the owner's request by AI research agents (Claude), one per area, synthesized by another. No source was re-read by a person. The working notes, with a verification level for every source, are kept outside the repository. **Re-read on 2026-11-15** by Claude against the downloaded texts: every arXiv identifier cited was confirmed to exist with the cited title and authors, and each cited theorem or figure of the sources then available was checked in the text ([§1](#1-one-argument-of-observational-equivalence-runs-through-the-four-objectives), *How far the sources were read*). Still no person's reading and no design review. |
+| **Method** | A literature survey run on the owner's request by AI research agents (Claude), one per area, synthesized by another. No source was re-read by a person. The working notes, with a verification level for every source, are kept outside the repository. **Re-read on 2026-11-15** by Claude against the downloaded texts: every arXiv identifier cited was confirmed to exist with the cited title and authors, and each cited theorem or figure of the sources then available was checked in the text ([§1](#1-one-argument-of-observational-equivalence-runs-through-the-four-objectives), *How far the sources were read*); 25 further sources, on strands the first survey did not cover, were read in part ([§8](#8-strands-the-first-survey-did-not-cover)). Still no person's reading and no design review. |
 | **Evidence** | **Theorem**: proved under stated assumptions. **Empirical / simulation**: measured in a stated regime. **Survey's inference or computation**: derived during the survey, not taken from a paper. Each claim below says which it is, and how far its source was read. |
 | **Scope** | The state of research up to November 2026, read against the fixed constraints: anonymity with no attribute data, no money, one non-rotatable pseudonym per role, deterministic scoring, no reward for agreeing with the majority ([`CLAUDE.md`](CLAUDE.md)). |
 
@@ -32,7 +32,8 @@ sits on the provable frontier for the fourth objective and, with homogeneous ind
 is the maximum-likelihood rule; weighting by reliability loses every proved advantage when each
 reviewer answers few questions. The improvements the literature supports are few and concern
 efficiency. Everything that promises more needs ground truth, a scored second signal or group
-information, and each of these meets a fixed constraint.
+information, and each of these meets a fixed constraint. The strands the first survey did not
+cover, read in part on 2026-11-15, change none of this (§8).
 
 **General caution.** The re-reading of 2026-11-15 checked the cited statements, not whole papers or
 proofs; the sources behind a paywall or on hosts not reached were not re-read; and almost every
@@ -103,7 +104,9 @@ Prelec et al., Blair et al. and FRAUDAR:
   & Sandholm, Bouchaud & Ramaciotti.
 
 Where a text differs from what the first survey wrote, the entry below is corrected. No proof was
-checked except Prelec et al.'s Theorem 1.
+checked except Prelec et al.'s Theorem 1. Roughgarden & Schrijvers and Shnayder et al., which the
+first survey knew through summaries, and the strands it did not cover are in §8, each with its
+level of reading.
 
 **The survey's computations** assume a binary reduction (an answer coincides with the key or does
 not) and independent or exchangeable answers. They illustrate sensitivity; they do not estimate a
@@ -398,9 +401,9 @@ reward gap (Lemma 1, text read) ([Gao, Wright, Leyton-Brown](https://arxiv.org/a
 2024 work finds that the metrics used to compare spot-checking with peer prediction give
 contradictory rankings, and proposes to measure a peer-prediction mechanism by the spot-checking
 rate it is worth ([Xu et al. 2024](https://arxiv.org/abs/2402.13567)). With no money the gap is
-bounded and that rate cannot be lowered by paying more — a reading of the survey, since **no source
-read treats reputation-only rewards**; the peer-grading literature, which rewards with grades, was
-not read (§8).
+bounded and that rate cannot be lowered by paying more. The first survey found no source on rewards
+that are not money; peer grading, which rewards with grades, states the bound: below a ratio of
+effort cost to reward no checking rate makes honest effort dominant (§8.1).
 
 Finally, no published result composes decision-dependent observation, forward-looking agents who
 value weight, and simultaneous panels: every article fixes the other two. This is an absence of
@@ -450,7 +453,7 @@ Three readings matter.
   computation, 2026-11-15): with 10 answering, two dissenters leave the question accepted (8 of 10)
   while two abstentions make it insufficient participation; with 9 answering, one abstention does.
   The outcome it forces gives the author no observation. Political economy studies the effect for
-  participation quorums; that literature was not read (§8).
+  participation quorums; that literature was not read (§8.2).
 
 All of this holds only if the draw is uniform, cannot be influenced and cannot be predicted until
 the item is fixed: if a party can choose among `G` candidate beacon values, the capture probability
@@ -651,23 +654,138 @@ across batches with no labels, and the argument that a sublinear discount reward
 found nowhere in print. They are open gaps, possibly publishable, and are to be cited as this
 project's results awaiting independent verification, not as established facts.
 
-## 8. Strands the survey did not cover
+## 8. Strands the first survey did not cover
 
-Recorded on 2026-11-15 for a later reading. No claim of the sections above rests on them. For the
-arXiv entries the identifier, title and authors were confirmed and, where the last column says so,
-the abstract read; the other sources are cited from memory and were not seen.
+Recorded on 2026-11-15. The 25 arXiv sources below were read by Claude at the level each entry
+states — the abstract and the passages that bear on this project, none in full and no proof
+checked. The sources of [§8.2](#82-not-read) were not seen. Nothing here changes an entry of §§1–7
+beyond the cross-references made there (§1, §4.3, §5.1).
 
-| Strand | Bears on | Sources | Read |
-|---|---|---|---|
-| Test theory without an answer key (cultural consensus theory): competences and consensus answers estimated together, the informants needed for a given competence, models with "don't know" and with several consensus answers | The panel's size and thresholds ([`14`](14-parameter-register.md#the-answer-review--provisional-uncalibrated)); what a consensus is called | Batchelder & Romney 1988; Romney, Weller & Batchelder 1986; Anders & Batchelder 2012; Oravecz, Anders & Batchelder 2015 | No |
-| Committee design in political economy: strategic voting, costly information with no reward, participation quorums | Superficial reviews (`01` D48); §5.1's abstention | Austen-Smith & Banks 1996; Feddersen & Pesendorfer 1998; Persico 2004; Koriyama & Szentes 2009; Herrera & Mattozzi 2010 | No |
-| Jury theorems with common evidence | §6.1's correlation of errors | Ladha 1992; Dietrich & List 2004; Dietrich & Spiekermann 2013; Pivato 2017 | No |
-| Debate and refereed protocols: objections a judge can check, under one honest party in place of an honest majority | The one route seen that adds data of another kind than votes. It would bring back an appeal and evidence, which `01` D49 excludes | [Irving et al. 2018](https://arxiv.org/abs/1805.00899); [Brown-Cohen et al. 2023](https://arxiv.org/abs/2311.14125); [Michael et al. 2023](https://arxiv.org/abs/2311.08702); [Khan et al. 2024](https://arxiv.org/abs/2402.06782) | Abstracts of the last two: judges who cannot see the passage reach 84% with a debate against 74% with one adviser, and 88% against a 60% baseline, on reading-comprehension questions |
-| Diagnostic accuracy with no gold standard | §1's equivalence, in biostatistics, with dependent tests | Hui & Walter 1980; Albert & Dodd 2004; Jones et al. 2010 | No |
-| Content-validity panels | How many of `N` experts must agree | Lawshe 1975; Ayre & Scally 2014 | No |
-| Peer grading | §4.3: rewards that are not money | [Piech et al. 2013](https://arxiv.org/abs/1307.2579); [Zarkoob et al. 2019](https://arxiv.org/abs/1906.05884); [Zarkoob et al. 2022](https://arxiv.org/abs/2209.01242) | No |
-| Reliance on AI advice, and monoculture | Measured rates for §6.1's deferring share. Measuring it in this system would meet `01` D47, which assesses no tool use | [Bansal et al. 2020](https://arxiv.org/abs/2006.14779); [Buçinca et al. 2021](https://arxiv.org/abs/2102.09692); [Vasconcelos et al. 2022](https://arxiv.org/abs/2212.06823); [Veselovsky et al. 2023](https://arxiv.org/abs/2306.07899); [Kleinberg & Raghavan 2021](https://arxiv.org/abs/2101.05853); [Bommasani et al. 2022](https://arxiv.org/abs/2211.13972) | Abstract of Veselovsky et al.: 33–46% of crowd workers estimated to use LLMs on a summarization task |
-| Accuracy and dependence estimated with no labels | Whether §6.1's correlation can be estimated from the kept distributions | [Jaffe et al. 2014](https://arxiv.org/abs/1407.7644) and [2015](https://arxiv.org/abs/1510.05830); [Parisi et al. 2013](https://arxiv.org/abs/1303.3257); [Platanios et al. 2017](https://arxiv.org/abs/1705.07086); [Ratner et al. 2016](https://arxiv.org/abs/1605.07723); [Varma et al. 2019](https://arxiv.org/abs/1903.05844); Dong, Berti-Equille & Srivastava 2009 | No |
-| Duplicate panels | Measuring a panel's noise with no truth | [Cortes & Lawrence 2021](https://arxiv.org/abs/2109.09774); [Beygelzimer et al. 2023](https://arxiv.org/abs/2306.03262) | No |
-| Acceptance sampling and crowdsourced filters | §6.3's staged panel | Dodge & Romig; Parameswaran et al. 2012 | No |
-| Receipt-freeness | Agreements among reviewers that cannot be verified (§5) | Juels, Catalano & Jakobsson 2005 | No |
+### 8.1 What the reading adds
+
+**No route to a stronger guarantee inside the fixed constraints was found.** Each strand either
+needs an ingredient §6.3 already lists, or measures something without certifying it.
+
+**Debate and refereed protocols.** The one route seen that adds data of another kind than votes:
+objections a judge can check, under one honest party in place of an honest majority.
+
+- With optimal play and a polynomial-time judge a debate decides any question in PSPACE, on the
+  premise, which the authors call empirical, that it is harder to lie than to refute a lie
+  ([Irving, Christiano, Amodei 2018](https://arxiv.org/abs/1805.00899): abstract, the central claim
+  and Theorem 1's statement; [Brown-Cohen et al. 2023](https://arxiv.org/abs/2311.14125): abstract).
+- Human judges who cannot read a story choose between two answers after two debaters, one assigned
+  to the correct answer, argue with verbatim quotes the platform certifies: 84% correct, against
+  74% with one adviser who is right half of the time; no difference with GPT-4 as debater. Of the
+  errors, 46% follow an honest debater missing evidence and 33% a judge ending early. The authors'
+  limits: judges with no prior opinion, no ideologically charged question, an expertise gap that is
+  only access to a text ([Michael et al. 2023](https://arxiv.org/abs/2311.08702): abstract,
+  introduction, protocol and limitations).
+- The same design with LLM debaters and a tool that verifies quotes: human judges 88% with debate,
+  78% with one adviser, 60% with none, and 86–92% across the experiments
+  ([Khan et al. 2024](https://arxiv.org/abs/2402.06782): abstract, contributions, the passages on
+  human judges).
+
+Every measured gain needs evidence the judge can take as verified, an advocate assigned to the
+correct answer and a judge who cannot look the answer up. Reviewers here may consult anything and
+nobody is known to hold the right answer, so no measured gain transfers; and an exchange of
+objections with evidence is an appeal, which `01` D49 excludes. What the figures do show is the
+lever (the survey's computation, independent answers, 12 usable): a correct key is accepted in 62%
+of rounds if each reviewer finds it with probability 0.74 and in 89% at 0.84.
+
+**Peer grading.** Rewards that are not money are treated there, which corrects §4.3's first
+wording, and every guarantee rests on trusted grades.
+
+- With a grade as reward `R` and an effort cost `c`, a mechanism that makes effortful, truthful
+  grading a dominant strategy exists only if the informativeness of a student's signal,
+  `P(a|a) − P(a)`, is at least `c/R`; it then checks against a teaching assistant's grade with a
+  probability proportional to `c/R`, and below that bound none exists
+  ([Zarkoob, Fu, Leyton-Brown 2019](https://arxiv.org/abs/1906.05884): abstract, introduction, the
+  statements of Theorems 1–2). A bounded reward therefore sets a limit no checking rate lifts.
+- Deployed systems lean on the same authority: staff-graded submissions hidden among those every
+  student grades, in a course where 43% of submissions had been graded more than 10 points from
+  the staff's grade ([Piech et al. 2013](https://arxiv.org/abs/1307.2579): abstract, introduction,
+  data); teaching assistants' checks of 474 to 644 essays a course and 60 to 84 calibration
+  submissions, with a model of students who report the class average without doing the work
+  ([Zarkoob et al. 2022](https://arxiv.org/abs/2209.01242): abstract, introduction, data).
+
+**Reliance on AI advice.** No rate transfers to §6.1's deferring share: the studies differ in
+task, stakes and advice, and report their rates in figures.
+
+- Explanations raise the acceptance of an AI's recommendation whether it is right or wrong
+  ([Bansal et al. 2020](https://arxiv.org/abs/2006.14779): abstract, set-up); people often accept
+  wrong suggestions, and designs that force them to engage reduce it and are the least liked
+  ([Buçinca et al. 2021](https://arxiv.org/abs/2102.09692): abstract).
+- Over-reliance responds to costs and benefits: it falls when checking is cheap next to the task,
+  and varies with the compensation at stake
+  ([Vasconcelos et al. 2022](https://arxiv.org/abs/2212.06823): abstract and the studies'
+  summaries). The survey's reading: reviewers here have nothing at stake (`01` D48), which is the
+  side of that trade-off where deferring costs least.
+- 33–46% of crowd workers on one summarization task are estimated to have used an LLM, by keystroke
+  detection and a classifier ([Veselovsky et al. 2023](https://arxiv.org/abs/2306.07899): abstract,
+  limitations) — the detection `01` D47 excludes here.
+- LLM assistants improved 991 forecasters' accuracy by 24–28% over a control, a deliberately noisy
+  assistant included, and the data do not consistently show less diverse predictions
+  ([Schoenegger et al. 2024](https://arxiv.org/abs/2402.07862): abstract).
+
+**Monoculture.** A published theorem of the form §6.1 needs, in another model: for two firms
+ranking candidates, under two conditions on the ranking model, adopting a common algorithm more
+accurate than their own evaluators is a dominant strategy for each, while social welfare is higher
+if both keep independent human evaluators
+([Kleinberg & Raghavan 2021](https://arxiv.org/abs/2101.05853): abstract, Theorem 1's statement).
+It is not a theorem on panels. Sharing training data makes systems' outcomes more homogeneous; for
+shared models the results are mixed
+([Bommasani et al. 2022](https://arxiv.org/abs/2211.13972): abstract, results).
+
+**Accuracy and dependence estimated with no labels.** Not applicable to reviewers, for want of
+common items.
+
+- Under conditional independence the accuracies of binary classifiers follow from the covariance
+  of their predictions on a large unlabeled set
+  ([Parisi et al. 2013](https://arxiv.org/abs/1303.3257): abstract;
+  [Jaffe, Nadler, Kluger 2014](https://arxiv.org/abs/1407.7644): abstract, assumptions); groups of
+  dependent classifiers are detected from fourth-order statistics
+  ([Jaffe et al. 2015](https://arxiv.org/abs/1510.05830): abstract, Lemmas 1–2), and sparse
+  dependency structures among sources are learned
+  ([Ratner et al. 2016](https://arxiv.org/abs/1605.07723): abstract;
+  [Varma et al. 2019](https://arxiv.org/abs/1903.05844): abstract).
+- One method takes agreement as evidence of correctness, the premise in question here
+  ([Platanios et al. 2017](https://arxiv.org/abs/1705.07086): abstract); copy detection treats
+  sources that share many mistakes as dependent, needs the mistakes, and fails when the source
+  copied is good ([Li et al. 2015](https://arxiv.org/abs/1505.02463): abstract, the section on
+  source dependency).
+
+All of them need every source to answer a large common set; two reviewers share 0.3–1.6 questions
+an epoch (§5.2). The survey's inference: the distributions kept with each outcome (`05`) do
+identify, as a mixture of binomials, how the share of the pool choosing the key varies across
+questions, with no new data. They do not identify how that variation splits between correct and
+wrong keys: a wrong key most of the pool believes sits where a correct one does. That split is
+§6.1's unmeasured parameter.
+
+**Duplicate panels.** The design that measures a panel's noise with no truth: at NeurIPS 2014 a
+tenth of the submissions, 170 papers, went to two independent committees, and about half of the
+accepted list would change on a rerun; in 2021 the two committees disagreed on 23% of the papers
+([Cortes & Lawrence 2021](https://arxiv.org/abs/2109.09774): abstract, the experiment's
+description; [Beygelzimer et al. 2023](https://arxiv.org/abs/2306.03262): abstract). An error both
+panels share stays invisible to it, and a second draw on a question is outside `01` D49 and D53.
+
+**Mechanisms.** Consistent with §4: a multi-task mechanism makes truthful reports no worse than any
+strategy and strictly better than uninformed ones, its detail-free form learning its statistics
+from many tasks ([Shnayder et al. 2016](https://arxiv.org/abs/1603.03151): abstract); with experts
+who seek credibility, incentive-compatible algorithms correspond to proper scoring rules, and for
+the absolute loss no algorithm has vanishing regret
+([Roughgarden & Schrijvers 2017](https://arxiv.org/abs/1702.03615): abstract).
+
+### 8.2 Not read
+
+Cited from memory; no text was seen.
+
+| Strand | Bears on | Sources |
+|---|---|---|
+| Test theory without an answer key (cultural consensus theory): competences and consensus answers estimated together, the informants needed for a given competence, models with "don't know" and with several consensus answers | The panel's size and thresholds ([`14`](14-parameter-register.md#the-answer-review--provisional-uncalibrated)); what a consensus is called | Batchelder & Romney 1988; Romney, Weller & Batchelder 1986; Anders & Batchelder 2012; Oravecz, Anders & Batchelder 2015 |
+| Committee design in political economy: strategic voting, costly information with no reward, participation quorums | Superficial reviews (`01` D48); §5.1's abstention | Austen-Smith & Banks 1996; Feddersen & Pesendorfer 1998; Persico 2004; Koriyama & Szentes 2009; Herrera & Mattozzi 2010 |
+| Jury theorems with common evidence | §6.1's correlation of errors | Ladha 1992; Dietrich & List 2004; Dietrich & Spiekermann 2013; Pivato 2017 |
+| Diagnostic accuracy with no gold standard | §1's equivalence, in biostatistics, with dependent tests | Hui & Walter 1980; Albert & Dodd 2004; Jones et al. 2010 |
+| Content-validity panels | How many of `N` experts must agree | Lawshe 1975; Ayre & Scally 2014 |
+| Source dependence in data fusion | Copy detection, above | Dong, Berti-Equille & Srivastava 2009 |
+| Acceptance sampling and crowdsourced filters | §6.3's staged panel | Dodge & Romig; Parameswaran et al. 2012 |
+| Receipt-freeness | Agreements among reviewers that cannot be verified (§5) | Juels, Catalano & Jakobsson 2005 |
