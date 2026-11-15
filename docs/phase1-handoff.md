@@ -59,7 +59,7 @@ The previous design's suspended work and remaining findings are recorded in
 
 Before proposing reviewer weights, peer prediction, coordination discounts or a label-free
 whole-test guarantee as improvements, read the [feasibility survey](22-phase1-feasibility-survey.md)
-(2026-11-11): informative, not reviewed, and it decides nothing.
+(2026-11-11, its sources re-read 2026-11-15): informative, not reviewed, and it decides nothing.
 
 ## 6. Essential reading to resume
 

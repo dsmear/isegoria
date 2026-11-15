@@ -4,7 +4,7 @@
 |---|---|
 | **Purpose** | Record, for later reference, what the published research says about the four objectives of the [archived paper](../archive/phase1-forecast-pilot/paper/README.md) — bridging, latent-class DIF with a whole-test guarantee, a proper reviewer reputation used as weight, resistance to coordinated blocs — and whether the [answer review](05-question-lifecycle.md#the-answer-review-01-d49d52) that replaced them leaves known room for improvement. |
 | **Status** | **Informative, not normative (2026-11-11).** It decides nothing, closes or reopens no finding of [`15`](15-phase1-review.md), changes no contract or parameter and authorizes no experiment. It has had no design review. |
-| **Method** | A literature survey run on the owner's request by AI research agents (Claude), one per area, synthesized by another. No source was re-read by a person. The working notes, with a verification level for every source, are kept outside the repository. |
+| **Method** | A literature survey run on the owner's request by AI research agents (Claude), one per area, synthesized by another. No source was re-read by a person. The working notes, with a verification level for every source, are kept outside the repository. **Re-read on 2026-11-15** by Claude against the downloaded texts: every arXiv identifier cited was confirmed to exist with the cited title and authors, and each cited theorem or figure of the sources then available was checked in the text ([§1](#1-one-argument-of-observational-equivalence-runs-through-the-four-objectives), *How far the sources were read*). Still no person's reading and no design review. |
 | **Evidence** | **Theorem**: proved under stated assumptions. **Empirical / simulation**: measured in a stated regime. **Survey's inference or computation**: derived during the survey, not taken from a paper. Each claim below says which it is, and how far its source was read. |
 | **Scope** | The state of research up to November 2026, read against the fixed constraints: anonymity with no attribute data, no money, one non-rotatable pseudonym per role, deterministic scoring, no reward for agreeing with the majority ([`CLAUDE.md`](CLAUDE.md)). |
 
@@ -34,9 +34,10 @@ reviewer answers few questions. The improvements the literature supports are few
 efficiency. Everything that promises more needs ground truth, a scored second signal or group
 information, and each of these meets a fixed constraint.
 
-**General caution.** Many sources were read at abstract level only, the 2026 preprints are
-unverified, and almost every "unreachable" entry below is an argument made during the survey, not a
-published theorem. Recheck a source before citing it in a decision record.
+**General caution.** The re-reading of 2026-11-15 checked the cited statements, not whole papers or
+proofs; the sources behind a paywall or on hosts not reached were not re-read; and almost every
+"unreachable" entry below is an argument made during the survey, not a published theorem. Recheck a
+source before citing it in a decision record.
 
 ## 1. One argument of observational equivalence runs through the four objectives
 
@@ -48,40 +49,71 @@ five strands of the survey converge on the first answer, by the same scheme in e
 that is a function of the observed data alone returns the same output in two worlds that produce
 the same data.
 
-The scheme exists as a **published theorem** in three cases:
+The scheme is **published** in three cases, as a proved theorem in the first and the third:
 
 - votes and confidences do not identify the correct answer even with ideal Bayesian respondents
-  (main text read, the supplementary theorems not)
+  and an infinite sample (Theorem 1 of the supplement, read with its proof). In its model the
+  respondents' signals are independent given the answer and the prior carries the evidence common
+  to all: the limit comes from shared evidence, not from noise
   ([Prelec, Seung, McCoy 2017](https://gwern.net/doc/statistics/prediction/2017-prelec.pdf));
-- labelling algorithms with no gold standard that treat agreement as evidence always admit
-  equilibria in which everybody reports a common prejudice (abstract and a secondary source only)
+- labelling algorithms with no gold standard that identify the informed by their agreement always
+  admit an equilibrium in which everybody reports a common prejudice (read in full: an argument of
+  one paragraph by observational equivalence, with no formal proof, for agents who want to be
+  identified as informed)
   ([Della Penna & Reid, arXiv:1204.3511](https://arxiv.org/abs/1204.3511));
-- group disparities are not identifiable in general when the protected class is unobserved
-  (abstract verified; proved for classifiers, not for DIF)
+- group disparities are not identifiable in general when the protected class is unobserved, even
+  with auxiliary proxy data (abstract and the statement of the identification conditions read;
+  proved for classifiers, not for DIF)
   ([Kallus, Mao, Zhou, arXiv:1906.00285](https://arxiv.org/abs/1906.00285v2)).
+
+Della Penna and Reid's equilibrium is created by the reward for agreement. The answer review gives
+its reviewers none (`01` D48), so that strategic form does not arise in it; what stays is the
+unstrategic shared error of Prelec et al.'s theorem.
 
 In the other cases that matter here — true but divisive against partisan, DIF with respect to an
 unobserved group stated in psychometric terms, a sincere faction against a cartel — **no published
 theorem was found**. They are elementary arguments of the survey, consistent with what the
-literature concedes as a design limit, and are presented as such.
+literature concedes as a design limit, and are presented as such. For the last, the nearest
+published statement is a remark, not a theorem: when the reliable raters are a minority, dishonest
+raters who copy them on permuted items cannot be told apart without the operator's own ratings
+([Steinhardt, Valiant, Charikar](https://arxiv.org/abs/1606.05374), introduction).
 
-**How far the sources were read.** In full, among others: Blair et al., Selvam et al. (its first
-100,000 characters), Truong et al., Chen & Kash, Witkowski et al., Freeman et al., Hudson, Gao,
-Wright & Leyton-Brown (arXiv v1), Jecmen et al. 2020 and 2025, FRAUDAR, Wallin, Chen & Moustaki,
-Wallin & Huang, Hashimoto et al., Karger, Oh & Shah, and Gao, Lu & Zhou. **At abstract level or
-through secondary sources only:** almost all 2026 preprints, Bouchaud & Ramaciotti, Chuai et al.
-(a search snippet), and, through model-generated summaries, Frongillo et al. 2021,
-Roughgarden & Schrijvers, Kong 2020 and Shnayder et al.; the jury-theorem literature through
-Wikipedia. Several classical psychometric sources (Rost, Lindsay–Clogg–Grego, Shealy–Stout, Raju et
-al.) are cited from memory with a DOI and were not re-read. The Community Notes documentation was
-read once, automatically, on 2026-11-11.
+**How far the sources were read.** The first survey read in full, among others: Blair et al.,
+Selvam et al. (its first 100,000 characters), Truong et al., Chen & Kash, Witkowski et al., Freeman
+et al., Hudson, Gao, Wright & Leyton-Brown (arXiv v1), Jecmen et al. 2020 and 2025, FRAUDAR, Wallin,
+Chen & Moustaki, Wallin & Huang, Hashimoto et al., Karger, Oh & Shah, and Gao, Lu & Zhou; the rest
+at abstract level, through model-generated summaries or from memory.
+
+The re-reading of 2026-11-15 worked on the full texts of the 28 arXiv sources cited here and of
+Prelec et al., Blair et al. and FRAUDAR:
+
+- **Read in full:** Della Penna & Reid; the supplement of Prelec et al. up to its Theorem 3.
+- **Cited statement, theorem or figure read in its section:** Steinhardt et al., Selvam et al.,
+  Blair et al., Chuai et al., Truong et al., Andreou & Sirivianos, Wallin, Chen & Moustaki, Wallin
+  & Huang, Hashimoto et al., Chen et al. (arXiv:2110.11112), Kallus et al., Witkowski et al.,
+  Freeman et al., Frongillo et al., Kong 2020, Gao, Wright & Leyton-Brown, Jecmen et al. 2020 and
+  2025, Dang et al. (arXiv:1804.00399), Gao, Lu & Zhou, and Karger, Oh & Shah.
+- **Abstract and introduction only:** Kong 2026, Aznag et al., Xu et al., Burrell & Schoenebeck,
+  Boutilier, Arjmandi-Lari et al., Kim et al. and FRAUDAR.
+- **Not re-read**, so as the first survey left them: Chen & Kash (its link now redirects to a host
+  not reached), the Community Notes documentation, Ovadya & Thorburn, Stout et al., Sen & Cohen,
+  Miao et al., Resnick & Sami, Wald, the quadratic-funding summary, the jury-theorem literature
+  (Wikipedia), and every source behind a paywall — Cohen & Bolt, Raju et al., Shealy–Stout, Rost,
+  Lindsay–Clogg–Grego, Bauer & Curran, Alexeev et al., Wu, Steger et al., Ju–Miyagawa–Sakai, Othman
+  & Sandholm, Bouchaud & Ramaciotti.
+
+Where a text differs from what the first survey wrote, the entry below is corrected. No proof was
+checked except Prelec et al.'s Theorem 1.
 
 **The survey's computations** assume a binary reduction (an answer coincides with the key or does
 not) and independent or exchangeable answers. They illustrate sensitivity; they do not estimate a
 real pool. Recomputed while writing this record: the effective thresholds of §6.3, the acceptance
 of a wrong key at `p = 0.3`, the capture and blocking columns at 9 of 12 in §5.1, the leak shares
-and the absent-camp probabilities of §2, and the regret figure of §4.3. The other figures are as
-the survey's notes give them.
+and the absent-camp probabilities of §2, and the regret figure of §4.3. Recomputed on 2026-11-15:
+the same thresholds, acceptance and capture figures, the two correlation rows of §6.1 (a
+beta-binomial with mean 0.3) and its common-source rows, whose base the first survey did not state;
+the abstention figures of §5.1 and the budget figure of §6.1 are new. The other figures are as the
+survey's notes give them.
 
 ## 2. Objective A — bridging measures cross-camp approval, but not with 12 ratings an item
 
@@ -113,8 +145,8 @@ needless if the intercept were balanced by itself
 Batch relativity **is studied by nobody**. Community Notes differs in the relevant detail: it
 penalizes the global mean and fits the whole corpus, so "the scores sum to zero in a batch" belongs
 to this project's variant, not to production. The nearest relative is the dependence of a note's
-status on who else is in the fit: 30.2% of displayed notes later lose their status (a figure seen
-in a snippet only) ([Chuai et al. 2026](https://arxiv.org/abs/2601.14002)).
+status on who else is in the fit: 30.2% of displayed notes, 13,202 of 43,782, later lose their
+status (its Table 1) ([Chuai et al. 2026](https://arxiv.org/abs/2601.14002)).
 
 ### 2.2 Reachable: a label-free measure, at the cost of many co-rated items
 
@@ -132,11 +164,14 @@ mean with `p = 1` collapses into plain majority approval. Avoiding majority rule
 choice of axiom**, not an automatic property.
 
 The cost is in the data: the estimation guarantee needs a number of voters of order
-`ln(m/δ) / (ε² γ³)`, with a sufficient constant of 9000, which the authors themselves judge possibly
-infeasible at the platforms' present scale (Theorem 10). What deployed bridging gives in practice
-is high precision and low recall: about 10% of notes pass (abstract only)
+`ln(m/δ) / (ε² γ³)`, with a sufficient constant of 9000 (Theorem 10). The authors grant that such
+worst-case values may be infeasible at the platforms' present scale, and report experiments in
+which the estimators work well. What deployed bridging gives in practice is high precision and low
+recall: about 10% of notes pass
 ([Arjmandi-Lari et al. 2025](https://arxiv.org/abs/2510.00650)), and in a simulation with known
-truth more than 40% of genuinely helpful notes stay unpublished with no attacker at all
+truth more than 40% of genuinely helpful notes stay unpublished across its populations of honest
+raters with varied polarization and in-group bias (its Figure 2), 30–40% in the baseline with
+neither
 ([Truong et al. 2025](https://arxiv.org/abs/2511.02615)).
 
 At a panel of 12 none of these guarantees is available:
@@ -147,12 +182,14 @@ At a panel of 12 none of these guarantees is available:
 - by the survey's computation, if the smaller camp is 20% of the population, a panel of 9 holds
   none of its members with probability about 13%, and at most one with probability about 44%;
 - fewer than 10 strategic ratings lift **7.0–10.7% of the notes below the median** over the
-  threshold, by an attack in two stages (build a sparse latent position, then support the target
-  together) that the authors attribute to a property of the factorization, not to a defect
+  threshold (its Table 2, for rater factors within ±0.4 and ±1), by an attack in two stages (build
+  a sparse latent position, then support the target together) that the authors attribute to a
+  property of the factorization, not to a defect
   ([Selvam et al. 2026](https://arxiv.org/abs/2607.01824)).
 
-Random assignment, which the project already uses, is the only structural mitigation the 2026
-literature recommends.
+Random assignment, which the project already uses, is the structural mitigation the same authors
+recommend and report as deployed: a note's status must hold on the ratings of a random sample of
+eligible raters.
 
 ### 2.3 Unreachable, and open
 
@@ -174,8 +211,8 @@ majority to a small coalition that feigns the minority side.
 Open: a theory of identifiability and leak for penalized-intercept rules; the sample complexity of
 any bridging decision at 7–12 ratings; a manipulation bound, or an impossibility, with one identity
 per person and random assignment; and the choice of the axis to bridge — on Community Notes a
-second latent axis changes the outcomes, the published share falling from 71.5% to 11.7% as
-disagreement on it grows (abstract only)
+second latent axis changes the outcomes, the published share of notes with at least 100 ratings
+falling from 71.5% to 11.7% as disagreement on it grows
 ([Andreou & Sirivianos 2026](https://arxiv.org/abs/2609.21496)).
 
 ## 3. Objective B — latent classes flag departures from the model, not bias against real groups
@@ -194,8 +231,10 @@ regime: N = 1,000 and 5,000, 25 or 50 items, 40% of the items with DIF of 0.5–
 guessing parameter, the number of classes known, data generated by the fitted model. There the
 items with DIF are recovered well (true-positive rate about 0.95–0.99) while the classification
 error of persons stays at 7–26% with two classes and 35–40% with three
-([arXiv:2305.00961](https://ar5iv.labs.arxiv.org/html/2305.00961)). The method's authors warn that
-the classes "should not be interpreted as demographic groups" and that it is an exploratory tool
+([arXiv:2305.00961](https://ar5iv.labs.arxiv.org/html/2305.00961)). The method's authors call it
+"an exploratory device" whose classes are "model-based response groups whose substantive meaning
+requires external validation", and warn that the DIF it detects is not DIF with respect to the
+background variables the classes correlate with
 ([Wallin & Huang 2026, preprint](https://arxiv.org/html/2601.17612v2)).
 
 Under those reserves the survey finds three claims that can be sustained:
@@ -234,7 +273,7 @@ Three things are out of reach with no group information, and more data does not 
   A bridge assumption that cannot be tested would be needed.
 - **DIF uniform over every item of a batch**, indistinguishable from a difference in mean ability:
   proved by reparametrization, with or without labels
-  ([arXiv:2110.11112](https://arxiv.org/abs/2110.11112)).
+  ([Chen, Li, Ouyang, Xu, arXiv:2110.11112](https://arxiv.org/abs/2110.11112), its §2.3).
 - **The composition of DTF across batches — A2's obstacle.** In the DFIT framework DTF is additive
   only because labels supply the same focal group, a common metric and the same ability
   distribution in every batch (Raju et al. 1995, cited from memory)
@@ -299,7 +338,7 @@ The price is variance. With an exploration probability `ε`, every explored item
 `1/ε`; by the survey's arithmetic, at `ε = 0.05` one explored item weighs 20 and dominates an epoch
 of 5–10 items. Every practical remedy — clipping, a cap, self-normalization — is a nonlinear
 transformation and brings the improperness back. And if the reviewer has a stake of its own in the
-outcome, exact properness needs that utility to be known (Boutilier, abstract only)
+outcome, exact properness needs that utility to be known (Boutilier, abstract and introduction)
 ([arXiv:1106.2489](https://arxiv.org/abs/1106.2489)), which anonymous reviewers exclude.
 
 ### 4.2 Reputation as future weight breaks properness, with published counterexamples
@@ -322,7 +361,8 @@ transfer, a cap and a change detector is farther from linear than those that alr
 counterexamples, and no theorem covers it.
 
 Two qualifications keep the negative result in proportion. The counterexamples are tiny (the third
-decimal; within `4η` for Hedge with a small step, by Frongillo et al., read through a summary)
+decimal; a follow-the-regularized-leader mechanism is `4η`-approximately truthful for a step
+`η < 1/4`, Frongillo et al.'s Corollary 1)
 ([arXiv:2102.08358](https://arxiv.org/abs/2102.08358)), so the defensible claim would be
 *approximate* honesty, which would need a derivation of its own for the specific map. And no
 general impossibility theorem was found for deterministic continuous weight maps: the state is "no
@@ -339,21 +379,28 @@ telling reviewers apart with 9 participants, `ε = 0.1` and `δ = 0.1` is of the
 events.
 
 The route without verification offers no way out. Peer-prediction mechanisms reward statistical
-dependence with peers, not agreement with the truth. DMI's dominance needs at least `2C` tasks per
-agent ([Kong 2020, read through a summary](https://arxiv.org/abs/1911.00272)); two 2026 preprints
-seen in abstract declare that bound tight ([Kong 2026](https://arxiv.org/abs/2606.14225);
-[Aznag et al. 2026](https://arxiv.org/abs/2608.16838)). In simulation the mechanisms robust on
-paper measure individual quality badly, and those that measure it well are manipulable (Burrell and
-Schoenebeck, secondary source, venue not verified)
-([arXiv:2108.05521](https://arxiv.org/abs/2108.05521)).
+dependence with peers, not agreement with the truth. DMI's dominance needs at least `2C` tasks
+answered by both agents of a pair, `C` being the number of choices
+([Kong 2020, Theorem 5.1](https://arxiv.org/abs/1911.00272)), and two 2026 preprints make the bound
+tight: with `n` possible reports, `2n` tasks are necessary and sufficient for any payment that is
+zero on independent reports and does not reward garbling
+([Kong 2026](https://arxiv.org/abs/2606.14225)), and with binary reports no such payment exists on
+three tasks or fewer, DMI being the only one on four or five
+([Aznag et al. 2026](https://arxiv.org/abs/2608.16838)). A question here has at least three possible
+answers, so a pair of reviewers would need six or more questions in common, against the 0.3–1.6 an
+epoch that random panels give (§5.2). In simulation there is an apparent trade-off between
+measuring individual quality and robustness to strategic reports
+([Burrell & Schoenebeck, arXiv v2](https://arxiv.org/abs/2108.05521), venue not verified).
 
 With ground truth on a subset, by contrast, rewarding agreement with the trusted outcome alone
 makes honest effort a dominant strategy at a checking rate equal to the cost of effort over the
 reward gap (Lemma 1, text read) ([Gao, Wright, Leyton-Brown](https://arxiv.org/abs/1606.07042)); a
-2024 work seen in abstract qualifies the comparison with peer prediction
-([Xu et al. 2024](https://arxiv.org/abs/2402.13567)). With no money the gap is bounded and that
-rate cannot be lowered by paying more — a reading of the survey, since **no source treats
-reputation-only rewards**.
+2024 work finds that the metrics used to compare spot-checking with peer prediction give
+contradictory rankings, and proposes to measure a peer-prediction mechanism by the spot-checking
+rate it is worth ([Xu et al. 2024](https://arxiv.org/abs/2402.13567)). With no money the gap is
+bounded and that rate cannot be lowered by paying more — a reading of the survey, since **no source
+read treats reputation-only rewards**; the peer-grading literature, which rewards with grades, was
+not read (§8).
 
 Finally, no published result composes decision-dependent observation, forward-looking agents who
 value weight, and simultaneous panels: every article fixes the other two. This is an absence of
@@ -391,12 +438,19 @@ the coalition holds enough seats to prevent an acceptance. Binomial values.
 Three readings matter.
 
 - Capture falls as the *power* `t` of the share, not exponentially: Byzantine-committee systems
-  that want negligible probabilities use committees of hundreds of members (figures seen in
-  snippets only) ([arXiv:1804.00399](https://arxiv.org/pdf/1804.00399)).
+  that want negligible probabilities use committees of 80 to 600 nodes, sized by the same
+  hypergeometric tail ([Dang et al., arXiv:1804.00399](https://arxiv.org/pdf/1804.00399), its §5.2).
 - It is a guarantee of *rate*: the coalition does not choose which items it captures, but over
   thousands of items some capture is certain for shares from 20% up.
 - Capture and blocking cannot both be made small with at most 12 seats. Where "no quorum" is a
   neutral outcome, blocking degrades throughput, not correctness — the benign direction.
+- The "block" columns count dissent. Under the answer review's rule
+  ([`05`](05-question-lifecycle.md#the-answer-review-01-d49d52)) an abstention blocks with fewer
+  seats whenever fewer than 12 reviewers answer, since it lowers `V` below the quorum (the survey's
+  computation, 2026-11-15): with 10 answering, two dissenters leave the question accepted (8 of 10)
+  while two abstentions make it insufficient participation; with 9 answering, one abstention does.
+  The outcome it forces gives the author no observation. Political economy studies the effect for
+  participation quorums; that literature was not read (§8).
 
 All of this holds only if the draw is uniform, cannot be influenced and cannot be predicted until
 the item is fixed: if a party can choose among `G` candidate beacon values, the capture probability
@@ -453,10 +507,22 @@ A qualified-majority rule has a foundation. With independent homogeneous voters 
 priors or error costs the optimal rule is a majority with a threshold (Nitzan and Paroush;
 Ben-Yashar and Nitzan, seen through Wikipedia)
 ([Jury theorem](https://en.wikipedia.org/wiki/Jury_theorem)). With equal reliabilities majority
-voting is the maximum-likelihood rule and attains the minimax exponent (Theorem 5.1, text read)
-([Gao, Lu, Zhou 2016](https://ar5iv.labs.arxiv.org/html/1605.07696)). And with a constant number of
-tasks per rater the proved advantage of reliability-aware inference disappears, because raters
-cannot be assessed from few tasks ([Karger, Oh, Shah](https://ar5iv.labs.arxiv.org/html/1110.3564)).
+voting is the maximum-likelihood rule and attains the optimal error exponent; with unequal ones its
+exponent is strictly worse (Theorem 5.1 and the remark after it)
+([Gao, Lu, Zhou 2016](https://ar5iv.labs.arxiv.org/html/1605.07696)). And with a constant number
+`r` of tasks per rater the proved advantage of reliability-aware inference disappears: the answers
+needed per task return to the order of majority voting, `(1/q²) log(1/ε)` against `(1/q) log(1/ε)`,
+"due to the fact that when `r` is small, we cannot efficiently learn the quality of the workers"
+([Karger, Oh, Shah](https://ar5iv.labs.arxiv.org/html/1110.3564), after Corollary 2.4; `q` is the
+mean of `(2p − 1)²` over raters). Two qualifications, both the survey's reading:
+
+- the guarantee does not reach a panel of 12 whatever `r` is: Corollary 2.4's sufficient budget,
+  `(24 + 8/((r − 1)q)) (1/q) ln(2/ε)` answers per task, is at least `24 ln 4 ≈ 33` for any crowd
+  and any error below one half;
+- `r` counts all the tasks of a rater, and a non-rotatable pseudonym accumulates them over epochs:
+  "few questions per reviewer" holds for an epoch, not for a reviewer's history. The same paper
+  reports, as an empirical observation it takes to be fundamental and does not prove, that below
+  `(ℓ − 1)(r − 1) q² = 1`, with `ℓ` answers per task, nothing does better than majority voting.
 
 By the survey's computation under independence, with 12 usable answers a wrong key that each
 reviewer chooses with probability 0.3 is accepted in **0.17%** of cases (3.9% under simple
@@ -468,15 +534,23 @@ The protection depends on one unmeasured parameter: the correlation of errors in
 | | Accepted wrong key |
 |---|---|
 | Independent answers, `p = 0.3` | 0.17% |
-| Intra-panel correlation 0.1 | 2.7% |
-| Intra-panel correlation 0.2 | 6.7% |
-| A share `f` = 0.25 defers to a common source that endorses the key | 0.3% |
-| `f` = 0.5 | 13.5% |
-| `f` = 0.75 | 72% |
+| Intra-panel correlation 0.1, mean 0.3 | 2.7% |
+| Intra-panel correlation 0.2, mean 0.3 | 6.7% |
+
+A second model: each reviewer, independently and with probability `f`, defers to a common source
+that endorses the wrong key; the others choose it with probability `p`. The first survey gave the
+`p = 0.1` column without stating its base, beside the `p = 0.3` rows above.
+
+| Share `f` deferring | Others at `p = 0.1` | Others at `p = 0.3` |
+|---|---|---|
+| 0.25 | 0.3% | 5.2% |
+| 0.5 | 13.5% | 35% |
+| 0.75 | 72% | 86% |
 
 The evidence that this is the real regime is solid for models and thin for human panels: over more
-than 350 LLMs, models agree in 60% of the cases in which both err, with more correlated errors for
-the stronger models (abstract verified) ([Kim et al. 2025](https://arxiv.org/abs/2506.07962)); no
+than 350 LLMs, models agree in 60% of the cases in which both err on one leaderboard dataset, with
+more correlated errors for the more accurate models
+([Kim et al. 2025](https://arxiv.org/abs/2506.07962)); no
 controlled study measures the correlation of answers in human multiple-choice panels with free use
 of assistants. No threshold, weighting or panel size corrects a shared error: that is the limit
 Prelec et al. prove, and the rule of never presenting consensus as truth (`01` D48) coincides with
@@ -520,8 +594,8 @@ Everything that promises more needs an outside ingredient, and each meets a cons
 
 | Ingredient | What it buys, by the literature | What it needs | Conflict with the fixed constraints |
 |---|---|---|---|
-| A little ground truth (gold items, spot checks, outcomes revealed later) | Removes the shared-prejudice equilibria; makes reliability a measure of accuracy, not conformity; reliable curation even with an honest minority, with a number of trusted checks independent of the population ([Steinhardt, Valiant, Charikar, abstract only](https://arxiv.org/abs/1606.05374)) | Trusted keys indistinguishable from ordinary items; by the survey's arithmetic about 16–64 gold answers per reviewer for a precision of ±0.1 to ±0.05 | Brings in an authority on truth, the very thing under examination in the author's key; with no money the checking rate cannot be lowered; brings back a reputation that can be spent; does not stop a targeted capture by those who answer the gold items well |
-| A second elicited signal (a prediction of the others' answers, "surprisingly popular") | The one route that recovers the truth where the majority is wrong, in the infinite-sample model with Bayesian respondents and a common prior ([Prelec et al. 2017](https://gwern.net/doc/statistics/prediction/2017-prelec.pdf)) | An informed minority that knows it is one; large samples (at 12 the verdict turns on one answer, the survey's reasoning); honest predictions, hence a score per answer | Scoring the predictions is a reward per reviewer, absent by choice (`01` D48); with no incentive the predictions are a new surface for manipulation; the open environment erodes the structure the method uses (the original studies forbade looking the answers up) |
+| A little ground truth (gold items, spot checks, outcomes revealed later) | Removes the shared-prejudice equilibria; makes reliability a measure of accuracy, not conformity; reliable curation even with an honest minority `α` of raters, with a number of the operator's own judgments, of order `1/(βε²)` for the best share `β` of items and a tolerance `ε`, independent of the population ([Steinhardt, Valiant, Charikar, Theorem 1](https://arxiv.org/abs/1606.05374)) | Trusted keys indistinguishable from ordinary items, or, in Steinhardt et al., the operator's judgments after the fact on a few items; by the survey's arithmetic about 16–64 gold answers per reviewer for a precision of ±0.1 to ±0.05. Steinhardt et al.'s theorem asks of every rater a number of ratings of order `1/(βα³ε⁴)`, which the authors call likely not optimal: about 160,000 at `α = β = 0.5`, `ε = 0.1` (the survey's arithmetic) | Brings in an authority on truth, the very thing under examination in the author's key; with no money the checking rate cannot be lowered; brings back a reputation that can be spent; does not stop a targeted capture by those who answer the gold items well |
+| A second elicited signal (a prediction of the others' answers, "surprisingly popular") | The one route that recovers the truth where the majority is wrong, in the infinite-sample model with Bayesian respondents and a common prior. Proved for two answers (Theorem 2); with more, the correct answer is still more popular than predicted but others may be too, so that criterion is necessary only, and a different statistic, the prediction-normalized vote, selects the answer when each answer has a signal that favours it most (Theorem 3) ([Prelec et al. 2017](https://gwern.net/doc/statistics/prediction/2017-prelec.pdf), supplement) | An informed minority that knows it is one; large samples (at 12 the verdict turns on one answer, the survey's reasoning); honest predictions, hence a score per answer | Scoring the predictions is a reward per reviewer, absent by choice (`01` D48); with no incentive the predictions are a new surface for manipulation; the open environment erodes the structure the method uses (the original studies forbade looking the answers up) |
 | Hidden randomization | Properness in expectation with decision-dependent observation ([Chen & Kash 2011](https://dash.harvard.edu/server/api/core/bitstreams/7312037c-918b-6bd4-e053-0100007fdf3b/content)) | A draw unknown until the reports close, full support, an uncapped inverse-propensity score, a linear weight or lotteries | Does not contradict deterministic computation if the seed is committed before and revealed after (a reading of this record, not of the sources); contradicts a nonlinear weight map; the non-rotatable pseudonym moves away from the myopic regime; with few reports the reputation stays noise |
 | Group information | The Remesh-style minimum over declared groups; exclusion of co-assignment (Jecmen et al., Theorem 3); COCM-style discounts; classical DIF and DTF with a focal group; stratified panels | Exogenous labels: affiliation, social graph, attributes | A head-on conflict with invariant 1; inferring the labels from behaviour returns to the detection problem |
 
@@ -576,3 +650,24 @@ leak toward the majority, the batch relativity of the intercept, the impossibili
 across batches with no labels, and the argument that a sublinear discount rewards evasion were
 found nowhere in print. They are open gaps, possibly publishable, and are to be cited as this
 project's results awaiting independent verification, not as established facts.
+
+## 8. Strands the survey did not cover
+
+Recorded on 2026-11-15 for a later reading. No claim of the sections above rests on them. For the
+arXiv entries the identifier, title and authors were confirmed and, where the last column says so,
+the abstract read; the other sources are cited from memory and were not seen.
+
+| Strand | Bears on | Sources | Read |
+|---|---|---|---|
+| Test theory without an answer key (cultural consensus theory): competences and consensus answers estimated together, the informants needed for a given competence, models with "don't know" and with several consensus answers | The panel's size and thresholds ([`14`](14-parameter-register.md#the-answer-review--provisional-uncalibrated)); what a consensus is called | Batchelder & Romney 1988; Romney, Weller & Batchelder 1986; Anders & Batchelder 2012; Oravecz, Anders & Batchelder 2015 | No |
+| Committee design in political economy: strategic voting, costly information with no reward, participation quorums | Superficial reviews (`01` D48); §5.1's abstention | Austen-Smith & Banks 1996; Feddersen & Pesendorfer 1998; Persico 2004; Koriyama & Szentes 2009; Herrera & Mattozzi 2010 | No |
+| Jury theorems with common evidence | §6.1's correlation of errors | Ladha 1992; Dietrich & List 2004; Dietrich & Spiekermann 2013; Pivato 2017 | No |
+| Debate and refereed protocols: objections a judge can check, under one honest party in place of an honest majority | The one route seen that adds data of another kind than votes. It would bring back an appeal and evidence, which `01` D49 excludes | [Irving et al. 2018](https://arxiv.org/abs/1805.00899); [Brown-Cohen et al. 2023](https://arxiv.org/abs/2311.14125); [Michael et al. 2023](https://arxiv.org/abs/2311.08702); [Khan et al. 2024](https://arxiv.org/abs/2402.06782) | Abstracts of the last two: judges who cannot see the passage reach 84% with a debate against 74% with one adviser, and 88% against a 60% baseline, on reading-comprehension questions |
+| Diagnostic accuracy with no gold standard | §1's equivalence, in biostatistics, with dependent tests | Hui & Walter 1980; Albert & Dodd 2004; Jones et al. 2010 | No |
+| Content-validity panels | How many of `N` experts must agree | Lawshe 1975; Ayre & Scally 2014 | No |
+| Peer grading | §4.3: rewards that are not money | [Piech et al. 2013](https://arxiv.org/abs/1307.2579); [Zarkoob et al. 2019](https://arxiv.org/abs/1906.05884); [Zarkoob et al. 2022](https://arxiv.org/abs/2209.01242) | No |
+| Reliance on AI advice, and monoculture | Measured rates for §6.1's deferring share. Measuring it in this system would meet `01` D47, which assesses no tool use | [Bansal et al. 2020](https://arxiv.org/abs/2006.14779); [Buçinca et al. 2021](https://arxiv.org/abs/2102.09692); [Vasconcelos et al. 2022](https://arxiv.org/abs/2212.06823); [Veselovsky et al. 2023](https://arxiv.org/abs/2306.07899); [Kleinberg & Raghavan 2021](https://arxiv.org/abs/2101.05853); [Bommasani et al. 2022](https://arxiv.org/abs/2211.13972) | Abstract of Veselovsky et al.: 33–46% of crowd workers estimated to use LLMs on a summarization task |
+| Accuracy and dependence estimated with no labels | Whether §6.1's correlation can be estimated from the kept distributions | [Jaffe et al. 2014](https://arxiv.org/abs/1407.7644) and [2015](https://arxiv.org/abs/1510.05830); [Parisi et al. 2013](https://arxiv.org/abs/1303.3257); [Platanios et al. 2017](https://arxiv.org/abs/1705.07086); [Ratner et al. 2016](https://arxiv.org/abs/1605.07723); [Varma et al. 2019](https://arxiv.org/abs/1903.05844); Dong, Berti-Equille & Srivastava 2009 | No |
+| Duplicate panels | Measuring a panel's noise with no truth | [Cortes & Lawrence 2021](https://arxiv.org/abs/2109.09774); [Beygelzimer et al. 2023](https://arxiv.org/abs/2306.03262) | No |
+| Acceptance sampling and crowdsourced filters | §6.3's staged panel | Dodge & Romig; Parameswaran et al. 2012 | No |
+| Receipt-freeness | Agreements among reviewers that cannot be verified (§5) | Juels, Catalano & Jakobsson 2005 | No |
