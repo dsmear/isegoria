@@ -99,12 +99,12 @@ Prelec et al., Blair et al. and FRAUDAR:
 - **Not re-read**, so as the first survey left them: Chen & Kash (its link now redirects to a host
   not reached), the Community Notes documentation, Ovadya & Thorburn, Stout et al., Sen & Cohen,
   Miao et al., Resnick & Sami, Wald, the quadratic-funding summary, the jury-theorem literature
-  (Wikipedia), and every source behind a paywall but one — Cohen & Bolt, Shealy–Stout, Rost,
+  (Wikipedia), and every source behind a paywall but two — Cohen & Bolt, Shealy–Stout,
   Lindsay–Clogg–Grego, Bauer & Curran, Alexeev et al., Wu, Steger et al. 2020, Ju–Miyagawa–Sakai,
   Othman & Sandholm, Bouchaud & Ramaciotti.
-- **Read from copies the owner supplied:** Raju, van der Linden & Fleer (§3.2), and two papers the
-  first survey did not cite, Steger, Schroeders & Wilhelm 2021 (§3.3) and Ben-Yashar, Koh & Nitzan
-  (§8.1).
+- **Read from copies the owner supplied:** Raju, van der Linden & Fleer (§3.2), Rost (§3.1), and
+  two papers the first survey did not cite, Steger, Schroeders & Wilhelm 2021 (§3.3) and
+  Ben-Yashar, Koh & Nitzan (§8.1).
 
 Where a text differs from what the first survey wrote, the entry below is corrected. No proof was
 checked except Prelec et al.'s Theorem 1. Roughgarden & Schrijvers and Shnayder et al., which the
@@ -230,6 +230,11 @@ spurious classes of `01` D25 and D43, and the sample sizes of [`13`](13-characte
 ### 3.1 Reachable: three weaker claims, with N in the thousands
 
 The only family of methods with no labels is "latent classes plus IRT within each class". Its
+founding paper presents the classes as heuristic: the model finds the partition of the sample for
+which the item parameters differ most, cannot assign the all-correct and all-wrong patterns to a
+class (18% of its real sample), and recovers a group that guesses as a class of its own; its
+simulations use 1,800 simulees and 10 items, and the number of classes is chosen by AIC
+([Rost 1990](http://purl.umn.edu/93227), read but for the estimation equations). The family's
 recent L1-penalized version (Wallin, Chen & Moustaki, *Psychometrika* 2024, text read) buys
 identification with the assumption that DIF is sparse and **proves no theorem** of identifiability
 or consistency specific to the latent case. Its simulations are far kinder than this project's
