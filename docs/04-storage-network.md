@@ -1445,11 +1445,13 @@ gate 3 replaces the issuer (step 12).
 
 What a gate-2 run on separate machines and networks does and records beyond steps 1–11
 (`10` §2.4); the rehearsal on one machine (`05` §Gate 2's rehearsal) runs them in network
-namespaces, one disconnection of a member apart, and does not replace it.
+namespaces, one disconnection of a member apart, and does not replace it. The run on the
+owner's four machines is laid out in [`23`](23-gate2-runbook.md).
 
 - *Before.* T89 part 1's targets run (`12` §4, `01` D62); the test issuer's holder named
-  (above; still open); one machine per member and for the relay, the participants' commands on
-  another, on at least two networks; the revision pinned; the faults' schedule written and kept
+  (above; still open); one machine per member, on at least two networks; the relay, the
+  issuer's tool and the participants' commands on machines of their own or, stated in the
+  record, on a member's; the revision pinned; the faults' schedule written and kept
   with the closures' schedule.
 - *Faults, each with its time and command in the shared evidence.* Delay and loss on the
   machines' links, with their values; one member disconnected and back; a 3–1 partition and a
