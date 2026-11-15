@@ -99,9 +99,12 @@ Prelec et al., Blair et al. and FRAUDAR:
 - **Not re-read**, so as the first survey left them: Chen & Kash (its link now redirects to a host
   not reached), the Community Notes documentation, Ovadya & Thorburn, Stout et al., Sen & Cohen,
   Miao et al., Resnick & Sami, Wald, the quadratic-funding summary, the jury-theorem literature
-  (Wikipedia), and every source behind a paywall — Cohen & Bolt, Raju et al., Shealy–Stout, Rost,
-  Lindsay–Clogg–Grego, Bauer & Curran, Alexeev et al., Wu, Steger et al., Ju–Miyagawa–Sakai, Othman
-  & Sandholm, Bouchaud & Ramaciotti.
+  (Wikipedia), and every source behind a paywall but one — Cohen & Bolt, Shealy–Stout, Rost,
+  Lindsay–Clogg–Grego, Bauer & Curran, Alexeev et al., Wu, Steger et al. 2020, Ju–Miyagawa–Sakai,
+  Othman & Sandholm, Bouchaud & Ramaciotti.
+- **Read from copies the owner supplied:** Raju, van der Linden & Fleer (§3.2), and two papers the
+  first survey did not cite, Steger, Schroeders & Wilhelm 2021 (§3.3) and Ben-Yashar, Koh & Nitzan
+  (§8.1).
 
 Where a text differs from what the first survey wrote, the entry below is corrected. No proof was
 checked except Prelec et al.'s Theorem 1. Roughgarden & Schrijvers and Shnayder et al., which the
@@ -277,14 +280,20 @@ Three things are out of reach with no group information, and more data does not 
 - **DIF uniform over every item of a batch**, indistinguishable from a difference in mean ability:
   proved by reparametrization, with or without labels
   ([Chen, Li, Ouyang, Xu, arXiv:2110.11112](https://arxiv.org/abs/2110.11112), its §2.3).
-- **The composition of DTF across batches — A2's obstacle.** In the DFIT framework DTF is additive
-  only because labels supply the same focal group, a common metric and the same ability
-  distribution in every batch (Raju et al. 1995, cited from memory)
-  ([DOI](https://doi.org/10.1177/014662169501900405)). Class `k` of batch 1 and class `k` of
-  batch 2 are unrelated objects, the sign of DIF is defined only against an arbitrary reference
-  class per batch, and cancellation across batches stays undefined. **This is an inference from
-  the definitions:** the survey found no article that poses the problem for latent classes, and no
-  impossibility theorem stated in psychometric terms.
+- **The composition of DTF across batches — A2's obstacle.** In the DFIT framework DTF is the
+  focal group's mean of `D²`, where `D` is the difference between an examinee's expected scores as
+  a member of the focal and of the reference group, the two sets of item parameters being on a
+  common scale. It is additive over the items of one test, `DTF = Σ CDIF_i` with
+  `CDIF_i = Cov(d_i, D) + μ_d μ_D`, and an item's share depends on the other items in the test
+  (Raju, van der Linden, Fleer 1995: definitions, tests, design and discussion read, the result
+  tables not) ([DOI](https://doi.org/10.1177/014662169501900405)). The paper does not treat
+  batches. From its definition, for a test made of batches `A` and `B`,
+  `DTF = DTF_A + DTF_B + 2 E(D_A D_B)`: the batches' own indexes leave out a cross term that needs
+  both differences on the same focal examinees and the same metric. Labels supply that; class `k`
+  of batch 1 and class `k` of batch 2 are unrelated objects, the sign of DIF is defined only
+  against an arbitrary reference class per batch, and cancellation across batches stays undefined.
+  **This is an inference from the definitions:** the survey found no article that poses the
+  problem for latent classes, and no impossibility theorem stated in psychometric terms.
 
 Two further obstacles are limits of power, not of identification: a single biased item per batch
 leaves a trace only in a perturbation of its own response curve (an inference from Shealy and
@@ -304,7 +313,15 @@ contradicted by Wu (2016) and should not be cited in its original form
 
 `01` D45's open environment worsens the picture by construction. Unproctored scores were already
 higher by Δ = 0.20 before generative AI (a meta-analysis, secondary source)
-([Steger et al. 2020](https://econtent.hogrefe.com/doi/10.1027/1015-5759/a000494)). Where every
+([Steger et al. 2020](https://econtent.hogrefe.com/doi/10.1027/1015-5759/a000494)). A study by
+the same first author gave 315 participants a knowledge test online and then proctored: mean
+scores of 0.66 and 0.57, a correlation of .52 between the two, and items meant to be unsolvable
+answered at chance when proctored (0.23) and at 0.34 online. It reports the meta-analysis as
+finding that those who can look an answer up do so, whatever the stakes or the countermeasures,
+and it predicts the score gain from response times and switches of browser tab, which `01` D47
+excludes here ([Steger, Schroeders, Wilhelm 2021](https://doi.org/10.1177/1073191120914970):
+abstract, introduction, results and discussion read). Looking up is allowed here; what the
+correlation shows is that the ranking of persons changes with it. Where every
 resource is allowed the trait is assisted performance, and tool use becomes a nuisance dimension
 that a mixture model will tend to find as its dominant class, in competition with group DIF. Since
 the project does not infer tool use, the two cannot be separated.
@@ -767,6 +784,14 @@ accepted list would change on a rerun; in 2021 the two committees disagreed on 2
 ([Cortes & Lawrence 2021](https://arxiv.org/abs/2109.09774): abstract, the experiment's
 description; [Beygelzimer et al. 2023](https://arxiv.org/abs/2306.03262): abstract). An error both
 panels share stays invisible to it, and a second draw on a question is outside `01` D49 and D53.
+
+**Committees.** A working paper compares members who each judge one component of a project with
+members who each judge the whole and vote, their skills given: judging the whole is better when
+members combine their own component judgments optimally, judging one component each is better
+when a member's overall skill is only the mean of the component skills and the committee's rule is
+optimal (Ben-Yashar, Koh, Nitzan, *Is Specialization Desirable in Committee Decision Making?*:
+introduction, the statements of its propositions and theorems, summary). It does not treat a panel
+answering one undivided question, nor selection by competence (`01` D48).
 
 **Mechanisms.** Consistent with §4: a multi-task mechanism makes truthful reports no worse than any
 strategy and strictly better than uninformed ones, its detail-free form learning its statistics
