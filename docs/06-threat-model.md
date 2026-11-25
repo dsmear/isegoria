@@ -1,8 +1,9 @@
 # Threat model
 
-This page describes the **offline answer review (D49–D53)**. Its contract is in
+This page describes the **offline answer review (D49–D53)** and, in its last section, the
+boundary of the Phase 2 network it is moving onto. Its contract is in
 [05](05-question-lifecycle.md#the-answer-review-01-d49d52); the owner's accepted risks
-are in [01, D48](01-decisions.md). Earlier filters and network mechanisms are separate.
+are in [01, D48](01-decisions.md). The earlier engine's filters are separate.
 
 ## Attack surface and countermeasures
 

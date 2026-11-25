@@ -1,8 +1,9 @@
 # Question lifecycle and protocol
 
-The current Phase 1 contract is the answer review below (D49–D53). The later
-numbered steps [1]–[9] specify the separate, retained forecast-and-pilot path; none is
-an additional acceptance gate for the answer review.
+This document specifies the answer review (D49–D53), then its integration between nodes
+for Phase 2 (§Distributed integration, D60), then, in the numbered steps [1]–[9], the
+separate, retained forecast-and-pilot path; none of those steps is an additional acceptance
+gate for the answer review.
 
 ## The answer review (`01` D49–D52)
 

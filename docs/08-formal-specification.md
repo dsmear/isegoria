@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | DRAFT — independent audit of commit `c4a09b1f778037c9d80dd7a85f3243311a1714ec` (2026-09-16). Not yet reviewed by the maintainers. |
+| **Status** | Independent audit of commit `c4a09b1f778037c9d80dd7a85f3243311a1714ec` (2026-09-16), drafted before the maintainers' review; their remediation log, re-checks and later reviews follow in §0-bis–§0-quinquies, and the tests (§12), gaps (§14) and claim/evidence matrix (§15) are kept current. |
 | **Intended path** | `docs/08-formal-specification.md` |
 | **Companion** | `docs/07-verification-and-assurance.md` (methodology); §15 below (verification matrix); `docs/15-phase1-review.md` (current review and correction register) |
 | **Normative language** | MUST / MUST NOT / SHOULD / SHOULD NOT / MAY as in RFC 2119. |

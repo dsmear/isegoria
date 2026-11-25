@@ -5,16 +5,86 @@ The decisions here are the **recorded design choices**; amendments explicitly
 supersede earlier choices. Implementation does not establish every claim in a
 decision's rationale. The open Phase 1 review findings are tracked in
 [`15-phase1-review.md`](15-phase1-review.md). New decisions and amendments are stated
-explicitly; D44 records the owner's foundational direction of 2026-10-18 without choosing
-new numerical thresholds; D45 the owner's decision of 2026-10-20 that Isegoria assumes an
-open environment, and D46 the assessment's priorities in it; D47 the owner's decision of
-2026-10-21 that reviewers answer the item and their reliability is evaluated over time; D48 the
-owner's decisions for its first implementation: reviewers drawn from the pool with equal weights,
-the consensus of their answers as the review's operational criterion, the evaluation of their
-reliability deferred; D49–D52 the owner's approved contract for the *answer review*, the offline
-path that implements them: a drawn group of 12, a quorum of 9 usable answers, three quarters to
-accept or discard, the author's reputation and quotas, and its perimeter; D53 the owner's
-confirmation, for its first offline version, of three implementation choices D49–D52 left open.
+explicitly; the index gives each decision's subject and status.
+
+## Index
+
+*In force*: current. *Earlier engine*: describes the forecast-and-pilot path, whose code is
+retained with its own contracts; it is not a condition of the answer review (D52).
+*Rectified*, *modified*, *amended*, *suspended* or *superseded by* another decision: as the
+note at the head of the decision states. D44–D46 set principles, D47–D53 the answer review,
+D54–D68 the Phase 2 network and trial.
+
+| Decision | Subject | Status |
+|---|---|---|
+| [D1](#d1--quality-is-not-decided-by-majority) | Quality is not decided by majority | Earlier engine; rectified by D48 for the answer review |
+| [D2](#d2--bridging-instead-of-vote-averaging) | Bridging instead of vote averaging | Earlier engine; whether bridging reads answers is open (D47) |
+| [D3](#d3--final-truth-comes-from-data-not-from-judgments) | Final truth comes from data, not from judgments | Earlier engine; not a condition of the answer review (D52) |
+| [D4](#d4--dif-on-latent-axes-not-on-declared-attributes) | DIF on latent axes, not on declared attributes | In force (invariant 1) |
+| [D5](#d5--reputation-two-separate-scores-never-combined) | Reputation: two separate scores, never combined | In force (invariant 4); every reviewer weighs the same in the answer review (D48) |
+| [D6](#d6--evaluator-score-with-its-own-scoring-rule-not-a-schelling-point) | Evaluator score with its own scoring rule, not a Schelling point | Modified by D47; reviewers' evaluation deferred (D48) |
+| [D7](#d7--sublinear-anti-collusion-discount) | Sublinear anti-collusion discount | Superseded for the protocol by D40 |
+| [D8](#d8--appeal-to-evidence-channel) | Appeal-to-evidence channel | Earlier engine; the answer review has no appeal (D50) |
+| [D9](#d9--anonymity-as-the-base-uniqueness-solved-externally) | Anonymity as the base; uniqueness solved externally | In force (invariant 1) |
+| [D10](#d10--spam-control-lottery--rate-limiting-nullifier-not-a-low-quota) | Spam control: lottery + rate-limiting nullifier, not a low quota | Earlier engine; the answer review has no admission lottery (D49–D52) |
+| [D11](#d11--two-stage-pilot) | Two-stage pilot | Earlier engine |
+| [D12](#d12--storage-p2p-signed-logs-not-a-permissionless-blockchain) | Storage: P2P signed logs, not a permissionless blockchain | In force |
+| [D13](#d13--no-money-as-stake-ever) | No money as stake, ever | In force (invariant 3) |
+| [D14](#d14--slower-but-better-hardenings-adoption-order) | "Slower but better" hardenings: adoption order | In force |
+| [D15](#d15--issuing-committee-separate-from-the-storage-consortium) | Issuing committee separate from the storage consortium | In force (invariant 6) |
+| [D16](#d16--consortium-selection-no-purely-technical-solution) | Consortium selection: no purely technical solution | Amended by D54 |
+| [D17](#d17--who-may-re-check-the-computation-consortium-now-cryptographic-proofs-later) | Who may re-check the computation: consortium now, cryptographic proofs later | In force; enforced on the replicated set by D54 |
+| [D18](#d18--a-lost-or-stolen-secret-is-not-recoverable) | A lost or stolen secret is not recoverable | In force |
+| [D19](#d19--only-ciespid-identities-at-launch-foreign-documents-deferred) | Only CIE/SPID identities at launch; foreign documents deferred | In force |
+| [D20](#d20--bias-detection-latent-class-method-in-production-attribute-based-only-in-pilots) | Bias detection: latent-class method in production, attribute-based only in pilots | Earlier engine |
+| [D21](#d21--honeypot-ground-truth-comes-from-validated-history-not-committee-opinion) | Honeypot ground truth comes from validated history, not committee opinion | Earlier engine |
+| [D22](#d22--enrollment-binds-the-anonymous-label-to-the-state-authenticated-identity) | Enrollment binds the anonymous label to the state-authenticated identity | In force |
+| [D23](#d23--evaluator-score-baseline-the-crowds-prediction-not-the-outcome-base-rate) | Evaluator score baseline: the crowd's prediction, not the outcome base rate | Earlier engine; modified by D47, refined by D33 |
+| [D24](#d24--one-documented-threshold-for-the-latent-bias-detector) | One documented threshold for the latent-bias detector | Earlier engine |
+| [D25](#d25--declared-ability-metric-guessing-correction-for-multiple-choice) | Declared ability metric; guessing correction for multiple-choice | Earlier engine |
+| [D26](#d26--borderline-items-more-reviewers-then-a-clean-re-decision) | Borderline items: more reviewers, then a clean re-decision | Earlier engine; amended 2026-09-25 |
+| [D27](#d27--appeal-cost-is-a-pseudo-observation-inside-the-author-score) | Appeal cost is a pseudo-observation inside the author score | Earlier engine; C6 amendment 2026-10-17; no appeal in the answer review (D50) |
+| [D28](#d28--sortition-members-act-under-a-dedicated-pseudonym) | Sortition members act under a dedicated pseudonym | In force |
+| [D29](#d29--public-randomness-comes-from-the-latest-signed-checkpoint) | Public randomness comes from the latest signed checkpoint | Superseded by D41 |
+| [D30](#d30--the-uniqueness-key-is-not-rotated-without-a-dedup-preserving-migration) | The uniqueness key is not rotated without a dedup-preserving migration | In force |
+| [D31](#d31--one-ideological-dimension-d1-for-now) | One ideological dimension (d=1) for now | Earlier engine |
+| [D32](#d32--bridge-score-side-balanced-predicted-approval-on-an-absolute-threshold) | Bridge score: side-balanced predicted approval on an absolute threshold | Earlier engine |
+| [D33](#d33--evaluator-score-leave-one-out-difference-score-odds-scale-weights-with-shrinkage) | Evaluator score: leave-one-out difference score, odds-scale weights with shrinkage | Earlier engine; modified by D47; guarantee amended 2026-10-12 |
+| [D34](#d34--reputation-dynamics-long-window-mean-plus-a-change-detector) | Reputation dynamics: long-window mean plus a change detector | Suspended by D47 |
+| [D35](#d35--scored-outcomes-live-items-with-randomized-exploration-golden-items-at-5) | Scored outcomes: live items with randomized exploration; golden items at 5% | Earlier engine; modified by D47 |
+| [D36](#d36--probation-30-scored-outcomes-then-shrinkage) | Probation: 30 scored outcomes, then shrinkage | Suspended by D47 |
+| [D37](#d37--latent-dif-anchor-reliability-precondition-θ-inside-the-likelihood-as-the-target-model) | Latent DIF: anchor-reliability precondition; θ inside the likelihood as the target model | Earlier engine |
+| [D38](#d38--dif-is-not-bias-contested-facts-go-to-a-balanced-pool) | DIF is not bias: contested facts go to a balanced pool | Earlier engine |
+| [D39](#d39--coordination-is-detected-on-model-residuals-over-long-histories) | Coordination is detected on model residuals over long histories | Earlier engine |
+| [D40](#d40--a-detected-cluster-constrains-panel-assignment-not-weights) | A detected cluster constrains panel assignment, not weights | Earlier engine |
+| [D41](#d41--public-randomness-commit-reveal-now-a-unique-threshold-signature-after-the-dkg) | Public randomness: commit-reveal now, a unique threshold signature after the DKG | In force |
+| [D42](#d42--the-bridge-scores-sides-an-exact-cut-with-a-floor-predictions-on-the-scale-coverage) | The bridge score's sides: an exact cut with a floor, predictions on the scale, coverage | Earlier engine |
+| [D43](#d43--latent-dif-one-template-per-batch-the-abilitys-shape-estimated) | Latent DIF: one template per batch; the ability's shape estimated | Earlier engine |
+| [D44](#d44--foundational-principles-for-relevance-fairness-and-empirical-progress) | Foundational principles for relevance, fairness and empirical progress | In force (owner direction, 2026-10-18); chooses no numerical threshold |
+| [D45](#d45--an-open-environment-performance-with-outside-resources-not-unaided-knowledge) | An open environment: performance with outside resources, not unaided knowledge | In force |
+| [D46](#d46--assessment-priorities-correct-answers-and-claims-weighed-against-their-evidence) | Assessment priorities: correct answers, and claims weighed against their evidence | In force |
+| [D47](#d47--reviewers-answer-the-item-their-reliability-is-evaluated-over-time) | Reviewers answer the item; their reliability is evaluated over time | In force; modified by D48 |
+| [D48](#d48--first-implementation-drawn-reviewers-equal-weights-consensus-on-the-answers) | First implementation: drawn reviewers, equal weights, consensus on the answers | In force; settled by D49–D52 (invariant 2 rectified) |
+| [D49](#d49--the-answer-review-drawn-group-answers-closure-and-outcome) | The answer review: drawn group, answers, closure and outcome | In force; D53 confirms three choices |
+| [D50](#d50--the-authors-reputation-in-the-answer-review) | The author's reputation in the answer review | In force |
+| [D51](#d51--the-authors-quotas-in-the-answer-review) | The author's quotas in the answer review | In force |
+| [D52](#d52--the-answer-reviews-perimeter-guarantees-and-parameters-a2s-disposition) | The answer review's perimeter, guarantees and parameters; A2's disposition | In force |
+| [D53](#d53--the-answer-review-offline-the-pool-the-draw-after-the-closure-a-final-unavailability) | The answer review offline: the pool, the draw after the closure, a final unavailability | In force |
+| [D54](#d54--who-reads-the-replicated-set-three-tiers-commitments-in-public-blind-relays-a-state-tree-keyed-by-nym) | Who reads the replicated set: three tiers, commitments in public, blind relays, a state tree keyed by nym | In force |
+| [D55](#d55--phase-2-ends-with-an-independently-operated-p2p-testnet) | Phase 2 ends with an independently operated P2P testnet | In force |
+| [D56](#d56--state-tree-commitments-and-continuity-through-forks) | State-tree commitments and continuity through forks | In force |
+| [D57](#d57--the-independent-operator-trials-operating-contract) | The independent-operator trial's operating contract | In force |
+| [D58](#d58--the-trial-members-identity-record-t88-increment-a) | The trial members' identity record (T88, increment A) | In force |
+| [D59](#d59--the-trial-members-sync-with-two-other-members-t88-increment-b) | The trial members' sync with two other members (T88, increment B) | In force |
+| [D60](#d60--the-answer-review-between-nodes-t79s-contract) | The answer review between nodes: T79's contract | In force |
+| [D61](#d61--t19-inside-milestone-2-the-issuing-committee-operated-by-the-trials-members) | T19 inside Milestone 2: the issuing committee, operated by the trial's members | In force |
+| [D62](#d62--assurance-of-phase-2s-code-fuzzing-before-gate-2-mutation-testing-outside-the-milestone) | Assurance of Phase 2's code: fuzzing before gate 2, mutation testing outside the milestone | In force |
+| [D63](#d63--the-trials-issuing-committee-t19s-contract) | The trial's issuing committee: T19's contract | In force |
+| [D64](#d64--choices-left-open-by-t79s-second-increment-t89s-first-part-and-t19s-first-step) | Choices left open by T79's second increment, T89's first part and T19's first step | In force |
+| [D65](#d65--the-test-issuer-is-provisional-the-persons-side-moves-into-the-client) | The test issuer is provisional; the person's side moves into the client | In force |
+| [D66](#d66--choices-left-open-by-t79s-increment-3-and-t19s-ceremony-tool) | Choices left open by T79's increment 3 and T19's ceremony tool | In force |
+| [D67](#d67--choices-left-open-by-t79s-increment-3-in-the-gateway-and-the-client) | Choices left open by T79's increment 3 in the gateway and the client | In force |
+| [D68](#d68--the-reviews-findings-and-the-trials-evidence-t79-increment-4-t19) | The reviews' findings and the trial's evidence (T79 increment 4, T19) | In force |
 
 ---
 

@@ -1,5 +1,10 @@
 # Scoring engine — mathematical specification
 
+This document specifies the earlier engine's three levels — bridging consensus (A),
+empirical validation (B) and reputation (C) — and, in §C.1, the author index the answer
+review also uses. The answer review's own rule is in
+[05](05-question-lifecycle.md#the-answer-review-01-d49d52).
+
 The engine is **deterministic**: given the same input (node×question ratings,
 respondent×question answers), it produces the same output. The Rust implementation
 has scoped Python oracles and deterministic golden-output tests; `sim/` also retains

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Task** | T44 in `docs/10-roadmap.md`: fuzz every byte decoder, classify every `unwrap`/`expect`/`assert` in `src/`, and turn the ones that external input can reach into errors |
+| **Task** | T44 in `docs/10-roadmap.md`: fuzz every byte decoder, classify every `unwrap`/`expect`/`assert` in `src/`, and turn the ones that external input can reach into errors; since 2026-11-10 also T89's part 1, the decoders a trial node or the participants' client reads from another machine (§4) |
 | **Audited** | master `6c61263`, 2026-09-24; the inventory re-checked after rebasing onto T41 (`dd7a6b6`): unchanged in `protocol` and `scoring`; and after merging T48 (`57bdca1`): one new internal-invariant site in `scoring` (§2.3) |
 | **Changed** | `crates/network`, `crates/identity`; `crates/scoring` (`bridging`) with T62, 2026-09-24 |
 | **Classified only** | `crates/protocol`, and `crates/scoring` outside `bridging`: being changed in parallel at the time (T41, the scoring half of T42, T48), so their sites are recorded here and not touched; the shape preconditions of the other `scoring` entry points were probed with T62 (§2.3) and are T46's |
