@@ -116,8 +116,9 @@ contract leaves to the implementation:
 member's node running it and the protocol side of participants — gateway admission, private
 reads and their inner seal — are built and wired into the member's gateway (§Built on cuts,
 §Built in the node, §Built for participants), with the provisional test issuer (D65) and the
-participant's client (§Built for participants); gate 1 runs end to end as processes on one
-machine (`10` §2.3's increment 4, §Gate 1 on one machine), not yet as the recorded trial.**
+participant's client (§Built for participants); gate 1 ran end to end as processes on one
+machine (§Gate 1 on one machine), and its record against a pinned revision passed and was
+accepted by the owner on 2026-11-11 (`16` §Gate 1).**
 *Approved* restates an earlier decision or a built network rule; *consequence* is what the
 current code forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision
 recorded in D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04`

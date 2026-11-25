@@ -427,10 +427,11 @@ entry points:
 - **Network codecs**: the node's own files are the first (T13, `network/store`, fuzzed).
   The node's events (T73, `protocol/event`) and nullifier proofs (`identity/nullifier_proof`)
   followed, then the replication messages (T18, `network/replica`); §4's T89 list holds
-  what a trial node and the participants' client read, through T79's fourth increment. T74
-  will add wire formats for checkpoints, signatures, receipts, shards and OPRF partials; each needs
-  a fuzz target of the same kind, and the `credential` sites marked "becomes external"
-  above turn into errors when the committee goes remote.
+  what a trial node and the participants' client read, through T79's fourth increment. T74's
+  cuts have `network/cut`; checkpoints, receipts and shards have their targets (§4). The OPRF
+  partials have no wire format while the uniqueness committee runs in one process (T19's open
+  part); when it goes remote they need a target of the same kind, and the `credential` sites
+  marked "becomes external" above turn into errors.
 - **Fuzzing in CI**: the targets are not built by CI (they need nightly). A scheduled job
   running each for a few minutes would keep them from rotting.
 - **Noticed, not panics**: `Consortium::new` accepted a threshold of 0, which accepts any

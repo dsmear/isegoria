@@ -112,7 +112,7 @@ fn a_stage_below_its_respondent_floor_is_rejected() {
     let formats = Formats::open(60, 3);
     assert!(screen(&respondents(N1_MIN), &pilot.0, &pilot.1, &formats).is_ok());
 
-    // The latent re-check's floor is the largest of the three (`docs/08` §B.6).
+    // The latent re-check's floor is the largest of the three (`docs/02` §B.6).
     let n = N_LATENT_MIN - 1;
     assert_eq!(
         revalidate_batch_latent(

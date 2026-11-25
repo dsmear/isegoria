@@ -288,7 +288,8 @@ instead of permanent.
 
 ## D17 — Who may re-check the computation: consortium now, cryptographic proofs later
 
-> **Enforced on the replicated set by D54 (2026-10-07)**, to be built (`10` T77, T85, T86).
+> **Enforced on the replicated set by D54 (2026-10-07)**: built for tiered networks (`10` T77,
+> T85; T86's first increment), status in `10` §2.3.
 
 **Choice.** Verifying the scores requires the votes, and votes are **never published
 in the clear** (that would enable statistical de-anonymization). Therefore:

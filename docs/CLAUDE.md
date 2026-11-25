@@ -16,7 +16,7 @@ D52 states they are not conditions of the answer review (below).
 1. **Anonymity is the base.** No personal, demographic, or affiliation data ever
    enters the system. Nodes are pseudonymous IDs and nothing else. Do not add
    "optional" fields that collect people's attributes, not even to improve DIF: the
-   bias analysis runs on latent axes, not on declared labels (see `02`, §DIF).
+   bias analysis runs on latent axes, not on declared labels (see `02`, §B.3).
 
 2. **Consensus is an operational criterion, never a guarantee of truth.** Until D47 this
    invariant banned deciding quality by voting in any mechanism; `01` D48 rectifies that ban.

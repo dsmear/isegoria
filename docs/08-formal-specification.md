@@ -800,7 +800,7 @@ Each critical claim carries the full block required by `docs/07` §4. Secondary 
 
 #### NET-011 — Durability and crash recovery of a node's log
 - **Claim (`docs/04` §A node's own disk).** After a restart a node holds exactly the log entries it acknowledged, and every object it stored under its CID; a crash costs at most the write it tore, which was never acknowledged; damage a crash cannot produce is refused, not repaired.
-- **Evidence status.** IMPLEMENTED, TESTED (T13). `network::store::{DurableLog, ObjectStore}`: two append-only files behind a 16-byte versioned header, a write synced before it is acknowledged; on open every log record is re-chained, a torn tail (a short record, or a final record that fails its check) is cut on disk and reported (`Recovery`), an earlier bad record is `Corrupt`, a length above `MAX_OBJECT` (16 MiB) is `TooLarge` before anything is sized from it, and an object is re-hashed on every read. `durable_store.rs` (AT-NET-11): a crash at every byte of a five-entry log keeps exactly the complete entries; a damaged byte in any field of any earlier record refuses the file; properties over hostile bytes; fuzz target `network/fuzz/store`. The derived protocol state is not yet rebuilt from the log: T73 (typed events and replay, with the proof codecs). Power-loss durability rests on `fsync` (`sync_data`, and the directory on creation), which a test cannot observe.
+- **Evidence status.** IMPLEMENTED, TESTED (T13). `network::store::{DurableLog, ObjectStore}`: two append-only files behind a 16-byte versioned header, a write synced before it is acknowledged; on open every log record is re-chained, a torn tail (a short record, or a final record that fails its check) is cut on disk and reported (`Recovery`), an earlier bad record is `Corrupt`, a length above `MAX_OBJECT` (16 MiB) is `TooLarge` before anything is sized from it, and an object is re-hashed on every read. `durable_store.rs` (AT-NET-11): a crash at every byte of a five-entry log keeps exactly the complete entries; a damaged byte in any field of any earlier record refuses the file; properties over hostile bytes; fuzz target `network/fuzz/store`. The derived protocol state is rebuilt from the log since T73 (typed events and replay, with the proof codecs). Power-loss durability rests on `fsync` (`sync_data`, and the directory on creation), which a test cannot observe.
 
 #### NET-012 — Our encoding refuses what it cannot represent
 - **Claim (`docs/04` §Events and replay).** `network::codec` decodes only what it wrote: a read past the end, a length above what the input still holds (checked before anything is sized from it) and trailing bytes are refused; a decoder never panics.
@@ -1474,6 +1474,11 @@ and the scoped composed/numerical integration evidence are specified only in `16
 
 The tree below realizes `docs/07` §24. Existing tests are listed where they should move; new tests reference §12.
 
+*As adopted.* The tree was not created and no test moved: tests sit beside their crates
+(`crates/*/tests`, unit tests in `src/`, fuzz targets in `crates/*/fuzz`), named by §12's AT ids;
+the characterization reports are in `verification/reports/`; the claim/evidence matrix stays
+in §15, with no separate `09`. The tree remains the audit's map from each check to its kind.
+
 ```
 verification/
 ├── invariants/                 INV-1…INV-14 as executable checks where possible
@@ -1643,7 +1648,7 @@ Only gaps supported by evidence in the repository are listed. Each gives: locati
 *Why it matters.* Milestone 2 needs the answer review on independently operated nodes (D55). Member nodes now run it on their cuts and participants reach it through the client and blind relays, but only under one operator on one machine (gate 1's process test, `docs/05` §Gate 1 on one machine): nothing yet shows it across machines or operators.
 *Minimum spec.* The integration contract in `docs/05` §Distributed integration (T79-P1–P7, approved in `docs/01` D60): authenticated events and configuration, pool snapshot and delayed beacon, closure authority/timing, missing-beacon behavior, access tiers and member validation before co-signing. Preserve D49–D53; the old admission lottery, pilots, appeals and supplementary rounds are not T79 requirements.
 *Test.* T79's end-to-end answer-review checks, then `docs/10` Milestone 2's independent-operator trial; invalid derived steps are not co-signed, and delayed/duplicate messages and restarts preserve outcomes and author state.
-*Status.* OPEN; contract approved 2026-11-03 (D60); the state on signed cuts built and tested in process (T79's first increment, AT-T79-1–16, 2026-11-04); the member's node and the participants' path built (increments 2 and 3); gate 1 run end to end as processes on one machine under one operator (increment 4, AT-T79-50–59, 2026-11-11); the recorded trial and gates 2–3 not run; the offline T87 closure supplies no distributed-runtime evidence.
+*Status.* OPEN; contract approved 2026-11-03 (D60); the state on signed cuts built and tested in process (T79's first increment, AT-T79-1–16, 2026-11-04); the member's node and the participants' path built (increments 2 and 3); gate 1 run end to end as processes on one machine under one operator (increment 4, AT-T79-50–59, 2026-11-11), its record passed and accepted by the owner (2026-11-11, `docs/16` §Gate 1); gates 2–3 not run; the offline T87 closure supplies no distributed-runtime evidence.
 
 **G-23 — A writer does not rebuild its feed from the replicas.**
 *Location.* `crates/p2p/src/lib.rs` (`open_own`, `Node::publish`), `docs/04` §A node's own disk (Recovery, rule 2) and §A writer's own feed.
