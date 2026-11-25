@@ -1,8 +1,9 @@
 # Threat model
 
-This page describes the **offline answer review (D49–D53)**. Its contract is in
+This page describes the **offline answer review (D49–D53)** and, in its last section, the
+boundary of the Phase 2 network it is moving onto. Its contract is in
 [05](05-question-lifecycle.md#the-answer-review-01-d49d52); the owner's accepted risks
-are in [01, D48](01-decisions.md). Earlier filters and network mechanisms are separate.
+are in [01, D48](01-decisions.md). The earlier engine's filters are separate.
 
 ## Attack surface and countermeasures
 
@@ -86,19 +87,24 @@ Using performance to assign political weight or authority needs a separate justi
 
 ## Phase 2 network boundary
 
-The node process handles replication, cuts and the beacon; a tiered member also runs the
-answer review on the signed cuts (T79, `05` §Built in the node). Configured with tiers, it
-serves a peer outside the circle the public tier only, its binding checked against the
-peer's authenticated transport key (T77, tested on loopback); without tiers it still
-serves its whole set to any connected peer. The blind relay channel exists (T85's first
-increment, tested on loopback), and a member's gateway admits persons' answer-review
-events and answers their private reads through it (T79's third increment), run end to end
-only under one operator on one machine (`05` §Gate 1 on one machine); the state tree's
-primitives exist (T86's first increment, synthetic records) but no node produces or reads
-a tree, and relays still write in a network without tiers: run such a network only among
-machines its operator controls. Draft and panel privacy, unlinkability by network address
-and the private fork path are design obligations, not protections the runtime already
-provides.
+What the runtime protects today:
+
+- **The answer review on nodes** (T79). The node process handles replication, cuts and the
+  beacon; a tiered member also runs the answer review on the signed cuts (`05` §Built in
+  the node).
+- **Access tiers** (T77, tested on loopback). Configured with tiers, a node serves a peer
+  outside the circle the public tier only, its binding checked against the peer's
+  authenticated transport key. Without tiers it still serves its whole set to any connected
+  peer, and relays still write: run such a network only among machines its operator controls.
+- **Blind relays** (T85's first increment, tested on loopback). The channel exists, and a
+  member's gateway admits persons' answer-review events and answers their private reads
+  through it (T79's third increment), run end to end only under one operator on one machine
+  (`05` §Gate 1 on one machine).
+- **The state tree** (T86's first increment, synthetic records). Its primitives exist, but
+  no node produces or reads a tree.
+
+Draft and panel privacy, unlinkability by network address and the private fork path are
+design obligations, not protections the runtime already provides.
 
 D55 targets independently operated experimental nodes; independent administration
 does not make the present cut protocol Byzantine-tolerant. Its agreement argument
@@ -122,5 +128,6 @@ single-key test issuer alone (`01` D60), at gate 3 any `t` members of the issuin
 Decisions are in [01, D54–D68](01-decisions.md). Network contracts and residual limits
 are in [04](04-storage-network.md); the integration contract, approved in D60, in
 [05](05-question-lifecycle.md#distributed-integration-t79--approved-contract-d60).
-[10 §2](10-roadmap.md#phase-2--p2p-network) defines the planned trial; its evidence
-has not been established by the existing loopback tests.
+[10 §2](10-roadmap.md#phase-2--p2p-network) defines the trial's three gates. Only gate 1,
+one operator on one machine, has passed ([record](24-milestone2-trial.md#gate-1--controlled-processes-on-one-machine-2026-11-11));
+separate machines and independent operators, gates 2 and 3, have not run.

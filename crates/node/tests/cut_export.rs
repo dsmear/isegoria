@@ -1,4 +1,4 @@
-//! Collected cut export from a stopped node's replica (`docs/04` §Collected cut export from a
+//! Collected cut export from a stopped node's replica (`docs/25` §Collected cut export from a
 //! stopped node's replica).
 
 #[path = "support/genesis.rs"]

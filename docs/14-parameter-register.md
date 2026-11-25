@@ -31,6 +31,8 @@ The register records provisional values; it does not close those findings.
 
 ## Level A — the bridging gate
 
+One entry for each threshold of the earlier engine's bridging gate.
+
 ### `τ` — the bridging threshold (0.80, provisional)
 
 - **Reason.** The opinion filter's bar (D32): a question passes when the mean of its two
@@ -270,6 +272,8 @@ floor prior's weight, `KR20_MIN` or a minimum number of anchors, `N_LATENT_MIN`,
 
 ## Level C — reputation and coordination
 
+Entries for the parameters of reputation and of coordination detection.
+
 **D47 (owner, 2026-10-21).** Reviewers answer the item; the reliability measure and its
 reputation update are still to define ([`01` D47](01-decisions.md)). **D48** defers that
 evaluation for the first implementation, which weighs reviewers equally and updates no reviewer
@@ -367,7 +371,7 @@ exist, diagnostic behavior is unimplemented; prior detector rates do not charact
 ## Archive layout
 
 T84 takes explicit `(k, m)` inputs: positive data and parity counts, with `k+m ≤ 256`,
-subject to the byte limits in [04](04-storage-network.md#public-archive-segments-t84-first-increment).
+subject to the byte limits in [04](25-public-archive.md#public-archive-segments-t84-first-increment).
 There is no deployment default. Small test layouts establish reconstruction behavior,
 not a calibrated operating point. Before deployment, record the expected failure domains,
 maximum simultaneous holder loss, storage overhead and repair-bandwidth objectives;

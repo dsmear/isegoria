@@ -1,8 +1,9 @@
 # Question lifecycle and protocol
 
-The current Phase 1 contract is the answer review below (D49–D53). The later
-numbered steps [1]–[9] specify the separate, retained forecast-and-pilot path; none is
-an additional acceptance gate for the answer review.
+This document specifies the answer review (D49–D53), then its integration between nodes
+for Phase 2 (§Distributed integration, D60), then, in the numbered steps [1]–[9], the
+separate, retained forecast-and-pilot path; none of those steps is an additional acceptance
+gate for the answer review.
 
 ## The answer review (`01` D49–D52)
 
@@ -112,12 +113,13 @@ contract leaves to the implementation:
 
 ## Distributed integration (T79) — approved contract (D60)
 
-**Status (2026-11-11): approved by the owner (`01` D60); the state on signed cuts, a
-member's node running it and the protocol side of participants — gateway admission, private
-reads and their inner seal — are built and wired into the member's gateway (§Built on cuts,
-§Built in the node, §Built for participants), with the provisional test issuer (D65) and the
-participant's client (§Built for participants); gate 1 runs end to end as processes on one
-machine (`10` §2.3's increment 4, §Gate 1 on one machine), not yet as the recorded trial.**
+How the answer review runs between nodes: which events a person may send and how they are
+authenticated, what members check before co-signing a step, how participants reach members
+through relays and read their own records, and what each node shows its operator.
+
+**Status:** approved by the owner (`01` D60). What is built is specified as built in §Built on
+cuts, §Built in the node and §Built for participants, with the provisional test issuer (D65);
+gate 1's test is §Gate 1 on one machine, its record `24`; the task's state is `10` T79.
 *Approved* restates an earlier decision or a built network rule; *consequence* is what the
 current code forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision
 recorded in D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04`
@@ -712,6 +714,9 @@ reveal) draws nothing; its deposits wait for the next epoch.
 
 ## [4] Review: random, blind, commit-reveal assignment
 
+In the earlier path a question goes to a panel drawn at random; each panelist rates it without
+seeing the others, committing before revealing.
+
 > **Revised by D40 (done, T57) and D41 (done, T37).** A panel holds at most one member of
 > each cluster flagged by the coordination detector (D39, `review::assign_diverse`), the
 > band's extra round included; every draw uses the epoch's beacon, made by commit-reveal
@@ -872,6 +877,8 @@ D27).
 
 ## [8] Active pool and re-validation
 
+Questions in use are checked again over time:
+
 - **Periodic re-validation of the whole pool**, the contested pool included ([7b]):
   scattered distortions add up over time until they become visible; an item accepted
   today can develop DIF as the context changes.
@@ -894,6 +901,9 @@ An item used a lot gets memorized and circulates: it loses value. Countermeasure
 ---
 
 ## Golden items (honeypot)
+
+Golden items are questions whose outcome is already known, mixed among those under review to
+score the earlier path's reviewers.
 
 > **D47 (2026-10-21).** Golden items and exploration scored the previous design's forecast.
 > Exploration is suspended; whether and how golden items serve the reviewers' reliability belongs
@@ -920,6 +930,8 @@ defense against meta-level capture: they must not be choosable by anyone.
 ---
 
 ## Cold start (bootstrap)
+
+How the earlier path starts before anyone has a reputation:
 
 - **A founder set** publicly declared, deliberately heterogeneous in orientation and
   provenance, all with identical weight `w = 1` for the bootstrap: until 30 scored

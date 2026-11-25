@@ -16,7 +16,7 @@ D52 states they are not conditions of the answer review (below).
 1. **Anonymity is the base.** No personal, demographic, or affiliation data ever
    enters the system. Nodes are pseudonymous IDs and nothing else. Do not add
    "optional" fields that collect people's attributes, not even to improve DIF: the
-   bias analysis runs on latent axes, not on declared labels (see `02`, §DIF).
+   bias analysis runs on latent axes, not on declared labels (see `02`, §B.3).
 
 2. **Consensus is an operational criterion, never a guarantee of truth.** Until D47 this
    invariant banned deciding quality by voting in any mechanism; `01` D48 rectifies that ban.
@@ -67,19 +67,22 @@ D52 states they are not conditions of the answer review (below).
 
 ## Current priorities
 
-Phase 2 targets an independently operated experimental P2P testnet (D55).
-Follow `10` §2: T88's contract is approved (`01` D57) and may be implemented in authorized
-increments; T79's contract is approved (`01` D60) and is implemented in `10` §2.3's four
-increments; it remains the final runtime integration (T19 does not count as one), followed
-by the independent-operator trial. Inside Milestone 2, T19 is the issuing committee only
-(`01` D61); its contract in `03` is approved (`01` D63) and follows T79's increments in
-`10` §2.3's order. T89's fuzzing precedes gate 2 (`01` D62); no campaign runs without
-authorization. Single-operator runs do not close the phase. Shared event formats, results,
-cuts and ledger must change together with their users. Do not restore legacy pilot gates or add automatic rounds through the
-integration. D54 is the network decision previously called D44 here.
+Phase 2 targets an experimental P2P testnet run by independent operators (`01` D55). Where
+it stands is in `handoff.md` §1; the work order and gates are `10` §2.
 
-Use `phase1-handoff.md` to resume. Task status belongs in `10-roadmap.md`, Milestone 2's gate
-records in `16-milestone2-trial.md`, review findings and evidence in `15-phase1-review.md`,
+- The operators' contract (T88, `01` D57), the answer review between nodes (T79, D60) and
+  the issuing committee's contract (T19, D63, in `03`) are approved; implement them only in
+  authorized increments, in `10` §2.3's order. T79 remains the final runtime integration
+  (T19's committee setup does not count as one), followed by the independent-operator
+  trial. Inside Milestone 2, T19 is the issuing committee only (D61).
+- The fuzzing of T89 precedes gate 2 (D62); no campaign runs without authorization.
+  Single-operator runs do not close the phase.
+- Shared event formats, results, cuts and ledger change together with their users. Do not
+  restore legacy pilot gates or add automatic rounds through the integration.
+- D54 is the network decision previously called D44 here.
+
+Use `handoff.md` to resume. Task status belongs in `10-roadmap.md`, Milestone 2's gate
+records in `24-milestone2-trial.md`, review findings and evidence in `15-phase1-review.md`,
 parameter procedures in `14-parameter-register.md`, and measurement provenance in
 `13-characterization.md`.
 Do not reopen or extend a closure without a concrete finding. Historical measurements
@@ -89,8 +92,8 @@ Inside a phase, fix defects before adding features. A code-defect correction sta
 with a test that fails on the current code. Documentation-only changes are checked
 against their sources and links; they do not require an artificial failing Rust test.
 Long characterization runs belong on the owner's machine and require explicit
-authorization; use targeted tests and the smoke grid during development. The design
-and implementation handoff is in `15-phase1-review.md`.
+authorization; use targeted tests and the smoke grid during development. The review
+findings' correction handoff is in `15-phase1-review.md`.
 
 ## Phase 1 direction: D47, D48 and the answer review (D49–D52, 2026-10-21)
 

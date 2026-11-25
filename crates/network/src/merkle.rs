@@ -1,4 +1,4 @@
-//! Merkle tree (`docs/04`, §Merkle tree): one root summarizes many records;
+//! Merkle tree (`docs/99`, §Merkle tree): one root summarizes many records;
 //! changing any record changes the root, visibly. Leaves and internal nodes are
 //! domain-separated to prevent second-preimage attacks.
 

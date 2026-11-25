@@ -687,7 +687,7 @@ impl Handle {
     }
 
     /// As [`Self::spawn`]; the node's task owns `held` and drops it after its stores, whether
-    /// the task ends or is canceled (`docs/04` §Initial archive installation on a holder).
+    /// the task ends or is canceled (`docs/25` §Initial archive installation on a holder).
     pub fn spawn_holding(
         key: identity::Keypair,
         mut config: Config,

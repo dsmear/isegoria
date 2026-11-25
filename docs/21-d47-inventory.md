@@ -27,7 +27,7 @@ Valid as they are under D47. Kept documents are realigned where they describe th
 | `README.md`, `ARCHITECTURE.md`, `docs/README.md`, `docs/CLAUDE.md`, `docs/00`, `01`, `02`, `05`, `06`, `07`, `10`, `13`, `14`, `15`, `99` | The active specification and registers; realigned to D47, with the previous design's sections marked as current code, not intended design. |
 | `docs/08` | A dated audit with remediation entries; its historical entries keep their scope, and a reading note points to D47. |
 | `docs/03`, `docs/04`, `docs/11`, `docs/12`, `docs/18` | Not about the reviewers' contribution: identity, the network (Phase 2), the mutation-testing runs and the panic audit (historical runs keep their scope), A3's closed correction of the engine's ability histogram. |
-| `docs/phase1-handoff.md` | Rewritten for D47; the previous note is archived. |
+| `docs/phase1-handoff.md` | Rewritten for D47, now `docs/handoff.md`; the previous note is archived. |
 | `scoring::{irt, dif, latent, dtf, glm, optim, fmath, validation}` | Level B's engine; D47 leaves its relation to the answers open, and its contracts stand. |
 | `scoring::bridging` | The fit reads any rating in `[0, 1]`; what it reads under D47 is open (D47, Level A). |
 | `scoring::collusion` | D39's detector on residuals; how it coexists with D47 is open, its code is not affected. |
@@ -141,6 +141,6 @@ split a mixed document. These are **residual separations**: the separation is no
 D48 settled part of D47's open points for the first implementation, and D49–D52 the rest for the
 answer review: the group, quorum and absences, thresholds and outcomes, "don't know", the source
 at deposit (D49), the author's reputation (D50) and quotas (D51), the previous filters' role, A2
-and Phase 1's completion (D52). What D49–D52 leave open is in the handoff (`phase1-handoff.md`
-§4). This inventory says where the material is; whether the existing path's code is later
+and Phase 1's completion (D52). What D49–D52 leave open is in the [handoff](handoff.md)
+(§3). This inventory says where the material is; whether the existing path's code is later
 adapted or retired is not decided here.

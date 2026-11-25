@@ -68,7 +68,8 @@ a civic quiz containing only tax questions would leave much of civic life out.
 - **In development:** connecting that process across computers, towards a small
   experimental network run by independent operators. Network components exist, and
   the complete review process runs as separate programs on one computer, not yet
-  between computers.
+  between computers. Its first recorded trial, on one computer, passed in November
+  2026; trials across separate computers, then among independent operators, come next.
 - **Not yet available:** a public quiz service, automatic assembly of balanced
   quizzes, or a validated measure of what respondents know. This is a research
   prototype, not a system ready for everyday use.
@@ -76,7 +77,8 @@ a civic quiz containing only tax questions would leave much of civic life out.
 ## Learn more
 
 - [Current rules and limits](docs/00-overview.md).
-- [Development progress and next steps](https://github.com/dsmear/isegoria/blob/feat/phase2-runtime/docs/10-roadmap.md).
+- [Where work stands and what to read first](docs/handoff.md).
+- [Development progress and next steps](docs/10-roadmap.md).
 - [Technical documentation and research history](docs/README.md).
 - [Code structure and testing](ARCHITECTURE.md).
 

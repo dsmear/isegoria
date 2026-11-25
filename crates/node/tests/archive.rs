@@ -1,4 +1,4 @@
-//! Operator-pinned archive configuration checks (`docs/04` §Archive maintenance in a node process).
+//! Operator-pinned archive configuration checks (`docs/25` §Archive maintenance in a node process).
 
 #[path = "support/genesis.rs"]
 mod genesis;

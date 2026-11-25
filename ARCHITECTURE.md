@@ -14,6 +14,8 @@ between the conceptual specification and the Rust implementation. Read
 - [`protocol` — lifecycle orchestration](#protocol--lifecycle-orchestration)
 - [`p2p` — the libp2p transport](#p2p--the-libp2p-transport)
 - [`node` — the node process](#node--the-node-process)
+- [`client`, `test-issuer`, `ceremony` — the participants' and committee's tools](#client-test-issuer-ceremony--the-participants-and-committees-tools)
+- [`trial` — the gates as processes](#trial--the-gates-as-processes)
 - [`characterization` — the characterization harness](#characterization--the-characterization-harness)
 - [Invariants and where they are enforced](#invariants-and-where-they-are-enforced)
 - [Reproducibility](#reproducibility)
@@ -57,10 +59,13 @@ protocol ──► scoring
         ├──► identity
         └──► network
 
-characterization ──► protocol, scoring, identity   (the characterization harness: a tool, not part of a node)
-p2p              ──► network             (the libp2p transport for replication, T18)
-node             ──► p2p, network        (the node process, T78)
-                 ──► protocol, identity  (only to validate a genesis's family parts, T88-P1)
+characterization ──► protocol, scoring, identity, network   (the characterization harness: a tool, not part of a node)
+p2p              ──► network                      (the libp2p transport for replication, T18)
+node             ──► p2p, network, protocol, identity   (the node process, T78; the answer review's state, T79)
+client           ──► p2p, network, protocol, identity   (a participant's tool, T79)
+test-issuer      ──► identity                     (the provisional single-key issuer, D65)
+ceremony         ──► identity, network            (the issuing committee's tool, T19)
+trial            ──► node, client, test-issuer, p2p, identity, network   (tests only: the gates as processes)
 
 scoring   (no internal deps; only rand, rand_chacha)
 identity  (sha2, voprf, curve25519-dalek, bbs_plus, schnorr_pok, arkworks,
@@ -70,8 +75,9 @@ p2p       (libp2p 0.56, tokio, futures, async-trait)
 node      (libp2p, tokio, serde, toml, ed25519-dalek)
 ```
 
-`scoring` sits at the bottom on purpose. `protocol` is the only crate that composes
-the other three.
+`scoring` sits at the bottom on purpose. Among the libraries, `protocol` composes the other
+three; the binaries (`node`, `client`, `test-issuer`, `ceremony`) and the `trial` tests compose
+the libraries.
 
 ## `scoring` — the deterministic engine
 
@@ -204,7 +210,7 @@ Offline node commands export a collected cut and extract a pinned cut's public s
 stopped node's replica, prepare it, independently reproduce and combine member signatures,
 and install a holder's assigned shard while its node is stopped
 (`archive::Admitted::install_offline`). Automatic extraction/production, remote provisioning,
-roster agreement and deployment orchestration remain open (`docs/04` §Archive holders and
+roster agreement and deployment orchestration remain open (`docs/25` §Archive holders and
 transfer through §Collected cut export from a stopped node's replica, T84).
 
 ## `protocol` — lifecycle orchestration
@@ -232,7 +238,7 @@ steps are seeded for reproducibility.
 | `offline_log` | §Events and replay (`docs/04`) | `OfflineRecord` (configuration, Begin, Event, End) — the offline node's versioned log records; declared context, not authenticated | `author_time`, `events`, `network::codec` |
 | `authorship` | §C.1 (`docs/15` C5–C6) | `author_records`, `AppealRequest`, `AppealRefusal`, `AuthorRecords`, `AuthorRecordsError` — the author records at a planned applying point from the node's state: unrecorded pilot conclusions, then the epoch's appeals selected in item-CID order, a request's window read before its coverage | `node`, `results`, `appeal` |
 | `pilot` | [6]/[7] | `stage1_screen`, `stage1_fit` and `stage1_verdicts` (`r_pbis`, then the one-class target model on the items it keeps, the ability held normal: `a`, `\|b\|`, the floor over chance — D25/T25 step 2; each item `Screening::{Pass, Fail, Indeterminate}`, indeterminate for every item of a fit that did not converge — `docs/15` A11), `stage2_dif` (calibration only; a separated or unconverged logistic fit `Undetermined`); batch/sample gates `screen`, `dif_batch`, `admit_dif_batch`, `admit_anchors` (KR-20 floor, D37/T53), `admit_templates` with `Templates` (one template per batch, D43/T82) (INV-8, T9) | `scoring::irt`, `scoring::dif` |
-| `honeypot` | Golden items | `inject`, `reviewer_skill`, `HONEYPOT_RATE` | `scoring::reputation` |
+| `honeypot` | Golden items | `inject`, `reviewer_skills`, `HONEYPOT_RATE` | `scoring::reputation` |
 | `exploration` | §C.2 exploration (D35) | `explore`, `explore_from_beacon`, `EXPLORATION_RATE`, `Observation`, `Scored`, `outcome_of`, `record_outcome`, `FalseNegatives` — the beacon's draw of gate rejections piloted for measurement only, their outcomes into the reviewers' tracks at weight `1/ε`, the gate's false-negative rate (T52) | `lifecycle`, `probation`, `randomness`, `scoring::reputation` |
 | `governance` | Meta-level | `stratified_sortition` (a function of the candidate set, T72), `change_approved` | — |
 | `probation` | Cold start / P2 | `status`, `review_weight`, `effective_review_weight` (of a `ReviewerStanding`: the capped odds weight, D33; the founder seed only with no alarm on record, `docs/15` A6), `SkillTrack` (the mean, the count and the CUSUM; an alarm → probation, a founder's too, D34; `record_observed` at `1/π`, `record_unobserved`, `reference` — the inverse-probability mean over every reviewed item, the detector on the unweighted scores, D35/T52), `FounderSet`, `N_PROBATION` (30, D36) | `identity::nym`, `scoring::reputation` |
@@ -323,14 +329,21 @@ in every tiered member; `request` for `--request`, an operator's closure request
 Maintenance shutdown awaits the active pass. Depends on `p2p` and `network`, on `protocol` for
 the genesis and the answer review's state (T79, second increment), on `identity` for the genesis.
 
-`isegoria-test-issuer` (`crates/test-issuer`, `docs/05` §Distributed integration, credentials
-before T19): the provisional single-key test issuer, `--new-key` and `--issue` (D65); a crate
-apart so no node links the issuer key. `isegoria-client` (`crates/client`, `docs/05` §Built for
-participants): a participant's credentials (the test issuer's and the committee's by files),
-events and private reads, sealed to a member's key through a listed relay. `isegoria-ceremony` (`crates/ceremony`, `docs/03` §Committee setup for the trial, T19):
-the issuing committee's ceremony tool, one step per invocation over files carried by hand;
-`identity::credential::ceremony` holds one member's flights and issuance per slot. `trial`
-(`crates/trial`, `docs/05` §Gate 1 on one machine): no code of its own; it builds the node's,
+## `client`, `test-issuer`, `ceremony` — the participants' and committee's tools
+
+- `isegoria-client` (`crates/client`, `docs/05` §Built for participants): a participant's
+  credentials (the test issuer's and the committee's by files), events and private reads, sealed
+  to a member's key through a listed relay.
+- `isegoria-test-issuer` (`crates/test-issuer`, `docs/05` §Distributed integration, credentials
+  before T19): the provisional single-key test issuer, `--new-key` and `--issue` (D65); a crate
+  apart so no node links the issuer key.
+- `isegoria-ceremony` (`crates/ceremony`, `docs/03` §Committee setup for the trial, T19): the
+  issuing committee's ceremony tool, one step per invocation over files carried by hand;
+  `identity::credential::ceremony` holds one member's flights and issuance per slot.
+
+## `trial` — the gates as processes
+
+`crates/trial` (`docs/05` §Gate 1 on one machine) has no code of its own: it builds the node's,
 the client's and the test issuer's own `main.rs` as `trial-node`, `trial-client` and
 `trial-test-issuer`, so that its tests run them as processes: gate 1 (`scripts/gate1.sh`) and
 gate 2's rehearsal in network namespaces (`scripts/gate2-rehearsal.sh`, `docs/05`).
@@ -369,7 +382,7 @@ The invariants from [`docs/CLAUDE.md`](docs/CLAUDE.md):
 | 3 | No money as stake | Bond is reputation (`protocol::deposit`, `scoring::reputation`) |
 | 4 | Two reputation scores, never combined | `scoring::reputation` (`author_score` vs `loo_scores`/`odds_weight`, the previous design's evaluator score; under D48 the first implementation weighs reviewers equally and defers their evaluation); separate role nyms in `identity::nym` |
 | 5 | One role, one deterministic non-rotatable pseudonym | `identity::nym::derive_nym` |
-| 6 | The state authenticates, does not issue | `identity::enrollment` (`UniquenessOracle`) separate from `credential::BlindIssuer` |
+| 6 | The state authenticates, does not issue | `identity::enrollment` (`UniquenessOracle`) separate from `credential::{Issuer, ThresholdIssuer}` |
 | 7 | Scoring is deterministic and reproducible | `scoring` (pinned toolchain, seeded RNG); `tests/reproducibility.rs` |
 | 8 | Empirical validation happens in batches | `protocol::revalidation::latent_batch` and the batch admission gates; historical single-item tests show low detection in their regime, not universal non-identifiability (`docs/15` A8) |
 
@@ -469,6 +482,8 @@ cargo clippy --workspace --all-targets
 
 ## Plug points: real vs. placeholder
 
+What each concern runs on today; task status is in the [roadmap](docs/10-roadmap.md).
+
 | Concern | Status | Production backend |
 |---|---|---|
 | Bridging, IRT, DIF, reputation, anti-collusion | **Real** | — |
@@ -484,7 +499,7 @@ cargo clippy --workspace --all-targets
 | Blind relays | **Channel real, loopback-tested, reviewed** — signed key configurations, relay and gateway over libp2p with Oblivious HTTP, receipts of the circle entry, duplicates answered once (T85, first increment); a member's gateway admits persons' answer-review events and answers their private reads through its hook (T79 increment 3) | a limit on a relay's volume; a run across machines |
 | Who may read the replicated set | **Real for tiered networks, loopback-tested** — the binding on each connection, every message filtered by verified access, a member's two feeds, a public reader on an `Observer` (T77, reviewed on loopback evidence; no multi-operator run); **none without tiers** — a node serves its whole set to any peer, against D17 | D54: three tiers, two feeds per member, the circle served only to member-bound transport keys (T77); blind relays (T85); a state tree keyed by nym (T86) |
 | A node process | **Real** — `isegoria-node` from a TOML configuration, its files resumed on restart, its status on a period (T78) | separate machines and independent operators (`docs/10` Milestone 2) |
-| Answer review between nodes | **In member nodes, loopback-tested** — `protocol::answer_ledger` run by `node::answer::AnswerHook`, closures by `--request`, the state digest in the status (T79 increments 1–2); gateway admission, private reads and their inner seal in `protocol::{answer_gateway, answer_read, answer_seal}`, wired into the member's gateway (`…/event`, `…/read`), and `isegoria-client` (T79 increment 3); gate 1 end to end as processes on one machine (T79 increment 4, `crates/trial`); the legacy ledger decodes `NodeEvent` | the recorded gate-1 trial and gates 2–3 (`docs/10` Milestone 2) |
+| Answer review between nodes | **In member nodes, loopback-tested** — `protocol::answer_ledger` run by `node::answer::AnswerHook`, closures by `--request`, the state digest in the status (T79 increments 1–2); gateway admission, private reads and their inner seal in `protocol::{answer_gateway, answer_read, answer_seal}`, wired into the member's gateway (`…/event`, `…/read`), and `isegoria-client` (T79 increment 3); gate 1 end to end as processes on one machine (T79 increment 4, `crates/trial`; record in `docs/24`); the legacy ledger decodes `NodeEvent` | gates 2–3: separate machines, independent operators (`docs/10` Milestone 2) |
 | Independent operator setup and trial | **Not established** — current process tests run under one operator; the issuing committee's ceremony tool is built (T19, D63; `isegoria-ceremony`, tested on one machine) | T19's open items (`docs/10` T19); T88's operating contract, approved (D57): increments A and B, the duties' conflict stop, the cuts' views, the genesis and its assembly command are built (D58–D60), the trial is not; Phase 2 gates (`docs/10`, D55) |
 | A writer's recovery | **Real** — damaged own files set aside, no write before a sync round with a peer, the feed rebuilt from the entries its key signed, a fork or a gap refused (T80); in a tiered network a detected loss, inconsistency or verified own entry stops the member durably instead (D58, AT-NET-36), and each feed writes, at every start, only after rounds with two other verified members (D59, AT-NET-37) | without tiers, first-peer recovery can miss a longer feed elsewhere; with them, history held only by members not consulted stays undetected |
 | Erasure-coded distribution of the public history | Authenticated archive primitives plus durable tiered holders and read-only transfer over libp2p; replica-free recovery from explicit or discovered holders, plus configured periodic process maintenance and manual cut export and extraction from a stopped replica, preparation/reproduction/co-signing and holder installation tools, tested on loopback and controlled processes | Automatic extraction/production, remote provisioning, roster coordination, repair orchestration and independent operators (T84) |
@@ -496,6 +511,6 @@ to make the pipeline testable end-to-end.
 
 Task status belongs in the [roadmap](docs/10-roadmap.md); evidence and unresolved findings
 belong in the [review register](docs/15-phase1-review.md). The
-[handoff](docs/phase1-handoff.md) separates the closed offline answer review from work
+[handoff](docs/handoff.md) separates the closed offline answer review from work
 requiring another assignment. No legacy measurement or network task is implicitly a
 prerequisite for that closed perimeter.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Task** | T44 in `docs/10-roadmap.md`: fuzz every byte decoder, classify every `unwrap`/`expect`/`assert` in `src/`, and turn the ones that external input can reach into errors |
+| **Task** | T44 in `docs/10-roadmap.md`: fuzz every byte decoder, classify every `unwrap`/`expect`/`assert` in `src/`, and turn the ones that external input can reach into errors; since 2026-11-10 also T89's part 1, the decoders a trial node or the participants' client reads from another machine (§4) |
 | **Audited** | master `6c61263`, 2026-09-24; the inventory re-checked after rebasing onto T41 (`dd7a6b6`): unchanged in `protocol` and `scoring`; and after merging T48 (`57bdca1`): one new internal-invariant site in `scoring` (§2.3) |
 | **Changed** | `crates/network`, `crates/identity`; `crates/scoring` (`bridging`) with T62, 2026-09-24 |
 | **Classified only** | `crates/protocol`, and `crates/scoring` outside `bridging`: being changed in parallel at the time (T41, the scoring half of T42, T48), so their sites are recorded here and not touched; the shape preconditions of the other `scoring` entry points were probed with T62 (§2.3) and are T46's |
@@ -30,6 +30,8 @@ comes from an identity document, receipts, shards, checkpoints and signatures co
 other nodes, and a quorum's answers come from committee members.
 
 ## 2. Inventory
+
+Every place in the code that can stop the program with a panic, counted and classified (§1).
 
 35 sites outside `#[cfg(test)]` at `6c61263` (86 counting test modules): identity 28,
 network 4, protocol 2, scoring 1. After this audit: 30, none of them reachable from
@@ -150,6 +152,9 @@ only, not lengths, allocations or work. `opentimestamps` 0.2.0 is the latest rel
 F1–F4 are worth reporting upstream.
 
 ## 4. Fuzz targets
+
+A fuzz target feeds one decoder or entry point arbitrary and mutated bytes for as long as it
+runs, looking for a crash or a broken property.
 
 Thirty-four `cargo fuzz` targets, in
 `crates/{network,identity,scoring,protocol,p2p,ceremony,client}/fuzz/` (outside the workspace:
@@ -427,10 +432,11 @@ entry points:
 - **Network codecs**: the node's own files are the first (T13, `network/store`, fuzzed).
   The node's events (T73, `protocol/event`) and nullifier proofs (`identity/nullifier_proof`)
   followed, then the replication messages (T18, `network/replica`); §4's T89 list holds
-  what a trial node and the participants' client read, through T79's fourth increment. T74
-  will add wire formats for checkpoints, signatures, receipts, shards and OPRF partials; each needs
-  a fuzz target of the same kind, and the `credential` sites marked "becomes external"
-  above turn into errors when the committee goes remote.
+  what a trial node and the participants' client read, through T79's fourth increment. T74's
+  cuts have `network/cut`; checkpoints, receipts and shards have their targets (§4). The OPRF
+  partials have no wire format while the uniqueness committee runs in one process (T19's open
+  part); when it goes remote they need a target of the same kind, and the `credential` sites
+  marked "becomes external" above turn into errors.
 - **Fuzzing in CI**: the targets are not built by CI (they need nightly). A scheduled job
   running each for a few minutes would keep them from rotting.
 - **Noticed, not panics**: `Consortium::new` accepted a threshold of 0, which accepts any

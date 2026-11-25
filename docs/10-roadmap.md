@@ -4,16 +4,23 @@
 |---|---|
 | **Purpose** | The ordered plan of work: what is left to fix or build, in priority order, and what each step must show to count as done. |
 | **Derived from** | `docs/08` §14 (gaps), §12 (adversarial tests AT-*), §16 (acceptance gate); `docs/01` D17–D42; the working paper, archived in `archive/phase1-forecast-pilot/paper/`; three reviews — the `docs/08` audit, the second review (2026-09-23), the third review (2026-09-24, `docs/08` §0-quinquies). |
-| **Status** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)), and Phase 1's remaining work was re-planned on 2026-09-28 from T24's results (T25 in four steps, T81). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). Completed tasks are in [Completed work](#completed-work). On 2026-10-21 the owner's D47 changed Phase 1's direction before its implementation, and Phase 1 was then closed in the perimeter of the offline answer review only (D49–D53, T87; [Priorities](#priorities)). |
+| **Reading** | Task ids (`T#`) are stable across reorderings; sizes are S/M/L (relative effort, not dates). A task done moves to [Completed work](#completed-work) with its evidence. The codes are explained in the [glossary](99-glossary.md#project-codes). |
+| **History** | Living plan, reordered on 2026-09-24 by priority: mathematics → P2P network → the rest; the order of execution inside Phase 1 and its milestone split were fixed the same day ([1.5](#15--order-of-execution-and-milestones)), and Phase 1's remaining work was re-planned on 2026-09-28 from T24's results (T25 in four steps, T81). Phase 2 was checked against the code on 2026-09-28, which recorded four gaps (T77–T80, [2.3](#23--build-the-runtime)). On 2026-10-21 the owner's D47 changed Phase 1's direction before its implementation, and Phase 1 was then closed in the perimeter of the offline answer review only (D49–D53, T87; [Priorities](#priorities)). |
 
 ## Priorities
+
+**Now: Milestone 2, the answer review on independently operated nodes (§2.4).** Gate 1,
+one operator on one machine, passed and was accepted on 2026-11-11 (`24` §Gate 1). Next:
+the fuzzing of every decoder that reads another machine's bytes (T89, part 1), then gate 2
+on four machines ([runbook](23-gate2-runbook.md)), then gate 3 with independent operators
+and the issuing committee's key (T19). The work order is §2.3's.
 
 **T87 and Phase 1 are closed only for the offline answer review (D49–D53).** The
 [closure record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)
 defines the perimeter, evidence and exclusions; [05](05-question-lifecycle.md#the-answer-review-01-d49d52)
-is the contract. Parameters remain provisional and uncalibrated; the decoder has had
-only short smoke runs (`12` §4). This closure certifies neither truth, whole-quiz fairness
-nor D46's objectives.
+is the contract. Its limits are the record's: provisional, uncalibrated parameters, a decoder
+with short fuzzing runs only (`12` §4), and no claim of truth, whole-quiz fairness or D46's
+objectives.
 
 The earlier mechanism's tasks below retain their scopes and statuses. D47 suspended
 the forecast-path work; D52 leaves A2 unresolved but does not require it for the answer
@@ -21,65 +28,16 @@ review. Review findings belong in [15](15-phase1-review.md), not in a second sta
 here. Retired paths referenced by old task records are mapped in the
 [archive](../archive/phase1-forecast-pilot/README.md).
 
-Use the [handoff](phase1-handoff.md) for work outside the closure. Listed future tasks
+Use the [handoff](handoff.md) for work outside the closure. Listed future tasks
 do not themselves authorize experiments, network work or production work.
-
-**Phase 2 integration (2026-10-21, D55).** The target is an experimental P2P testnet
-operated by independent parties; single-operator runs are an intermediate check.
-The existing runtime and the closed offline answer review remain separate. T79's
-integration, specified against D49–D53, is approved (`01` D60); implement it after its
-runtime dependencies.
-Changes to shared event formats, results, cuts or ledger must update their callers
-together. The work order and acceptance gates are in §2 below; no legacy pilot gate
-or automatic review round is part of this integration. On 2026-11-03 the owner reduced
-Milestone 2 to D55's requirements — T79 on independently operated nodes, with T19, T88,
-D54's tiers (T77) and T85's private request/response path — and froze T84
-([2.4](#24--independent-operation)). On 2026-11-10 the owner narrowed T19 inside the milestone
-to the issuing committee, operated by the trial's members (`01` D61; its contract in `03` is
-approved, `01` D63), and opened T89, whose fuzzing is required before gate 2 (`01` D62).
-D54 preserves the network decision previously numbered D44 on this branch.
 
 ## Phase 1 — Mathematics
 
-### 1.0 · The severe defects first
-
-The most severe defects the third review confirmed, done before the mechanism work: a
-replay that drained a proposer's quota (T64) and a Level B sample that one person could
-fill (T65, the evidence filter counted rows, not persons). **Both done** (2026-09-24):
-see [Completed work](#completed-work).
-
-### 1.1 · Correct the mechanism (D32–D41)
-
-The working paper (archived, `archive/phase1-forecast-pilot/paper/`) found properties of the scoring mechanism that the
-specification did not anticipate: a batch-relative, partly majoritarian bridge score,
-spurious latent classes from error in the ability proxy, an improper evaluator score, a
-weight cap that never binds, and a coordination detector with almost no data per
-epoch. The decisions D32–D41 correct them (D32: T49; D33 and D36: T50; D34: T51; D37: T53 and T54; D38: T55; D39: T56; D40: T57; D35: T52). Several change the
-specified metrics, so the simulations in `sim/`, the oracle fixtures and the golden
-outputs change with them — on purpose, as in T48.
-
-All of them are done — the last, T55 (D38), on 2026-09-25 — and sit in
-[Completed work](#phase-11--correct-the-mechanism-d32d41) with their evidence; D41 is
-Phase 2 (T37, done).
-
-### 1.2 · The decisions built on the score: band and appeal
-
-The gate has four outcomes (`docs/02` §A.3–A.4, `docs/05` [5]/[5b], D26, D27). The third
-review found that the paths after two of them are thinner than specified, and one took
-the caller's word (the appeal, T61). All three are done — T59, T61 and the extra round of
-the band re-decision, T60 — and sit in [Completed work](#phase-12--the-decisions-built-on-the-score-band-and-appeal).
-
-### 1.3 · Engine robustness and the rest of the specification
-
-The engine's input validation (T62) and its cross-platform reproducibility (`AT-BR-04`)
-are done and sit in [Completed work](#phase-13--engine-robustness). One item is left: the
-mutation testing [1.5](#15--order-of-execution-and-milestones) scheduled after T49 and
-after T50/T51 never ran, and no run of `docs/11` since run 7 covers the decision logic
-Phase 1 changed.
-
-| Task | What it means (plain) | Refs | Done when | Size |
-|---|---|---|---|---|
-| T81 | **Mutation testing of Phase 1's mechanism. Done (2026-10-01, `docs/11` run 22):** `cargo mutants` on the ten files whose decision logic Phase 1 changed and T25 does not — `gate`, `appeal`, `exploration`, `orchestrator`, `probation`, `review` and `lifecycle` in `protocol`, `collusion`, `reputation` and `bridging` in `scoring` — whole files: 1,086 mutants, 924 caught, 2 timeouts, 41 unviable, 119 missed. None of the survivors was a wrong result. 103 were checks the suite did not make, each now made: values read only at zero or through the decisions built on them (an author's history, the change detectors' statistics, the mean score), the panel draws' outcomes, the coordination detector's exact outcomes (its per-pair seed and its tie rule, now in `docs/02`), the position of a reviewer off the axis, the axis' sign rule, the side floor, the sides of fits no fixture reaches, the ratings errors' messages. 16 are equivalent, each with its reason in `docs/11` | `docs/11`; [Continuous work](#continuous-work) | a run of each of these files recorded in `docs/11`, every survivor killed by a test or justified (done) | M |
+Phase 1 is closed in the offline answer review's perimeter only (§1.6 in
+[Completed work](#completed-work), T87). What stays open is the earlier mechanism's
+calibration and its external review, below. How the phase was planned and carried out —
+1.0 to 1.3, the order of execution and milestones (1.5) and the answer review (1.6) — is
+recorded in [Completed work](#phase-1--plan-order-and-milestones).
 
 ### 1.4 · Characterize the parameters
 
@@ -128,96 +86,6 @@ thresholds set. T25 is four steps, in this order.
 | T25, step 4 | **The thresholds and their register.** *Level A written (2026-10-01, `docs/14`): each value provisional until the calibration pilot, every procedure reading an operating point the owner chooses (T83, [Open problems](#open-problems)).* Every threshold of `docs/02`'s parameter table gets the five items of `docs/07` §13: its reason, its calibration procedure, its sensitivity, what breaks if it moves, its versioned location. Level B from `docs/13` §7 and step 3: `MIXTURE_DIF_MAX` (D24), `KR20_MIN` or a minimum number of anchors (the KR-20 falls with guessing — 0.936 to 0.893 at 60 anchors — and reads it as unreliability: with a floor it is 0.55–0.89 on batches that flag no clean item, `docs/13` §8.7.1), a cut on `a_gap` or none, `DTF_MAX` with a margin or a bias correction, `N_LATENT_MIN` per format (about 12,000 with four or five options; true/false a policy of its own), and the screen's thresholds — `R_PBIS_MIN` first, by format or lower, which decides stage 1 (`docs/13` §8.7.5), measured again by a run of `floor-screen` at the chosen value; `C_EXCESS_MAX` cannot see a guessable item at stage 1's sizes. Level A from `docs/13` §7.4 — `τ`, `ε`, `γ_appeal`, the side floor and `MIN_COVERAGE`, which wait on none of the steps before — and from step 3 (`docs/13` §8.7.4), `k_extra` with `ε`, `τ` and the panel's size, and `λ_b/λ_f`. Level C — `γ`, `k₀`, the CUSUM `k`/`h`, `w_max`, `N_PROBATION`, the exploration and honeypot rates, the coordination thresholds — gets its procedure, its values provisional until the pilots (T27) | SC-1/4/6, D24, `docs/07` §13 | T25's row | M |
 | T26 | **External psychometric review** of the statistical method | SC-8 | SC-8: the review recorded in `reports/` | *external* |
 
-### 1.5 · Order of execution and milestones
-
-Fixed on 2026-09-24, after the reordering; steps 15–18 re-planned on 2026-09-28 from T24's
-results, step 18 (T82) added on 2026-09-29 from the supplement's first pass. The sections above are thematic; this is the order the work is done in. Sizes
-are the ones in the rows.
-
-1. T65 (M) — done (2026-09-24), as T64 before it.
-2. T62 (S) — done (2026-09-24): `fit` and `bridge_scores` return a `Result`; T49 is
-   written against that API.
-3. T49 (M) — done (2026-09-24): the side-balanced score; sim, fixtures, golden outputs
-   and the README warning changed in the same commit. `AT-BR-04` (S) — done
-   (2026-09-25): the golden bits checked on four platforms and in the release profile
-   in CI.
-4. The D26 amendment, then T59 (M) — done (2026-09-25).
-5. The D27 decision, then T61 (S) — done (2026-09-25).
-6. T53 (S) — the anchor-reliability gate — done (2026-09-25).
-7. T50 (M), then T51 (M) — the proper evaluator score, then the change detector — both done (2026-09-25).
-8. T60 (L) — the supplementary review with real extra reviewers — done (2026-09-25).
-9. T56 (M), then T57 (M) — coordination on residuals, then panel diversification — both done (2026-09-25).
-10. T52 (L) — live outcomes with exploration — done (2026-09-25).
-11. T54 (L) — latent DIF with θ inside the likelihood — done (2026-09-25).
-12. T39 (S, descoped `d = 2`) and T45 (M) — done (2026-09-25).
-13. T55 (L) — contested facts: the specification, then the pool and the balanced draw —
-    done (2026-09-25).
-14. T24 (L) — done (2026-09-28, `docs/13` §7): 54,412 runs on the owner's machine; its
-    first pass found T71 (M), done on 2026-09-26.
-15. T25, step 1 (L) — the guessing floor in the latent re-check — done (2026-09-28).
-16. T25, step 2 (M) — the pilot screen on the same model — done (2026-09-30); its study,
-    run in the container the same day, found `R_PBIS_MIN` deciding stage 1 (`docs/13`
-    §8.7.5).
-17. T25, step 3 (M) — the guessing supplement — done (2026-09-30, `docs/13` §8.7): 19,700
-    runs on the owner's machine, its first pass finding T82, and the screen's 3,600 in the
-    container.
-18. T82 (L) — the latent re-check's robustness to templates and a skewed ability, found by
-    step 3's first pass: decided (D43) and built (2026-09-30); the supplement's DIF studies
-    again on the corrected model, on the owner's machine, before the DIF thresholds.
-19. T25, step 4 (M) — the thresholds and their register. T26 is external.
-
-**While the owner's machine runs.** Step 3 took the owner's machine about 10 hours
-(`docs/13` §8.7); the screen's study, 3.5 minutes, ran in the container. The container
-did step 2 — the pilot screen — T81 and the Level A part of step 4's register: none of
-them changes what the supplement's runs compute — the latent fit's
-bits, the gates, the bridging fit — so its records reproduce on their commits. (Until T24
-the plan ran in two streams of disjoint files, and scheduled mutation testing after steps
-3 and 7; the testing never ran, hence T81.)
-
-**Milestone 1a — "the defects are fixed".** Steps 1–7: every task S or M, every one a
-defect in code that exists. At this point the README no longer needs its "partly
-majoritarian" warning, the band and appeal paths are decided by the gate, and the engine
-returns errors instead of panicking.
-
-**Milestone 1b — "the mechanism is complete".** Steps 8–19: the features the decisions
-add (a second panel, exploration, the target DIF model, panel diversification, the
-contested-facts pool — all done), the characterization of the detectors and gates (T24
-and T25's supplement, done), and the thresholds set on a model that accounts for the
-guessing of the items the system asks and does not read templates or a skewed ability as
-bias (T25, four steps; T82).
-
-**Milestone 1 — "the mechanism is sound"** is 1a and 1b together, with T81. Every verdict
-is computed as D32–D42 specify, on a model that accounts for guessing (D25); the band and
-appeal paths are decided by the gate, not by the caller; the engine returns errors
-instead of panicking on malformed input; `sim/`, the fixtures and the golden outputs are
-regenerated on purpose; every threshold is either characterized (T24, T25) or marked
-provisional with the pilot that will set it; the mechanism's decision logic is
-mutation-tested (T81).
-
-**Completion qualification after D47.** *Met in the answer review's perimeter only (2026-10-21,
-[record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)); the milestones
-below, for the previous design, are not.* The milestones below were defined for the previous design.
-Phase 1's completion now also requires D47's mechanism, in the first implementation D48 settles, to
-be specified, implemented and reviewed with its guarantees; meeting the milestones below does not
-complete it. Phase 1's completion criteria are themselves among the decisions D48 leaves to the
-owner. D52 (2026-10-21): A2's whole-test guarantee is not required to complete the answer review
-(T87), A2 stays unresolved within its scope, and Phase 1 is not declared complete before Astra's
-final review of the implemented path.
-
-**Completion qualification.** The label also requires resolving the critical/high
-findings in `15`, or explicitly narrowing the claimed domain with a justified decision.
-T81 covers the ten files named in its task row, not every statistical claim or composed
-path. Provisional parameters with defined pilots remain permitted; actual field
-validation remains T27. No documentation-only change closes a code or proof finding.
-
-### 1.6 · The answer review (D49–D52)
-
-The first implementation of D47's mechanism as D48 modified it, on the contract the owner
-approved (`01` D49–D52). An offline path beside the existing one, which it does not change.
-
-**Done (2026-10-21), in this perimeter only:** T87 is in [Completed
-work](#phase-16--the-answer-review-d49d52).
-
 ---
 
 ## Phase 2 — P2P network
@@ -231,6 +99,21 @@ The signing consortium remains a defined member set, not permissionless admissio
 Local processes under one operator are the first check, followed by separate machines
 and networks, then independently operated nodes. This is not production readiness:
 the trial must state its trust assumptions, fault limits and remaining privacy risks.
+
+**How Milestone 2 was scoped (2026-10-21, D55).** The target is an experimental P2P testnet
+operated by independent parties; single-operator runs are an intermediate check.
+The existing runtime and the closed offline answer review remain separate. T79's
+integration, specified against D49–D53, is approved (`01` D60); implement it after its
+runtime dependencies.
+Changes to shared event formats, results, cuts or ledger must update their callers
+together. The work order and acceptance gates are in §2 below; no legacy pilot gate
+or automatic review round is part of this integration. On 2026-11-03 the owner reduced
+Milestone 2 to D55's requirements — T79 on independently operated nodes, with T19, T88,
+D54's tiers (T77) and T85's private request/response path — and froze T84
+([2.4](#24--independent-operation)). On 2026-11-10 the owner narrowed T19 inside the milestone
+to the issuing committee, operated by the trial's members (`01` D61; its contract in `03` is
+approved, `01` D63), and opened T89, whose fuzzing is required before gate 2 (`01` D62).
+D54 preserves the network decision previously numbered D44 on this branch.
 
 ### 2.1 · Fix what exists
 
@@ -254,62 +137,156 @@ replication between nodes, and T74, the protocol state from consortium-signed cu
 the beacon between nodes, are done (2026-09-27/28), and T80, a writer's recovery, and
 T76, a silent proposer and the withholders, and T78, the node process, on 2026-10-07: see [Completed work](#phase-23--build-the-runtime).
 
-**The check of 2026-09-28.** Walking the phase against the code found four gaps no task
-covered: any peer that connects reads everything a node replicates, the drafts under
-review and the ratings joined to their judges' nyms included — against D17 and
-`docs/CLAUDE.md` (T77); a node runs only inside a test (T78); nothing runs an epoch
-between nodes — the steps and results the cuts order are produced only by tests (T79);
-and a writer that loses its files cannot rebuild its feed, and restarted empty it
-equivocates (T80). T77, T80 and T76 are defects in code that exists.
+**Work order (D54, updated by D55).** The contracts are approved: the answer review
+between nodes (T79, `01` D60, 2026-11-03: `05` §Distributed integration, T79-P1–P7) and the
+operators' contract (T88, `01` D57: `04` §Operating contract, T88-P1–P4), implemented in
+authorized increments. Since the owner's reduction of 2026-11-03 (§2.4) the critical path is:
 
-**Work order (D54, updated by D55).** T79's answer-review integration is approved
-(`01` D60, 2026-11-03: `05` §Distributed integration, T79-P1–P7). T88's operating contract
-is approved (`01` D57: `04` §Operating contract, T88-P1–P4) and is implemented in
-authorized increments: A, the identity record (D58), and B, the sync with two
-other members (D59), are built, B reviewed within its perimeter; the duties' conflict stop
-and the cuts' views and exclusions in the status are built. T77 is done for tiered
-networks (2026-10-22, reviewed on loopback evidence); T85's channel is done and reviewed,
-T85 staying open for T79. T86's state-tree primitives and T75's public object discovery
-are built; T80, T76 and T78 are implemented. Since the owner's reduction of 2026-11-03
-(§2.4) the critical path is T88's canonical configuration (its schema in D60), built with its
-assembly command and the check of a relay's own transport key; then T79 in four increments —
-(1) the answer-review state on signed cuts in `network` and `protocol`, (2) the node process
-with the hook, operator commands and state digest (1 and 2 built), (3) participants
-through blind relays, private reads, `isegoria-client` and the test issuer (built: its protocol
-side, its wiring in the gateway, the provisional test issuer, D65, and `isegoria-client`), (4) gate 1 end
-to end on one machine (built as a process test, `crates/trial`, 2026-11-11; not yet the
-recorded gate-1 trial) — then T19's issuing committee (D61; contract approved, D63, in
-`03`; its ceremony tool and member-side issuance built ahead, assigned by the owner on
-2026-11-11, the participant's side built in `isegoria-client`) and T89's fuzzing (D62; part 1's targets committed with smoke runs through increment 4's code,
-`12` §4; the hook's application of cuts has its target, `protocol/answer_cuts`, with its smoke run), then gates 2 and 3. T84 is frozen, and T17, T75, T84 and
-T86's open parts stay open outside Milestone 2. T79's implementation remains the final
-runtime integration, T19's committee setup not counting as one (D60), followed by the
-Milestone 2 trial. T77 precedes exposing public objects through the DHT and shards;
-T84 needs T86's tree shape.
+1. **The canonical configuration** (T88, its schema in D60): built with its assembly command
+   and the check of a relay's own transport key. T88's increments A, the identity record
+   (D58), and B, the sync with two other members (D59), are built, B reviewed within its
+   perimeter; the duties' conflict stop and the cuts' views and exclusions in the status are
+   built.
+2. **The answer review between nodes** (T79) in four increments, all built: (1) the
+   answer-review state on signed cuts in `network` and `protocol`; (2) the node process with
+   the hook, operator commands and state digest; (3) participants through blind relays,
+   private reads, `isegoria-client` and the test issuer — its protocol side, its wiring in the
+   gateway, the provisional test issuer (D65) and `isegoria-client`; (4) gate 1 end to end on
+   one machine, a process test (`crates/trial`, 2026-11-11), recorded, passed and accepted on
+   `a842b90` (`24` §Gate 1).
+3. **The issuing committee** (T19, D61; contract approved, D63, in `03`): its ceremony tool
+   and member-side issuance built ahead, assigned by the owner on 2026-11-11; the
+   participant's side built in `isegoria-client`.
+4. **Fuzzing before gate 2** (T89 part 1, D62): targets committed with smoke runs through
+   increment 4's code (`12` §4); the hook's application of cuts has its target,
+   `protocol/answer_cuts`, with its smoke run.
+5. **Gates 2 and 3** (§2.4).
 
-| Task | What it means (plain) | Refs | Done when | Size |
-|---|---|---|---|---|
-| T75 | **Finding a public object by its CID. Implemented (2026-10-25), loopback scope:** tiered nodes advertise verified public objects through libp2p Kademlia; `p2p::discovery::fetch` finds an unknown provider without a full replica and verifies the object, public writer and network-bound signature. Circle-only objects are neither advertised nor served. Contract and limits in `04` §Public object discovery. AT-NET-25 covers lookup, hostile providers, deadlines, restart/sync and wire limits. Library client only; no CLI, independent-operator validation or freshness guarantee. *Outside Milestone 2 (owner, 2026-11-03).* | NET-010, `docs/04` §Public object discovery | a light node fetches and verifies a public object from a previously unknown provider via an empty bootstrap; private objects and invalid replies are refused | M |
-| T17 | **Real anchoring:** submit to a calendar, read Bitcoin headers, schedule it, anchor the checkpoint head. *Outside Milestone 2 (owner, 2026-11-03).* | NET-009, DS-5 | a checkpoint head is anchored and verified end to end | M |
-| T77 | **The replicated set keeps what D17 keeps private** (found 2026-09-28, a defect against D17 and `docs/CLAUDE.md`; mechanism decided 2026-10-07, `docs/01` D54). Today a node answers the Summary and Want of any peer and pulls from it on connect, a node without a writer key replicates the whole set, and the transport authenticates a libp2p key bound to no writer key: any peer reads the drafts under review, the panels before their verdict, every reveal with its judge's nym, the batches of each respondent id and the results' records per nym. Build D54's tiers: every kind of object assigned its tier (`docs/04` §Who reads); two feeds per member, public and circle, each under its own key, a cut marking both; a member's signature binding a transport key, a circle feed's entries served and announced only to bound keys; a node without a member key holding the public tier only. Until it is done, a network runs only among machines its operator controls. **In steps.** *Step 1, in `network`, no transport — done (2026-10-22):* `tier::Tiers`, the tiered writer set from configured keys (each member's consortium key public, a distinct circle key, nothing else; `TierError::{Count, Repeated}`); `Tiers::bind` and `access`, a member's binding of a transport key to the network id, member-set hash and index, verified before the circle is granted; `Tiers::serve`, Summary, Have and Entries filtered by that access; `cut::observed` and `observer::Observer`, the public reader of the cuts (`docs/04` §Who reads, as built, with its limits; `CutError::Unknown`), `added` unchanged for members. Tests first, `network/tests/tiers.rs` (AT-NET-22, ten): seven failed against a skeleton that served every entry, trusted any binding, accepted any configuration and read cuts only through `added`. *Review (2026-10-22):* an `Access` verified by one `Tiers` read another's circle (R1), and an `Observer` given another network's tiers kept its rounds and panicked on `WrongNetwork` when the round finished (R2); both regressions failed on `dd62a2c`. Both now hold to the configuration's digest: `Tiers::member`, `Observer::new(tiers)`, `ObserveError::{Context, Replica}`; twelve tests. No key derivation, HPKE, genesis or transport. *Step 2, `p2p` and `node` — done (2026-10-22):* a tiered network from configuration (`p2p::Config::{tiers, circle}`; `node`'s `consortium.circle` and `circle_key_file`, keys configured separately); the binding exchanged on each connection (`/isegoria/bind/1`, `p2p::tiered::Bind`) and checked against the key Noise authenticated (`tiered::transport_key`); every Summary, Have, Want and Entries filtered by that access, gossip public only and forwarded only when wholly public, circle announcements direct to bound peers; a member's two feeds in `own/` and `circle/`, the circle one caught up only from a member that granted it (`Handle::publish_circle`, `Status::{circle_caught_up, bound}`); a public reader following the cuts through `member::PublicCollector`; both collectors fixed to one context (`Collector::new`, `OtherContext`). Tests first (`p2p/tests/tiered_nodes.rs`, `tiered_collectors.rs`, `node/tests/config.rs`; AT-NET-23): against a skeleton serving and gossiping everything and trusting declared bindings, the outsider, binding, reader, recovery, forwarding and reconnection tests failed; a raw libp2p spy records every byte an outsider is sent. *Review (2026-10-22):* a pull kept its circle flag from when it was sent, so an answer arriving after the grant was withdrawn, or under a later grant, certified the circle feed, and a reply refusing the circle left the earlier grant standing; grants are now numbered and checked when the answer arrives (three regressions, failing on `d7e53d3`). **Done for tiered networks (review 2026-10-22, loopback evidence).** Outside that perimeter it stays open: networks without tiers (relays as writers) keep the defect until T85; nothing has run across machines or independent operators (Milestone 2; Phase 2 stays open); a circle catch-up proves only the history of the member that answered, not that it is complete (`04` §A writer's own feed) | D17, D54, PRIV-004, PRIV-P5, PRIV-P6, `docs/08` G-21 | a test with a reader outside the circle: it obtains no circle entry or object by sync, gossip or on connect, and learns of a circle feed only its marks; members converge on both tiers and cut them; `docs/04` §Who reads and `docs/08` PRIV-P5/P6 restated | M |
-| T79 | **The answer review between nodes (D49–D53).** Authenticated pool entry and deposit; reviewer draw; private delivery of the question view; commit, reveal and explicit closures; outcome and author observation applied atomically; quotas for the next epoch; the configuration, event family, pool snapshot and beacon bound to the signed history; no legacy admission lottery, pilot, appeal or supplementary round. **Contract approved (`01` D60, 2026-11-03)** in `05` §Distributed integration, T79-P1–P7 (family, authorization, derived transitions and members' checks, missing beacon, closures, tiers, private replies) with the test issuer, the hook, the question's size bound, the state digest and stateless gateway admission; to build in §2.3's four increments. *Increment 1 built (2026-11-04):* `protocol::answer_ledger`, the state on signed cuts beside the legacy ledger — the family's feeds, prefixed proof contexts, closures by `t` members, derived seals, values and draws, the members' checks, the question's bound and the state digest (`05` §Built on cuts); tests first, AT-T79-1–16 with a differential test against the offline path; an independent review of `e638309` found no logic defect, and widened the state digest and classed out-of-sequence cuts apart (`d27483d`). *Increment 2 built (2026-11-10):* the hook `p2p::hook::Hook`, implemented by `node::answer::AnswerHook` in every tiered member, which rebuilds the ledger from cut 0 at each start, decides `closes` and refuses to sign what the members' checks refuse, and stops at a collected cut failing them; the operators' `--request` spool for `CloseCommits`, `Close` and `RequestCloseEpoch`; the state digest at each closing cut, the refused cut and the executed requests in the status; `cuts_per_epoch` refused in tiered networks (`05` §Built in the node); tests first, AT-T79-17–22, on loopback in process; not reviewed. *Increment 3, the test issuer built (2026-11-11), provisional for tests only (D65), its person's commands to move into `isegoria-client`:* `isegoria-test-issuer`, a crate of its own so that no node links the issuer's key, with `--new-key` and issuance to a person for an opaque slot by files carried by hand, and the strict private encodings of the credential and of issuance's messages in `identity::credential`, written to new files, 0600 where secret (`05` §Distributed integration, credentials before T19); tests first, AT-ID-10–14, run and passing in the full suite (2026-11-11, macOS); not reviewed. *The switch withholding reveals (2026-11-11):* `p2p::member::Faults`, settable only in test builds (feature `fault-injection`, enabled by `node`'s dev-dependency alone) and by no configuration (`05` §Built in the node); tests AT-T79-30–32 between member nodes on loopback in process — T79-P4 with `t = n = 3` and one withholder, rule 6 and an excluded member's closure request with `t = 2`; written first, run and passing in the full suite (2026-11-11, macOS); not reviewed. *Increment 3, protocol side (2026-11-11):* `protocol::answer_gateway`, the gateway's stateless admission; `protocol::answer_read`, the read requests proved under their role with a context of network, kind and response key, and the replies computed from the ledger — an event's status to its own nym, a reviewer's questions one per reply, an author's records — with the ledger now recording each drawn reviewer's commit and reveal (in the digest); `protocol::answer_seal`, the bespoke inner seal (RFC 9180 base mode through `hpke` 0.14.1) with known-answer tests (`05` §Built for participants); AT-T79-23–29 written first, run and passing in the full suite (2026-11-11, macOS), not reviewed. *Increment 3, wiring (2026-11-11):* a member's gateway admits a person's event on `…/event` by the hook's `admit` (`AnswerHook`: `answer_gateway::admit`) before logging it, answering its receipt, and answers a read on the new `…/read` path by the hook's `read` (`answer_read::answer` over the ledger and the replica), logging nothing, 403 where no reply; `p2p::blind::read_path`, `seal_read` and `Sealed::open_read` for the client; `Hook::read` takes the replica (`05` §Built for participants, *In the gateway*; `04` §Blind relays, *As wired*); tests first, AT-T79-34–41, on loopback in process, written first, run and passing in the full suite (2026-11-11, macOS); not reviewed. *Increment 3, the client (2026-11-11):* `isegoria-client` (crate `client`): a person's `--request` and `--finalize` moved from the test issuer (D65), the committee's participant side (`--slot-request`, `--combine`, `03` T19-P5), the events `--join`, `--deposit` (a question's TOML file), `--commit` and `--reveal`, each admitted before it is written to a new 0600 file, `--send` sealed to a verified key configuration through a relay the genesis lists, and `--read`'s requests with a fresh response key each and their replies opened and printed; a read sent by `client::read::send_read` through `p2p::blind::{seal_read, submit, Sealed::open_read}` (`05` §Built for participants); tests AT-T79-42–49 written first, run and passing in the full suite (2026-11-11, macOS), not reviewed. *Review fixes (2026-11-11):* a gateway's read collects no cut and answers from the cuts applied at the node's last period (AT-T79-60, `05` *In the gateway*); `--request` writes its file synced before it appears under its name, the spool directory synced after (AT-T79-61); a gateway answers a read whose reply would pass `MAX_REPLY` with a sealed 500 instead of sending it (AT-T79-62, `04` T85-P5); the spool reads only names of `--request`'s form, leaving others in place, and the status parser refuses other names (AT-T79-63); written first, run and passing in the full suite (2026-11-11, macOS). *The answer state in the status (owner, 2026-11-11):* `Hook::status`, the hook's one added method, gives a member's status the open epoch, each question's phase and each executed request's outcome, counted or refused with its reason (`05` §Built in the node, *The state in the status*; AT-T79-64–65), written first, run and passing in the full suite (2026-11-11, macOS). *Increment 4, gate 1 on one machine, built (2026-11-11):* `trial/tests/gate1.rs` (crate `trial`, which builds the node's, the client's and the test issuer's own `main.rs` as its binaries) — under one operator on loopback, every step a command: four members' and a relay's identities, the issuer key, the genesis (`n = 4`, `t = 3`, the relay listed), announcements and TOMLs, five processes; 14 credentials issued by files; 13 joins and a deposit through the relay, the operators' closure of epoch 0 on three members, the draw after the beacon, commits, closure of commits, reveals, closure, the outcome, the author's record and next-epoch quota; the same state digest at each closing cut on every member; a member stopped and started mid-way while the other three progress, rebuilding the same digests; a join sent to two members applied once; the evidence in a shared part — revision, genesis, public status lines, checked free of circle content and secrets — and a private one (owner, 2026-11-11; `05` §Gate 1 on one machine); AT-T79-50–59, 5 runs of 5 passed, about 17 s each (`scripts/gate1.sh`); not reviewed. Not yet the recorded gate-1 trial against a pinned revision and configuration *Reviewed (2026-11-11):* an independent review of increments 2–3; its findings fixed with failing tests first (AT-T79-60–63), and AT-T79-32's flakiness traced to a proposer not waiting for a reveal past a gap, fixed (AT-NET-17; D68); increment 4 and the fixes not reviewed. | D55, PROTO-015, INV-7, G-22 | node processes complete the answer-review path through T85; the same signed history yields identical draws, outcomes, author records and quotas after restart or delayed/duplicate delivery; an invalid derived step is not co-signed (under T79-P3: a proposal failing the members' checks, and a `Draw` or `CloseEpoch` object on a feed) and a collected cut failing them is not applied; test the approved closure and missing-beacon policies, the latter with a test-only switch withholding reveals | L |
-| T84 | **The public history in erasure-coded shards. Built through manual holder installation (2026-10-30):** authenticated segments and T86 shapes, signed manifests, placement, durable holders, read-only transfer, bounded discovery and replica-free recovery; assignment/audit/pull-repair with operator-configured periodic node-process maintenance. Offline CLI tools export a cut a stopped node's replica collects and extract a pinned cut's public segment from that replica, validate it, prepare its manifest/shards, independently reproduce member signatures and combine a checked quorum certificate; an operator installs a certified bundle's assigned shard into their stopped holder's store, which its node then serves and maintains (AT-NET-26–35, in-process/loopback and controlled processes). Contracts in `04` §Public archive segments through §Collected cut export from a stopped node's replica; explicit `(k, m)` and scheduling parameters, no deployment defaults (`14`). **Open:** automatic segment extraction from running nodes, manifest production/co-signing between running members, remote holder provisioning, roster coordination, repair orchestration across holders and independent-operator trial. Circle objects are never archived to outsiders (systematic code, D54). **Frozen (owner, 2026-11-03):** no further increment during Phase 2; outside Milestone 2 | D14, D54, NET-007, `docs/08` G-24, DS-4 | with `m` holders of a segment stopped, a node with no replica rebuilds it and checks it against the signed cut; after holders are lost, repair restores every shard; a corrupted shard is dropped (AT-NET-06) | L |
-| T85 | **Blind relays** (D54, 2026-10-07). A person sends each event sealed to a member's key (HPKE, RFC 9180) through a relay, as Oblivious HTTP (RFC 9458): the relay forwards bytes it cannot read, the member opens the event, checks it as its entry point does and logs it on its circle feed. Relays leave the writer set; any member may log a person's event, the first in a cut winning (PROTO-015); the members' HPKE keys are part of the network's configuration. An audited HPKE library is preferred (`docs/CLAUDE.md`). It is T79's channel for authenticated requests and confidential responses, including the assigned question view and the participant's own records; response authorization and retries are approved in `05` T79-P7 (D60). **First increment done (2026-10-22, reviewed)**, the channel of `04` §Blind relays on T85-P1–P5: `p2p::blind` (signed key configurations, the client, the relay and the member gateway over libp2p, the embedding's admission) and `node`'s `consortium.hpke`, `hpke_key_file`, `relays`, `relay` and `--announce`; contract tests first (`p2p/tests/blind_relays.rs`, AT-NET-24): the RFC 9458 vector, the path, the relay's view, listed relays, alterations, swapped replies, other network or key, limits, duplicates concurrent and after a restart, "retry later", a relay that cannot write; the seven path tests failed before the node handled the roles. A node process admitted no event before T79's third increment, which wires the answer review's events and reads through a member's hook (2026-11-11). *Review (2026-10-22):* a relay could start with a feed under a member's key, and a reply up to 6 bytes over `MAX_REPLY` passed, the envelope being 10 bytes, not 16; both corrected, regressions failing on `2b79d87`; the channel's OHTTP is now checked against a reference HPKE path in both directions. T85 stays open for T79 and T79-P7: the events and reads are wired through the gateway's hook (2026-11-11, AT-T79-34–41, run and passing in the full suite (2026-11-11, macOS), not reviewed) and sent by `isegoria-client`, through a relay end to end only in gate 1's process test on one machine (AT-T79-52–55) | D54, invariant 4, PRIV-P4, PRIV-003 | a person's event reaches the ledger through a relay that never holds its plaintext, and the member receives it from the relay's peer, never from the person's (a test over loopback with a relay between); an unauthorized person cannot fetch another's private response; the relay holds neither request nor response plaintext; a relay's own entry is refused | M |
-| T86 | **The state tree and the fork** (D54, D56). Contract T86-P1–P8 approved (2026-10-24), specified in `04` §The state tree and the fork. **First increment implemented:** `network::state` commitments, sparse tree, canonical proofs/shape/root statement, checked reconstruction and one-time frozen-leaf reopening; holder salt keys in `identity::credential`. Tested on synthetic records (`AT-T86-1`–`9`); caller supplies authenticated nyms and trusted statements. **Open:** T79's answer-review records, salt-key handover and private reads; T17 anchoring, T84 archive and T19/T22 identity continuity. The existing `protocol::results` belongs to the legacy path (PRIV-004.1). *Outside Milestone 2 (owner, 2026-11-03); its open parts stay open* | D54, D56, D16, invariant 5, INV-7, `docs/08` DS-9 | a nym proves its records against an anchored root and cannot prove its occupied position empty; every live leaf changes each epoch; frozen leaves stay visibly occupied and locked until one authenticated reopening; a fork with no member recovers those who reopen without admitting the others as new | L |
+Beside the path: T77 is done for tiered networks (2026-10-22, reviewed on loopback
+evidence); T85's channel is done and reviewed, T85 staying open for T79; T86's state-tree
+primitives and T75's public object discovery are built; T80, T76 and T78 are implemented.
+T84 is frozen, and T17, T75, T84 and T86's open parts stay open outside Milestone 2. T79's
+implementation remains the final runtime integration, T19's committee setup not counting as
+one (D60), followed by the Milestone 2 trial. T77 precedes exposing public objects through
+the DHT and shards; T84 needs T86's tree shape.
+
+#### T75 — Finding a public object by its CID
+
+**Implemented (2026-10-25), loopback scope:** tiered nodes advertise verified public objects through libp2p Kademlia; `p2p::discovery::fetch` finds an unknown provider without a full replica and verifies the object, public writer and network-bound signature. Circle-only objects are neither advertised nor served. Contract and limits in `04` §Public object discovery. AT-NET-25 covers lookup, hostile providers, deadlines, restart/sync and wire limits. Library client only; no CLI, independent-operator validation or freshness guarantee.
+
+*Outside Milestone 2 (owner, 2026-11-03).*
+
+*Refs:* NET-010, `docs/04` §Public object discovery. *Done when:* a light node fetches and verifies a public object from a previously unknown provider via an empty bootstrap; private objects and invalid replies are refused. *Size:* M.
+
+#### T17 — Real anchoring
+
+submit to a calendar, read Bitcoin headers, schedule it, anchor the checkpoint head.
+
+*Outside Milestone 2 (owner, 2026-11-03).*
+
+*Refs:* NET-009, DS-5. *Done when:* a checkpoint head is anchored and verified end to end. *Size:* M.
+
+#### T77 — The replicated set keeps what D17 keeps private
+
+**The replicated set keeps what D17 keeps private** (found 2026-09-28, a defect against D17 and `docs/CLAUDE.md`; mechanism decided 2026-10-07, `docs/01` D54). Today a node answers the Summary and Want of any peer and pulls from it on connect, a node without a writer key replicates the whole set, and the transport authenticates a libp2p key bound to no writer key: any peer reads the drafts under review, the panels before their verdict, every reveal with its judge's nym, the batches of each respondent id and the results' records per nym. Build D54's tiers: every kind of object assigned its tier (`docs/04` §Who reads); two feeds per member, public and circle, each under its own key, a cut marking both; a member's signature binding a transport key, a circle feed's entries served and announced only to bound keys; a node without a member key holding the public tier only. Until it is done, a network runs only among machines its operator controls. **In steps.**
+
+*Step 1, in `network`, no transport — done (2026-10-22):* `tier::Tiers`, the tiered writer set from configured keys (each member's consortium key public, a distinct circle key, nothing else; `TierError::{Count, Repeated}`); `Tiers::bind` and `access`, a member's binding of a transport key to the network id, member-set hash and index, verified before the circle is granted; `Tiers::serve`, Summary, Have and Entries filtered by that access; `cut::observed` and `observer::Observer`, the public reader of the cuts (`docs/04` §Who reads, as built, with its limits; `CutError::Unknown`), `added` unchanged for members. Tests first, `network/tests/tiers.rs` (AT-NET-22, ten): seven failed against a skeleton that served every entry, trusted any binding, accepted any configuration and read cuts only through `added`.
+
+*Review (2026-10-22):* an `Access` verified by one `Tiers` read another's circle (R1), and an `Observer` given another network's tiers kept its rounds and panicked on `WrongNetwork` when the round finished (R2); both regressions failed on `dd62a2c`. Both now hold to the configuration's digest: `Tiers::member`, `Observer::new(tiers)`, `ObserveError::{Context, Replica}`; twelve tests. No key derivation, HPKE, genesis or transport.
+
+*Step 2, `p2p` and `node` — done (2026-10-22):* a tiered network from configuration (`p2p::Config::{tiers, circle}`; `node`'s `consortium.circle` and `circle_key_file`, keys configured separately); the binding exchanged on each connection (`/isegoria/bind/1`, `p2p::tiered::Bind`) and checked against the key Noise authenticated (`tiered::transport_key`); every Summary, Have, Want and Entries filtered by that access, gossip public only and forwarded only when wholly public, circle announcements direct to bound peers; a member's two feeds in `own/` and `circle/`, the circle one caught up only from a member that granted it (`Handle::publish_circle`, `Status::{circle_caught_up, bound}`); a public reader following the cuts through `member::PublicCollector`; both collectors fixed to one context (`Collector::new`, `OtherContext`). Tests first (`p2p/tests/tiered_nodes.rs`, `tiered_collectors.rs`, `node/tests/config.rs`; AT-NET-23): against a skeleton serving and gossiping everything and trusting declared bindings, the outsider, binding, reader, recovery, forwarding and reconnection tests failed; a raw libp2p spy records every byte an outsider is sent.
+
+*Review (2026-10-22):* a pull kept its circle flag from when it was sent, so an answer arriving after the grant was withdrawn, or under a later grant, certified the circle feed, and a reply refusing the circle left the earlier grant standing; grants are now numbered and checked when the answer arrives (three regressions, failing on `d7e53d3`). **Done for tiered networks (review 2026-10-22, loopback evidence).** Outside that perimeter it stays open: networks without tiers (relays as writers) keep the defect until T85; nothing has run across machines or independent operators (Milestone 2; Phase 2 stays open); a circle catch-up proves only the history of the member that answered, not that it is complete (`04` §A writer's own feed)
+
+*Refs:* D17, D54, PRIV-004, PRIV-P5, PRIV-P6, `docs/08` G-21. *Done when:* a test with a reader outside the circle: it obtains no circle entry or object by sync, gossip or on connect, and learns of a circle feed only its marks; members converge on both tiers and cut them; `docs/04` §Who reads and `docs/08` PRIV-P5/P6 restated. *Size:* M.
+
+#### T79 — The answer review between nodes (D49–D53)
+
+Authenticated pool entry and deposit; reviewer draw; private delivery of the question view; commit, reveal and explicit closures; outcome and author observation applied atomically; quotas for the next epoch; the configuration, event family, pool snapshot and beacon bound to the signed history; no legacy admission lottery, pilot, appeal or supplementary round. **Contract approved (`01` D60, 2026-11-03)** in `05` §Distributed integration, T79-P1–P7 (family, authorization, derived transitions and members' checks, missing beacon, closures, tiers, private replies) with the test issuer, the hook, the question's size bound, the state digest and stateless gateway admission; to build in §2.3's four increments.
+
+*Increment 1 built (2026-11-04):* `protocol::answer_ledger`, the state on signed cuts beside the legacy ledger — the family's feeds, prefixed proof contexts, closures by `t` members, derived seals, values and draws, the members' checks, the question's bound and the state digest (`05` §Built on cuts); tests first, AT-T79-1–16 with a differential test against the offline path; an independent review of `e638309` found no logic defect, and widened the state digest and classed out-of-sequence cuts apart (`d27483d`).
+
+*Increment 2 built (2026-11-10):* the hook `p2p::hook::Hook`, implemented by `node::answer::AnswerHook` in every tiered member, which rebuilds the ledger from cut 0 at each start, decides `closes` and refuses to sign what the members' checks refuse, and stops at a collected cut failing them; the operators' `--request` spool for `CloseCommits`, `Close` and `RequestCloseEpoch`; the state digest at each closing cut, the refused cut and the executed requests in the status; `cuts_per_epoch` refused in tiered networks (`05` §Built in the node); tests first, AT-T79-17–22, on loopback in process; not reviewed. *Increment 3, the test issuer built (2026-11-11), provisional for tests only (D65), its person's commands to move into `isegoria-client`:* `isegoria-test-issuer`, a crate of its own so that no node links the issuer's key, with `--new-key` and issuance to a person for an opaque slot by files carried by hand, and the strict private encodings of the credential and of issuance's messages in `identity::credential`, written to new files, 0600 where secret (`05` §Distributed integration, credentials before T19); tests first, AT-ID-10–14, run and passing in the full suite (2026-11-11, macOS); not reviewed.
+
+*The switch withholding reveals (2026-11-11):* `p2p::member::Faults`, settable only in test builds (feature `fault-injection`, enabled by `node`'s dev-dependency alone) and by no configuration (`05` §Built in the node); tests AT-T79-30–32 between member nodes on loopback in process — T79-P4 with `t = n = 3` and one withholder, rule 6 and an excluded member's closure request with `t = 2`; written first, run and passing in the full suite (2026-11-11, macOS); not reviewed.
+
+*Increment 3, protocol side (2026-11-11):* `protocol::answer_gateway`, the gateway's stateless admission; `protocol::answer_read`, the read requests proved under their role with a context of network, kind and response key, and the replies computed from the ledger — an event's status to its own nym, a reviewer's questions one per reply, an author's records — with the ledger now recording each drawn reviewer's commit and reveal (in the digest); `protocol::answer_seal`, the bespoke inner seal (RFC 9180 base mode through `hpke` 0.14.1) with known-answer tests (`05` §Built for participants); AT-T79-23–29 written first, run and passing in the full suite (2026-11-11, macOS), not reviewed.
+
+*Increment 3, wiring (2026-11-11):* a member's gateway admits a person's event on `…/event` by the hook's `admit` (`AnswerHook`: `answer_gateway::admit`) before logging it, answering its receipt, and answers a read on the new `…/read` path by the hook's `read` (`answer_read::answer` over the ledger and the replica), logging nothing, 403 where no reply; `p2p::blind::read_path`, `seal_read` and `Sealed::open_read` for the client; `Hook::read` takes the replica (`05` §Built for participants, *In the gateway*; `04` §Blind relays, *As wired*); tests first, AT-T79-34–41, on loopback in process, written first, run and passing in the full suite (2026-11-11, macOS); not reviewed.
+
+*Increment 3, the client (2026-11-11):* `isegoria-client` (crate `client`): a person's `--request` and `--finalize` moved from the test issuer (D65), the committee's participant side (`--slot-request`, `--combine`, `03` T19-P5), the events `--join`, `--deposit` (a question's TOML file), `--commit` and `--reveal`, each admitted before it is written to a new 0600 file, `--send` sealed to a verified key configuration through a relay the genesis lists, and `--read`'s requests with a fresh response key each and their replies opened and printed; a read sent by `client::read::send_read` through `p2p::blind::{seal_read, submit, Sealed::open_read}` (`05` §Built for participants); tests AT-T79-42–49 written first, run and passing in the full suite (2026-11-11, macOS), not reviewed.
+
+*Review fixes (2026-11-11):* a gateway's read collects no cut and answers from the cuts applied at the node's last period (AT-T79-60, `05` *In the gateway*); `--request` writes its file synced before it appears under its name, the spool directory synced after (AT-T79-61); a gateway answers a read whose reply would pass `MAX_REPLY` with a sealed 500 instead of sending it (AT-T79-62, `04` T85-P5); the spool reads only names of `--request`'s form, leaving others in place, and the status parser refuses other names (AT-T79-63); written first, run and passing in the full suite (2026-11-11, macOS).
+
+*The answer state in the status (owner, 2026-11-11):* `Hook::status`, the hook's one added method, gives a member's status the open epoch, each question's phase and each executed request's outcome, counted or refused with its reason (`05` §Built in the node, *The state in the status*; AT-T79-64–65), written first, run and passing in the full suite (2026-11-11, macOS).
+
+*Increment 4, gate 1 on one machine, built (2026-11-11):* `trial/tests/gate1.rs` (crate `trial`, which builds the node's, the client's and the test issuer's own `main.rs` as its binaries) — under one operator on loopback, every step a command: four members' and a relay's identities, the issuer key, the genesis (`n = 4`, `t = 3`, the relay listed), announcements and TOMLs, five processes; 14 credentials issued by files; 13 joins and a deposit through the relay, the operators' closure of epoch 0 on three members, the draw after the beacon, commits, closure of commits, reveals, closure, the outcome, the author's record and next-epoch quota; the same state digest at each closing cut on every member; a member stopped and started mid-way while the other three progress, rebuilding the same digests; a join sent to two members applied once; the evidence in a shared part — revision, genesis, public status lines, checked free of circle content and secrets — and a private one (owner, 2026-11-11; `05` §Gate 1 on one machine); AT-T79-50–59, 5 runs of 5 passed, about 17 s each (`scripts/gate1.sh`); not reviewed. The recorded gate-1 trial against a pinned revision and configuration passed on `a842b90` and was accepted by the owner (2026-11-11, `24` §Gate 1).
+
+*Reviewed (2026-11-11):* an independent review of increments 2–3; its findings fixed with failing tests first (AT-T79-60–63), and AT-T79-32's flakiness traced to a proposer not waiting for a reveal past a gap, fixed (AT-NET-17; D68); increment 4 and the fixes not reviewed.
+
+*Refs:* D55, PROTO-015, INV-7, G-22. *Done when:* node processes complete the answer-review path through T85; the same signed history yields identical draws, outcomes, author records and quotas after restart or delayed/duplicate delivery; an invalid derived step is not co-signed (under T79-P3: a proposal failing the members' checks, and a `Draw` or `CloseEpoch` object on a feed) and a collected cut failing them is not applied; test the approved closure and missing-beacon policies, the latter with a test-only switch withholding reveals. *Size:* L.
+
+#### T84 — The public history in erasure-coded shards
+
+**Built through manual holder installation (2026-10-30):** authenticated segments and T86 shapes, signed manifests, placement, durable holders, read-only transfer, bounded discovery and replica-free recovery; assignment/audit/pull-repair with operator-configured periodic node-process maintenance. Offline CLI tools export a cut a stopped node's replica collects and extract a pinned cut's public segment from that replica, validate it, prepare its manifest/shards, independently reproduce member signatures and combine a checked quorum certificate; an operator installs a certified bundle's assigned shard into their stopped holder's store, which its node then serves and maintains (AT-NET-26–35, in-process/loopback and controlled processes). Contracts in `25` §Public archive segments through §Collected cut export from a stopped node's replica; explicit `(k, m)` and scheduling parameters, no deployment defaults (`14`). **Open:** automatic segment extraction from running nodes, manifest production/co-signing between running members, remote holder provisioning, roster coordination, repair orchestration across holders and independent-operator trial. Circle objects are never archived to outsiders (systematic code, D54). **Frozen (owner, 2026-11-03):** no further increment during Phase 2; outside Milestone 2
+
+*Refs:* D14, D54, NET-007, `docs/08` G-24, DS-4. *Done when:* with `m` holders of a segment stopped, a node with no replica rebuilds it and checks it against the signed cut; after holders are lost, repair restores every shard; a corrupted shard is dropped (AT-NET-06). *Size:* L.
+
+#### T85 — Blind relays
+
+**Blind relays** (D54, 2026-10-07). A person sends each event sealed to a member's key (HPKE, RFC 9180) through a relay, as Oblivious HTTP (RFC 9458): the relay forwards bytes it cannot read, the member opens the event, checks it as its entry point does and logs it on its circle feed. Relays leave the writer set; any member may log a person's event, the first in a cut winning (PROTO-015); the members' HPKE keys are part of the network's configuration. An audited HPKE library is preferred (`docs/CLAUDE.md`). It is T79's channel for authenticated requests and confidential responses, including the assigned question view and the participant's own records; response authorization and retries are approved in `05` T79-P7 (D60). **First increment done (2026-10-22, reviewed)**, the channel of `04` §Blind relays on T85-P1–P5: `p2p::blind` (signed key configurations, the client, the relay and the member gateway over libp2p, the embedding's admission) and `node`'s `consortium.hpke`, `hpke_key_file`, `relays`, `relay` and `--announce`; contract tests first (`p2p/tests/blind_relays.rs`, AT-NET-24): the RFC 9458 vector, the path, the relay's view, listed relays, alterations, swapped replies, other network or key, limits, duplicates concurrent and after a restart, "retry later", a relay that cannot write; the seven path tests failed before the node handled the roles. A node process admitted no event before T79's third increment, which wires the answer review's events and reads through a member's hook (2026-11-11).
+
+*Review (2026-10-22):* a relay could start with a feed under a member's key, and a reply up to 6 bytes over `MAX_REPLY` passed, the envelope being 10 bytes, not 16; both corrected, regressions failing on `2b79d87`; the channel's OHTTP is now checked against a reference HPKE path in both directions. T85 stays open for T79 and T79-P7: the events and reads are wired through the gateway's hook (2026-11-11, AT-T79-34–41, run and passing in the full suite (2026-11-11, macOS), not reviewed) and sent by `isegoria-client`, through a relay end to end only in gate 1's process test on one machine (AT-T79-52–55)
+
+*Refs:* D54, invariant 4, PRIV-P4, PRIV-003. *Done when:* a person's event reaches the ledger through a relay that never holds its plaintext, and the member receives it from the relay's peer, never from the person's (a test over loopback with a relay between); an unauthorized person cannot fetch another's private response; the relay holds neither request nor response plaintext; a relay's own entry is refused. *Size:* M.
+
+#### T86 — The state tree and the fork
+
+**The state tree and the fork** (D54, D56). Contract T86-P1–P8 approved (2026-10-24), specified in `04` §The state tree and the fork. **First increment implemented:** `network::state` commitments, sparse tree, canonical proofs/shape/root statement, checked reconstruction and one-time frozen-leaf reopening; holder salt keys in `identity::credential`. Tested on synthetic records (`AT-T86-1`–`9`); caller supplies authenticated nyms and trusted statements. **Open:** T79's answer-review records, salt-key handover and private reads; T17 anchoring, T84 archive and T19/T22 identity continuity. The existing `protocol::results` belongs to the legacy path (PRIV-004.1). *Outside Milestone 2 (owner, 2026-11-03); its open parts stay open*
+
+*Refs:* D54, D56, D16, invariant 5, INV-7, `docs/08` DS-9. *Done when:* a nym proves its records against an anchored root and cannot prove its occupied position empty; every live leaf changes each epoch; frozen leaves stay visibly occupied and locked until one authenticated reopening; a fork with no member recovers those who reopen without admitting the others as new. *Size:* L.
+
 
 ### 2.4 · Independent operation
 
-| Task | What it means (plain) | Refs | Done when | Size |
-|---|---|---|---|---|
-| T19 | **Distributed committee setup and transport**, brought forward from Phase 3. Real distributed key generation for both threshold committees, with independent randomness and authenticated messages between their operators; remove the trusted dealer and in-process message exchange. **Inside Milestone 2 (`01` D61, 2026-11-10): the issuing committee only**, operated by the trial's four members, its credentials synthetic, for a written list of slots, exchanged by hand; the uniqueness committee's setup stays open here, outside Milestone 2. **Contract approved (`01` D63, 2026-11-10):** `03` §Committee setup for the trial, T19-P1–P6 (threshold, a ceremony before the genesis, signed and sealed messages, files carried by hand, one prepared signature per slot, abort and loss). **Assigned by the owner (dsmear, in chat, 2026-11-11):** T19's implementation now, in parallel with T79's increment 3. **Built (2026-11-11, tests run and passing in the full suite (2026-11-11, macOS)):** `identity::credential::ceremony` (one member's flights, payloads strictly decoded, every expected payload required, issuance per slot) and `isegoria-ceremony` (crate `ceremony`): 13 steps over files and a 14th taking the confirmations, signed and sealed messages bound to the ceremony's id, a refusal aborting the member, the issuer key printed for `--genesis-assemble`, one share per slot recorded with it before it leaves, given again to a byte-identical request (D66), `abort` (AT-ID-15–24). **An independent review's findings fixed (2026-11-11, tests first, run and passing in the full suite (2026-11-11, macOS)):** a step's sealed messages kept in its state before any file is written, so a step run again draws nothing again (AT-ID-25); a file of a later step left for that step, not aborting (AT-ID-26); a contribution committing to other than `t` coefficients refused before the library, which panicked on none in debug builds (AT-ID-27); the confirmation carrying a bespoke echo of the commitments the libraries assume broadcast, so a member sending one member other commitments aborts the ceremony instead of leaving the signers an inconsistent sharing (AT-ID-28); the procedure's required `ceremony` number bound into the opening and the id, so an aborted ceremony's step-1 file is refused by the next instead of blaming an honest member (AT-ID-29). **Open:** the tests' first run, review (T23); the participant's side is built in `isegoria-client` *Reviewed (2026-11-11):* an independent review of the ceremony tool; its findings fixed with failing tests first (AT-ID-25–29), the high one the commitments' echo (D68); the composition stays bespoke and unaudited (T23). | D55, D61, D63, CS-2 | operators generate and retain their own shares; the distributed committee operations agree with the specified threshold behavior, reject invalid messages and have a defined abort/restart procedure; no coordinator receives the complete secret; for Milestone 2, this for the issuing committee, whose key is the gate-3 genesis's | L |
-| T88 | **Independent-operator testnet and operating contract.** Specify shared bootstrap configuration and its authentication, membership and thresholds, locally generated operator keys, admission of nodes, and authorized key replacement/configuration changes with a defined continuity or restart procedure. Cover member, transport and relay keys. State fault and trust assumptions before the trial; the current Paxos-style cuts do not establish Byzantine tolerance. Include safe recovery after file loss or a stale peer, and document where progress must stop. This is the testnet prerequisite from T22; the full identity-key lifecycle remains there. **Contract approved** (`01` D57, recorded 2026-10-31) in `04` §Operating contract: T88-P1–P4 (initial configuration, keys, quorum and faults, recovery) and the trial's archive custody (out of the trial since 2026-11-03), with the trial's minimal procedure, the obstacles in the code and two increments for P4, which local tests do not complete. **A built (2026-10-31, D58):** `--new-identity` and the identity record of a tiered network's feeds, with a durable order before each feed's first signature and a durable stop after a detected loss, inconsistency or verified own entry; once stopped, no entry by publication, duty, gateway or start (AT-NET-36; in-process, loopback and controlled processes). **B built (2026-10-31, D59) and reviewed within its perimeter (2026-11-01):** each feed of a tiered node writes, at every start, only after sync rounds with two other members whose binding verified (the circle's granting), counted by member index, a round held through a lapsed binding or grant counting for nothing; an opening feed's entry is signed only after its check (AT-NET-37; in-process, loopback and controlled processes). **Duties' conflict stop built (2026-11-01, P3):** after a consortium conflict a member's duties make no object, also after a restart from its stored replica; publication and the gateway keep their rules (AT-NET-38; in-process and loopback). **Cut views and exclusions in the status built (2026-11-01, D57 step 4):** each collected cut reported with the view `collect_with` gives it on the node's current replica and its rule-6 exclusions, by members, tiered readers and nodes given the consortium, rebuilt from the stored replica at a restart; the export's inputs stay explicit (AT-NET-39; in-process, loopback and controlled processes). **Genesis schema approved (`01` D60):** T88-P1's, with the answer-review family and `AnswerConfig`, the issuer's public key and the relays' transport keys. **Genesis built (2026-11-03, P1):** `network::genesis`, one encoding strictly decoded, the network id its tagged hash; a tiered node's TOML names it and repeats its values, or the node does not start; `--genesis-digest` prints its digest, id and contents (AT-NET-40, AT-ID-09; in-process and controlled processes). **Genesis assembly built (2026-11-10, P1):** `--genesis-assemble` writes the canonical document from the operators' printed keys and the network's parameters into one new file, refusing an existing output and every input that does not hold by its field; `--genesis-digest` shows the same contents (AT-NET-41; in-process and controlled processes). **A relay's own key checked, the configuration's hex printed (2026-11-10, P1):** a tiered relay starts only on a stored transport key its genesis lists, refused by field before any file is made; `--genesis-digest` and `--genesis-assemble` print `answer_config_hex`, the value a tiered TOML repeats (AT-NET-42; in-process and controlled processes). **Not verified:** no trial has run | D55, D54, T19, T22, T76, T80 | separate operators bootstrap without sharing private keys or a central runtime administrator; exercise restart, partition/rejoin, silent proposer, stale recovery peer, unauthorized configuration and conflicting signatures; record observed safety/progress limits and the approved recovery procedure; the evidence covers Milestone 2's three gates | L |
-| T89 | **Fuzzing and mutation testing of Phase 2's code** (`01` D62, 2026-11-10; libp2p's own decoders outside it, D64; a trial node's discovery and archive protocols can be off through the `discovery_and_archive` key, built per D64, `04` §A node process, AT-NET-44). `11`'s last run is 26 (T78, 2026-10-07) and no fuzz target has changed since T76 (the same day), so neither covers what Phase 2 built after them: `protocol/fuzz/event` reaches `NodeEvent` only. *Part 1, required before gate 2:* a fuzz target for every decoder of bytes that a node configured as in the trial, or the participants' client, accepts from another machine — the list drawn from the code at the task's start and recorded in `12`; at least `AnswerEvent`, the binding (`/isegoria/bind/1`), the relay's and the gateway's requests and replies with T79-P7's reads, the signed key configurations, and whatever a trial node still serves of discovery and archives, or those protocols off in the trial's configuration. *Part 2, outside Milestone 2:* `cargo mutants` in blocks on the owner's machine over the files Phase 2 changed in `network`, `p2p`, `node`, `protocol::answer_*` and `identity::credential`. Each campaign is authorized when assigned. *Part 1, first step (2026-11-10):* the decoders drawn from the code are listed in `12` §4 — of those a trial node or the client reads today, the sync messages and members' objects had targets; seven new targets cover the binding, the signed key configurations, the client's relay replies, the gateway's requests, the object and shard requests, the genesis and `AnswerEvent`, each run 60 seconds as an authorized smoke run with no crash; libp2p's own decoders are not targeted. *Part 1, second step (2026-11-11, on `8e88939`):* the list in `12` §4 is redrawn for increment 3's first parts and T19; eight new targets, run as 60-second smoke runs on 2026-11-11 with no crash (D67), cover gateway admission, T79-P7's read requests, replies and inner seal, the credential's private encodings (the test issuer's files), and the ceremony's messages, flight payloads, state, slot requests and shares; the procedure TOML is each operator's input, not another machine's, and has none. *Part 1, third step (2026-11-11, on `f40c37a`):* five new targets, run as 60-second smoke runs with no crash (2026-11-11), cover the gateway's answer to opened requests on `…/read` and `…/event` up to a fake hook (`p2p/gateway_read`, through `p2p::fuzz`), the client's opening of a read's answer (`p2p/client_read`) and of its sealed reply, printed (`client/read_reply`), the key configurations and relay addresses it takes (`client/listed`), and the combination of the signers' shares (`identity/ceremony_combine`); the test issuer's reply already had `identity/credential_wire`, and the client's other files (pending state, credential, commitment, events, question TOML) come from no other machine. *Part 1, fourth step (2026-11-11):* `protocol/answer_cuts` covers the hook's application of cuts to `AnswerLedger`, the last item `12` §4 listed as still to cover, run 60 seconds as an authorized smoke run with no crash (on `2e67808`). The new targets' runs, like long runs, are the owner's to authorize. Part 2 not started | D62, `docs/11`, `docs/12` §4, [Continuous work](#continuous-work) | part 1: each target committed with its run in `12` §4, every crash fixed with a regression test; part 2: a run of each block in `11`, every survivor killed or justified | M |
+#### T19 — Distributed committee setup and transport
+
+**Distributed committee setup and transport**, brought forward from Phase 3. Real distributed key generation for both threshold committees, with independent randomness and authenticated messages between their operators; remove the trusted dealer and in-process message exchange. **Inside Milestone 2 (`01` D61, 2026-11-10): the issuing committee only**, operated by the trial's four members, its credentials synthetic, for a written list of slots, exchanged by hand; the uniqueness committee's setup stays open here, outside Milestone 2. **Contract approved (`01` D63, 2026-11-10):** `03` §Committee setup for the trial, T19-P1–P6 (threshold, a ceremony before the genesis, signed and sealed messages, files carried by hand, one prepared signature per slot, abort and loss). **Assigned by the owner (dsmear, in chat, 2026-11-11):** T19's implementation now, in parallel with T79's increment 3. **Built (2026-11-11, tests run and passing in the full suite (2026-11-11, macOS)):** `identity::credential::ceremony` (one member's flights, payloads strictly decoded, every expected payload required, issuance per slot) and `isegoria-ceremony` (crate `ceremony`): 13 steps over files and a 14th taking the confirmations, signed and sealed messages bound to the ceremony's id, a refusal aborting the member, the issuer key printed for `--genesis-assemble`, one share per slot recorded with it before it leaves, given again to a byte-identical request (D66), `abort` (AT-ID-15–24). **An independent review's findings fixed (2026-11-11, tests first, run and passing in the full suite (2026-11-11, macOS)):** a step's sealed messages kept in its state before any file is written, so a step run again draws nothing again (AT-ID-25); a file of a later step left for that step, not aborting (AT-ID-26); a contribution committing to other than `t` coefficients refused before the library, which panicked on none in debug builds (AT-ID-27); the confirmation carrying a bespoke echo of the commitments the libraries assume broadcast, so a member sending one member other commitments aborts the ceremony instead of leaving the signers an inconsistent sharing (AT-ID-28); the procedure's required `ceremony` number bound into the opening and the id, so an aborted ceremony's step-1 file is refused by the next instead of blaming an honest member (AT-ID-29). **Open:** the tests' first run, review (T23); the participant's side is built in `isegoria-client`
+
+*Reviewed (2026-11-11):* an independent review of the ceremony tool; its findings fixed with failing tests first (AT-ID-25–29), the high one the commitments' echo (D68); the composition stays bespoke and unaudited (T23).
+
+*Refs:* D55, D61, D63, CS-2. *Done when:* operators generate and retain their own shares; the distributed committee operations agree with the specified threshold behavior, reject invalid messages and have a defined abort/restart procedure; no coordinator receives the complete secret; for Milestone 2, this for the issuing committee, whose key is the gate-3 genesis's. *Size:* L.
+
+#### T88 — Independent-operator testnet and operating contract
+
+Specify shared bootstrap configuration and its authentication, membership and thresholds, locally generated operator keys, admission of nodes, and authorized key replacement/configuration changes with a defined continuity or restart procedure. Cover member, transport and relay keys. State fault and trust assumptions before the trial; the current Paxos-style cuts do not establish Byzantine tolerance. Include safe recovery after file loss or a stale peer, and document where progress must stop. This is the testnet prerequisite from T22; the full identity-key lifecycle remains there. **Contract approved** (`01` D57, recorded 2026-10-31) in `04` §Operating contract: T88-P1–P4 (initial configuration, keys, quorum and faults, recovery) and the trial's archive custody (out of the trial since 2026-11-03), with the trial's minimal procedure, the obstacles in the code and two increments for P4, which local tests do not complete. **A built (2026-10-31, D58):** `--new-identity` and the identity record of a tiered network's feeds, with a durable order before each feed's first signature and a durable stop after a detected loss, inconsistency or verified own entry; once stopped, no entry by publication, duty, gateway or start (AT-NET-36; in-process, loopback and controlled processes). **B built (2026-10-31, D59) and reviewed within its perimeter (2026-11-01):** each feed of a tiered node writes, at every start, only after sync rounds with two other members whose binding verified (the circle's granting), counted by member index, a round held through a lapsed binding or grant counting for nothing; an opening feed's entry is signed only after its check (AT-NET-37; in-process, loopback and controlled processes). **Duties' conflict stop built (2026-11-01, P3):** after a consortium conflict a member's duties make no object, also after a restart from its stored replica; publication and the gateway keep their rules (AT-NET-38; in-process and loopback). **Cut views and exclusions in the status built (2026-11-01, D57 step 4):** each collected cut reported with the view `collect_with` gives it on the node's current replica and its rule-6 exclusions, by members, tiered readers and nodes given the consortium, rebuilt from the stored replica at a restart; the export's inputs stay explicit (AT-NET-39; in-process, loopback and controlled processes). **Genesis schema approved (`01` D60):** T88-P1's, with the answer-review family and `AnswerConfig`, the issuer's public key and the relays' transport keys. **Genesis built (2026-11-03, P1):** `network::genesis`, one encoding strictly decoded, the network id its tagged hash; a tiered node's TOML names it and repeats its values, or the node does not start; `--genesis-digest` prints its digest, id and contents (AT-NET-40, AT-ID-09; in-process and controlled processes). **Genesis assembly built (2026-11-10, P1):** `--genesis-assemble` writes the canonical document from the operators' printed keys and the network's parameters into one new file, refusing an existing output and every input that does not hold by its field; `--genesis-digest` shows the same contents (AT-NET-41; in-process and controlled processes). **A relay's own key checked, the configuration's hex printed (2026-11-10, P1):** a tiered relay starts only on a stored transport key its genesis lists, refused by field before any file is made; `--genesis-digest` and `--genesis-assemble` print `answer_config_hex`, the value a tiered TOML repeats (AT-NET-42; in-process and controlled processes). **Not verified:** no trial has run
+
+*Refs:* D55, D54, T19, T22, T76, T80. *Done when:* separate operators bootstrap without sharing private keys or a central runtime administrator; exercise restart, partition/rejoin, silent proposer, stale recovery peer, unauthorized configuration and conflicting signatures; record observed safety/progress limits and the approved recovery procedure; the evidence covers Milestone 2's three gates. *Size:* L.
+
+#### T89 — Fuzzing and mutation testing of Phase 2's code
+
+**Fuzzing and mutation testing of Phase 2's code** (`01` D62, 2026-11-10; libp2p's own decoders outside it, D64; a trial node's discovery and archive protocols can be off through the `discovery_and_archive` key, built per D64, `04` §A node process, AT-NET-44). `11`'s last run is 26 (T78, 2026-10-07) and no fuzz target has changed since T76 (the same day), so neither covers what Phase 2 built after them: `protocol/fuzz/event` reaches `NodeEvent` only.
+
+*Part 1, required before gate 2:* a fuzz target for every decoder of bytes that a node configured as in the trial, or the participants' client, accepts from another machine — the list drawn from the code at the task's start and recorded in `12`; at least `AnswerEvent`, the binding (`/isegoria/bind/1`), the relay's and the gateway's requests and replies with T79-P7's reads, the signed key configurations, and whatever a trial node still serves of discovery and archives, or those protocols off in the trial's configuration.
+
+*Part 2, outside Milestone 2:* `cargo mutants` in blocks on the owner's machine over the files Phase 2 changed in `network`, `p2p`, `node`, `protocol::answer_*` and `identity::credential`. Each campaign is authorized when assigned.
+
+*Part 1, first step (2026-11-10):* the decoders drawn from the code are listed in `12` §4 — of those a trial node or the client reads today, the sync messages and members' objects had targets; seven new targets cover the binding, the signed key configurations, the client's relay replies, the gateway's requests, the object and shard requests, the genesis and `AnswerEvent`, each run 60 seconds as an authorized smoke run with no crash; libp2p's own decoders are not targeted.
+
+*Part 1, second step (2026-11-11, on `8e88939`):* the list in `12` §4 is redrawn for increment 3's first parts and T19; eight new targets, run as 60-second smoke runs on 2026-11-11 with no crash (D67), cover gateway admission, T79-P7's read requests, replies and inner seal, the credential's private encodings (the test issuer's files), and the ceremony's messages, flight payloads, state, slot requests and shares; the procedure TOML is each operator's input, not another machine's, and has none.
+
+*Part 1, third step (2026-11-11, on `f40c37a`):* five new targets, run as 60-second smoke runs with no crash (2026-11-11), cover the gateway's answer to opened requests on `…/read` and `…/event` up to a fake hook (`p2p/gateway_read`, through `p2p::fuzz`), the client's opening of a read's answer (`p2p/client_read`) and of its sealed reply, printed (`client/read_reply`), the key configurations and relay addresses it takes (`client/listed`), and the combination of the signers' shares (`identity/ceremony_combine`); the test issuer's reply already had `identity/credential_wire`, and the client's other files (pending state, credential, commitment, events, question TOML) come from no other machine.
+
+*Part 1, fourth step (2026-11-11):* `protocol/answer_cuts` covers the hook's application of cuts to `AnswerLedger`, the last item `12` §4 listed as still to cover, run 60 seconds as an authorized smoke run with no crash (on `2e67808`). The new targets' runs, like long runs, are the owner's to authorize. Part 2 not started
+
+*Refs:* D62, `docs/11`, `docs/12` §4, [Continuous work](#continuous-work). *Done when:* part 1: each target committed with its run in `12` §4, every crash fixed with a regression test; part 2: a run of each block in `11`, every survivor killed or justified. *Size:* M.
+
 
 **Milestone 2 — "the answer review on independently operated P2P nodes".**
 Close it only with a recorded trial against a pinned revision and configuration:
 
 1. **Controlled processes:** persistence, replication, cuts and beacon agree; restarts
-   preserve the accepted history. *Recorded and passed on `a842b90` (2026-11-11, `16` §Gate 1),
+   preserve the accepted history. *Recorded and passed on `a842b90` (2026-11-11, `24` §Gate 1),
    accepted by the owner (dsmear, in chat, 2026-11-11).*
 2. **Separate machines and networks:** exercise delays, duplicate delivery, disconnection
    and partition/rejoin; state the quorum and network conditions for progress. *Delay, partition
@@ -394,18 +371,19 @@ Not a phase; done alongside every task.
   and the measurements live in `docs/`, never in the code.
 - Re-run mutation testing after each block of changes (`docs/11`); every new survivor is
   killed or justified.
-- Report a coverage figure with the command and date (IQ-5); assemble the adversarial
-  tests into `docs/08` §13's tree.
-- Re-walk the `docs/08` §15 matrix, raise the status of every claim that now has
-  evidence, and derive `docs/09-verification-matrix.md` from it.
+- Report a coverage figure with the command and date (IQ-5); keep each adversarial test
+  named by its `docs/08` §12 id (the §13 tree was not adopted).
+- Re-walk the `docs/08` §15 matrix and raise the status of every claim that now has
+  evidence.
 - The README and the docs keep calling the system a reference implementation / testnet
   until T23, T26 and T27 are done.
 
 ## Dependency notes
 
 - **Phase 1.** Every task up to T24 is done (the order they followed is in
-  [1.5](#15--order-of-execution-and-milestones)). T25 closes the phase, its steps in
-  order: the model first (step 1), the screen on it (step 2), the supplement measures both
+  [1.5](#15--order-of-execution-and-milestones)). T25 was to close the phase; since D47
+  Phase 1 is closed instead in the answer review's perimeter (T87), and T25 stays open for
+  the earlier mechanism, its steps in order: the model first (step 1), the screen on it (step 2), the supplement measures both
   (step 3), the thresholds are read from it (step 4); the part of step 4 that reads T24
   alone — the Level A thresholds — can be written at any time. The thresholds of T35 and
   T49–T55 are final only after it. T81 (done) needed nothing and touched no file of T25.
@@ -445,6 +423,140 @@ T77's mechanism, open here until 2026-10-07, was decided by the owner that day (
 
 Grouped as they were first planned (P1.1–P1.5, then by phase), with their evidence;
 other documents and commit messages refer to these ids and block names.
+
+### Phase 1 · Plan, order and milestones
+
+How Phase 1 was planned and carried out, moved here from the plan once done.
+
+#### 1.0 · The severe defects first
+
+The most severe defects the third review confirmed, done before the mechanism work: a
+replay that drained a proposer's quota (T64) and a Level B sample that one person could
+fill (T65, the evidence filter counted rows, not persons). **Both done** (2026-09-24):
+see [Completed work](#completed-work).
+
+#### 1.1 · Correct the mechanism (D32–D41)
+
+The working paper (archived, `archive/phase1-forecast-pilot/paper/`) found properties of the scoring mechanism that the
+specification did not anticipate: a batch-relative, partly majoritarian bridge score,
+spurious latent classes from error in the ability proxy, an improper evaluator score, a
+weight cap that never binds, and a coordination detector with almost no data per
+epoch. The decisions D32–D41 correct them (D32: T49; D33 and D36: T50; D34: T51; D37: T53 and T54; D38: T55; D39: T56; D40: T57; D35: T52). Several change the
+specified metrics, so the simulations in `sim/`, the oracle fixtures and the golden
+outputs change with them — on purpose, as in T48.
+
+All of them are done — the last, T55 (D38), on 2026-09-25 — and sit in
+[Completed work](#phase-11--correct-the-mechanism-d32d41) with their evidence; D41 is
+Phase 2 (T37, done).
+
+#### 1.2 · The decisions built on the score: band and appeal
+
+The gate has four outcomes (`docs/02` §A.3–A.4, `docs/05` [5]/[5b], D26, D27). The third
+review found that the paths after two of them are thinner than specified, and one took
+the caller's word (the appeal, T61). All three are done — T59, T61 and the extra round of
+the band re-decision, T60 — and sit in [Completed work](#phase-12--the-decisions-built-on-the-score-band-and-appeal).
+
+#### 1.3 · Engine robustness and the rest of the specification
+
+The engine's input validation (T62) and its cross-platform reproducibility (`AT-BR-04`)
+are done and sit in [Completed work](#phase-13--engine-robustness). One item is left: the
+mutation testing [1.5](#15--order-of-execution-and-milestones) scheduled after T49 and
+after T50/T51 never ran, and no run of `docs/11` since run 7 covers the decision logic
+Phase 1 changed.
+
+| Task | What it means (plain) | Refs | Done when | Size |
+|---|---|---|---|---|
+| T81 | **Mutation testing of Phase 1's mechanism. Done (2026-10-01, `docs/11` run 22):** `cargo mutants` on the ten files whose decision logic Phase 1 changed and T25 does not — `gate`, `appeal`, `exploration`, `orchestrator`, `probation`, `review` and `lifecycle` in `protocol`, `collusion`, `reputation` and `bridging` in `scoring` — whole files: 1,086 mutants, 924 caught, 2 timeouts, 41 unviable, 119 missed. None of the survivors was a wrong result. 103 were checks the suite did not make, each now made: values read only at zero or through the decisions built on them (an author's history, the change detectors' statistics, the mean score), the panel draws' outcomes, the coordination detector's exact outcomes (its per-pair seed and its tie rule, now in `docs/02`), the position of a reviewer off the axis, the axis' sign rule, the side floor, the sides of fits no fixture reaches, the ratings errors' messages. 16 are equivalent, each with its reason in `docs/11` | `docs/11`; [Continuous work](#continuous-work) | a run of each of these files recorded in `docs/11`, every survivor killed by a test or justified (done) | M |
+
+#### 1.5 · Order of execution and milestones
+
+Fixed on 2026-09-24, after the reordering; steps 15–18 re-planned on 2026-09-28 from T24's
+results, step 18 (T82) added on 2026-09-29 from the supplement's first pass. The sections above are thematic; this is the order the work is done in. Sizes
+are the ones in the rows.
+
+1. T65 (M) — done (2026-09-24), as T64 before it.
+2. T62 (S) — done (2026-09-24): `fit` and `bridge_scores` return a `Result`; T49 is
+   written against that API.
+3. T49 (M) — done (2026-09-24): the side-balanced score; sim, fixtures, golden outputs
+   and the README warning changed in the same commit. `AT-BR-04` (S) — done
+   (2026-09-25): the golden bits checked on four platforms and in the release profile
+   in CI.
+4. The D26 amendment, then T59 (M) — done (2026-09-25).
+5. The D27 decision, then T61 (S) — done (2026-09-25).
+6. T53 (S) — the anchor-reliability gate — done (2026-09-25).
+7. T50 (M), then T51 (M) — the proper evaluator score, then the change detector — both done (2026-09-25).
+8. T60 (L) — the supplementary review with real extra reviewers — done (2026-09-25).
+9. T56 (M), then T57 (M) — coordination on residuals, then panel diversification — both done (2026-09-25).
+10. T52 (L) — live outcomes with exploration — done (2026-09-25).
+11. T54 (L) — latent DIF with θ inside the likelihood — done (2026-09-25).
+12. T39 (S, descoped `d = 2`) and T45 (M) — done (2026-09-25).
+13. T55 (L) — contested facts: the specification, then the pool and the balanced draw —
+    done (2026-09-25).
+14. T24 (L) — done (2026-09-28, `docs/13` §7): 54,412 runs on the owner's machine; its
+    first pass found T71 (M), done on 2026-09-26.
+15. T25, step 1 (L) — the guessing floor in the latent re-check — done (2026-09-28).
+16. T25, step 2 (M) — the pilot screen on the same model — done (2026-09-30); its study,
+    run in the container the same day, found `R_PBIS_MIN` deciding stage 1 (`docs/13`
+    §8.7.5).
+17. T25, step 3 (M) — the guessing supplement — done (2026-09-30, `docs/13` §8.7): 19,700
+    runs on the owner's machine, its first pass finding T82, and the screen's 3,600 in the
+    container.
+18. T82 (L) — the latent re-check's robustness to templates and a skewed ability, found by
+    step 3's first pass: decided (D43) and built (2026-09-30); the supplement's DIF studies
+    again on the corrected model, on the owner's machine, before the DIF thresholds.
+19. T25, step 4 (M) — the thresholds and their register. T26 is external.
+
+**While the owner's machine runs.** Step 3 took the owner's machine about 10 hours
+(`docs/13` §8.7); the screen's study, 3.5 minutes, ran in the container. The container
+did step 2 — the pilot screen — T81 and the Level A part of step 4's register: none of
+them changes what the supplement's runs compute — the latent fit's
+bits, the gates, the bridging fit — so its records reproduce on their commits. (Until T24
+the plan ran in two streams of disjoint files, and scheduled mutation testing after steps
+3 and 7; the testing never ran, hence T81.)
+
+**Milestone 1a — "the defects are fixed".** Steps 1–7: every task S or M, every one a
+defect in code that exists. At this point the README no longer needs its "partly
+majoritarian" warning, the band and appeal paths are decided by the gate, and the engine
+returns errors instead of panicking.
+
+**Milestone 1b — "the mechanism is complete".** Steps 8–19: the features the decisions
+add (a second panel, exploration, the target DIF model, panel diversification, the
+contested-facts pool — all done), the characterization of the detectors and gates (T24
+and T25's supplement, done), and the thresholds set on a model that accounts for the
+guessing of the items the system asks and does not read templates or a skewed ability as
+bias (T25, four steps; T82).
+
+**Milestone 1 — "the mechanism is sound"** is 1a and 1b together, with T81. Every verdict
+is computed as D32–D42 specify, on a model that accounts for guessing (D25); the band and
+appeal paths are decided by the gate, not by the caller; the engine returns errors
+instead of panicking on malformed input; `sim/`, the fixtures and the golden outputs are
+regenerated on purpose; every threshold is either characterized (T24, T25) or marked
+provisional with the pilot that will set it; the mechanism's decision logic is
+mutation-tested (T81).
+
+**Completion qualification after D47.** *Met in the answer review's perimeter only (2026-10-21,
+[record](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)); the milestones
+below, for the previous design, are not.* The milestones below were defined for the previous design.
+Phase 1's completion now also requires D47's mechanism, in the first implementation D48 settles, to
+be specified, implemented and reviewed with its guarantees; meeting the milestones below does not
+complete it. Phase 1's completion criteria are themselves among the decisions D48 leaves to the
+owner. D52 (2026-10-21): A2's whole-test guarantee is not required to complete the answer review
+(T87), A2 stays unresolved within its scope, and Phase 1 is not declared complete before Astra's
+final review of the implemented path.
+
+**Completion qualification.** The label also requires resolving the critical/high
+findings in `15`, or explicitly narrowing the claimed domain with a justified decision.
+T81 covers the ten files named in its task row, not every statistical claim or composed
+path. Provisional parameters with defined pilots remain permitted; actual field
+validation remains T27. No documentation-only change closes a code or proof finding.
+
+#### 1.6 · The answer review (D49–D52)
+
+The first implementation of D47's mechanism as D48 modified it, on the contract the owner
+approved (`01` D49–D52). An offline path beside the existing one, which it does not change.
+
+**Done (2026-10-21), in this perimeter only:** T87 is in [Completed
+work](#phase-16--the-answer-review-d49d52).
 
 ### Phase 1.0 · The severe defects first
 
@@ -511,6 +623,14 @@ other documents and commit messages refer to these ids and block names.
 | T72 | **The draws read their candidates as a set. Done (2026-09-26):** `review::assign_reviewers` and `assign_diverse` sorted the candidates by `f_u` with a stable sort, so reviewers at the same position — every newcomer at the origin since T39 — kept the order the caller listed them in, and that order decided the panel; `governance::stratified_sortition` also filled its deficit and returned its committee in the input order, so it depended on the order even without ties. Now every candidate list is put in a canonical order first — position, then nym (`review::by_position`), or id for the sortition (`Id: Ord`, replacing `Eq + Hash`; the repeat check sorts) — and the sortition fills and returns in that order: each draw is a function of the candidate set and the beacon's seed. The extra round (`assign_extra_*`) inherits it. Test first: `protocol/tests/draw_order.rs` (AT-BR-13; numbered AT-BR-12 until 2026-09-28, an id T71 also took) — 30 reviewers on the axis, 20 newcomers tied at the origin and a tie at 0.5, in four other orders, panels of 9 over 100 seeds, the diversified panel with clusters and taken nyms, the plain and diversified extra round over 30 beacons, the sortition with ties and without (8 candidates, 7 seats in 5 strata); all four tests failed on the previous code — the reversed list alone drew another panel on 100 of 100 seeds for both assignment functions, and another sortition set on 100 of 100 without any tie. No pinned number moved (the populations of the other suites have no ties); `docs/11` run 10: 12 mutants, 7 caught, 4 unviable, the one survivor the equivalent `count < seats` already justified | INV-10, PROTO-003, PROTO-010, D40, T37 | the same candidates in any order draw the same panel from the same seed, for the first panel, the extra round and the sortition | S |
 
 ### Phase 2.3 · Build the runtime
+
+**The check of 2026-09-28.** Walking the phase against the code found four gaps no task
+covered: any peer that connects reads everything a node replicates, the drafts under
+review and the ratings joined to their judges' nyms included — against D17 and
+`docs/CLAUDE.md` (T77); a node runs only inside a test (T78); nothing runs an epoch
+between nodes — the steps and results the cuts order are produced only by tests (T79);
+and a writer that loses its files cannot rebuild its feed, and restarted empty it
+equivocates (T80). T77, T80 and T76 are defects in code that exists.
 
 | Task | What it means (plain) | Refs | Done when | Size |
 |---|---|---|---|---|

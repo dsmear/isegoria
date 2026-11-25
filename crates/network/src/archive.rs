@@ -1,4 +1,4 @@
-//! Bounded public archive segments and authenticated shard recovery (`docs/04` §Public archive
+//! Bounded public archive segments and authenticated shard recovery (`docs/25` §Public archive
 //! segments). Context and the prior cut are authenticated by the caller.
 
 use crate::cid::{cid, Cid};
@@ -105,7 +105,7 @@ fn signatures_verify(
 }
 
 /// Checks that `signatures` certify `cut` in `view`: `verify_strict` signatures in member order
-/// from at least the threshold of distinct non-excluded members (`docs/04` §Public archive
+/// from at least the threshold of distinct non-excluded members (`docs/25` §Public archive
 /// segments).
 pub fn verify_certificate(
     tiers: &Tiers,

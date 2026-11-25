@@ -181,7 +181,7 @@ fn stored_transport_key(path: &Path) -> Result<Keypair, ConfigError> {
 }
 
 /// The Ed25519 public key of the existing `data_dir/transport.key`, a roster entry; nothing else
-/// is read or written (`docs/04` §Initial archive installation on a holder).
+/// is read or written (`docs/25` §Initial archive installation on a holder).
 pub fn transport_public_key(config: &Config) -> Result<[u8; 32], ConfigError> {
     stored_transport_key(&config.data_dir.join("transport.key"))?
         .public()

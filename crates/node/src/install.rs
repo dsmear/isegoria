@@ -1,5 +1,5 @@
 //! Manual installation of a prepared, certified bundle into a stopped holder's store
-//! (`docs/04` §Initial archive installation on a holder).
+//! (`docs/25` §Initial archive installation on a holder).
 
 use crate::archive::read_bounded;
 use crate::production::{marker, Error};

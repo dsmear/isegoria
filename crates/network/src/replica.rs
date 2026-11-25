@@ -654,7 +654,7 @@ impl DurableReplica {
     }
 
     /// The replica kept in `dir`, read without creating, cutting or writing a file; a torn
-    /// file is refused (`docs/04` §Segment extraction from a stopped node's replica).
+    /// file is refused (`docs/25` §Segment extraction from a stopped node's replica).
     pub fn read(dir: &Path, writers: WriterSet) -> Result<Replica, DiskError> {
         let entries = read_objects(&dir.join("entries")).map_err(DiskError::Store)?;
         let objects: BTreeMap<Cid, Vec<u8>> = read_objects(&dir.join("objects"))

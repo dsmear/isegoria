@@ -231,7 +231,7 @@ is warranted only if the design wants the hard family for its own sake, and then
   BIC's use with penalized fits (B1–B3). None is decided here; P1, approved for implementation, is
   implemented (§8) and awaits Astra's review.
 
-## 8. P1 as implemented (after `deb4e5e`, pending Astra's review)
+## 8. P1 as implemented (after `deb4e5e`; approved on `16e862c`)
 
 **Changes** (`crates/scoring/src/latent.rs`). `free_params` subtracts 1, not 3, when the shape is
 estimated (`:214–218`): a nominal count of the parametrized family, documented as such; with the

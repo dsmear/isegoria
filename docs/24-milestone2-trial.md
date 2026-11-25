@@ -1,4 +1,4 @@
-# Isegoria — Milestone 2 trial records
+# 24 — Milestone 2 trial records
 
 | | |
 |---|---|
@@ -59,4 +59,5 @@ Participants were scripted and synthetic, one author and one question, below the
 (D60); the issuer is the provisional test issuer (D65). The beacon's bias and stall limits, and
 no Byzantine tolerance, are as `04` and `01` D57 state.
 
-*Status.* Passed on the pinned revision; gate 1 is closed when the owner accepts this record.
+*Status.* Passed on the pinned revision and accepted by the owner (dsmear, in chat, 2026-11-11):
+gate 1 is closed.

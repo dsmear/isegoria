@@ -1,5 +1,5 @@
 //! Offline reads of a stopped node's replica: a pinned cut's public segment and a collected cut
-//! (`docs/04` §Segment extraction and §Collected cut export from a stopped node's replica).
+//! (`docs/25` §Segment extraction and §Collected cut export from a stopped node's replica).
 
 use crate::archive::{read_bounded, MAX_CONFIG, MAX_CUT};
 use crate::production::{pinned, publish_file, tiers, Config, Error};
@@ -76,7 +76,7 @@ pub fn extract(node: &crate::Config, input: &Config) -> Result<Cid, Error> {
 }
 
 /// The cut `--archive-export-cut` exports and the view and exclusions it must be collected
-/// under (`docs/04` §Collected cut export from a stopped node's replica).
+/// under (`docs/25` §Collected cut export from a stopped node's replica).
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CutConfig {

@@ -1,4 +1,4 @@
-//! Assigned public archive shards and checked retrieval (`docs/04` §Public archive).
+//! Assigned public archive shards and checked retrieval (`docs/25` §Public archive).
 
 use crate::{read_limited, write_all};
 use futures::{AsyncRead, AsyncWrite, StreamExt};

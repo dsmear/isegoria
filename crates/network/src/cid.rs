@@ -1,4 +1,4 @@
-//! Content addressing (`docs/04`, §Content-addressed storage): the address is the
+//! Content addressing (`docs/99`, §Content-addressed storage): the address is the
 //! hash of the content, so it guarantees the content — no one can swap a question's
 //! text while keeping its reference.
 

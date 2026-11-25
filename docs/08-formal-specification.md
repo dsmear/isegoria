@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | DRAFT — independent audit of commit `c4a09b1f778037c9d80dd7a85f3243311a1714ec` (2026-09-16). Not yet reviewed by the maintainers. |
+| **Status** | Independent audit of commit `c4a09b1f778037c9d80dd7a85f3243311a1714ec` (2026-09-16), drafted before the maintainers' review; their remediation log, re-checks and later reviews follow in §0-bis–§0-quinquies, and the tests (§12), gaps (§14) and claim/evidence matrix (§15) are kept current. |
 | **Intended path** | `docs/08-formal-specification.md` |
 | **Companion** | `docs/07-verification-and-assurance.md` (methodology); §15 below (verification matrix); `docs/15-phase1-review.md` (current review and correction register) |
 | **Normative language** | MUST / MUST NOT / SHOULD / SHOULD NOT / MAY as in RFC 2119. |
@@ -293,6 +293,9 @@ Out of scope: user interfaces, deployment tooling, legal/regulatory analysis of 
 
 ## 2. System model
 
+What the repository claims the system guarantees, what the code actually composes, and how far
+each part is designed, implemented, tested or simulated.
+
 ### 2.1 What the system claims to guarantee (as stated by the repository)
 
 The repository makes, in `README.md`, `docs/00`–`06`, and `ARCHITECTURE.md`, the following top-level claims. Each is decomposed into numbered claims in §5.
@@ -360,6 +363,9 @@ Observations that matter for every later section:
 ---
 
 ## 3. Actors and trust boundaries
+
+Who takes part, where the trust boundaries lie in the code, and which attackers the
+documentation assumes.
 
 ### 3.1 Actors
 
@@ -800,7 +806,7 @@ Each critical claim carries the full block required by `docs/07` §4. Secondary 
 
 #### NET-011 — Durability and crash recovery of a node's log
 - **Claim (`docs/04` §A node's own disk).** After a restart a node holds exactly the log entries it acknowledged, and every object it stored under its CID; a crash costs at most the write it tore, which was never acknowledged; damage a crash cannot produce is refused, not repaired.
-- **Evidence status.** IMPLEMENTED, TESTED (T13). `network::store::{DurableLog, ObjectStore}`: two append-only files behind a 16-byte versioned header, a write synced before it is acknowledged; on open every log record is re-chained, a torn tail (a short record, or a final record that fails its check) is cut on disk and reported (`Recovery`), an earlier bad record is `Corrupt`, a length above `MAX_OBJECT` (16 MiB) is `TooLarge` before anything is sized from it, and an object is re-hashed on every read. `durable_store.rs` (AT-NET-11): a crash at every byte of a five-entry log keeps exactly the complete entries; a damaged byte in any field of any earlier record refuses the file; properties over hostile bytes; fuzz target `network/fuzz/store`. The derived protocol state is not yet rebuilt from the log: T73 (typed events and replay, with the proof codecs). Power-loss durability rests on `fsync` (`sync_data`, and the directory on creation), which a test cannot observe.
+- **Evidence status.** IMPLEMENTED, TESTED (T13). `network::store::{DurableLog, ObjectStore}`: two append-only files behind a 16-byte versioned header, a write synced before it is acknowledged; on open every log record is re-chained, a torn tail (a short record, or a final record that fails its check) is cut on disk and reported (`Recovery`), an earlier bad record is `Corrupt`, a length above `MAX_OBJECT` (16 MiB) is `TooLarge` before anything is sized from it, and an object is re-hashed on every read. `durable_store.rs` (AT-NET-11): a crash at every byte of a five-entry log keeps exactly the complete entries; a damaged byte in any field of any earlier record refuses the file; properties over hostile bytes; fuzz target `network/fuzz/store`. The derived protocol state is rebuilt from the log since T73 (typed events and replay, with the proof codecs). Power-loss durability rests on `fsync` (`sync_data`, and the directory on creation), which a test cannot observe.
 
 #### NET-012 — Our encoding refuses what it cannot represent
 - **Claim (`docs/04` §Events and replay).** `network::codec` decodes only what it wrote: a read past the end, a length above what the input still holds (checked before anything is sized from it) and trailing bytes are refused; a decoder never panics.
@@ -940,6 +946,9 @@ Logarithmic score (`docs/02` C.2); 3PL; infit/outfit; `d = 2` (descoped, D31/T39
 
 ## 7. Cryptographic specification
 
+The cryptographic primitives in use, the threats each must resist, which are reference
+implementations, and what needs external review.
+
 ### 7.1 Primitive inventory
 
 | Use | Standard / construction | Library, version (`Cargo.lock`) | Randomness | Domain separation | Status |
@@ -984,6 +993,9 @@ Before any deployment: (1) the threshold OPRF composition and its DLEQ transcrip
 ---
 
 ## 8. Privacy model
+
+Who could learn what about participants, each privacy property against its adversary, and what
+the code leaks.
 
 ### 8.1 Adversaries
 
@@ -1116,6 +1128,9 @@ members' objects on their feeds and the deadlines are cuts (`docs/04` §The beac
 ---
 
 ## 10. Distributed-systems semantics
+
+How the log, the Merkle tree, checkpoints, replication, erasure coding and anchoring behave,
+faults included.
 
 ### 10.1 Append-only log
 - **State.** `Vec<Entry{seq, prev, payload: Cid, hash}>`; `head = last.hash` or `0³²`. Durable since T13: `store::DurableLog` keeps the entries in an append-only file and rebuilds the log from it on open (NET-011).
@@ -1352,9 +1367,9 @@ and the scoped composed/numerical integration evidence are specified only in `16
 | AT-NET-30 ✓ | periodic local archive maintenance (T84) | explicit bounded jobs, serial sweeps without catch-up, latest-only reports, failures/retries, repair after corruption and graceful stop | scheduling reuses authenticated maintenance, preserves durable-write acknowledgement and stops before the next pass; library API, in-process/loopback only | NET-007 |
 | AT-NET-31 ✓ | archive maintenance in a node process (T84) | independent context/certificate checks before node files, required settings and bounded canonical files, real executable repair/corruption/restart, ordinary status progress, SIGTERM drain and stale-report reset | operator-configured periodic maintenance in controlled local processes; no automatic trust selection or independent-operator evidence | NET-007 |
 | AT-NET-32 ✓ | manual archive preparation and co-signing (T84) | real CLI preparation/sign/combination, two-of-three quorum, independent context/candidate checks, invalid extra shares, closing snapshots, bounded canonical files and no overwrite | certificate accepted by maintenance planner and recovery from produced shards; explicit input segment, no live extraction or initial holder import | NET-007 |
-| AT-NET-33 ✓ | initial archive installation on a holder (T84) | real CLI prepare/sign/combine/install for three holders; altered context, below-quorum or unconfigured certificates, markers, segment and shard bytes, unassigned or missing identity; repeated install, roster change, damaged, full and foreign stores; install and second node during a running node; lock after stop, post-start error and cancelled `run` (Unix); oversized, FIFO and malformed transport keys; `--transport-public-key` | installed shards served by node processes, recovered after one holder stops and audited healthy after restart; refusals write nothing, other records preserved; lock held until the storage task ends, a queued installation written first; bounded key reads; printed key matches RFC 8032 and is a roster entry (`docs/04` §Initial archive installation on a holder); controlled local processes only | NET-007 |
-| AT-NET-34 ✓ | segment extraction from a stopped node's replica (T84) | durable replica with public, circle and later member entries; initial and successor cuts; real CLI extract/prepare/sign/combine/install; missing or altered entries and objects, torn or foreign files, wrong view, cut, predecessor, exclusions, threshold or network, pending and conflicting certificates; closing cuts with missing, mismatched or unexpected snapshots; existing outputs; running node (Unix) | exactly the public delta with the collected signatures, accepted by preparation and installed on three holders; refusals change no file and publish nothing; read-only replica access under the data-directory lock (`docs/04` §Segment extraction from a stopped node's replica); replica written through `DurableReplica`, not consortium processes | NET-007 |
-| AT-NET-35 ✓ | collected cut export from a stopped node's replica (T84) | real CLI export of a predecessor and a target with their own views and exclusions, then extract and prepare; uncollected number, other view, quorum lost to exclusions or threshold, conflicting cuts, a lenient-only signature (not collected), missing or invalid exclusions, untiered configuration, damaged or missing replica, existing output; running node (Unix); cuts 0 to 5 collected by three tiered member processes, one stopped by A from its start, so two cuts in a later view and one excluding it | exactly `Cut::encode` of the collected cut, exported with the number, view and exclusions the member's status file reports and matching its digest, another view refused, accepted as extraction context; refusals change no file and publish nothing; the file is no certificate (`docs/04` §Collected cut export from a stopped node's replica); controlled local processes only | NET-007 |
+| AT-NET-33 ✓ | initial archive installation on a holder (T84) | real CLI prepare/sign/combine/install for three holders; altered context, below-quorum or unconfigured certificates, markers, segment and shard bytes, unassigned or missing identity; repeated install, roster change, damaged, full and foreign stores; install and second node during a running node; lock after stop, post-start error and cancelled `run` (Unix); oversized, FIFO and malformed transport keys; `--transport-public-key` | installed shards served by node processes, recovered after one holder stops and audited healthy after restart; refusals write nothing, other records preserved; lock held until the storage task ends, a queued installation written first; bounded key reads; printed key matches RFC 8032 and is a roster entry (`docs/25` §Initial archive installation on a holder); controlled local processes only | NET-007 |
+| AT-NET-34 ✓ | segment extraction from a stopped node's replica (T84) | durable replica with public, circle and later member entries; initial and successor cuts; real CLI extract/prepare/sign/combine/install; missing or altered entries and objects, torn or foreign files, wrong view, cut, predecessor, exclusions, threshold or network, pending and conflicting certificates; closing cuts with missing, mismatched or unexpected snapshots; existing outputs; running node (Unix) | exactly the public delta with the collected signatures, accepted by preparation and installed on three holders; refusals change no file and publish nothing; read-only replica access under the data-directory lock (`docs/25` §Segment extraction from a stopped node's replica); replica written through `DurableReplica`, not consortium processes | NET-007 |
+| AT-NET-35 ✓ | collected cut export from a stopped node's replica (T84) | real CLI export of a predecessor and a target with their own views and exclusions, then extract and prepare; uncollected number, other view, quorum lost to exclusions or threshold, conflicting cuts, a lenient-only signature (not collected), missing or invalid exclusions, untiered configuration, damaged or missing replica, existing output; running node (Unix); cuts 0 to 5 collected by three tiered member processes, one stopped by A from its start, so two cuts in a later view and one excluding it | exactly `Cut::encode` of the collected cut, exported with the number, view and exclusions the member's status file reports and matching its digest, another view refused, accepted as extraction context; refusals change no file and publish nothing; the file is no certificate (`docs/25` §Collected cut export from a stopped node's replica); controlled local processes only | NET-007 |
 | AT-NET-36 ✓ | a tiered member's identity record (T88, increment A, D58) | `--new-identity` into new and existing paths; every record state against the feed files, including both crash points before a first signature and a public feed written while the circle is unused; written feeds lost, too many entries, damaged files, missing, unreadable and foreign records, a record path holding a FIFO or a directory; verified own entries past or against the files, another network's entry and unserved identifiers; record writes failing before and after their rename; the object's and the entry's write and sync failing (injected, test builds only) for a first and a later entry of either feed, and under a gateway and running duties; a stopped member among two progressing members and behind a gateway; a writer without tiers | four private secrets and only public keys printed; legitimate states start and keep one signed history, an opening feed's complete entry kept exactly; every detected loss, inconsistency or verified own entry stops both feeds durably, with no entry signed by publication, duty, gateway or start, while the member replicates and reads; a missing or unreadable record is never created or rewritten, and one that is not a regular file does not block the start; a failed feed write signs nothing and stops both feeds for the rest of the run, the failure gone, and a restart resumes on what the files hold, a complete entry kept at its `seq`; unverified identifiers stop nothing; untiered writers keep T80 (`docs/04` §Increments A and B); in-process, loopback and controlled processes | NET-010, NET-011 |
 | AT-NET-37 ✓ | a tiered member's sync with two other members (T88, increment B, D59) | spies bound as member 1 over two transport keys, as the node's own index, and unbound; a second member answering, then granting; pulls held while a binding lapsed and verified again, and while a grant was withdrawn, refused, or given again; a member's round followed by its disconnection, then its reconnection; own identifiers offered and never served, then served; a restart with intact files and one, then two, other members; an older copy whose later entry a member serves; an opening feed's entry at the start; duties and a gateway with one other member; a gateway asked again for an opening entry before and after its check, by a stopped member, and after the record write before its signature failed; a tiered feed without the member role; four member processes from new identities, `n = 4`, `t = 3` | no feed writes, by publication, duty, gateway or start, before rounds with two other members, counted by index, the own index and unbound peers never; the circle counts only granting members, apart from the public feed; a held or lapsed round counts for nothing, also once bound or granted again; a round naming an unheld own entry does not count, and the entry, once verified, stops the member durably without entering the files; the restart continues at the next `seq` with no equivocation; the opening entry is signed only after its check, exactly as kept; a gateway's receipt names only an entry its replica holds signed, the same for a duplicate, and nothing is signed to answer; the status lists the members counted, apart from the stop; the four processes write and collect cuts only after the check (`docs/04` §Increments A and B); in-process, loopback and controlled processes | NET-010 |
 | AT-NET-38 ✓ | a member's duties at a consortium conflict (T88-P3) | a conflict already held; members progressing until a second cut for a collected number is signed, then looking again and again; a second cut signed by fewer than `t`, or by `t` with a withholder's signature; three member nodes where two members' keys sign a second cut past their feeds; a reader syncing from a member; a restart from a stored replica holding the conflict; a second conflict at an earlier collected number after a first | no duty object — commit, reveal, proposal, co-signature or view change — once the conflict is found, also through a second one, the cuts before it kept and none after; a cut short of a certificate is no conflict and the duties go on; the status reports `conflict` and `duties_halted` apart from A's `stopped`, the members whose keys signed past their files stopped by A; the reader receives the evidence; publication and `publish_circle` keep their own rules; after the restart the first look finds the conflict and nothing is added (`docs/04` §The duties' stop at a conflict); in-process and loopback | NET-006, NET-010 |
@@ -1473,6 +1488,11 @@ and the scoped composed/numerical integration evidence are specified only in `16
 ## 13. Verification architecture
 
 The tree below realizes `docs/07` §24. Existing tests are listed where they should move; new tests reference §12.
+
+*As adopted.* The tree was not created and no test moved: tests sit beside their crates
+(`crates/*/tests`, unit tests in `src/`, fuzz targets in `crates/*/fuzz`), named by §12's AT ids;
+the characterization reports are in `verification/reports/`; the claim/evidence matrix stays
+in §15, with no separate `09`. The tree remains the audit's map from each check to its kind.
 
 ```
 verification/
@@ -1643,7 +1663,7 @@ Only gaps supported by evidence in the repository are listed. Each gives: locati
 *Why it matters.* Milestone 2 needs the answer review on independently operated nodes (D55). Member nodes now run it on their cuts and participants reach it through the client and blind relays, but only under one operator on one machine (gate 1's process test, `docs/05` §Gate 1 on one machine): nothing yet shows it across machines or operators.
 *Minimum spec.* The integration contract in `docs/05` §Distributed integration (T79-P1–P7, approved in `docs/01` D60): authenticated events and configuration, pool snapshot and delayed beacon, closure authority/timing, missing-beacon behavior, access tiers and member validation before co-signing. Preserve D49–D53; the old admission lottery, pilots, appeals and supplementary rounds are not T79 requirements.
 *Test.* T79's end-to-end answer-review checks, then `docs/10` Milestone 2's independent-operator trial; invalid derived steps are not co-signed, and delayed/duplicate messages and restarts preserve outcomes and author state.
-*Status.* OPEN; contract approved 2026-11-03 (D60); the state on signed cuts built and tested in process (T79's first increment, AT-T79-1–16, 2026-11-04); the member's node and the participants' path built (increments 2 and 3); gate 1 run end to end as processes on one machine under one operator (increment 4, AT-T79-50–59, 2026-11-11); the recorded trial and gates 2–3 not run; the offline T87 closure supplies no distributed-runtime evidence.
+*Status.* OPEN; contract approved 2026-11-03 (D60); the state on signed cuts built and tested in process (T79's first increment, AT-T79-1–16, 2026-11-04); the member's node and the participants' path built (increments 2 and 3); gate 1 run end to end as processes on one machine under one operator (increment 4, AT-T79-50–59, 2026-11-11), its record passed and accepted by the owner (2026-11-11, `docs/24` §Gate 1); gates 2–3 not run; the offline T87 closure supplies no distributed-runtime evidence.
 
 **G-23 — A writer does not rebuild its feed from the replicas.**
 *Location.* `crates/p2p/src/lib.rs` (`open_own`, `Node::publish`), `docs/04` §A node's own disk (Recovery, rule 2) and §A writer's own feed.
@@ -1868,6 +1888,8 @@ Each question preserves an ambiguity found in the repository and offers precise 
 
 ## 18. Residual risks (accepted or currently unmitigated)
 
+The risks accepted or not yet mitigated, and for each whether an owner decision is needed:
+
 | Risk | Nature | Owner decision required |
 |---|---|---|
 | Issuing committee `≥ t` colludes: unlimited undetectable credentials | structural | accept; mitigate by committee composition (D16-style) — no technical fix in the design |
@@ -1906,6 +1928,8 @@ The following cannot be established from the repository, from simulation, or fro
 ---
 
 ## 20. Implementation mapping
+
+Where each concept lives in the specification, the code, the tests and the simulations:
 
 | Concept | Spec section | Code | Tests | Sims |
 |---|---|---|---|---|
