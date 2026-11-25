@@ -177,9 +177,8 @@ checks are specified in [05](05-question-lifecycle.md#the-answer-review-01-d49d5
 
 ## Committee setup for the trial (T19) — approved contract (D63)
 
-**Status (2026-11-11): approved (`01` D63), rectified (D66); built, the participant's side in
-`isegoria-client` included (below, *Built*), its tests run and passing in the full suite (2026-11-11, macOS); the tool reviewed once, its findings fixed (`01` D68), the
-composition bespoke and unaudited (`10` T23).**
+**Status:** approved (`01` D63) and rectified (D66); what is built is marked *Built* below, the
+review and the tests in `10` T19. The composition is bespoke and unaudited (`10` T23).
 *Decided* restates `01` D61 or an earlier decision; *consequence* is what the current code
 forces; each **T19-Pn** is a choice D63 approves. Only the issuing committee is in scope (D61); the uniqueness
 committee's setup stays open in T19, outside Milestone 2.

@@ -650,13 +650,11 @@ node's replica).
 
 ### Blind relays (T85)
 
-**Status (2026-10-22).** The first increment, the transport channel, is built on T85-P1–P5
-at the owner's instruction, P5 as stated below, and reviewed (§As built). Which messages a person sends —
-the events, the read requests, their replies — is `05` T79-P2 and T79-P7, approved in `01`
-D60; a member's gateway admits the events and answers the reads through its hook (2026-11-11,
-`05` §Built for participants, *In the gateway*), not reviewed; persons send both with
-`isegoria-client`, through a relay end to end only in gate 1's process test on one machine (`05`
-§Gate 1 on one machine): T85 as a whole stays open with T79.
+**Status.** The first increment, the transport channel, is built on T85-P1–P5 at the owner's
+instruction, P5 as stated below, and reviewed (§As built); the rest of T85's state is in `10`
+T85. Which messages a person sends — the events, the read requests, their replies — is `05`
+T79-P2 and T79-P7, approved in `01` D60; a member's gateway admits them through its hook
+(`05` §Built for participants, *In the gateway*).
 
 *Decided (D54, `10` T85).* A person sends each event sealed to one member's key through a
 relay, as Oblivious HTTP (RFC 9458) over HPKE (RFC 9180): the relay sees where a message
@@ -1166,10 +1164,7 @@ trial's archive custody below, which the trial no longer exercises (owner, 2026-
 T88-P1's schema in `01` D60 (2026-11-03).
 *Built* names what the code does today, *not built* what the approved rules still need
 (§Obstacles in the code). Nothing here is *verified*: no independent-operator trial has run.
-T88, T84 (frozen) and Phase 2 stay open; T79's contract is approved (D60), its state on signed
-cuts, a member's node running it and the participants' path built (`05` §Built on cuts,
-§Built in the node, §Built for participants), gate 1 run as a process test on one machine
-(`05` §Gate 1 on one machine), and T19 and `10` §2's gates remain required. The operators'
+The tasks' and gates' state is in `10` §2. The operators'
 confirmations set up the trial; they add no consensus rule at runtime, where §Cuts is
 unchanged. The answer review's side is `05` §Distributed integration (T79-P1–P7, approved in
 D60).

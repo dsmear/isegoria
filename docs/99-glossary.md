@@ -197,8 +197,8 @@ position is fixed by the key itself. Besides proving that a record is in the tre
 prove that a key has **no** record, by showing its position empty.
 
 The state tree uses this property to prevent a pseudonym with a bad record from
-re-entering a fork as new. Its primitives are built and tested on synthetic records; no
-node produces or reads a tree yet (D54, D56, T86; [04](04-storage-network.md)).
+re-entering a fork as new (D54, D56, T86; [04](04-storage-network.md); state in
+[10](10-roadmap.md)).
 
 ## Blind relay (Oblivious HTTP)
 
@@ -207,8 +207,8 @@ knows **where** it comes from but cannot read it; the recipient reads it but see
 intermediary as its sender. Standardized as Oblivious HTTP (RFC 9458), over HPKE (RFC 9180).
 
 The channel separates addresses from event contents, assuming the relay and member do
-not collude. It is built and tested on loopback; a member's node admits persons' answer-review
-events and answers their private reads through it (D54, T85, T79; [04](04-storage-network.md)).
+not collude. Participants send their answer-review events and private reads through it to a
+member's node (D54, T85, T79; [04](04-storage-network.md); state in [10](10-roadmap.md)).
 
 ## Content-addressed storage
 

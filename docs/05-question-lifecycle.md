@@ -112,13 +112,9 @@ contract leaves to the implementation:
 
 ## Distributed integration (T79) — approved contract (D60)
 
-**Status (2026-11-11): approved by the owner (`01` D60); the state on signed cuts, a
-member's node running it and the protocol side of participants — gateway admission, private
-reads and their inner seal — are built and wired into the member's gateway (§Built on cuts,
-§Built in the node, §Built for participants), with the provisional test issuer (D65) and the
-participant's client (§Built for participants); gate 1 ran end to end as processes on one
-machine (§Gate 1 on one machine), and its record against a pinned revision passed and was
-accepted by the owner on 2026-11-11 (`24` §Gate 1).**
+**Status:** approved by the owner (`01` D60). What is built is specified as built in §Built on
+cuts, §Built in the node and §Built for participants, with the provisional test issuer (D65);
+gate 1's test is §Gate 1 on one machine, its record `24`; the task's state is `10` T79.
 *Approved* restates an earlier decision or a built network rule; *consequence* is what the
 current code forces; each **T79-Pn**, and each choice marked *D60*, is the owner's decision
 recorded in D60. The operators' side — keys, genesis, quorum, faults, recovery — is `04`
