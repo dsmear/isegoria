@@ -15,29 +15,24 @@ lines. Code symbols identify the implementation to re-check on a newer branch.
 
 ## How to read the documentation
 
-- [`01` D47](01-decisions.md) (owner, 2026-10-21): the author states the key, reviewers answer the
-  item with any resource, and the mathematics is to evaluate the reviewers' reliability over time;
-  D49–D52 specify its first implementation (below). Its disposition of this register's findings is
-  [below](#d47-disposition-2026-10-21). The previous design's dossiers (`16`, `17`, `19`, `20`), the
-  previous handoff, A12's and A2's tools and A2's results are archived in
-  `archive/phase1-forecast-pilot/`; paths such as `phase1-handoff.md`, `sim/a12_offline.py`,
-  `sim/dtf_composition.py` or `verification/reports/a2-…` named in the records below are there now
-  ([path map](../archive/phase1-forecast-pilot/README.md#path-map), inventory in
-  [`21`](21-d47-inventory.md)). The records themselves are unchanged.
-- [`01` D48](01-decisions.md) (owner, 2026-10-21): for the first implementation, reviewers drawn
-  from the pool with equal weights, no reputation update from ordinary reviews (the evaluation of
-  their reliability deferred), the consensus of their answers as the review's operational
-  criterion, not a guarantee of truth. It rectifies invariant #2's absolute ban on deciding by
-  votes; its effect on this register is [below](#d47-disposition-2026-10-21).
-- [`01` D49–D52](01-decisions.md) (owner, 2026-10-21): the approved contract of the *answer review*,
-  the offline path of the first implementation — a drawn group of 12, a quorum of 9 usable answers,
-  three quarters to accept or discard, the author's reputation inputs and quotas, its perimeter,
-  A2's disposition and provisional parameters. Its effect on this register is
-  [below](#d47-disposition-2026-10-21); its implementation is `10` T87. [D53](01-decisions.md)
-  (owner, 2026-10-21) confirms three of the implementation's choices for the first offline version.
+- **The change of direction** ([`01`](01-decisions.md) D47–D53, owner, 2026-10-21): reviewers
+  answer the item with any resource (D47); for the first implementation they are drawn from the
+  pool with equal weights, ordinary reviews update no reputation (their evaluation deferred), and
+  the consensus of their answers is the review's operational criterion, not a guarantee of truth,
+  rectifying invariant #2's absolute ban on deciding by votes (D48); D49–D52 approve the *answer
+  review*'s offline contract — a drawn group of 12, a quorum of 9 usable answers, three quarters to
+  accept or discard, the author's reputation inputs and quotas, its perimeter, A2's disposition and
+  provisional parameters — implemented as `10` T87, and D53 confirms three of its implementation
+  choices. Their effect on this register is the [D47 disposition](#d47-disposition-2026-10-21).
   After Astra's final review, T87 and Phase 1 are closed **in that path's perimeter only**
   ([record](#answer-review-t87-final-review-and-closure-2026-10-21)); no finding of the previous
   mechanism is closed by it.
+- **Archived paths.** The previous design's dossiers (`16`, `17`, `19`, `20`), the previous
+  handoff, A12's and A2's tools and A2's results are archived in `archive/phase1-forecast-pilot/`;
+  paths such as `phase1-handoff.md`, `sim/a12_offline.py`, `sim/dtf_composition.py` or
+  `verification/reports/a2-…` named in the records below are there now
+  ([path map](../archive/phase1-forecast-pilot/README.md#path-map), inventory in
+  [`21`](21-d47-inventory.md)). The records themselves are unchanged.
 - [`01` D45](01-decisions.md) (owner, 2026-10-20): Isegoria assumes an open environment;
   answers are produced under those conditions, `θ` stays the declared model's parameter, and a
   correct answer alone does not show unaided knowledge. [D46](01-decisions.md) records the

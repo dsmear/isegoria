@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Purpose** | What each machine does, command by command, in Milestone 2's gate 2 (`10` §2.4) as the owner set it up (dsmear, in chat, 2026-11-12): four machines he operates, each with an agent session that follows its role here. |
+| **Purpose** | What each machine does, command by command, in Milestone 2's gate 2 (`10` §2.4) as the owner set it up (dsmear, in chat, 2026-11-12): four machines the owner operates, each with an agent session that follows its role here. |
 | **Scope** | A runbook. The procedure it follows is `04` §The trial's procedure, steps 1–11, and `04` §Gate 2's checklist; the answer review's side is `05` §Distributed integration. It changes no contract. |
 | **Status** | **Written, not run.** The POSIX commands and `scripts/gate2-participants.sh` were run once on one machine over loopback (2026-11-12): one question to its outcome, the four digests equal. Nothing here has run on Windows or macOS, across machines or over a VPN. |
 
@@ -71,7 +71,7 @@ operator.
 2. Run `cargo test -p node -p client -p test-issuer -p p2p` and write the result, with every
    failing test's name and message, in `preliminary.txt`. A failure is reported, not fixed.
 3. The private network is Tailscale (owner, 2026-11-12): the operator installs it and signs the
-   machine in to his tailnet; the session writes `tailscale ip -4` in `address.txt` and, once
+   machine in to the owner's tailnet; the session writes `tailscale ip -4` in `address.txt` and, once
    all four are there, pings the other three. On Linux the interface is `tailscale0`.
 4. Allow inbound TCP on the listening ports. Windows, in an elevated PowerShell:
    `netsh advfirewall firewall add rule name="isegoria-node" dir=in action=allow protocol=TCP localport=4001`.
@@ -151,7 +151,7 @@ record; no parameter is calibrated (`14`).
 ## Stage 3 — first start (`04`, step 3)
 
 Each node: `isegoria-node RUN/<its>.toml`, standard error kept in `RUN/node-<name>.log`. **On
-Windows the operator starts it in a terminal of his own**, where Ctrl-C can stop it. The first
+Windows the operator starts it in a terminal of its own**, where Ctrl-C can stop it. The first
 line of the log is `listening on <address>`; `L` writes the relay's into `relay-address.txt`.
 
 A node's status is the file `status` in its data directory. Wait until every member's shows
@@ -203,7 +203,7 @@ stage of that name.
 | 23 | 0, 1, 3 | `--request … close-epoch 1` | a second `digest` line and `beacon 1 <value> []` on each; the four equal ▣ `08-epoch-1-closed` |
 | 24 | all | stop every node (SIGTERM; Ctrl-C on Windows); `L`: `sudo tc qdisc del dev tailscale0 root` | ▣ `09-stopped` |
 
-Line 10's rules, the operator saving the policy he had before them; the four addresses are the
+Line 10's rules, the operator saving the policy in place before them; the four addresses are the
 machines' own, each rule letting one side talk only within itself:
 
 ```json
