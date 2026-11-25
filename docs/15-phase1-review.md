@@ -116,7 +116,7 @@ rewritten and no finding is closed by it.
 no record is rewritten and no closure is reopened or extended; A1, A12 and A10 certify nothing of
 the consensus review either. A2 stays open. Phase 1's completion criteria, like the group's size,
 quorum, thresholds and outcomes, are among the decisions D48 leaves to the owner
-([handoff](handoff.md) §4); findings about the consensus review will be recorded here once
+([handoff](handoff.md) §3); findings about the consensus review will be recorded here once
 it is specified.
 
 **D49–D52 (owner, 2026-10-21).** The answer review's approved contract changes no record above and

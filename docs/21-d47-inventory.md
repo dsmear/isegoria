@@ -142,5 +142,5 @@ D48 settled part of D47's open points for the first implementation, and D49–D5
 answer review: the group, quorum and absences, thresholds and outcomes, "don't know", the source
 at deposit (D49), the author's reputation (D50) and quotas (D51), the previous filters' role, A2
 and Phase 1's completion (D52). What D49–D52 leave open is in the [handoff](handoff.md)
-(§4). This inventory says where the material is; whether the existing path's code is later
+(§3). This inventory says where the material is; whether the existing path's code is later
 adapted or retired is not decided here.
