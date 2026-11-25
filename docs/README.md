@@ -18,8 +18,8 @@ and evidence; they are not additional acceptance gates for this path.
 | [14 — Parameters](14-parameter-register.md) | Provisional values, calibration status and procedures by mechanism |
 | [15 — Review](15-phase1-review.md) | Findings, evidence and closure scopes |
 | [10 — Roadmap](10-roadmap.md) | Task status; completion is qualified by perimeter |
-| [16 — Milestone 2 trial](16-milestone2-trial.md) | Records of the Milestone 2 gates against a pinned revision, with their shared evidence |
-| [Handoff](phase1-handoff.md) | Resume work without duplicating the specification |
+| [24 — Milestone 2 trial](24-milestone2-trial.md) | Records of the Milestone 2 gates against a pinned revision, with their shared evidence |
+| [Handoff](handoff.md) | Resume work without duplicating the specification |
 | [Agent instructions](CLAUDE.md) | Invariants and working rules |
 | [Glossary](99-glossary.md) | Terms used by current and earlier mechanisms |
 
@@ -30,6 +30,7 @@ and evidence; they are not additional acceptance gates for this path.
 | [Architecture](../ARCHITECTURE.md) | Design-to-code map and test strategy |
 | [03 — Identity](03-identity-enrollment.md) | Enrollment and pseudonym requirements, assumptions and gaps; the trial's committee setup (T19) |
 | [04 — Storage and network](04-storage-network.md) | Separate network design; outside the offline closure |
+| [25 — Public archive](25-public-archive.md) | The public history in shards (T84, frozen, outside Milestone 2) |
 | [07 — Assurance](07-verification-and-assurance.md) | Verification methodology |
 | [08 — Audit](08-formal-specification.md) | Dated audit and remediation records, including the added answer-review matrix |
 | [11 — Mutation testing](11-mutation-testing.md) | Scoped test-quality evidence |

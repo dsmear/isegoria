@@ -367,7 +367,7 @@ exist, diagnostic behavior is unimplemented; prior detector rates do not charact
 ## Archive layout
 
 T84 takes explicit `(k, m)` inputs: positive data and parity counts, with `k+m ≤ 256`,
-subject to the byte limits in [04](04-storage-network.md#public-archive-segments-t84-first-increment).
+subject to the byte limits in [04](25-public-archive.md#public-archive-segments-t84-first-increment).
 There is no deployment default. Small test layouts establish reconstruction behavior,
 not a calibrated operating point. Before deployment, record the expected failure domains,
 maximum simultaneous holder loss, storage overhead and repair-bandwidth objectives;

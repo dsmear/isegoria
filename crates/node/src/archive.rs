@@ -1,5 +1,5 @@
 //! Operator-pinned archive jobs and latest-pass process status
-//! (`docs/04` §Archive maintenance in a node process).
+//! (`docs/25` §Archive maintenance in a node process).
 
 use crate::{addresses, unhex, ConfigError};
 use network::archive::{Context, SignedManifest, MAX_MANIFEST};

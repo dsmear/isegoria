@@ -1,4 +1,4 @@
-# Isegoria — Milestone 2 trial records
+# 24 — Milestone 2 trial records
 
 | | |
 |---|---|

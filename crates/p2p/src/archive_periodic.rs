@@ -1,4 +1,4 @@
-//! Serial caller-configured archive maintenance (`docs/04` §Periodic local archive maintenance).
+//! Serial caller-configured archive maintenance (`docs/25` §Periodic local archive maintenance).
 
 use super::{MaintainError, Maintenance, MAX_ARCHIVES};
 use libp2p::Multiaddr;

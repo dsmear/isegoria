@@ -1,5 +1,5 @@
 //! Manual archive preparation and independently reproduced co-signing
-//! (`docs/04` §Manual archive preparation and co-signing).
+//! (`docs/25` §Manual archive preparation and co-signing).
 
 use crate::archive::{read_bounded, MAX_CONFIG, MAX_CUT};
 use crate::{keys, tiers_of, unhex, ConfigError};
@@ -26,7 +26,7 @@ pub struct Config {
     pub segment_file: PathBuf,
     pub data_shards: usize,
     pub parity_shards: usize,
-    /// A closing target's snapshot, read only by extraction (`docs/04` §Segment extraction).
+    /// A closing target's snapshot, read only by extraction (`docs/25` §Segment extraction).
     pub root_statement_file: Option<PathBuf>,
     pub shape_file: Option<PathBuf>,
 }

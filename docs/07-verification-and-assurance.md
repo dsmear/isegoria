@@ -827,7 +827,7 @@ The exact naming may change, but the separation between **design**, **specificat
 
 *As adopted:* design in `docs/` (`00`–`06`), specification and the claim/evidence matrix in
 `08` (§15; no `09`), evidence beside the code (`crates/*/tests`, `crates/*/fuzz`) and in
-`verification/reports/` and the records `11`–`16` (`08` §13).
+`verification/reports/` and the records `11`–`15` and `24` (`08` §13).
 
 ---
 

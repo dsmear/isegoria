@@ -243,7 +243,7 @@ identity and that no evidence file holds the question's text or a line starting 
 
 ## What the record will say
 
-`16-milestone2-trial.md` gets gate 2's record from the exchange: the revision, the configuration
+`24-milestone2-trial.md` gets gate 2's record from the exchange: the revision, the configuration
 and its digest, the machines and systems, the faults with their times and lengths, what each
 showed against `04` §Gate 2's checklist, and what it did not show — one operator, the relay and
 the participants sharing members' machines, the tailnet every packet crossed, delay

@@ -210,7 +210,7 @@ Offline node commands export a collected cut and extract a pinned cut's public s
 stopped node's replica, prepare it, independently reproduce and combine member signatures,
 and install a holder's assigned shard while its node is stopped
 (`archive::Admitted::install_offline`). Automatic extraction/production, remote provisioning,
-roster agreement and deployment orchestration remain open (`docs/04` §Archive holders and
+roster agreement and deployment orchestration remain open (`docs/25` §Archive holders and
 transfer through §Collected cut export from a stopped node's replica, T84).
 
 ## `protocol` — lifecycle orchestration
@@ -509,6 +509,6 @@ to make the pipeline testable end-to-end.
 
 Task status belongs in the [roadmap](docs/10-roadmap.md); evidence and unresolved findings
 belong in the [review register](docs/15-phase1-review.md). The
-[handoff](docs/phase1-handoff.md) separates the closed offline answer review from work
+[handoff](docs/handoff.md) separates the closed offline answer review from work
 requiring another assignment. No legacy measurement or network task is implicitly a
 prerequisite for that closed perimeter.

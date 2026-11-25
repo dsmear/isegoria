@@ -95,7 +95,7 @@ It approves no particular algorithm, integration schedule or additional acceptan
 
 Phase 1 and T87 are closed only within the offline answer-review perimeter. The
 [review register](15-phase1-review.md#answer-review-t87-final-review-and-closure-2026-10-21)
-records the checks and exclusions; the [handoff](phase1-handoff.md) identifies work outside it.
+records the checks and exclusions; the [handoff](handoff.md) identifies work outside it.
 Parameters remain provisional and uncalibrated, and the decoder has had only short smoke runs (`12` §4).
 
 The earlier forecast-and-pilot path remains implemented with its own contracts in

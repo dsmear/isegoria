@@ -1,4 +1,4 @@
-//! Segment extraction from a stopped node's replica (`docs/04` §Segment extraction from a
+//! Segment extraction from a stopped node's replica (`docs/25` §Segment extraction from a
 //! stopped node's replica).
 
 #[path = "support/genesis.rs"]
