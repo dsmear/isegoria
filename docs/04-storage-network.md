@@ -650,6 +650,9 @@ node's replica).
 
 ### Blind relays (T85)
 
+A person's messages reach a member through a relay that forwards them sealed: the relay sees
+who sends but not what, the member reads what but not from where.
+
 **Status.** The first increment, the transport channel, is built on T85-P1–P5 at the owner's
 instruction, P5 as stated below, and reviewed (§As built); the rest of T85's state is in `10`
 T85. Which messages a person sends — the events, the read requests, their replies — is `05`
@@ -813,6 +816,10 @@ machines; the read path has had fuzz smoke runs only (`12` §4); untiered
 networks keep relays as writers.
 
 ### The state tree and the fork (T86)
+
+A tree commits each pseudonym's records, so that a record's presence or absence can be proved,
+and a fork of the network can carry pseudonyms' histories instead of letting a bad record start
+over.
 
 **Contract approved (2026-10-24, D56): T86-P1–P8.** The identifiers below are retained
 for review traceability. D56 accepts P6's public residual, P7's frozen-leaf exception to
@@ -1159,6 +1166,10 @@ number.
 
 ## Operating contract (T88)
 
+The rules the trial's independent operators agree before they start: the shared initial
+configuration, who holds which keys, the quorum and what a fault stops, and how a member
+recovers after a restart.
+
 **Status.** *Approved* by the owner (`01` D57, recorded 2026-10-31): T88-P1–P4 and the
 trial's archive custody below, which the trial no longer exercises (owner, 2026-11-03);
 T88-P1's schema in `01` D60 (2026-11-03).
@@ -1299,6 +1310,9 @@ D60).
   trial run.
 
 ### Archives and holders in the trial
+
+How the operators would agree on archives in the trial; since 2026-11-03 the trial exercises
+none.
 
 *Approved (D57).* The holder roster is distinct from the consortium: it assigns storage and
 does not restrict public reading. The operators agree by hand on each archive's context
@@ -1490,6 +1504,9 @@ What remains:
    a multi-operator trial's evidence.
 
 ### Increments A and B
+
+Two increments make a restarted member safe: it keeps a record of its own identity and stops if
+its files were lost (A), and it writes nothing before syncing with two other members (B).
 
 P4 is where the code contradicted the approved contract, so it comes first, in two
 increments, approved (`01` D58, D59) and specified below; together they still do not
@@ -1686,6 +1703,9 @@ the connection.
 
 ### The duties' stop at a conflict
 
+When two different cuts carry the same number, a member stops its duties and keeps the evidence
+instead of choosing one.
+
 Under D57's P3 — a node that detects a conflict stops progress, keeps the evidence and
 chooses no branch — this increment stops a member's duties. What a conflict is stays §Cuts'
 rule, unchanged: two cuts with one number, each counted with `t` signatures in one view, a
@@ -1727,6 +1747,9 @@ stop covers the duties only. Nothing collects or reports which cuts conflict bey
 status's flag and the replica's signatures, and nothing resolves a conflict.
 
 ### The cuts' views and exclusions in the status
+
+Each node's status reports, for every cut it collected, the view it was signed in and the
+members whose signatures it does not count, so operators can compare them.
 
 Authorized by the owner on 2026-11-01 within D57 (the trial's archive custody, step 4 of the
 procedure); no new decision. An archive context pins each cut with the view and the
@@ -1853,6 +1876,8 @@ schedule are `10` T17.
 ---
 
 ## Node types
+
+Three kinds of node take part, with different jobs and limits:
 
 | | Person-nodes | Signer-nodes (consortium) | Light-nodes |
 |---|---|---|---|

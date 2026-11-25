@@ -113,6 +113,10 @@ contract leaves to the implementation:
 
 ## Distributed integration (T79) — approved contract (D60)
 
+How the answer review runs between nodes: which events a person may send and how they are
+authenticated, what members check before co-signing a step, how participants reach members
+through relays and read their own records, and what each node shows its operator.
+
 **Status:** approved by the owner (`01` D60). What is built is specified as built in §Built on
 cuts, §Built in the node and §Built for participants, with the provisional test issuer (D65);
 gate 1's test is §Gate 1 on one machine, its record `24`; the task's state is `10` T79.
@@ -710,6 +714,9 @@ reveal) draws nothing; its deposits wait for the next epoch.
 
 ## [4] Review: random, blind, commit-reveal assignment
 
+In the earlier path a question goes to a panel drawn at random; each panelist rates it without
+seeing the others, committing before revealing.
+
 > **Revised by D40 (done, T57) and D41 (done, T37).** A panel holds at most one member of
 > each cluster flagged by the coordination detector (D39, `review::assign_diverse`), the
 > band's extra round included; every draw uses the epoch's beacon, made by commit-reveal
@@ -870,6 +877,8 @@ D27).
 
 ## [8] Active pool and re-validation
 
+Questions in use are checked again over time:
+
 - **Periodic re-validation of the whole pool**, the contested pool included ([7b]):
   scattered distortions add up over time until they become visible; an item accepted
   today can develop DIF as the context changes.
@@ -892,6 +901,9 @@ An item used a lot gets memorized and circulates: it loses value. Countermeasure
 ---
 
 ## Golden items (honeypot)
+
+Golden items are questions whose outcome is already known, mixed among those under review to
+score the earlier path's reviewers.
 
 > **D47 (2026-10-21).** Golden items and exploration scored the previous design's forecast.
 > Exploration is suspended; whether and how golden items serve the reviewers' reliability belongs
@@ -918,6 +930,8 @@ defense against meta-level capture: they must not be choosable by anyone.
 ---
 
 ## Cold start (bootstrap)
+
+How the earlier path starts before anyone has a reputation:
 
 - **A founder set** publicly declared, deliberately heterogeneous in orientation and
   provenance, all with identical weight `w = 1` for the bootstrap: until 30 scored

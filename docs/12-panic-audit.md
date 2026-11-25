@@ -31,6 +31,8 @@ other nodes, and a quorum's answers come from committee members.
 
 ## 2. Inventory
 
+Every place in the code that can stop the program with a panic, counted and classified (§1).
+
 35 sites outside `#[cfg(test)]` at `6c61263` (86 counting test modules): identity 28,
 network 4, protocol 2, scoring 1. After this audit: 30, none of them reachable from
 external input. T48, merged afterwards, adds one internal-invariant site in `scoring`
@@ -150,6 +152,9 @@ only, not lengths, allocations or work. `opentimestamps` 0.2.0 is the latest rel
 F1–F4 are worth reporting upstream.
 
 ## 4. Fuzz targets
+
+A fuzz target feeds one decoder or entry point arbitrary and mutated bytes for as long as it
+runs, looking for a crash or a broken property.
 
 Thirty-four `cargo fuzz` targets, in
 `crates/{network,identity,scoring,protocol,p2p,ceremony,client}/fuzz/` (outside the workspace:

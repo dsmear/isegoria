@@ -293,6 +293,9 @@ Out of scope: user interfaces, deployment tooling, legal/regulatory analysis of 
 
 ## 2. System model
 
+What the repository claims the system guarantees, what the code actually composes, and how far
+each part is designed, implemented, tested or simulated.
+
 ### 2.1 What the system claims to guarantee (as stated by the repository)
 
 The repository makes, in `README.md`, `docs/00`–`06`, and `ARCHITECTURE.md`, the following top-level claims. Each is decomposed into numbered claims in §5.
@@ -360,6 +363,9 @@ Observations that matter for every later section:
 ---
 
 ## 3. Actors and trust boundaries
+
+Who takes part, where the trust boundaries lie in the code, and which attackers the
+documentation assumes.
 
 ### 3.1 Actors
 
@@ -940,6 +946,9 @@ Logarithmic score (`docs/02` C.2); 3PL; infit/outfit; `d = 2` (descoped, D31/T39
 
 ## 7. Cryptographic specification
 
+The cryptographic primitives in use, the threats each must resist, which are reference
+implementations, and what needs external review.
+
 ### 7.1 Primitive inventory
 
 | Use | Standard / construction | Library, version (`Cargo.lock`) | Randomness | Domain separation | Status |
@@ -984,6 +993,9 @@ Before any deployment: (1) the threshold OPRF composition and its DLEQ transcrip
 ---
 
 ## 8. Privacy model
+
+Who could learn what about participants, each privacy property against its adversary, and what
+the code leaks.
 
 ### 8.1 Adversaries
 
@@ -1116,6 +1128,9 @@ members' objects on their feeds and the deadlines are cuts (`docs/04` §The beac
 ---
 
 ## 10. Distributed-systems semantics
+
+How the log, the Merkle tree, checkpoints, replication, erasure coding and anchoring behave,
+faults included.
 
 ### 10.1 Append-only log
 - **State.** `Vec<Entry{seq, prev, payload: Cid, hash}>`; `head = last.hash` or `0³²`. Durable since T13: `store::DurableLog` keeps the entries in an append-only file and rebuilds the log from it on open (NET-011).
@@ -1873,6 +1888,8 @@ Each question preserves an ambiguity found in the repository and offers precise 
 
 ## 18. Residual risks (accepted or currently unmitigated)
 
+The risks accepted or not yet mitigated, and for each whether an owner decision is needed:
+
 | Risk | Nature | Owner decision required |
 |---|---|---|
 | Issuing committee `≥ t` colludes: unlimited undetectable credentials | structural | accept; mitigate by committee composition (D16-style) — no technical fix in the design |
@@ -1911,6 +1928,8 @@ The following cannot be established from the repository, from simulation, or fro
 ---
 
 ## 20. Implementation mapping
+
+Where each concept lives in the specification, the code, the tests and the simulations:
 
 | Concept | Spec section | Code | Tests | Sims |
 |---|---|---|---|---|

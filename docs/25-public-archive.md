@@ -7,6 +7,9 @@
 
 ## Public archive segments (T84, first increment)
 
+A segment is the archive's unit: the public entries one cut adds and their objects, coded into
+shards whose manifest the members sign. These are the library pieces that build and check it.
+
 `network::archive` supplies library primitives; it performs no network I/O or periodic
 work. Their transport integration is specified in §Archive holders and transfer below. A caller provides a trusted `Context`: tiers, lineage, the previous cut (or none
 at genesis), the exact target cut and view, and the excluded members established by the
@@ -99,6 +102,9 @@ fuzzing, availability model or T79/T88 approval is implied.
 
 ## Archive holders and transfer (T84, second increment)
 
+Holders keep shards. A tiered node stores the shards assigned to it and serves them read-only
+to other nodes.
+
 Tiered `p2p::Handle` nodes expose a read-only archive service. With `Config.store`,
 selected shards persist in its `archive/` subdirectory; otherwise they live in memory.
 Untiered nodes do not negotiate this protocol. No new TOML setting is needed: the node
@@ -178,6 +184,9 @@ fuzzed.
 
 ## Archive holder discovery (T84, third increment)
 
+A node that knows a segment's signed manifest finds who holds its shards through the network's
+distributed table and fetches them, without a full replica.
+
 `p2p::archive::fetch_discovered` takes a trusted archive context, its signed manifest,
 bootstrap addresses and a total deadline. The bootstrap need not hold any shard. The
 client verifies the manifest before contacting the network, finds providers for its shard
@@ -235,6 +244,9 @@ and coordinated repair across holders remain separate work. T79/T88 are unchange
 no new fuzzing or mutation campaign is claimed.
 
 ## Local archive assignment and repair (T84, fourth increment)
+
+One maintenance pass: a holder works out which shards it should keep and fetches those it lacks
+from the others.
 
 `Handle::maintain_archive` performs one locally requested pass for a trusted archive
 context, signed manifest, storage roster, bootstrap addresses and deadline. It connects
@@ -296,6 +308,8 @@ local API; it adds no remote-write endpoint. T79/T88 and application rules are u
 
 ## Periodic local archive maintenance (T84, fifth increment)
 
+The same pass, repeated on a schedule the caller gives.
+
 `Handle::run_archive_maintenance` schedules the existing pass over an explicit list of
 `archive::MaintenanceJob`s. Each job borrows its trusted context, signed manifest, transport
 roster and bootstrap addresses. The caller supplies `MaintenanceSchedule` with a nonzero
@@ -348,6 +362,8 @@ across holders and validation by independent operators remain open. T79/T88 and 
 rules are unchanged.
 
 ## Archive maintenance in a node process (T84, sixth increment)
+
+The node process can run that schedule itself, when its configuration asks for it.
 
 `isegoria-node <config>` optionally starts the periodic runner above from an
 `[archive_maintenance]` table. It is accepted only in a tiered network; without the table,

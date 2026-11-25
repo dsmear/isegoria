@@ -788,6 +788,9 @@ For that history with the escrow, `C_a` crosses `2/5` at `45 log₂ 15 ≈ 175.8
 
 ## Statistical and operational work still open
 
+Questions of statistics and operation the review raised; each row says what evidence would
+close it.
+
 | Review IDs | Question and source | Completion evidence needed |
 |---|---|---|
 | **B1–B3** | Useful identification of `c`, sensitivity to its prior, anchor invariance, BIC under misspecification, and selection after penalized fitting. `02` §B.1/§B.3; `scoring/src/latent.rs:13–15,806–859,955–1019`. | Decision-level sensitivity, candidate/search stability and comparison with simpler alternatives and relevant misspecified populations. Do not equate fitted classes with real social groups. |
@@ -819,6 +822,8 @@ For that history with the escrow, `C_a` crosses `2/5` at `45 log₂ 15 ≈ 175.8
 | **Left open** | Outside the closure, integration: a caller assembling an epoch's tests, who sets `n`, what a test does on each outcome, a per-epoch budget, transport limits, a measurement on the composed path. Raising a limit, for instance `P` to admit the full pool at `n = 3`, would be a new derivation against the same targets. |
 
 ## Documentation disposition
+
+What each documentation pass changed for these findings, and what it left open.
 
 | Review IDs | What this documentation pass does | What it does not close |
 |---|---|---|

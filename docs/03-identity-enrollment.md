@@ -38,6 +38,9 @@ derived IDs, nor the two role IDs of the same person to each other.
 
 ## Enrollment flow
 
+A person proves their identity once to the state, receives from a separate committee an
+anonymous credential, and derives from it one pseudonym per role:
+
 ```
  CIE            SPID           other eID (EUDI, passport)
   │  document     │  federated    │
@@ -67,6 +70,10 @@ derived IDs, nor the two role IDs of the same person to each other.
 ---
 
 ## The three mechanisms, one per problem
+
+Each risk of the flow above has its own mechanism: enrolling twice through different documents
+(M1), the state linking a person to their activity (M2), and fresh pseudonyms that would erase
+a bad history (M3).
 
 ### M1 — Multiple sources without double enrollment
 
@@ -156,6 +163,8 @@ state-level actor:
 
 ## Residual gaps (not to be hidden)
 
+What the identity layer leaves exposed even when it works as designed:
+
 **F1 — Enrollment metadata.** SPID tells its identity provider that you authenticated
 *with the enrollment service*: the fact that you enrolled is visible (not what you
 do). **CIE via NFC is preferable to SPID**: reading the chip verifies the document
@@ -176,6 +185,10 @@ checks are specified in [05](05-question-lifecycle.md#the-answer-review-01-d49d5
 ---
 
 ## Committee setup for the trial (T19) — approved contract (D63)
+
+For the trial, the four members create the credential-issuing key together, each keeping only a
+share, so that issuing a credential takes several of them and none holds the whole key; their
+messages travel as files carried by hand.
 
 **Status:** approved (`01` D63) and rectified (D66); what is built is marked *Built* below, the
 review and the tests in `10` T19. The composition is bespoke and unaudited (`10` T23).

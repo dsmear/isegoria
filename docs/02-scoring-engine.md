@@ -34,6 +34,10 @@ and [15](15-phase1-review.md), not revalidated by this document.
 
 ## Level A — Bridging consensus
 
+Level A turns reviewers' ratings of a question into a score that rewards support crossing
+opposing camps, not a raw majority. It was the earlier engine's opinion filter; the answer
+review does not use it (`01` D52).
+
 ### A.1 Model
 
 Matrix factorization with asymmetric regularization. Let `r_uj ∈ [0,1]` be node `u`'s
@@ -251,6 +255,9 @@ The pilot's stage 1 reads the same model with one class (§B.2, T25's second ste
 thresholds are in this metric too.
 
 ### B.2 Retention criteria
+
+An item is kept only if every statistic below passes; the last column says what a failure
+means.
 
 | Statistic | Threshold | Meaning of failure |
 |---|---|---|
@@ -753,6 +760,9 @@ below is unchanged.
 
 ### C.1 Author score `C_a`
 
+The author score summarizes how the author's questions fared in review. It sets how many
+questions the author may propose, never a weight as a reviewer (`01` D5).
+
 **Implemented score.** Let `q_j ∈ {0, 1}` be an item's pilot outcome (below). The code uses
 a regularized, time-discounted weighted average:
 
@@ -1113,6 +1123,9 @@ stationary level sat far below the true mean, and a cautious reviewer who beat t
 ---
 
 ## Anti-collusion (coordination detection)
+
+Reviewers who coordinate their ratings must not gain extra influence: this section detects them
+and limits where they may sit.
 
 > **Revised by D39 and D40 (T56 and T57, done).** Within an epoch two reviewers share
 > under one item (paper §6.3), and raw correlations cannot separate a cartel from

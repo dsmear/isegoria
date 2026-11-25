@@ -31,6 +31,8 @@ The register records provisional values; it does not close those findings.
 
 ## Level A — the bridging gate
 
+One entry for each threshold of the earlier engine's bridging gate.
+
 ### `τ` — the bridging threshold (0.80, provisional)
 
 - **Reason.** The opinion filter's bar (D32): a question passes when the mean of its two
@@ -269,6 +271,8 @@ To be written by step 4 once the supplement's DIF studies have run on the correc
 floor prior's weight, `KR20_MIN` or a minimum number of anchors, `N_LATENT_MIN`, `DTF_MAX`.
 
 ## Level C — reputation and coordination
+
+Entries for the parameters of reputation and of coordination detection.
 
 **D47 (owner, 2026-10-21).** Reviewers answer the item; the reliability measure and its
 reputation update are still to define ([`01` D47](01-decisions.md)). **D48** defers that

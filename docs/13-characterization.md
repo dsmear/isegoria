@@ -173,6 +173,9 @@ reads the new records with the others. After T71: `bridging-sweep` and
 
 ## 3. The populations
 
+The synthetic populations the studies simulate: latent-DIF batches (§3.1), the Level A mirror
+design (§3.2) and the capture design (§3.3).
+
 ### 3.1 Latent-DIF batches
 
 Every `dif-*` study and `dtf-error` draws a batch of `N` respondents, `A` anchors and `K`
