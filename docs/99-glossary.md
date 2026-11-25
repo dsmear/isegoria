@@ -4,6 +4,45 @@ Terms used by the current answer review and the retained earlier design.
 The [overview](00-overview.md) explains the product; specifications and evidence
 stay in their own documents. A concept listed here is not necessarily used by the current path.
 
+## Project codes
+
+Documents and code comments name decisions, tasks, findings and tests by short codes. Each
+family is defined in one place; a code points to its definition, it does not replace a name.
+
+| Code | Names | Defined in |
+|---|---|---|
+| `D1`–`D68` | an owner decision | [01](01-decisions.md), one section each |
+| `T1`–`T89` | a task: what to build or fix, and when it counts as done | [10](10-roadmap.md), one row each |
+| `T79-P1`, `T88-P1`… | a numbered point of an approved task contract | the contract: T79 in [05](05-question-lifecycle.md), T85, T86 and T88 in [04](04-storage-network.md), T19 in [03](03-identity-enrollment.md) |
+| `A1`–`A12`, `B1`–`B7`, `C1`–`C8`, `D1`–`D6`, `E` | a review finding on correctness, statistics, consistency, direction or completion | [15](15-phase1-review.md); there `D1`–`D6` are findings, not decisions |
+| `AT-…` (`AT-ANS-02`, `AT-T79-50`) | an adversarial or acceptance test, named in the test code | [08](08-formal-specification.md) §12 |
+| `INV-…` | an invariant of the audit | 08 §4 |
+| `PROTO-…`, `NET-…`, `ID-…`, `PRIV-…`, `DIF-…`, `BRIDGE-…`, `REPUTATION-…`, `COLLUSION-…`, `CRYPTO-…`, `IRT-…`, `REPRO-…` | a formal claim and its evidence status | 08 §5 |
+| `G-…` | a gap the audit found | 08 §14 |
+| `SC-`, `CS-`, `PV-`, `PC-`, `DS-`, `IQ-`, `RP-`, `OR-` | a completion criterion | 08 §16 |
+| `` `04` §Cuts `` | section "Cuts" of document 04 | the [index](README.md) |
+| Level A, B, C | the earlier engine's layers: bridging, empirical validation, reputation | [02](02-scoring-engine.md) |
+
+The codes met most often:
+
+| Code | Plain name |
+|---|---|
+| T79 | the answer review between nodes |
+| T87 | the answer review offline (done) |
+| T19 | the committees' distributed key setup; in Milestone 2 the issuing committee |
+| T88 | the independent operators' contract: keys, configuration, membership, recovery |
+| T89 | fuzzing and mutation testing of Phase 2's code |
+| T77 | access tiers: who may read the replicated set |
+| T85 | blind relays |
+| T86 | the state tree and the fork |
+| T84 | the public archive in shards (frozen) |
+| T24, T25 | the earlier engine's characterization studies and threshold calibration |
+| D47–D53 | the answer review's direction and contract |
+| D54–D68 | the Phase 2 network and trial |
+| A1, A12 | the earlier evaluator score's incentive findings |
+| A2 | the earlier engine's whole-test bias guarantee (unresolved, not needed by the answer review) |
+| C5, C6 | the author score's formula and its decay in time |
+
 ## Sybil attack
 
 One participant acts through multiple identities to gain influence. Equal votes do not

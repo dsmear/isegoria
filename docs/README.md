@@ -21,7 +21,7 @@ and evidence; they are not additional acceptance gates for this path.
 | [24 — Milestone 2 trial](24-milestone2-trial.md) | Records of the Milestone 2 gates against a pinned revision, with their shared evidence |
 | [Handoff](handoff.md) | Resume work without duplicating the specification |
 | [Agent instructions](CLAUDE.md) | Invariants and working rules |
-| [Glossary](99-glossary.md) | Terms used by current and earlier mechanisms |
+| [Glossary](99-glossary.md) | The project's codes (D, T, A, AT…) and where each is defined; terms of current and earlier mechanisms |
 
 ## Components and assurance
 
